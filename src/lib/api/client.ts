@@ -16,7 +16,7 @@ async function apiFetch<T>(
   const options: RequestInit = {
     method,
     headers: { "Content-Type": "application/json" },
-    ...(body && { body: JSON.stringify(body) }),
+    ...(body ? { body: JSON.stringify(body) } : {}),
   };
 
   const res = await fetch(url, options);
