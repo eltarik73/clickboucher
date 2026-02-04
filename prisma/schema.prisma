@@ -1,0 +1,419 @@
+// ═══════════════════════════════════════════════
+// CLICKBOUCHER — Prisma Schema
+// PostgreSQL on Railway • Prisma ORM
+// ═══════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ────────────────────────────────────
+
+enum UserRole {
+  CLIENT
+  PRO
+  BOUCHER
+  ADMIN
+}
+
+enum ProStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  WEIGHING
+  WEIGHT_REVIEW
+  STOCK_ISSUE
+  READY
+  COLLECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CB_ONLINE
+  CB_SHOP
+  CASH
+  PRO_ACCOUNT
+}
+
+enum ProductUnit {
+  KG
+  PIECE
+  BARQUETTE
+}
+
+enum StockAction {
+  REPLACE
+  REMOVE
+  CONTACT
+}
+
+enum NotificationChannel {
+  WHATSAPP
+  SMS
+  PUSH
+}
+
+// ── User ─────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  email     String?  @unique
+  role      UserRole @default(CLIENT)
+  otpCode   String?  @map("otp_code")
+  otpExpiresAt DateTime? @map("otp_expires_at")
+
+  // PRO fields
+  proStatus   ProStatus? @map("pro_status")
+  siret       String?
+  companyName String?    @map("company_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  favorites     Favorite[]
+  orders        Order[]
+  proAccounts   ProAccount[]    @relation("ProUser")
+  notifications Notification[]
+  shopOwned     Shop?           @relation("ShopOwner")
+
+  @@map("users")
+}
+
+// ── Shop ─────────────────────────────────────
+
+model Shop {
+  id          String  @id @default(cuid())
+  ownerId     String  @unique @map("owner_id")
+  name        String
+  slug        String  @unique
+  description String  @default("")
+  address     String
+  city        String
+  postalCode  String  @map("postal_code")
+  phone       String
+  imageUrl    String  @map("image_url")
+  coverUrl    String? @map("cover_url")
+  latitude    Float   @default(0)
+  longitude   Float   @default(0)
+
+  // Service controls
+  isServiceActive  Boolean @default(true)  @map("is_service_active")
+  isSurchargeMode  Boolean @default(false) @map("is_surcharge_mode")
+  prepTimeMinutes  Int     @default(15)    @map("prep_time_minutes")
+  maxOrdersPer15   Int     @default(5)     @map("max_orders_per_15")
+
+  // Payment options
+  allowCashPayment    Boolean @default(false) @map("allow_cash_payment")
+  allowShopCardPayment Boolean @default(true) @map("allow_shop_card_payment")
+
+  // Stats
+  rating      Float @default(0)
+  reviewCount Int   @default(0) @map("review_count")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner         User            @relation("ShopOwner", fields: [ownerId], references: [id])
+  openingHours  OpeningHours[]
+  products      Product[]
+  packs         Pack[]
+  offers        Offer[]
+  orders        Order[]
+  favorites     Favorite[]
+  proAccounts   ProAccount[]
+
+  @@map("shops")
+}
+
+// ── Opening Hours ────────────────────────────
+
+model OpeningHours {
+  id        String  @id @default(cuid())
+  shopId    String  @map("shop_id")
+  dayOfWeek Int     @map("day_of_week") // 0=Sunday .. 6=Saturday
+  openTime  String  @map("open_time")   // "09:00"
+  closeTime String  @map("close_time")  // "19:00"
+  isClosed  Boolean @default(false) @map("is_closed")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, dayOfWeek])
+  @@map("opening_hours")
+}
+
+// ── Product ──────────────────────────────────
+
+model Product {
+  id          String      @id @default(cuid())
+  shopId      String      @map("shop_id")
+  name        String
+  description String      @default("")
+  imageUrl    String      @map("image_url")
+  category    String
+  unit        ProductUnit
+  priceCents  Int         @map("price_cents")      // public price in cents
+  proPriceCents Int?      @map("pro_price_cents")  // PRO price in cents
+  isInStock   Boolean     @default(true) @map("is_in_stock")
+  stockQty    Int?        @map("stock_qty")        // for PIECE/BARQUETTE
+  weightStep  Int?        @map("weight_step")      // grams step (e.g. 100)
+  minWeight   Int?        @map("min_weight")       // grams minimum
+  sortOrder   Int         @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  shop       Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  packItems  PackItem[]
+  orderItems OrderItem[]
+  offers     Offer[]
+
+  @@map("products")
+}
+
+// ── Pack ─────────────────────────────────────
+
+model Pack {
+  id          String  @id @default(cuid())
+  shopId      String  @map("shop_id")
+  name        String
+  description String  @default("")
+  imageUrl    String  @map("image_url")
+  priceCents  Int     @map("price_cents")
+  proPriceCents Int?  @map("pro_price_cents")
+  isInStock   Boolean @default(true) @map("is_in_stock")
+  stockQty    Int     @default(0)    @map("stock_qty")
+  sortOrder   Int     @default(0)    @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  shop       Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  items      PackItem[]
+  orderItems OrderItem[]
+
+  @@map("packs")
+}
+
+model PackItem {
+  id          String      @id @default(cuid())
+  packId      String      @map("pack_id")
+  productId   String      @map("product_id")
+  quantity    Int         @default(1)
+  unit        ProductUnit
+  weightGrams Int?        @map("weight_grams")
+
+  pack    Pack    @relation(fields: [packId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("pack_items")
+}
+
+// ── Offer (Dernière minute) ──────────────────
+
+model Offer {
+  id             String   @id @default(cuid())
+  shopId         String   @map("shop_id")
+  productId      String?  @map("product_id")
+  name           String
+  description    String   @default("")
+  imageUrl       String   @map("image_url")
+  originalCents  Int      @map("original_cents")
+  discountCents  Int      @map("discount_cents")
+  quantity       Int
+  remainingQty   Int      @map("remaining_qty")
+  expiresAt      DateTime @map("expires_at")
+  isSponsored    Boolean  @default(false) @map("is_sponsored")
+  reservedInCart Int      @default(0) @map("reserved_in_cart")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  shop    Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@map("offers")
+}
+
+// ── Order ────────────────────────────────────
+
+model Order {
+  id               String        @id @default(cuid())
+  orderNumber      String        @unique @map("order_number")
+  shopId           String        @map("shop_id")
+  userId           String?       @map("user_id")
+  guestPhone       String?       @map("guest_phone")
+
+  status           OrderStatus   @default(PENDING)
+  paymentStatus    PaymentStatus @default(PENDING) @map("payment_status")
+  paymentMethod    PaymentMethod @map("payment_method")
+
+  subtotalCents    Int           @map("subtotal_cents")
+  totalCents       Int           @map("total_cents")
+  weightAdjCents   Int?          @map("weight_adj_cents")
+
+  estimatedReadyAt DateTime?     @map("estimated_ready_at")
+  collectedAt      DateTime?     @map("collected_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  shop           Shop            @relation(fields: [shopId], references: [id])
+  user           User?           @relation(fields: [userId], references: [id])
+  items          OrderItem[]
+  timeline       TimelineEvent[]
+  payment        Payment?
+  notifications  Notification[]
+
+  @@index([shopId, status])
+  @@index([userId])
+  @@map("orders")
+}
+
+// ── Order Item ───────────────────────────────
+
+model OrderItem {
+  id                 String       @id @default(cuid())
+  orderId            String       @map("order_id")
+  productId          String?      @map("product_id")
+  packId             String?      @map("pack_id")
+  name               String
+  imageUrl           String       @map("image_url")
+  unit               ProductUnit
+  quantity           Int          @default(1)
+  requestedWeight    Int?         @map("requested_weight")   // grams
+  actualWeight       Int?         @map("actual_weight")      // grams (after weighing)
+  unitPriceCents     Int          @map("unit_price_cents")
+  totalPriceCents    Int          @map("total_price_cents")
+  adjustedPriceCents Int?         @map("adjusted_price_cents")
+  weightDeviation    Float?       @map("weight_deviation")   // percentage
+  needsValidation    Boolean      @default(false) @map("needs_validation")
+  stockAction        StockAction? @map("stock_action")
+
+  // Relations
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+  pack    Pack?    @relation(fields: [packId], references: [id])
+
+  @@map("order_items")
+}
+
+// ── Timeline Event ───────────────────────────
+
+model TimelineEvent {
+  id        String      @id @default(cuid())
+  orderId   String      @map("order_id")
+  status    OrderStatus
+  message   String
+  detail    String?
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("timeline_events")
+}
+
+// ── Payment ──────────────────────────────────
+
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String        @unique @map("order_id")
+  amountCents   Int           @map("amount_cents")
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  providerRef   String?       @map("provider_ref")  // Stripe ID, mock ref, etc.
+  clientSecret  String?       @map("client_secret")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// ── Pro Account (crédit boucher→pro) ─────────
+
+model ProAccount {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  shopId        String   @map("shop_id")
+  isEnabled     Boolean  @default(false) @map("is_enabled")
+  limitCents    Int      @default(0) @map("limit_cents")      // plafond
+  balanceCents  Int      @default(0) @map("balance_cents")     // solde courant
+  dueDateDays   Int      @default(30) @map("due_date_days")    // échéance en jours
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation("ProUser", fields: [userId], references: [id], onDelete: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, shopId])
+  @@map("pro_accounts")
+}
+
+// ── Favorite ─────────────────────────────────
+
+model Favorite {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  shopId String @map("shop_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, shopId])
+  @@map("favorites")
+}
+
+// ── Notification ─────────────────────────────
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String              @map("user_id")
+  orderId   String?             @map("order_id")
+  channel   NotificationChannel
+  title     String
+  body      String
+  sentAt    DateTime?           @map("sent_at")
+  readAt    DateTime?           @map("read_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("notifications")
+}
