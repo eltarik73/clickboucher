@@ -63,25 +63,25 @@ export function getInitials(name: string): string {
  */
 export const UNSPLASH = {
   shops: [
-    "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80",
-    "https://images.unsplash.com/photo-1603048588665-791ca8aea617?w=800&q=80",
-    "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=800&q=80",
+    "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=900&q=85&auto=format",
+    "https://images.unsplash.com/photo-1545468800-85cc9bc6ecf7?w=900&q=85&auto=format",
+    "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=900&q=85&auto=format",
   ],
   products: [
-    "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=600&q=80",
-    "https://images.unsplash.com/photo-1615937691194-97dbd3f3dc29?w=600&q=80",
-    "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80",
-    "https://images.unsplash.com/photo-1599921841143-819065a55cc6?w=600&q=80",
-    "https://images.unsplash.com/photo-1623238912680-26fc5ffb57e4?w=600&q=80",
-    "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=600&q=80",
-    "https://images.unsplash.com/photo-1608039829572-4885a8b1e1d8?w=600&q=80",
-    "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80",
+    "https://images.unsplash.com/photo-1558030006-450675393462?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1599921841143-819065a55cc6?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1623238912680-26fc5ffb57e4?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1608039829572-4885a8b1e1d8?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=85&auto=format",
   ],
   packs: [
-    "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=600&q=80",
-    "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=600&q=80",
+    "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=600&q=85&auto=format",
+    "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=600&q=85&auto=format",
   ],
   offers: [
-    "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=600&q=80",
+    "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=600&q=85&auto=format",
   ],
 } as const;

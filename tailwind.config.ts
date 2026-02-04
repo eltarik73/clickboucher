@@ -57,8 +57,8 @@ const config: Config = {
         sm: "calc(var(--radius) - 8px)",
       },
       fontFamily: {
-        sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],
+        sans: ["'Outfit'", "system-ui", "sans-serif"],
+        display: ["'Playfair Display'", "Georgia", "serif"],
       },
       fontSize: {
         "hero": ["2.5rem", { lineHeight: "1.1", letterSpacing: "-0.03em", fontWeight: "700" }],
