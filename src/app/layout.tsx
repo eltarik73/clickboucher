@@ -47,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${dmSans.variable} ${plusJakarta.variable}`}>
-      <body className="min-h-dvh bg-background antialiased">
+      <body className="min-h-dvh bg-gradient-to-b from-background to-muted/30 antialiased">
         <CartProvider>
           {children}
         </CartProvider>

@@ -72,7 +72,7 @@ export default function DecouvrirPage() {
 
       {/* Shops */}
       <SectionHeader title="Boucheries à Chambéry" subtitle={`${filteredShops.length} résultats`} />
-      <div className="px-4 pb-6 space-y-4">
+      <div className="px-4 pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredShops.map((shop) => (
           <ShopCard key={shop.slug} {...shop} />
         ))}

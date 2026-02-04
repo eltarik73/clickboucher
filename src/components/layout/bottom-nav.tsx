@@ -50,7 +50,7 @@ export function BottomNav() {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      <div className="mx-auto flex h-[4.25rem] max-w-lg items-center justify-around px-2">
+      <div className="mx-auto flex h-[4.25rem] max-w-4xl items-center justify-around px-2">
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");

@@ -15,7 +15,7 @@ export function PageContainer({
   return (
     <main
       className={cn(
-        "mx-auto max-w-lg min-h-dvh",
+        "mx-auto min-h-dvh w-full max-w-4xl",
         padBottom && "pb-safe",
         className
       )}

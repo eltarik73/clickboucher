@@ -161,7 +161,7 @@ export default function BoucherLayout({
       </nav>
 
       {/* ── Content ─── */}
-      <main className="max-w-3xl mx-auto">{children}</main>
+      <main className="max-w-5xl mx-auto">{children}</main>
     </div>
   );
 }

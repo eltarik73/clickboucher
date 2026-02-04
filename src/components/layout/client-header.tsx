@@ -27,7 +27,7 @@ export function ClientHeader({
         className
       )}
     >
-      <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
+      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
         {/* Left: Location or Title */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {showLocation ? (
