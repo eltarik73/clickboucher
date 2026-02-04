@@ -13,7 +13,7 @@ import { formatPrice } from "@/lib/utils";
 const MOCK_ORDER = {
   id: "order-1",
   orderNumber: "CB-20240615-001",
-  status: "PREPARING" as const,
+  status: "PREPARING" as string,
   shop: { name: "Boucherie Savoie Tradition", address: "12 Rue de Boigne, Chambéry", phone: "04 79 33 12 34" },
   items: [
     { id: "i1", name: "Entrecôte", quantity: 2, unit: "KG", requestedWeight: 500, unitPriceCents: 3200, totalPriceCents: 3200 },
