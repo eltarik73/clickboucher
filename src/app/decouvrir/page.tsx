@@ -1,217 +1,165 @@
+// src/app/(client)/decouvrir/page.tsx
+// PAGE PUBLIQUE — Catalogue + Panier Sticky
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
-import { SHOPS, OFFERS } from "@/lib/seed/data";
-import { Badge, Card, Avatar } from "@/components/ui/shared";
-import { SecretTapLogo } from "@/components/layout/secret-logo";
+import { useState, useMemo } from "react";
+import { ProductCard, type Product } from "@/components/product/ProductCard";
+import { FilterChips } from "@/components/product/FilterChips";
+import { CartPanel } from "@/components/cart/CartPanel";
+import { CartDrawer } from "@/components/cart/CartDrawer";
+import { CartFAB } from "@/components/cart/CartFAB";
+import { Toast } from "@/components/ui/Toast";
 
-const FILTERS = ["Ouvert", "Express < 45 min", "Halal", "Dernière minute", "Traiteur"];
+// ─────────────────────────────────────────────
+// MOCK DATA (à remplacer par fetch API/Prisma)
+// ─────────────────────────────────────────────
+const MOCK_PRODUCTS: Product[] = [
+  { id: "1", shopId: "s1", name: "Merguez maison", subtitle: "Idéal BBQ · Halal", category: "merguez", prixAuKg: 12.90, badges: ["BBQ", "Top vente"] },
+  { id: "2", shopId: "s1", name: "Viande hachée 5%", subtitle: "Pur bœuf charolais", category: "viande_hachee", prixAuKg: 14.50, badges: ["Best-seller"] },
+  { id: "3", shopId: "s1", name: "Entrecôte charolaise", subtitle: "Race à viande · Persillé", category: "entrecote", prixAuKg: 38.00, badges: ["Premium"] },
+  { id: "4", shopId: "s1", name: "Chipolatas", subtitle: "Porc français", category: "chipolata", prixAuKg: 11.50, badges: ["BBQ"] },
+  { id: "5", shopId: "s1", name: "Brochettes mixtes", subtitle: "Bœuf & agneau marinés", category: "brochette", prixAuKg: 22.00, badges: ["BBQ", "Nouveau"] },
+  { id: "6", shopId: "s1", name: "Côtes d'agneau", subtitle: "Première qualité", category: "cote_agneau", prixAuKg: 28.50 },
+  { id: "7", shopId: "s1", name: "Steak haché 15%", subtitle: "Format burger", category: "steak", prixAuKg: 16.00, badges: ["Promo −10%"] },
+  { id: "8", shopId: "s1", name: "Escalope de poulet", subtitle: "Élevage plein air", category: "escalope", prixAuKg: 15.90 },
+  { id: "9", shopId: "s1", name: "Cuisses de poulet", subtitle: "Fermier Label Rouge", category: "cuisse_poulet", prixAuKg: 8.90 },
+  { id: "10", shopId: "s1", name: "Saucisses de Toulouse", subtitle: "Recette artisanale", category: "saucisse", prixAuKg: 13.50, badges: ["Artisanal"] },
+  { id: "11", shopId: "s1", name: "Poulet entier", subtitle: "Fermier · ≈1,5kg", category: "poulet_entier", prixAuKg: 9.90 },
+  { id: "12", shopId: "s1", name: "Viande hachée 15%", subtitle: "Idéal bolognaise", category: "viande_hachee", prixAuKg: 12.90 },
+];
 
+const CATEGORIES = [
+  { id: "all", label: "Tout" },
+  { id: "bbq", label: "BBQ" },
+  { id: "boeuf", label: "Bœuf" },
+  { id: "volaille", label: "Volaille" },
+  { id: "agneau", label: "Agneau" },
+  { id: "hache", label: "Haché" },
+  { id: "saucisse", label: "Saucisses" },
+];
+
+const CATEGORY_MAP: Record<string, string[]> = {
+  all: [],
+  bbq: ["merguez", "chipolata", "brochette", "saucisse"],
+  boeuf: ["viande_hachee", "entrecote", "steak"],
+  volaille: ["escalope", "cuisse_poulet", "poulet_entier"],
+  agneau: ["cote_agneau"],
+  hache: ["viande_hachee", "steak"],
+  saucisse: ["merguez", "chipolata", "saucisse"],
+};
+
+// ─────────────────────────────────────────────
+// PAGE COMPONENT
+// ─────────────────────────────────────────────
 export default function DecouvrirPage() {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const shops = [...SHOPS]
-    .sort((a, b) => Number(!!b.halal) - Number(!!a.halal))
-    .filter((s) => {
-      if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.city.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filter === "Ouvert" && !s.isOpen) return false;
-      if (filter === "Halal" && !s.halal) return false;
-      if (filter === "Express < 45 min" && !s.nextSlotLabel) return false;
-      return true;
-    });
+  const filtered = useMemo(() => {
+    let results = MOCK_PRODUCTS;
+
+    // Filter by category
+    if (activeFilter !== "all") {
+      const cats = CATEGORY_MAP[activeFilter] ?? [];
+      results = results.filter(p => cats.includes(p.category));
+    }
+
+    // Filter by search
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      results = results.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.subtitle?.toLowerCase().includes(q)) ||
+        p.category.toLowerCase().includes(q)
+      );
+    }
+
+    return results;
+  }, [search, activeFilter]);
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* ─── Sticky Header ─── */}
-      <div className="sticky top-0 z-30 bg-stone-50/85 backdrop-blur-xl border-b border-stone-200">
-        <div className="mx-auto max-w-[1100px] px-5 py-3.5">
-          {/* Top bar */}
-          <div className="flex justify-between items-center mb-3.5">
-            <SecretTapLogo />
-            <Link
-              href="/panier"
-              className="relative w-[42px] h-[42px] rounded-[10px] border border-stone-200 bg-white grid place-items-center shadow-sm text-lg hover:shadow-md transition-shadow"
-            >
-              🛒
-            </Link>
+    <div className="min-h-screen bg-[#FAFAF9]">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-[#E8E5E1] sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🥩</span>
+            <h1 className="text-[18px] font-bold tracking-tight text-[#1A1A1A]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              ClickBoucher
+            </h1>
+          </div>
+          <button type="button"
+            className="px-3.5 py-1.5 rounded-lg text-[12px] font-medium text-[#6B6560] bg-[#F5F3F0] hover:bg-[#EBE8E4] transition-colors">
+            Se connecter
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {/* Search + Filters */}
+        <div className="space-y-3 mb-6">
+          {/* Search bar */}
+          <div className="relative">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9C9590]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher un produit..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#E8E5E1] text-[14px] text-[#1A1A1A]
+                placeholder:text-[#9C9590] focus:outline-none focus:ring-2 focus:ring-[#7A1023]/15 focus:border-[#7A1023]/30
+                transition-all" />
           </div>
 
-          {/* Search */}
-          <div className="flex items-center gap-2.5 bg-white rounded-[14px] px-4 py-3 border border-stone-200 shadow-sm">
-            <span className="text-stone-400 text-base">🔎</span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher une boucherie, un quartier…"
-              className="flex-1 bg-transparent text-sm outline-none text-stone-900 placeholder:text-stone-400"
-            />
-            <button className="px-3 py-1.5 rounded-[10px] border border-stone-200 bg-white text-sm shadow-sm hover:bg-stone-50 transition">
-              📍
-            </button>
+          {/* Filter chips */}
+          <FilterChips categories={CATEGORIES} active={activeFilter} onChange={setActiveFilter} />
+        </div>
+
+        {/* Main layout: catalogue + cart */}
+        <div className="flex gap-6">
+          {/* Catalogue grid */}
+          <div className="flex-1 min-w-0">
+            {/* Results count */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[12px] text-[#9C9590]">{filtered.length} produit{filtered.length > 1 ? "s" : ""}</p>
+            </div>
+
+            {filtered.length === 0 ? (
+              /* Empty state */
+              <div className="text-center py-16">
+                <div className="text-4xl mb-4 opacity-30">🔍</div>
+                <p className="text-[14px] font-medium text-[#6B6560]">Aucun produit trouvé</p>
+                <p className="text-[12px] text-[#9C9590] mt-1">Essayez un autre mot-clé ou retirez les filtres</p>
+                <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }}
+                  className="mt-4 px-4 py-2 rounded-lg text-[12px] font-medium text-[#7A1023] bg-[#F9F0F2] hover:bg-[#F0E0E4] transition-colors">
+                  Réinitialiser les filtres
+                </button>
+              </div>
+            ) : (
+              /* Product grid */
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filtered.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Filters */}
-          <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(filter === f ? null : f)}
-                className={`shrink-0 px-4 py-2 rounded-full text-xs font-medium border transition-all ${
-                  filter === f
-                    ? "border-[#7A1023] bg-[#FDF2F4] text-[#7A1023]"
-                    : "border-stone-200 bg-white text-stone-900 hover:bg-stone-50"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+          {/* Sticky cart panel — desktop only */}
+          <div className="hidden lg:block w-[320px] shrink-0">
+            <CartPanel />
           </div>
         </div>
       </div>
 
-      {/* ─── Main ─── */}
-      <main className="mx-auto max-w-[1100px] px-5 py-7">
-        <div className="grid lg:grid-cols-[1fr_330px] gap-9 items-start">
-          {/* Col 1: Boucheries */}
-          <section>
-            <div className="flex justify-between items-end">
-              <div>
-                <h1 className="font-display text-2xl font-extrabold tracking-tight">
-                  Boucheries à Chambéry
-                </h1>
-                <p className="mt-1.5 text-sm text-stone-500">
-                  Choisis ta boucherie, retire rapidement.
-                </p>
-              </div>
-            </div>
+      {/* Mobile FAB */}
+      <CartFAB onClick={() => setDrawerOpen(true)} />
 
-            <div className="mt-5 flex flex-col gap-3">
-              {shops.map((shop, i) => (
-                <Link key={shop.id} href={`/boucherie/${shop.id}`}>
-                  <Card
-                    className={`p-[18px] animate-fade-up`}
-                    style={{ animationDelay: `${i * 70}ms` } as React.CSSProperties}
-                  >
-                    <div className="flex gap-3.5">
-                      <Avatar src={shop.imageUrl} name={shop.name} size={52} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2.5">
-                          <div className="min-w-0">
-                            <p className="text-[15px] font-bold tracking-tight truncate">
-                              {shop.name}
-                            </p>
-                            <p className="mt-0.5 text-xs text-stone-500">
-                              {shop.distanceLabel} • {shop.city}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1.5 shrink-0">
-                            {shop.isOpen ? (
-                              <Badge variant="open">● Ouvert • {shop.closesAt}</Badge>
-                            ) : (
-                              <Badge variant="closed">● Fermé • ouvre à {shop.opensAt}</Badge>
-                            )}
-                            {shop.nextSlotLabel && (
-                              <Badge variant="express">⚡ Express {shop.nextSlotLabel}</Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="mt-2.5 flex flex-wrap gap-1.5">
-                          {shop.halal && <Badge variant="halal">☪ Halal</Badge>}
-                          {shop.tags?.slice(0, 2).map((t) => (
-                            <Badge key={t}>{t}</Badge>
-                          ))}
-                          {shop.rating && (
-                            <Badge>
-                              ⭐ {shop.rating.toFixed(1)} • {shop.reviewsCount} avis
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-              {shops.length === 0 && (
-                <div className="rounded-[20px] border border-stone-200 bg-white p-8 text-sm text-stone-500 text-center animate-fade-in">
-                  🔍 Aucune boucherie trouvée. Essaie un autre filtre.
-                </div>
-              )}
-            </div>
-          </section>
+      {/* Mobile drawer */}
+      <CartDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
-          {/* Col 2: Sidebar promos */}
-          <aside className="lg:sticky lg:top-[200px]">
-            <div className="flex justify-between items-end">
-              <div>
-                <h2 className="font-display text-[17px] font-bold">🔥 Dernière minute</h2>
-                <p className="mt-1 text-xs text-stone-500">Stock limité, prix réduits.</p>
-              </div>
-              <Link
-                href="/bons-plans"
-                className="text-xs font-semibold text-[#7A1023] underline underline-offset-4"
-              >
-                Voir tout
-              </Link>
-            </div>
-
-            <div className="mt-3.5 flex flex-col gap-3">
-              {OFFERS.map((offer, i) => (
-                <Card
-                  key={offer.id}
-                  className={`overflow-hidden animate-fade-up`}
-                  style={{ animationDelay: `${(i + 3) * 70}ms` } as React.CSSProperties}
-                >
-                  <div className="relative h-[120px] bg-stone-100">
-                    {offer.imageUrl && (
-                      <img
-                        src={offer.imageUrl}
-                        alt={offer.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute top-2.5 left-2.5">
-                      <Badge variant="promo">-{offer.percentOff}%</Badge>
-                    </div>
-                    <div className="absolute bottom-2.5 left-3 right-3">
-                      <p className="text-[13px] font-bold text-white truncate">{offer.title}</p>
-                      <p className="text-[10px] text-white/70 mt-0.5">{offer.shopName}</p>
-                    </div>
-                  </div>
-                  <div className="p-3 flex justify-between items-end">
-                    <div>
-                      <p className="text-sm font-bold">{offer.price.toFixed(2)} €</p>
-                      <p className="text-[11px] text-stone-400 line-through">
-                        {offer.originalPrice.toFixed(2)} €
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-stone-500">{offer.expiresInMinutes} min</p>
-                      <p className="text-[10px] text-orange-600 font-semibold">
-                        {offer.qtyLeft} restant{offer.qtyLeft > 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </aside>
-        </div>
-      </main>
-
-      {/* ─── Footer discret ─── */}
-      <footer className="mx-auto max-w-[1100px] px-5 py-8 border-t border-stone-200 flex justify-between items-center">
-        <p className="text-[11px] text-stone-400">© 2026 ClickBoucher • Chambéry</p>
-        <Link
-          href="/sign-in"
-          className="text-[11px] text-stone-400 underline underline-offset-4 hover:text-stone-600 transition"
-        >
-          Espace professionnel
-        </Link>
-      </footer>
+      {/* Toast notification */}
+      <Toast />
     </div>
   );
 }

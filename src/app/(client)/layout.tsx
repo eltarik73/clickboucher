@@ -1,15 +1,8 @@
-export const dynamic = "force-dynamic";
-import { BottomNav } from "@/components/layout/bottom-nav";
+"use client";
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="relative min-h-dvh bg-background">
-      {children}
-      <BottomNav />
-    </div>
-  );
+import { CartProvider, useCartState } from "@/lib/hooks/useCart";
+
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
+  const cartState = useCartState();
+  return <CartProvider value={cartState}>{children}</CartProvider>;
 }
