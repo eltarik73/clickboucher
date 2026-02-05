@@ -1,21 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CartProvider, useCartState } from "@/lib/hooks/useCart";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 
 // ─────────────────────────────────────────────────────────────
-// IMAGES BOUCHERIES (Unsplash - belles photos artisanales)
+// IMAGES BOUCHERIES (Pexels - vraies photos de boucheries)
 // ─────────────────────────────────────────────────────────────
 const BUTCHER_IMAGES = [
-  "https://images.unsplash.com/photo-1558030006-450675393462?w=400&h=300&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&h=300&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1588347818036-558601350947?w=400&h=300&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1606850246029-563d25dbd2b2?w=400&h=300&fit=crop&q=80",
+  "https://images.pexels.com/photos/65175/pexels-photo-65175.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+  "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+  "https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+  "https://images.pexels.com/photos/618775/pexels-photo-618775.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+  "https://images.pexels.com/photos/1251208/pexels-photo-1251208.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
+  "https://images.pexels.com/photos/8477065/pexels-photo-8477065.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop",
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -25,14 +24,14 @@ const BUTCHERS = [
   { id: "1", name: "Boucherie Dupont", rating: 4.8, distance: "800m", isOpen: true, isExpress: true, image: BUTCHER_IMAGES[0] },
   { id: "2", name: "Maison de la Viande", rating: 4.6, distance: "1.2km", isOpen: true, isExpress: false, image: BUTCHER_IMAGES[1] },
   { id: "3", name: "Chez Marcel", rating: 4.9, distance: "1.5km", isOpen: true, isExpress: true, image: BUTCHER_IMAGES[2] },
-  { id: "4", name: "Boucherie du March\u00e9", rating: 4.4, distance: "2.1km", isOpen: false, isExpress: false, image: BUTCHER_IMAGES[3] },
-  { id: "5", name: "L'Artisan Boucher", rating: 4.7, distance: "2.8km", isOpen: true, isExpress: false, image: BUTCHER_IMAGES[4] },
+  { id: "4", name: "Boucherie du Marche", rating: 4.4, distance: "2.1km", isOpen: false, isExpress: false, image: BUTCHER_IMAGES[3] },
+  { id: "5", name: "L Artisan Boucher", rating: 4.7, distance: "2.8km", isOpen: true, isExpress: false, image: BUTCHER_IMAGES[4] },
   { id: "6", name: "Boucherie Saint-Pierre", rating: 4.5, distance: "3.2km", isOpen: true, isExpress: true, image: BUTCHER_IMAGES[5] },
 ];
 
 const PROMOS = [
   { id: "p1", title: "Merguez maison", discount: "-20%", originalPrice: 12.90, shop: "Dupont" },
-  { id: "p2", title: "Entrec\u00f4te", discount: "-15%", originalPrice: 38.00, shop: "Marcel" },
+  { id: "p2", title: "Entrecote", discount: "-15%", originalPrice: 38.00, shop: "Marcel" },
   { id: "p3", title: "Brochettes BBQ", discount: "-10%", originalPrice: 22.00, shop: "Maison" },
 ];
 
@@ -58,11 +57,12 @@ function ButcherCard({ butcher }: { butcher: typeof BUTCHERS[0] }) {
         }`}>
       
       {/* Image */}
-      <div className="relative h-36 overflow-hidden">
+      <div className="relative h-36 overflow-hidden bg-[#F5F3F0]">
         <img 
           src={butcher.image} 
           alt={butcher.name} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
         />
 
         {/* Badges */}
@@ -73,7 +73,7 @@ function ButcherCard({ butcher }: { butcher: typeof BUTCHERS[0] }) {
             </span>
           ) : (
             <span className="px-2 py-0.5 rounded-md bg-[#6B6560] text-white text-[10px] font-semibold">
-              Ferm&eacute;
+              Ferme
             </span>
           )}
           {butcher.isExpress && butcher.isOpen && (
@@ -124,7 +124,7 @@ function ButcherCard({ butcher }: { butcher: typeof BUTCHERS[0] }) {
               ? "bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98]"
               : "bg-[#F0EDEA] text-[#9C9590] cursor-not-allowed"
             }`}>
-          {butcher.isOpen ? "Choisir cette boucherie" : "Actuellement ferm\u00e9e"}
+          {butcher.isOpen ? "Choisir cette boucherie" : "Actuellement fermee"}
         </button>
       </div>
     </div>
@@ -149,8 +149,8 @@ function PromoCard({ promo }: { promo: typeof PROMOS[0] }) {
           </h4>
           <p className="text-xs text-[#9C9590] mt-0.5">Chez {promo.shop}</p>
           <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-sm font-bold text-[#DC2626]">{discountedPrice.toFixed(2)}&euro;/kg</span>
-            <span className="text-xs text-[#9C9590] line-through">{promo.originalPrice.toFixed(2)}&euro;</span>
+            <span className="text-sm font-bold text-[#DC2626]">{discountedPrice.toFixed(2)} euros/kg</span>
+            <span className="text-xs text-[#9C9590] line-through">{promo.originalPrice.toFixed(2)} euros</span>
           </div>
         </div>
       </div>
@@ -181,7 +181,7 @@ function LandingContent() {
             <div className="w-8 h-8 rounded-lg bg-[#DC2626] flex items-center justify-center">
               <span className="text-white text-sm font-bold">K</span>
             </div>
-            <span className="text-lg font-bold text-[#1A1A1A] tracking-tight">Klik&amp;Go</span>
+            <span className="text-lg font-bold text-[#1A1A1A] tracking-tight">Klik&Go</span>
             <span className="hidden sm:inline text-xs text-[#9C9590] ml-1">by TkS26</span>
           </div>
           <Link 
@@ -201,11 +201,11 @@ function LandingContent() {
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 text-center">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
-            Marre d&apos;attendre ?<br />
-            <span className="text-[#DC2626]">Commandez, r&eacute;cup&eacute;rez.</span>
+            Marre d attendre ?<br />
+            <span className="text-[#DC2626]">Commandez, recuperez.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-[#A0A0A0] max-w-2xl mx-auto">
-            Z&eacute;ro file. Z&eacute;ro stress. <span className="text-white font-medium">100% frais.</span>
+            Zero file. Zero stress. <span className="text-white font-medium">100% frais.</span>
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <button 
@@ -218,7 +218,7 @@ function LandingContent() {
               type="button" 
               onClick={scrollToHow}
               className="px-8 py-4 rounded-2xl bg-white/10 text-white text-base font-medium hover:bg-white/20 transition-all backdrop-blur-sm border border-white/10">
-              Comment &ccedil;a marche
+              Comment ca marche
             </button>
           </div>
         </div>
@@ -279,7 +279,7 @@ function LandingContent() {
       <footer className="border-t border-[#E8E5E1] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-sm text-[#9C9590]">
-            &copy; 2026 Klik&amp;Go &mdash; Propuls&eacute; par <span className="font-medium text-[#6B6560]">TkS26</span>
+            2026 Klik&Go - Propulse par <span className="font-medium text-[#6B6560]">TkS26</span>
           </p>
         </div>
       </footer>
