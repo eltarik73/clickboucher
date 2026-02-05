@@ -30,3 +30,28 @@ export function formatShortTime(mins: number): string {
   }
   return `${mins} min`;
 }
+
+// Image placeholders
+export const UNSPLASH = "https://images.unsplash.com/photo-";
+
+// Format weight
+export function formatWeight(grams: number): string {
+  if (grams >= 1000) {
+    return `${(grams / 1000).toFixed(1)} kg`;
+  }
+  return `${grams} g`;
+}
+
+// Format relative time
+export function formatRelativeTime(date: Date | string): string {
+  const now = new Date();
+  const d = new Date(date);
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "À l'instant";
+  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `Il y a ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  return `Il y a ${diffD}j`;
+}
