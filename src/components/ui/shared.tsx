@@ -20,14 +20,17 @@ export function Badge({
   children,
   variant = "default",
   className,
+  style,
 }: {
   children: ReactNode;
   variant?: BadgeVariant;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
-      className={cn(
+      style={style}
+        className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide whitespace-nowrap",
         badgeStyles[variant],
         className
@@ -63,6 +66,7 @@ export function Btn({
   onClick,
   disabled,
   className,
+  style,
 }: {
   children: ReactNode;
   variant?: BtnVariant;
@@ -70,12 +74,14 @@ export function Btn({
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <button
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
-      className={cn(
+      style={style}
+        className={cn(
         "inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold transition-all duration-200",
         "hover:-translate-y-px active:translate-y-0",
         "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0",
@@ -95,15 +101,18 @@ export function Card({
   children,
   onClick,
   className,
+  style,
 }: {
   children: ReactNode;
   onClick?: () => void;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <div
       onClick={onClick}
-      className={cn(
+      style={style}
+        className={cn(
         "bg-white rounded-[20px] border border-stone-200 shadow-sm transition-all duration-200",
         onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
         className
@@ -164,7 +173,7 @@ export function Toggle({
   return (
     <button
       onClick={onToggle}
-      className={cn(
+        className={cn(
         "relative w-[50px] h-7 rounded-full transition-colors duration-200 flex-shrink-0",
         on ? "bg-green-500" : "bg-stone-300"
       )}
@@ -210,14 +219,17 @@ export function StickyHeader({
   children,
   dark,
   className,
+  style,
 }: {
   children: ReactNode;
   dark?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <div
-      className={cn(
+      style={style}
+        className={cn(
         "sticky top-0 z-30 backdrop-blur-xl border-b flex items-center gap-3.5 px-5 py-3.5",
         dark
           ? "bg-[#7A1023] text-white border-white/10"

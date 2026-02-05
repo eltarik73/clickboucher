@@ -32,7 +32,25 @@ export function formatShortTime(mins: number): string {
 }
 
 // Image placeholders
-export const UNSPLASH = "https://images.unsplash.com/photo-";
+export const UNSPLASH = {
+  products: [
+    "https://images.unsplash.com/photo-1588347818481-07e015e9e8bc?w=400",
+    "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400",
+    "https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400",
+    "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400",
+    "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400",
+    "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=400",
+  ],
+  shops: [
+    "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400",
+    "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400",
+    "https://images.unsplash.com/photo-1588347818481-07e015e9e8bc?w=400",
+  ],
+  heroes: [
+    "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800",
+    "https://images.unsplash.com/photo-1588347818481-07e015e9e8bc?w=800",
+  ],
+};
 
 // Format weight
 export function formatWeight(grams: number): string {
