@@ -298,3 +298,4 @@ export default function DecouvrirPage() {
     </CartProvider>
   );
 }
+// force rebuild jeu.  5 févr. 2026 20:03:56 CET
