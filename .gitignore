@@ -40,3 +40,4 @@ prisma/*.db-journal
 node_modules
 .next
 node_modules
+.env.local
