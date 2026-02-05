@@ -1,136 +1,161 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { CartProvider, useCartState } from "@/lib/hooks/useCart";
-import { ProductCard, type Product } from "@/components/product/ProductCard";
-import { FilterChips } from "@/components/product/FilterChips";
-import { CartPanel } from "@/components/cart/CartPanel";
-import { CartDrawer } from "@/components/cart/CartDrawer";
-import { CartFAB } from "@/components/cart/CartFAB";
-import { Toast } from "@/components/ui/Toast";
+import { ButcherCard } from "@/components/landing/ButcherCard";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { PromoCard } from "@/components/landing/PromoCard";
 
-const MOCK_PRODUCTS: Product[] = [
-  { id: "1", shopId: "s1", name: "Merguez maison", subtitle: "BBQ \u00b7 Halal", category: "merguez", prixAuKg: 12.90, badges: ["BBQ", "Top vente"] },
-  { id: "2", shopId: "s1", name: "Viande hach\u00e9e 5%", subtitle: "Pur boeuf charolais", category: "viande_hachee", prixAuKg: 14.50, badges: ["Best-seller"] },
-  { id: "3", shopId: "s1", name: "Entrec\u00f4te charolaise", subtitle: "Persill\u00e9", category: "entrecote", prixAuKg: 38.00, badges: ["Premium"] },
-  { id: "4", shopId: "s1", name: "Chipolatas", subtitle: "Porc fran\u00e7ais", category: "chipolata", prixAuKg: 11.50, badges: ["BBQ"] },
-  { id: "5", shopId: "s1", name: "Brochettes mixtes", subtitle: "Boeuf & agneau", category: "brochette", prixAuKg: 22.00, badges: ["Nouveau"] },
-  { id: "6", shopId: "s1", name: "C\u00f4tes d'agneau", subtitle: "Premi\u00e8re qualit\u00e9", category: "cote_agneau", prixAuKg: 28.50 },
-  { id: "7", shopId: "s1", name: "Steak hach\u00e9 15%", subtitle: "Format burger", category: "steak", prixAuKg: 16.00, badges: ["Promo"] },
-  { id: "8", shopId: "s1", name: "Escalope de poulet", subtitle: "Plein air", category: "escalope", prixAuKg: 15.90 },
-  { id: "9", shopId: "s1", name: "Cuisses de poulet", subtitle: "Label Rouge", category: "cuisse_poulet", prixAuKg: 8.90 },
-  { id: "10", shopId: "s1", name: "Saucisses de Toulouse", subtitle: "Artisanale", category: "saucisse", prixAuKg: 13.50, badges: ["Artisanal"] },
-  { id: "11", shopId: "s1", name: "Poulet entier", subtitle: "Fermier", category: "poulet_entier", prixAuKg: 9.90 },
-  { id: "12", shopId: "s1", name: "Viande hach\u00e9e 15%", subtitle: "Bolognaise", category: "viande_hachee", prixAuKg: 12.90 },
+// ─────────────────────────────────────────────────────────────
+// MOCK DATA
+// ─────────────────────────────────────────────────────────────
+const BUTCHERS = [
+  { id: "1", name: "Boucherie Dupont", rating: 4.8, distance: "800m", isOpen: true, isExpress: true, image: null },
+  { id: "2", name: "Maison de la Viande", rating: 4.6, distance: "1.2km", isOpen: true, isExpress: false, image: null },
+  { id: "3", name: "Chez Marcel", rating: 4.9, distance: "1.5km", isOpen: true, isExpress: true, image: null },
+  { id: "4", name: "Boucherie du March\u00e9", rating: 4.4, distance: "2.1km", isOpen: false, isExpress: false, image: null },
+  { id: "5", name: "L'Artisan Boucher", rating: 4.7, distance: "2.8km", isOpen: true, isExpress: false, image: null },
+  { id: "6", name: "Boucherie Saint-Pierre", rating: 4.5, distance: "3.2km", isOpen: true, isExpress: true, image: null },
 ];
 
-const CATEGORIES = [
-  { id: "all", label: "Tout" },
-  { id: "bbq", label: "BBQ" },
-  { id: "boeuf", label: "Boeuf" },
-  { id: "volaille", label: "Volaille" },
-  { id: "agneau", label: "Agneau" },
-  { id: "hache", label: "Hach\u00e9" },
-  { id: "saucisse", label: "Saucisses" },
+const PROMOS = [
+  { id: "p1", title: "Merguez maison", discount: "-20%", originalPrice: 12.90, shop: "Dupont" },
+  { id: "p2", title: "Entrec\u00f4te", discount: "-15%", originalPrice: 38.00, shop: "Marcel" },
+  { id: "p3", title: "Brochettes BBQ", discount: "-10%", originalPrice: 22.00, shop: "Maison" },
 ];
 
-const CATEGORY_MAP: Record<string, string[]> = {
-  all: [],
-  bbq: ["merguez", "chipolata", "brochette", "saucisse"],
-  boeuf: ["viande_hachee", "entrecote", "steak"],
-  volaille: ["escalope", "cuisse_poulet", "poulet_entier"],
-  agneau: ["cote_agneau"],
-  hache: ["viande_hachee", "steak"],
-  saucisse: ["merguez", "chipolata", "saucisse"],
-};
+// ─────────────────────────────────────────────────────────────
+// MAIN CONTENT
+// ─────────────────────────────────────────────────────────────
+function LandingContent() {
+  const openButchers = BUTCHERS.filter(b => b.isOpen);
 
-function DecouvrirContent() {
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const scrollToHow = () => {
+    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+  };
 
-  const filtered = useMemo(() => {
-    let results = MOCK_PRODUCTS;
-    if (activeFilter !== "all") {
-      const cats = CATEGORY_MAP[activeFilter] ?? [];
-      results = results.filter(p => cats.includes(p.category));
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      results = results.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        (p.subtitle?.toLowerCase().includes(q)) ||
-        p.category.toLowerCase().includes(q)
-      );
-    }
-    return results;
-  }, [search, activeFilter]);
+  const scrollToButchers = () => {
+    document.getElementById("butchers")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen bg-[#FAFAF9]">
-      <header className="bg-white/80 backdrop-blur-md border-b border-[#E8E5E1] sticky top-0 z-20">
+      {/* ─────────────── HEADER ─────────────── */}
+      <header className="bg-white/90 backdrop-blur-md border-b border-[#E8E5E1] sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl" role="img" aria-label="meat">&#x1F969;</span>
-            <h1 className="text-lg font-bold tracking-tight text-[#1A1A1A]">ClickBoucher</h1>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#DC2626] flex items-center justify-center">
+              <span className="text-white text-sm font-bold">K</span>
+            </div>
+            <span className="text-lg font-bold text-[#1A1A1A] tracking-tight">Klik&amp;Go</span>
+            <span className="hidden sm:inline text-xs text-[#9C9590] ml-1">by TkS26</span>
           </div>
-          <button type="button" className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-[#6B6560] bg-[#F5F3F0] hover:bg-[#EBE8E4] transition-colors">
+          <button type="button" className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-[#1A1A1A] hover:bg-[#333] transition-colors">
             Se connecter
           </button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="space-y-3 mb-6">
-          <div className="relative">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9C9590]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Rechercher un produit..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#E8E5E1] text-sm text-[#1A1A1A] placeholder:text-[#9C9590] focus:outline-none focus:ring-2 focus:ring-[#7A1023]/15 focus:border-[#7A1023]/30 transition-all" />
+      {/* ─────────────── HERO ─────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#0F0F0F] via-[#1A1A1A] to-[#2A2A2A] text-white">
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+          backgroundSize: "40px 40px"
+        }} />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-20 sm:py-28 text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
+            Marre d'attendre ?<br />
+            <span className="text-[#DC2626]">Commandez, r&eacute;cup&eacute;rez.</span>
+          </h1>
+          <p className="mt-6 text-lg sm:text-xl text-[#A0A0A0] max-w-2xl mx-auto">
+            Z&eacute;ro file. Z&eacute;ro stress. <span className="text-white font-medium">100% frais.</span>
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <button type="button" onClick={scrollToButchers}
+              className="px-8 py-4 rounded-2xl bg-[#DC2626] text-white text-base font-semibold hover:bg-[#B91C1C] transition-all shadow-lg shadow-[#DC2626]/25 active:scale-[0.98]">
+              Voir les boucheries
+            </button>
+            <button type="button" onClick={scrollToHow}
+              className="px-8 py-4 rounded-2xl bg-white/10 text-white text-base font-medium hover:bg-white/20 transition-all backdrop-blur-sm border border-white/10">
+              Comment &ccedil;a marche &darr;
+            </button>
           </div>
-          <FilterChips categories={CATEGORIES} active={activeFilter} onChange={setActiveFilter} />
         </div>
+      </section>
 
-        <div className="flex gap-6">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-[#9C9590] mb-4">{filtered.length} produit{filtered.length > 1 ? "s" : ""}</p>
-            {filtered.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-sm font-medium text-[#6B6560]">Aucun produit trouve</p>
-                <button type="button" onClick={() => { setSearch(""); setActiveFilter("all"); }}
-                  className="mt-4 px-4 py-2 rounded-lg text-xs font-medium text-[#7A1023] bg-[#F9F0F2] hover:bg-[#F0E0E4] transition-colors">
-                  Reinitialiser
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filtered.map(product => (
-                  <ProductCard key={product.id} product={product} />
+      {/* ─────────────── HOW IT WORKS ─────────────── */}
+      <HowItWorks />
+
+      {/* ─────────────── MAIN CONTENT: BUTCHERS + PROMOS SIDEBAR ─────────────── */}
+      <section id="butchers" className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main: Butchers */}
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-2xl font-bold text-[#1A1A1A]">Boucheries ouvertes</h2>
+              <span className="px-2.5 py-1 rounded-full bg-[#DCFCE7] text-[#16A34A] text-xs font-semibold">
+                {openButchers.length} disponibles
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {BUTCHERS.map(butcher => (
+                <ButcherCard key={butcher.id} butcher={butcher} />
+              ))}
+            </div>
+          </div>
+
+          {/* Sidebar: Promos (desktop) */}
+          <aside className="hidden lg:block w-[280px] shrink-0">
+            <div className="sticky top-24">
+              <h3 className="text-sm font-semibold text-[#6B6560] uppercase tracking-wider mb-4">
+                Bons plans du jour
+              </h3>
+              <div className="space-y-3">
+                {PROMOS.map(promo => (
+                  <PromoCard key={promo.id} promo={promo} />
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          </aside>
+        </div>
 
-          <div className="hidden lg:block w-[320px] shrink-0">
-            <CartPanel />
+        {/* Promos carousel (mobile) */}
+        <div className="lg:hidden mt-10">
+          <h3 className="text-sm font-semibold text-[#6B6560] uppercase tracking-wider mb-4">
+            Bons plans du jour
+          </h3>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            {PROMOS.map(promo => (
+              <div key={promo.id} className="shrink-0 w-[200px]">
+                <PromoCard promo={promo} />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      <CartFAB onClick={() => setDrawerOpen(true)} />
-      <CartDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-      <Toast />
+      {/* ─────────────── FOOTER ─────────────── */}
+      <footer className="border-t border-[#E8E5E1] py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+          <p className="text-sm text-[#9C9590]">
+            &copy; 2026 Klik&amp;Go &mdash; Propuls&eacute; par <span className="font-medium text-[#6B6560]">TkS26</span>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// PAGE WRAPPER WITH CART PROVIDER
+// ─────────────────────────────────────────────────────────────
 export default function DecouvrirPage() {
   const cartState = useCartState();
   return (
     <CartProvider value={cartState}>
-      <DecouvrirContent />
+      <LandingContent />
     </CartProvider>
   );
 }
