@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CartProvider, useCartState } from "@/lib/hooks/useCart";
+
 import { HowItWorks } from "@/components/landing/HowItWorks";
 
 // ─────────────────────────────────────────────────────────────
@@ -291,11 +291,11 @@ function LandingContent() {
 // PAGE WRAPPER WITH CART PROVIDER
 // ─────────────────────────────────────────────────────────────
 export default function DecouvrirPage() {
-  const cartState = useCartState();
+  
   return (
-    <CartProvider value={cartState}>
+    
       <LandingContent />
-    </CartProvider>
+    
   );
 }
 // force rebuild jeu.  5 févr. 2026 20:03:56 CET
