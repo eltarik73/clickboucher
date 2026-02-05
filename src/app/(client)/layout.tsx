@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { BottomNav } from "@/components/layout/bottom-nav";
 
 export default function ClientLayout({
