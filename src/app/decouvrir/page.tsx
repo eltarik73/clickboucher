@@ -6,7 +6,7 @@ import { HowItWorks } from "@/components/landing/HowItWorks";
 import { useCart } from "@/lib/hooks/useCart";
 
 // ─────────────────────────────────────────────────────────────
-// LOGO COMPONENT
+// LOGO COMPONENT (Header)
 // ─────────────────────────────────────────────────────────────
 function KlikGoLogo({ light = false }: { light?: boolean }) {
   const textColor = light ? "text-white" : "text-[#1A1A1A]";
@@ -21,6 +21,46 @@ function KlikGoLogo({ light = false }: { light?: boolean }) {
         <span className={`text-xl font-bold ${textColor}`}>&</span>
         <span className={`text-xl font-bold ${textColor} tracking-tight`}>Go</span>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// HERO LOGO (Centered, with glow)
+// ─────────────────────────────────────────────────────────────
+function HeroLogo() {
+  return (
+    <div className="flex flex-col items-center mb-8">
+      <div className="relative">
+        {/* Glow effect */}
+        <div className="absolute inset-0 blur-2xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
+        
+        <svg viewBox="0 0 100 100" className="w-20 h-20 sm:w-24 sm:h-24 relative z-10">
+          <defs>
+            <linearGradient id="heroLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#EF4444" />
+              <stop offset="50%" stopColor="#DC2626" />
+              <stop offset="100%" stopColor="#B91C1C" />
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="46" fill="url(#heroLogoGradient)" />
+          <path 
+            d="M35 25 L35 75 L45 75 L45 55 L60 75 L73 75 L55 52 L72 25 L59 25 L45 47 L45 25 Z" 
+            fill="white"
+          />
+          {/* Speed lines */}
+          <g className="animate-pulse">
+            <line x1="75" y1="35" x2="88" y2="35" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
+            <line x1="78" y1="45" x2="93" y2="45" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
+            <line x1="75" y1="55" x2="86" y2="55" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+          </g>
+        </svg>
+      </div>
+      
+      <h2 className="mt-4 text-2xl sm:text-3xl font-bold text-white tracking-tight">
+        Klik<span className="text-white">&</span>Go
+      </h2>
+      <p className="text-xs text-[#666] tracking-wider mt-1">by TkS26</p>
     </div>
   );
 }
@@ -56,10 +96,7 @@ function ButcherCard({ butcher }: { butcher: typeof BUTCHERS[0] }) {
   const handleClick = () => router.push(`/boutique/${butcher.id}`);
 
   return (
-    <div 
-      onClick={handleClick}
-      className="group cursor-pointer"
-    >
+    <div onClick={handleClick} className="group cursor-pointer">
       {/* Image container */}
       <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
         <img 
@@ -69,8 +106,8 @@ function ButcherCard({ butcher }: { butcher: typeof BUTCHERS[0] }) {
           loading="lazy"
         />
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         {/* Top badges */}
         <div className="absolute top-3 left-3 flex items-center gap-2">
@@ -123,7 +160,7 @@ function ButcherCard({ butcher }: { butcher: typeof BUTCHERS[0] }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PROMO CARD - Minimal
+// PROMO CARD
 // ─────────────────────────────────────────────────────────────
 function PromoCard({ promo }: { promo: typeof PROMOS[0] }) {
   return (
@@ -158,9 +195,6 @@ export default function DecouvrirPage() {
       {/* HERO WITH INTEGRATED HEADER - DARK */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <section className="relative bg-[#0A0A0A]">
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50" />
-        
         {/* Grid pattern */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
@@ -190,9 +224,12 @@ export default function DecouvrirPage() {
           </div>
         </header>
         
-        {/* Hero content */}
-        <div className="relative z-10 max-w-6xl mx-auto px-5 py-20 sm:py-28 text-center">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-[1.1]">
+        {/* Hero content with CENTERED LOGO */}
+        <div className="relative z-10 max-w-6xl mx-auto px-5 py-16 sm:py-20 text-center">
+          {/* Centered Logo */}
+          <HeroLogo />
+          
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.1]">
             Marre d'attendre ?<br />
             <span className="text-[#DC2626]">Commandez, recuperez.</span>
           </h1>
@@ -240,7 +277,7 @@ export default function DecouvrirPage() {
           </div>
         </div>
         
-        {/* Grid - 2 columns on desktop */}
+        {/* Grid - 2 columns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {BUTCHERS.map(butcher => (
             <ButcherCard key={butcher.id} butcher={butcher} />
