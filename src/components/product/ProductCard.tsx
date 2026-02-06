@@ -10,6 +10,8 @@ import { useCart, type CartItem } from "@/lib/hooks/useCart";
 export interface Product {
   id: string;
   shopId: string;
+  shopName?: string;
+  shopSlug?: string;
   name: string;
   subtitle?: string;
   category: string;
@@ -20,35 +22,50 @@ export interface Product {
 
 interface Props {
   product: Product;
+  shop?: { id: string; name: string; slug: string };
 }
 
-export function ProductCard({ product }: Props) {
+export function ProductCard({ product, shop }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [animating, setAnimating] = useState(false);
   const rule = getConversionRule(product.category);
   const defaultG = rule.presetsG[1] ?? rule.presetsG[0] ?? rule.minG;
   const [qty, setQty] = useState(defaultG);
-  const { addItem, hasItem } = useCart();
-  const isInCart = hasItem(product.id);
+  const { addItem, state } = useCart();
+  
+  // Check if item is in cart
+  const isInCart = state.items.some(item => item.productId === product.id);
 
   const handleAdd = useCallback(() => {
     if (!expanded) {
       setExpanded(true);
       return;
     }
+    
+    const shopInfo = shop || { 
+      id: product.shopId, 
+      name: product.shopName || "Boutique", 
+      slug: product.shopSlug || product.shopId 
+    };
+    
     const item: CartItem = {
+      id: `${shopInfo.id}-${product.id}`,
       productId: product.id,
-      shopId: product.shopId,
       name: product.name,
+      imageUrl: product.imageUrl || "",
+      unit: "KG",
+      priceCents: Math.round(product.prixAuKg * 100),
+      quantity: 1,
+      weightGrams: qty,
       category: product.category,
       quantiteG: qty,
       prixAuKg: product.prixAuKg,
-      imageUrl: product.imageUrl,
     };
-    addItem(item);
+    
+    addItem(item, shopInfo);
     setAnimating(true);
     setTimeout(() => { setAnimating(false); setExpanded(false); }, 400);
-  }, [expanded, qty, product, addItem]);
+  }, [expanded, qty, product, shop, addItem]);
 
   const prix = computePrice(qty, product.prixAuKg);
 

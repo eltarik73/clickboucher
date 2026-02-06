@@ -1,8 +1,7 @@
 "use client";
 
-import { CartProvider, useCartState } from "@/lib/hooks/useCart";
+import { CartProvider } from "@/lib/hooks/use-cart";
 
 export function CartProviderWrapper({ children }: { children: React.ReactNode }) {
-  const cartState = useCartState();
-  return <CartProvider value={cartState}>{children}</CartProvider>;
+  return <CartProvider>{children}</CartProvider>;
 }

@@ -1,31 +1,30 @@
-// src/components/cart/CartFAB.tsx
 "use client";
 
+import Link from "next/link";
 import { useCart } from "@/lib/hooks/useCart";
-import { formatPrice } from "@/lib/estimate";
 
-interface Props {
-  onClick: () => void;
-}
-
-export function CartFAB({ onClick }: Props) {
-  const { getItemCount, getTotal } = useCart();
-  const count = getItemCount();
-  const total = getTotal();
+export function CartFAB() {
+  const { itemCount, totalCents } = useCart();
+  const count = itemCount;
+  const total = totalCents / 100;
 
   if (count === 0) return null;
 
   return (
-    <button type="button" onClick={onClick}
-      className="fixed bottom-5 left-4 right-4 z-30 lg:hidden
-        flex items-center justify-between px-5 py-3.5 rounded-2xl
-        bg-[#7A1023] text-white shadow-xl shadow-[#7A1023]/30
-        active:scale-[0.98] transition-transform">
-      <div className="flex items-center gap-2.5">
-        <span className="text-base">🛒</span>
-        <span className="text-[13px] font-semibold">Panier ({count})</span>
+    <Link
+      href="/panier"
+      className="fixed bottom-6 right-6 z-40 flex items-center gap-3 px-5 py-3 bg-[#DC2626] text-white rounded-full shadow-lg shadow-red-500/30 hover:bg-[#B91C1C] transition-all"
+    >
+      <div className="relative">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </svg>
+        <span className="absolute -top-2 -right-2 w-5 h-5 bg-white text-[#DC2626] text-xs font-bold rounded-full flex items-center justify-center">
+          {count}
+        </span>
       </div>
-      <span className="text-[14px] font-bold">{formatPrice(total)}</span>
-    </button>
+      <span className="font-semibold">{total.toFixed(2)}€</span>
+    </Link>
   );
 }

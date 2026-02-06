@@ -15,6 +15,10 @@ export interface CartItem {
   priceCents: number;
   quantity: number;
   weightGrams?: number;
+// Added for CartItem.tsx compatibility
+  category?: string;
+  quantiteG?: number;
+  prixAuKg?: number;
 }
 
 interface CartState {
@@ -31,7 +35,7 @@ type CartAction =
   | { type: "UPDATE_WEIGHT"; payload: { id: string; weightGrams: number } }
   | { type: "CLEAR" };
 
-interface CartContextType {
+export interface CartContextType {
   state: CartState;
   addItem: (item: CartItem, shop: { id: string; name: string; slug: string }) => void;
   removeItem: (id: string) => void;
