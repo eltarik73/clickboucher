@@ -173,8 +173,8 @@ function PromoCard({ promo }: { promo: typeof PROMOS[0] }) {
         <p className="text-xs text-gray-400 mt-0.5">{promo.shop}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="font-semibold text-gray-900">{promo.price.toFixed(2)}€<span className="text-xs font-normal text-gray-400">/kg</span></p>
-        <p className="text-xs text-gray-400 line-through">{promo.oldPrice.toFixed(2)}€</p>
+        <p className="font-semibold text-gray-900">{promo.price.toFixed(2).replace(".", ",")} €<span className="text-xs font-normal text-gray-400">/kg</span></p>
+        <p className="text-xs text-gray-400 line-through">{promo.oldPrice.toFixed(2).replace(".", ",")} €</p>
       </div>
     </div>
   );

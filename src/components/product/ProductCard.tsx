@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import { getConversionRule } from "@/lib/conversion-config";
 import { computePrice, formatPrice, formatWeight } from "@/lib/estimate";
 import { QuantitySelector } from "./QuantitySelector";
@@ -51,7 +52,7 @@ export function ProductCard({ product, shop }: Props) {
       id: `${shopInfo.id}-${product.id}`,
       productId: product.id,
       name: product.name,
-      imageUrl: product.imageUrl || "",
+      imageUrl: product.imageUrl || "/images/boucherie-hero.webp",
       unit: "KG",
       priceCents: Math.round(product.prixAuKg * 100),
       quantity: 1,
@@ -76,14 +77,15 @@ export function ProductCard({ product, shop }: Props) {
       active:scale-[0.97] ${animating ? "scale-[0.97]" : ""}`}>
 
       {/* Image 68px */}
-      <div className="w-[68px] h-[68px] rounded-[13px] overflow-hidden shrink-0">
-        {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-[#f5f0eb] flex items-center justify-center">
-            <span className="text-2xl opacity-30">🥩</span>
-          </div>
-        )}
+      <div className="shrink-0">
+        <Image
+          src={product.imageUrl || "/images/boucherie-hero.webp"}
+          alt={product.name}
+          width={68}
+          height={68}
+          sizes="68px"
+          className="rounded-xl object-cover"
+        />
       </div>
 
       {/* Info */}
@@ -122,11 +124,11 @@ export function ProductCard({ product, shop }: Props) {
 
       {/* + Button */}
       {!expanded && (
-        <button onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-          className="absolute right-2.5 bottom-2.5 w-[28px] h-[28px] rounded-[9px] bg-[#f5f0eb] border border-[#e8e3dc]
-            flex items-center justify-center transition-all z-10
-            group-hover:bg-[#8b2500] group-hover:border-[#8b2500]">
-          <svg className="w-[14px] h-[14px] stroke-[#999] stroke-[2.5] fill-none group-hover:stroke-white" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+        <button
+          onClick={(e) => { e.stopPropagation(); handleAdd(); }}
+          className="absolute right-2 bottom-2 w-7 h-7 rounded-lg bg-[#f5f0eb] border border-[#e8e3dc] flex items-center justify-center text-[#999] hover:bg-[#8b2500] hover:border-[#8b2500] hover:text-white transition-colors z-10"
+        >
+          <svg className="w-3.5 h-3.5 stroke-current stroke-[2.5] fill-none" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>

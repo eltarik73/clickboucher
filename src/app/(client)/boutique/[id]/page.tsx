@@ -11,6 +11,7 @@ import { UNSPLASH } from "@/lib/utils";
 import { getConversionRule } from "@/lib/conversion-config";
 import { QuantitySelector } from "@/components/product/QuantitySelector";
 import { computePrice, formatPrice as fmtEstPrice } from "@/lib/estimate";
+import { Button } from "@/components/ui/button";
 
 type ViewMode = "col-2" | "col-3" | "mix";
 
@@ -398,25 +399,25 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Product grid */}
-        <div className="px-3 py-3 pb-28">
+        <div>
           {viewMode === "col-2" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="grid grid-cols-2 gap-3 px-4 pb-24">
               {filtered.map((p) => <Card2 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
             </div>
           )}
 
           {viewMode === "col-3" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div className="grid grid-cols-3 gap-3 px-4 pb-24">
               {filtered.map((p) => <Card3 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
             </div>
           )}
 
           {viewMode === "mix" && (
-            <>
+            <div className="px-4 pb-24">
               {popular.length > 0 && (
                 <>
                   <div style={{ color: t.cat, borderColor: t.sectionBorder }} className="text-[11px] font-bold uppercase tracking-[1.5px] mb-2.5 pb-1.5 border-b">Populaires</div>
-                  <div className="flex flex-col gap-2.5 mb-5">
+                  <div className="flex flex-col gap-3 mb-5">
                     {popular.map((p) => <Card1 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
                   </div>
                 </>
@@ -424,27 +425,25 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
               {rest.length > 0 && (
                 <>
                   <div style={{ color: t.cat, borderColor: t.sectionBorder }} className="text-[11px] font-bold uppercase tracking-[1.5px] mb-2.5 pb-1.5 border-b">Tout le catalogue</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div className="grid grid-cols-2 gap-3">
                     {rest.map((p) => <Card2 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
                   </div>
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
 
         {/* Sticky Cart Bar */}
         {cartCount > 0 && (
-          <div style={{ background: t.cartBg, borderColor: t.cartBorder, paddingBottom: "env(safe-area-inset-bottom, 0px)" }} className="fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-xl transition-colors duration-300">
-            <div className="max-w-5xl mx-auto px-5 py-3 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <span style={{ color: t.cartText }} className="text-[13px] font-semibold">Panier · {cartCount} article{cartCount > 1 ? "s" : ""}</span>
-                <span style={{ color: t.cartSub }} className="text-[12px] ml-2">{fmtPrice(totalCents)}</span>
-              </div>
-              <Link href="/panier" style={{ background: t.ctaBg }} className="px-6 py-2.5 rounded-full text-white text-[13px] font-semibold shadow-md transition-colors hover:opacity-90">
-                Commander
-              </Link>
+          <div className="fixed bottom-0 inset-x-0 bg-white border-t border-[#ece8e3] px-4 py-3 flex items-center justify-between shadow-lg z-50">
+            <div className="min-w-0">
+              <span className="text-sm font-semibold text-[#2a2018]">{cartCount} article{cartCount > 1 ? "s" : ""}</span>
+              <span className="text-sm text-[#b5a99a] ml-2">{fmtPrice(totalCents)}</span>
             </div>
+            <Button variant="default" className="bg-[#8b2500] hover:bg-[#6d1d00]" asChild>
+              <Link href="/panier">Commander</Link>
+            </Button>
           </div>
         )}
       </div>
