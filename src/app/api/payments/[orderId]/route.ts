@@ -1,16 +1,11 @@
-import { NextRequest } from "next/server";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { paymentService } from "@/lib/services";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { orderId: string } }
+  _context: { params: { orderId: string } }
 ) {
-  try {
-    const payment = await paymentService.getPaymentStatus(params.orderId);
-    if (!payment) return apiError("NOT_FOUND", "Paiement introuvable");
-    return apiSuccess(payment);
-  } catch (error) {
-    return handleApiError(error);
-  }
+  return NextResponse.json(
+    { error: "Not implemented - schema migration pending" },
+    { status: 501 }
+  );
 }

@@ -3,7 +3,7 @@ export type Shop = {
   name: string;
   city: string;
   rating?: number;
-  reviewsCount?: number;
+  ratingCount?: number;
   distanceLabel?: string;
   nextSlotLabel?: string | null;
   isOpen?: boolean;
@@ -24,28 +24,6 @@ export type Product = {
   tags: string[];
   stock: boolean;
   prepTime: number;
-};
-
-export type Pack = {
-  id: string;
-  shopId: string;
-  name: string;
-  publicPrice: number;
-  proPrice: number;
-  tags: string[];
-};
-
-export type Offer = {
-  id: string;
-  title: string;
-  shopName: string;
-  percentOff: number;
-  price: number;
-  originalPrice: number;
-  expiresInMinutes: number;
-  qtyLeft: number;
-  sponsored?: boolean;
-  imageUrl?: string;
 };
 
 export type OrderStatus = "confirmed" | "preparing" | "ready" | "picked";

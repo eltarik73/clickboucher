@@ -10,21 +10,15 @@ export async function GET(
     const shop = await prisma.shop.findUnique({
       where: { slug: params.slug },
       include: {
-        openingHours: { orderBy: { dayOfWeek: "asc" } },
         products: {
-          where: { isInStock: true },
-          orderBy: { sortOrder: "asc" },
+          where: { inStock: true },
+          include: { category: true },
+          orderBy: { name: "asc" },
         },
-        packs: {
-          where: { isInStock: true },
-          include: { items: { include: { product: true } } },
-          orderBy: { sortOrder: "asc" },
+        categories: {
+          orderBy: { order: "asc" },
         },
-        offers: {
-          where: { expiresAt: { gt: new Date() }, remainingQty: { gt: 0 } },
-          orderBy: [{ isSponsored: "desc" }, { expiresAt: "asc" }],
-        },
-        _count: { select: { orders: true, favorites: true } },
+        _count: { select: { orders: true } },
       },
     });
 

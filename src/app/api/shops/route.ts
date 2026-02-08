@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { shopListQuerySchema } from "@/lib/validators";
-import { apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
+import { apiPaginated, handleApiError } from "@/lib/api/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,10 +21,9 @@ export async function GET(req: NextRequest) {
       prisma.shop.findMany({
         where,
         include: {
-          openingHours: true,
-          _count: { select: { products: true, offers: true } },
+          _count: { select: { products: true } },
         },
-        orderBy: [{ rating: "desc" }, { reviewCount: "desc" }],
+        orderBy: [{ rating: "desc" }, { ratingCount: "desc" }],
         skip: (query.page - 1) * query.perPage,
         take: query.perPage,
       }),

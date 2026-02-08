@@ -16,7 +16,8 @@ export async function GET(
 
     const products = await prisma.product.findMany({
       where: { shopId: shop.id },
-      orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
+      include: { category: true },
+      orderBy: [{ category: { name: "asc" } }, { name: "asc" }],
     });
 
     return apiSuccess(products);

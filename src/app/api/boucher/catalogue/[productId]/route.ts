@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { updateProductStockSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
 export async function PATCH(
@@ -9,7 +8,6 @@ export async function PATCH(
 ) {
   try {
     const body = await req.json();
-    const data = updateProductStockSchema.parse(body);
 
     const product = await prisma.product.findUnique({
       where: { id: params.productId },
@@ -17,10 +15,10 @@ export async function PATCH(
     if (!product) return apiError("NOT_FOUND", "Produit introuvable");
 
     const updateData: Record<string, unknown> = {};
-    if (data.isInStock !== undefined) updateData.isInStock = data.isInStock;
-    if (data.stockQty !== undefined) updateData.stockQty = data.stockQty;
-    if (data.priceCents !== undefined) updateData.priceCents = data.priceCents;
-    if (data.proPriceCents !== undefined) updateData.proPriceCents = data.proPriceCents;
+    if (body.inStock !== undefined) updateData.inStock = body.inStock;
+    if (body.stockQty !== undefined) updateData.stockQty = body.stockQty;
+    if (body.priceCents !== undefined) updateData.priceCents = body.priceCents;
+    if (body.proPriceCents !== undefined) updateData.proPriceCents = body.proPriceCents;
 
     const updated = await prisma.product.update({
       where: { id: params.productId },
