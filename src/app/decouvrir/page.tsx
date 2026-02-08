@@ -83,9 +83,9 @@ const BUTCHERS = [
 ];
 
 const PROMOS = [
-  { id: "p1", title: "Merguez maison", discount: "20", price: 10.32, oldPrice: 12.90, shop: "Dupont" },
-  { id: "p2", title: "Entrecote premium", discount: "15", price: 32.30, oldPrice: 38.00, shop: "L'Artisan" },
-  { id: "p3", title: "Brochettes BBQ", discount: "10", price: 19.80, oldPrice: 22.00, shop: "Maison" },
+  { id: "p1", title: "Merguez maison", discount: "20", price: 10.32, oldPrice: 12.90, shop: "Dupont", shopId: "1" },
+  { id: "p2", title: "Entrecote premium", discount: "15", price: 32.30, oldPrice: 38.00, shop: "L'Artisan", shopId: "3" },
+  { id: "p3", title: "Brochettes BBQ", discount: "10", price: 19.80, oldPrice: 22.00, shop: "Maison", shopId: "2" },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -164,7 +164,7 @@ function ButcherCard({ butcher }: { butcher: typeof BUTCHERS[0] }) {
 // ─────────────────────────────────────────────────────────────
 function PromoCard({ promo }: { promo: typeof PROMOS[0] }) {
   return (
-    <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer group">
+    <Link href={`/boutique/${promo.shopId}`} className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer group">
       <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
         <span className="text-white text-sm font-bold">-{promo.discount}%</span>
       </div>
@@ -176,7 +176,7 @@ function PromoCard({ promo }: { promo: typeof PROMOS[0] }) {
         <p className="font-semibold text-gray-900">{promo.price.toFixed(2).replace(".", ",")} €<span className="text-xs font-normal text-gray-400">/kg</span></p>
         <p className="text-xs text-gray-400 line-through">{promo.oldPrice.toFixed(2).replace(".", ",")} €</p>
       </div>
-    </div>
+    </Link>
   );
 }
 

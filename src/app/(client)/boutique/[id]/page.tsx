@@ -4,13 +4,11 @@ export const dynamic = "force-dynamic";
 import React, { useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Heart, Star, Clock, MapPin, Navigation, Sun, Moon, X } from "lucide-react";
+import { ArrowLeft, Heart, Star, Clock, MapPin, Navigation, Sun, Moon } from "lucide-react";
 import { OfferCard } from "@/components/offer/offer-card";
 import { useCart } from "@/lib/hooks/use-cart";
 import { UNSPLASH } from "@/lib/utils";
-import { getConversionRule } from "@/lib/conversion-config";
-import { QuantitySelector } from "@/components/product/QuantitySelector";
-import { computePrice, formatPrice as fmtEstPrice } from "@/lib/estimate";
+import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
 import { Button } from "@/components/ui/button";
 
 type ViewMode = "col-2" | "col-3" | "mix";
@@ -30,7 +28,6 @@ const LIGHT = {
   ctaBg: "#8b2500", ctaHoverBg: "#6e1d00",
   unitText: "#bbb", minBorder: "#e8e3dc", minText: "#999",
   card3Price: "#8b2500",
-  sheetBg: "#fff", sheetBorder: "#e8e4df", sheetOverlay: "rgba(0,0,0,0.4)",
 };
 
 const DARK = {
@@ -47,7 +44,6 @@ const DARK = {
   ctaBg: "#dc2626", ctaHoverBg: "#b91c1c",
   unitText: "#666", minBorder: "#2a2a2a", minText: "#666",
   card3Price: "#dc2626",
-  sheetBg: "#1a1a1a", sheetBorder: "#2a2a2a", sheetOverlay: "rgba(0,0,0,0.7)",
 };
 
 type Theme = typeof LIGHT;
@@ -190,71 +186,13 @@ function Card3({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void;
   );
 }
 
-/* ── WeightSheet (bottom sheet for KG items) ── */
-function WeightSheet({ product, t, onConfirm, onClose }: {
-  product: typeof MOCK_PRODUCTS[0];
-  t: Theme;
-  onConfirm: (weightG: number) => void;
-  onClose: () => void;
-}) {
-  const rule = getConversionRule(product.category);
-  const defaultG = rule.presetsG[1] ?? rule.presetsG[0] ?? rule.minG;
-  const [qty, setQty] = useState(defaultG);
-  const prix = computePrice(qty, product.priceCents / 100);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      {/* Overlay */}
-      <div className="absolute inset-0" style={{ background: t.sheetOverlay }} />
-      {/* Sheet */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{ background: t.sheetBg, borderColor: t.sheetBorder }}
-        className="relative w-full max-w-lg rounded-t-[24px] border-t p-5 pb-8 animate-fade-up z-10"
-      >
-        {/* Handle */}
-        <div className="w-10 h-1 rounded-full bg-[#ddd] mx-auto mb-4" />
-        {/* Header */}
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-16 h-16 rounded-[12px] overflow-hidden shrink-0">
-            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span style={{ color: t.cat }} className="text-[9px] font-bold uppercase tracking-wider">{product.category}</span>
-            <h3 style={{ fontFamily: "'Cormorant Garamond', serif", color: t.name }} className="text-lg font-bold leading-tight">{product.name}</h3>
-            <p style={{ color: t.desc }} className="text-xs mt-0.5">{product.description}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/5 transition-colors">
-            <X size={18} style={{ color: t.desc }} />
-          </button>
-        </div>
-        {/* Price per kg */}
-        <div className="flex items-center gap-2 mb-4">
-          <span style={{ color: t.price }} className="text-base font-extrabold">{fmtPrice(product.priceCents)}</span>
-          <span style={{ color: t.unitText }} className="text-[11px] font-semibold">/kg</span>
-        </div>
-        {/* Quantity selector */}
-        <QuantitySelector rule={rule} initialG={defaultG} onChange={setQty} compact />
-        {/* Confirm button */}
-        <button
-          onClick={() => onConfirm(qty)}
-          style={{ background: t.ctaBg }}
-          className="mt-4 w-full py-3 rounded-2xl text-white text-sm font-semibold transition-all hover:opacity-90 shadow-md"
-        >
-          Ajouter — {fmtEstPrice(prix)}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /* ── Main page ─────────────────────────────── */
 export default function BoutiquePage({ params }: { params: { id: string } }) {
   const [liked, setLiked] = useState(false);
-  const [activeCat, setActiveCat] = useState("Tout");
+  const [activeCat, setActiveCat] = useState<string>("Tout");
   const [viewMode, setViewMode] = useState<ViewMode>("col-2");
   const [dark, setDark] = useState(false);
-  const [weightProduct, setWeightProduct] = useState<typeof MOCK_PRODUCTS[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<WeightSheetProduct | null>(null);
   const { addItem, itemCount, totalCents, state } = useCart();
   const shop = MOCK_SHOP;
   const shopRef = { id: shop.id, name: shop.name, slug: shop.slug };
@@ -267,7 +205,7 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
 
   const handleAdd = useCallback((p: typeof MOCK_PRODUCTS[0]) => {
     if (p.unit === "KG") {
-      setWeightProduct(p);
+      setSelectedProduct(p);
       return;
     }
     addItem({
@@ -283,22 +221,22 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
   }, [addItem, shopRef]);
 
   const handleWeightConfirm = useCallback((weightG: number) => {
-    if (!weightProduct) return;
+    if (!selectedProduct) return;
     addItem({
-      id: weightProduct.id,
-      productId: weightProduct.id,
-      name: weightProduct.name,
-      imageUrl: weightProduct.imageUrl,
+      id: selectedProduct.id,
+      productId: selectedProduct.id,
+      name: selectedProduct.name,
+      imageUrl: selectedProduct.imageUrl,
       unit: "KG",
-      priceCents: weightProduct.priceCents,
+      priceCents: selectedProduct.priceCents,
       quantity: 1,
       weightGrams: weightG,
-      category: weightProduct.category,
+      category: selectedProduct.category,
       quantiteG: weightG,
-      prixAuKg: weightProduct.priceCents / 100,
+      prixAuKg: selectedProduct.priceCents / 100,
     }, shopRef);
-    setWeightProduct(null);
-  }, [weightProduct, addItem, shopRef]);
+    setSelectedProduct(null);
+  }, [selectedProduct, addItem, shopRef]);
 
   return (
     <div style={{ background: t.bg }} className="min-h-screen transition-colors duration-300">
@@ -388,10 +326,11 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             {CATEGORIES.map((c) => (
               <button key={c} onClick={() => setActiveCat(c)}
-                style={activeCat === c
-                  ? { background: t.pillActiveBg, color: t.pillActiveText, borderColor: t.pillActiveBg }
-                  : { background: t.pillBg, color: t.pillText, borderColor: t.pillBorder }}
-                className="px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+                className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] ${
+                  activeCat === c
+                    ? "bg-[#8b2500] border-[#8b2500] text-white"
+                    : "bg-white border-[#e8e4df] text-[#999]"
+                }`}>
                 {c}
               </button>
             ))}
@@ -449,14 +388,11 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
       </div>
 
       {/* WeightSheet bottom sheet for KG items */}
-      {weightProduct && (
-        <WeightSheet
-          product={weightProduct}
-          t={t}
-          onConfirm={handleWeightConfirm}
-          onClose={() => setWeightProduct(null)}
-        />
-      )}
+      <WeightSheet
+        product={selectedProduct}
+        onConfirm={handleWeightConfirm}
+        onClose={() => setSelectedProduct(null)}
+      />
     </div>
   );
 }
