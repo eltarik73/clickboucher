@@ -69,10 +69,10 @@ function HeroLogo() {
 // IMAGES & DATA
 // ─────────────────────────────────────────────────────────────
 const BUTCHER_IMAGES = [
-  "https://images.pexels.com/photos/65175/pexels-photo-65175.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
-  "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
-  "https://images.pexels.com/photos/3535383/pexels-photo-3535383.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
-  "https://images.pexels.com/photos/618775/pexels-photo-618775.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop",
+  "/images/boucherie-hero.webp",
+  "/images/boucherie-hero.webp",
+  "/images/boucherie-hero.webp",
+  "/images/boucherie-hero.webp",
 ];
 
 const BUTCHERS = [
