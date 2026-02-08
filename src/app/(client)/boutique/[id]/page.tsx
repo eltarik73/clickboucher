@@ -121,7 +121,7 @@ function Card1({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void;
   return (
     <div style={{ background: t.cardBg, borderColor: t.cardBorder, boxShadow: t.cardShadow }}
       className={`group relative flex gap-3.5 border rounded-[18px] p-2.5 cursor-pointer
-      transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.985]
+      transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.985] min-w-0 overflow-hidden
       ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
       {p.isPopular && <span style={{ background: t.badge }} className="absolute -top-px right-14 text-white text-[7.5px] font-extrabold px-2.5 py-[3px] rounded-b-lg tracking-wider z-10">POPULAIRE</span>}
       <div className="w-[85px] h-[85px] rounded-[14px] overflow-hidden shrink-0">
@@ -147,7 +147,7 @@ function Card2({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void;
   return (
     <div style={{ background: t.cardBg, borderColor: t.cardBorder, boxShadow: t.cardShadow }}
       className={`group relative flex gap-3 border rounded-[18px] p-2.5 cursor-pointer
-      transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]
+      transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] min-w-0 overflow-hidden
       ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
       {p.isPopular && <span style={{ background: t.badge }} className="absolute -top-px -left-px text-white text-[7px] font-extrabold px-2 py-0.5 rounded-[18px_0_10px_0] tracking-wide z-10">POPULAIRE</span>}
       <div className="w-[68px] h-[68px] rounded-[13px] overflow-hidden shrink-0">
@@ -171,7 +171,7 @@ function Card2({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void;
 function Card3({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void; t: Theme }) {
   return (
     <div style={{ background: t.cardBg, borderColor: t.cardBorder, boxShadow: t.cardShadow }}
-      className={`group relative flex flex-col border rounded-[16px] overflow-hidden cursor-pointer
+      className={`group relative flex flex-col border rounded-[16px] overflow-hidden cursor-pointer min-w-0
       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.96]
       ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
       {p.isPopular && <span style={{ background: t.badge }} className="absolute top-1 left-1 text-white text-[7px] font-extrabold px-1.5 py-0.5 rounded-[5px] z-10 tracking-wide">POPULAIRE</span>}
@@ -400,13 +400,13 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
         {/* Product grid */}
         <div className="px-3 py-3 pb-28">
           {viewMode === "col-2" && (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {filtered.map((p) => <Card2 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
             </div>
           )}
 
           {viewMode === "col-3" && (
-            <div className="grid grid-cols-3 gap-2.5">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
               {filtered.map((p) => <Card3 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
             </div>
           )}
@@ -424,7 +424,7 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
               {rest.length > 0 && (
                 <>
                   <div style={{ color: t.cat, borderColor: t.sectionBorder }} className="text-[11px] font-bold uppercase tracking-[1.5px] mb-2.5 pb-1.5 border-b">Tout le catalogue</div>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     {rest.map((p) => <Card2 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
                   </div>
                 </>
