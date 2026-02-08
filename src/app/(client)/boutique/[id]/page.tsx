@@ -4,13 +4,47 @@ export const dynamic = "force-dynamic";
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Heart, Star, Clock, MapPin, Navigation, Plus } from "lucide-react";
-import { PageContainer } from "@/components/layout/page-container";
+import { ArrowLeft, Heart, Star, Clock, MapPin, Navigation, Sun, Moon } from "lucide-react";
 import { OfferCard } from "@/components/offer/offer-card";
 import { useCart } from "@/lib/hooks/use-cart";
 import { UNSPLASH } from "@/lib/utils";
 
 type ViewMode = "col-2" | "col-3" | "mix";
+
+/* ── Theme tokens ──────────────────────────── */
+const LIGHT = {
+  bg: "#f8f6f3", cardBg: "#fff", cardBorder: "#ece8e3", cardHoverBorder: "#ddd5cc",
+  cardShadow: "0 1px 4px rgba(0,0,0,0.03)", cardHoverShadow: "0 8px 24px rgba(0,0,0,0.06)",
+  name: "#2a2018", price: "#2a2018", desc: "#b5a99a", cat: "#8b2500", badge: "#8b2500",
+  plusBg: "#f5f0eb", plusBorder: "#e8e3dc", plusHoverBg: "#8b2500", plusStroke: "#999",
+  stickyBg: "rgba(248,246,243,0.95)", pillBg: "#fff", pillBorder: "#e8e4df",
+  pillText: "#999", pillActiveBg: "#8b2500", pillActiveText: "#fff",
+  tagBg: "#fff", tagBorder: "#e8e4df", tagText: "#888",
+  infoText: "#999", infoStrong: "#444",
+  sectionTitle: "#2a2018", sectionBorder: "#e8e4df",
+  cartBg: "rgba(255,255,255,0.95)", cartBorder: "#e8e4df", cartText: "#2a2018", cartSub: "#b5a99a",
+  ctaBg: "#8b2500", ctaHoverBg: "#6e1d00",
+  unitText: "#bbb", minBorder: "#e8e3dc", minText: "#999",
+  card3Price: "#8b2500",
+};
+
+const DARK = {
+  bg: "#0a0a0a", cardBg: "#141414", cardBorder: "#1c1c1c", cardHoverBorder: "#2a2a2a",
+  cardShadow: "0 1px 4px rgba(0,0,0,0.2)", cardHoverShadow: "0 8px 24px rgba(0,0,0,0.4)",
+  name: "#eee", price: "#fff", desc: "#777", cat: "#dc2626", badge: "#dc2626",
+  plusBg: "#1e1e1e", plusBorder: "#2a2a2a", plusHoverBg: "#dc2626", plusStroke: "#666",
+  stickyBg: "rgba(10,10,10,0.95)", pillBg: "#141414", pillBorder: "#1c1c1c",
+  pillText: "#777", pillActiveBg: "#dc2626", pillActiveText: "#fff",
+  tagBg: "#141414", tagBorder: "#1c1c1c", tagText: "#777",
+  infoText: "#666", infoStrong: "#bbb",
+  sectionTitle: "#eee", sectionBorder: "#1c1c1c",
+  cartBg: "rgba(20,20,20,0.95)", cartBorder: "#1c1c1c", cartText: "#eee", cartSub: "#777",
+  ctaBg: "#dc2626", ctaHoverBg: "#b91c1c",
+  unitText: "#666", minBorder: "#2a2a2a", minText: "#666",
+  card3Price: "#dc2626",
+};
+
+type Theme = typeof LIGHT;
 
 const MOCK_SHOP = {
   id: "shop-1", slug: "savoie-tradition", name: "Boucherie Savoie Tradition",
@@ -45,123 +79,102 @@ function unitLabel(unit: string) {
   return unit === "KG" ? "/kg" : unit === "PIECE" ? "/pièce" : "/barq.";
 }
 
-/* ── SVG toggle icons ──────────────────────── */
+/* ── Toggle icons ────────────────────────────── */
 function Icon2Col({ active }: { active: boolean }) {
-  const c = active ? "#fff" : "#666";
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <rect x="1" y="1" width="7" height="7" rx="2" fill={c} />
-      <rect x="10" y="1" width="7" height="7" rx="2" fill={c} />
-      <rect x="1" y="10" width="7" height="7" rx="2" fill={c} />
-      <rect x="10" y="10" width="7" height="7" rx="2" fill={c} />
-    </svg>
-  );
+  const c = active ? "#fff" : "#bbb";
+  return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="7" height="7" rx="2" fill={c}/><rect x="10" y="1" width="7" height="7" rx="2" fill={c}/><rect x="1" y="10" width="7" height="7" rx="2" fill={c}/><rect x="10" y="10" width="7" height="7" rx="2" fill={c}/></svg>);
 }
 function Icon3Col({ active }: { active: boolean }) {
-  const c = active ? "#fff" : "#666";
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <rect x="1" y="1" width="4.5" height="7" rx="1.5" fill={c} />
-      <rect x="6.75" y="1" width="4.5" height="7" rx="1.5" fill={c} />
-      <rect x="12.5" y="1" width="4.5" height="7" rx="1.5" fill={c} />
-      <rect x="1" y="10" width="4.5" height="7" rx="1.5" fill={c} />
-      <rect x="6.75" y="10" width="4.5" height="7" rx="1.5" fill={c} />
-      <rect x="12.5" y="10" width="4.5" height="7" rx="1.5" fill={c} />
-    </svg>
-  );
+  const c = active ? "#fff" : "#bbb";
+  return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="4.5" height="7" rx="1.5" fill={c}/><rect x="6.75" y="1" width="4.5" height="7" rx="1.5" fill={c}/><rect x="12.5" y="1" width="4.5" height="7" rx="1.5" fill={c}/><rect x="1" y="10" width="4.5" height="7" rx="1.5" fill={c}/><rect x="6.75" y="10" width="4.5" height="7" rx="1.5" fill={c}/><rect x="12.5" y="10" width="4.5" height="7" rx="1.5" fill={c}/></svg>);
 }
 function IconMix({ active }: { active: boolean }) {
-  const c = active ? "#fff" : "#666";
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <rect x="1" y="1" width="16" height="7" rx="2" fill={c} />
-      <rect x="1" y="10" width="7" height="7" rx="2" fill={c} />
-      <rect x="10" y="10" width="7" height="7" rx="2" fill={c} />
-    </svg>
-  );
+  const c = active ? "#fff" : "#bbb";
+  return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="16" height="7" rx="2" fill={c}/><rect x="1" y="10" width="7" height="7" rx="2" fill={c}/><rect x="10" y="10" width="7" height="7" rx="2" fill={c}/></svg>);
 }
 
-/* ── Plus icon for cards ───────────────────── */
-function PlusBtn({ size, className, onClick }: { size: "sm" | "md" | "lg"; className?: string; onClick: (e: React.MouseEvent) => void }) {
-  const s = size === "lg" ? "w-10 h-10 rounded-[13px]" : size === "md" ? "w-[30px] h-[30px] rounded-[10px]" : "w-6 h-6 rounded-[7px]";
+/* ── Plus button (themed) ────────────────────── */
+function PlusBtn({ size, className, onClick, t }: { size: "sm" | "md" | "lg"; className?: string; onClick: (e: React.MouseEvent) => void; t: Theme }) {
+  const s = size === "lg" ? "w-10 h-10 rounded-[13px]" : size === "md" ? "w-[28px] h-[28px] rounded-[9px]" : "w-6 h-6 rounded-[7px]";
   const icon = size === "lg" ? "w-[17px] h-[17px]" : size === "md" ? "w-[14px] h-[14px]" : "w-3 h-3";
   return (
     <button onClick={onClick}
-      className={`${s} bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center transition-all
-        group-hover:bg-[#dc2626] group-hover:border-[#dc2626] ${className ?? ""}`}>
-      <svg className={`${icon} stroke-[#555] stroke-[2.5] fill-none group-hover:stroke-white`} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      style={{ background: t.plusBg, borderColor: t.plusBorder, ["--plus-hover-bg" as string]: t.plusHoverBg }}
+      className={`${s} border flex items-center justify-center transition-all hover:!bg-[var(--plus-hover-bg)] hover:!border-[var(--plus-hover-bg)] ${className ?? ""}`}>
+      <svg style={{ stroke: t.plusStroke }} className={`${icon} stroke-[2.5] fill-none transition-colors`} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
       </svg>
     </button>
   );
 }
 
-/* ── Card: 1 par ligne (large horizontal) ──── */
-function Card1({ p, onAdd }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void }) {
+/* ── Card: 1/ligne (large, mix populaires) ──── */
+function Card1({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void; t: Theme }) {
   return (
-    <div className={`group relative flex gap-3.5 bg-[#141414] border border-[#1e1e1e] rounded-[18px] p-2.5 cursor-pointer
-      transition-all duration-200 overflow-hidden hover:border-[#333] hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(220,38,38,0.07)]
-      active:scale-[0.985] ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-[rgba(220,38,38,0.03)] to-transparent pointer-events-none" />
-      {p.isPopular && <span className="absolute -top-px right-14 bg-gradient-to-br from-[#dc2626] to-[#b91c1c] text-white text-[8px] font-extrabold px-2.5 py-0.5 rounded-b-lg tracking-wider z-10">POPULAIRE</span>}
-      <div className="w-[85px] h-[85px] rounded-[14px] overflow-hidden border border-[#222] shrink-0">
+    <div style={{ background: t.cardBg, borderColor: t.cardBorder, boxShadow: t.cardShadow }}
+      className={`group relative flex gap-3.5 border rounded-[18px] p-2.5 cursor-pointer
+      transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.985]
+      ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
+      {p.isPopular && <span style={{ background: t.badge }} className="absolute -top-px right-14 text-white text-[7.5px] font-extrabold px-2.5 py-[3px] rounded-b-lg tracking-wider z-10">POPULAIRE</span>}
+      <div className="w-[85px] h-[85px] rounded-[14px] overflow-hidden shrink-0">
         <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
       </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-center relative z-[1]">
-        <span className="text-[9.5px] font-bold text-[#dc2626] uppercase tracking-wider mb-0.5">{p.category}</span>
-        <h3 style={{ fontFamily: "'Playfair Display', serif" }} className="text-base font-bold text-[#f0f0f0] leading-tight">{p.name}</h3>
-        <p className="text-xs text-[#4a4a4a] mt-0.5 truncate">{p.description}</p>
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <span style={{ color: t.cat }} className="text-[9px] font-bold uppercase tracking-wider mb-0.5">{p.category}</span>
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", color: t.name }} className="text-[17px] font-bold leading-tight">{p.name}</h3>
+        <p style={{ color: t.desc }} className="text-xs mt-0.5 truncate">{p.description}</p>
         <div className="flex items-center gap-2 mt-2">
-          <span className="text-base font-extrabold text-white">{fmtPrice(p.priceCents)}</span>
-          <span className="text-[11px] text-[#555] font-semibold">{unitLabel(p.unit)}</span>
-          {p.unit === "KG" && p.minWeight && <span className="text-[9px] text-[#444] border border-[#252525] px-1.5 py-0.5 rounded-[5px] font-semibold">min. {p.minWeight}g</span>}
+          <span style={{ color: t.price }} className="text-base font-extrabold">{fmtPrice(p.priceCents)}</span>
+          <span style={{ color: t.unitText }} className="text-[11px] font-semibold">{unitLabel(p.unit)}</span>
+          {p.unit === "KG" && p.minWeight && <span style={{ color: t.minText, borderColor: t.minBorder }} className="text-[9px] border px-1.5 py-0.5 rounded-[5px] font-semibold">min. {p.minWeight}g</span>}
         </div>
       </div>
-      <PlusBtn size="lg" className="absolute right-3 top-1/2 -translate-y-1/2" onClick={(e) => { e.stopPropagation(); onAdd(); }} />
+      <PlusBtn t={t} size="lg" className="absolute right-3 top-1/2 -translate-y-1/2" onClick={(e) => { e.stopPropagation(); onAdd(); }} />
     </div>
   );
 }
 
-/* ── Card: 2 par ligne (compact horizontal) ── */
-function Card2({ p, onAdd }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void }) {
+/* ── Card: 2/ligne (compact horizontal) ──────── */
+function Card2({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void; t: Theme }) {
   return (
-    <div className={`group relative flex gap-2.5 bg-[#141414] border border-[#1e1e1e] rounded-2xl p-2 cursor-pointer
-      transition-all duration-200 overflow-hidden hover:border-[#333] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(220,38,38,0.06)]
-      active:scale-[0.97] ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
-      <div className="absolute inset-0 bg-gradient-to-br from-[rgba(220,38,38,0.03)] to-transparent pointer-events-none" />
-      {p.isPopular && <span className="absolute top-0 left-0 bg-[#dc2626] text-white text-[7px] font-extrabold px-2 py-0.5 rounded-[16px_0_8px_0] tracking-wide z-10">POPULAIRE</span>}
-      <div className="w-[68px] h-[68px] rounded-xl overflow-hidden border border-[#222] shrink-0">
+    <div style={{ background: t.cardBg, borderColor: t.cardBorder, boxShadow: t.cardShadow }}
+      className={`group relative flex gap-3 border rounded-[18px] p-2.5 cursor-pointer
+      transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]
+      ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
+      {p.isPopular && <span style={{ background: t.badge }} className="absolute -top-px -left-px text-white text-[7px] font-extrabold px-2 py-0.5 rounded-[18px_0_10px_0] tracking-wide z-10">POPULAIRE</span>}
+      <div className="w-[68px] h-[68px] rounded-[13px] overflow-hidden shrink-0">
         <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
       </div>
-      <div className="flex-1 min-w-0 flex flex-col justify-center relative z-[1]">
-        <span className="text-[8px] font-bold text-[#dc2626] uppercase tracking-wider mb-0.5">{p.category}</span>
-        <h3 style={{ fontFamily: "'Playfair Display', serif" }} className="text-[13.5px] font-bold text-[#eee] leading-tight truncate">{p.name}</h3>
-        <p className="text-[10.5px] text-[#444] mt-0.5 truncate">{p.description}</p>
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <span style={{ color: t.cat }} className="text-[9px] font-bold uppercase tracking-wider mb-0.5">{p.category}</span>
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", color: t.name }} className="text-[15px] font-bold leading-tight truncate">{p.name}</h3>
+        <p style={{ color: t.desc }} className="text-[10.5px] mt-0.5 truncate">{p.description}</p>
         <div className="flex items-center gap-1.5 mt-1.5">
-          <span className="text-sm font-extrabold text-white">{fmtPrice(p.priceCents)}</span>
-          <span className="text-[10px] text-[#555] font-semibold">{unitLabel(p.unit)}</span>
+          <span style={{ color: t.price }} className="text-sm font-extrabold">{fmtPrice(p.priceCents)}</span>
+          <span style={{ color: t.unitText }} className="text-[10px] font-semibold">{unitLabel(p.unit)}</span>
         </div>
       </div>
-      <PlusBtn size="md" className="absolute right-2 bottom-2" onClick={(e) => { e.stopPropagation(); onAdd(); }} />
+      <PlusBtn t={t} size="md" className="absolute right-2.5 bottom-2.5" onClick={(e) => { e.stopPropagation(); onAdd(); }} />
     </div>
   );
 }
 
-/* ── Card: 3 par ligne (vertical mini) ─────── */
-function Card3({ p, onAdd }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void }) {
+/* ── Card: 3/ligne (vertical mini) ──────────── */
+function Card3({ p, onAdd, t }: { p: typeof MOCK_PRODUCTS[0]; onAdd: () => void; t: Theme }) {
   return (
-    <div className={`group relative flex flex-col bg-[#141414] border border-[#1e1e1e] rounded-[14px] overflow-hidden cursor-pointer
-      transition-all duration-200 hover:border-[#333] hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(220,38,38,0.06)]
-      active:scale-[0.96] ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
-      {p.isPopular && <span className="absolute top-1 left-1 bg-[#dc2626] text-white text-[7px] font-extrabold px-1.5 py-0.5 rounded-[5px] z-10 tracking-wide">POPULAIRE</span>}
+    <div style={{ background: t.cardBg, borderColor: t.cardBorder, boxShadow: t.cardShadow }}
+      className={`group relative flex flex-col border rounded-[16px] overflow-hidden cursor-pointer
+      transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.96]
+      ${!p.isInStock ? "opacity-50 pointer-events-none" : ""}`}>
+      {p.isPopular && <span style={{ background: t.badge }} className="absolute top-1 left-1 text-white text-[7px] font-extrabold px-1.5 py-0.5 rounded-[5px] z-10 tracking-wide">POPULAIRE</span>}
       <div className="w-full h-[70px] overflow-hidden">
         <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
       </div>
-      <div className="p-2 relative z-[2]">
-        <h3 style={{ fontFamily: "'Playfair Display', serif" }} className="text-xs font-bold text-[#eee] leading-tight truncate">{p.name}</h3>
+      <div className="p-2">
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", color: t.name }} className="text-xs font-bold leading-tight truncate">{p.name}</h3>
         <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[12.5px] font-extrabold text-[#dc2626]">{fmtPrice(p.priceCents)}{unitLabel(p.unit)}</span>
-          <PlusBtn size="sm" onClick={(e) => { e.stopPropagation(); onAdd(); }} />
+          <span style={{ color: t.card3Price }} className="text-[12.5px] font-extrabold">{fmtPrice(p.priceCents)}{unitLabel(p.unit)}</span>
+          <PlusBtn t={t} size="sm" onClick={(e) => { e.stopPropagation(); onAdd(); }} />
         </div>
       </div>
     </div>
@@ -173,10 +186,12 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
   const [liked, setLiked] = useState(false);
   const [activeCat, setActiveCat] = useState("Tout");
   const [viewMode, setViewMode] = useState<ViewMode>("col-2");
+  const [dark, setDark] = useState(false);
   const { addItem, itemCount, totalCents, state } = useCart();
   const shop = MOCK_SHOP;
   const shopRef = { id: shop.id, name: shop.name, slug: shop.slug };
   const cartCount = state.shopId === shop.id ? itemCount : 0;
+  const t = dark ? DARK : LIGHT;
 
   const filtered = activeCat === "Tout" ? MOCK_PRODUCTS : MOCK_PRODUCTS.filter((p) => p.category === activeCat);
   const popular = filtered.filter((p) => p.isPopular);
@@ -187,81 +202,97 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <PageContainer padBottom={false}>
-      {/* Hero Image */}
-      <div className="relative aspect-[16/9] md:aspect-[21/9] bg-zinc-100">
-        <Image src={shop.imageUrl} alt={shop.name} fill className="object-cover" sizes="100vw" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
-          <Link href="/decouvrir" className="flex items-center justify-center w-9 h-9 rounded-full bg-white/90 shadow-sm">
-            <ArrowLeft size={17} className="text-zinc-900" />
-          </Link>
-          <button onClick={() => setLiked(!liked)} className="flex items-center justify-center w-9 h-9 rounded-full bg-white/90 shadow-sm">
-            <Heart size={17} className={liked ? "text-red-500 fill-red-500" : "text-zinc-600"} />
-          </button>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 p-4 pb-5">
-          <h1 className="text-white text-xl md:text-2xl font-extrabold mb-1">{shop.name}</h1>
-          <div className="flex items-center gap-3 text-white/70 text-xs">
-            <span className="flex items-center gap-1"><Star size={12} className="text-yellow-400 fill-yellow-400" />{shop.rating}</span>
-            <span>{shop.reviewCount} avis</span>
-            <span className="flex items-center gap-1"><Clock size={11} />{shop.prepTimeMinutes} min</span>
+    <div style={{ background: t.bg }} className="min-h-screen transition-colors duration-300">
+      <div className="mx-auto max-w-5xl">
+        {/* Hero — arrondi 24px avec glassmorphism */}
+        <div className="relative mx-3 mt-3 rounded-[24px] overflow-hidden" style={{ height: 300 }}>
+          <Image src={shop.imageUrl} alt={shop.name} fill className="object-cover" sizes="100vw" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-[24px]" />
+          {/* Top buttons — glassmorphism */}
+          <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+            <Link href="/decouvrir" className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              <ArrowLeft size={17} className="text-[#333]" />
+            </Link>
+            <button onClick={() => setLiked(!liked)} className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              <Heart size={17} className={liked ? "text-red-500 fill-red-500" : "text-[#333]"} />
+            </button>
+          </div>
+          {/* Shop info overlay */}
+          <div className="absolute bottom-6 left-5">
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif" }} className="text-white text-[30px] font-bold leading-[1.05]">{shop.name}</h1>
+            <div className="flex gap-2.5 mt-2.5">
+              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-xl px-3 py-1.5 rounded-[10px]">
+                <Star size={12} className="text-yellow-300 fill-yellow-300" />
+                <span className="text-xs font-bold text-white">{shop.rating} · {shop.reviewCount} avis</span>
+              </div>
+              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-xl px-3 py-1.5 rounded-[10px]">
+                <Clock size={11} className="text-white" />
+                <span className="text-xs font-bold text-white">{shop.prepTimeMinutes} min</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Info bar */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-zinc-100">
-        <div className="text-[12px] text-zinc-500">
-          <span className="flex items-center gap-1"><MapPin size={12} />{shop.address}</span>
-          <span className="font-medium text-zinc-900 mt-0.5 block">Retrait le plus tôt : {new Date(Date.now() + shop.prepTimeMinutes * 60_000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
-        </div>
-        <div className="flex gap-2">
-          {shop.tags?.map((t) => (
-            <span key={t} className="px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-600 text-[10px] font-medium">{t}</span>
-          ))}
-          <button className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-zinc-100 text-zinc-700 text-[11px] font-medium hover:bg-zinc-200 transition-colors">
-            <Navigation size={11} />Itinéraire
-          </button>
-        </div>
-      </div>
-
-      {/* Dernière minute */}
-      {MOCK_OFFERS.length > 0 && (
-        <div className="pt-5 pb-2">
-          <h2 className="px-4 text-base font-bold text-zinc-900 mb-3">Dernière minute</h2>
-          <div className="flex gap-3 px-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
-            {MOCK_OFFERS.map((o) => <OfferCard key={o.id} {...o} compact />)}
+        {/* Info bar */}
+        <div className="px-5 py-4 flex items-center justify-between">
+          <div className="text-xs" style={{ color: t.infoText }}>
+            <span className="flex items-center gap-1"><MapPin size={12} />{shop.address}</span>
+            <span className="font-medium mt-0.5 block" style={{ color: t.infoStrong }}>Retrait le plus tôt : {new Date(Date.now() + shop.prepTimeMinutes * 60_000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+          </div>
+          <div className="flex gap-1.5">
+            {shop.tags?.map((tag) => (
+              <span key={tag} style={{ background: t.tagBg, borderColor: t.tagBorder, color: t.tagText }} className="px-2.5 py-1 rounded-lg border text-[10px] font-bold">{tag}</span>
+            ))}
+            <button style={{ background: t.tagBg, borderColor: t.tagBorder, color: t.tagText }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-colors">
+              <Navigation size={11} />Itinéraire
+            </button>
           </div>
         </div>
-      )}
 
-      {/* ═══ Dark product section ═══ */}
-      <div className="bg-[#0a0a0a] mt-2">
-        {/* Sticky bar: categories + toggle */}
-        <div className="sticky top-0 z-20 bg-[rgba(10,10,10,0.95)] backdrop-blur-xl border-b border-[#1a1a1a] px-4 py-3">
+        {/* Dernière minute */}
+        {MOCK_OFFERS.length > 0 && (
+          <div className="pb-2">
+            <h2 style={{ color: t.sectionTitle }} className="px-5 text-base font-bold mb-3">Dernière minute</h2>
+            <div className="flex gap-3 px-5 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
+              {MOCK_OFFERS.map((o) => <OfferCard key={o.id} {...o} compact />)}
+            </div>
+          </div>
+        )}
+
+        {/* Sticky bar: toggle + categories */}
+        <div style={{ background: t.stickyBg }} className="sticky top-0 z-20 backdrop-blur-xl px-5 py-3 transition-colors duration-300">
           <div className="flex items-center justify-between mb-2.5">
-            <h2 className="text-base font-bold text-white">Catalogue</h2>
-            {/* View toggle */}
-            <div className="flex gap-1.5">
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", color: t.sectionTitle }} className="text-lg font-bold">Catalogue</h2>
+            <div className="flex gap-1.5 items-center">
+              {/* Day/Night toggle */}
+              <button onClick={() => setDark(!dark)}
+                className="p-2 rounded-xl border transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)]"
+                style={{ background: dark ? "#1e1e1e" : "#fff", borderColor: dark ? "#2a2a2a" : "#e8e4df" }}
+                title={dark ? "Mode jour" : "Mode nuit"}>
+                {dark
+                  ? <Sun size={18} className="text-amber-400" />
+                  : <Moon size={18} className="text-[#999]" />}
+              </button>
+              <div className="w-px h-5 mx-0.5" style={{ background: dark ? "#2a2a2a" : "#e8e4df" }} />
+              {/* View mode toggles */}
               {([["col-2", Icon2Col], ["col-3", Icon3Col], ["mix", IconMix]] as const).map(([mode, Icon]) => (
                 <button key={mode} onClick={() => setViewMode(mode as ViewMode)}
-                  className={`p-2 rounded-xl border transition-all ${viewMode === mode
-                    ? "bg-[#dc2626] border-[#dc2626]"
-                    : "bg-transparent border-[#222] hover:border-[#444]"}`}>
+                  style={viewMode === mode
+                    ? { background: t.pillActiveBg, borderColor: t.pillActiveBg }
+                    : { background: t.pillBg, borderColor: t.pillBorder }}
+                  className="p-2 rounded-xl border transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
                   <Icon active={viewMode === mode} />
                 </button>
               ))}
             </div>
           </div>
-          {/* Category pills */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             {CATEGORIES.map((c) => (
               <button key={c} onClick={() => setActiveCat(c)}
-                className={`px-3.5 py-1.5 rounded-[10px] text-xs font-bold whitespace-nowrap transition-all border
-                  ${activeCat === c
-                    ? "bg-[#dc2626] text-white border-[#dc2626]"
-                    : "bg-[#141414] text-[#555] border-[#222] hover:border-[#444] hover:text-[#aaa]"}`}>
+                style={activeCat === c
+                  ? { background: t.pillActiveBg, color: t.pillActiveText, borderColor: t.pillActiveBg }
+                  : { background: t.pillBg, color: t.pillText, borderColor: t.pillBorder }}
+                className="px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
                 {c}
               </button>
             ))}
@@ -269,16 +300,16 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Product grid */}
-        <div className="px-3 py-4 pb-28">
+        <div className="px-3 py-3 pb-28">
           {viewMode === "col-2" && (
             <div className="grid grid-cols-2 gap-2.5">
-              {filtered.map((p) => <Card2 key={p.id} p={p} onAdd={() => handleAdd(p)} />)}
+              {filtered.map((p) => <Card2 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
             </div>
           )}
 
           {viewMode === "col-3" && (
-            <div className="grid grid-cols-3 gap-2">
-              {filtered.map((p) => <Card3 key={p.id} p={p} onAdd={() => handleAdd(p)} />)}
+            <div className="grid grid-cols-3 gap-2.5">
+              {filtered.map((p) => <Card3 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
             </div>
           )}
 
@@ -286,39 +317,39 @@ export default function BoutiquePage({ params }: { params: { id: string } }) {
             <>
               {popular.length > 0 && (
                 <>
-                  <div className="text-[11px] font-bold text-[#dc2626] uppercase tracking-[1.5px] mb-2.5 pb-1.5 border-b border-[#1a1a1a]">Populaires</div>
-                  <div className="flex flex-col gap-2.5 mb-4">
-                    {popular.map((p) => <Card1 key={p.id} p={p} onAdd={() => handleAdd(p)} />)}
+                  <div style={{ color: t.cat, borderColor: t.sectionBorder }} className="text-[11px] font-bold uppercase tracking-[1.5px] mb-2.5 pb-1.5 border-b">Populaires</div>
+                  <div className="flex flex-col gap-2.5 mb-5">
+                    {popular.map((p) => <Card1 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
                   </div>
                 </>
               )}
               {rest.length > 0 && (
                 <>
-                  <div className="text-[11px] font-bold text-[#dc2626] uppercase tracking-[1.5px] mb-2.5 pb-1.5 border-b border-[#1a1a1a]">Tout le catalogue</div>
+                  <div style={{ color: t.cat, borderColor: t.sectionBorder }} className="text-[11px] font-bold uppercase tracking-[1.5px] mb-2.5 pb-1.5 border-b">Tout le catalogue</div>
                   <div className="grid grid-cols-2 gap-2.5">
-                    {rest.map((p) => <Card2 key={p.id} p={p} onAdd={() => handleAdd(p)} />)}
+                    {rest.map((p) => <Card2 key={p.id} p={p} t={t} onAdd={() => handleAdd(p)} />)}
                   </div>
                 </>
               )}
             </>
           )}
         </div>
-      </div>
 
-      {/* Sticky Cart Bar */}
-      {cartCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#1a1a1a] bg-[#0a0a0a]/95 backdrop-blur-xl" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-          <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <span className="text-[13px] font-semibold text-white">Panier · {cartCount} article{cartCount > 1 ? "s" : ""}</span>
-              <span className="text-[12px] text-[#555] ml-2">{fmtPrice(totalCents)}</span>
+        {/* Sticky Cart Bar */}
+        {cartCount > 0 && (
+          <div style={{ background: t.cartBg, borderColor: t.cartBorder, paddingBottom: "env(safe-area-inset-bottom, 0px)" }} className="fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-xl transition-colors duration-300">
+            <div className="max-w-5xl mx-auto px-5 py-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <span style={{ color: t.cartText }} className="text-[13px] font-semibold">Panier · {cartCount} article{cartCount > 1 ? "s" : ""}</span>
+                <span style={{ color: t.cartSub }} className="text-[12px] ml-2">{fmtPrice(totalCents)}</span>
+              </div>
+              <Link href="/panier" style={{ background: t.ctaBg }} className="px-6 py-2.5 rounded-full text-white text-[13px] font-semibold shadow-md transition-colors hover:opacity-90">
+                Commander
+              </Link>
             </div>
-            <Link href="/panier" className="px-6 py-2.5 rounded-full bg-[#dc2626] text-white text-[13px] font-semibold shadow-md shadow-red-500/20 hover:bg-[#b91c1c] transition-colors">
-              Commander
-            </Link>
           </div>
-        </div>
-      )}
-    </PageContainer>
+        )}
+      </div>
+    </div>
   );
 }

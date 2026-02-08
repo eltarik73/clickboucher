@@ -70,20 +70,17 @@ export function ProductCard({ product, shop }: Props) {
   const prixFormate = product.prixAuKg.toFixed(2).replace(".", ",") + " \u20AC";
 
   return (
-    <div className={`group relative flex gap-2.5 bg-[#141414] border border-[#1e1e1e] rounded-2xl p-2 cursor-pointer
-      transition-all duration-250 overflow-hidden
-      hover:border-[#333] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(220,38,38,0.06)]
+    <div className={`group relative flex gap-3 bg-white border border-[#ece8e3] rounded-[18px] p-2.5 cursor-pointer
+      transition-all duration-250 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.03)]
+      hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[#ddd5cc]
       active:scale-[0.97] ${animating ? "scale-[0.97]" : ""}`}>
 
-      {/* Subtle red gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[rgba(220,38,38,0.03)] to-transparent pointer-events-none" />
-
       {/* Image 68px */}
-      <div className="w-[68px] h-[68px] rounded-xl overflow-hidden border border-[#222] shrink-0">
+      <div className="w-[68px] h-[68px] rounded-[13px] overflow-hidden shrink-0">
         {product.imageUrl ? (
           <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-[#1a1a1a] flex items-center justify-center">
+          <div className="w-full h-full bg-[#f5f0eb] flex items-center justify-center">
             <span className="text-2xl opacity-30">🥩</span>
           </div>
         )}
@@ -91,25 +88,25 @@ export function ProductCard({ product, shop }: Props) {
 
       {/* Info */}
       <div className="flex-1 min-w-0 flex flex-col justify-center relative z-[1]">
-        <span className="text-[8px] font-bold text-[#dc2626] uppercase tracking-wider mb-0.5">
+        <span className="text-[9px] font-bold text-[#8b2500] uppercase tracking-wider mb-0.5">
           {product.category}
         </span>
-        <h3 style={{ fontFamily: "'Playfair Display', serif" }}
-          className="text-[13.5px] font-bold text-[#eee] leading-tight truncate">
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif" }}
+          className="text-[15px] font-bold text-[#2a2018] leading-tight truncate">
           {product.name}
         </h3>
         {product.subtitle && (
-          <p className="text-[10.5px] text-[#444] mt-0.5 truncate">{product.subtitle}</p>
+          <p className="text-[10.5px] text-[#b5a99a] mt-0.5 truncate">{product.subtitle}</p>
         )}
         <div className="flex items-center gap-1.5 mt-1.5">
-          <span className="text-sm font-extrabold text-white">{prixFormate}</span>
-          <span className="text-[10px] text-[#555] font-semibold">/kg</span>
+          <span className="text-sm font-extrabold text-[#2a2018]">{prixFormate}</span>
+          <span className="text-[10px] text-[#bbb] font-semibold">/kg</span>
         </div>
       </div>
 
-      {/* Badges */}
+      {/* Badge POPULAIRE */}
       {product.badges && product.badges.length > 0 && (
-        <div className="absolute top-0 left-0 bg-[#dc2626] text-white text-[7px] font-extrabold px-2 py-0.5 rounded-[16px_0_8px_0] tracking-wide z-10">
+        <div className="absolute -top-px -left-px bg-[#8b2500] text-white text-[7.5px] font-extrabold px-2.5 py-[3px] rounded-[18px_0_10px_0] tracking-wide z-10">
           {product.badges[0]}
         </div>
       )}
@@ -126,10 +123,10 @@ export function ProductCard({ product, shop }: Props) {
       {/* + Button */}
       {!expanded && (
         <button onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-          className="absolute right-2 bottom-2 w-[30px] h-[30px] rounded-[10px] bg-[#1a1a1a] border border-[#2a2a2a]
+          className="absolute right-2.5 bottom-2.5 w-[28px] h-[28px] rounded-[9px] bg-[#f5f0eb] border border-[#e8e3dc]
             flex items-center justify-center transition-all z-10
-            group-hover:bg-[#dc2626] group-hover:border-[#dc2626]">
-          <svg className="w-[14px] h-[14px] stroke-[#555] stroke-[2.5] fill-none group-hover:stroke-white" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+            group-hover:bg-[#8b2500] group-hover:border-[#8b2500]">
+          <svg className="w-[14px] h-[14px] stroke-[#999] stroke-[2.5] fill-none group-hover:stroke-white" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
@@ -138,19 +135,19 @@ export function ProductCard({ product, shop }: Props) {
 
       {/* Weight selector expansion */}
       {expanded && (
-        <div className="absolute inset-0 bg-[#141414] z-20 p-3 flex flex-col rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute inset-0 bg-white z-20 p-3 flex flex-col rounded-[18px]" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-2">
-            <h4 style={{ fontFamily: "'Playfair Display', serif" }}
-              className="text-sm font-bold text-[#eee]">{product.name}</h4>
-            <button onClick={() => setExpanded(false)} className="text-xs text-[#555] hover:text-[#888]">✕</button>
+            <h4 style={{ fontFamily: "'Cormorant Garamond', serif" }}
+              className="text-sm font-bold text-[#2a2018]">{product.name}</h4>
+            <button onClick={() => setExpanded(false)} className="text-xs text-[#b5a99a] hover:text-[#8b2500]">✕</button>
           </div>
           <div className="flex-1">
             <QuantitySelector rule={rule} initialG={qty} onChange={setQty} compact />
           </div>
           <button type="button" onClick={handleAdd}
             className={`mt-2 w-full py-2 rounded-xl text-sm font-semibold transition-all
-              ${animating ? "bg-[#16803C] text-white" : "bg-[#dc2626] text-white hover:bg-[#b91c1c]"}`}>
-            {animating ? "Ajouté ✓" : `Confirmer — ${formatPrice(prix)}`}
+              ${animating ? "bg-[#16803C] text-white" : "bg-[#8b2500] text-white hover:bg-[#6e1d00]"}`}>
+            {animating ? "Ajouté \u2713" : `Confirmer \u2014 ${formatPrice(prix)}`}
           </button>
         </div>
       )}
