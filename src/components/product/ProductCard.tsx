@@ -98,11 +98,11 @@ export function ProductCard({ product, shop }: Props) {
           {product.name}
         </h3>
         {product.subtitle && (
-          <p className="text-[10.5px] text-[#b5a99a] mt-0.5 truncate">{product.subtitle}</p>
+          <p className="text-[10.5px] text-[#7a7068] mt-0.5 truncate">{product.subtitle}</p>
         )}
         <div className="flex items-center gap-1.5 mt-1.5">
           <span className="text-sm font-extrabold text-[#2a2018]">{prixFormate}</span>
-          <span className="text-[10px] text-[#bbb] font-semibold">/kg</span>
+          <span className="text-[10px] text-[#767676] font-semibold">/kg</span>
         </div>
       </div>
 
@@ -141,7 +141,7 @@ export function ProductCard({ product, shop }: Props) {
           <div className="flex items-center justify-between mb-2">
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif" }}
               className="text-sm font-bold text-[#2a2018]">{product.name}</h4>
-            <button onClick={() => setExpanded(false)} className="text-xs text-[#b5a99a] hover:text-[#8b2500]">✕</button>
+            <button onClick={() => setExpanded(false)} className="text-xs text-[#7a7068] hover:text-[#8b2500]">✕</button>
           </div>
           <div className="flex-1">
             <QuantitySelector rule={rule} initialG={qty} onChange={setQty} compact />

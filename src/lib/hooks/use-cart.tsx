@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect } from "react";
 
 // ── Types ────────────────────────────────────
 
@@ -48,7 +48,19 @@ export interface CartContextType {
 
 // ── Reducer ──────────────────────────────────
 
+const STORAGE_KEY = "klikgo-cart";
 const initialState: CartState = { shopId: null, shopName: null, shopSlug: null, items: [] };
+
+function loadState(): CartState {
+  try {
+    if (typeof window === "undefined") return initialState;
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return initialState;
+    return JSON.parse(raw) as CartState;
+  } catch {
+    return initialState;
+  }
+}
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
@@ -122,7 +134,13 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState);
+  const [state, dispatch] = useReducer(cartReducer, initialState, loadState);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch { /* SSR or quota exceeded — ignore */ }
+  }, [state]);
 
   const addItem = useCallback(
     (item: CartItem, shop: { id: string; name: string; slug: string }) => {
