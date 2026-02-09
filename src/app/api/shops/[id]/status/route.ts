@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import { updateShopStatusSchema } from "@/lib/validators";
+import { updateServiceSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
 // ── PATCH /api/shops/[id]/status ───────────────
@@ -33,7 +33,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const data = updateShopStatusSchema.parse(body);
+    const data = updateServiceSchema.parse(body);
 
     const updated = await prisma.shop.update({
       where: { id },
@@ -43,9 +43,12 @@ export async function PATCH(
     return apiSuccess({
       id: updated.id,
       busyMode: updated.busyMode,
+      busyExtraMin: updated.busyExtraMin,
       paused: updated.paused,
       isOpen: updated.isOpen,
       prepTimeMin: updated.prepTimeMin,
+      autoAccept: updated.autoAccept,
+      maxOrdersHour: updated.maxOrdersHour,
       effectivePrepTime: updated.prepTimeMin + (updated.busyMode ? updated.busyExtraMin : 0),
     });
   } catch (error) {
