@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { Clock, Flame, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/hooks/use-cart";
@@ -56,7 +55,7 @@ export function OfferCard({
     return (
       <div className="relative w-[260px] shrink-0 snap-start overflow-hidden rounded-3xl shadow-sm group">
         <div className="relative aspect-[4/3] bg-zinc-200">
-          <Image src={imageUrl} alt={name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="260px" />
+          <img src={imageUrl} alt={name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/0" />
 
           {/* Badges */}
@@ -98,7 +97,7 @@ export function OfferCard({
     <div className={`premium-card p-3 ${isExpired ? "opacity-50" : ""}`}>
       <div className="flex gap-3">
         <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-zinc-100 shrink-0">
-          <Image src={imageUrl} alt={name} fill className="object-cover" sizes="96px" />
+          <img src={imageUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" />
           <span className="absolute top-1.5 left-1.5 rounded-full bg-primary text-white text-[10px] font-bold px-2 py-0.5 flex items-center gap-0.5">
             <Flame size={9} />-{discount}%
           </span>

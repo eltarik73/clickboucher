@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import { getShopImage } from "@/lib/product-images";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
@@ -98,7 +98,7 @@ export default async function BoutiquePage({
 
   const effectiveTime =
     shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-  const heroImg = shop.imageUrl || "/images/boucherie-hero.webp";
+  const heroImg = shop.imageUrl || getShopImage(0);
 
   // Serialize for client component (strip Prisma internals / Date objects)
   const categories: CategoryData[] = shop.categories.map((c) => ({
@@ -130,13 +130,10 @@ export default async function BoutiquePage({
         {/* HERO */}
         {/* ═══════════════════════════════════════════ */}
         <div className="relative mx-3 mt-3 rounded-[24px] overflow-hidden h-[300px]">
-          <Image
+          <img
             src={heroImg}
             alt={shop.name}
-            fill
-            sizes="100vw"
-            className="object-cover"
-            priority
+            className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 

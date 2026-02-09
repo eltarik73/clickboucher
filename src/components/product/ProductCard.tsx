@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import Image from "next/image";
 import { getConversionRule } from "@/lib/conversion-config";
+import { getProductImage } from "@/lib/product-images";
 import { computePrice, formatPrice, formatWeight } from "@/lib/estimate";
 import { QuantitySelector } from "./QuantitySelector";
 import { useCart, type CartItem } from "@/lib/hooks/useCart";
@@ -52,7 +52,7 @@ export function ProductCard({ product, shop }: Props) {
       id: `${shopInfo.id}-${product.id}`,
       productId: product.id,
       name: product.name,
-      imageUrl: product.imageUrl || "/images/boucherie-hero.webp",
+      imageUrl: product.imageUrl || getProductImage(product.category),
       unit: "KG",
       priceCents: Math.round(product.prixAuKg * 100),
       quantity: 1,
@@ -78,12 +78,11 @@ export function ProductCard({ product, shop }: Props) {
 
       {/* Image 68px */}
       <div className="shrink-0">
-        <Image
-          src={product.imageUrl || "/images/boucherie-hero.webp"}
+        <img
+          src={product.imageUrl || getProductImage(product.category)}
           alt={product.name}
           width={68}
           height={68}
-          sizes="68px"
           className="rounded-xl object-cover"
         />
       </div>

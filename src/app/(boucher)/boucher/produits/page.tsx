@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -291,12 +290,10 @@ function ProductCard({
           {/* Image */}
           <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1814] shrink-0">
             {product.imageUrl ? (
-              <Image
+              <img
                 src={product.imageUrl}
                 alt={product.name}
-                fill
-                sizes="60px"
-                className="object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">

@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { StarRating } from "@/components/ui/StarRating";
@@ -244,12 +243,10 @@ export default async function HomePage() {
                   >
                     {/* Image */}
                     <div className="relative h-44 overflow-hidden">
-                      <Image
+                      <img
                         src={imgSrc}
                         alt={shop.name}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 

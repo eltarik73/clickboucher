@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Star, Clock, MapPin, Flame, ChevronRight } from "lucide-react";
 
@@ -26,12 +25,10 @@ export function ShopCard({
     <Link href={`/boutique/${slug}`} className="block premium-card group">
       {/* Image */}
       <div className="relative aspect-[16/10] bg-zinc-100 overflow-hidden">
-        <Image
+        <img
           src={imageUrl}
           alt={name}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 

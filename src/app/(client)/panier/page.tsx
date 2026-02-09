@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock } from "lucide-react";
@@ -48,12 +47,11 @@ function CartItemRow({
     <div className="flex items-center gap-3 bg-white rounded-2xl p-3 border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
       {/* Image */}
       <div className="w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0">
-        <Image
-          src={item.imageUrl || "/images/boucherie-hero.webp"}
+        <img
+          src={item.imageUrl || "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop"}
           alt={item.name}
           width={60}
           height={60}
-          sizes="60px"
           className="w-full h-full object-cover"
         />
       </div>

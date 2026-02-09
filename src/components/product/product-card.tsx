@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { Plus, Minus, Scale, Package, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +68,7 @@ export function ProductCard({
     <div className={`premium-card p-3 ${!isInStock ? "opacity-50" : ""}`}>
       <div className="flex gap-3">
         <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-          <Image src={imageUrl} alt={name} fill className="object-cover" sizes="80px" />
+          <img src={imageUrl} alt={name} className="absolute inset-0 w-full h-full object-cover" />
           {!isInStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <span className="text-white text-xs font-bold">Épuisé</span>

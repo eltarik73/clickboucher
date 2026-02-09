@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/hooks/use-cart";
 import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
@@ -60,13 +59,12 @@ function ProductCard({ product, productIndex, onAdd }: { product: ProductData; p
 
       {/* Image */}
       <div className="w-[68px] h-[68px] rounded-[13px] overflow-hidden shrink-0">
-        <Image
+        <img
           src={imgSrc}
           alt={product.name}
           width={68}
           height={68}
-          sizes="68px"
-          className="rounded-[13px] object-cover"
+          className="w-full h-full rounded-[13px] object-cover"
         />
       </div>
 

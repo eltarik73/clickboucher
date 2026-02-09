@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
@@ -108,12 +107,10 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
     >
       {/* Image with permanent gradient overlay */}
       <div className="relative h-48 overflow-hidden">
-        <Image
+        <img
           src={imgSrc}
           alt={shop.name}
-          fill
-          sizes="(max-width: 640px) 100vw, 50vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 

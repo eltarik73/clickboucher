@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Heart, MapPin, Clock, Store } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
@@ -116,7 +115,7 @@ export default function FavorisPage() {
           <div className="space-y-4">
             {shops.map((shop) => {
               const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-              const imgSrc = shop.imageUrl || "/images/boucherie-default.webp";
+              const imgSrc = shop.imageUrl || `https://images.unsplash.com/photo-1542901031-ec5eeb518506?w=600&h=400&fit=crop`;
 
               return (
                 <Link
@@ -128,12 +127,10 @@ export default function FavorisPage() {
                 >
                   {/* Image */}
                   <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0">
-                    <Image
+                    <img
                       src={imgSrc}
                       alt={shop.name}
-                      fill
-                      sizes="96px"
-                      className="object-cover"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                     {!shop.isOpen && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

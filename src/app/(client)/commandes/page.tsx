@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { ArrowLeft, ShoppingBag, RotateCcw } from "lucide-react";
 import { toast } from "sonner";

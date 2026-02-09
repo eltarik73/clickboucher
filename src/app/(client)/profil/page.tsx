@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import {
   ArrowLeft,
@@ -220,7 +219,7 @@ export default function ProfilPage() {
             {/* Avatar */}
             <div className="w-16 h-16 rounded-full overflow-hidden bg-stone-200 shrink-0">
               {clerkUser?.imageUrl ? (
-                <Image
+                <img
                   src={clerkUser.imageUrl}
                   alt="Avatar"
                   width={64}
@@ -402,7 +401,7 @@ export default function ProfilPage() {
                   {/* Shop image */}
                   <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-200 shrink-0">
                     {shop.imageUrl ? (
-                      <Image
+                      <img
                         src={shop.imageUrl}
                         alt={shop.name}
                         width={40}
