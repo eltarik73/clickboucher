@@ -1,20 +1,34 @@
 import { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import { shopListQuerySchema } from "@/lib/validators";
-import { apiPaginated, handleApiError } from "@/lib/api/errors";
+import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
+import { apiSuccess, apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
 
+// ── GET /api/shops ─────────────────────────────
+// Public — list shops with optional ?city, ?search, ?open filters
 export async function GET(req: NextRequest) {
   try {
     const params = Object.fromEntries(req.nextUrl.searchParams);
     const query = shopListQuerySchema.parse(params);
 
     const where: Record<string, unknown> = {};
-    if (query.city) where.city = { contains: query.city, mode: "insensitive" };
+
+    if (query.city) {
+      where.city = { contains: query.city, mode: "insensitive" };
+    }
+
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: "insensitive" } },
         { description: { contains: query.search, mode: "insensitive" } },
       ];
+    }
+
+    if (query.open === "true") {
+      where.isOpen = true;
+      where.paused = false;
+    } else if (query.open === "false") {
+      where.OR = [{ isOpen: false }, { paused: true }];
     }
 
     const [shops, total] = await Promise.all([
@@ -30,7 +44,51 @@ export async function GET(req: NextRequest) {
       prisma.shop.count({ where }),
     ]);
 
-    return apiPaginated(shops, total, query.page, query.perPage);
+    // Add effectivePrepTime to each shop
+    const data = shops.map((shop) => ({
+      ...shop,
+      effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
+    }));
+
+    return apiPaginated(data, total, query.page, query.perPage);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+// ── POST /api/shops ────────────────────────────
+// Admin only — create a new shop
+export async function POST(req: NextRequest) {
+  try {
+    const { sessionClaims } = await auth();
+    const role = sessionClaims?.metadata?.role;
+
+    if (!sessionClaims) {
+      return apiError("UNAUTHORIZED", "Authentification requise");
+    }
+    if (role !== "admin") {
+      return apiError("FORBIDDEN", "Réservé aux administrateurs");
+    }
+
+    const body = await req.json();
+    const data = createShopSchema.parse(body);
+
+    const shop = await prisma.shop.create({
+      data: {
+        name: data.name,
+        slug: data.slug,
+        address: data.address,
+        city: data.city,
+        phone: data.phone,
+        imageUrl: data.imageUrl,
+        description: data.description,
+        openingHours: data.openingHours ?? {},
+        ownerId: data.ownerId,
+        commissionPct: data.commissionPct ?? 0,
+      },
+    });
+
+    return apiSuccess(shop, 201);
   } catch (error) {
     return handleApiError(error);
   }

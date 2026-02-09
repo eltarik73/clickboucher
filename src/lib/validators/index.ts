@@ -33,8 +33,89 @@ export const verifyOtpSchema = z.object({
 export const shopListQuerySchema = z.object({
   city: z.string().optional(),
   search: z.string().optional(),
+  open: z.enum(["true", "false"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+// -- Shop Create/Update --
+
+export const createShopSchema = z.object({
+  name: z.string().min(2).max(200),
+  slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/, "Slug invalide (minuscules, chiffres, tirets)"),
+  address: z.string().min(5),
+  city: z.string().min(2),
+  phone: phoneSchema,
+  imageUrl: z.string().url().optional(),
+  description: z.string().max(1000).optional(),
+  openingHours: z.record(z.object({ open: z.string(), close: z.string() })).optional(),
+  ownerId: z.string().min(1, "ownerId (clerkId du boucher) requis"),
+  commissionPct: z.number().min(0).max(100).optional(),
+});
+
+export const updateShopSchema = z.object({
+  name: z.string().min(2).max(200).optional(),
+  address: z.string().min(5).optional(),
+  city: z.string().min(2).optional(),
+  phone: phoneSchema.optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  description: z.string().max(1000).nullable().optional(),
+  openingHours: z.record(z.object({ open: z.string(), close: z.string() })).optional(),
+  commissionPct: z.number().min(0).max(100).optional(),
+});
+
+export const updateShopStatusSchema = z.object({
+  busyMode: z.boolean().optional(),
+  paused: z.boolean().optional(),
+  isOpen: z.boolean().optional(),
+  prepTimeMin: z.number().int().min(5).max(120).optional(),
+});
+
+// -- Product Queries --
+
+export const productListQuerySchema = z.object({
+  shopId: z.string().cuid("shopId requis"),
+  categoryId: z.string().cuid().optional(),
+  inStock: z.enum(["true", "false"]).optional(),
+  tag: z.string().optional(),
+});
+
+export const createProductSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  imageUrl: z.string().url().optional(),
+  priceCents: z.number().int().min(0),
+  proPriceCents: z.number().int().min(0).nullable().optional(),
+  unit: z.enum(["KG", "PIECE", "BARQUETTE"]),
+  inStock: z.boolean().optional(),
+  stockQty: z.number().min(0).nullable().optional(),
+  categoryId: z.string().cuid(),
+  shopId: z.string().cuid(),
+  tags: z.array(z.string().max(50)).optional(),
+  promoPct: z.number().int().min(1).max(99).nullable().optional(),
+  promoEnd: z.string().datetime().nullable().optional(),
+});
+
+export const updateProductSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).nullable().optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  priceCents: z.number().int().min(0).optional(),
+  proPriceCents: z.number().int().min(0).nullable().optional(),
+  unit: z.enum(["KG", "PIECE", "BARQUETTE"]).optional(),
+  inStock: z.boolean().optional(),
+  stockQty: z.number().min(0).nullable().optional(),
+  categoryId: z.string().cuid().optional(),
+  tags: z.array(z.string().max(50)).optional(),
+  promoPct: z.number().int().min(1).max(99).nullable().optional(),
+  promoEnd: z.string().datetime().nullable().optional(),
+});
+
+export const toggleStockSchema = z.object({
+  inStock: z.boolean().optional(),
+  stockQty: z.number().min(0).optional(),
+}).refine((d) => d.inStock !== undefined || d.stockQty !== undefined, {
+  message: "inStock ou stockQty requis",
 });
 
 // -- Cart / Order --
@@ -47,9 +128,30 @@ const cartItemSchema = z.object({
 export const createOrderSchema = z.object({
   shopId: z.string().cuid(),
   items: z.array(cartItemSchema).min(1, "Au moins 1 article requis"),
-  userId: z.string().cuid(),
   requestedTime: z.string().optional(),
   customerNote: z.string().max(500).optional(),
+});
+
+export const orderListQuerySchema = z.object({
+  status: z.string().optional(),
+  shopId: z.string().cuid().optional(),
+});
+
+export const acceptOrderSchema = z.object({
+  estimatedMinutes: z.number().int().min(1).max(480),
+});
+
+export const denyOrderSchema = z.object({
+  reason: z.string().min(1).max(500),
+});
+
+export const pickupOrderSchema = z.object({
+  qrCode: z.string().uuid(),
+});
+
+export const rateOrderSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
 });
 
 // -- Order Status Update (boucher) --
