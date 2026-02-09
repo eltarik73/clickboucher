@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { HeroButtons } from "./HeroButtons";
 import { CartBadge } from "./CartBadge";
+import { AuthButton } from "./AuthButton";
 
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header)
@@ -266,12 +267,7 @@ export default async function DecouvrirPage() {
             <KlikGoLogo light />
             <div className="flex items-center gap-3">
               <CartBadge />
-              <Link
-                href="/sign-in"
-                className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white text-sm font-medium rounded-xl transition-colors border border-white/10"
-              >
-                Se connecter
-              </Link>
+              <AuthButton />
             </div>
           </div>
         </header>
