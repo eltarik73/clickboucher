@@ -41,7 +41,7 @@ export function HowItWorks() {
   return (
     <section id="how-it-works" className="bg-[#0A0A0A] text-white py-16 sm:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h2 className="text-center text-sm font-semibold text-[#DC2626] uppercase tracking-widest mb-3">
+        <h2 className="text-center text-sm font-semibold text-[#8b2500] uppercase tracking-widest mb-3">
           Simple et rapide
         </h2>
         <p className="text-center text-2xl sm:text-3xl font-bold mb-12">
@@ -55,7 +55,7 @@ export function HowItWorks() {
               {/* Step */}
               <div className="flex flex-col items-center text-center px-8 lg:px-12 py-6">
                 {/* Number badge */}
-                <div className="w-12 h-12 rounded-full bg-[#DC2626] flex items-center justify-center mb-5 shadow-lg shadow-[#DC2626]/30">
+                <div className="w-12 h-12 rounded-full bg-[#8b2500] flex items-center justify-center mb-5 shadow-lg shadow-[#8b2500]/30">
                   <span className="text-xl font-bold text-white">{step.number}</span>
                 </div>
                 {/* Icon */}
@@ -81,7 +81,7 @@ export function HowItWorks() {
           {STEPS.map(step => (
             <div key={step.number} className="flex items-start gap-4 bg-[#151515] rounded-2xl p-5 border border-[#222]">
               {/* Number badge */}
-              <div className="w-10 h-10 rounded-full bg-[#DC2626] flex items-center justify-center shrink-0 shadow-lg shadow-[#DC2626]/30">
+              <div className="w-10 h-10 rounded-full bg-[#8b2500] flex items-center justify-center shrink-0 shadow-lg shadow-[#8b2500]/30">
                 <span className="text-lg font-bold text-white">{step.number}</span>
               </div>
               {/* Content */}

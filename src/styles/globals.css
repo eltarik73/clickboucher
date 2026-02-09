@@ -5,6 +5,18 @@
 /* ─── Fonts ─────────────────────────────────── */
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Playfair+Display:wght@700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap");
 
+/* ─── Dark mode ─────────────────────────────── */
+.dark {
+  color-scheme: dark;
+}
+.dark ::selection {
+  background: #8b2500;
+  color: white;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #4a4540;
+}
+
 /* ─── CSS Variables ─────────────────────────── */
 :root {
   --burgundy: 350 77% 27%;

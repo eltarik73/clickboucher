@@ -18,7 +18,7 @@ export function BottomNav() {
   const { itemCount } = useCart();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 px-2 pb-safe z-50">
+    <nav className="fixed bottom-0 inset-x-0 bg-white dark:bg-[#2a2520] border-t border-gray-100 dark:border-[#3a3530] px-2 pb-safe z-50">
       <div className="flex items-center justify-around">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -29,7 +29,7 @@ export function BottomNav() {
               key={item.key}
               href={item.href}
               className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-                isActive ? "text-[#8b2500]" : "text-gray-400"
+                isActive ? "text-[#8b2500] dark:text-[#c4593e]" : "text-gray-400 dark:text-gray-500"
               }`}
             >
               <div className="relative">
@@ -51,14 +51,14 @@ export function BottomNav() {
         <SignedIn>
           <div className="flex flex-col items-center gap-0.5 py-2 px-3">
             <UserButton afterSignOutUrl="/decouvrir" />
-            <span className="text-[10px] leading-none font-medium text-gray-400">Profil</span>
+            <span className="text-[10px] leading-none font-medium text-gray-400 dark:text-gray-500">Profil</span>
           </div>
         </SignedIn>
         <SignedOut>
           <Link
             href="/sign-in"
             className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-              pathname === "/sign-in" ? "text-[#8b2500]" : "text-gray-400"
+              pathname === "/sign-in" ? "text-[#8b2500] dark:text-[#c4593e]" : "text-gray-400 dark:text-gray-500"
             }`}
           >
             <LogIn size={22} strokeWidth={1.8} />

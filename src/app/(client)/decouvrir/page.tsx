@@ -7,16 +7,17 @@ import { HowItWorks } from "@/components/landing/HowItWorks";
 import { HeroButtons } from "./HeroButtons";
 import { CartBadge } from "./CartBadge";
 import { AuthButton } from "./AuthButton";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header)
 // ─────────────────────────────────────────────────────────────
 function KlikGoLogo({ light = false }: { light?: boolean }) {
-  const textColor = light ? "text-white" : "text-[#1A1A1A]";
+  const textColor = light ? "text-white" : "text-[#1A1A1A] dark:text-white";
 
   return (
     <div className="flex items-center gap-2.5">
-      <div className="w-10 h-10 bg-[#DC2626] rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
+      <div className="w-10 h-10 bg-[#8b2500] rounded-xl flex items-center justify-center shadow-lg shadow-[#8b2500]/20">
         <span className="text-white font-bold text-lg">K</span>
       </div>
       <div className="flex items-baseline gap-0">
@@ -35,13 +36,13 @@ function HeroLogo() {
   return (
     <div className="flex flex-col items-center mb-8">
       <div className="relative">
-        <div className="absolute inset-0 blur-2xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
+        <div className="absolute inset-0 blur-2xl opacity-40 bg-[#8b2500] rounded-full scale-150" />
         <svg viewBox="0 0 100 100" className="w-20 h-20 sm:w-24 sm:h-24 relative z-10">
           <defs>
             <linearGradient id="heroLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#EF4444" />
-              <stop offset="50%" stopColor="#DC2626" />
-              <stop offset="100%" stopColor="#B91C1C" />
+              <stop offset="0%" stopColor="#a83320" />
+              <stop offset="50%" stopColor="#8b2500" />
+              <stop offset="100%" stopColor="#6d1d00" />
             </linearGradient>
           </defs>
           <circle cx="50" cy="50" r="46" fill="url(#heroLogoGradient)" />
@@ -65,22 +66,7 @@ function HeroLogo() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PREP TIME HELPERS
-// ─────────────────────────────────────────────────────────────
-function prepTimeColor(minutes: number) {
-  if (minutes <= 15) return "text-emerald-400";
-  if (minutes <= 30) return "text-amber-400";
-  return "text-red-400";
-}
-
-function prepTimeBg(minutes: number) {
-  if (minutes <= 15) return "bg-emerald-400";
-  if (minutes <= 30) return "bg-amber-400";
-  return "bg-red-400";
-}
-
-// ─────────────────────────────────────────────────────────────
-// BUTCHER CARD - Real data from Prisma
+// BUTCHER CARD - Premium design
 // ─────────────────────────────────────────────────────────────
 type ShopData = {
   id: string;
@@ -93,18 +79,31 @@ type ShopData = {
   busyMode: boolean;
   busyExtraMin: number;
   paused: boolean;
+  isOpen: boolean;
   rating: number;
   ratingCount: number;
 };
 
 function ButcherCard({ shop }: { shop: ShopData }) {
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-  const imgSrc = shop.imageUrl || "/images/boucherie-hero.webp";
+  const imgSrc = shop.imageUrl || "/images/boucherie-default.webp";
+
+  const prepBadgeClasses =
+    effectiveTime <= 15
+      ? "bg-emerald-500/90 text-white"
+      : effectiveTime <= 30
+        ? "bg-amber-500/90 text-white"
+        : "bg-red-500/90 text-white";
 
   return (
-    <Link href={`/boutique/${shop.slug}`} className="group">
-      {/* Image container */}
-      <div className="relative h-52 rounded-2xl overflow-hidden mb-3">
+    <Link
+      href={`/boutique/${shop.slug}`}
+      className={`group bg-white dark:bg-[#2a2520] border border-[#ece8e3] dark:border-[#3a3530] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
+        !shop.isOpen ? "opacity-60" : ""
+      }`}
+    >
+      {/* Image with permanent gradient overlay */}
+      <div className="relative h-48 overflow-hidden">
         <Image
           src={imgSrc}
           alt={shop.name}
@@ -112,67 +111,69 @@ function ButcherCard({ shop }: { shop: ShopData }) {
           sizes="(max-width: 640px) 100vw, 50vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
-        {/* Gradient overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-        {/* Top-left: prep time badge */}
+        {/* Top-left badges */}
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg">
-            {effectiveTime <= 15 && (
-              <div className={`w-2 h-2 ${prepTimeBg(effectiveTime)} rounded-full animate-pulse`} />
-            )}
-            <span className={`text-xs font-medium ${prepTimeColor(effectiveTime)}`}>
+          {shop.isOpen ? (
+            <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${prepBadgeClasses}`}>
+              {effectiveTime <= 15 && (
+                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              )}
               {effectiveTime} min
             </span>
-          </div>
-
-          {shop.busyMode && (
-            <span className="px-2 py-1.5 bg-amber-500/90 backdrop-blur-sm text-white text-xs font-semibold rounded-lg">
-              Mode occupe
+          ) : (
+            <span className="px-2.5 py-1 bg-gray-600/90 text-white text-xs font-semibold rounded-lg">
+              Ferme
             </span>
           )}
-
-          {shop.paused && (
-            <span className="px-2 py-1.5 bg-red-500/90 backdrop-blur-sm text-white text-xs font-semibold rounded-lg">
+          {shop.busyMode && shop.isOpen && (
+            <span className="px-2 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-lg">
+              Occupe
+            </span>
+          )}
+          {shop.paused && shop.isOpen && (
+            <span className="px-2 py-1 bg-red-500/90 text-white text-xs font-semibold rounded-lg">
               Pause
             </span>
           )}
         </div>
 
-        {/* Top-right: city badge */}
+        {/* Top-right: city */}
         <div className="absolute top-3 right-3">
-          <span className="px-2.5 py-1.5 bg-white/95 backdrop-blur-sm text-gray-800 text-xs font-semibold rounded-lg shadow-sm">
+          <span className="px-2.5 py-1 bg-white/90 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white text-xs font-semibold rounded-lg">
             {shop.city}
           </span>
         </div>
 
-        {/* Quick action on hover */}
-        <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-          <span className="block w-full py-3 bg-white text-gray-900 font-semibold rounded-xl shadow-lg text-center">
-            J&apos;y vais
-          </span>
-        </div>
+        {/* Hover CTA */}
+        {shop.isOpen && (
+          <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+            <span className="block w-full py-2.5 bg-white dark:bg-[#2a2520] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
+              Voir la boutique
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Info */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900 text-base truncate group-hover:text-[#DC2626] transition-colors">
-              {shop.name}
-            </h3>
-            <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-md shrink-0">
-              <span className="text-xs font-semibold text-gray-900">
-                {shop.rating.toFixed(1)}
-              </span>
-              <svg className="w-3 h-3 text-gray-900" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <span className="text-xs text-gray-500">({shop.ratingCount})</span>
-            </div>
+      {/* Card body */}
+      <div className="p-4">
+        <h3
+          className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#8b2500] dark:group-hover:text-[#c4593e] transition-colors font-serif"
+        >
+          {shop.name}
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          {shop.address}, {shop.city}
+        </p>
+        <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#1a1814] rounded-lg">
+            <span className="text-sm">&#11088;</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              {shop.rating.toFixed(1)}
+            </span>
+            <span className="text-xs text-gray-400">({shop.ratingCount})</span>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">{shop.address}, {shop.city}</p>
         </div>
       </div>
     </Link>
@@ -192,24 +193,24 @@ function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
   return (
     <Link
       href={`/boutique/${promo.shopId}`}
-      className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer group"
+      className="flex items-center gap-4 p-4 bg-white dark:bg-[#2a2520] rounded-xl border border-[#ece8e3] dark:border-[#3a3530] hover:shadow-sm transition-all cursor-pointer group"
     >
-      <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
+      <div className="w-12 h-12 bg-[#8b2500] rounded-xl flex items-center justify-center shrink-0">
         <span className="text-white text-sm font-bold">-{promo.discount}%</span>
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-gray-900 truncate group-hover:text-[#DC2626] transition-colors">
+        <h4 className="font-medium text-gray-900 dark:text-white truncate group-hover:text-[#8b2500] dark:group-hover:text-[#c4593e] transition-colors">
           {promo.title}
         </h4>
-        <p className="text-xs text-gray-400 mt-0.5">{promo.shop}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{promo.shop}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="font-semibold text-gray-900">
-          {promo.price.toFixed(2).replace(".", ",")} €
+        <p className="font-semibold text-gray-900 dark:text-white">
+          {promo.price.toFixed(2).replace(".", ",")} &euro;
           <span className="text-xs font-normal text-gray-400">/kg</span>
         </p>
-        <p className="text-xs text-gray-400 line-through">
-          {promo.oldPrice.toFixed(2).replace(".", ",")} €
+        <p className="text-xs text-gray-400 dark:text-gray-500 line-through">
+          {promo.oldPrice.toFixed(2).replace(".", ",")} &euro;
         </p>
       </div>
     </Link>
@@ -224,7 +225,6 @@ export default async function DecouvrirPage() {
   let dbError = false;
   try {
     shops = await prisma.shop.findMany({
-      where: { isOpen: true },
       orderBy: { rating: "desc" },
       select: {
         id: true,
@@ -237,6 +237,7 @@ export default async function DecouvrirPage() {
         busyMode: true,
         busyExtraMin: true,
         paused: true,
+        isOpen: true,
         rating: true,
         ratingCount: true,
       },
@@ -247,7 +248,7 @@ export default async function DecouvrirPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER - DARK */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -267,6 +268,7 @@ export default async function DecouvrirPage() {
             <KlikGoLogo light />
             <div className="flex items-center gap-3">
               <CartBadge />
+              <ThemeToggle />
               <AuthButton />
             </div>
           </div>
@@ -277,7 +279,7 @@ export default async function DecouvrirPage() {
           <HeroLogo />
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.1]">
             Marre d&apos;attendre ?<br />
-            <span className="text-[#DC2626]">Commandez, recuperez.</span>
+            <span className="text-[#8b2500]">Commandez, recuperez.</span>
           </h1>
           <p className="mt-5 text-lg text-[#888] max-w-xl mx-auto">
             Zero file. Zero stress. <span className="text-white font-medium">100% frais.</span>
@@ -298,8 +300,10 @@ export default async function DecouvrirPage() {
         {/* Section header */}
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Boucheries disponibles</h2>
-            <p className="text-gray-500 mt-1">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif">
+              Boucheries disponibles
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">
               {shops.length > 0
                 ? `${shops.length} boucherie${shops.length > 1 ? "s" : ""} pres de chez vous`
                 : "Aucune boucherie disponible pour le moment"}
@@ -309,7 +313,7 @@ export default async function DecouvrirPage() {
 
         {/* DB error warning */}
         {dbError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
             Erreur de connexion a la base de donnees. Verifiez que DATABASE_URL est configure.
           </div>
         )}
@@ -324,8 +328,10 @@ export default async function DecouvrirPage() {
         {/* Promos section */}
         <div className="mt-14">
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold text-gray-900">Offres du moment</h3>
-            <button className="text-sm text-[#DC2626] font-medium hover:underline">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-serif">
+              Offres du moment
+            </h3>
+            <button className="text-sm text-[#8b2500] dark:text-[#c4593e] font-medium hover:underline">
               Voir tout
             </button>
           </div>
@@ -340,11 +346,11 @@ export default async function DecouvrirPage() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* FOOTER */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <footer className="border-t border-gray-200 bg-white py-10">
+      <footer className="border-t border-[#ece8e3] dark:border-[#3a3530] bg-white dark:bg-[#2a2520] py-10">
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />
-            <p className="text-sm text-gray-400">2026 Klik&Go — Propulse par TkS26</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">2026 Klik&Go — Propulse par TkS26</p>
           </div>
         </div>
       </footer>
