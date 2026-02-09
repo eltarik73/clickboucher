@@ -26,17 +26,23 @@ export default async function BoutiquePage({
 }) {
   const { id: slug } = await params;
 
-  const shop = await prisma.shop.findUnique({
-    where: { slug },
-    include: {
-      categories: { orderBy: { order: "asc" } },
-      products: {
-        where: { inStock: true },
-        include: { category: true },
-        orderBy: { name: "asc" },
+  let shop;
+  try {
+    shop = await prisma.shop.findUnique({
+      where: { slug },
+      include: {
+        categories: { orderBy: { order: "asc" } },
+        products: {
+          where: { inStock: true },
+          include: { category: true },
+          orderBy: { name: "asc" },
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("[BoutiquePage] Prisma error:", error);
+    notFound();
+  }
 
   if (!shop) notFound();
 

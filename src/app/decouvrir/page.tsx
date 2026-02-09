@@ -217,24 +217,29 @@ function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
 // MAIN PAGE — Server Component
 // ─────────────────────────────────────────────────────────────
 export default async function DecouvrirPage() {
-  const shops = await prisma.shop.findMany({
-    where: { isOpen: true },
-    orderBy: { rating: "desc" },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      address: true,
-      city: true,
-      imageUrl: true,
-      prepTimeMin: true,
-      busyMode: true,
-      busyExtraMin: true,
-      paused: true,
-      rating: true,
-      ratingCount: true,
-    },
-  });
+  let shops: ShopData[] = [];
+  try {
+    shops = await prisma.shop.findMany({
+      where: { isOpen: true },
+      orderBy: { rating: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        address: true,
+        city: true,
+        imageUrl: true,
+        prepTimeMin: true,
+        busyMode: true,
+        busyExtraMin: true,
+        paused: true,
+        rating: true,
+        ratingCount: true,
+      },
+    });
+  } catch (error) {
+    console.error("[DecouvrirPage] Prisma error:", error);
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">

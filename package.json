@@ -16,7 +16,7 @@
     "db:reset": "prisma migrate reset"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@clerk/localizations": "^3.35.3",
