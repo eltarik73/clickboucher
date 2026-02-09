@@ -1,135 +1,387 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
-import { Card, Btn, StickyHeader, BackBtn, Badge, EmptyState } from "@/components/ui/shared";
-import type { CartItem } from "@/types";
+import Image from "next/image";
+import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock } from "lucide-react";
+import { toast } from "sonner";
+import { useCart, type CartItem } from "@/lib/hooks/use-cart";
+import { Button } from "@/components/ui/button";
+
+// ── Helpers ──────────────────────────────────────
+
+function fmtPrice(cents: number) {
+  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
+}
+
+function itemTotal(item: CartItem) {
+  if (item.unit === "KG" && item.weightGrams) {
+    return Math.round((item.weightGrams / 1000) * item.priceCents) * item.quantity;
+  }
+  return item.priceCents * item.quantity;
+}
+
+function qtyLabel(item: CartItem) {
+  if (item.unit === "KG" && item.weightGrams) {
+    const g = item.weightGrams;
+    const weight = g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${g} g`;
+    return item.quantity > 1 ? `${item.quantity} × ${weight}` : weight;
+  }
+  const u = item.unit === "PIECE" ? "piece" : "barquette";
+  return `${item.quantity} ${u}${item.quantity > 1 ? "s" : ""}`;
+}
+
+// ── Cart Item Row ────────────────────────────────
+
+function CartItemRow({
+  item,
+  onUpdateQty,
+  onRemove,
+}: {
+  item: CartItem;
+  onUpdateQty: (qty: number) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 bg-white rounded-2xl p-3 border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+      {/* Image */}
+      <div className="w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0">
+        <Image
+          src={item.imageUrl || "/images/boucherie-hero.webp"}
+          alt={item.name}
+          width={60}
+          height={60}
+          sizes="60px"
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <h3 className="text-sm font-semibold text-[#2a2018] truncate">
+          {item.name}
+        </h3>
+        <p className="text-xs text-[#999] mt-0.5">{qtyLabel(item)}</p>
+        <p className="text-sm font-bold text-[#2a2018] mt-1">
+          {fmtPrice(itemTotal(item))}
+        </p>
+      </div>
+
+      {/* Qty controls */}
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => onUpdateQty(item.quantity - 1)}
+          className="w-8 h-8 rounded-full border border-[#e8e4df] bg-white flex items-center justify-center text-[#999] hover:bg-[#f5f0eb] transition-colors"
+        >
+          <Minus size={14} />
+        </button>
+        <span className="text-sm font-bold text-[#2a2018] min-w-[20px] text-center">
+          {item.quantity}
+        </span>
+        <button
+          onClick={() => onUpdateQty(item.quantity + 1)}
+          className="w-8 h-8 rounded-full bg-[#8b2500] flex items-center justify-center text-white hover:bg-[#6d1d00] transition-colors"
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+
+      {/* Delete */}
+      <button
+        onClick={onRemove}
+        className="p-2 rounded-xl text-[#999] hover:text-[#DC2626] hover:bg-red-50 transition-colors shrink-0"
+      >
+        <Trash2 size={16} />
+      </button>
+    </div>
+  );
+}
+
+// ── Main Page ────────────────────────────────────
 
 export default function PanierPage() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { user, isSignedIn, isLoaded } = useUser();
+  const { state, updateQty, removeItem, clear, itemCount, totalCents } = useCart();
 
-  // Load cart from localStorage
-  useEffect(() => {
-    const raw = localStorage.getItem("cb_cart");
-    if (raw) setCart(JSON.parse(raw));
+  const [timeMode, setTimeMode] = useState<"asap" | "scheduled">("asap");
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [customerNote, setCustomerNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-    const handler = () => {
-      const updated = localStorage.getItem("cb_cart");
-      if (updated) setCart(JSON.parse(updated));
-    };
-    window.addEventListener("cart-updated", handler);
-    return () => window.removeEventListener("cart-updated", handler);
-  }, []);
+  const role = user?.publicMetadata?.role as string | undefined;
+  const isPro = role === "client_pro";
 
-  // Persist cart changes
-  const updateCart = (newCart: CartItem[]) => {
-    setCart(newCart);
-    localStorage.setItem("cb_cart", JSON.stringify(newCart));
+  const handleOrder = async () => {
+    if (!state.shopId || state.items.length === 0) return;
+
+    setSubmitting(true);
+    try {
+      const requestedTime =
+        timeMode === "scheduled" && scheduledTime
+          ? new Date(scheduledTime).toISOString()
+          : "asap";
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shopId: state.shopId,
+          items: state.items.map((i) => ({
+            productId: i.productId || i.id,
+            quantity: i.unit === "KG" && i.weightGrams
+              ? (i.weightGrams / 1000) * i.quantity
+              : i.quantity,
+          })),
+          requestedTime,
+          customerNote: customerNote.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        clear();
+        toast.success(`Commande ${data.data.orderNumber} confirmee !`);
+        router.push(`/suivi/${data.data.id}`);
+      } else {
+        toast.error(data.error?.message || "Erreur lors de la commande");
+      }
+    } catch {
+      toast.error("Erreur reseau, reessayez");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const total = cart.reduce((s, c) => s + c.publicPrice * c.qty, 0);
+  // ── Empty cart ──────────────────────────────────
+  if (state.items.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#f8f6f3] flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 backdrop-blur-xl border-b border-[#ece8e3] px-5 py-4">
+          <div className="max-w-xl mx-auto flex items-center gap-3">
+            <Link
+              href="/decouvrir"
+              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white border border-[#ece8e3] shadow-sm"
+            >
+              <ArrowLeft size={17} className="text-[#333]" />
+            </Link>
+            <h1 className="text-lg font-bold text-[#2a2018]">Mon panier</h1>
+          </div>
+        </header>
 
+        <div className="flex-1 flex flex-col items-center justify-center px-5">
+          <div className="text-6xl mb-4">🛒</div>
+          <h2 className="text-xl font-bold text-[#2a2018]">
+            Votre panier est vide
+          </h2>
+          <p className="text-sm text-[#999] mt-2 text-center">
+            Ajoutez des produits depuis une boucherie pour commencer.
+          </p>
+          <Button
+            className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]"
+            size="lg"
+            asChild
+          >
+            <Link href="/decouvrir">Decouvrir les boucheries</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Cart with items ─────────────────────────────
   return (
-    <div className="min-h-screen bg-stone-50">
-      <StickyHeader>
-        <BackBtn onClick={() => router.push("/decouvrir")} />
-        <p className="font-display text-[17px] font-bold flex-1">Mon panier</p>
-        {cart.length > 0 && <Badge>{cart.length} article{cart.length > 1 ? "s" : ""}</Badge>}
-      </StickyHeader>
+    <div className="min-h-screen bg-[#f8f6f3] pb-8">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 backdrop-blur-xl border-b border-[#ece8e3] px-5 py-4">
+        <div className="max-w-xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/decouvrir"
+              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white border border-[#ece8e3] shadow-sm"
+            >
+              <ArrowLeft size={17} className="text-[#333]" />
+            </Link>
+            <h1 className="text-lg font-bold text-[#2a2018]">Mon panier</h1>
+          </div>
+          <span className="text-xs font-bold text-[#8b2500] bg-[#8b2500]/10 px-3 py-1.5 rounded-full">
+            {itemCount} article{itemCount > 1 ? "s" : ""}
+          </span>
+        </div>
+      </header>
 
-      <main className="mx-auto max-w-[560px] px-5 py-7">
-        {cart.length === 0 ? (
-          <EmptyState
-            icon="🛒"
-            title="Ton panier est vide"
-            sub="Ajoute des produits depuis une boucherie."
-            action={
-              <Btn className="mt-4" onClick={() => router.push("/decouvrir")}>
-                Découvrir les boucheries
-              </Btn>
-            }
-          />
-        ) : (
-          <>
-            <div className="flex flex-col gap-2.5">
-              {cart.map((item, i) => (
-                <Card
-                  key={item.id}
-                  className="p-4 animate-fade-up"
-                  style={{ animationDelay: `${i * 50}ms` } as React.CSSProperties}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-semibold">{item.name}</p>
-                      <p className="text-xs text-stone-500 mt-0.5">
-                        {item.publicPrice.toFixed(2)} € / {item.unit}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          if (item.qty <= 1)
-                            updateCart(cart.filter((c) => c.id !== item.id));
-                          else
-                            updateCart(
-                              cart.map((c) =>
-                                c.id === item.id ? { ...c, qty: c.qty - 1 } : c
-                              )
-                            );
-                        }}
-                        className="w-[30px] h-[30px] rounded-full border border-stone-200 bg-white grid place-items-center text-[15px] hover:bg-stone-50 transition"
-                      >
-                        −
-                      </button>
-                      <span className="text-sm font-bold min-w-[18px] text-center">
-                        {item.qty}
-                      </span>
-                      <button
-                        onClick={() =>
-                          updateCart(
-                            cart.map((c) =>
-                              c.id === item.id ? { ...c, qty: c.qty + 1 } : c
-                            )
-                          )
-                        }
-                        className="w-[30px] h-[30px] rounded-full border-none bg-[#7A1023] text-white grid place-items-center text-[15px] hover:bg-[#9B1B32] transition"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+      <main className="max-w-xl mx-auto px-5 mt-6">
+        {/* Shop name */}
+        <div className="flex items-center gap-2 mb-4">
+          <ShoppingBag size={16} className="text-[#8b2500]" />
+          <span className="text-sm font-semibold text-[#2a2018]">
+            {state.shopName}
+          </span>
+          {isPro && (
+            <span className="ml-auto text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
+              Prix Pro appliques
+            </span>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════ */}
+        {/* CART ITEMS */}
+        {/* ═══════════════════════════════════════════ */}
+        <div className="flex flex-col gap-2.5">
+          {state.items.map((item) => (
+            <CartItemRow
+              key={item.id}
+              item={item}
+              onUpdateQty={(qty) => updateQty(item.id, qty)}
+              onRemove={() => removeItem(item.id)}
+            />
+          ))}
+        </div>
+
+        {/* Total */}
+        <div className="mt-5 p-4 bg-white rounded-2xl border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-[#999]">Total estime</span>
+            <span className="text-2xl font-extrabold text-[#2a2018]">
+              {fmtPrice(totalCents)}
+            </span>
+          </div>
+          <p className="text-[11px] text-[#999] mt-1.5">
+            Le poids exact sera ajuste au retrait. Paiement sur place.
+          </p>
+        </div>
+
+        {/* ═══════════════════════════════════════════ */}
+        {/* CHECKOUT */}
+        {/* ═══════════════════════════════════════════ */}
+        <div className="mt-6">
+          <h2 className="text-base font-bold text-[#2a2018] mb-4">
+            Finaliser la commande
+          </h2>
+
+          {!isLoaded ? (
+            <div className="text-center py-8 text-[#999] text-sm">
+              Chargement...
             </div>
+          ) : !isSignedIn ? (
+            /* Not signed in */
+            <div className="p-5 bg-white rounded-2xl border border-[#ece8e3] text-center">
+              <p className="text-sm text-[#999] mb-4">
+                Connectez-vous pour passer votre commande
+              </p>
+              <Button
+                className="bg-[#8b2500] hover:bg-[#6d1d00] w-full"
+                size="lg"
+                asChild
+              >
+                <Link href="/sign-in?redirect_url=/panier">
+                  Se connecter pour commander
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            /* Signed in — checkout form */
+            <div className="space-y-4">
+              {/* Time slot */}
+              <div className="p-4 bg-white rounded-2xl border border-[#ece8e3]">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock size={16} className="text-[#8b2500]" />
+                  <span className="text-sm font-semibold text-[#2a2018]">
+                    Creneau de retrait
+                  </span>
+                </div>
 
-            {/* Total + CTA */}
-            <div className="mt-6 p-5 rounded-[20px] bg-[#FDF2F4] border border-[#EDCCD2]">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-stone-500">Total estimé</span>
-                <span className="font-display text-2xl font-extrabold text-[#7A1023]">
-                  {total.toFixed(2)} €
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] cursor-pointer hover:bg-[#f5f0eb] transition-colors mb-2">
+                  <input
+                    type="radio"
+                    name="timeSlot"
+                    checked={timeMode === "asap"}
+                    onChange={() => setTimeMode("asap")}
+                    className="w-4 h-4 accent-[#8b2500]"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-[#2a2018]">
+                      Des que possible
+                    </span>
+                    <p className="text-[11px] text-[#999]">
+                      Preparation immediate par le boucher
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] cursor-pointer hover:bg-[#f5f0eb] transition-colors">
+                  <input
+                    type="radio"
+                    name="timeSlot"
+                    checked={timeMode === "scheduled"}
+                    onChange={() => setTimeMode("scheduled")}
+                    className="w-4 h-4 accent-[#8b2500]"
+                  />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-[#2a2018]">
+                      Programmer un retrait
+                    </span>
+                    <p className="text-[11px] text-[#999]">
+                      Choisissez un horaire precis
+                    </p>
+                  </div>
+                </label>
+
+                {timeMode === "scheduled" && (
+                  <input
+                    type="datetime-local"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)}
+                    className="mt-3 w-full h-12 rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500] transition-colors"
+                  />
+                )}
+              </div>
+
+              {/* Customer note */}
+              <div className="p-4 bg-white rounded-2xl border border-[#ece8e3]">
+                <label className="text-sm font-semibold text-[#2a2018] mb-2 block">
+                  Note au boucher
+                  <span className="text-[#999] font-normal ml-1">(optionnel)</span>
+                </label>
+                <textarea
+                  value={customerNote}
+                  onChange={(e) => setCustomerNote(e.target.value)}
+                  placeholder="Sans trop de gras, bien saignant..."
+                  maxLength={500}
+                  rows={3}
+                  className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] placeholder:text-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500] transition-colors"
+                />
+              </div>
+
+              {/* Payment note */}
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <span className="text-xs text-[#999]">
+                  Paiement sur place au retrait — pas de paiement en ligne
                 </span>
               </div>
-              <p className="text-[11px] text-stone-400 mt-1.5">
-                Le poids exact sera ajusté au retrait.
-              </p>
-              <Btn
+
+              {/* Submit */}
+              <Button
+                onClick={handleOrder}
+                disabled={submitting || (timeMode === "scheduled" && !scheduledTime)}
+                className="w-full bg-[#8b2500] hover:bg-[#6d1d00] disabled:opacity-50"
                 size="lg"
-                className="w-full mt-4"
-                onClick={() =>
-                  isSignedIn
-                    ? router.push("/checkout")
-                    : router.push("/sign-in?redirect_url=/checkout")
-                }
               >
-                {isSignedIn ? "Valider la commande" : "Se connecter pour commander"}
-              </Btn>
+                {submitting ? "Envoi en cours..." : "Confirmer ma commande"}
+              </Button>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </main>
     </div>
   );

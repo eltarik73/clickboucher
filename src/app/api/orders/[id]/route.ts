@@ -22,7 +22,7 @@ export async function GET(
       where: { id },
       include: {
         items: { include: { product: true } },
-        shop: { select: { id: true, name: true, slug: true, imageUrl: true, ownerId: true } },
+        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, phone: true, ownerId: true } },
         user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true } },
       },
     });

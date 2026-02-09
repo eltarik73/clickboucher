@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
+import { Toaster } from "sonner";
 import { CartProviderWrapper } from "@/components/providers/CartProviderWrapper";
 import "@/styles/globals.css";
 
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider localization={frFR}>
       <html lang="fr">
         <body className="bg-stone-50 text-stone-900 antialiased">
+          <Toaster position="top-center" richColors />
           <CartProviderWrapper>{children}</CartProviderWrapper>
         </body>
       </html>
