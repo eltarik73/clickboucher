@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { StarRating } from "@/components/ui/StarRating";
+import { getShopImage } from "@/lib/product-images";
 
 // ─────────────────────────────────────────────────────────────
 // AUTH CHECK — redirect if signed in
@@ -230,10 +231,10 @@ export default async function HomePage() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {shops.map((shop) => {
+              {shops.map((shop, i) => {
                 const effectiveTime =
                   shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-                const imgSrc = shop.imageUrl || "/images/boucherie-default.webp";
+                const imgSrc = shop.imageUrl || getShopImage(i);
 
                 return (
                   <Link

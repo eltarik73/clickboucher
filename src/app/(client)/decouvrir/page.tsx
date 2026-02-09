@@ -11,6 +11,7 @@ import { AuthButton } from "./AuthButton";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { StarRating } from "@/components/ui/StarRating";
+import { getShopImage } from "@/lib/product-images";
 
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header)
@@ -87,9 +88,9 @@ type ShopData = {
   ratingCount: number;
 };
 
-function ButcherCard({ shop, isFavorite }: { shop: ShopData; isFavorite: boolean }) {
+function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: number; isFavorite: boolean }) {
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-  const imgSrc = shop.imageUrl || "/images/boucherie-default.webp";
+  const imgSrc = shop.imageUrl || getShopImage(index);
 
   const prepBadgeClasses =
     effectiveTime <= 15
@@ -341,8 +342,8 @@ export default async function DecouvrirPage() {
 
         {/* Grid - 2 columns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {shops.map((shop) => (
-            <ButcherCard key={shop.id} shop={shop} isFavorite={favoriteIds.has(shop.id)} />
+          {shops.map((shop, i) => (
+            <ButcherCard key={shop.id} shop={shop} index={i} isFavorite={favoriteIds.has(shop.id)} />
           ))}
         </div>
 

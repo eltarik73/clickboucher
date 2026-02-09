@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/hooks/use-cart";
 import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
 import { Button } from "@/components/ui/button";
+import { getProductImage } from "@/lib/product-images";
 
 // ── Types ────────────────────────────────────────
 
@@ -45,8 +46,8 @@ function unitLabel(unit: string) {
 
 // ── Product Card ─────────────────────────────────
 
-function ProductCard({ product, onAdd }: { product: ProductData; onAdd: () => void }) {
-  const imgSrc = product.imageUrl || "/images/boucherie-hero.webp";
+function ProductCard({ product, productIndex, onAdd }: { product: ProductData; productIndex: number; onAdd: () => void }) {
+  const imgSrc = product.imageUrl || getProductImage(product.category.name, productIndex);
 
   return (
     <div className="group relative flex gap-3 bg-white border border-[#ece8e3] rounded-[18px] p-2.5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[#ddd5cc] active:scale-[0.97] min-w-0 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
@@ -170,7 +171,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
           id: p.id,
           name: p.name,
           description: p.description || "",
-          imageUrl: p.imageUrl || "/images/boucherie-hero.webp",
+          imageUrl: p.imageUrl || getProductImage(p.category.name),
           category: p.category.name,
           unit: p.unit,
           priceCents: p.priceCents,
@@ -182,7 +183,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
           id: p.id,
           productId: p.id,
           name: p.name,
-          imageUrl: p.imageUrl || "/images/boucherie-hero.webp",
+          imageUrl: p.imageUrl || getProductImage(p.category.name),
           unit: p.unit as "PIECE" | "BARQUETTE",
           priceCents: p.priceCents,
           quantity: 1,
@@ -254,8 +255,8 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
       {/* Product grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 px-4 pb-24">
-          {filtered.map((p) => (
-            <ProductCard key={p.id} product={p} onAdd={() => handleAdd(p)} />
+          {filtered.map((p, i) => (
+            <ProductCard key={p.id} product={p} productIndex={i} onAdd={() => handleAdd(p)} />
           ))}
         </div>
       ) : (
