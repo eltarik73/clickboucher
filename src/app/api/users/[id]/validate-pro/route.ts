@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 import { z } from "zod";
 
 const validateProSchema = z.object({
@@ -61,6 +62,8 @@ export async function POST(
         publicMetadata: { role: "client_pro" },
       });
 
+      await sendNotification("PRO_VALIDATED", { userId: user.clerkId });
+
       return apiSuccess(updated);
     } else {
       // Reject
@@ -77,6 +80,8 @@ export async function POST(
       await clerk.users.updateUserMetadata(user.clerkId, {
         publicMetadata: { role: "client" },
       });
+
+      await sendNotification("PRO_REJECTED", { userId: user.clerkId });
 
       return apiSuccess(updated);
     }

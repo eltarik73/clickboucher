@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { denyOrderSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 
 // ── POST /api/orders/[id]/deny ─────────────────
 // Boucher (owner) — deny an order
@@ -20,7 +21,7 @@ export async function POST(
 
     const order = await prisma.order.findUnique({
       where: { id },
-      select: { status: true, shop: { select: { ownerId: true } } },
+      select: { status: true, userId: true, orderNumber: true, shop: { select: { ownerId: true, name: true } } },
     });
 
     if (!order) {
@@ -44,7 +45,14 @@ export async function POST(
       },
     });
 
-    // TODO: déclencher notification client
+    // Notify client
+    await sendNotification("ORDER_DENIED", {
+      userId: order.userId,
+      orderId: id,
+      orderNumber: order.orderNumber,
+      shopName: order.shop.name,
+      denyReason: data.reason,
+    });
 
     return apiSuccess(updated);
   } catch (error) {

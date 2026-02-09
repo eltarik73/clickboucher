@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 
 // ── POST /api/orders/[id]/ready ────────────────
 // Boucher (owner) — mark order as ready for pickup
@@ -19,7 +20,7 @@ export async function POST(
 
     const order = await prisma.order.findUnique({
       where: { id },
-      select: { status: true, shop: { select: { ownerId: true } } },
+      select: { status: true, userId: true, orderNumber: true, shop: { select: { ownerId: true, name: true } } },
     });
 
     if (!order) {
@@ -40,7 +41,13 @@ export async function POST(
       },
     });
 
-    // TODO: déclencher notification client
+    // Notify client
+    await sendNotification("ORDER_READY", {
+      userId: order.userId,
+      orderId: id,
+      orderNumber: order.orderNumber,
+      shopName: order.shop.name,
+    });
 
     return apiSuccess(updated);
   } catch (error) {

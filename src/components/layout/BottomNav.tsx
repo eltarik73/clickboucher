@@ -5,17 +5,19 @@ import { usePathname } from "next/navigation";
 import { Home, MessageCircle, ShoppingCart, ClipboardList, LogIn } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useCart } from "@/lib/hooks/use-cart";
+import { useNotifications } from "@/lib/hooks/use-notifications";
 
 const NAV_ITEMS = [
   { key: "accueil",    label: "Accueil",    href: "/decouvrir",  icon: Home },
   { key: "ia",         label: "IA",         href: "/chat",       icon: MessageCircle },
-  { key: "panier",     label: "Panier",     href: "/panier",     icon: ShoppingCart, badge: true },
-  { key: "commandes",  label: "Commandes",  href: "/commandes",  icon: ClipboardList },
+  { key: "panier",     label: "Panier",     href: "/panier",     icon: ShoppingCart, badge: "cart" as const },
+  { key: "commandes",  label: "Commandes",  href: "/commandes",  icon: ClipboardList, badge: "notif" as const },
 ] as const;
 
 export function BottomNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
+  const { unreadCount } = useNotifications();
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white dark:bg-[#2a2520] border-t border-gray-100 dark:border-[#3a3530] px-2 pb-safe z-50">
@@ -34,9 +36,14 @@ export function BottomNav() {
             >
               <div className="relative">
                 <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
-                {"badge" in item && item.badge && itemCount > 0 && (
+                {"badge" in item && item.badge === "cart" && itemCount > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-[#DC2626] text-white text-[10px] font-bold rounded-full px-1">
                     {itemCount > 99 ? "99+" : itemCount}
+                  </span>
+                )}
+                {"badge" in item && item.badge === "notif" && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-[#DC2626] text-white text-[10px] font-bold rounded-full px-1">
+                    {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </div>

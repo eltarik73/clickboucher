@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { createOrderSchema, orderListQuerySchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 
 // ── GET /api/orders ────────────────────────────
 // Role-based: client sees own orders, boucher sees shop orders, admin sees all
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
     // Get internal user
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
-      select: { id: true, role: true },
+      select: { id: true, role: true, firstName: true },
     });
     if (!user) {
       return apiError("NOT_FOUND", "Utilisateur introuvable");
@@ -168,6 +169,14 @@ export async function POST(req: NextRequest) {
         items: true,
         shop: { select: { id: true, name: true, slug: true } },
       },
+    });
+
+    // Notify boucher
+    await sendNotification("ORDER_PENDING", {
+      shopId: order.shopId,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      customerName: user.firstName,
     });
 
     return apiSuccess(order, 201);

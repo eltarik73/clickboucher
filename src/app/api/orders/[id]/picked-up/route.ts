@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { pickupOrderSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 
 // ── POST /api/orders/[id]/picked-up ────────────
 // QR code scan — verify and mark as picked up
@@ -23,7 +24,9 @@ export async function POST(
       select: {
         status: true,
         qrCode: true,
-        shop: { select: { ownerId: true } },
+        userId: true,
+        orderNumber: true,
+        shop: { select: { ownerId: true, name: true } },
       },
     });
 
@@ -52,6 +55,14 @@ export async function POST(
         pickedUpAt: now,
         qrScannedAt: now,
       },
+    });
+
+    // Notify client
+    await sendNotification("ORDER_PICKED_UP", {
+      userId: order.userId,
+      orderId: id,
+      orderNumber: order.orderNumber,
+      shopName: order.shop.name,
     });
 
     return apiSuccess(updated);

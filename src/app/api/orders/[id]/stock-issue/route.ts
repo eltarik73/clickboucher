@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 import { z } from "zod";
 
 const stockIssueSchema = z.object({
@@ -29,7 +30,7 @@ export async function POST(
       where: { id },
       include: {
         items: true,
-        shop: { select: { ownerId: true } },
+        shop: { select: { ownerId: true, name: true } },
       },
     });
 
@@ -88,6 +89,14 @@ export async function POST(
         items: { include: { product: true } },
         user: { select: { firstName: true, lastName: true, email: true } },
       },
+    });
+
+    // Notify client
+    await sendNotification("STOCK_ISSUE", {
+      userId: order.userId,
+      orderId: id,
+      orderNumber: order.orderNumber,
+      shopName: order.shop.name,
     });
 
     return apiSuccess(updated);

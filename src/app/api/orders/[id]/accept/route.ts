@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
 import { acceptOrderSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 
 // ── POST /api/orders/[id]/accept ───────────────
 // Boucher (owner) — accept an order
@@ -21,7 +22,7 @@ export async function POST(
 
     const order = await prisma.order.findUnique({
       where: { id },
-      select: { status: true, shop: { select: { ownerId: true } } },
+      select: { status: true, userId: true, orderNumber: true, shop: { select: { ownerId: true, name: true } } },
     });
 
     if (!order) {
@@ -50,7 +51,15 @@ export async function POST(
       include: { items: true },
     });
 
-    // TODO: déclencher notification client
+    // Notify client
+    await sendNotification("ORDER_ACCEPTED", {
+      userId: order.userId,
+      orderId: id,
+      orderNumber: order.orderNumber,
+      shopName: order.shop.name,
+      estimatedMinutes: data.estimatedMinutes,
+      qrCode,
+    });
 
     return apiSuccess({
       ...updated,

@@ -4,6 +4,7 @@ import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
 import { CartProviderWrapper } from "@/components/providers/CartProviderWrapper";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { NotificationProvider } from "@/components/ui/NotificationToast";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body className="bg-[#f8f6f3] text-stone-900 dark:bg-[#1a1814] dark:text-[#f8f6f3] antialiased transition-colors duration-300">
           <ThemeProvider>
             <Toaster position="top-center" richColors />
-            <CartProviderWrapper>{children}</CartProviderWrapper>
+            <NotificationProvider>
+              <CartProviderWrapper>{children}</CartProviderWrapper>
+            </NotificationProvider>
           </ThemeProvider>
         </body>
       </html>
