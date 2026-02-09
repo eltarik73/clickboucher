@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 import { BoucherNav } from "@/components/layout/BoucherNav";
 
 export default function BoucherLayout({ children }: { children: React.ReactNode }) {
@@ -15,10 +15,11 @@ export default function BoucherLayout({ children }: { children: React.ReactNode 
     );
   }
 
-  const role = user?.publicMetadata?.role as string | undefined;
-  if (!role || (role !== "boucher" && role !== "admin")) {
-    redirect("/decouvrir");
-  }
+  // TODO: remettre la vérification de rôle après les tests
+  // const role = user?.publicMetadata?.role as string | undefined;
+  // if (!role || (role !== "boucher" && role !== "admin")) {
+  //   redirect("/decouvrir");
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">
