@@ -14,11 +14,14 @@ function getClient(): Anthropic | null {
 }
 
 export async function POST(req: NextRequest) {
+  console.log("[chat] ANTHROPIC_API_KEY exists:", !!process.env.ANTHROPIC_API_KEY);
+
   try {
     const client = getClient();
     if (!client) {
+      console.error("[chat] No ANTHROPIC_API_KEY — returning 503");
       return NextResponse.json(
-        { error: "Service IA indisponible" },
+        { error: "Service IA indisponible (clé API manquante)" },
         { status: 503 }
       );
     }
@@ -43,55 +46,60 @@ export async function POST(req: NextRequest) {
       // Not authenticated — that's fine
     }
 
-    // ── Live context from DB ─────────────────────
-    const [shops, popularProducts, userOrders] = await Promise.all([
-      // Open shops with prep time
-      prisma.shop.findMany({
-        where: { isOpen: true, paused: false },
-        select: {
-          name: true,
-          address: true,
-          prepTimeMin: true,
-          busyMode: true,
-          busyExtraMin: true,
-          rating: true,
-          slug: true,
-        },
-        orderBy: { rating: "desc" },
-      }),
+    // ── Live context from DB (non-blocking) ──────
+    let shops: { name: string; address: string; prepTimeMin: number; busyMode: boolean; busyExtraMin: number; rating: number; slug: string }[] = [];
+    let popularProducts: { name: string; priceCents: number; unit: string; promoPct: number | null; shop: { name: string; slug: string }; category: { name: string } }[] = [];
+    let userOrders: { orderNumber: string; status: string; totalCents: number; createdAt: Date; shop: { name: string }; items: { name: string; quantity: number; unit: string }[] }[] = [];
 
-      // Top 20 most ordered products
-      prisma.product.findMany({
-        where: { inStock: true },
-        select: {
-          name: true,
-          priceCents: true,
-          unit: true,
-          promoPct: true,
-          shop: { select: { name: true, slug: true } },
-          category: { select: { name: true } },
-        },
-        orderBy: { orderItems: { _count: "desc" } },
-        take: 20,
-      }),
+    try {
+      [shops, popularProducts, userOrders] = await Promise.all([
+        prisma.shop.findMany({
+          where: { isOpen: true, paused: false },
+          select: {
+            name: true,
+            address: true,
+            prepTimeMin: true,
+            busyMode: true,
+            busyExtraMin: true,
+            rating: true,
+            slug: true,
+          },
+          orderBy: { rating: "desc" },
+        }),
 
-      // User's last 5 orders (if authenticated)
-      userId
-        ? prisma.order.findMany({
-            where: { user: { clerkId: userId } },
-            select: {
-              orderNumber: true,
-              status: true,
-              totalCents: true,
-              createdAt: true,
-              shop: { select: { name: true } },
-              items: { select: { name: true, quantity: true, unit: true } },
-            },
-            orderBy: { createdAt: "desc" },
-            take: 5,
-          })
-        : Promise.resolve([]),
-    ]);
+        prisma.product.findMany({
+          where: { inStock: true },
+          select: {
+            name: true,
+            priceCents: true,
+            unit: true,
+            promoPct: true,
+            shop: { select: { name: true, slug: true } },
+            category: { select: { name: true } },
+          },
+          orderBy: { orderItems: { _count: "desc" } },
+          take: 20,
+        }),
+
+        userId
+          ? prisma.order.findMany({
+              where: { user: { clerkId: userId } },
+              select: {
+                orderNumber: true,
+                status: true,
+                totalCents: true,
+                createdAt: true,
+                shop: { select: { name: true } },
+                items: { select: { name: true, quantity: true, unit: true } },
+              },
+              orderBy: { createdAt: "desc" },
+              take: 5,
+            })
+          : Promise.resolve([]),
+      ]);
+    } catch (dbError) {
+      console.warn("[chat] DB context fetch failed (non-blocking):", dbError);
+    }
 
     // ── Format context strings ───────────────────
     const shopsContext = shops.length
@@ -171,7 +179,8 @@ FONCTIONS DISPONIBLES :
 
     return NextResponse.json({ role: "assistant", content });
   } catch (error: unknown) {
-    console.error("[chat] Error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[chat] Error:", message, error);
 
     if (error instanceof Anthropic.RateLimitError) {
       return NextResponse.json(
@@ -182,13 +191,13 @@ FONCTIONS DISPONIBLES :
 
     if (error instanceof Anthropic.AuthenticationError) {
       return NextResponse.json(
-        { error: "Service IA indisponible (config)" },
+        { error: "Clé API Anthropic invalide. Vérifiez ANTHROPIC_API_KEY." },
         { status: 503 }
       );
     }
 
     return NextResponse.json(
-      { error: "Erreur du service IA" },
+      { error: `Erreur du service IA : ${message}` },
       { status: 500 }
     );
   }

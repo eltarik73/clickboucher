@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
         select: { id: true },
       });
       if (!user) {
-        return apiError("NOT_FOUND", "Utilisateur introuvable");
+        return apiSuccess([]);
       }
       where.userId = user.id;
     }
