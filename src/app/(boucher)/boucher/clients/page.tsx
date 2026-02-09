@@ -175,17 +175,17 @@ export default function BoucherClientsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-5">
         <AlertCircle className="w-10 h-10 text-red-400" />
-        <p className="text-sm text-gray-500">{error}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 bg-white rounded-xl p-1 shadow-sm">
+        <div className="flex gap-1 bg-white dark:bg-[#2a2520] rounded-xl p-1 shadow-sm">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -196,7 +196,7 @@ export default function BoucherClientsPage() {
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   isActive
                     ? "bg-[#8b2500] text-white shadow-sm"
-                    : "text-gray-500 hover:bg-gray-50"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530]"
                 }`}
               >
                 <Icon size={16} />
@@ -219,53 +219,53 @@ export default function BoucherClientsPage() {
         {activeTab === "demandes" && (
           <div className="space-y-3">
             {proRequests.length === 0 ? (
-              <Card className="bg-white border-0 shadow-sm">
+              <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
                 <CardContent className="py-12 flex flex-col items-center gap-2">
-                  <Bell className="w-10 h-10 text-gray-300" />
-                  <p className="text-sm text-gray-400">Aucune demande Pro en attente</p>
+                  <Bell className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Aucune demande Pro en attente</p>
                 </CardContent>
               </Card>
             ) : (
               proRequests.map((req) => (
-                <Card key={req.id} className="bg-white border-0 shadow-sm overflow-hidden">
+                <Card key={req.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
                   <div className="h-1 bg-amber-400" />
                   <CardContent className="p-4 space-y-3">
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
                           {req.firstName} {req.lastName}
                         </p>
-                        <p className="text-sm text-gray-500">{req.email}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{req.email}</p>
                       </div>
-                      <Badge variant="outline" className="text-[10px] bg-amber-50 border-amber-200 text-amber-700">
+                      <Badge variant="outline" className="text-[10px] bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
                         En attente
                       </Badge>
                     </div>
 
                     {/* Details */}
-                    <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                    <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 space-y-2">
                       {req.companyName && (
                         <div className="flex items-center gap-2">
-                          <Building2 size={14} className="text-gray-400 shrink-0" />
-                          <span className="text-sm text-gray-700">{req.companyName}</span>
+                          <Building2 size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{req.companyName}</span>
                         </div>
                       )}
                       {req.siret && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-12 shrink-0">SIRET</span>
-                          <span className="text-sm font-mono text-gray-700">{req.siret}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 w-12 shrink-0">SIRET</span>
+                          <span className="text-sm font-mono text-gray-700 dark:text-gray-300">{req.siret}</span>
                         </div>
                       )}
                       {req.sector && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-12 shrink-0">Secteur</span>
-                          <span className="text-sm text-gray-700">{req.sector}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500 w-12 shrink-0">Secteur</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{req.sector}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 w-12 shrink-0">Date</span>
-                        <span className="text-sm text-gray-700">{formatDate(req.createdAt)}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 w-12 shrink-0">Date</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatDate(req.createdAt)}</span>
                       </div>
                     </div>
 
@@ -306,10 +306,10 @@ export default function BoucherClientsPage() {
           <div className="space-y-3">
             {/* Sort controls */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-              <ArrowUpDown size={14} className="text-gray-400 shrink-0" />
+              <ArrowUpDown size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
               {([
                 { key: "lastOrder", label: "Dernier achat" },
-                { key: "totalSpent", label: "Total depense" },
+                { key: "totalSpent", label: "Total d\u00e9pens\u00e9" },
                 { key: "orderCount", label: "Nb commandes" },
               ] as const).map((opt) => (
                 <button
@@ -318,7 +318,7 @@ export default function BoucherClientsPage() {
                   className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                     sortBy === opt.key
                       ? "bg-[#8b2500] text-white"
-                      : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
+                      : "bg-white dark:bg-[#2a2520] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#3a3530] hover:bg-gray-50 dark:hover:bg-[#3a3530]"
                   }`}
                 >
                   {opt.label}
@@ -327,40 +327,40 @@ export default function BoucherClientsPage() {
             </div>
 
             {sortedClients.length === 0 ? (
-              <Card className="bg-white border-0 shadow-sm">
+              <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
                 <CardContent className="py-12 flex flex-col items-center gap-2">
-                  <Users className="w-10 h-10 text-gray-300" />
-                  <p className="text-sm text-gray-400">Aucun client pour le moment</p>
+                  <Users className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm text-gray-400 dark:text-gray-500">Aucun client pour le moment</p>
                 </CardContent>
               </Card>
             ) : (
               sortedClients.map((client) => (
-                <Card key={client.userId} className="bg-white border-0 shadow-sm">
+                <Card key={client.userId} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-sm text-gray-900 truncate">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-[#f8f6f3] truncate">
                             {client.firstName} {client.lastName}
                           </p>
                           {client.isPro && (
                             <Badge variant="pro" className="text-[10px] shrink-0">PRO</Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 truncate">{client.email}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{client.email}</p>
                       </div>
                       <div className="text-right shrink-0 ml-3">
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
                           {formatPrice(client.totalSpent)}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
                           {client.orderCount} cmd{client.orderCount > 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
                     {client.lastOrder && (
-                      <p className="text-[11px] text-gray-400 mt-1.5">
-                        Derniere commande : {formatDate(client.lastOrder)}
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">
+                        Derni&egrave;re commande : {formatDate(client.lastOrder)}
                       </p>
                     )}
                   </CardContent>

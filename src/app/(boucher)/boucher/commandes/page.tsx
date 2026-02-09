@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRScanner } from "@/components/boucher/QRScanner";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Bell,
   Clock,
   CheckCircle,
@@ -17,6 +24,7 @@ import {
   QrCode,
   ScanLine,
   Package,
+  Timer,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
@@ -116,7 +124,7 @@ export default function BoucherCommandesPage() {
         const fetched: Order[] = json.data || [];
         setOrders(fetched);
 
-        // Check for new PENDING orders
+        // Check for new PENDING orders → play notification
         const currentPendingIds = new Set(
           fetched.filter((o) => o.status === "PENDING").map((o) => o.id)
         );
@@ -211,16 +219,14 @@ export default function BoucherCommandesPage() {
     }
   }
 
-  async function handlePreparing(orderId: string) {
+  async function handlePreparing(orderId: string, addMinutes?: number) {
     setActionLoading(true);
     try {
-      await fetch(`/api/orders/${orderId}/accept`, {
+      await fetch(`/api/orders/${orderId}/preparing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estimatedMinutes: shopPrepTime }),
+        body: JSON.stringify({ addMinutes: addMinutes || 0 }),
       });
-      // The accept route sets ACCEPTED, then we can mark as PREPARING via order update
-      // For now, use the ready endpoint pattern - let's just refetch
       await fetchOrders(true);
     } catch {
       // silent
@@ -269,7 +275,7 @@ export default function BoucherCommandesPage() {
   const tabs: { key: Tab; label: string; count: number; icon: typeof Bell }[] = [
     { key: "nouvelles", label: "Nouvelles", count: pendingOrders.length, icon: Bell },
     { key: "en-cours", label: "En cours", count: inProgressOrders.length, icon: Clock },
-    { key: "pretes", label: "Pretes", count: readyOrders.length, icon: CheckCircle },
+    { key: "pretes", label: "Prêtes", count: readyOrders.length, icon: CheckCircle },
   ];
 
   if (loading) {
@@ -281,11 +287,11 @@ export default function BoucherCommandesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 bg-white rounded-xl p-1 shadow-sm">
+        <div className="flex gap-1 bg-white dark:bg-[#2a2520] rounded-xl p-1 shadow-sm">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -296,7 +302,7 @@ export default function BoucherCommandesPage() {
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   isActive
                     ? "bg-[#8b2500] text-white shadow-sm"
-                    : "text-gray-500 hover:bg-gray-50"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530]"
                 }`}
               >
                 <Icon size={16} />
@@ -321,43 +327,43 @@ export default function BoucherCommandesPage() {
         {activeTab === "nouvelles" && (
           <div className="space-y-3">
             {pendingOrders.length === 0 ? (
-              <EmptyTab icon={<Bell className="w-10 h-10 text-gray-300" />} message="Aucune nouvelle commande" />
+              <EmptyTab icon={<Bell className="w-10 h-10 text-gray-300 dark:text-gray-600" />} message="Aucune nouvelle commande" />
             ) : (
               pendingOrders.map((order) => (
-                <Card key={order.id} className="bg-white border-0 shadow-sm overflow-hidden">
+                <Card key={order.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
                   <div className="h-1 bg-amber-400" />
                   <CardContent className="p-4 space-y-3">
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm text-gray-900">
+                          <span className="font-mono font-bold text-sm text-gray-900 dark:text-[#f8f6f3]">
                             {order.orderNumber}
                           </span>
                           {order.isPro && (
                             <Badge variant="pro" className="text-[10px]">PRO</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mt-0.5">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                           {order.user ? `${order.user.firstName} ${order.user.lastName}` : "Client"}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-lg font-bold text-gray-900 dark:text-[#f8f6f3]">
                           {formatPrice(order.totalCents)}
                         </p>
-                        <p className="text-xs text-gray-400">{formatTime(order.createdAt)}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{formatTime(order.createdAt)}</p>
                       </div>
                     </div>
 
                     {/* Items */}
-                    <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                    <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 space-y-1">
                       {order.items.map((item) => (
                         <div key={item.id} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-700">
+                          <span className="text-gray-700 dark:text-gray-300">
                             {item.quantity} {item.product.unit === "KG" ? "kg" : item.product.unit === "PIECE" ? "pc" : "barq."} — {item.product.name}
                           </span>
-                          <span className="text-gray-400 text-xs">
+                          <span className="text-gray-400 dark:text-gray-500 text-xs">
                             {formatPrice(item.unitPriceCents * item.quantity)}
                           </span>
                         </div>
@@ -366,24 +372,24 @@ export default function BoucherCommandesPage() {
 
                     {/* Customer note */}
                     {order.customerNote && (
-                      <div className="bg-blue-50 rounded-lg px-3 py-2 text-sm text-blue-700">
+                      <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg px-3 py-2 text-sm text-blue-700 dark:text-blue-300">
                         <span className="font-medium">Note : </span>{order.customerNote}
                       </div>
                     )}
 
                     {/* Requested time */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                       <Clock size={13} />
                       {order.requestedTime
-                        ? `Retrait souhaite : ${formatTime(order.requestedTime)}`
+                        ? `Retrait souhaité : ${formatTime(order.requestedTime)}`
                         : "ASAP"}
                     </div>
 
                     {/* ── Accept form ── */}
                     {acceptingId === order.id ? (
-                      <div className="bg-emerald-50 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-emerald-800">
-                          Pret dans combien de minutes ?
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3 space-y-2">
+                        <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+                          Prêt dans combien de minutes ?
                         </p>
                         <div className="flex items-center gap-2">
                           <Input
@@ -394,7 +400,7 @@ export default function BoucherCommandesPage() {
                             min={1}
                             max={480}
                           />
-                          <span className="text-sm text-gray-500">min</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">min</span>
                           <div className="flex-1" />
                           <Button
                             size="sm"
@@ -415,15 +421,15 @@ export default function BoucherCommandesPage() {
                       </div>
                     ) : denyingId === order.id ? (
                       /* ── Deny form ── */
-                      <div className="bg-red-50 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-red-800">
+                      <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3 space-y-2">
+                        <p className="text-sm font-medium text-red-800 dark:text-red-300">
                           Raison du refus
                         </p>
                         <textarea
                           value={denyReason}
                           onChange={(e) => setDenyReason(e.target.value)}
                           placeholder="Ex: Rupture de stock, fermeture exceptionnelle..."
-                          className="w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300"
+                          className="w-full rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-[#1a1814] px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300 dark:text-[#f8f6f3]"
                           rows={2}
                         />
                         <div className="flex gap-2 justify-end">
@@ -446,8 +452,8 @@ export default function BoucherCommandesPage() {
                       </div>
                     ) : stockIssueId === order.id ? (
                       /* ── Stock issue form ── */
-                      <div className="bg-orange-50 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-orange-800">
+                      <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-3 space-y-2">
+                        <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
                           Cochez les articles en rupture
                         </p>
                         <div className="space-y-1.5">
@@ -467,7 +473,7 @@ export default function BoucherCommandesPage() {
                                 }}
                                 className="rounded border-orange-300 text-orange-600 focus:ring-orange-500"
                               />
-                              <span className={unavailableItems.has(item.productId) ? "line-through text-gray-400" : "text-gray-700"}>
+                              <span className={unavailableItems.has(item.productId) ? "line-through text-gray-400" : "text-gray-700 dark:text-gray-300"}>
                                 {item.product.name} ({item.quantity} {item.product.unit === "KG" ? "kg" : item.product.unit === "PIECE" ? "pc" : "barq."})
                               </span>
                             </label>
@@ -512,7 +518,7 @@ export default function BoucherCommandesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="gap-1 border-orange-300 text-orange-700 hover:bg-orange-50"
+                          className="gap-1 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
                           onClick={() => { setStockIssueId(order.id); setAcceptingId(null); setDenyingId(null); setUnavailableItems(new Set()); }}
                         >
                           <AlertTriangle size={14} /> Rupture
@@ -530,7 +536,7 @@ export default function BoucherCommandesPage() {
         {activeTab === "en-cours" && (
           <div className="space-y-3">
             {inProgressOrders.length === 0 ? (
-              <EmptyTab icon={<Clock className="w-10 h-10 text-gray-300" />} message="Aucune commande en cours" />
+              <EmptyTab icon={<Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />} message="Aucune commande en cours" />
             ) : (
               inProgressOrders.map((order) => {
                 const remaining = order.estimatedReady
@@ -539,45 +545,45 @@ export default function BoucherCommandesPage() {
                 const isOverdue = remaining !== null && remaining < 0;
 
                 return (
-                  <Card key={order.id} className="bg-white border-0 shadow-sm overflow-hidden">
+                  <Card key={order.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
                     <div className={`h-1 ${isOverdue ? "bg-red-500" : "bg-blue-400"}`} />
                     <CardContent className="p-4 space-y-3">
                       {/* Header with timer */}
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sm text-gray-900">
+                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-[#f8f6f3]">
                               {order.orderNumber}
                             </span>
                             <Badge
                               variant="outline"
                               className={`text-[10px] font-semibold border ${
                                 order.status === "PREPARING"
-                                  ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                                  : "bg-blue-50 border-blue-200 text-blue-700"
+                                  ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-800 dark:text-indigo-300"
+                                  : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300"
                               }`}
                             >
-                              {order.status === "PREPARING" ? "En prepa" : "Acceptee"}
+                              {order.status === "PREPARING" ? "En prépa" : "Acceptée"}
                             </Badge>
                             {order.isPro && (
                               <Badge variant="pro" className="text-[10px]">PRO</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 mt-0.5">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                             {order.user ? `${order.user.firstName} ${order.user.lastName}` : "Client"}
                           </p>
                         </div>
                         {/* Timer */}
                         {remaining !== null && (
                           <div className={`text-right px-3 py-1.5 rounded-lg ${
-                            isOverdue ? "bg-red-100" : "bg-blue-50"
+                            isOverdue ? "bg-red-100 dark:bg-red-950/40" : "bg-blue-50 dark:bg-blue-950/30"
                           }`}>
                             <p className={`text-lg font-bold font-mono ${
-                              isOverdue ? "text-red-600" : "text-blue-700"
+                              isOverdue ? "text-red-600" : "text-blue-700 dark:text-blue-300"
                             }`}>
                               {isOverdue ? `+${Math.abs(remaining)}` : remaining} min
                             </p>
-                            <p className="text-[10px] text-gray-500">
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400">
                               {isOverdue ? "en retard" : "restantes"}
                             </p>
                           </div>
@@ -585,9 +591,9 @@ export default function BoucherCommandesPage() {
                       </div>
 
                       {/* Items */}
-                      <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+                      <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 space-y-1">
                         {order.items.map((item) => (
-                          <div key={item.id} className="text-sm text-gray-700">
+                          <div key={item.id} className="text-sm text-gray-700 dark:text-gray-300">
                             {item.quantity} {item.product.unit === "KG" ? "kg" : item.product.unit === "PIECE" ? "pc" : "barq."} — {item.product.name}
                           </div>
                         ))}
@@ -595,8 +601,8 @@ export default function BoucherCommandesPage() {
 
                       {/* Total */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Total</span>
-                        <span className="font-bold text-gray-900">{formatPrice(order.totalCents)}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
+                        <span className="font-bold text-gray-900 dark:text-[#f8f6f3]">{formatPrice(order.totalCents)}</span>
                       </div>
 
                       {/* Actions */}
@@ -608,7 +614,7 @@ export default function BoucherCommandesPage() {
                             onClick={() => handlePreparing(order.id)}
                             disabled={actionLoading}
                           >
-                            <ChefHat size={14} /> En preparation
+                            <ChefHat size={14} /> En préparation
                           </Button>
                         )}
                         <Button
@@ -617,7 +623,29 @@ export default function BoucherCommandesPage() {
                           onClick={() => handleReady(order.id)}
                           disabled={actionLoading}
                         >
-                          <CheckCircle size={14} /> Prete !
+                          <CheckCircle size={14} /> Prête !
+                        </Button>
+                      </div>
+
+                      {/* +5 / +10 min buttons */}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
+                          onClick={() => handlePreparing(order.id, 5)}
+                          disabled={actionLoading}
+                        >
+                          <Timer size={13} /> +5 min
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
+                          onClick={() => handlePreparing(order.id, 10)}
+                          disabled={actionLoading}
+                        >
+                          <Timer size={13} /> +10 min
                         </Button>
                       </div>
                     </CardContent>
@@ -628,7 +656,7 @@ export default function BoucherCommandesPage() {
           </div>
         )}
 
-        {/* ── PRETES ── */}
+        {/* ── PRÊTES ── */}
         {activeTab === "pretes" && (
           <div className="space-y-3">
             {/* Scanner button */}
@@ -640,7 +668,7 @@ export default function BoucherCommandesPage() {
             </Button>
 
             {readyOrders.length === 0 ? (
-              <EmptyTab icon={<CheckCircle className="w-10 h-10 text-gray-300" />} message="Aucune commande prete" />
+              <EmptyTab icon={<CheckCircle className="w-10 h-10 text-gray-300 dark:text-gray-600" />} message="Aucune commande prête" />
             ) : (
               readyOrders.map((order) => {
                 const waitTime = order.actualReady
@@ -648,46 +676,46 @@ export default function BoucherCommandesPage() {
                   : null;
 
                 return (
-                  <Card key={order.id} className="bg-white border-0 shadow-sm overflow-hidden">
+                  <Card key={order.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
                     <div className="h-1 bg-emerald-400" />
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sm text-gray-900">
+                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-[#f8f6f3]">
                               {order.orderNumber}
                             </span>
                             <Badge
                               variant="outline"
-                              className="text-[10px] font-semibold border bg-emerald-50 border-emerald-200 text-emerald-700"
+                              className="text-[10px] font-semibold border bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
                             >
-                              Prete
+                              Prête
                             </Badge>
                             {order.isPro && (
                               <Badge variant="pro" className="text-[10px]">PRO</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 mt-0.5">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                             {order.user ? `${order.user.firstName} ${order.user.lastName}` : "Client"}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900">{formatPrice(order.totalCents)}</p>
-                          <p className="text-xs text-gray-400">
+                          <p className="font-bold text-gray-900 dark:text-[#f8f6f3]">{formatPrice(order.totalCents)}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
                             {order.items.length} article{order.items.length > 1 ? "s" : ""}
                           </p>
                         </div>
                       </div>
 
                       {/* Waiting indicator */}
-                      <div className="flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
                         <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                        <span className="text-sm text-amber-800">
+                        <span className="text-sm text-amber-800 dark:text-amber-300">
                           En attente du client
                         </span>
                         {waitTime && (
-                          <span className="text-xs text-amber-600 ml-auto">
+                          <span className="text-xs text-amber-600 dark:text-amber-400 ml-auto">
                             depuis {waitTime}
                           </span>
                         )}
@@ -695,12 +723,12 @@ export default function BoucherCommandesPage() {
 
                       {/* QR Code display */}
                       {order.qrCode && (
-                        <div className="bg-gray-50 rounded-lg p-3 text-center">
+                        <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 text-center">
                           <div className="flex items-center justify-center gap-2 mb-1">
-                            <QrCode size={16} className="text-gray-500" />
-                            <span className="text-xs text-gray-500">Code QR de retrait</span>
+                            <QrCode size={16} className="text-gray-500 dark:text-gray-400" />
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Code QR de retrait</span>
                           </div>
-                          <p className="font-mono text-sm font-semibold text-gray-700 break-all">
+                          <p className="font-mono text-sm font-semibold text-gray-700 dark:text-gray-300 break-all">
                             {order.qrCode.slice(0, 8)}...{order.qrCode.slice(-4)}
                           </p>
                         </div>
@@ -714,7 +742,7 @@ export default function BoucherCommandesPage() {
                           onClick={() => handlePickedUp(order.id, order.qrCode)}
                           disabled={actionLoading}
                         >
-                          <Package size={14} /> Recuperee
+                          <Package size={14} /> Récupérée
                         </Button>
                       </div>
                     </CardContent>
@@ -724,29 +752,24 @@ export default function BoucherCommandesPage() {
             )}
           </div>
         )}
-        {/* ── QR Scanner Modal ── */}
-        {showScanner && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowScanner(false)} />
-            <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
-                <h2 className="text-lg font-bold text-gray-900">Scanner QR</h2>
-                <button
-                  onClick={() => setShowScanner(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
-                >
-                  <XCircle size={16} />
-                </button>
-              </div>
-              <div className="p-5">
-                <QRScanner
-                  onClose={() => setShowScanner(false)}
-                  onScanned={() => fetchOrders(true)}
-                />
-              </div>
+
+        {/* ── QR Scanner Dialog ── */}
+        <Dialog open={showScanner} onOpenChange={setShowScanner}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Scanner QR</DialogTitle>
+              <DialogDescription>
+                Scannez le QR code du client pour valider le retrait
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-5 pt-0">
+              <QRScanner
+                onClose={() => setShowScanner(false)}
+                onScanned={() => fetchOrders(true)}
+              />
             </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -757,10 +780,10 @@ export default function BoucherCommandesPage() {
 // ─────────────────────────────────────────────
 function EmptyTab({ icon, message }: { icon: React.ReactNode; message: string }) {
   return (
-    <Card className="bg-white border-0 shadow-sm">
+    <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
       <CardContent className="py-12 flex flex-col items-center gap-2">
         {icon}
-        <p className="text-sm text-gray-400">{message}</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">{message}</p>
       </CardContent>
     </Card>
   );

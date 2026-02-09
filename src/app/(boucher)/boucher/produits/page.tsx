@@ -13,7 +13,6 @@ import {
   AlertCircle,
   X,
   Package,
-  Pencil,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
@@ -50,10 +49,10 @@ type Shop = {
 };
 
 const TAG_COLORS: Record<string, string> = {
-  Halal: "bg-green-100 text-green-700 border-green-200",
-  Bio: "bg-lime-100 text-lime-700 border-lime-200",
-  Nouveau: "bg-blue-100 text-blue-700 border-blue-200",
-  Promo: "bg-red-100 text-red-700 border-red-200",
+  Halal: "bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-300 dark:border-green-800",
+  Bio: "bg-lime-100 text-lime-700 border-lime-200 dark:bg-lime-950/30 dark:text-lime-300 dark:border-lime-800",
+  Nouveau: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800",
+  Promo: "bg-red-100 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800",
 };
 
 const UNIT_LABELS: Record<string, string> = {
@@ -165,7 +164,7 @@ export default function BoucherProduitsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-5">
         <AlertCircle className="w-10 h-10 text-red-400" />
-        <p className="text-sm text-gray-500 text-center">{error}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{error}</p>
       </div>
     );
   }
@@ -174,14 +173,14 @@ export default function BoucherProduitsPage() {
   const outCount = products.length - inStockCount;
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-5">
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Mes produits</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-[#f8f6f3]">Mes produits</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {inStockCount} en stock · {outCount} en rupture
             </p>
           </div>
@@ -200,7 +199,7 @@ export default function BoucherProduitsPage() {
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
               !selectedCategory
                 ? "bg-[#8b2500] text-white"
-                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
             }`}
           >
             Tous ({products.length})
@@ -214,7 +213,7 @@ export default function BoucherProduitsPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   selectedCategory === cat.id
                     ? "bg-[#8b2500] text-white"
-                    : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                    : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
                 }`}
               >
                 {cat.name} ({count})
@@ -226,7 +225,7 @@ export default function BoucherProduitsPage() {
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
               showOutOfStock
                 ? "bg-red-600 text-white"
-                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
             }`}
           >
             En rupture ({outCount})
@@ -235,16 +234,16 @@ export default function BoucherProduitsPage() {
 
         {/* ── Product list ── */}
         {grouped.length === 0 ? (
-          <Card className="bg-white border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
             <CardContent className="py-12 flex flex-col items-center gap-2">
-              <Package className="w-10 h-10 text-gray-300" />
-              <p className="text-sm text-gray-400">Aucun produit trouve</p>
+              <Package className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">Aucun produit trouvé</p>
             </CardContent>
           </Card>
         ) : (
           grouped.map((group) => (
             <div key={group.category.id} className="space-y-2">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
+              <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">
                 {group.category.name}
               </h2>
               {group.items.map((product) => (
@@ -286,11 +285,11 @@ function ProductCard({
   const promoActive = hasPromo && product.promoEnd && new Date(product.promoEnd) > new Date();
 
   return (
-    <Card className={`bg-white border-0 shadow-sm transition-opacity ${!product.inStock ? "opacity-60" : ""}`}>
+    <Card className={`bg-white dark:bg-[#2a2520] border-0 shadow-sm transition-opacity ${!product.inStock ? "opacity-60" : ""}`}>
       <CardContent className="p-3">
         <div className="flex gap-3">
           {/* Image */}
-          <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden bg-gray-100 shrink-0">
+          <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1814] shrink-0">
             {product.imageUrl ? (
               <Image
                 src={product.imageUrl}
@@ -301,7 +300,7 @@ function ProductCard({
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Package size={20} className="text-gray-300" />
+                <Package size={20} className="text-gray-300 dark:text-gray-600" />
               </div>
             )}
             {promoActive && (
@@ -315,18 +314,18 @@ function ProductCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="font-semibold text-sm text-gray-900 truncate">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-[#f8f6f3] truncate">
                   {product.name}
                 </h3>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
                     {(product.priceCents / 100).toFixed(2).replace(".", ",")} €
-                    <span className="text-xs font-normal text-gray-400">
+                    <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
                       {UNIT_LABELS[product.unit] || ""}
                     </span>
                   </span>
                   {product.proPriceCents != null && (
-                    <span className="text-xs text-[#8b2500] font-medium">
+                    <span className="text-xs text-[#8b2500] dark:text-[#c4593e] font-medium">
                       {(product.proPriceCents / 100).toFixed(2).replace(".", ",")} € Pro
                     </span>
                   )}
@@ -340,7 +339,7 @@ function ProductCard({
                   onCheckedChange={onToggleStock}
                   className={product.inStock ? "!bg-emerald-500" : "!bg-red-400"}
                 />
-                <span className={`text-[10px] font-medium ${product.inStock ? "text-emerald-600" : "text-red-500"}`}>
+                <span className={`text-[10px] font-medium ${product.inStock ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
                   {product.inStock ? "En stock" : "Rupture"}
                 </span>
               </div>
@@ -348,20 +347,20 @@ function ProductCard({
 
             {/* Tags & category */}
             <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-              <Badge variant="outline" className="text-[10px] border-gray-200 text-gray-500">
+              <Badge variant="outline" className="text-[10px] border-gray-200 dark:border-[#3a3530] text-gray-500 dark:text-gray-400">
                 {product.category.name}
               </Badge>
               {product.tags.map((tag) => (
                 <Badge
                   key={tag}
                   variant="outline"
-                  className={`text-[10px] border ${TAG_COLORS[tag] || "bg-gray-100 text-gray-600 border-gray-200"}`}
+                  className={`text-[10px] border ${TAG_COLORS[tag] || "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"}`}
                 >
                   {tag}
                 </Badge>
               ))}
               {promoActive && product.promoEnd && (
-                <Badge variant="outline" className="text-[10px] border-red-200 bg-red-50 text-red-600">
+                <Badge variant="outline" className="text-[10px] border-red-200 bg-red-50 text-red-600 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300">
                   Promo jusqu&apos;au {new Date(product.promoEnd).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                 </Badge>
               )}
@@ -438,7 +437,7 @@ function AddProductForm({
         onCreated();
       } else {
         const json = await res.json();
-        setFormError(json.error?.message || "Erreur lors de la creation");
+        setFormError(json.error?.message || "Erreur lors de la création");
       }
     } catch {
       setFormError("Erreur de connexion");
@@ -453,35 +452,35 @@ function AddProductForm({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#2a2520] rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-gray-900">Nouveau produit</h2>
+        <div className="sticky top-0 bg-white dark:bg-[#2a2520] border-b border-gray-100 dark:border-[#3a3530] px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-[#f8f6f3]">Nouveau produit</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3a3530] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#4a4540]"
           >
-            <X size={16} />
+            <X size={16} className="text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Name */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
               Nom du produit *
             </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Entrecote maturee"
+              placeholder="Ex: Entrecôte maturée"
               required
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
               Description
             </label>
             <textarea
@@ -489,14 +488,14 @@ function AddProductForm({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description du produit..."
               rows={2}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
+              className="w-full rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 py-2 text-sm text-gray-900 dark:text-[#f8f6f3] resize-none focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
             />
           </div>
 
           {/* Price row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                 Prix (€) *
               </label>
               <Input
@@ -510,7 +509,7 @@ function AddProductForm({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                 Prix Pro (€)
               </label>
               <Input
@@ -527,27 +526,27 @@ function AddProductForm({
           {/* Unit & Category */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Unite
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Unité
               </label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as "KG" | "PIECE" | "BARQUETTE")}
-                className="w-full h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
               >
                 <option value="KG">Kilogramme (kg)</option>
-                <option value="PIECE">Piece</option>
+                <option value="PIECE">Pièce</option>
                 <option value="BARQUETTE">Barquette</option>
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
-                Categorie
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Catégorie
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
               >
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -560,7 +559,7 @@ function AddProductForm({
 
           {/* Tags */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
               Tags
             </label>
             <div className="flex gap-2">
@@ -572,7 +571,7 @@ function AddProductForm({
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
                     tags.has(tag)
                       ? TAG_COLORS[tag] || "bg-gray-200 text-gray-700"
-                      : "bg-white text-gray-400 border-gray-200 hover:bg-gray-50"
+                      : "bg-white dark:bg-[#1a1814] text-gray-400 border-gray-200 dark:border-[#3a3530] hover:bg-gray-50 dark:hover:bg-[#3a3530]"
                   }`}
                 >
                   {tag}
@@ -583,7 +582,7 @@ function AddProductForm({
 
           {/* Image URL */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
               URL image
             </label>
             <Input
@@ -596,7 +595,7 @@ function AddProductForm({
 
           {/* Error */}
           {formError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-sm text-red-700 dark:text-red-300">
               {formError}
             </div>
           )}
@@ -610,7 +609,7 @@ function AddProductForm({
             {submitting ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
-              "Creer le produit"
+              "Créer le produit"
             )}
           </Button>
         </form>

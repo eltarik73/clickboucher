@@ -19,7 +19,10 @@ type ScanResult = {
   message?: string;
 };
 
-export function QRScanner({ onClose, onScanned }: {
+export function QRScanner({
+  onClose,
+  onScanned,
+}: {
   onClose: () => void;
   onScanned: () => void;
 }) {
@@ -27,8 +30,11 @@ export function QRScanner({ onClose, onScanned }: {
   const [starting, setStarting] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [scannedCode, setScannedCode] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const containerRef = useRef<string>("qr-reader-" + Math.random().toString(36).slice(2));
+  const containerRef = useRef<string>(
+    "qr-reader-" + Math.random().toString(36).slice(2)
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -44,6 +50,7 @@ export function QRScanner({ onClose, onScanned }: {
   async function startScanner() {
     setStarting(true);
     setResult(null);
+    setScannedCode(null);
 
     try {
       const scanner = new Html5Qrcode(containerRef.current);
@@ -58,7 +65,10 @@ export function QRScanner({ onClose, onScanned }: {
 
       setScanning(true);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Impossible d'acceder a la camera";
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Impossible d\u2019acc\u00e9der \u00e0 la cam\u00e9ra";
       setResult({ success: false, message });
     } finally {
       setStarting(false);
@@ -89,23 +99,31 @@ export function QRScanner({ onClose, onScanned }: {
     scannerRef.current = null;
     setScanning(false);
     setProcessing(true);
+    setScannedCode(qrCode);
 
     try {
       // Try to find the order with this QR code
       const ordersRes = await fetch("/api/orders");
       if (!ordersRes.ok) {
-        setResult({ success: false, message: "Erreur lors de la recherche de la commande" });
+        setResult({
+          success: false,
+          message: "Erreur lors de la recherche de la commande",
+        });
         return;
       }
 
       const ordersJson = await ordersRes.json();
       const orders = ordersJson.data || [];
-      const order = orders.find((o: { qrCode: string | null; status: string }) =>
-        o.qrCode === qrCode && o.status === "READY"
+      const order = orders.find(
+        (o: { qrCode: string | null; status: string }) =>
+          o.qrCode === qrCode && o.status === "READY"
       );
 
       if (!order) {
-        setResult({ success: false, message: "QR code invalide ou commande non prete" });
+        setResult({
+          success: false,
+          message: "QR code invalide ou commande non pr\u00eate",
+        });
         return;
       }
 
@@ -134,7 +152,10 @@ export function QRScanner({ onClose, onScanned }: {
         });
       }
     } catch {
-      setResult({ success: false, message: "Erreur de connexion au serveur" });
+      setResult({
+        success: false,
+        message: "Erreur de connexion au serveur",
+      });
     } finally {
       setProcessing(false);
     }
@@ -145,17 +166,20 @@ export function QRScanner({ onClose, onScanned }: {
       {/* Scanner viewport */}
       <div
         id={containerRef.current}
-        className={`w-full rounded-xl overflow-hidden bg-black ${scanning ? "min-h-[300px]" : "hidden"}`}
+        className={`w-full rounded-xl overflow-hidden bg-black ${
+          scanning ? "min-h-[300px]" : "hidden"
+        }`}
       />
 
-      {/* Start / Processing states */}
+      {/* Start state */}
       {!scanning && !result && !processing && (
         <div className="flex flex-col items-center gap-4 py-6">
-          <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
-            <Camera size={32} className="text-gray-400" />
+          <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-[#3a3530] flex items-center justify-center">
+            <Camera size={32} className="text-gray-400 dark:text-gray-500" />
           </div>
-          <p className="text-sm text-gray-500 text-center">
-            Scannez le QR code sur le telephone du client pour valider le retrait
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            Scannez le QR code sur le t&eacute;l&eacute;phone du client pour
+            valider le retrait
           </p>
           <Button
             onClick={startScanner}
@@ -167,15 +191,29 @@ export function QRScanner({ onClose, onScanned }: {
             ) : (
               <Camera size={16} />
             )}
-            {starting ? "Demarrage..." : "Ouvrir la camera"}
+            {starting ? "D\u00e9marrage..." : "\ud83d\udcf1 Scanner le QR code"}
           </Button>
         </div>
       )}
 
+      {/* Processing state */}
       {processing && (
         <div className="flex flex-col items-center gap-3 py-8">
           <Loader2 size={32} className="animate-spin text-[#8b2500]" />
-          <p className="text-sm text-gray-500">Verification en cours...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            V&eacute;rification en cours...
+          </p>
+          {scannedCode && (
+            <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg px-4 py-2 mt-1">
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+                Code scann&eacute;
+              </p>
+              <p className="font-mono text-sm text-gray-700 dark:text-gray-300 text-center break-all">
+                {scannedCode.slice(0, 12)}
+                {scannedCode.length > 12 ? "..." : ""}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -183,32 +221,49 @@ export function QRScanner({ onClose, onScanned }: {
       {result && (
         <div className="space-y-4">
           {result.success ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-center space-y-2">
-              <CheckCircle size={40} className="text-emerald-500 mx-auto" />
-              <p className="text-lg font-bold text-emerald-800">
-                Commande recuperee !
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-5 text-center space-y-2">
+              <CheckCircle
+                size={40}
+                className="text-emerald-500 dark:text-emerald-400 mx-auto"
+              />
+              <p className="text-lg font-bold text-emerald-800 dark:text-emerald-300">
+                ✅ Commande r&eacute;cup&eacute;r&eacute;e !
               </p>
-              <div className="text-sm text-emerald-700 space-y-0.5">
-                <p className="font-mono font-semibold">{result.orderNumber}</p>
+              <div className="text-sm text-emerald-700 dark:text-emerald-400 space-y-0.5">
+                <p className="font-mono font-semibold">
+                  {result.orderNumber}
+                </p>
                 <p>{result.clientName}</p>
-                <p className="text-emerald-600">
-                  {result.itemCount} article{(result.itemCount || 0) > 1 ? "s" : ""}
+                <p className="text-emerald-600 dark:text-emerald-500">
+                  {result.itemCount} article
+                  {(result.itemCount || 0) > 1 ? "s" : ""}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-center space-y-2">
-              <XCircle size={40} className="text-red-400 mx-auto" />
-              <p className="text-lg font-bold text-red-800">QR invalide</p>
-              <p className="text-sm text-red-600">{result.message}</p>
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-5 text-center space-y-2">
+              <XCircle
+                size={40}
+                className="text-red-400 dark:text-red-500 mx-auto"
+              />
+              <p className="text-lg font-bold text-red-800 dark:text-red-300">
+                ❌ QR invalide
+              </p>
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {result.message}
+              </p>
             </div>
           )}
 
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1"
-              onClick={() => { setResult(null); startScanner(); }}
+              className="flex-1 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
+              onClick={() => {
+                setResult(null);
+                setScannedCode(null);
+                startScanner();
+              }}
             >
               Scanner un autre
             </Button>
@@ -226,10 +281,10 @@ export function QRScanner({ onClose, onScanned }: {
       {scanning && (
         <Button
           variant="outline"
-          className="w-full gap-2"
+          className="w-full gap-2 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
           onClick={stopScanner}
         >
-          <X size={16} /> Arreter le scanner
+          <X size={16} /> Arr&ecirc;ter le scanner
         </Button>
       )}
     </div>

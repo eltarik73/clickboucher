@@ -159,16 +159,16 @@ export default function BoucherDashboardPage() {
       : { label: "Ouvert", style: "bg-emerald-100 text-emerald-700 border-emerald-200" };
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
       <div className="max-w-3xl mx-auto px-5 py-6 space-y-6">
 
         {/* ── Header ── */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Bonjour {user?.firstName || "Chef"} !
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
+            Bonjour {user?.firstName || "Chef"} 👋
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-sm text-gray-500">{shop?.name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{shop?.name}</p>
             <Badge
               variant="outline"
               className={`text-[10px] font-semibold border ${shopStatus.style}`}
@@ -181,30 +181,30 @@ export default function BoucherDashboardPage() {
         {/* ── Stats Grid 2x2 ── */}
         <div className="grid grid-cols-2 gap-3">
           {/* CA du jour */}
-          <Card className="bg-white border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                   <DollarSign className="w-4 h-4 text-emerald-600" />
                 </div>
-                <span className="text-xs text-gray-500">CA du jour</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">CA du jour</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
                 {caToday.toFixed(2).replace(".", ",")} €
               </p>
             </CardContent>
           </Card>
 
           {/* Commandes du jour */}
-          <Card className="bg-white border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                   <Package className="w-4 h-4 text-blue-600" />
                 </div>
-                <span className="text-xs text-gray-500">Commandes</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Commandes</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
                 {todayOrders.length}
               </p>
             </CardContent>
@@ -217,28 +217,28 @@ export default function BoucherDashboardPage() {
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pendingCount > 0 ? "bg-red-200" : "bg-amber-100"}`}>
                   <Clock className={`w-4 h-4 ${pendingCount > 0 ? "text-red-600" : "text-amber-600"}`} />
                 </div>
-                <span className="text-xs text-gray-500">En attente</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">En attente</span>
               </div>
-              <p className={`text-2xl font-bold ${pendingCount > 0 ? "text-red-600" : "text-gray-900"}`}>
+              <p className={`text-2xl font-bold ${pendingCount > 0 ? "text-red-600" : "text-gray-900 dark:text-[#f8f6f3]"}`}>
                 {pendingCount}
               </p>
             </CardContent>
           </Card>
 
           {/* Note moyenne */}
-          <Card className="bg-white border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                   <Star className="w-4 h-4 text-amber-600" />
                 </div>
-                <span className="text-xs text-gray-500">Note</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Note</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
                   {shop?.rating?.toFixed(1) || "—"}
                 </p>
-                <span className="text-xs text-gray-400">/5 ({shop?.ratingCount || 0})</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">/5 ({shop?.ratingCount || 0})</span>
               </div>
             </CardContent>
           </Card>
@@ -246,12 +246,12 @@ export default function BoucherDashboardPage() {
 
         {/* ── Actions rapides ── */}
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700">Actions rapides</h2>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Actions rapides</h2>
           <div className="grid grid-cols-3 gap-2">
             <Link href="/boucher/commandes">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white hover:bg-gray-50 border-gray-200"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#2a2520] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
               >
                 <div className="relative">
                   <Bell className="w-5 h-5 text-[#8b2500]" />
@@ -261,17 +261,17 @@ export default function BoucherDashboardPage() {
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-medium text-gray-700">Commandes</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Commandes</span>
               </Button>
             </Link>
 
             <Link href="/boucher/produits">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white hover:bg-gray-50 border-gray-200"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#2a2520] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
               >
                 <Package className="w-5 h-5 text-[#8b2500]" />
-                <span className="text-xs font-medium text-gray-700">Stock</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Stock</span>
               </Button>
             </Link>
 
@@ -290,7 +290,7 @@ export default function BoucherDashboardPage() {
               ) : (
                 <Settings className={`w-5 h-5 ${shop?.busyMode ? "text-amber-600" : "text-[#8b2500]"}`} />
               )}
-              <span className="text-xs font-medium text-gray-700">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 {shop?.busyMode ? "Desactiver" : "Mode occupe"}
               </span>
             </Button>
@@ -300,7 +300,7 @@ export default function BoucherDashboardPage() {
         {/* ── Dernieres commandes ── */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">Dernieres commandes</h2>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dernières commandes</h2>
             <Link
               href="/boucher/commandes"
               className="text-xs text-[#8b2500] font-medium hover:underline"
@@ -310,9 +310,9 @@ export default function BoucherDashboardPage() {
           </div>
 
           {recentOrders.length === 0 ? (
-            <Card className="bg-white border-0 shadow-sm">
+            <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
               <CardContent className="py-8 text-center">
-                <p className="text-sm text-gray-400">Aucune commande pour le moment</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Aucune commande pour le moment</p>
               </CardContent>
             </Card>
           ) : (
@@ -325,26 +325,26 @@ export default function BoucherDashboardPage() {
 
                 return (
                   <Link key={order.id} href="/boucher/commandes">
-                    <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                    <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                       <CardContent className="p-3.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="shrink-0">
-                              <span className="text-xs font-mono font-semibold text-gray-900">
+                              <span className="text-xs font-mono font-semibold text-gray-900 dark:text-[#f8f6f3]">
                                 {order.orderNumber}
                               </span>
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-gray-800 truncate">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
                                 {clientName}
                               </p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-gray-400 dark:text-gray-500">
                                 {order.items.length} article{order.items.length > 1 ? "s" : ""} · {formatTime(order.createdAt)}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-sm font-bold text-gray-900">
+                            <span className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
                               {(order.totalCents / 100).toFixed(2).replace(".", ",")} €
                             </span>
                             <Badge
