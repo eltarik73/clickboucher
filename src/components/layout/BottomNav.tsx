@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageCircle, ShoppingCart, ClipboardList, LogIn } from "lucide-react";
+import { Home, MessageCircle, Heart, ShoppingCart, ClipboardList, LogIn } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useCart } from "@/lib/hooks/use-cart";
 import { useNotifications } from "@/lib/hooks/use-notifications";
@@ -10,6 +10,7 @@ import { useNotifications } from "@/lib/hooks/use-notifications";
 const NAV_ITEMS = [
   { key: "accueil",    label: "Accueil",    href: "/decouvrir",  icon: Home },
   { key: "ia",         label: "IA",         href: "/chat",       icon: MessageCircle },
+  { key: "favoris",    label: "Favoris",    href: "/favoris",    icon: Heart },
   { key: "panier",     label: "Panier",     href: "/panier",     icon: ShoppingCart, badge: "cart" as const },
   { key: "commandes",  label: "Commandes",  href: "/commandes",  icon: ClipboardList, badge: "notif" as const },
 ] as const;

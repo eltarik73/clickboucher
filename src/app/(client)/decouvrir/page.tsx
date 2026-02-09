@@ -2,12 +2,15 @@ export const dynamic = "force-dynamic";
 
 import Image from "next/image";
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { HeroButtons } from "./HeroButtons";
 import { CartBadge } from "./CartBadge";
 import { AuthButton } from "./AuthButton";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { StarRating } from "@/components/ui/StarRating";
 
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header)
@@ -84,7 +87,7 @@ type ShopData = {
   ratingCount: number;
 };
 
-function ButcherCard({ shop }: { shop: ShopData }) {
+function ButcherCard({ shop, isFavorite }: { shop: ShopData; isFavorite: boolean }) {
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
   const imgSrc = shop.imageUrl || "/images/boucherie-default.webp";
 
@@ -139,8 +142,9 @@ function ButcherCard({ shop }: { shop: ShopData }) {
           )}
         </div>
 
-        {/* Top-right: city */}
-        <div className="absolute top-3 right-3">
+        {/* Top-right: favorite + city */}
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          <FavoriteButton shopId={shop.id} initialFavorite={isFavorite} size={22} />
           <span className="px-2.5 py-1 bg-white/90 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white text-xs font-semibold rounded-lg">
             {shop.city}
           </span>
@@ -168,7 +172,7 @@ function ButcherCard({ shop }: { shop: ShopData }) {
         </p>
         <div className="flex items-center gap-3 mt-3">
           <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#1a1814] rounded-lg">
-            <span className="text-sm">&#11088;</span>
+            <StarRating value={Math.round(shop.rating)} size="sm" />
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {shop.rating.toFixed(1)}
             </span>
@@ -223,25 +227,42 @@ function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
 export default async function DecouvrirPage() {
   let shops: ShopData[] = [];
   let dbError = false;
+  let favoriteIds: Set<string> = new Set();
+
   try {
-    shops = await prisma.shop.findMany({
-      orderBy: { rating: "desc" },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        address: true,
-        city: true,
-        imageUrl: true,
-        prepTimeMin: true,
-        busyMode: true,
-        busyExtraMin: true,
-        paused: true,
-        isOpen: true,
-        rating: true,
-        ratingCount: true,
-      },
-    });
+    const { userId: clerkId } = await auth();
+
+    const [shopsResult, userResult] = await Promise.all([
+      prisma.shop.findMany({
+        orderBy: { rating: "desc" },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          address: true,
+          city: true,
+          imageUrl: true,
+          prepTimeMin: true,
+          busyMode: true,
+          busyExtraMin: true,
+          paused: true,
+          isOpen: true,
+          rating: true,
+          ratingCount: true,
+        },
+      }),
+      clerkId
+        ? prisma.user.findUnique({
+            where: { clerkId },
+            select: { favoriteShops: { select: { id: true } } },
+          })
+        : null,
+    ]);
+
+    shops = shopsResult;
+    if (userResult?.favoriteShops) {
+      favoriteIds = new Set(userResult.favoriteShops.map((s) => s.id));
+    }
   } catch (error) {
     dbError = true;
     console.error("[DecouvrirPage] Prisma error:", error);
@@ -321,7 +342,7 @@ export default async function DecouvrirPage() {
         {/* Grid - 2 columns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {shops.map((shop) => (
-            <ButcherCard key={shop.id} shop={shop} />
+            <ButcherCard key={shop.id} shop={shop} isFavorite={favoriteIds.has(shop.id)} />
           ))}
         </div>
 

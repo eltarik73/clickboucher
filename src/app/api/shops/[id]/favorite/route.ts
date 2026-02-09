@@ -2,17 +2,17 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
-export async function POST(req: Request) {
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    const { shopId } = await req.json();
-    if (!shopId) {
-      return apiError("VALIDATION_ERROR", "shopId requis");
-    }
+    const { id: shopId } = await params;
 
     const user = await prisma.user.findUnique({
       where: { clerkId },

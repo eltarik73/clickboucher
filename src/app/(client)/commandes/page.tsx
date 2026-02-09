@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, ShoppingBag, RotateCcw, Star } from "lucide-react";
+import { ArrowLeft, ShoppingBag, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
+import { StarRating } from "@/components/ui/StarRating";
 
 // ── Types ────────────────────────────────────────
 
@@ -67,22 +68,6 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   CANCELLED:  { label: "Annulée",         color: "bg-stone-100 text-stone-500 border-stone-200" },
 };
 
-// ── Stars (read-only) ────────────────────────────
-
-function Stars({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5 mt-1">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          size={12}
-          className={s <= rating ? "fill-amber-400 text-amber-400" : "text-stone-300"}
-        />
-      ))}
-    </div>
-  );
-}
-
 // ── Order Card ───────────────────────────────────
 
 function OrderCard({
@@ -129,7 +114,7 @@ function OrderCard({
             {fmtPrice(order.totalCents)}
           </span>
           {order.status === "COMPLETED" && order.rating && (
-            <Stars rating={order.rating} />
+            <StarRating value={order.rating} size="sm" />
           )}
         </div>
       </Link>

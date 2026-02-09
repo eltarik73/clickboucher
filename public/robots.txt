@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://clickboucher-production.up.railway.app/sitemap.xml

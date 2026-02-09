@@ -1,10 +1,45 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
+
+// ── Dynamic metadata for SEO ────────────────────
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id: slug } = await params;
+  const shop = await prisma.shop.findUnique({
+    where: { slug },
+    select: { name: true, city: true, description: true },
+  });
+
+  if (!shop) {
+    return { title: "Boutique introuvable — Klik&Go" };
+  }
+
+  const desc = shop.description
+    ? `Commandez chez ${shop.name} à ${shop.city}. ${shop.description}`
+    : `Commandez chez ${shop.name} à ${shop.city}. Retrait rapide, zéro file.`;
+
+  return {
+    title: `${shop.name} — Klik&Go`,
+    description: desc,
+    openGraph: {
+      title: `${shop.name} — Klik&Go`,
+      description: desc,
+      type: "website",
+    },
+  };
+}
 import {
   ShopProductsClient,
   type CategoryData,
@@ -47,6 +82,19 @@ export default async function BoutiquePage({
   }
 
   if (!shop) notFound();
+
+  // Check if user has this shop as favorite
+  let isFavorite = false;
+  try {
+    const { userId: clerkId } = await auth();
+    if (clerkId) {
+      const user = await prisma.user.findUnique({
+        where: { clerkId },
+        select: { favoriteShops: { where: { id: shop.id }, select: { id: true } } },
+      });
+      isFavorite = (user?.favoriteShops.length ?? 0) > 0;
+    }
+  } catch { /* ignore — non-critical */ }
 
   const effectiveTime =
     shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
@@ -92,7 +140,7 @@ export default async function BoutiquePage({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-          {/* Back button */}
+          {/* Back button + Favorite */}
           <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
             <Link
               href="/decouvrir"
@@ -100,6 +148,9 @@ export default async function BoutiquePage({
             >
               <ArrowLeft size={17} className="text-[#333]" />
             </Link>
+            <div className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+              <FavoriteButton shopId={shop.id} initialFavorite={isFavorite} size={18} />
+            </div>
           </div>
 
           {/* Shop info overlay */}

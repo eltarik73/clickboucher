@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, MapPin, Copy, Star as StarIcon } from "lucide-react";
+import { ArrowLeft, MapPin, Copy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { StarRating } from "@/components/ui/StarRating";
 
 // ── Types ────────────────────────────────────────
 
@@ -138,41 +139,6 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
         <Copy size={12} />
         Copier le code
       </button>
-    </div>
-  );
-}
-
-// ── Star rating ──────────────────────────────────
-
-function StarRating({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  const [hover, setHover] = useState(0);
-
-  return (
-    <div className="flex gap-1 justify-center">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          onMouseEnter={() => setHover(star)}
-          onMouseLeave={() => setHover(0)}
-          onClick={() => onChange(star)}
-          className="p-1 transition-transform hover:scale-110"
-        >
-          <StarIcon
-            size={32}
-            className={
-              star <= (hover || value)
-                ? "text-yellow-400 fill-yellow-400"
-                : "text-[#ddd] fill-[#ddd]"
-            }
-          />
-        </button>
-      ))}
     </div>
   );
 }
@@ -467,7 +433,7 @@ export default function CommandePage({
                 <p className="text-sm font-semibold text-[#2a2018] mb-3">
                   Comment etait votre commande ?
                 </p>
-                <StarRating value={ratingValue} onChange={setRatingValue} />
+                <StarRating value={ratingValue} onChange={setRatingValue} size="lg" className="justify-center" />
                 {ratingValue > 0 && (
                   <>
                     <textarea
