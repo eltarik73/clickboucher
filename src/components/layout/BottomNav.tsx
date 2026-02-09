@@ -29,13 +29,13 @@ export function BottomNav() {
               key={item.key}
               href={item.href}
               className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-                isActive ? "text-[#8b2500] dark:text-[#c4593e]" : "text-gray-400 dark:text-gray-500"
+                isActive ? "text-[#DC2626] dark:text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
               }`}
             >
               <div className="relative">
                 <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
                 {"badge" in item && item.badge && itemCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-[#8b2500] text-white text-[10px] font-bold rounded-full px-1">
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-[#DC2626] text-white text-[10px] font-bold rounded-full px-1">
                     {itemCount > 99 ? "99+" : itemCount}
                   </span>
                 )}
@@ -58,7 +58,7 @@ export function BottomNav() {
           <Link
             href="/sign-in"
             className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-              pathname === "/sign-in" ? "text-[#8b2500] dark:text-[#c4593e]" : "text-gray-400 dark:text-gray-500"
+              pathname === "/sign-in" ? "text-[#DC2626] dark:text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
             }`}
           >
             <LogIn size={22} strokeWidth={1.8} />

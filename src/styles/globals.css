@@ -10,7 +10,7 @@
   color-scheme: dark;
 }
 .dark ::selection {
-  background: #8b2500;
+  background: #DC2626;
   color: white;
 }
 .dark ::-webkit-scrollbar-thumb {

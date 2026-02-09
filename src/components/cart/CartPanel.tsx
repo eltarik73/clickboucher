@@ -45,7 +45,7 @@ export function CartPanel() {
         </div>
         <Link
           href="/panier"
-          className="block w-full py-3 bg-[#DC2626] text-white text-center font-semibold rounded-xl hover:bg-[#B91C1C]"
+          className="block w-full py-3 bg-[#DC2626] text-white text-center font-semibold rounded-xl hover:bg-[#DC2626]"
         >
           Commander
         </Link>

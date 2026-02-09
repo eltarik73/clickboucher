@@ -52,7 +52,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
               <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[9px] font-bold text-[#8b2500] uppercase tracking-wider">{product.category}</span>
+              <span className="text-[9px] font-bold text-[#DC2626] uppercase tracking-wider">{product.category}</span>
               <SheetTitle>{product.name}</SheetTitle>
               <SheetDescription>{product.description}</SheetDescription>
             </div>
@@ -71,7 +71,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
         {/* Confirm button */}
         <button
           onClick={() => onConfirm(qty)}
-          className="mt-4 w-full py-3 rounded-2xl bg-[#8b2500] text-white text-sm font-semibold transition-all hover:bg-[#6e1d00] shadow-md"
+          className="mt-4 w-full py-3 rounded-2xl bg-[#DC2626] text-white text-sm font-semibold transition-all hover:bg-[#6e1d00] shadow-md"
         >
           Ajouter — {formatPrice(prix)}
         </button>

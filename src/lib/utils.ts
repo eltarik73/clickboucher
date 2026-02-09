@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 // Design tokens
 export const THEME = {
-  burgundy: "#7A1023",
+  burgundy: "#DC2626",
   burgundyLight: "#9B1B32",
   burgundyBg: "#FDF2F4",
   orange: "#E8630A",

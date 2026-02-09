@@ -71,7 +71,7 @@ function ProductCard({ product, onAdd }: { product: ProductData; onAdd: () => vo
 
       {/* Info */}
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <span className="text-[9px] font-bold text-[#8b2500] uppercase tracking-wider mb-0.5">
+        <span className="text-[9px] font-bold text-[#DC2626] uppercase tracking-wider mb-0.5">
           {product.category.emoji ? `${product.category.emoji} ` : ""}
           {product.category.name}
         </span>
@@ -123,7 +123,7 @@ function ProductCard({ product, onAdd }: { product: ProductData; onAdd: () => vo
           e.stopPropagation();
           onAdd();
         }}
-        className="absolute right-2.5 bottom-2.5 w-7 h-7 rounded-lg bg-[#f5f0eb] border border-[#e8e3dc] flex items-center justify-center text-[#999] hover:bg-[#8b2500] hover:border-[#8b2500] hover:text-white transition-colors z-10"
+        className="absolute right-2.5 bottom-2.5 w-7 h-7 rounded-lg bg-[#f5f0eb] border border-[#e8e3dc] flex items-center justify-center text-[#999] hover:bg-[#DC2626] hover:border-[#DC2626] hover:text-white transition-colors z-10"
       >
         <svg
           className="w-3.5 h-3.5 stroke-current stroke-[2.5] fill-none"
@@ -228,7 +228,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
             onClick={() => setActiveCat("Tout")}
             className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] ${
               activeCat === "Tout"
-                ? "bg-[#8b2500] border-[#8b2500] text-white"
+                ? "bg-[#DC2626] border-[#DC2626] text-white"
                 : "bg-white border-[#e8e4df] text-[#999]"
             }`}
           >
@@ -240,7 +240,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
               onClick={() => setActiveCat(c.id)}
               className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] ${
                 activeCat === c.id
-                  ? "bg-[#8b2500] border-[#8b2500] text-white"
+                  ? "bg-[#DC2626] border-[#DC2626] text-white"
                   : "bg-white border-[#e8e4df] text-[#999]"
               }`}
             >
@@ -273,7 +273,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
             </span>
             <span className="text-sm text-[#7a7068] ml-2">{fmtPrice(totalCents)}</span>
           </div>
-          <Button variant="default" className="bg-[#8b2500] hover:bg-[#6d1d00]" asChild>
+          <Button variant="default" className="bg-[#DC2626] hover:bg-[#DC2626]" asChild>
             <Link href="/panier">Commander</Link>
           </Button>
         </div>

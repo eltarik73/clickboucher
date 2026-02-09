@@ -49,7 +49,7 @@ export function BoucherNav() {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-100 dark:border-[#3a3530]">
           <Link href="/boucher/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#8b2500] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#DC2626] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">K</span>
             </div>
             <div>
@@ -71,14 +71,14 @@ export function BoucherNav() {
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[#8b2500]/10 text-[#8b2500] dark:bg-[#8b2500]/20 dark:text-[#c4593e]"
+                    ? "bg-[#DC2626]/10 text-[#DC2626] dark:bg-[#DC2626]/20 dark:text-[#DC2626]"
                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530] hover:text-gray-900 dark:hover:text-[#f8f6f3]"
                 }`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.4 : 1.8} />
                 <span className="flex-1">{item.label}</span>
                 {"badge" in item && item.badge && pendingCount > 0 && (
-                  <span className="min-w-[20px] h-5 flex items-center justify-center bg-[#8b2500] text-white text-[10px] font-bold rounded-full px-1.5">
+                  <span className="min-w-[20px] h-5 flex items-center justify-center bg-[#DC2626] text-white text-[10px] font-bold rounded-full px-1.5">
                     {pendingCount > 99 ? "99+" : pendingCount}
                   </span>
                 )}
@@ -100,13 +100,13 @@ export function BoucherNav() {
                 key={item.key}
                 href={item.href}
                 className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
-                  isActive ? "text-[#8b2500] dark:text-[#c4593e]" : "text-gray-400 dark:text-gray-500"
+                  isActive ? "text-[#DC2626] dark:text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
                 }`}
               >
                 <div className="relative">
                   <Icon size={20} strokeWidth={isActive ? 2.4 : 1.8} />
                   {"badge" in item && item.badge && pendingCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center bg-[#8b2500] text-white text-[9px] font-bold rounded-full px-1">
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center bg-[#DC2626] text-white text-[9px] font-bold rounded-full px-1">
                       {pendingCount > 99 ? "99+" : pendingCount}
                     </span>
                   )}

@@ -166,7 +166,7 @@ export default function BoucherClientsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8b2500]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC2626]" />
       </div>
     );
   }
@@ -195,7 +195,7 @@ export default function BoucherClientsPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   isActive
-                    ? "bg-[#8b2500] text-white shadow-sm"
+                    ? "bg-[#DC2626] text-white shadow-sm"
                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530]"
                 }`}
               >
@@ -204,7 +204,7 @@ export default function BoucherClientsPage() {
                 {tab.count > 0 && (
                   <span
                     className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
-                      isActive ? "bg-white/20 text-white" : "bg-[#8b2500] text-white"
+                      isActive ? "bg-white/20 text-white" : "bg-[#DC2626] text-white"
                     }`}
                   >
                     {tab.count}
@@ -317,7 +317,7 @@ export default function BoucherClientsPage() {
                   onClick={() => setSortBy(opt.key)}
                   className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                     sortBy === opt.key
-                      ? "bg-[#8b2500] text-white"
+                      ? "bg-[#DC2626] text-white"
                       : "bg-white dark:bg-[#2a2520] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#3a3530] hover:bg-gray-50 dark:hover:bg-[#3a3530]"
                   }`}
                 >

@@ -146,7 +146,7 @@ export default function ProfilPage() {
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
           <div className="flex flex-col items-center py-16">
-            <Loader2 size={32} className="animate-spin text-[#8b2500]" />
+            <Loader2 size={32} className="animate-spin text-[#DC2626]" />
           </div>
         </main>
       </div>
@@ -165,7 +165,7 @@ export default function ProfilPage() {
             <p className="text-sm text-[#999] mt-2">
               Connectez-vous pour accéder à votre profil.
             </p>
-            <Button className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
               <Link href="/sign-in?redirect_url=/profil">Se connecter</Link>
             </Button>
           </div>
@@ -187,7 +187,7 @@ export default function ProfilPage() {
               Impossible de charger votre profil.
             </p>
             <Button
-              className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]"
+              className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]"
               size="lg"
               onClick={() => window.location.reload()}
             >
@@ -212,7 +212,7 @@ export default function ProfilPage() {
         {/* ═══════════════════════════════════════ */}
         <section className="bg-white rounded-2xl border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
           <div className="flex items-center gap-2 mb-4">
-            <UserIcon size={16} className="text-[#8b2500]" />
+            <UserIcon size={16} className="text-[#DC2626]" />
             <h2 className="text-sm font-bold text-[#2a2018]">Informations personnelles</h2>
           </div>
 
@@ -259,7 +259,7 @@ export default function ProfilPage() {
         {/* ═══════════════════════════════════════ */}
         <section className="bg-white rounded-2xl border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
           <div className="flex items-center gap-2 mb-4">
-            <ShieldCheck size={16} className="text-[#8b2500]" />
+            <ShieldCheck size={16} className="text-[#DC2626]" />
             <h2 className="text-sm font-bold text-[#2a2018]">Type de compte</h2>
           </div>
 
@@ -272,7 +272,7 @@ export default function ProfilPage() {
             {profile.role === "CLIENT" && (
               <Link
                 href="/pro"
-                className="text-sm font-semibold text-[#8b2500] hover:underline"
+                className="text-sm font-semibold text-[#DC2626] hover:underline"
               >
                 Passer Pro &rarr;
               </Link>
@@ -302,7 +302,7 @@ export default function ProfilPage() {
         {/* ═══════════════════════════════════════ */}
         <section className="bg-white rounded-2xl border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Bell size={16} className="text-[#8b2500]" />
+            <Bell size={16} className="text-[#DC2626]" />
             <h2 className="text-sm font-bold text-[#2a2018]">Notifications</h2>
           </div>
 
@@ -345,7 +345,7 @@ export default function ProfilPage() {
                   placeholder="+33612345678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="border-[#ece8e3] focus-visible:ring-[#8b2500]/30 focus-visible:border-[#8b2500]"
+                  className="border-[#ece8e3] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
                 />
                 <p className="text-[11px] text-[#999] mt-1">
                   Format : +33XXXXXXXXX
@@ -357,7 +357,7 @@ export default function ProfilPage() {
             <Button
               onClick={handleSavePrefs}
               disabled={saving}
-              className="w-full bg-[#8b2500] hover:bg-[#6d1d00] disabled:opacity-50"
+              className="w-full bg-[#DC2626] hover:bg-[#DC2626] disabled:opacity-50"
             >
               {saving ? "Enregistrement..." : "Enregistrer les préférences"}
             </Button>
@@ -369,12 +369,12 @@ export default function ProfilPage() {
         {/* ═══════════════════════════════════════ */}
         <section className="bg-white rounded-2xl border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Heart size={16} className="text-[#8b2500]" />
+            <Heart size={16} className="text-[#DC2626]" />
             <h2 className="text-sm font-bold text-[#2a2018]">
               Boucheries favorites
             </h2>
             {profile.favoriteShops.length > 0 && (
-              <span className="ml-auto text-[11px] font-bold text-[#8b2500] bg-[#8b2500]/10 px-2 py-0.5 rounded-full">
+              <span className="ml-auto text-[11px] font-bold text-[#DC2626] bg-[#DC2626]/10 px-2 py-0.5 rounded-full">
                 {profile.favoriteShops.length}
               </span>
             )}
@@ -387,7 +387,7 @@ export default function ProfilPage() {
               </p>
               <Link
                 href="/decouvrir"
-                className="text-sm font-semibold text-[#8b2500] hover:underline mt-2 inline-block"
+                className="text-sm font-semibold text-[#DC2626] hover:underline mt-2 inline-block"
               >
                 Découvrir les boucheries
               </Link>

@@ -155,7 +155,7 @@ export default function BoucherProduitsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8b2500]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC2626]" />
       </div>
     );
   }
@@ -186,7 +186,7 @@ export default function BoucherProduitsPage() {
           </div>
           <Button
             onClick={() => setShowForm(true)}
-            className="bg-[#8b2500] hover:bg-[#6d1d00] gap-1.5"
+            className="bg-[#DC2626] hover:bg-[#DC2626] gap-1.5"
           >
             <Plus size={16} /> Ajouter
           </Button>
@@ -198,7 +198,7 @@ export default function BoucherProduitsPage() {
             onClick={() => setSelectedCategory(null)}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
               !selectedCategory
-                ? "bg-[#8b2500] text-white"
+                ? "bg-[#DC2626] text-white"
                 : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
             }`}
           >
@@ -212,7 +212,7 @@ export default function BoucherProduitsPage() {
                 onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   selectedCategory === cat.id
-                    ? "bg-[#8b2500] text-white"
+                    ? "bg-[#DC2626] text-white"
                     : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
                 }`}
               >
@@ -325,7 +325,7 @@ function ProductCard({
                     </span>
                   </span>
                   {product.proPriceCents != null && (
-                    <span className="text-xs text-[#8b2500] dark:text-[#c4593e] font-medium">
+                    <span className="text-xs text-[#DC2626] dark:text-[#DC2626] font-medium">
                       {(product.proPriceCents / 100).toFixed(2).replace(".", ",")} € Pro
                     </span>
                   )}
@@ -488,7 +488,7 @@ function AddProductForm({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description du produit..."
               rows={2}
-              className="w-full rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 py-2 text-sm text-gray-900 dark:text-[#f8f6f3] resize-none focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
+              className="w-full rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 py-2 text-sm text-gray-900 dark:text-[#f8f6f3] resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
             />
           </div>
 
@@ -532,7 +532,7 @@ function AddProductForm({
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as "KG" | "PIECE" | "BARQUETTE")}
-                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
               >
                 <option value="KG">Kilogramme (kg)</option>
                 <option value="PIECE">Pièce</option>
@@ -546,7 +546,7 @@ function AddProductForm({
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500]"
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
               >
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -604,7 +604,7 @@ function AddProductForm({
           <Button
             type="submit"
             disabled={submitting}
-            className="w-full bg-[#8b2500] hover:bg-[#6d1d00] h-11"
+            className="w-full bg-[#DC2626] hover:bg-[#DC2626] h-11"
           >
             {submitting ? (
               <Loader2 size={16} className="animate-spin" />

@@ -10,7 +10,7 @@ export default function BoucherLayout({ children }: { children: React.ReactNode 
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8f6f3] dark:bg-[#1a1814]">
-        <div className="w-8 h-8 border-3 border-[#8b2500] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-3 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

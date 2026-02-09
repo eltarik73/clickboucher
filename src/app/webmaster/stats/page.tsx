@@ -32,7 +32,7 @@ export default function WebmasterStatsPage() {
                 className="w-full rounded-t-lg animate-fade-up"
                 style={{
                   height: `${(d.value / MAX) * 110}px`,
-                  backgroundColor: i === 5 ? "#7A1023" : "#E7E5E4",
+                  backgroundColor: i === 5 ? "#DC2626" : "#E7E5E4",
                   animationDelay: `${i * 70}ms`,
                 } as React.CSSProperties}
               />

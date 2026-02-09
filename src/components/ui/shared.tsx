@@ -13,7 +13,7 @@ const badgeStyles: Record<BadgeVariant, string> = {
   closed: "bg-red-50 text-red-600",
   express: "bg-orange-50 text-orange-600",
   promo: "bg-stone-900 text-white",
-  status: "bg-[#FDF2F4] text-[#7A1023]",
+  status: "bg-[#FDF2F4] text-[#DC2626]",
 };
 
 export function Badge({
@@ -46,7 +46,7 @@ type BtnVariant = "primary" | "secondary" | "ghost" | "danger" | "success";
 type BtnSize = "sm" | "md" | "lg";
 
 const btnVariants: Record<BtnVariant, string> = {
-  primary: "bg-[#7A1023] text-white hover:bg-[#9B1B32]",
+  primary: "bg-[#DC2626] text-white hover:bg-[#9B1B32]",
   secondary: "bg-stone-100 text-stone-900 border border-stone-200 hover:bg-stone-200",
   ghost: "bg-transparent text-stone-500 hover:bg-stone-100",
   danger: "bg-red-50 text-red-600 hover:bg-red-100",
@@ -85,7 +85,7 @@ export function Btn({
         "inline-flex items-center justify-center gap-2 rounded-[14px] font-semibold transition-all duration-200",
         "hover:-translate-y-px active:translate-y-0",
         "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7A1023]",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#DC2626]",
         btnVariants[variant],
         btnSizes[size],
         className
@@ -232,7 +232,7 @@ export function StickyHeader({
         className={cn(
         "sticky top-0 z-30 backdrop-blur-xl border-b flex items-center gap-3.5 px-5 py-3.5",
         dark
-          ? "bg-[#7A1023] text-white border-white/10"
+          ? "bg-[#DC2626] text-white border-white/10"
           : "bg-stone-50/85 border-stone-200",
         className
       )}

@@ -36,7 +36,7 @@ export function QuantitySelector({ rule, initialG, onChange, compact = false }: 
           <button key={p} type="button" onClick={() => update(p)}
             className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200
               ${activePreset === p
-                ? "bg-[#7A1023] text-white shadow-sm"
+                ? "bg-[#DC2626] text-white shadow-sm"
                 : "bg-[#F5F3F0] text-[#6B6560] hover:bg-[#EBE8E4]"
               }`}>
             {formatWeight(p)}
@@ -54,7 +54,7 @@ export function QuantitySelector({ rule, initialG, onChange, compact = false }: 
           <input ref={inputRef} type="number" value={qty} onChange={e => {const v=parseInt(e.target.value);if(!isNaN(v))update(v);}}
             min={rule.minG} max={rule.maxG} step={rule.pasG}
             className="w-full text-center text-sm font-semibold py-1.5 border border-[#E8E5E1] rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-[#7A1023]/20 focus:border-[#7A1023] transition-all
+              focus:outline-none focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all
               [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#9C9590] pointer-events-none">g</span>
         </div>

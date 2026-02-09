@@ -161,7 +161,7 @@ export default function BoucherParametresPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8b2500]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC2626]" />
       </div>
     );
   }
@@ -435,7 +435,7 @@ export default function BoucherParametresPage() {
             <Button
               onClick={saveInfo}
               disabled={infoSaving}
-              className="w-full bg-[#8b2500] hover:bg-[#6d1d00] h-11"
+              className="w-full bg-[#DC2626] hover:bg-[#DC2626] h-11"
             >
               {infoSaving ? (
                 <Loader2 size={16} className="animate-spin" />

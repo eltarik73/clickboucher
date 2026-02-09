@@ -13,7 +13,7 @@ export function CartFAB() {
   return (
     <Link
       href="/panier"
-      className="fixed bottom-6 right-6 z-40 flex items-center gap-3 px-5 py-3 bg-[#DC2626] text-white rounded-full shadow-lg shadow-red-500/30 hover:bg-[#B91C1C] transition-all"
+      className="fixed bottom-6 right-6 z-40 flex items-center gap-3 px-5 py-3 bg-[#DC2626] text-white rounded-full shadow-lg shadow-red-500/30 hover:bg-[#DC2626] transition-all"
     >
       <div className="relative">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

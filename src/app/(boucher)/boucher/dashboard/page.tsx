@@ -137,7 +137,7 @@ export default function BoucherDashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8b2500]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC2626]" />
       </div>
     );
   }
@@ -254,9 +254,9 @@ export default function BoucherDashboardPage() {
                 className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#2a2520] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
               >
                 <div className="relative">
-                  <Bell className="w-5 h-5 text-[#8b2500]" />
+                  <Bell className="w-5 h-5 text-[#DC2626]" />
                   {pendingCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 flex items-center justify-center bg-[#8b2500] text-white text-[9px] font-bold rounded-full px-0.5">
+                    <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 flex items-center justify-center bg-[#DC2626] text-white text-[9px] font-bold rounded-full px-0.5">
                       {pendingCount}
                     </span>
                   )}
@@ -270,7 +270,7 @@ export default function BoucherDashboardPage() {
                 variant="outline"
                 className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#2a2520] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
               >
-                <Package className="w-5 h-5 text-[#8b2500]" />
+                <Package className="w-5 h-5 text-[#DC2626]" />
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Stock</span>
               </Button>
             </Link>
@@ -288,7 +288,7 @@ export default function BoucherDashboardPage() {
               {togglingBusy ? (
                 <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
               ) : (
-                <Settings className={`w-5 h-5 ${shop?.busyMode ? "text-amber-600" : "text-[#8b2500]"}`} />
+                <Settings className={`w-5 h-5 ${shop?.busyMode ? "text-amber-600" : "text-[#DC2626]"}`} />
               )}
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 {shop?.busyMode ? "Desactiver" : "Mode occupe"}
@@ -303,7 +303,7 @@ export default function BoucherDashboardPage() {
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dernières commandes</h2>
             <Link
               href="/boucher/commandes"
-              className="text-xs text-[#8b2500] font-medium hover:underline"
+              className="text-xs text-[#DC2626] font-medium hover:underline"
             >
               Tout voir
             </Link>

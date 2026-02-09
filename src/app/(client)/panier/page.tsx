@@ -82,7 +82,7 @@ function CartItemRow({
         </span>
         <button
           onClick={() => onUpdateQty(item.quantity + 1)}
-          className="w-8 h-8 rounded-full bg-[#8b2500] flex items-center justify-center text-white hover:bg-[#6d1d00] transition-colors"
+          className="w-8 h-8 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#DC2626] transition-colors"
         >
           <Plus size={14} />
         </button>
@@ -182,7 +182,7 @@ export default function PanierPage() {
             Ajoutez des produits depuis une boucherie pour commencer.
           </p>
           <Button
-            className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]"
+            className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]"
             size="lg"
             asChild
           >
@@ -208,7 +208,7 @@ export default function PanierPage() {
             </Link>
             <h1 className="text-lg font-bold text-[#2a2018]">Mon panier</h1>
           </div>
-          <span className="text-xs font-bold text-[#8b2500] bg-[#8b2500]/10 px-3 py-1.5 rounded-full">
+          <span className="text-xs font-bold text-[#DC2626] bg-[#DC2626]/10 px-3 py-1.5 rounded-full">
             {itemCount} article{itemCount > 1 ? "s" : ""}
           </span>
         </div>
@@ -217,7 +217,7 @@ export default function PanierPage() {
       <main className="max-w-xl mx-auto px-5 mt-6">
         {/* Shop name */}
         <div className="flex items-center gap-2 mb-4">
-          <ShoppingBag size={16} className="text-[#8b2500]" />
+          <ShoppingBag size={16} className="text-[#DC2626]" />
           <span className="text-sm font-semibold text-[#2a2018]">
             {state.shopName}
           </span>
@@ -274,7 +274,7 @@ export default function PanierPage() {
                 Connectez-vous pour passer votre commande
               </p>
               <Button
-                className="bg-[#8b2500] hover:bg-[#6d1d00] w-full"
+                className="bg-[#DC2626] hover:bg-[#DC2626] w-full"
                 size="lg"
                 asChild
               >
@@ -289,7 +289,7 @@ export default function PanierPage() {
               {/* Time slot */}
               <div className="p-4 bg-white rounded-2xl border border-[#ece8e3]">
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock size={16} className="text-[#8b2500]" />
+                  <Clock size={16} className="text-[#DC2626]" />
                   <span className="text-sm font-semibold text-[#2a2018]">
                     Creneau de retrait
                   </span>
@@ -301,7 +301,7 @@ export default function PanierPage() {
                     name="timeSlot"
                     checked={timeMode === "asap"}
                     onChange={() => setTimeMode("asap")}
-                    className="w-4 h-4 accent-[#8b2500]"
+                    className="w-4 h-4 accent-[#DC2626]"
                   />
                   <div>
                     <span className="text-sm font-medium text-[#2a2018]">
@@ -319,7 +319,7 @@ export default function PanierPage() {
                     name="timeSlot"
                     checked={timeMode === "scheduled"}
                     onChange={() => setTimeMode("scheduled")}
-                    className="w-4 h-4 accent-[#8b2500]"
+                    className="w-4 h-4 accent-[#DC2626]"
                   />
                   <div className="flex-1">
                     <span className="text-sm font-medium text-[#2a2018]">
@@ -337,7 +337,7 @@ export default function PanierPage() {
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
                     min={new Date().toISOString().slice(0, 16)}
-                    className="mt-3 w-full h-12 rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500] transition-colors"
+                    className="mt-3 w-full h-12 rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                   />
                 )}
               </div>
@@ -354,7 +354,7 @@ export default function PanierPage() {
                   placeholder="Sans trop de gras, bien saignant..."
                   maxLength={500}
                   rows={3}
-                  className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] placeholder:text-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500] transition-colors"
+                  className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] placeholder:text-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                 />
               </div>
 
@@ -374,7 +374,7 @@ export default function PanierPage() {
               <Button
                 onClick={handleOrder}
                 disabled={submitting || (timeMode === "scheduled" && !scheduledTime)}
-                className="w-full bg-[#8b2500] hover:bg-[#6d1d00] disabled:opacity-50"
+                className="w-full bg-[#DC2626] hover:bg-[#DC2626] disabled:opacity-50"
                 size="lg"
               >
                 {submitting ? "Envoi en cours..." : "Confirmer ma commande"}

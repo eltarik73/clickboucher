@@ -106,7 +106,7 @@ export default function InscriptionProPage() {
       <div className="min-h-screen bg-[#f8f6f3]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8 flex justify-center py-16">
-          <Loader2 size={32} className="animate-spin text-[#8b2500]" />
+          <Loader2 size={32} className="animate-spin text-[#DC2626]" />
         </main>
       </div>
     );
@@ -124,7 +124,7 @@ export default function InscriptionProPage() {
             <p className="text-sm text-[#999] mt-2">
               Connectez-vous pour demander un compte professionnel.
             </p>
-            <Button className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
               <Link href="/sign-in?redirect_url=/inscription-pro">Se connecter</Link>
             </Button>
           </div>
@@ -150,7 +150,7 @@ export default function InscriptionProPage() {
               Votre demande de compte professionnel est en attente de validation.
               Vous recevrez une notification dès approbation.
             </p>
-            <Button className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
               <Link href="/decouvrir">Retour à l&apos;accueil</Link>
             </Button>
           </div>
@@ -176,7 +176,7 @@ export default function InscriptionProPage() {
               Votre boucherie va valider votre compte professionnel.
               Vous recevrez une notification dès validation.
             </p>
-            <Button className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
               <Link href="/decouvrir">Retour à l&apos;accueil</Link>
             </Button>
           </div>
@@ -192,9 +192,9 @@ export default function InscriptionProPage() {
 
       <main className="max-w-xl mx-auto px-5 mt-6 space-y-5">
         {/* Intro */}
-        <div className="bg-[#8b2500]/5 rounded-2xl p-5 border border-[#8b2500]/10">
+        <div className="bg-[#DC2626]/5 rounded-2xl p-5 border border-[#DC2626]/10">
           <div className="flex items-center gap-2.5 mb-2">
-            <Building2 size={18} className="text-[#8b2500]" />
+            <Building2 size={18} className="text-[#DC2626]" />
             <h2 className="text-base font-bold text-[#2a2018]">
               Devenir client professionnel
             </h2>
@@ -216,7 +216,7 @@ export default function InscriptionProPage() {
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="Ex: Restaurant Le Provençal"
-              className="border-[#ece8e3] focus-visible:ring-[#8b2500]/30 focus-visible:border-[#8b2500]"
+              className="border-[#ece8e3] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
 
@@ -234,7 +234,7 @@ export default function InscriptionProPage() {
               placeholder="12345678901234"
               maxLength={14}
               inputMode="numeric"
-              className="border-[#ece8e3] focus-visible:ring-[#8b2500]/30 focus-visible:border-[#8b2500] font-mono"
+              className="border-[#ece8e3] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626] font-mono"
             />
             {siret.length > 0 && !siretValid && (
               <p className="text-[11px] text-red-500 mt-1">
@@ -257,7 +257,7 @@ export default function InscriptionProPage() {
               <select
                 value={sector}
                 onChange={(e) => setSector(e.target.value)}
-                className="flex h-12 w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] appearance-none focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500] transition-colors"
+                className="flex h-12 w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] appearance-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
               >
                 <option value="" disabled>
                   Choisir un secteur
@@ -300,7 +300,7 @@ export default function InscriptionProPage() {
                               : [...prev, shop.id]
                           );
                         }}
-                        className="w-4 h-4 accent-[#8b2500] rounded"
+                        className="w-4 h-4 accent-[#DC2626] rounded"
                       />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[#2a2018] truncate">
@@ -326,7 +326,7 @@ export default function InscriptionProPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+33612345678"
-              className="border-[#ece8e3] focus-visible:ring-[#8b2500]/30 focus-visible:border-[#8b2500]"
+              className="border-[#ece8e3] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
             <p className="text-[11px] text-[#999] mt-1">
               Format : +33XXXXXXXXX
@@ -338,7 +338,7 @@ export default function InscriptionProPage() {
         <Button
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}
-          className="w-full bg-[#8b2500] hover:bg-[#6d1d00] disabled:opacity-50"
+          className="w-full bg-[#DC2626] hover:bg-[#DC2626] disabled:opacity-50"
           size="lg"
         >
           {submitting ? (

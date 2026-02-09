@@ -281,7 +281,7 @@ export default function BoucherCommandesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#8b2500]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#DC2626]" />
       </div>
     );
   }
@@ -301,7 +301,7 @@ export default function BoucherCommandesPage() {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   isActive
-                    ? "bg-[#8b2500] text-white shadow-sm"
+                    ? "bg-[#DC2626] text-white shadow-sm"
                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530]"
                 }`}
               >
@@ -312,7 +312,7 @@ export default function BoucherCommandesPage() {
                     className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
                       isActive
                         ? "bg-white/20 text-white"
-                        : "bg-[#8b2500] text-white"
+                        : "bg-[#DC2626] text-white"
                     }`}
                   >
                     {tab.count}
@@ -662,7 +662,7 @@ export default function BoucherCommandesPage() {
             {/* Scanner button */}
             <Button
               onClick={() => setShowScanner(true)}
-              className="w-full bg-[#8b2500] hover:bg-[#6d1d00] gap-2 h-11"
+              className="w-full bg-[#DC2626] hover:bg-[#DC2626] gap-2 h-11"
             >
               <ScanLine size={18} /> Scanner un QR code
             </Button>

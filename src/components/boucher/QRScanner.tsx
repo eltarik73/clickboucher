@@ -184,7 +184,7 @@ export function QRScanner({
           <Button
             onClick={startScanner}
             disabled={starting}
-            className="bg-[#8b2500] hover:bg-[#6d1d00] gap-2"
+            className="bg-[#DC2626] hover:bg-[#DC2626] gap-2"
           >
             {starting ? (
               <Loader2 size={16} className="animate-spin" />
@@ -199,7 +199,7 @@ export function QRScanner({
       {/* Processing state */}
       {processing && (
         <div className="flex flex-col items-center gap-3 py-8">
-          <Loader2 size={32} className="animate-spin text-[#8b2500]" />
+          <Loader2 size={32} className="animate-spin text-[#DC2626]" />
           <p className="text-sm text-gray-500 dark:text-gray-400">
             V&eacute;rification en cours...
           </p>
@@ -268,7 +268,7 @@ export function QRScanner({
               Scanner un autre
             </Button>
             <Button
-              className="flex-1 bg-[#8b2500] hover:bg-[#6d1d00]"
+              className="flex-1 bg-[#DC2626] hover:bg-[#DC2626]"
               onClick={onClose}
             >
               Fermer

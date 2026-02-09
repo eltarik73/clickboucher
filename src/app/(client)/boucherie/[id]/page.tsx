@@ -97,7 +97,7 @@ export default function BoutiquePage() {
                   className={`w-9 h-9 rounded-[10px] border-none text-white text-lg grid place-items-center shrink-0 transition-all ${
                     addedId === p.id
                       ? "bg-green-500"
-                      : "bg-[#7A1023] hover:bg-[#9B1B32]"
+                      : "bg-[#DC2626] hover:bg-[#9B1B32]"
                   } disabled:opacity-40 disabled:cursor-not-allowed`}
                 >
                   {addedId === p.id ? "+" : "+"}

@@ -31,7 +31,7 @@ export function SecretTapLogo() {
       className="flex items-center gap-2 bg-transparent border-none cursor-pointer p-0 select-none"
     >
       <span className="text-[22px]">🥩</span>
-      <span className="font-display text-[19px] font-extrabold text-[#7A1023] tracking-tight">
+      <span className="font-display text-[19px] font-extrabold text-[#DC2626] tracking-tight">
         ClickBoucher
       </span>
     </button>

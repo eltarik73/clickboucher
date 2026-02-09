@@ -6,7 +6,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-[420px] px-5">
         <div className="text-center mb-7">
           <span className="text-3xl">🥩</span>
-          <h1 className="font-display text-xl font-extrabold text-[#7A1023] mt-2">
+          <h1 className="font-display text-xl font-extrabold text-[#DC2626] mt-2">
             ClickBoucher
           </h1>
           <p className="text-sm text-stone-500 mt-1.5">
@@ -20,7 +20,7 @@ export default function SignUpPage() {
               card: "rounded-[20px] border border-stone-200 shadow-sm",
               headerTitle: "font-display",
               formButtonPrimary:
-                "bg-[#7A1023] hover:bg-[#9B1B32] rounded-[14px] text-sm font-semibold",
+                "bg-[#DC2626] hover:bg-[#9B1B32] rounded-[14px] text-sm font-semibold",
             },
           }}
         />

@@ -90,7 +90,7 @@ export function ProductCard({ product, shop }: Props) {
 
       {/* Info */}
       <div className="flex-1 min-w-0 flex flex-col justify-center relative z-[1]">
-        <span className="text-[9px] font-bold text-[#8b2500] uppercase tracking-wider mb-0.5">
+        <span className="text-[9px] font-bold text-[#DC2626] uppercase tracking-wider mb-0.5">
           {product.category}
         </span>
         <h3 style={{ fontFamily: "'Cormorant Garamond', serif" }}
@@ -108,7 +108,7 @@ export function ProductCard({ product, shop }: Props) {
 
       {/* Badge POPULAIRE */}
       {product.badges && product.badges.length > 0 && (
-        <div className="absolute -top-px -left-px bg-[#8b2500] text-white text-[7.5px] font-extrabold px-2.5 py-[3px] rounded-[18px_0_10px_0] tracking-wide z-10">
+        <div className="absolute -top-px -left-px bg-[#DC2626] text-white text-[7.5px] font-extrabold px-2.5 py-[3px] rounded-[18px_0_10px_0] tracking-wide z-10">
           {product.badges[0]}
         </div>
       )}
@@ -126,7 +126,7 @@ export function ProductCard({ product, shop }: Props) {
       {!expanded && (
         <button
           onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-          className="absolute right-2 bottom-2 w-7 h-7 rounded-lg bg-[#f5f0eb] border border-[#e8e3dc] flex items-center justify-center text-[#999] hover:bg-[#8b2500] hover:border-[#8b2500] hover:text-white transition-colors z-10"
+          className="absolute right-2 bottom-2 w-7 h-7 rounded-lg bg-[#f5f0eb] border border-[#e8e3dc] flex items-center justify-center text-[#999] hover:bg-[#DC2626] hover:border-[#DC2626] hover:text-white transition-colors z-10"
         >
           <svg className="w-3.5 h-3.5 stroke-current stroke-[2.5] fill-none" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -141,14 +141,14 @@ export function ProductCard({ product, shop }: Props) {
           <div className="flex items-center justify-between mb-2">
             <h4 style={{ fontFamily: "'Cormorant Garamond', serif" }}
               className="text-sm font-bold text-[#2a2018]">{product.name}</h4>
-            <button onClick={() => setExpanded(false)} className="text-xs text-[#7a7068] hover:text-[#8b2500]">✕</button>
+            <button onClick={() => setExpanded(false)} className="text-xs text-[#7a7068] hover:text-[#DC2626]">✕</button>
           </div>
           <div className="flex-1">
             <QuantitySelector rule={rule} initialG={qty} onChange={setQty} compact />
           </div>
           <button type="button" onClick={handleAdd}
             className={`mt-2 w-full py-2 rounded-xl text-sm font-semibold transition-all
-              ${animating ? "bg-[#16803C] text-white" : "bg-[#8b2500] text-white hover:bg-[#6e1d00]"}`}>
+              ${animating ? "bg-[#16803C] text-white" : "bg-[#DC2626] text-white hover:bg-[#6e1d00]"}`}>
             {animating ? "Ajouté \u2713" : `Confirmer \u2014 ${formatPrice(prix)}`}
           </button>
         </div>

@@ -27,7 +27,7 @@ export function CartBadge() {
         <circle cx="20" cy="21" r="1" />
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
       </svg>
-      <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#8b2500] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+      <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#DC2626] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
         {itemCount}
       </span>
     </Link>

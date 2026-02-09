@@ -17,7 +17,7 @@ function KlikGoLogo({ light = false }: { light?: boolean }) {
 
   return (
     <div className="flex items-center gap-2.5">
-      <div className="w-10 h-10 bg-[#8b2500] rounded-xl flex items-center justify-center shadow-lg shadow-[#8b2500]/20">
+      <div className="w-10 h-10 bg-[#DC2626] rounded-xl flex items-center justify-center shadow-lg shadow-[#DC2626]/20">
         <span className="text-white font-bold text-lg">K</span>
       </div>
       <div className="flex items-baseline gap-0">
@@ -36,13 +36,13 @@ function HeroLogo() {
   return (
     <div className="flex flex-col items-center mb-8">
       <div className="relative">
-        <div className="absolute inset-0 blur-2xl opacity-40 bg-[#8b2500] rounded-full scale-150" />
+        <div className="absolute inset-0 blur-2xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
         <svg viewBox="0 0 100 100" className="w-20 h-20 sm:w-24 sm:h-24 relative z-10">
           <defs>
             <linearGradient id="heroLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#a83320" />
-              <stop offset="50%" stopColor="#8b2500" />
-              <stop offset="100%" stopColor="#6d1d00" />
+              <stop offset="50%" stopColor="#DC2626" />
+              <stop offset="100%" stopColor="#DC2626" />
             </linearGradient>
           </defs>
           <circle cx="50" cy="50" r="46" fill="url(#heroLogoGradient)" />
@@ -159,7 +159,7 @@ function ButcherCard({ shop }: { shop: ShopData }) {
       {/* Card body */}
       <div className="p-4">
         <h3
-          className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#8b2500] dark:group-hover:text-[#c4593e] transition-colors font-serif"
+          className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#DC2626] dark:group-hover:text-[#DC2626] transition-colors font-serif"
         >
           {shop.name}
         </h3>
@@ -195,11 +195,11 @@ function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
       href={`/boutique/${promo.shopId}`}
       className="flex items-center gap-4 p-4 bg-white dark:bg-[#2a2520] rounded-xl border border-[#ece8e3] dark:border-[#3a3530] hover:shadow-sm transition-all cursor-pointer group"
     >
-      <div className="w-12 h-12 bg-[#8b2500] rounded-xl flex items-center justify-center shrink-0">
+      <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
         <span className="text-white text-sm font-bold">-{promo.discount}%</span>
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-gray-900 dark:text-white truncate group-hover:text-[#8b2500] dark:group-hover:text-[#c4593e] transition-colors">
+        <h4 className="font-medium text-gray-900 dark:text-white truncate group-hover:text-[#DC2626] dark:group-hover:text-[#DC2626] transition-colors">
           {promo.title}
         </h4>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{promo.shop}</p>
@@ -279,7 +279,7 @@ export default async function DecouvrirPage() {
           <HeroLogo />
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.1]">
             Marre d&apos;attendre ?<br />
-            <span className="text-[#8b2500]">Commandez, recuperez.</span>
+            <span className="text-[#DC2626]">Commandez, recuperez.</span>
           </h1>
           <p className="mt-5 text-lg text-[#888] max-w-xl mx-auto">
             Zero file. Zero stress. <span className="text-white font-medium">100% frais.</span>
@@ -331,7 +331,7 @@ export default async function DecouvrirPage() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-serif">
               Offres du moment
             </h3>
-            <button className="text-sm text-[#8b2500] dark:text-[#c4593e] font-medium hover:underline">
+            <button className="text-sm text-[#DC2626] dark:text-[#DC2626] font-medium hover:underline">
               Voir tout
             </button>
           </div>

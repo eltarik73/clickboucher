@@ -106,7 +106,7 @@ function OrderCard({
               {order.orderNumber}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
-              <ShoppingBag size={12} className="text-[#8b2500] shrink-0" />
+              <ShoppingBag size={12} className="text-[#DC2626] shrink-0" />
               <span className="text-xs text-[#999] truncate">
                 {order.shop.name}
               </span>
@@ -139,7 +139,7 @@ function OrderCard({
         <div className="border-t border-[#ece8e3] px-4 py-3">
           <button
             onClick={() => onReorder(order)}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#8b2500]/5 hover:bg-[#8b2500]/10 text-[#8b2500] text-sm font-semibold transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#DC2626]/5 hover:bg-[#DC2626]/10 text-[#DC2626] text-sm font-semibold transition-colors"
           >
             <RotateCcw size={14} />
             Recommander
@@ -231,7 +231,7 @@ export default function CommandesPage() {
             <p className="text-sm text-[#999] mt-2">
               Connectez-vous pour voir vos commandes.
             </p>
-            <Button className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
               <Link href="/sign-in?redirect_url=/commandes">Se connecter</Link>
             </Button>
           </div>
@@ -255,7 +255,7 @@ export default function CommandesPage() {
               Impossible de charger vos commandes.
             </p>
             <Button
-              className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]"
+              className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]"
               size="lg"
               onClick={() => window.location.reload()}
             >
@@ -281,7 +281,7 @@ export default function CommandesPage() {
             <p className="text-sm text-[#999] mt-2">
               Vos commandes apparaîtront ici après votre premier achat.
             </p>
-            <Button className="mt-6 bg-[#8b2500] hover:bg-[#6d1d00]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
               <Link href="/decouvrir">Découvrir les boucheries</Link>
             </Button>
           </div>

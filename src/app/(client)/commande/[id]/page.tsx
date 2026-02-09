@@ -71,7 +71,7 @@ function LoadingDots() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="w-3 h-3 rounded-full bg-[#8b2500] animate-bounce"
+          className="w-3 h-3 rounded-full bg-[#DC2626] animate-bounce"
           style={{ animationDelay: `${i * 150}ms` }}
         />
       ))}
@@ -106,7 +106,7 @@ function TimeProgress({ estimatedReady }: { estimatedReady: string }) {
       </p>
       <div className="h-2 bg-[#ece8e3] rounded-full overflow-hidden">
         <div
-          className="h-full bg-[#8b2500] rounded-full transition-all duration-1000"
+          className="h-full bg-[#DC2626] rounded-full transition-all duration-1000"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -133,7 +133,7 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
       </div>
       <button
         onClick={handleCopy}
-        className="flex items-center gap-1.5 mt-3 text-xs font-medium text-[#8b2500] hover:underline"
+        className="flex items-center gap-1.5 mt-3 text-xs font-medium text-[#DC2626] hover:underline"
       >
         <Copy size={12} />
         Copier le code
@@ -335,7 +335,7 @@ export default function CommandePage({
       <div className="min-h-screen bg-[#f8f6f3] flex flex-col items-center justify-center px-5">
         <p className="text-lg font-bold text-[#2a2018] mb-2">Erreur</p>
         <p className="text-sm text-[#999] mb-6">{error || "Commande introuvable"}</p>
-        <Button className="bg-[#8b2500] hover:bg-[#6d1d00]" asChild>
+        <Button className="bg-[#DC2626] hover:bg-[#DC2626]" asChild>
           <Link href="/commandes">Mes commandes</Link>
         </Button>
       </div>
@@ -427,7 +427,7 @@ export default function CommandePage({
               Votre commande est prete !
             </h2>
             <div className="mt-4 flex items-center justify-center gap-1 text-sm text-[#555]">
-              <MapPin size={14} className="text-[#8b2500]" />
+              <MapPin size={14} className="text-[#DC2626]" />
               <span className="font-semibold">
                 {order.shop.address}, {order.shop.city}
               </span>
@@ -444,7 +444,7 @@ export default function CommandePage({
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 mt-5 px-6 py-3 bg-[#8b2500] text-white text-sm font-semibold rounded-xl hover:bg-[#6d1d00] transition-colors"
+              className="inline-flex items-center gap-2 mt-5 px-6 py-3 bg-[#DC2626] text-white text-sm font-semibold rounded-xl hover:bg-[#DC2626] transition-colors"
             >
               <MapPin size={16} />
               Ouvrir dans Maps
@@ -476,12 +476,12 @@ export default function CommandePage({
                       placeholder="Un commentaire ? (optionnel)"
                       maxLength={1000}
                       rows={3}
-                      className="mt-3 w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] placeholder:text-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#8b2500]/30 focus:border-[#8b2500] transition-colors"
+                      className="mt-3 w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] placeholder:text-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                     />
                     <Button
                       onClick={handleRate}
                       disabled={ratingSubmitting}
-                      className="mt-3 w-full bg-[#8b2500] hover:bg-[#6d1d00]"
+                      className="mt-3 w-full bg-[#DC2626] hover:bg-[#DC2626]"
                     >
                       {ratingSubmitting ? "Envoi..." : "Envoyer mon avis"}
                     </Button>
@@ -511,7 +511,7 @@ export default function CommandePage({
               </div>
             )}
             <Button
-              className="mt-5 bg-[#8b2500] hover:bg-[#6d1d00]"
+              className="mt-5 bg-[#DC2626] hover:bg-[#DC2626]"
               asChild
             >
               <Link href={`/boutique/${order.shop.slug}`}>Recommander</Link>
@@ -530,7 +530,7 @@ export default function CommandePage({
               Cette commande a ete annulee.
             </p>
             <Button
-              className="mt-5 bg-[#8b2500] hover:bg-[#6d1d00]"
+              className="mt-5 bg-[#DC2626] hover:bg-[#DC2626]"
               asChild
             >
               <Link href="/decouvrir">Decouvrir les boucheries</Link>

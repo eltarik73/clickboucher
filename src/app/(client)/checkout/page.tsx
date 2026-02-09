@@ -58,7 +58,7 @@ export default function CheckoutPage() {
             <div
               key={s}
               className={`w-2 h-2 rounded-full ${
-                step >= s ? "bg-[#7A1023]" : "bg-stone-200"
+                step >= s ? "bg-[#DC2626]" : "bg-stone-200"
               }`}
             />
           ))}
@@ -80,7 +80,7 @@ export default function CheckoutPage() {
                   onClick={() => setSlot(s)}
                   className={`p-3.5 rounded-[14px] text-sm font-semibold transition-all ${
                     slot === s
-                      ? "border-2 border-[#7A1023] bg-[#FDF2F4] text-[#7A1023]"
+                      ? "border-2 border-[#DC2626] bg-[#FDF2F4] text-[#DC2626]"
                       : "border border-stone-200 bg-white text-stone-900 hover:bg-stone-50"
                   }`}
                 >

@@ -63,7 +63,7 @@ export function CartDrawer({ open, onClose }: Props) {
             <Link
               href="/panier"
               onClick={onClose}
-              className="block w-full py-3 bg-[#DC2626] text-white text-center font-semibold rounded-xl hover:bg-[#B91C1C]"
+              className="block w-full py-3 bg-[#DC2626] text-white text-center font-semibold rounded-xl hover:bg-[#DC2626]"
             >
               Voir le panier
             </Link>
