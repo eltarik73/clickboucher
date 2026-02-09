@@ -220,6 +220,7 @@ function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
 // ─────────────────────────────────────────────────────────────
 export default async function DecouvrirPage() {
   let shops: ShopData[] = [];
+  let dbError = false;
   try {
     shops = await prisma.shop.findMany({
       where: { isOpen: true },
@@ -240,6 +241,7 @@ export default async function DecouvrirPage() {
       },
     });
   } catch (error) {
+    dbError = true;
     console.error("[DecouvrirPage] Prisma error:", error);
   }
 
@@ -308,6 +310,13 @@ export default async function DecouvrirPage() {
             </p>
           </div>
         </div>
+
+        {/* DB error warning */}
+        {dbError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            Erreur de connexion a la base de donnees. Verifiez que DATABASE_URL est configure.
+          </div>
+        )}
 
         {/* Grid - 2 columns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

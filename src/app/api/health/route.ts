@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const start = Date.now();
   const checks: Record<string, { status: string; latencyMs?: number; detail?: string }> = {};
@@ -38,6 +40,13 @@ export async function GET() {
     stats = { error: "Could not fetch stats" };
   }
 
+  // ── Env vars check ─────────────────────────
+  const envCheck = {
+    DATABASE_URL: !!process.env.DATABASE_URL,
+    CLERK_SECRET_KEY: !!process.env.CLERK_SECRET_KEY,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  };
+
   // ── Config ──────────────────────────────────
   const config = {
     weightTolerance: `±${process.env.WEIGHT_TOLERANCE_PERCENT || 10}%`,
@@ -56,6 +65,7 @@ export async function GET() {
       uptime: `${Math.round(process.uptime())}s`,
       latencyMs: Date.now() - start,
       checks,
+      envCheck,
       stats,
       config,
     },
