@@ -111,7 +111,7 @@ function ButcherIcon({ size = 28 }: { size?: number }) {
 function TypingDots({ text }: { text?: string }) {
   return (
     <div className="flex justify-start">
-      <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3">
+      <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/10 rounded-2xl rounded-bl-sm px-4 py-3">
         {text ? (
           <span className="text-sm text-gray-500">{text}</span>
         ) : (
@@ -158,7 +158,7 @@ function QuickActions({
       </button>
       <button
         onClick={onContinue}
-        className="bg-white border-2 border-[#DC2626] text-[#DC2626] rounded-2xl py-3 px-6 font-semibold text-sm w-full text-center hover:bg-red-50 transition-all"
+        className="bg-white dark:bg-[#141414] border-2 border-[#DC2626] text-[#DC2626] rounded-2xl py-3 px-6 font-semibold text-sm w-full text-center hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
       >
         &#10133; J&apos;ajoute autre chose
       </button>
@@ -402,7 +402,7 @@ export function ChatWidget() {
     <>
       {/* ═══ CHAT PANEL ═══ */}
       <div
-        className={`fixed bottom-24 right-4 z-50 flex flex-col bg-white rounded-[20px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-24 right-4 z-50 flex flex-col bg-white dark:bg-[#141414] rounded-[20px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden transition-all duration-300 origin-bottom-right ${
           open
             ? "scale-100 opacity-100 pointer-events-auto"
             : "scale-90 opacity-0 pointer-events-none"
@@ -430,7 +430,7 @@ export function ChatWidget() {
         {/* Messages */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto bg-[#f8f6f3] px-4 py-4 space-y-3"
+          className="flex-1 overflow-y-auto bg-[#f8f6f3] dark:bg-[#0a0a0a] px-4 py-4 space-y-3"
         >
           {messages.map((msg, i) => {
             const isLastBot =
@@ -453,7 +453,7 @@ export function ChatWidget() {
                     className={`max-w-[85%] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-[#DC2626] text-white rounded-2xl rounded-br-sm"
-                        : "bg-white border border-gray-100 text-gray-900 rounded-2xl rounded-bl-sm"
+                        : "bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white rounded-2xl rounded-bl-sm"
                     }`}
                   >
                     {msg.content}
@@ -529,7 +529,7 @@ export function ChatWidget() {
         </div>
 
         {/* Input bar */}
-        <div className="shrink-0 border-t border-gray-100 px-4 py-3 bg-white">
+        <div className="shrink-0 border-t border-gray-100 dark:border-white/10 px-4 py-3 bg-white dark:bg-[#141414]">
           <div className="flex items-center gap-2">
             <input
               ref={inputRef}
@@ -543,7 +543,7 @@ export function ChatWidget() {
                 }
               }}
               placeholder="Ex: 1kg d'entrec\u00f4te..."
-              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-full text-sm outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-400"
+              className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1a] rounded-full text-sm text-gray-900 dark:text-white outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <button
               onClick={() => sendMessage(input)}

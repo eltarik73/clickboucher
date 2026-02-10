@@ -4,13 +4,13 @@ import { useTheme } from "@/components/providers/ThemeProvider";
 import { Sun, Moon } from "lucide-react";
 
 export function ThemeToggle() {
-  const { theme, toggle } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <button
-      onClick={toggle}
+      onClick={toggleTheme}
       aria-label={theme === "dark" ? "Mode clair" : "Mode sombre"}
-      className="p-2.5 rounded-xl transition-colors bg-white/5 hover:bg-white/10 text-white"
+      className="w-9 h-9 rounded-full flex items-center justify-center transition-colors bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-white"
     >
       {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
     </button>

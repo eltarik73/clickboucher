@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
-        <body className="bg-[#f8f6f3] text-stone-900 dark:bg-[#1a1814] dark:text-[#f8f6f3] antialiased transition-colors duration-300">
+        <body className="bg-[#f8f6f3] text-gray-900 dark:bg-[#0a0a0a] dark:text-white antialiased transition-colors duration-300">
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>

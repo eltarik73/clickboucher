@@ -29,7 +29,7 @@ export function BottomNav() {
   const navItems = getNavItems();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-white dark:bg-[#2a2520] border-t border-gray-100 dark:border-[#3a3530] px-2 pb-safe z-50">
+    <nav className="fixed bottom-0 inset-x-0 bg-white dark:bg-[#0a0a0a] border-t border-gray-100 dark:border-white/10 px-2 pb-safe z-50">
       <div className="flex items-center justify-around">
         {navItems.map((item) => {
           const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;
@@ -57,7 +57,7 @@ export function BottomNav() {
           );
 
           const cls = `flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-            isActive ? "text-[#DC2626] dark:text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
+            isActive ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
           }`;
 
           return item.action ? (
@@ -82,7 +82,7 @@ export function BottomNav() {
           <Link
             href="/sign-in"
             className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-              pathname === "/sign-in" ? "text-[#DC2626] dark:text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
+              pathname === "/sign-in" ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
             }`}
           >
             <LogIn size={22} strokeWidth={1.8} />

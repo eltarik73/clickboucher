@@ -101,7 +101,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
   return (
     <Link
       href={`/boutique/${shop.slug}`}
-      className={`group bg-white dark:bg-[#2a2520] border border-[#ece8e3] dark:border-[#3a3530] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
+      className={`group bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
         !shop.isOpen ? "opacity-60" : ""
       }`}
     >
@@ -151,7 +151,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
         {/* Hover CTA */}
         {shop.isOpen && (
           <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="block w-full py-2.5 bg-white dark:bg-[#2a2520] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
+            <span className="block w-full py-2.5 bg-white dark:bg-[#141414] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
               Voir la boutique
             </span>
           </div>
@@ -169,7 +169,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
           {shop.address}, {shop.city}
         </p>
         <div className="flex items-center gap-3 mt-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#1a1814] rounded-lg">
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg">
             <StarRating value={Math.round(shop.rating)} size="sm" />
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {shop.rating.toFixed(1)}
@@ -195,7 +195,7 @@ function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
   return (
     <Link
       href={`/boutique/${promo.shopId}`}
-      className="flex items-center gap-4 p-4 bg-white dark:bg-[#2a2520] rounded-xl border border-[#ece8e3] dark:border-[#3a3530] hover:shadow-sm transition-all cursor-pointer group"
+      className="flex items-center gap-4 p-4 bg-white dark:bg-[#141414] rounded-xl border border-[#ece8e3] dark:border-white/10 hover:shadow-sm transition-all cursor-pointer group"
     >
       <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
         <span className="text-white text-sm font-bold">-{promo.discount}%</span>
@@ -278,7 +278,7 @@ export default async function DecouvrirPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER - DARK */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -382,7 +382,7 @@ export default async function DecouvrirPage() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* FOOTER */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <footer className="border-t border-[#ece8e3] dark:border-[#3a3530] bg-white dark:bg-[#2a2520] py-10">
+      <footer className="border-t border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] py-10">
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />

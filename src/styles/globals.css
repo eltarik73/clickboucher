@@ -14,7 +14,10 @@
   color: white;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #4a4540;
+  background: #333;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* ─── CSS Variables ─────────────────────────── */

@@ -80,18 +80,18 @@ function OrderCard({
   const articleCount = order.items.length;
 
   return (
-    <div className="bg-white rounded-2xl border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)] overflow-hidden">
+    <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)] overflow-hidden">
       {/* Clickable card body */}
       <Link href={`/commande/${order.id}`} className="block p-4">
         {/* Top row: order number + status badge */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0">
-            <p className="text-sm font-bold text-[#2a2018] truncate">
+            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
               {order.orderNumber}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
               <ShoppingBag size={12} className="text-[#DC2626] shrink-0" />
-              <span className="text-xs text-[#999] truncate">
+              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {order.shop.name}
               </span>
             </div>
@@ -102,14 +102,14 @@ function OrderCard({
         </div>
 
         {/* Info row */}
-        <div className="flex items-center justify-between text-xs text-[#999]">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <span>{fmtDate(order.createdAt)}</span>
           <span>{articleCount} article{articleCount > 1 ? "s" : ""}</span>
         </div>
 
         {/* Total + rating */}
         <div className="flex items-center justify-between mt-2">
-          <span className="text-base font-extrabold text-[#2a2018]">
+          <span className="text-base font-extrabold text-gray-900 dark:text-white">
             {fmtPrice(order.totalCents)}
           </span>
           {order.status === "COMPLETED" && order.rating && (
@@ -120,7 +120,7 @@ function OrderCard({
 
       {/* Reorder button for completed orders */}
       {order.status === "COMPLETED" && (
-        <div className="border-t border-[#ece8e3] px-4 py-3">
+        <div className="border-t border-[#ece8e3] dark:border-white/10 px-4 py-3">
           <button
             onClick={() => onReorder(order)}
             className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#DC2626]/5 hover:bg-[#DC2626]/10 text-[#DC2626] text-sm font-semibold transition-colors"
@@ -184,15 +184,15 @@ export default function CommandesPage() {
   // ── Loading state ──────────────────────────────
   if (!isLoaded || loading) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3]">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
           <div className="flex flex-col gap-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl border border-[#ece8e3] p-4 animate-pulse">
-                <div className="h-4 bg-stone-200 rounded w-1/3 mb-3" />
-                <div className="h-3 bg-stone-100 rounded w-1/2 mb-2" />
-                <div className="h-3 bg-stone-100 rounded w-2/3" />
+              <div key={i} className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-4 animate-pulse">
+                <div className="h-4 bg-stone-200 dark:bg-white/10 rounded w-1/3 mb-3" />
+                <div className="h-3 bg-stone-100 dark:bg-white/5 rounded w-1/2 mb-2" />
+                <div className="h-3 bg-stone-100 dark:bg-white/5 rounded w-2/3" />
               </div>
             ))}
           </div>
@@ -204,15 +204,15 @@ export default function CommandesPage() {
   // ── Not signed in ──────────────────────────────
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3]">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="text-5xl mb-4">🔒</div>
-            <h2 className="text-lg font-bold text-[#2a2018]">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Connexion requise
             </h2>
-            <p className="text-sm text-[#999] mt-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Connectez-vous pour voir vos commandes.
             </p>
             <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
@@ -227,15 +227,15 @@ export default function CommandesPage() {
   // ── Error state ────────────────────────────────
   if (error) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3]">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="text-5xl mb-4">⚠️</div>
-            <h2 className="text-lg font-bold text-[#2a2018]">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Erreur de chargement
             </h2>
-            <p className="text-sm text-[#999] mt-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Impossible de charger vos commandes.
             </p>
             <Button
@@ -254,15 +254,15 @@ export default function CommandesPage() {
   // ── Empty state ────────────────────────────────
   if (orders.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3]">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="text-5xl mb-4">📋</div>
-            <h2 className="text-lg font-bold text-[#2a2018]">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Pas encore de commande
             </h2>
-            <p className="text-sm text-[#999] mt-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Vos commandes apparaîtront ici après votre premier achat.
             </p>
             <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
@@ -276,10 +276,10 @@ export default function CommandesPage() {
 
   // ── Orders list ────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f8f6f3] pb-8">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-8">
       <Header />
       <main className="max-w-xl mx-auto px-5 mt-6">
-        <p className="text-xs text-[#999] mb-4">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
           {orders.length} commande{orders.length > 1 ? "s" : ""}
         </p>
         <div className="flex flex-col gap-3">
@@ -296,15 +296,15 @@ export default function CommandesPage() {
 
 function Header() {
   return (
-    <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 backdrop-blur-xl border-b border-[#ece8e3] px-5 py-4">
+    <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
       <div className="max-w-xl mx-auto flex items-center gap-3">
         <Link
           href="/decouvrir"
-          className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white border border-[#ece8e3] shadow-sm"
+          className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
         >
-          <ArrowLeft size={17} className="text-[#333]" />
+          <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
         </Link>
-        <h1 className="text-lg font-bold text-[#2a2018]">Mes commandes</h1>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">Mes commandes</h1>
       </div>
     </header>
   );

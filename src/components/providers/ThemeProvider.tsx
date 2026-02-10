@@ -4,9 +4,9 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 
 type Theme = "light" | "dark";
 
-const ThemeContext = createContext<{ theme: Theme; toggle: () => void }>({
+const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void }>({
   theme: "light",
-  toggle: () => {},
+  toggleTheme: () => {},
 });
 
 export function useTheme() {
@@ -17,26 +17,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const stored = localStorage.getItem("klikgo-theme") as Theme | null;
+    const stored = localStorage.getItem("theme") as Theme | null;
     if (stored === "dark" || stored === "light") {
       setTheme(stored);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
     }
+    // Default: light (no system preference fallback)
   }, []);
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("klikgo-theme", theme);
+    localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const toggle = useCallback(() => {
+  const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

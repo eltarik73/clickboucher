@@ -49,7 +49,7 @@ function ProductCard({ product, productIndex, onAdd }: { product: ProductData; p
   const imgSrc = product.imageUrl || getProductImage(product.category.name, productIndex);
 
   return (
-    <div className="group relative flex gap-3 bg-white border border-[#ece8e3] rounded-[18px] p-2.5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[#ddd5cc] active:scale-[0.97] min-w-0 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+    <div className="group relative flex gap-3 bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-[18px] p-2.5 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[#ddd5cc] dark:hover:border-white/20 active:scale-[0.97] min-w-0 overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
       {/* Promo badge */}
       {product.promoPct != null && product.promoPct > 0 && (
         <span className="absolute -top-px -left-px bg-[#DC2626] text-white text-[7px] font-extrabold px-2 py-0.5 rounded-[18px_0_10px_0] tracking-wide z-10">
@@ -74,11 +74,11 @@ function ProductCard({ product, productIndex, onAdd }: { product: ProductData; p
           {product.category.emoji ? `${product.category.emoji} ` : ""}
           {product.category.name}
         </span>
-        <h3 className="text-[15px] font-bold text-[#2a2018] leading-tight truncate">
+        <h3 className="text-[15px] font-bold text-gray-900 dark:text-white leading-tight truncate">
           {product.name}
         </h3>
         {product.description && (
-          <p className="text-[10.5px] text-[#7a7068] mt-0.5 truncate">
+          <p className="text-[10.5px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
             {product.description}
           </p>
         )}
@@ -93,7 +93,7 @@ function ProductCard({ product, productIndex, onAdd }: { product: ProductData; p
               </span>
             </>
           ) : (
-            <span className="text-sm font-extrabold text-[#2a2018]">
+            <span className="text-sm font-extrabold text-gray-900 dark:text-white">
               {fmtPrice(product.priceCents)}
             </span>
           )}
@@ -107,7 +107,7 @@ function ProductCard({ product, productIndex, onAdd }: { product: ProductData; p
             {product.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-1.5 py-0.5 bg-[#f5f0eb] border border-[#e8e4df] rounded text-[8px] font-bold text-[#888]"
+                className="px-1.5 py-0.5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded text-[8px] font-bold text-gray-500 dark:text-gray-400"
               >
                 {tag}
               </span>
@@ -122,7 +122,7 @@ function ProductCard({ product, productIndex, onAdd }: { product: ProductData; p
           e.stopPropagation();
           onAdd();
         }}
-        className="absolute right-2.5 bottom-2.5 w-7 h-7 rounded-lg bg-[#f5f0eb] border border-[#e8e3dc] flex items-center justify-center text-[#999] hover:bg-[#DC2626] hover:border-[#DC2626] hover:text-white transition-colors z-10"
+        className="absolute right-2.5 bottom-2.5 w-7 h-7 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-[#DC2626] hover:border-[#DC2626] hover:text-white transition-colors z-10"
       >
         <svg
           className="w-3.5 h-3.5 stroke-current stroke-[2.5] fill-none"
@@ -220,15 +220,15 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
   return (
     <>
       {/* Sticky category pills */}
-      <div className="sticky top-0 z-20 bg-[#f8f6f3]/95 backdrop-blur-xl px-5 py-3">
-        <h2 className="text-lg font-bold text-[#2a2018] mb-2.5">Catalogue</h2>
+      <div className="sticky top-0 z-20 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl px-5 py-3">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2.5">Catalogue</h2>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           <button
             onClick={() => setActiveCat("Tout")}
             className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] ${
               activeCat === "Tout"
                 ? "bg-[#DC2626] border-[#DC2626] text-white"
-                : "bg-white border-[#e8e4df] text-[#999]"
+                : "bg-white dark:bg-[#141414] border-[#e8e4df] dark:border-white/10 text-gray-500 dark:text-gray-400"
             }`}
           >
             Tout
@@ -240,7 +240,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
               className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] ${
                 activeCat === c.id
                   ? "bg-[#DC2626] border-[#DC2626] text-white"
-                  : "bg-white border-[#e8e4df] text-[#999]"
+                  : "bg-white dark:bg-[#141414] border-[#e8e4df] dark:border-white/10 text-gray-500 dark:text-gray-400"
               }`}
             >
               {c.emoji ? `${c.emoji} ` : ""}
@@ -258,19 +258,19 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 text-[#999] text-sm">
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-sm">
           Aucun produit dans cette categorie
         </div>
       )}
 
       {/* Cart bar */}
       {cartCount > 0 && (
-        <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-xl border-t border-[#ece8e3] px-4 py-3 flex items-center justify-between shadow-lg z-50">
+        <div className="fixed bottom-0 inset-x-0 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-[#ece8e3] dark:border-white/10 px-4 py-3 flex items-center justify-between shadow-lg z-50">
           <div className="min-w-0">
-            <span className="text-sm font-semibold text-[#2a2018]">
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {cartCount} article{cartCount > 1 ? "s" : ""}
             </span>
-            <span className="text-sm text-[#7a7068] ml-2">{fmtPrice(totalCents)}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{fmtPrice(totalCents)}</span>
           </div>
           <Button variant="default" className="bg-[#DC2626] hover:bg-[#DC2626]" asChild>
             <Link href="/panier">Commander</Link>

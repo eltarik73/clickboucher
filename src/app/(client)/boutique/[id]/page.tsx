@@ -124,7 +124,7 @@ export default async function BoutiquePage({
   }));
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="mx-auto max-w-5xl">
         {/* ═══════════════════════════════════════════ */}
         {/* HERO */}
@@ -198,16 +198,16 @@ export default async function BoutiquePage({
         {/* INFO BAR */}
         {/* ═══════════════════════════════════════════ */}
         <div className="px-5 py-4">
-          <div className="flex items-center gap-1 text-xs text-[#999]">
+          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
             <MapPin size={12} />
             <span>
               {shop.address}, {shop.city}
             </span>
           </div>
           {shop.description && (
-            <p className="text-xs text-[#7a7068] mt-1">{shop.description}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{shop.description}</p>
           )}
-          <p className="text-xs font-medium text-[#444] mt-1">
+          <p className="text-xs font-medium text-gray-900 dark:text-gray-300 mt-1">
             Retrait le plus tot :{" "}
             {new Date(Date.now() + effectiveTime * 60_000).toLocaleTimeString(
               "fr-FR",

@@ -44,7 +44,7 @@ function CartItemRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 bg-white rounded-2xl p-3 border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+    <div className="flex items-center gap-3 bg-white dark:bg-[#141414] rounded-2xl p-3 border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
       {/* Image */}
       <div className="w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0">
         <img
@@ -58,11 +58,11 @@ function CartItemRow({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-semibold text-[#2a2018] truncate">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
           {item.name}
         </h3>
-        <p className="text-xs text-[#999] mt-0.5">{qtyLabel(item)}</p>
-        <p className="text-sm font-bold text-[#2a2018] mt-1">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{qtyLabel(item)}</p>
+        <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">
           {fmtPrice(itemTotal(item))}
         </p>
       </div>
@@ -71,11 +71,11 @@ function CartItemRow({
       <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={() => onUpdateQty(item.quantity - 1)}
-          className="w-8 h-8 rounded-full border border-[#e8e4df] bg-white flex items-center justify-center text-[#999] hover:bg-[#f5f0eb] transition-colors"
+          className="w-8 h-8 rounded-full border border-gray-100 dark:border-white/10 bg-white dark:bg-[#1a1a1a] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
         >
           <Minus size={14} />
         </button>
-        <span className="text-sm font-bold text-[#2a2018] min-w-[20px] text-center">
+        <span className="text-sm font-bold text-gray-900 dark:text-white min-w-[20px] text-center">
           {item.quantity}
         </span>
         <button
@@ -89,7 +89,7 @@ function CartItemRow({
       {/* Delete */}
       <button
         onClick={onRemove}
-        className="p-2 rounded-xl text-[#999] hover:text-[#DC2626] hover:bg-red-50 transition-colors shrink-0"
+        className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors shrink-0"
       >
         <Trash2 size={16} />
       </button>
@@ -157,26 +157,26 @@ export default function PanierPage() {
   // ── Empty cart ──────────────────────────────────
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] flex flex-col">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 backdrop-blur-xl border-b border-[#ece8e3] px-5 py-4">
+        <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
           <div className="max-w-xl mx-auto flex items-center gap-3">
             <Link
               href="/decouvrir"
-              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white border border-[#ece8e3] shadow-sm"
+              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
             >
-              <ArrowLeft size={17} className="text-[#333]" />
+              <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
             </Link>
-            <h1 className="text-lg font-bold text-[#2a2018]">Mon panier</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Mon panier</h1>
           </div>
         </header>
 
         <div className="flex-1 flex flex-col items-center justify-center px-5">
           <div className="text-6xl mb-4">🛒</div>
-          <h2 className="text-xl font-bold text-[#2a2018]">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Votre panier est vide
           </h2>
-          <p className="text-sm text-[#999] mt-2 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
             Ajoutez des produits depuis une boucherie pour commencer.
           </p>
           <Button
@@ -193,18 +193,18 @@ export default function PanierPage() {
 
   // ── Cart with items ─────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f8f6f3] pb-8">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-8">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 backdrop-blur-xl border-b border-[#ece8e3] px-5 py-4">
+      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/decouvrir"
-              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white border border-[#ece8e3] shadow-sm"
+              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
             >
-              <ArrowLeft size={17} className="text-[#333]" />
+              <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
             </Link>
-            <h1 className="text-lg font-bold text-[#2a2018]">Mon panier</h1>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Mon panier</h1>
           </div>
           <span className="text-xs font-bold text-[#DC2626] bg-[#DC2626]/10 px-3 py-1.5 rounded-full">
             {itemCount} article{itemCount > 1 ? "s" : ""}
@@ -216,7 +216,7 @@ export default function PanierPage() {
         {/* Shop name */}
         <div className="flex items-center gap-2 mb-4">
           <ShoppingBag size={16} className="text-[#DC2626]" />
-          <span className="text-sm font-semibold text-[#2a2018]">
+          <span className="text-sm font-semibold text-gray-900 dark:text-white">
             {state.shopName}
           </span>
           {isPro && (
@@ -241,14 +241,14 @@ export default function PanierPage() {
         </div>
 
         {/* Total */}
-        <div className="mt-5 p-4 bg-white rounded-2xl border border-[#ece8e3] shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+        <div className="mt-5 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-[#999]">Total estime</span>
-            <span className="text-2xl font-extrabold text-[#2a2018]">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Total estime</span>
+            <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
               {fmtPrice(totalCents)}
             </span>
           </div>
-          <p className="text-[11px] text-[#999] mt-1.5">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
             Le poids exact sera ajuste au retrait. Paiement sur place.
           </p>
         </div>
@@ -257,18 +257,18 @@ export default function PanierPage() {
         {/* CHECKOUT */}
         {/* ═══════════════════════════════════════════ */}
         <div className="mt-6">
-          <h2 className="text-base font-bold text-[#2a2018] mb-4">
+          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">
             Finaliser la commande
           </h2>
 
           {!isLoaded ? (
-            <div className="text-center py-8 text-[#999] text-sm">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
               Chargement...
             </div>
           ) : !isSignedIn ? (
             /* Not signed in */
-            <div className="p-5 bg-white rounded-2xl border border-[#ece8e3] text-center">
-              <p className="text-sm text-[#999] mb-4">
+            <div className="p-5 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                 Connectez-vous pour passer votre commande
               </p>
               <Button
@@ -285,15 +285,15 @@ export default function PanierPage() {
             /* Signed in — checkout form */
             <div className="space-y-4">
               {/* Time slot */}
-              <div className="p-4 bg-white rounded-2xl border border-[#ece8e3]">
+              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
                 <div className="flex items-center gap-2 mb-3">
                   <Clock size={16} className="text-[#DC2626]" />
-                  <span className="text-sm font-semibold text-[#2a2018]">
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     Creneau de retrait
                   </span>
                 </div>
 
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] cursor-pointer hover:bg-[#f5f0eb] transition-colors mb-2">
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors mb-2">
                   <input
                     type="radio"
                     name="timeSlot"
@@ -302,16 +302,16 @@ export default function PanierPage() {
                     className="w-4 h-4 accent-[#DC2626]"
                   />
                   <div>
-                    <span className="text-sm font-medium text-[#2a2018]">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
                       Des que possible
                     </span>
-                    <p className="text-[11px] text-[#999]">
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
                       Preparation immediate par le boucher
                     </p>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] cursor-pointer hover:bg-[#f5f0eb] transition-colors">
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <input
                     type="radio"
                     name="timeSlot"
@@ -320,10 +320,10 @@ export default function PanierPage() {
                     className="w-4 h-4 accent-[#DC2626]"
                   />
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-[#2a2018]">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
                       Programmer un retrait
                     </span>
-                    <p className="text-[11px] text-[#999]">
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
                       Choisissez un horaire precis
                     </p>
                   </div>
@@ -335,16 +335,16 @@ export default function PanierPage() {
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
                     min={new Date().toISOString().slice(0, 16)}
-                    className="mt-3 w-full h-12 rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
+                    className="mt-3 w-full h-12 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                   />
                 )}
               </div>
 
               {/* Customer note */}
-              <div className="p-4 bg-white rounded-2xl border border-[#ece8e3]">
-                <label className="text-sm font-semibold text-[#2a2018] mb-2 block">
+              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+                <label className="text-sm font-semibold text-gray-900 dark:text-white mb-2 block">
                   Note au boucher
-                  <span className="text-[#999] font-normal ml-1">(optionnel)</span>
+                  <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">(optionnel)</span>
                 </label>
                 <textarea
                   value={customerNote}
@@ -352,7 +352,7 @@ export default function PanierPage() {
                   placeholder="Sans trop de gras, bien saignant..."
                   maxLength={500}
                   rows={3}
-                  className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] placeholder:text-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
+                  className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                 />
               </div>
 
@@ -363,7 +363,7 @@ export default function PanierPage() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <span className="text-xs text-[#999]">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                   Paiement sur place au retrait — pas de paiement en ligne
                 </span>
               </div>
