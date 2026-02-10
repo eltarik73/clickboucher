@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { handleApiError } from "@/lib/api/errors";
 
 export async function GET(req: NextRequest) {
   try {
@@ -114,7 +115,6 @@ export async function GET(req: NextRequest) {
       revenue: agg._sum.totalCents || 0,
     });
   } catch (error) {
-    console.error("[admin/orders] Error:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return handleApiError(error, "admin/orders");
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { handleApiError } from "@/lib/api/errors";
 
 const ROLE_MAP: Record<string, string> = {
   client: "CLIENT",
@@ -66,7 +67,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, role: prismaRole });
   } catch (error) {
-    console.error("[admin/users/patch] Error:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return handleApiError(error, "admin/users/patch");
   }
 }

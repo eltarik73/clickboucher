@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { handleApiError } from "@/lib/api/errors";
 
 // Admin-only: all shops with counts + owner info
 export async function GET() {
@@ -41,8 +42,7 @@ export async function GET() {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[admin/shops] Error:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return handleApiError(error, "admin/shops");
   }
 }
 
@@ -68,7 +68,6 @@ export async function POST() {
 
     return NextResponse.json(bouchers);
   } catch (error) {
-    console.error("[admin/shops] Bouchers error:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return handleApiError(error, "admin/shops/bouchers");
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { handleApiError } from "@/lib/api/errors";
 
 export async function GET() {
   try {
@@ -191,7 +192,6 @@ export async function GET() {
       denyRate: totalOrders > 0 ? deniedCount / totalOrders : 0,
     });
   } catch (error) {
-    console.error("[admin/analytics] Error:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return handleApiError(error, "admin/analytics");
   }
 }

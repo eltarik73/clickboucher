@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { handleApiError } from "@/lib/api/errors";
 
 export async function GET() {
   try {
@@ -50,7 +51,6 @@ export async function GET() {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[admin/users] Error:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return handleApiError(error, "admin/users");
   }
 }

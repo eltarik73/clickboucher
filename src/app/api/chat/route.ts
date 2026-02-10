@@ -100,8 +100,9 @@ export async function POST(req: NextRequest) {
             })
           : Promise.resolve([]),
       ]);
-    } catch (dbError) {
-      console.warn("[chat] DB context fetch failed (non-blocking):", dbError);
+    } catch (dbError: unknown) {
+      const msg = dbError instanceof Error ? dbError.message : String(dbError);
+      console.error("[chat] DB context fetch failed (non-blocking):", msg);
     }
 
     // ── Format context strings ───────────────────

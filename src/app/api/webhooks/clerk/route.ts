@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
+import { handleApiError } from "@/lib/api/errors";
 
 // Map Clerk metadata role string to Prisma Role enum
 const ROLE_MAP: Record<string, Role> = {
@@ -148,10 +149,6 @@ export async function POST(req: NextRequest) {
     // Unknown event type — acknowledge but ignore
     return NextResponse.json({ success: true, event: eventType, ignored: true });
   } catch (error) {
-    console.error(`[Clerk Webhook] Error handling ${eventType}:`, error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return handleApiError(error, `webhook/clerk/${eventType}`);
   }
 }

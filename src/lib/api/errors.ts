@@ -98,21 +98,45 @@ export function formatZodError(error: ZodError): Record<string, string[]> {
 /**
  * Wrap an API handler with try/catch + Zod validation error handling
  */
-export function handleApiError(error: unknown) {
-  console.error("[API Error]", error);
+export function handleApiError(error: unknown, context?: string) {
+  const prefix = context ? `[API Error][${context}]` : "[API Error]";
 
   if (error instanceof ZodError) {
+    console.error(prefix, "Validation:", error.issues);
     return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(error));
   }
 
   if (error instanceof Error) {
+    const msg = error.message;
+
+    // DB connection / timeout errors (Railway)
+    if (
+      msg.includes("Can't reach database") ||
+      msg.includes("Connection refused") ||
+      msg.includes("Connection timed out") ||
+      msg.includes("ECONNREFUSED") ||
+      msg.includes("ETIMEDOUT") ||
+      msg.includes("Connection pool timeout") ||
+      msg.includes("Server has closed the connection") ||
+      msg.includes("prepared statement")
+    ) {
+      console.error(prefix, "DB Connection Error:", msg);
+      return apiError("INTERNAL_ERROR", "Erreur de connexion a la base de donnees");
+    }
+
     // Prisma known errors
-    if (error.message.includes("Record to update not found")) {
+    if (msg.includes("Record to update not found") || msg.includes("Record to delete does not exist")) {
+      console.error(prefix, "Not found:", msg);
       return apiError("NOT_FOUND", "Ressource introuvable");
     }
-    if (error.message.includes("Unique constraint")) {
+    if (msg.includes("Unique constraint")) {
+      console.error(prefix, "Conflict:", msg);
       return apiError("CONFLICT", "Cette ressource existe déjà");
     }
+
+    console.error(prefix, msg, error.stack);
+  } else {
+    console.error(prefix, "Unknown error:", error);
   }
 
   return apiError("INTERNAL_ERROR", "Erreur interne du serveur");
