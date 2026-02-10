@@ -227,43 +227,54 @@ export default async function DecouvrirPage() {
   let dbError = false;
   let favoriteIds: Set<string> = new Set();
 
+  // 1. Auth (non-blocking — page works without login)
+  let clerkId: string | null = null;
   try {
-    const { userId: clerkId } = await auth();
+    const authResult = await auth();
+    clerkId = authResult.userId;
+  } catch (authErr) {
+    console.warn("[DecouvrirPage] Auth failed (non-blocking):", authErr);
+  }
 
-    const [shopsResult, userResult] = await Promise.all([
-      prisma.shop.findMany({
-        orderBy: { rating: "desc" },
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          address: true,
-          city: true,
-          imageUrl: true,
-          prepTimeMin: true,
-          busyMode: true,
-          busyExtraMin: true,
-          paused: true,
-          isOpen: true,
-          rating: true,
-          ratingCount: true,
-        },
-      }),
-      clerkId
-        ? prisma.user.findUnique({
-            where: { clerkId },
-            select: { favoriteShops: { select: { id: true } } },
-          })
-        : null,
-    ]);
-
-    shops = shopsResult;
-    if (userResult?.favoriteShops) {
-      favoriteIds = new Set(userResult.favoriteShops.map((s) => s.id));
-    }
+  // 2. Fetch shops from DB
+  try {
+    shops = await prisma.shop.findMany({
+      orderBy: { rating: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        address: true,
+        city: true,
+        imageUrl: true,
+        prepTimeMin: true,
+        busyMode: true,
+        busyExtraMin: true,
+        paused: true,
+        isOpen: true,
+        rating: true,
+        ratingCount: true,
+      },
+    });
   } catch (error) {
     dbError = true;
-    console.error("[DecouvrirPage] Prisma error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[DecouvrirPage] DB Error:", msg);
+  }
+
+  // 3. Fetch favorites (non-blocking)
+  if (clerkId && !dbError) {
+    try {
+      const userResult = await prisma.user.findUnique({
+        where: { clerkId },
+        select: { favoriteShops: { select: { id: true } } },
+      });
+      if (userResult?.favoriteShops) {
+        favoriteIds = new Set(userResult.favoriteShops.map((s) => s.id));
+      }
+    } catch (favErr) {
+      console.warn("[DecouvrirPage] Favorites fetch failed (non-blocking):", favErr);
+    }
   }
 
   return (
@@ -339,7 +350,7 @@ export default async function DecouvrirPage() {
         {/* DB error warning */}
         {dbError && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
-            Erreur de connexion a la base de donnees. Verifiez que DATABASE_URL est configure.
+            Impossible de charger les boucheries. Veuillez rafraichir la page ou reessayer dans quelques instants.
           </div>
         )}
 
