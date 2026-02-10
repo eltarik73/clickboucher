@@ -10,13 +10,19 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 // Role-based: client sees own orders, boucher sees shop orders, admin sees all
 export async function GET(req: NextRequest) {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const { userId } = await auth();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    // Get user from DB to determine role
+    const user = await getOrCreateUser(userId);
+    if (!user) {
+      return apiSuccess([]);
+    }
+
+    const role = user.role;
     const raw = Object.fromEntries(req.nextUrl.searchParams);
     const query = orderListQuerySchema.parse(raw);
 
@@ -26,10 +32,10 @@ export async function GET(req: NextRequest) {
       where.status = query.status;
     }
 
-    if (role === "admin") {
+    if (role === "ADMIN") {
       // Admin sees all, optionally filtered by shopId
       if (query.shopId) where.shopId = query.shopId;
-    } else if (role === "boucher") {
+    } else if (role === "BOUCHER") {
       // Boucher sees orders of their shop(s)
       const shops = await prisma.shop.findMany({
         where: { ownerId: userId },
@@ -43,10 +49,6 @@ export async function GET(req: NextRequest) {
       }
     } else {
       // Client sees own orders
-      const user = await getOrCreateUser(userId);
-      if (!user) {
-        return apiSuccess([]);
-      }
       where.userId = user.id;
     }
 
@@ -69,8 +71,7 @@ export async function GET(req: NextRequest) {
 // Client — create a new order
 export async function POST(req: NextRequest) {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const { userId } = await auth();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");

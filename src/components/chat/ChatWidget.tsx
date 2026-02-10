@@ -498,7 +498,7 @@ export function ChatWidget() {
                     prepTime={msgRecapInfo?.prepTime ?? null}
                     onCheckout={() => {
                       clearQuickActions();
-                      router.push("/checkout");
+                      router.push("/panier");
                     }}
                     onModify={() => {
                       clearQuickActions();

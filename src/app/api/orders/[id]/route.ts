@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 
 // ── GET /api/orders/[id] ───────────────────────
 // Authenticated — order detail (client owner, boucher owner, or admin)
@@ -11,12 +12,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const { userId } = await auth();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+
+    // Get user from DB to determine role
+    const dbUser = await getOrCreateUser(userId);
 
     const order = await prisma.order.findUnique({
       where: { id },
@@ -31,12 +34,13 @@ export async function GET(
       return apiError("NOT_FOUND", "Commande introuvable");
     }
 
-    // Permission check
-    if (role === "admin") {
+    // Permission check using DB role
+    const role = dbUser?.role;
+    if (role === "ADMIN") {
       // Admin can see all
-    } else if (role === "boucher") {
+    } else if (role === "BOUCHER") {
       if (order.shop.ownerId !== userId) {
-        return apiError("FORBIDDEN", "Cette commande n'appartient pas à votre boucherie");
+        return apiError("FORBIDDEN", "Cette commande n'appartient pas a votre boucherie");
       }
     } else {
       // Client — must be order owner
