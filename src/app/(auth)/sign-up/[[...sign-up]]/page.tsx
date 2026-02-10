@@ -14,6 +14,7 @@ export default function SignUpPage() {
           </p>
         </div>
         <SignUp
+          fallbackRedirectUrl="/decouvrir"
           appearance={{
             elements: {
               rootBox: "w-full",
