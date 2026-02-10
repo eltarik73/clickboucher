@@ -286,6 +286,12 @@ export default async function DecouvrirPage() {
           <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
             <KlikGoLogo light />
             <div className="flex items-center gap-3">
+              <Link
+                href="/espace-boucher"
+                className="hidden sm:inline text-sm text-gray-500 hover:text-[#DC2626] transition"
+              >
+                Vous etes boucher ?
+              </Link>
               <CartBadge />
               <ThemeToggle />
               <AuthButton />
