@@ -31,7 +31,7 @@ type Message = {
 // ── Constants ────────────────────────────────────
 
 const WELCOME_MSG =
-  "Salut ! \uD83D\uDC4B Je suis ton assistant boucherie. Dis-moi ce qu'il te faut — je m'occupe de tout, même de remplir ton panier !";
+  "Salut ! \uD83D\uDC4B Je suis ton assistant boucherie. Dis-moi ce qu'il te faut \u2014 je m'occupe de tout, m\u00eame de remplir ton panier !";
 
 const SUGGESTIONS = [
   "\uD83E\uDD69 BBQ 6 personnes",
@@ -39,6 +39,9 @@ const SUGGESTIONS = [
   "\uD83D\uDD25 Promos du moment",
   "\uD83C\uDFEA Boucherie la + rapide",
 ];
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 3000;
 
 // ── Parse hidden actions from bot response ──────
 
@@ -64,6 +67,25 @@ function parseActions(raw: string): { clean: string; actions: ChatAction[] } {
   return { clean, actions };
 }
 
+// ── Detect recap message ─────────────────────────
+
+function isRecapMessage(content: string): boolean {
+  const lower = content.toLowerCase();
+  return (
+    (lower.includes("total") || lower.includes("r\u00e9cap") || lower.includes("recap")) &&
+    (lower.includes("\u20ac") || lower.includes("eur"))
+  );
+}
+
+function extractRecapInfo(content: string): { total: string | null; prepTime: string | null } {
+  const totalMatch = content.match(/(\d+[.,]\d{2})\s*\u20ac/);
+  const prepMatch = content.match(/~?\s*(\d+)\s*min/);
+  return {
+    total: totalMatch ? totalMatch[1].replace(",", ",") : null,
+    prepTime: prepMatch ? prepMatch[1] : null,
+  };
+}
+
 // ── Butcher SVG Icon ─────────────────────────────
 
 function ButcherIcon({ size = 28 }: { size?: number }) {
@@ -86,15 +108,19 @@ function ButcherIcon({ size = 28 }: { size?: number }) {
 
 // ── Typing dots ──────────────────────────────────
 
-function TypingDots() {
+function TypingDots({ text }: { text?: string }) {
   return (
     <div className="flex justify-start">
       <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-3">
-        <div className="flex items-center gap-1">
-          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
-        </div>
+        {text ? (
+          <span className="text-sm text-gray-500">{text}</span>
+        ) : (
+          <div className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
+            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -107,29 +133,71 @@ function CartConfirmation({ name }: { name: string }) {
     <div className="flex justify-start">
       <div className="bg-green-50 border border-green-200 rounded-xl p-2.5 text-green-700 text-xs flex items-center gap-2">
         <CheckCircle size={14} className="shrink-0" />
-        <span className="font-medium">{name} ajouté au panier</span>
+        <span className="font-medium">{name} ajout\u00e9 au panier</span>
       </div>
     </div>
   );
 }
 
-function CheckoutButton({ prepTime }: { prepTime?: number }) {
-  const router = useRouter();
+// ── Quick Action Buttons (after cart add) ────────
 
+function QuickActions({
+  onOrder,
+  onContinue,
+}: {
+  onOrder: () => void;
+  onContinue: () => void;
+}) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="chat-buttons-appear flex flex-col gap-2 mt-2">
       <button
-        onClick={() => router.push("/panier")}
-        className="bg-[#DC2626] text-white rounded-xl py-3 px-6 font-semibold text-sm w-full text-center hover:bg-[#b91c1c] transition-colors flex items-center justify-center gap-2"
+        onClick={onOrder}
+        className="bg-[#DC2626] text-white rounded-2xl py-3 px-6 font-semibold text-sm w-full text-center shadow-md hover:shadow-lg hover:bg-[#b91c1c] transition-all"
       >
-        <ShoppingCart size={16} />
-        Commander{prepTime ? ` · Retrait en ~${prepTime} min` : ""}
+        &#128722; On commande !
       </button>
       <button
-        onClick={() => router.push("/panier")}
-        className="text-xs text-gray-400 hover:text-gray-600 transition-colors text-center"
+        onClick={onContinue}
+        className="bg-white border-2 border-[#DC2626] text-[#DC2626] rounded-2xl py-3 px-6 font-semibold text-sm w-full text-center hover:bg-red-50 transition-all"
       >
-        Modifier ma commande
+        &#10133; J&apos;ajoute autre chose
+      </button>
+    </div>
+  );
+}
+
+// ── Checkout CTA (after recap) ───────────────────
+
+function RecapActions({
+  total,
+  prepTime,
+  onCheckout,
+  onModify,
+}: {
+  total: string | null;
+  prepTime: string | null;
+  onCheckout: () => void;
+  onModify: () => void;
+}) {
+  const label = [
+    "\uD83D\uDCB3 Payer",
+    total ? ` ${total}\u20ac` : "",
+    prepTime ? ` \u00b7 Retrait en ~${prepTime} min` : "",
+  ].join("");
+
+  return (
+    <div className="chat-buttons-appear flex flex-col items-center gap-2 mt-2">
+      <button
+        onClick={onCheckout}
+        className="bg-[#DC2626] text-white rounded-2xl py-4 px-6 font-bold text-base w-full text-center shadow-lg hover:bg-[#b91c1c] transition-all animate-pulse"
+      >
+        {label}
+      </button>
+      <button
+        onClick={onModify}
+        className="text-sm text-gray-400 underline cursor-pointer hover:text-gray-600 transition-colors"
+      >
+        &#9999;&#65039; Modifier ma commande
       </button>
     </div>
   );
@@ -147,7 +215,9 @@ export function ChatWidget() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState<string | undefined>();
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -180,7 +250,7 @@ export function ChatWidget() {
 
   useEffect(() => {
     if (open) scrollToBottom();
-  }, [messages, isLoading, open, scrollToBottom]);
+  }, [messages, isLoading, open, showQuickActions, scrollToBottom]);
 
   // Focus input on open
   useEffect(() => {
@@ -192,8 +262,10 @@ export function ChatWidget() {
   // Execute actions from bot response
   const executeActions = useCallback(
     (actions: ChatAction[]) => {
+      let hasCartAdd = false;
       for (const action of actions) {
         if (action.type === "add_to_cart") {
+          hasCartAdd = true;
           addItem(
             {
               id: action.productId,
@@ -212,17 +284,23 @@ export function ChatWidget() {
             }
           );
         }
-        // go_to_checkout is handled by rendering a button — no immediate action
       }
+      return hasCartAdd;
     },
     [addItem]
   );
 
-  // Send message
+  // Clear quick actions on user interaction
+  const clearQuickActions = useCallback(() => {
+    setShowQuickActions(false);
+  }, []);
+
+  // Send message with retry on 429
   async function sendMessage(text: string) {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
 
+    clearQuickActions();
     setShowSuggestions(false);
     setInput("");
 
@@ -230,48 +308,95 @@ export function ChatWidget() {
     const updated = [...messages, userMsg];
     setMessages(updated);
     setIsLoading(true);
+    setLoadingText(undefined);
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: updated.map((m) => ({ role: m.role, content: m.content })),
-        }),
-      });
+    let lastError: string | null = null;
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || "Erreur serveur");
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          setLoadingText("\u23F3 Un instant...");
+          await new Promise((r) => setTimeout(r, RETRY_DELAY));
+        }
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: updated.map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+
+        if (res.status === 429) {
+          lastError = "rate_limit";
+          if (attempt < MAX_RETRIES) continue;
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content:
+                "Le service est temporairement charg\u00e9. R\u00e9essaie dans quelques secondes \uD83D\uDE4F",
+            },
+          ]);
+          setIsLoading(false);
+          setLoadingText(undefined);
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          throw new Error(err?.error || "Erreur serveur");
+        }
+
+        const data = await res.json();
+        const { clean, actions } = parseActions(data.content);
+
+        // Execute cart actions
+        let addedToCart = false;
+        if (actions.length > 0) {
+          addedToCart = executeActions(actions);
+        }
+
+        const hasCheckout = actions.some((a) => a.type === "go_to_checkout");
+
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: clean, actions },
+        ]);
+
+        // Show quick action buttons after cart add (but not if checkout)
+        if (addedToCart && !hasCheckout) {
+          setShowQuickActions(true);
+        }
+
+        setIsLoading(false);
+        setLoadingText(undefined);
+        inputRef.current?.focus();
+        return;
+      } catch (err: unknown) {
+        if (lastError === "rate_limit" && attempt < MAX_RETRIES) continue;
+
+        const errorMsg =
+          err instanceof Error ? err.message : "Erreur de connexion";
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `D\u00e9sol\u00e9, une erreur est survenue : ${errorMsg}. R\u00e9essaie dans un instant.`,
+          },
+        ]);
+        setIsLoading(false);
+        setLoadingText(undefined);
+        inputRef.current?.focus();
+        return;
       }
-
-      const data = await res.json();
-      const { clean, actions } = parseActions(data.content);
-
-      // Execute cart actions
-      if (actions.length > 0) {
-        executeActions(actions);
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: clean, actions },
-      ]);
-    } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Erreur de connexion";
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `D\u00e9sol\u00e9, une erreur est survenue : ${errorMsg}. R\u00e9essaie dans un instant.`,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-      inputRef.current?.focus();
     }
   }
+
+  // Check if last bot message is a recap
+  const lastBotMsg = [...messages].reverse().find((m) => m.role === "assistant");
+  const isRecap = lastBotMsg ? isRecapMessage(lastBotMsg.content) : false;
+  const recapInfo = lastBotMsg && isRecap ? extractRecapInfo(lastBotMsg.content) : null;
 
   return (
     <>
@@ -307,44 +432,83 @@ export function ChatWidget() {
           ref={scrollRef}
           className="flex-1 overflow-y-auto bg-[#f8f6f3] px-4 py-4 space-y-3"
         >
-          {messages.map((msg, i) => (
-            <div key={i}>
-              {/* Message bubble */}
-              <div
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[85%] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                    msg.role === "user"
-                      ? "bg-[#DC2626] text-white rounded-2xl rounded-br-sm"
-                      : "bg-white border border-gray-100 text-gray-900 rounded-2xl rounded-bl-sm"
-                  }`}
-                >
-                  {msg.content}
-                </div>
-              </div>
+          {messages.map((msg, i) => {
+            const isLastBot =
+              msg.role === "assistant" &&
+              i === messages.length - 1;
+            const msgIsRecap = msg.role === "assistant" && isRecapMessage(msg.content);
+            const msgRecapInfo = msgIsRecap ? extractRecapInfo(msg.content) : null;
+            const hasCartActions =
+              msg.actions?.some((a) => a.type === "add_to_cart") ?? false;
+            const hasCheckout =
+              msg.actions?.some((a) => a.type === "go_to_checkout") ?? false;
 
-              {/* Action confirmations */}
-              {msg.actions && msg.actions.length > 0 && (
-                <div className="mt-2 space-y-2">
-                  {msg.actions.map((action, j) => {
-                    if (action.type === "add_to_cart") {
-                      return (
-                        <CartConfirmation
-                          key={`cart-${i}-${j}`}
-                          name={action.productName}
-                        />
-                      );
-                    }
-                    if (action.type === "go_to_checkout") {
-                      return <CheckoutButton key={`checkout-${i}-${j}`} />;
-                    }
-                    return null;
-                  })}
+            return (
+              <div key={i}>
+                {/* Message bubble */}
+                <div
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[85%] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "bg-[#DC2626] text-white rounded-2xl rounded-br-sm"
+                        : "bg-white border border-gray-100 text-gray-900 rounded-2xl rounded-bl-sm"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Action confirmations */}
+                {msg.actions && msg.actions.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {msg.actions.map((action, j) => {
+                      if (action.type === "add_to_cart") {
+                        return (
+                          <CartConfirmation
+                            key={`cart-${i}-${j}`}
+                            name={action.productName}
+                          />
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                )}
+
+                {/* Quick actions after cart add (only on last bot message) */}
+                {isLastBot && hasCartActions && !hasCheckout && showQuickActions && (
+                  <QuickActions
+                    onOrder={() => {
+                      clearQuickActions();
+                      sendMessage("Je valide ma commande");
+                    }}
+                    onContinue={() => {
+                      clearQuickActions();
+                      inputRef.current?.focus();
+                    }}
+                  />
+                )}
+
+                {/* Recap checkout CTA */}
+                {isLastBot && msgIsRecap && (
+                  <RecapActions
+                    total={msgRecapInfo?.total ?? null}
+                    prepTime={msgRecapInfo?.prepTime ?? null}
+                    onCheckout={() => {
+                      clearQuickActions();
+                      router.push("/checkout");
+                    }}
+                    onModify={() => {
+                      clearQuickActions();
+                      router.push("/panier");
+                    }}
+                  />
+                )}
+              </div>
+            );
+          })}
 
           {/* Suggestions */}
           {showSuggestions && messages.length === 1 && (
@@ -361,7 +525,7 @@ export function ChatWidget() {
             </div>
           )}
 
-          {isLoading && <TypingDots />}
+          {isLoading && <TypingDots text={loadingText} />}
         </div>
 
         {/* Input bar */}
@@ -378,7 +542,7 @@ export function ChatWidget() {
                   sendMessage(input);
                 }
               }}
-              placeholder="Ex: 1kg d'entrecôte..."
+              placeholder="Ex: 1kg d'entrec\u00f4te..."
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-full text-sm outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-400"
             />
             <button
@@ -405,6 +569,23 @@ export function ChatWidget() {
           <ButcherIcon size={32} />
         </div>
       </button>
+
+      {/* Button animation styles */}
+      <style jsx global>{`
+        @keyframes chatBtnAppear {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .chat-buttons-appear {
+          animation: chatBtnAppear 0.3s ease forwards;
+        }
+      `}</style>
     </>
   );
 }
