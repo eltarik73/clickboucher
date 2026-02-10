@@ -4,6 +4,7 @@ import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
 import { CartProviderWrapper } from "@/components/providers/CartProviderWrapper";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { SplashScreen } from "@/components/SplashScreen";
 import { NotificationProvider } from "@/components/ui/NotificationToast";
 import "@/styles/globals.css";
 
@@ -53,7 +54,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>
-              <CartProviderWrapper>{children}</CartProviderWrapper>
+              <CartProviderWrapper>
+                <SplashScreen>{children}</SplashScreen>
+              </CartProviderWrapper>
             </NotificationProvider>
           </ThemeProvider>
         </body>
