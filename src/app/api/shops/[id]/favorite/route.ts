@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 
 export async function POST(
   _req: Request,
@@ -14,8 +15,13 @@ export async function POST(
 
     const { id: shopId } = await params;
 
+    const baseUser = await getOrCreateUser(clerkId);
+    if (!baseUser) {
+      return apiError("NOT_FOUND", "Utilisateur introuvable");
+    }
+
     const user = await prisma.user.findUnique({
-      where: { clerkId },
+      where: { id: baseUser.id },
       select: {
         id: true,
         favoriteShops: { where: { id: shopId }, select: { id: true } },

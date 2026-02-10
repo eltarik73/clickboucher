@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { SHOPS, PRODUCTS } from "@/lib/seed/data";
 import { Badge, Card, Btn, StickyHeader, BackBtn } from "@/components/ui/shared";
+import { getShopImage } from "@/lib/product-images";
 import type { Product } from "@/types";
 
 export default function BoutiquePage() {
@@ -57,9 +58,7 @@ export default function BoutiquePage() {
 
       {/* Hero */}
       <div className="relative h-[190px] bg-stone-100">
-        {shop.imageUrl && (
-          <img src={shop.imageUrl} alt={shop.name} className="w-full h-full object-cover" />
-        )}
+        <img src={shop.imageUrl || getShopImage(SHOPS.indexOf(shop))} alt={shop.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
         <div className="absolute bottom-3.5 left-5 flex gap-1.5">
           {shop.halal && <Badge variant="halal" className="bg-emerald-50/95">Halal</Badge>}

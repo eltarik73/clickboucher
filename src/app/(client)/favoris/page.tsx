@@ -150,6 +150,9 @@ export default function FavorisPage() {
                         initialFavorite={true}
                         size={18}
                         className="shrink-0"
+                        onToggle={(isFav) => {
+                          if (!isFav) setShops((prev) => prev.filter((s) => s.id !== shop.id));
+                        }}
                       />
                     </div>
 

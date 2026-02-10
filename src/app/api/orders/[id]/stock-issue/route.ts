@@ -12,7 +12,7 @@ const stockIssueSchema = z.object({
 });
 
 // ── POST /api/orders/[id]/stock-issue ──────────
-// Boucher (owner) — mark items as unavailable + auto-toggle product stock
+// Boucher (owner) — mark items as unavailable + auto-toggle product stock + find alternatives
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -25,12 +25,12 @@ export async function POST(
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    // 1. Load order with items
+    // 1. Load order with items + product category info
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        items: true,
-        shop: { select: { ownerId: true, name: true } },
+        items: { include: { product: { include: { category: true } } } },
+        shop: { select: { id: true, ownerId: true, name: true } },
       },
     });
 
@@ -65,13 +65,41 @@ export async function POST(
       data: { inStock: false },
     });
 
-    // 4. Recalculate totalCents (available items only)
+    // 4. Find alternatives for each unavailable item (same category, same shop, in stock)
+    const unavailableOrderItems = order.items.filter((item) =>
+      unavailableItems.includes(item.productId)
+    );
+
+    const alternatives: Record<string, { id: string; name: string; priceCents: number; unit: string }[]> = {};
+
+    for (const item of unavailableOrderItems) {
+      const categoryId = item.product.categoryId;
+      const alts = await prisma.product.findMany({
+        where: {
+          shopId: order.shop.id,
+          categoryId,
+          inStock: true,
+          id: { notIn: unavailableItems },
+        },
+        select: {
+          id: true,
+          name: true,
+          priceCents: true,
+          unit: true,
+        },
+        take: 3,
+        orderBy: { priceCents: "asc" },
+      });
+      alternatives[item.productId] = alts;
+    }
+
+    // 5. Recalculate totalCents (available items only)
     const availableItems = order.items.filter(
       (item) => !unavailableItems.includes(item.productId)
     );
     const newTotal = availableItems.reduce((sum, item) => sum + item.totalCents, 0);
 
-    // 5. Determine status
+    // 6. Determine status
     const allUnavailable = order.items.every((item) =>
       unavailableItems.includes(item.productId)
     );
@@ -99,7 +127,10 @@ export async function POST(
       shopName: order.shop.name,
     });
 
-    return apiSuccess(updated);
+    return apiSuccess({
+      order: updated,
+      alternatives,
+    });
   } catch (error) {
     return handleApiError(error);
   }

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { z } from "zod";
 
 const upgradeProSchema = z.object({
@@ -23,11 +24,8 @@ export async function POST(req: NextRequest) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    // Verify user exists and is CLIENT
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: { id: true, role: true },
-    });
+    // Verify user exists and is CLIENT (auto-create if webhook hasn't fired)
+    const user = await getOrCreateUser(userId);
 
     if (!user) {
       return apiError("NOT_FOUND", "Utilisateur introuvable");

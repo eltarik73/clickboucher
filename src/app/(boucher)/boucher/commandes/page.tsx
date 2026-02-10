@@ -105,6 +105,11 @@ export default function BoucherCommandesPage() {
   const [unavailableItems, setUnavailableItems] = useState<Set<string>>(new Set());
   const [actionLoading, setActionLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [stockIssueResult, setStockIssueResult] = useState<{
+    orderId: string;
+    alternatives: Record<string, { id: string; name: string; priceCents: number; unit: string }[]>;
+    unavailableNames: string[];
+  } | null>(null);
 
   // ── Init audio ──
   useEffect(() => {
@@ -202,12 +207,26 @@ export default function BoucherCommandesPage() {
     if (unavailableItems.size === 0) return;
     setActionLoading(true);
     try {
+      const currentOrder = orders.find((o) => o.id === orderId);
       const res = await fetch(`/api/orders/${orderId}/stock-issue`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ unavailableItems: [...unavailableItems] }),
       });
       if (res.ok) {
+        const json = await res.json();
+        const alts = json.data?.alternatives || {};
+        const hasAlts = Object.values(alts).some((a: unknown) => Array.isArray(a) && a.length > 0);
+        const unavailableNames = currentOrder
+          ? currentOrder.items
+              .filter((i) => unavailableItems.has(i.productId))
+              .map((i) => i.product.name)
+          : [];
+
+        if (hasAlts) {
+          setStockIssueResult({ orderId, alternatives: alts, unavailableNames });
+        }
+
         setStockIssueId(null);
         setUnavailableItems(new Set());
         await fetchOrders(true);
@@ -752,6 +771,55 @@ export default function BoucherCommandesPage() {
             )}
           </div>
         )}
+
+        {/* ── Stock Issue Result Dialog ── */}
+        <Dialog open={!!stockIssueResult} onOpenChange={() => setStockIssueResult(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-orange-500" />
+                Rupture signalee
+              </DialogTitle>
+              <DialogDescription>
+                Le client a ete notifie et peut choisir des alternatives.
+              </DialogDescription>
+            </DialogHeader>
+            {stockIssueResult && (
+              <div className="space-y-3 px-1">
+                <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-3">
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-300 mb-1">
+                    Articles en rupture :
+                  </p>
+                  <ul className="text-sm text-orange-700 dark:text-orange-400 space-y-0.5">
+                    {stockIssueResult.unavailableNames.map((name, i) => (
+                      <li key={i}>• {name}</li>
+                    ))}
+                  </ul>
+                </div>
+                {Object.values(stockIssueResult.alternatives).some((a) => a.length > 0) && (
+                  <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3">
+                    <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-1">
+                      Alternatives proposees au client :
+                    </p>
+                    {Object.entries(stockIssueResult.alternatives).map(([, alts]) =>
+                      alts.map((alt) => (
+                        <p key={alt.id} className="text-sm text-emerald-700 dark:text-emerald-400">
+                          • {alt.name} — {(alt.priceCents / 100).toFixed(2).replace(".", ",")} €/{alt.unit === "KG" ? "kg" : alt.unit === "PIECE" ? "pc" : "barq."}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                )}
+                <Button
+                  className="w-full bg-[#DC2626] hover:bg-[#b91c1c]"
+                  onClick={() => setStockIssueResult(null)}
+                >
+                  Compris
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* ── QR Scanner Dialog ── */}
         <Dialog open={showScanner} onOpenChange={setShowScanner}>

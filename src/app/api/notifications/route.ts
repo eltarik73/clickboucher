@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +15,8 @@ export async function GET() {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    // Find internal user
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: { id: true },
-    });
+    // Find internal user (auto-create if webhook hasn't fired)
+    const user = await getOrCreateUser(userId);
 
     if (!user) {
       return apiError("NOT_FOUND", "Utilisateur introuvable");

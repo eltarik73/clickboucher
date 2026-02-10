@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { z } from "zod";
 
 const updateMeSchema = z.object({
@@ -23,8 +24,14 @@ export async function GET() {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    const baseUser = await getOrCreateUser(userId);
+    if (!baseUser) {
+      return apiError("NOT_FOUND", "Utilisateur introuvable");
+    }
+
+    // Re-fetch with relations
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { id: baseUser.id },
       include: {
         favoriteShops: {
           select: {
@@ -37,10 +44,6 @@ export async function GET() {
         },
       },
     });
-
-    if (!user) {
-      return apiError("NOT_FOUND", "Utilisateur introuvable");
-    }
 
     return apiSuccess(user);
   } catch (error) {
@@ -60,20 +63,21 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const data = updateMeSchema.parse(body);
 
+    // Ensure user exists (auto-create if needed)
+    const user = await getOrCreateUser(userId);
+    if (!user) {
+      return apiError("NOT_FOUND", "Utilisateur introuvable");
+    }
+
     // If enabling SMS or WhatsApp, phone is required
     if ((data.notifSms || data.notifWhatsapp) && data.phone === undefined) {
-      // Check if user already has a phone
-      const existing = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { phone: true },
-      });
-      if (!existing?.phone && !data.phone) {
+      if (!user.phone && !data.phone) {
         return apiError("VALIDATION_ERROR", "Numéro de téléphone requis pour les notifications SMS/WhatsApp");
       }
     }
 
     const updated = await prisma.user.update({
-      where: { clerkId: userId },
+      where: { id: user.id },
       data: {
         ...(data.notifSms !== undefined && { notifSms: data.notifSms }),
         ...(data.notifWhatsapp !== undefined && { notifWhatsapp: data.notifWhatsapp }),

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, MapPin, Copy } from "lucide-react";
+import { ArrowLeft, MapPin, Copy, AlertTriangle, RefreshCw, Trash2, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,16 @@ interface OrderItem {
   unit: string;
   priceCents: number;
   totalCents: number;
+  available: boolean;
+  replacement: string | null;
+  productId: string;
+}
+
+interface Alternative {
+  id: string;
+  name: string;
+  priceCents: number;
+  unit: string;
 }
 
 interface OrderShop {
@@ -193,6 +203,11 @@ export default function CommandePage({
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingDone, setRatingDone] = useState(false);
 
+  // Alternatives state
+  const [alternatives, setAlternatives] = useState<Record<string, Alternative[]>>({});
+  const [decisions, setDecisions] = useState<Record<string, { action: "replace" | "remove"; replacementProductId?: string }>>({});
+  const [submittingAlts, setSubmittingAlts] = useState(false);
+
   const [orderId, setOrderId] = useState<string | null>(null);
 
   // Resolve params promise
@@ -237,6 +252,68 @@ export default function CommandePage({
 
     return () => clearInterval(iv);
   }, [orderId, fetchOrder]);
+
+  // Fetch alternatives when PARTIALLY_DENIED
+  useEffect(() => {
+    if (!order || order.status !== "PARTIALLY_DENIED") return;
+    const unavailableItems = order.items.filter((i) => !i.available && !i.replacement);
+    if (unavailableItems.length === 0) return;
+
+    (async () => {
+      try {
+        // Re-fetch the stock-issue data to get alternatives
+        // Since alternatives aren't stored, we query products in the same categories
+        const productIds = unavailableItems.map((i) => i.productId).join(",");
+        const res = await fetch(`/api/orders/${order.id}/alternatives?products=${productIds}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data) setAlternatives(data.data);
+        }
+      } catch {
+        // Non-critical — alternatives just won't show
+      }
+    })();
+  }, [order]);
+
+  // Submit alternative choices
+  const handleSubmitAlternatives = async () => {
+    if (!order) return;
+    const unavailableItems = order.items.filter((i) => !i.available && !i.replacement);
+    // Ensure all items have a decision
+    const allDecided = unavailableItems.every((i) => decisions[i.id]);
+    if (!allDecided) {
+      toast.error("Choisis une option pour chaque article");
+      return;
+    }
+
+    setSubmittingAlts(true);
+    try {
+      const decisionsPayload = Object.entries(decisions).map(([orderItemId, d]) => ({
+        orderItemId,
+        action: d.action,
+        replacementProductId: d.replacementProductId,
+      }));
+
+      const res = await fetch(`/api/orders/${order.id}/choose-alternatives`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decisions: decisionsPayload }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Choix enregistres !");
+        setDecisions({});
+        await fetchOrder();
+      } else {
+        toast.error(data.error?.message || "Erreur");
+      }
+    } catch {
+      toast.error("Erreur reseau");
+    } finally {
+      setSubmittingAlts(false);
+    }
+  };
 
   // Cancel handler
   const handleCancel = async () => {
@@ -356,6 +433,130 @@ export default function CommandePage({
             </Button>
           </div>
         )}
+
+        {/* ═══ PARTIALLY_DENIED ═══ */}
+        {order.status === "PARTIALLY_DENIED" && (() => {
+          const unavailableItems = order.items.filter((i) => !i.available && !i.replacement);
+          const availableItems = order.items.filter((i) => i.available);
+
+          return (
+            <div className="p-5 bg-white rounded-2xl border border-orange-200 shadow-[0_0_20px_rgba(245,158,11,0.08)]">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={22} className="text-orange-500" />
+                <h2 className="text-lg font-bold text-[#2a2018]">
+                  Rupture de stock
+                </h2>
+              </div>
+              <p className="text-sm text-[#777] mb-4">
+                Certains articles ne sont plus disponibles chez{" "}
+                <span className="font-semibold text-[#555]">{order.shop.name}</span>.
+                Choisis une alternative ou retire l&apos;article.
+              </p>
+
+              {/* Unavailable items with alternatives */}
+              <div className="space-y-4 mb-4">
+                {unavailableItems.map((item) => {
+                  const alts = alternatives[item.productId] || [];
+                  const decision = decisions[item.id];
+
+                  return (
+                    <div key={item.id} className="bg-red-50 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-red-800 line-through">
+                          {item.name} — {item.quantity} {unitLabel(item.unit)}
+                        </span>
+                        <span className="text-xs text-red-500 font-medium">
+                          Indisponible
+                        </span>
+                      </div>
+
+                      {/* Alternative options */}
+                      {alts.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-medium text-[#777]">Alternatives :</p>
+                          {alts.map((alt) => (
+                            <button
+                              key={alt.id}
+                              onClick={() =>
+                                setDecisions((prev) => ({
+                                  ...prev,
+                                  [item.id]: { action: "replace", replacementProductId: alt.id },
+                                }))
+                              }
+                              className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-sm transition-colors ${
+                                decision?.action === "replace" && decision.replacementProductId === alt.id
+                                  ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                                  : "border-[#ece8e3] bg-white text-[#555] hover:border-emerald-300 hover:bg-emerald-50/50"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <RefreshCw size={13} className="text-emerald-500" />
+                                <span>{alt.name}</span>
+                              </div>
+                              <span className="font-semibold">
+                                {(alt.priceCents / 100).toFixed(2).replace(".", ",")} €/{alt.unit === "KG" ? "kg" : alt.unit === "PIECE" ? "pc" : "barq."}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Remove option */}
+                      <button
+                        onClick={() =>
+                          setDecisions((prev) => ({
+                            ...prev,
+                            [item.id]: { action: "remove" },
+                          }))
+                        }
+                        className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-sm transition-colors ${
+                          decision?.action === "remove"
+                            ? "border-red-400 bg-red-50 text-red-700"
+                            : "border-[#ece8e3] bg-white text-[#999] hover:border-red-300"
+                        }`}
+                      >
+                        <Trash2 size={13} />
+                        <span>Retirer cet article</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Still available items */}
+              {availableItems.length > 0 && (
+                <div className="bg-emerald-50 rounded-xl p-3 mb-4">
+                  <p className="text-xs font-medium text-emerald-700 mb-1">Toujours disponibles :</p>
+                  {availableItems.map((item) => (
+                    <p key={item.id} className="text-sm text-emerald-800">
+                      • {item.name} — {item.quantity} {unitLabel(item.unit)}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {/* Submit button */}
+              <Button
+                onClick={handleSubmitAlternatives}
+                disabled={submittingAlts || unavailableItems.some((i) => !decisions[i.id])}
+                className="w-full bg-[#DC2626] hover:bg-[#b91c1c] gap-2"
+              >
+                {submittingAlts ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : null}
+                {submittingAlts ? "Envoi..." : "Confirmer mes choix"}
+              </Button>
+
+              <button
+                onClick={handleCancel}
+                disabled={cancelling}
+                className="w-full mt-2 text-xs text-[#999] hover:text-red-500 transition-colors text-center py-2"
+              >
+                {cancelling ? "Annulation..." : "Annuler la commande"}
+              </button>
+            </div>
+          );
+        })()}
 
         {/* ═══ ACCEPTED ═══ */}
         {order.status === "ACCEPTED" && (

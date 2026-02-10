@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 
 export async function GET() {
   try {
@@ -9,8 +10,13 @@ export async function GET() {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    const baseUser = await getOrCreateUser(clerkId);
+    if (!baseUser) {
+      return apiSuccess([]);
+    }
+
     const user = await prisma.user.findUnique({
-      where: { clerkId },
+      where: { id: baseUser.id },
       select: {
         favoriteShops: {
           select: {

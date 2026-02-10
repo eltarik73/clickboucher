@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { getShopImage } from "@/lib/product-images";
 
 // ── Types ────────────────────────────────────────
 
@@ -400,19 +401,13 @@ export default function ProfilPage() {
                 >
                   {/* Shop image */}
                   <div className="w-10 h-10 rounded-lg overflow-hidden bg-stone-200 shrink-0">
-                    {shop.imageUrl ? (
-                      <img
-                        src={shop.imageUrl}
-                        alt={shop.name}
-                        width={40}
-                        height={40}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg">
-                        🥩
-                      </div>
-                    )}
+                    <img
+                      src={shop.imageUrl || getShopImage(profile.favoriteShops.indexOf(shop))}
+                      alt={shop.name}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
 
                   {/* Shop info */}

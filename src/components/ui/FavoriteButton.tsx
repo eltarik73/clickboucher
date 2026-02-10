@@ -9,6 +9,7 @@ interface FavoriteButtonProps {
   initialFavorite?: boolean;
   size?: number;
   className?: string;
+  onToggle?: (isFavorite: boolean) => void;
 }
 
 export function FavoriteButton({
@@ -16,6 +17,7 @@ export function FavoriteButton({
   initialFavorite = false,
   size = 20,
   className = "",
+  onToggle,
 }: FavoriteButtonProps) {
   const { userId } = useAuth();
   const [isFavorite, setIsFavorite] = useState(initialFavorite);
@@ -39,6 +41,7 @@ export function FavoriteButton({
       const data = await res.json();
       if (res.ok && data.success) {
         setIsFavorite(data.data.isFavorite);
+        onToggle?.(data.data.isFavorite);
       } else {
         // Revert on error
         setIsFavorite((prev) => !prev);

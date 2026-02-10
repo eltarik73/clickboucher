@@ -47,22 +47,24 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Live context from DB (non-blocking) ──────
-    let shops: { name: string; address: string; prepTimeMin: number; busyMode: boolean; busyExtraMin: number; rating: number; slug: string }[] = [];
-    let popularProducts: { name: string; priceCents: number; unit: string; promoPct: number | null; shop: { name: string; slug: string }; category: { name: string } }[] = [];
+    let shops: { id: string; name: string; slug: string; address: string; city: string; prepTimeMin: number; busyMode: boolean; busyExtraMin: number; rating: number }[] = [];
+    let allProducts: { id: string; name: string; priceCents: number; unit: string; promoPct: number | null; shopId: string; shop: { name: string; slug: string; prepTimeMin: number; address: string; city: string }; category: { name: string } }[] = [];
     let userOrders: { orderNumber: string; status: string; totalCents: number; createdAt: Date; shop: { name: string }; items: { name: string; quantity: number; unit: string }[] }[] = [];
 
     try {
-      [shops, popularProducts, userOrders] = await Promise.all([
+      [shops, allProducts, userOrders] = await Promise.all([
         prisma.shop.findMany({
           where: { isOpen: true, paused: false },
           select: {
+            id: true,
             name: true,
+            slug: true,
             address: true,
+            city: true,
             prepTimeMin: true,
             busyMode: true,
             busyExtraMin: true,
             rating: true,
-            slug: true,
           },
           orderBy: { rating: "desc" },
         }),
@@ -70,15 +72,16 @@ export async function POST(req: NextRequest) {
         prisma.product.findMany({
           where: { inStock: true },
           select: {
+            id: true,
             name: true,
             priceCents: true,
             unit: true,
             promoPct: true,
-            shop: { select: { name: true, slug: true } },
+            shopId: true,
+            shop: { select: { name: true, slug: true, prepTimeMin: true, address: true, city: true } },
             category: { select: { name: true } },
           },
-          orderBy: { orderItems: { _count: "desc" } },
-          take: 20,
+          take: 150,
         }),
 
         userId
@@ -108,17 +111,18 @@ export async function POST(req: NextRequest) {
             const prep = s.busyMode
               ? s.prepTimeMin + s.busyExtraMin
               : s.prepTimeMin;
-            return `- ${s.name} (${s.address}) — ${prep} min de préparation, ⭐ ${s.rating.toFixed(1)}, lien: /boutique/${s.slug}`;
+            return `- ID:${s.id} | ${s.name} | ${s.address}, ${s.city} | ${prep} min | ⭐ ${s.rating.toFixed(1)}`;
           })
           .join("\n")
       : "Aucune boucherie disponible pour le moment.";
 
-    const productsContext = popularProducts.length
-      ? popularProducts
+    const productsContext = allProducts.length
+      ? allProducts
           .map((p) => {
             const price = (p.priceCents / 100).toFixed(2);
+            const unitLabel = p.unit === "KG" ? "kg" : p.unit === "PIECE" ? "pièce" : "barquette";
             const promo = p.promoPct ? ` (-${p.promoPct}%)` : "";
-            return `- ${p.name} (${p.category.name}) — ${price}€/${p.unit === "KG" ? "kg" : p.unit === "PIECE" ? "pièce" : "barquette"}${promo} chez ${p.shop.name}`;
+            return `- ID:${p.id} | ${p.name} | ${p.category.name} | ${price}€/${unitLabel}${promo} | Shop:${p.shopId} ${p.shop.name} (${p.shop.prepTimeMin}min, ${p.shop.address})`;
           })
           .join("\n")
       : "Catalogue en cours de chargement.";
@@ -137,39 +141,60 @@ export async function POST(req: NextRequest) {
 
     // ── System prompt ────────────────────────────
     const systemPrompt = `Tu es l'assistant IA de Klik&Go, une application de click & collect pour boucheries halal à Chambéry.
+Tu tutoies le client. Tu parles français. Tu es chaleureux, expert en viande halal, et conseiller culinaire.
 
-RÔLE : Tu aides les clients à trouver des produits, choisir une boucherie, et passer commande.
+COMMANDE DIRECTE :
+Quand le client veut un produit, tu l'ajoutes directement au panier via une action cachée.
+À la fin de ton message texte, ajoute sur une nouvelle ligne (invisible pour le client) :
+<!--ACTION:{"type":"add_to_cart","productId":"ID","productName":"NOM","shopId":"SHOP_ID","shopName":"NOM_SHOP","shopSlug":"SLUG_SHOP","priceCents":PRIX,"unit":"UNITE","quantity":1,"weightGrams":POIDS}-->
 
-PERSONNALITÉ : Chaleureux, expert en viande halal, conseiller culinaire. Tu tutoies le client. Tu parles français.
+Pour UNITE utilise "KG", "PIECE" ou "BARQUETTE" selon le produit.
+Pour weightGrams, utilise le poids en grammes demandé (ex: 500 pour 500g, 1000 pour 1kg). Si pas de poids mentionné, utilise 500 par défaut pour les produits au KG.
 
-CONTEXTE LIVE :
-Boucheries disponibles :
-${shopsContext}
-
-Produits populaires :
-${productsContext}
-
-${userContext ? `Historique du client :\n${userContext}` : "Client non connecté."}
+Pour valider la commande quand le client dit "c'est bon" / "c'est tout" / "je valide" :
+<!--ACTION:{"type":"go_to_checkout"}-->
 
 RÈGLES :
-- Recommande des produits et boucheries selon les besoins du client
+- Quand le client mentionne un produit + quantité → ajoute DIRECTEMENT au panier sans demander confirmation
+- Après ajout, dis : "C'est ajouté ! Tu veux autre chose ou on passe à la commande ?"
+- Quand le client dit "c'est bon" / "c'est tout" / "je valide" → affiche un récap et propose de valider
+- Utilise TOUJOURS les vrais productId et shopId de la liste PRODUITS DISPONIBLES ci-dessous
+- Ne renvoie JAMAIS le client vers le site. Fais tout toi-même.
+- Propose toujours la boucherie la plus rapide ou la mieux notée
 - Donne des conseils de quantité : steak 150g/pers, ragoût 250g/pers, avec os 300g/pers
 - Propose des idées recettes (couscous, tajine, grillades, BBQ)
-- Si le client veut commander, guide-le vers la boucherie la plus adaptée
 - Mentionne les temps de préparation et les promos
 - Si un produit est en rupture, propose une alternative
 - Sois concis (max 3-4 phrases par réponse)
 - Utilise des émojis avec parcimonie (1-2 par message max)
 
-FONCTIONS DISPONIBLES :
-- Si le client demande un produit → cherche dans le catalogue et suggère
-- Si le client demande une recette → donne les quantités pour X personnes
-- Si le client veut commander → donne le lien vers la boutique`;
+MESSAGE POIDS :
+Après le PREMIER ajout au panier dans une conversation, ajoute ce message :
+"💡 Le poids exact peut varier légèrement de ±10% — c'est normal pour de la viande fraîche coupée à la main. Le prix final sera ajusté en conséquence."
+Ce message ne doit apparaître qu'UNE SEULE FOIS par conversation, pas à chaque ajout.
+
+RÉCAP COMMANDE (quand le client valide) :
+Affiche un récap clair :
+🛒 Ta commande :
+• [produit] — [quantité] — [prix]€
+• [produit] — [quantité] — [prix]€
+💰 Total estimé : XX,XX€
+⏱ Prêt en ~XX min
+
+Puis ajoute l'action checkout.
+
+BOUCHERIES DISPONIBLES :
+${shopsContext}
+
+PRODUITS DISPONIBLES :
+${productsContext}
+
+${userContext ? `HISTORIQUE DU CLIENT :\n${userContext}` : "Client non connecté."}`;
 
     // ── Call Claude API ──────────────────────────
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 500,
+      max_tokens: 800,
       system: systemPrompt,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     });

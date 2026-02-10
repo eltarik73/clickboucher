@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { createOrderSchema, orderListQuerySchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 
 // ── GET /api/orders ────────────────────────────
 // Role-based: client sees own orders, boucher sees shop orders, admin sees all
@@ -42,10 +43,7 @@ export async function GET(req: NextRequest) {
       }
     } else {
       // Client sees own orders
-      const user = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { id: true },
-      });
+      const user = await getOrCreateUser(userId);
       if (!user) {
         return apiSuccess([]);
       }
@@ -81,11 +79,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createOrderSchema.parse(body);
 
-    // Get internal user
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: { id: true, role: true, firstName: true },
-    });
+    // Get internal user (auto-create if webhook hasn't fired)
+    const user = await getOrCreateUser(userId);
     if (!user) {
       return apiError("NOT_FOUND", "Utilisateur introuvable");
     }

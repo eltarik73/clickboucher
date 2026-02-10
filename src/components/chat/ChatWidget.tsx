@@ -1,16 +1,37 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Send, X, ShoppingCart, CheckCircle } from "lucide-react";
+import { useCart } from "@/lib/hooks/use-cart";
 
 // ── Types ────────────────────────────────────────
 
-type Message = { role: "user" | "assistant"; content: string };
+type ChatAction =
+  | {
+      type: "add_to_cart";
+      productId: string;
+      productName: string;
+      shopId: string;
+      shopName: string;
+      shopSlug: string;
+      priceCents: number;
+      unit: string;
+      quantity: number;
+      weightGrams?: number;
+    }
+  | { type: "go_to_checkout" };
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  actions?: ChatAction[];
+};
 
 // ── Constants ────────────────────────────────────
 
 const WELCOME_MSG =
-  "Salut ! \uD83D\uDC4B Je suis ton assistant boucherie. Dis-moi ce qu'il te faut et je te guide !";
+  "Salut ! \uD83D\uDC4B Je suis ton assistant boucherie. Dis-moi ce qu'il te faut — je m'occupe de tout, même de remplir ton panier !";
 
 const SUGGESTIONS = [
   "\uD83E\uDD69 BBQ 6 personnes",
@@ -19,26 +40,43 @@ const SUGGESTIONS = [
   "\uD83C\uDFEA Boucherie la + rapide",
 ];
 
+// ── Parse hidden actions from bot response ──────
+
+const ACTION_REGEX = /<!--ACTION:(.*?)-->/g;
+
+function parseActions(raw: string): { clean: string; actions: ChatAction[] } {
+  const actions: ChatAction[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = ACTION_REGEX.exec(raw)) !== null) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      actions.push(parsed as ChatAction);
+    } catch {
+      // malformed JSON — skip
+    }
+  }
+
+  // Reset regex lastIndex
+  ACTION_REGEX.lastIndex = 0;
+
+  const clean = raw.replace(ACTION_REGEX, "").trim();
+  return { clean, actions };
+}
+
 // ── Butcher SVG Icon ─────────────────────────────
 
 function ButcherIcon({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      {/* Toque */}
       <rect x="12" y="4" width="16" height="6" rx="3" fill="white" />
       <rect x="14" y="8" width="12" height="4" rx="1" fill="white" />
-      {/* Head */}
       <circle cx="20" cy="18" r="7" fill="#FDDCB5" />
-      {/* Eyes */}
       <circle cx="17" cy="17" r="1.2" fill="#333" />
       <circle cx="23" cy="17" r="1.2" fill="#333" />
-      {/* Smile */}
       <path d="M17 20.5 Q20 23 23 20.5" stroke="#333" strokeWidth="1" strokeLinecap="round" fill="none" />
-      {/* Tablier / body */}
       <path d="M13 25 Q20 24 27 25 L28 36 Q20 37 12 36 Z" fill="white" />
-      {/* Tablier center line */}
       <line x1="20" y1="26" x2="20" y2="35" stroke="#ddd" strokeWidth="0.8" />
-      {/* Knife */}
       <rect x="29" y="20" width="2" height="10" rx="0.5" fill="#888" />
       <rect x="28" y="19" width="4" height="3" rx="1" fill="#654321" />
       <polygon points="29,30 31,30 30,34" fill="#aaa" />
@@ -62,9 +100,47 @@ function TypingDots() {
   );
 }
 
+// ── Action Confirmations ─────────────────────────
+
+function CartConfirmation({ name }: { name: string }) {
+  return (
+    <div className="flex justify-start">
+      <div className="bg-green-50 border border-green-200 rounded-xl p-2.5 text-green-700 text-xs flex items-center gap-2">
+        <CheckCircle size={14} className="shrink-0" />
+        <span className="font-medium">{name} ajouté au panier</span>
+      </div>
+    </div>
+  );
+}
+
+function CheckoutButton({ prepTime }: { prepTime?: number }) {
+  const router = useRouter();
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        onClick={() => router.push("/panier")}
+        className="bg-[#DC2626] text-white rounded-xl py-3 px-6 font-semibold text-sm w-full text-center hover:bg-[#b91c1c] transition-colors flex items-center justify-center gap-2"
+      >
+        <ShoppingCart size={16} />
+        Commander{prepTime ? ` · Retrait en ~${prepTime} min` : ""}
+      </button>
+      <button
+        onClick={() => router.push("/panier")}
+        className="text-xs text-gray-400 hover:text-gray-600 transition-colors text-center"
+      >
+        Modifier ma commande
+      </button>
+    </div>
+  );
+}
+
 // ── Main Widget ──────────────────────────────────
 
 export function ChatWidget() {
+  const router = useRouter();
+  const { addItem } = useCart();
+
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: WELCOME_MSG },
@@ -113,6 +189,35 @@ export function ChatWidget() {
     }
   }, [open]);
 
+  // Execute actions from bot response
+  const executeActions = useCallback(
+    (actions: ChatAction[]) => {
+      for (const action of actions) {
+        if (action.type === "add_to_cart") {
+          addItem(
+            {
+              id: action.productId,
+              productId: action.productId,
+              name: action.productName,
+              imageUrl: "",
+              unit: (action.unit || "KG") as "KG" | "PIECE" | "BARQUETTE",
+              priceCents: action.priceCents,
+              quantity: action.quantity || 1,
+              weightGrams: action.weightGrams,
+            },
+            {
+              id: action.shopId,
+              name: action.shopName,
+              slug: action.shopSlug || action.shopId,
+            }
+          );
+        }
+        // go_to_checkout is handled by rendering a button — no immediate action
+      }
+    },
+    [addItem]
+  );
+
   // Send message
   async function sendMessage(text: string) {
     const trimmed = text.trim();
@@ -130,7 +235,9 @@ export function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updated }),
+        body: JSON.stringify({
+          messages: updated.map((m) => ({ role: m.role, content: m.content })),
+        }),
       });
 
       if (!res.ok) {
@@ -139,9 +246,16 @@ export function ChatWidget() {
       }
 
       const data = await res.json();
+      const { clean, actions } = parseActions(data.content);
+
+      // Execute cart actions
+      if (actions.length > 0) {
+        executeActions(actions);
+      }
+
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: data.content },
+        { role: "assistant", content: clean, actions },
       ]);
     } catch (err: unknown) {
       const errorMsg =
@@ -177,7 +291,7 @@ export function ChatWidget() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-white">Assistant Klik&Go</p>
             <p className="text-xs text-white/80">
-              En ligne &bull; R\u00e9pond instantan\u00e9ment
+              En ligne &bull; Commande directe
             </p>
           </div>
           <button
@@ -194,19 +308,41 @@ export function ChatWidget() {
           className="flex-1 overflow-y-auto bg-[#f8f6f3] px-4 py-4 space-y-3"
         >
           {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+            <div key={i}>
+              {/* Message bubble */}
               <div
-                className={`max-w-[85%] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-                  msg.role === "user"
-                    ? "bg-[#DC2626] text-white rounded-2xl rounded-br-sm"
-                    : "bg-white border border-gray-100 text-gray-900 rounded-2xl rounded-bl-sm"
-                }`}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                {msg.content}
+                <div
+                  className={`max-w-[85%] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                    msg.role === "user"
+                      ? "bg-[#DC2626] text-white rounded-2xl rounded-br-sm"
+                      : "bg-white border border-gray-100 text-gray-900 rounded-2xl rounded-bl-sm"
+                  }`}
+                >
+                  {msg.content}
+                </div>
               </div>
+
+              {/* Action confirmations */}
+              {msg.actions && msg.actions.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {msg.actions.map((action, j) => {
+                    if (action.type === "add_to_cart") {
+                      return (
+                        <CartConfirmation
+                          key={`cart-${i}-${j}`}
+                          name={action.productName}
+                        />
+                      );
+                    }
+                    if (action.type === "go_to_checkout") {
+                      return <CheckoutButton key={`checkout-${i}-${j}`} />;
+                    }
+                    return null;
+                  })}
+                </div>
+              )}
             </div>
           ))}
 
@@ -242,7 +378,7 @@ export function ChatWidget() {
                   sendMessage(input);
                 }
               }}
-              placeholder="Demande-moi conseil..."
+              placeholder="Ex: 1kg d'entrecôte..."
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-full text-sm outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-400"
             />
             <button
@@ -264,9 +400,7 @@ export function ChatWidget() {
         }`}
         aria-label="Ouvrir le chat"
       >
-        {/* Pulse ring */}
         <span className="absolute inset-0 rounded-full bg-[#DC2626] animate-ping opacity-20" />
-        {/* Icon */}
         <div className="relative z-10">
           <ButcherIcon size={32} />
         </div>
