@@ -16,7 +16,6 @@ function getClient(): Anthropic | null {
 // ── Extract keywords from user message ──────────
 function extractKeywords(text: string): string[] {
   const lower = text.toLowerCase();
-  // Remove common filler words
   const stopWords = new Set([
     "je", "tu", "il", "nous", "vous", "les", "des", "une", "un", "du", "de",
     "la", "le", "et", "ou", "en", "pour", "avec", "dans", "sur", "par",
@@ -27,7 +26,7 @@ function extractKeywords(text: string): string[] {
     "bonjour", "salut", "merci", "stp", "svp", "please",
     "est", "sont", "suis", "etes", "avez", "ont", "avoir", "etre",
     "pas", "plus", "aussi", "tout", "tous", "cette", "ces", "cet",
-    "bien", "bon", "bonne", "chose", "chose", "autre", "quelque",
+    "bien", "bon", "bonne", "chose", "autre", "quelque",
     "moi", "toi", "lui", "elle", "eux", "leur", "leurs",
     "encore", "deja", "toujours", "jamais", "rien", "peu",
     "personnes", "personne", "gens", "prix", "combien",
@@ -38,7 +37,6 @@ function extractKeywords(text: string): string[] {
     .split(/\s+/)
     .filter((w) => w.length > 2 && !stopWords.has(w));
 
-  // Also detect multi-word food terms
   const multiWordTerms: string[] = [];
   const foodPhrases = [
     "viande hachée", "viande hachee", "poulet fermier", "côte de boeuf", "cote de boeuf",
@@ -89,6 +87,29 @@ async function callClaude(
   return "";
 }
 
+// ── Product type from DB query ──────────────────
+type MatchedProduct = {
+  id: string;
+  name: string;
+  priceCents: number;
+  unit: string;
+  promoPct: number | null;
+  shopId: string;
+  shop: { name: string; slug: string; prepTimeMin: number };
+  category: { name: string };
+};
+
+const PRODUCT_SELECT = {
+  id: true,
+  name: true,
+  priceCents: true,
+  unit: true,
+  promoPct: true,
+  shopId: true,
+  shop: { select: { name: true, slug: true, prepTimeMin: true } },
+  category: { select: { name: true } },
+} as const;
+
 export async function POST(req: NextRequest) {
   try {
     const client = getClient();
@@ -115,10 +136,8 @@ export async function POST(req: NextRequest) {
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content || "";
 
     // ── Auth (optional) ──────────────────────────
-    let userId: string | null = null;
     try {
-      const { userId: clerkId } = await auth();
-      userId = clerkId;
+      await auth();
     } catch {
       // Not authenticated — that's fine
     }
@@ -126,10 +145,11 @@ export async function POST(req: NextRequest) {
     // ── Extract keywords + search relevant products ──
     const keywords = extractKeywords(lastUserMsg);
 
-    let shops: { id: string; name: string; slug: string; address: string; city: string; prepTimeMin: number; busyMode: boolean; busyExtraMin: number; rating: number }[] = [];
-    let matchedProducts: { id: string; name: string; priceCents: number; unit: string; promoPct: number | null; shopId: string; shop: { name: string; slug: string; prepTimeMin: number; address: string; city: string }; category: { name: string } }[] = [];
+    let shops: { id: string; name: string; slug: string; prepTimeMin: number; busyMode: boolean; busyExtraMin: number; rating: number }[] = [];
+    let matchedProducts: MatchedProduct[] = [];
 
     try {
+      // Search products by keywords
       const productSearches = keywords.length > 0
         ? keywords.map((kw) =>
             prisma.product.findMany({
@@ -140,16 +160,7 @@ export async function POST(req: NextRequest) {
                   { category: { name: { contains: kw, mode: "insensitive" as const } } },
                 ],
               },
-              select: {
-                id: true,
-                name: true,
-                priceCents: true,
-                unit: true,
-                promoPct: true,
-                shopId: true,
-                shop: { select: { name: true, slug: true, prepTimeMin: true, address: true, city: true } },
-                category: { select: { name: true } },
-              },
+              select: PRODUCT_SELECT,
               take: 5,
             })
           )
@@ -159,7 +170,7 @@ export async function POST(req: NextRequest) {
         prisma.shop.findMany({
           where: { isOpen: true, paused: false },
           select: {
-            id: true, name: true, slug: true, address: true, city: true,
+            id: true, name: true, slug: true,
             prepTimeMin: true, busyMode: true, busyExtraMin: true, rating: true,
           },
           orderBy: { rating: "desc" },
@@ -169,7 +180,7 @@ export async function POST(req: NextRequest) {
 
       shops = shopsResult;
 
-      // Dedupe products by id, limit to 10
+      // Dedupe products by id, limit to 15
       const seen = new Set<string>();
       for (const results of productResults) {
         for (const p of results) {
@@ -177,9 +188,20 @@ export async function POST(req: NextRequest) {
             seen.add(p.id);
             matchedProducts.push(p);
           }
-          if (matchedProducts.length >= 10) break;
+          if (matchedProducts.length >= 15) break;
         }
-        if (matchedProducts.length >= 10) break;
+        if (matchedProducts.length >= 15) break;
+      }
+
+      // Fallback: if no keyword matches, load popular products
+      if (matchedProducts.length === 0) {
+        const popular = await prisma.product.findMany({
+          where: { inStock: true },
+          select: PRODUCT_SELECT,
+          take: 15,
+          orderBy: { name: "asc" },
+        });
+        matchedProducts = popular;
       }
     } catch (dbError: unknown) {
       const msg = dbError instanceof Error ? dbError.message : String(dbError);
@@ -191,7 +213,7 @@ export async function POST(req: NextRequest) {
       ? shops
           .map((s) => {
             const prep = s.busyMode ? s.prepTimeMin + s.busyExtraMin : s.prepTimeMin;
-            return `- ID:${s.id} | ${s.name} | ${s.address}, ${s.city} | ${prep}min | ${s.rating.toFixed(1)}★`;
+            return `- ShopID:${s.id} | ${s.name} | slug:${s.slug} | ${prep}min | ${s.rating.toFixed(1)}★`;
           })
           .join("\n")
       : "Aucune boucherie disponible.";
@@ -202,35 +224,39 @@ export async function POST(req: NextRequest) {
             const price = (p.priceCents / 100).toFixed(2);
             const unit = p.unit === "KG" ? "kg" : p.unit === "PIECE" ? "pièce" : "barq.";
             const promo = p.promoPct ? ` (-${p.promoPct}%)` : "";
-            return `- ID:${p.id} | ${p.name} | ${p.category.name} | ${price}€/${unit}${promo} | Shop:${p.shopId} ${p.shop.name} (${p.shop.slug})`;
+            return `- ProductID:${p.id} | ${p.name} | ${p.category.name} | ${price}€/${unit}${promo} | priceCents:${p.priceCents} | unit:${p.unit} | ShopID:${p.shopId} | shopName:${p.shop.name} | shopSlug:${p.shop.slug}`;
           })
           .join("\n")
-      : "Aucun produit trouvé pour cette recherche. Propose au client de reformuler ou suggère des catégories : Bœuf, Volaille, Agneau, Merguez, Grillades.";
+      : "Aucun produit en base.";
 
-    // ── System prompt (compact) ──────────────────
-    const systemPrompt = `Tu es l'assistant Klik&Go, expert en viande halal à Chambéry. Tu tutoies le client. Sois CONCIS (3-4 phrases max).
+    console.log("[chat] Keywords:", keywords, "| Products found:", matchedProducts.length);
 
-Quand le client veut un produit, ajoute-le au panier avec cette balise invisible en fin de message :
-<!--ACTION:{"type":"add_to_cart","productId":"ID","productName":"NOM","shopId":"SHOP_ID","shopName":"NOM_SHOP","shopSlug":"SLUG_SHOP","priceCents":PRIX,"unit":"UNITE","quantity":1,"weightGrams":POIDS}-->
+    // ── System prompt ────────────────────────────
+    const systemPrompt = `Tu es l'assistant Klik&Go, expert en viande halal a Chambery. Tu tutoies le client. Sois CONCIS (3-4 phrases max).
 
-Pour UNITE : "KG", "PIECE" ou "BARQUETTE". Pour weightGrams : poids en grammes (défaut 500 pour KG).
+IMPORTANT : Tu ne peux ajouter au panier QUE les produits listes ci-dessous. COPIE les IDs EXACTEMENT tels quels (ils commencent par "cm"). Ne JAMAIS inventer d'ID. Si le produit demande n'est pas dans la liste, dis-le et propose ce qui est disponible.
+
+Quand le client veut un produit de la liste, ajoute-le avec cette balise en fin de message :
+<!--ACTION:{"type":"add_to_cart","productId":"COPIE_LE_ProductID","productName":"NOM","shopId":"COPIE_LE_ShopID","shopName":"COPIE_shopName","shopSlug":"COPIE_shopSlug","priceCents":COPIE_priceCents,"unit":"COPIE_unit","quantity":1,"weightGrams":500}-->
+
+Pour weightGrams : 500 par defaut pour KG. Pour PIECE/BARQUETTE : ne pas mettre weightGrams.
 
 Quand le client valide ("c'est bon", "je valide", "on commande") :
 <!--ACTION:{"type":"go_to_checkout"}-->
 
-BOUCHERIES :
+BOUCHERIES OUVERTES :
 ${shopsContext}
 
-PRODUITS TROUVÉS :
+PRODUITS DISPONIBLES (utilise UNIQUEMENT ces IDs) :
 ${productsContext}
 
-RÈGLES :
-- Ajoute directement au panier quand le client demande un produit
-- Après ajout : "C'est ajouté ! Autre chose ou on commande ?"
-- Quand il valide : affiche récap avec total + temps + action go_to_checkout
-- Le poids peut varier de ±10% (mentionne-le UNE SEULE FOIS)
+REGLES :
+- COPIE les ProductID et ShopID exactement depuis la liste. Exemple : "productId":"cmlfkv2b9000vjothecxlgfvn"
+- Apres ajout : "C'est ajoute ! Autre chose ou on commande ?"
+- Quand il valide : affiche recap avec total + temps + action go_to_checkout
+- Le poids peut varier de +-10% (mentionne-le UNE SEULE FOIS)
 - JAMAIS renvoyer vers le site. Tu fais tout.
-- MAX 3-4 phrases par réponse. Sois direct.`;
+- MAX 3-4 phrases par reponse. Sois direct.`;
 
     // ── Call Claude API with retry ───────────────
     const content = await callClaude(client, systemPrompt, messages);
