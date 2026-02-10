@@ -172,13 +172,13 @@ export default function BoucherProduitsPage() {
   const outCount = products.length - inStockCount;
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-5">
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-[#f8f6f3]">Mes produits</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Mes produits</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {inStockCount} en stock · {outCount} en rupture
             </p>
@@ -198,7 +198,7 @@ export default function BoucherProduitsPage() {
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
               !selectedCategory
                 ? "bg-[#DC2626] text-white"
-                : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
+                : "bg-white dark:bg-[#141414] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-white/10"
             }`}
           >
             Tous ({products.length})
@@ -212,7 +212,7 @@ export default function BoucherProduitsPage() {
                 className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   selectedCategory === cat.id
                     ? "bg-[#DC2626] text-white"
-                    : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
+                    : "bg-white dark:bg-[#141414] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-white/10"
                 }`}
               >
                 {cat.name} ({count})
@@ -224,7 +224,7 @@ export default function BoucherProduitsPage() {
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
               showOutOfStock
                 ? "bg-red-600 text-white"
-                : "bg-white dark:bg-[#2a2520] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3a3530] border border-gray-200 dark:border-[#3a3530]"
+                : "bg-white dark:bg-[#141414] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-white/10"
             }`}
           >
             En rupture ({outCount})
@@ -233,7 +233,7 @@ export default function BoucherProduitsPage() {
 
         {/* ── Product list ── */}
         {grouped.length === 0 ? (
-          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="py-12 flex flex-col items-center gap-2">
               <Package className="w-10 h-10 text-gray-300 dark:text-gray-600" />
               <p className="text-sm text-gray-400 dark:text-gray-500">Aucun produit trouvé</p>
@@ -284,11 +284,11 @@ function ProductCard({
   const promoActive = hasPromo && product.promoEnd && new Date(product.promoEnd) > new Date();
 
   return (
-    <Card className={`bg-white dark:bg-[#2a2520] border-0 shadow-sm transition-opacity ${!product.inStock ? "opacity-60" : ""}`}>
+    <Card className={`bg-white dark:bg-[#141414] border-0 shadow-sm transition-opacity ${!product.inStock ? "opacity-60" : ""}`}>
       <CardContent className="p-3">
         <div className="flex gap-3">
           {/* Image */}
-          <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden bg-gray-100 dark:bg-[#1a1814] shrink-0">
+          <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden bg-gray-100 dark:bg-[#0a0a0a] shrink-0">
             {product.imageUrl ? (
               <img
                 src={product.imageUrl}
@@ -311,11 +311,11 @@ function ProductCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="font-semibold text-sm text-gray-900 dark:text-[#f8f6f3] truncate">
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate">
                   {product.name}
                 </h3>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
                     {(product.priceCents / 100).toFixed(2).replace(".", ",")} €
                     <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
                       {UNIT_LABELS[product.unit] || ""}
@@ -344,7 +344,7 @@ function ProductCard({
 
             {/* Tags & category */}
             <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-              <Badge variant="outline" className="text-[10px] border-gray-200 dark:border-[#3a3530] text-gray-500 dark:text-gray-400">
+              <Badge variant="outline" className="text-[10px] border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400">
                 {product.category.name}
               </Badge>
               {product.tags.map((tag) => (
@@ -449,10 +449,10 @@ function AddProductForm({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#2a2520] rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#141414] rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-[#2a2520] border-b border-gray-100 dark:border-[#3a3530] px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-[#f8f6f3]">Nouveau produit</h2>
+        <div className="sticky top-0 bg-white dark:bg-[#141414] border-b border-gray-100 dark:border-white/10 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nouveau produit</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3a3530] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#4a4540]"
@@ -485,7 +485,7 @@ function AddProductForm({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description du produit..."
               rows={2}
-              className="w-full rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 py-2 text-sm text-gray-900 dark:text-[#f8f6f3] resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+              className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 py-2 text-sm text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
             />
           </div>
 
@@ -529,7 +529,7 @@ function AddProductForm({
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as "KG" | "PIECE" | "BARQUETTE")}
-                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
               >
                 <option value="KG">Kilogramme (kg)</option>
                 <option value="PIECE">Pièce</option>
@@ -543,7 +543,7 @@ function AddProductForm({
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full h-10 rounded-xl border border-gray-200 dark:border-[#3a3530] bg-white dark:bg-[#1a1814] px-3 text-sm text-gray-900 dark:text-[#f8f6f3] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
               >
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
@@ -568,7 +568,7 @@ function AddProductForm({
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
                     tags.has(tag)
                       ? TAG_COLORS[tag] || "bg-gray-200 text-gray-700"
-                      : "bg-white dark:bg-[#1a1814] text-gray-400 border-gray-200 dark:border-[#3a3530] hover:bg-gray-50 dark:hover:bg-[#3a3530]"
+                      : "bg-white dark:bg-[#0a0a0a] text-gray-400 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
                   }`}
                 >
                   {tag}

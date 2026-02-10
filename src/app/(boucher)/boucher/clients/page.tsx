@@ -181,11 +181,11 @@ export default function BoucherClientsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 bg-white dark:bg-[#2a2520] rounded-xl p-1 shadow-sm">
+        <div className="flex gap-1 bg-white dark:bg-[#141414] rounded-xl p-1 shadow-sm">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -196,7 +196,7 @@ export default function BoucherClientsPage() {
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   isActive
                     ? "bg-[#DC2626] text-white shadow-sm"
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530]"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                 }`}
               >
                 <Icon size={16} />
@@ -219,7 +219,7 @@ export default function BoucherClientsPage() {
         {activeTab === "demandes" && (
           <div className="space-y-3">
             {proRequests.length === 0 ? (
-              <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+              <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
                 <CardContent className="py-12 flex flex-col items-center gap-2">
                   <Bell className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                   <p className="text-sm text-gray-400 dark:text-gray-500">Aucune demande Pro en attente</p>
@@ -227,13 +227,13 @@ export default function BoucherClientsPage() {
               </Card>
             ) : (
               proRequests.map((req) => (
-                <Card key={req.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
+                <Card key={req.id} className="bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden">
                   <div className="h-1 bg-amber-400" />
                   <CardContent className="p-4 space-y-3">
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
+                        <p className="font-semibold text-gray-900 dark:text-white">
                           {req.firstName} {req.lastName}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{req.email}</p>
@@ -244,7 +244,7 @@ export default function BoucherClientsPage() {
                     </div>
 
                     {/* Details */}
-                    <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 space-y-2">
+                    <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 space-y-2">
                       {req.companyName && (
                         <div className="flex items-center gap-2">
                           <Building2 size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
@@ -318,7 +318,7 @@ export default function BoucherClientsPage() {
                   className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                     sortBy === opt.key
                       ? "bg-[#DC2626] text-white"
-                      : "bg-white dark:bg-[#2a2520] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-[#3a3530] hover:bg-gray-50 dark:hover:bg-[#3a3530]"
+                      : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
                   }`}
                 >
                   {opt.label}
@@ -327,7 +327,7 @@ export default function BoucherClientsPage() {
             </div>
 
             {sortedClients.length === 0 ? (
-              <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+              <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
                 <CardContent className="py-12 flex flex-col items-center gap-2">
                   <Users className="w-10 h-10 text-gray-300 dark:text-gray-600" />
                   <p className="text-sm text-gray-400 dark:text-gray-500">Aucun client pour le moment</p>
@@ -335,12 +335,12 @@ export default function BoucherClientsPage() {
               </Card>
             ) : (
               sortedClients.map((client) => (
-                <Card key={client.userId} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+                <Card key={client.userId} className="bg-white dark:bg-[#141414] border-0 shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-sm text-gray-900 dark:text-[#f8f6f3] truncate">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
                             {client.firstName} {client.lastName}
                           </p>
                           {client.isPro && (
@@ -350,7 +350,7 @@ export default function BoucherClientsPage() {
                         <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{client.email}</p>
                       </div>
                       <div className="text-right shrink-0 ml-3">
-                        <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
                           {formatPrice(client.totalSpent)}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">

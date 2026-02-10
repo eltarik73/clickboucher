@@ -45,15 +45,15 @@ export function BoucherNav() {
   return (
     <>
       {/* ── Desktop sidebar (md+) ── */}
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-[#2a2520] border-r border-gray-200 dark:border-[#3a3530] flex-col z-40">
+      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-[#141414] border-r border-gray-200 dark:border-white/10 flex-col z-40">
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-gray-100 dark:border-[#3a3530]">
+        <div className="px-5 py-5 border-b border-gray-100 dark:border-white/10">
           <Link href="/boucher/dashboard" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-[#DC2626] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">K</span>
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3] leading-none">Klik&Go</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">Klik&Go</p>
               <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Espace boucher</p>
             </div>
           </Link>
@@ -72,7 +72,7 @@ export function BoucherNav() {
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-[#DC2626]/10 text-[#DC2626] dark:bg-[#DC2626]/20 dark:text-[#DC2626]"
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530] hover:text-gray-900 dark:hover:text-[#f8f6f3]"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-[#f8f6f3]"
                 }`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.4 : 1.8} />
@@ -89,7 +89,7 @@ export function BoucherNav() {
       </aside>
 
       {/* ── Mobile bottom nav ── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-[#2a2520] border-t border-gray-100 dark:border-[#3a3530] px-1 pb-safe z-50">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-[#141414] border-t border-gray-100 dark:border-white/10 px-1 pb-safe z-50">
         <div className="flex items-center justify-around">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");

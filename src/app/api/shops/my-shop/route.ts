@@ -14,6 +14,8 @@ export async function GET() {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    console.log("[my-shop] Looking for shop with ownerId:", userId);
+
     const shop = await prisma.shop.findFirst({
       where: { ownerId: userId },
       include: {
@@ -23,8 +25,11 @@ export async function GET() {
     });
 
     if (!shop) {
+      console.log("[my-shop] No shop found for ownerId:", userId);
       return apiError("NOT_FOUND", "Aucune boucherie associee a ce compte");
     }
+
+    console.log("[my-shop] Found shop:", shop.name, shop.id);
 
     return apiSuccess(shop);
   } catch (error) {

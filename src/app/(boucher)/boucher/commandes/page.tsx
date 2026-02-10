@@ -306,11 +306,11 @@ export default function BoucherCommandesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 bg-white dark:bg-[#2a2520] rounded-xl p-1 shadow-sm">
+        <div className="flex gap-1 bg-white dark:bg-[#141414] rounded-xl p-1 shadow-sm">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -321,7 +321,7 @@ export default function BoucherCommandesPage() {
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   isActive
                     ? "bg-[#DC2626] text-white shadow-sm"
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530]"
+                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
                 }`}
               >
                 <Icon size={16} />
@@ -349,14 +349,14 @@ export default function BoucherCommandesPage() {
               <EmptyTab icon={<Bell className="w-10 h-10 text-gray-300 dark:text-gray-600" />} message="Aucune nouvelle commande" />
             ) : (
               pendingOrders.map((order) => (
-                <Card key={order.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
+                <Card key={order.id} className="bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden">
                   <div className="h-1 bg-amber-400" />
                   <CardContent className="p-4 space-y-3">
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm text-gray-900 dark:text-[#f8f6f3]">
+                          <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
                             {order.orderNumber}
                           </span>
                           {order.isPro && (
@@ -368,7 +368,7 @@ export default function BoucherCommandesPage() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900 dark:text-[#f8f6f3]">
+                        <p className="text-lg font-bold text-gray-900 dark:text-white">
                           {formatPrice(order.totalCents)}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500">{formatTime(order.createdAt)}</p>
@@ -376,7 +376,7 @@ export default function BoucherCommandesPage() {
                     </div>
 
                     {/* Items */}
-                    <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 space-y-1">
+                    <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 space-y-1">
                       {order.items.map((item) => (
                         <div key={item.id} className="flex items-center justify-between text-sm">
                           <span className="text-gray-700 dark:text-gray-300">
@@ -448,7 +448,7 @@ export default function BoucherCommandesPage() {
                           value={denyReason}
                           onChange={(e) => setDenyReason(e.target.value)}
                           placeholder="Ex: Rupture de stock, fermeture exceptionnelle..."
-                          className="w-full rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-[#1a1814] px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300 dark:text-[#f8f6f3]"
+                          className="w-full rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-[#0a0a0a] px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300 dark:text-white"
                           rows={2}
                         />
                         <div className="flex gap-2 justify-end">
@@ -564,14 +564,14 @@ export default function BoucherCommandesPage() {
                 const isOverdue = remaining !== null && remaining < 0;
 
                 return (
-                  <Card key={order.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
+                  <Card key={order.id} className="bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden">
                     <div className={`h-1 ${isOverdue ? "bg-red-500" : "bg-blue-400"}`} />
                     <CardContent className="p-4 space-y-3">
                       {/* Header with timer */}
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-[#f8f6f3]">
+                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
                               {order.orderNumber}
                             </span>
                             <Badge
@@ -610,7 +610,7 @@ export default function BoucherCommandesPage() {
                       </div>
 
                       {/* Items */}
-                      <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 space-y-1">
+                      <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 space-y-1">
                         {order.items.map((item) => (
                           <div key={item.id} className="text-sm text-gray-700 dark:text-gray-300">
                             {item.quantity} {item.product.unit === "KG" ? "kg" : item.product.unit === "PIECE" ? "pc" : "barq."} — {item.product.name}
@@ -621,7 +621,7 @@ export default function BoucherCommandesPage() {
                       {/* Total */}
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
-                        <span className="font-bold text-gray-900 dark:text-[#f8f6f3]">{formatPrice(order.totalCents)}</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{formatPrice(order.totalCents)}</span>
                       </div>
 
                       {/* Actions */}
@@ -651,7 +651,7 @@ export default function BoucherCommandesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
+                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
                           onClick={() => handlePreparing(order.id, 5)}
                           disabled={actionLoading}
                         >
@@ -660,7 +660,7 @@ export default function BoucherCommandesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
+                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
                           onClick={() => handlePreparing(order.id, 10)}
                           disabled={actionLoading}
                         >
@@ -695,14 +695,14 @@ export default function BoucherCommandesPage() {
                   : null;
 
                 return (
-                  <Card key={order.id} className="bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden">
+                  <Card key={order.id} className="bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden">
                     <div className="h-1 bg-emerald-400" />
                     <CardContent className="p-4 space-y-3">
                       {/* Header */}
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-[#f8f6f3]">
+                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
                               {order.orderNumber}
                             </span>
                             <Badge
@@ -720,7 +720,7 @@ export default function BoucherCommandesPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-gray-900 dark:text-[#f8f6f3]">{formatPrice(order.totalCents)}</p>
+                          <p className="font-bold text-gray-900 dark:text-white">{formatPrice(order.totalCents)}</p>
                           <p className="text-xs text-gray-400 dark:text-gray-500">
                             {order.items.length} article{order.items.length > 1 ? "s" : ""}
                           </p>
@@ -742,7 +742,7 @@ export default function BoucherCommandesPage() {
 
                       {/* QR Code display */}
                       {order.qrCode && (
-                        <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg p-3 text-center">
+                        <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 text-center">
                           <div className="flex items-center justify-center gap-2 mb-1">
                             <QrCode size={16} className="text-gray-500 dark:text-gray-400" />
                             <span className="text-xs text-gray-500 dark:text-gray-400">Code QR de retrait</span>
@@ -848,7 +848,7 @@ export default function BoucherCommandesPage() {
 // ─────────────────────────────────────────────
 function EmptyTab({ icon, message }: { icon: React.ReactNode; message: string }) {
   return (
-    <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+    <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
       <CardContent className="py-12 flex flex-col items-center gap-2">
         {icon}
         <p className="text-sm text-gray-400 dark:text-gray-500">{message}</p>

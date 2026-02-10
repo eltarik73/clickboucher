@@ -159,12 +159,12 @@ export default function BoucherDashboardPage() {
       : { label: "Ouvert", style: "bg-emerald-100 text-emerald-700 border-emerald-200" };
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="max-w-3xl mx-auto px-5 py-6 space-y-6">
 
         {/* ── Header ── */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Bonjour {user?.firstName || "Chef"} 👋
           </h1>
           <div className="flex items-center gap-2 mt-1">
@@ -181,7 +181,7 @@ export default function BoucherDashboardPage() {
         {/* ── Stats Grid 2x2 ── */}
         <div className="grid grid-cols-2 gap-3">
           {/* CA du jour */}
-          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
@@ -189,14 +189,14 @@ export default function BoucherDashboardPage() {
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">CA du jour</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {caToday.toFixed(2).replace(".", ",")} €
               </p>
             </CardContent>
           </Card>
 
           {/* Commandes du jour */}
-          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -204,7 +204,7 @@ export default function BoucherDashboardPage() {
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Commandes</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {todayOrders.length}
               </p>
             </CardContent>
@@ -219,14 +219,14 @@ export default function BoucherDashboardPage() {
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">En attente</span>
               </div>
-              <p className={`text-2xl font-bold ${pendingCount > 0 ? "text-red-600" : "text-gray-900 dark:text-[#f8f6f3]"}`}>
+              <p className={`text-2xl font-bold ${pendingCount > 0 ? "text-red-600" : "text-gray-900 dark:text-white"}`}>
                 {pendingCount}
               </p>
             </CardContent>
           </Card>
 
           {/* Note moyenne */}
-          <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+          <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
@@ -235,7 +235,7 @@ export default function BoucherDashboardPage() {
                 <span className="text-xs text-gray-500 dark:text-gray-400">Note</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <p className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {shop?.rating?.toFixed(1) || "—"}
                 </p>
                 <span className="text-xs text-gray-400 dark:text-gray-500">/5 ({shop?.ratingCount || 0})</span>
@@ -251,7 +251,7 @@ export default function BoucherDashboardPage() {
             <Link href="/boucher/commandes">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#2a2520] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
               >
                 <div className="relative">
                   <Bell className="w-5 h-5 text-[#DC2626]" />
@@ -268,7 +268,7 @@ export default function BoucherDashboardPage() {
             <Link href="/boucher/produits">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#2a2520] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
               >
                 <Package className="w-5 h-5 text-[#DC2626]" />
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Stock</span>
@@ -310,7 +310,7 @@ export default function BoucherDashboardPage() {
           </div>
 
           {recentOrders.length === 0 ? (
-            <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm">
+            <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
               <CardContent className="py-8 text-center">
                 <p className="text-sm text-gray-400 dark:text-gray-500">Aucune commande pour le moment</p>
               </CardContent>
@@ -325,12 +325,12 @@ export default function BoucherDashboardPage() {
 
                 return (
                   <Link key={order.id} href="/boucher/commandes">
-                    <Card className="bg-white dark:bg-[#2a2520] border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                    <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                       <CardContent className="p-3.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="shrink-0">
-                              <span className="text-xs font-mono font-semibold text-gray-900 dark:text-[#f8f6f3]">
+                              <span className="text-xs font-mono font-semibold text-gray-900 dark:text-white">
                                 {order.orderNumber}
                               </span>
                             </div>
@@ -344,7 +344,7 @@ export default function BoucherDashboardPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">
                               {(order.totalCents / 100).toFixed(2).replace(".", ",")} €
                             </span>
                             <Badge

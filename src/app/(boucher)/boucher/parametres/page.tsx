@@ -178,9 +178,9 @@ export default function BoucherParametresPage() {
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-[#f8f6f3]">Paramètres</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Paramètres</h1>
 
         {/* ── 1. STATUS BOUTIQUE ── */}
         <SettingCard
@@ -190,7 +190,7 @@ export default function BoucherParametresPage() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
+              <p className="font-semibold text-gray-900 dark:text-white">
                 {shop.isOpen ? "Ouvert" : "Fermé"}
               </p>
               {!shop.isOpen && (
@@ -215,7 +215,7 @@ export default function BoucherParametresPage() {
         >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-gray-900 dark:text-[#f8f6f3]">Mode occupé</p>
+              <p className="font-semibold text-gray-900 dark:text-white">Mode occupé</p>
               <Switch
                 checked={shop.busyMode}
                 onCheckedChange={(v) => patchStatus({ busyMode: v })}
@@ -258,7 +258,7 @@ export default function BoucherParametresPage() {
         >
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-gray-900 dark:text-[#f8f6f3]">Pause nouvelles commandes</p>
+              <p className="font-semibold text-gray-900 dark:text-white">Pause nouvelles commandes</p>
               <Switch
                 checked={shop.paused}
                 onCheckedChange={(v) => patchStatus({ paused: v })}
@@ -323,7 +323,7 @@ export default function BoucherParametresPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-semibold text-gray-900 dark:text-[#f8f6f3]">Accepter automatiquement</p>
+                <p className="font-semibold text-gray-900 dark:text-white">Accepter automatiquement</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   Les commandes sont acceptées sans validation manuelle
                 </p>
@@ -475,7 +475,7 @@ function SettingCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className={`bg-white dark:bg-[#2a2520] border-0 shadow-sm overflow-hidden ${accent ? `border-l-4 ${accent}` : ""}`}>
+    <Card className={`bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden ${accent ? `border-l-4 ${accent}` : ""}`}>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           {icon}
