@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { createOrderSchema, orderListQuerySchema } from "@/lib/validators";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, handleApiError, formatZodError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 
@@ -78,7 +78,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const data = createOrderSchema.parse(body);
+    console.log("[POST /api/orders] RECEIVED BODY:", JSON.stringify(body, null, 2));
+
+    const parseResult = createOrderSchema.safeParse(body);
+    if (!parseResult.success) {
+      console.error("[POST /api/orders] VALIDATION ERRORS:", JSON.stringify(parseResult.error.issues, null, 2));
+      return apiError("VALIDATION_ERROR", "Donnees invalides", formatZodError(parseResult.error));
+    }
+    const data = parseResult.data;
 
     // Get internal user (auto-create if webhook hasn't fired)
     const user = await getOrCreateUser(userId);

@@ -121,12 +121,12 @@ export const toggleStockSchema = z.object({
 // -- Cart / Order --
 
 const cartItemSchema = z.object({
-  productId: z.string().cuid(),
-  quantity: z.number().min(0.1).max(100),
+  productId: z.string().min(1, "productId requis"),
+  quantity: z.number().min(0.01).max(100),
 });
 
 export const createOrderSchema = z.object({
-  shopId: z.string().cuid(),
+  shopId: z.string().min(1, "shopId requis"),
   items: z.array(cartItemSchema).min(1, "Au moins 1 article requis"),
   requestedTime: z.string().optional(),
   customerNote: z.string().max(500).optional(),

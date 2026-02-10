@@ -122,20 +122,23 @@ export default function PanierPage() {
           ? new Date(scheduledTime).toISOString()
           : "asap";
 
+      const orderBody = {
+        shopId: state.shopId,
+        items: state.items.map((i) => ({
+          productId: i.productId || i.id,
+          quantity: i.unit === "KG" && i.weightGrams
+            ? (i.weightGrams / 1000) * i.quantity
+            : i.quantity,
+        })),
+        requestedTime,
+        customerNote: customerNote.trim() || undefined,
+      };
+      console.log("[Panier] ORDER BODY:", JSON.stringify(orderBody, null, 2));
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          shopId: state.shopId,
-          items: state.items.map((i) => ({
-            productId: i.productId || i.id,
-            quantity: i.unit === "KG" && i.weightGrams
-              ? (i.weightGrams / 1000) * i.quantity
-              : i.quantity,
-          })),
-          requestedTime,
-          customerNote: customerNote.trim() || undefined,
-        }),
+        body: JSON.stringify(orderBody),
       });
 
       const data = await res.json();
@@ -145,7 +148,11 @@ export default function PanierPage() {
         toast.success(`Commande ${data.data.orderNumber} confirmee !`);
         router.push(`/suivi/${data.data.id}`);
       } else {
-        toast.error(data.error?.message || "Erreur lors de la commande");
+        console.error("[Panier] API error:", JSON.stringify(data, null, 2));
+        const errMsg = data.error?.message || "Erreur lors de la commande";
+        const details = data.error?.details;
+        const detailStr = details ? " — " + Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(", ") : "";
+        toast.error(errMsg + detailStr);
       }
     } catch {
       toast.error("Erreur reseau, reessayez");
