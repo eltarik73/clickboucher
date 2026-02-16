@@ -149,12 +149,21 @@ export default function CommandesPage() {
     if (!isLoaded || !isSignedIn) return;
 
     fetch("/api/orders")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok && res.status === 401) {
+          setOrders([]);
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
-        if (data.success) {
+        if (!data) return;
+        if (data.success && Array.isArray(data.data)) {
           setOrders(data.data);
+        } else if (Array.isArray(data)) {
+          setOrders(data);
         } else {
-          setError(true);
+          setOrders([]);
         }
       })
       .catch(() => setError(true))

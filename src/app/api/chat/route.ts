@@ -250,6 +250,8 @@ ${shopsContext}
 PRODUITS DISPONIBLES (utilise UNIQUEMENT ces IDs) :
 ${productsContext}
 
+POIDS : 1kg = 1000g, 500g = 500g, 250g = 250g, 2kg = 2000g. Adapte weightGrams selon ce que demande le client. Si "1kg de steak" → weightGrams:1000. Si "500g" → weightGrams:500. Par defaut 500g. Le prix au kg se calcule proportionnellement (priceCents est pour 1kg entier).
+
 REGLES :
 - COPIE les ProductID et ShopID exactement depuis la liste. Exemple : "productId":"cmlfkv2b9000vjothecxlgfvn"
 - Apres ajout : "C'est ajoute ! Autre chose ou on commande ?"
