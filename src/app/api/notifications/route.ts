@@ -6,7 +6,6 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 export const dynamic = "force-dynamic";
 
 // ── GET /api/notifications ───────────────────
-// Returns recent order status changes for the current user
 export async function GET() {
   try {
     const { userId } = await auth();
@@ -15,50 +14,16 @@ export async function GET() {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    // Find internal user (auto-create if webhook hasn't fired)
     const user = await getOrCreateUser(userId);
-
     if (!user) {
       return apiError("NOT_FOUND", "Utilisateur introuvable");
     }
 
-    // Orders with a status change in the last 24h
-    const since = new Date(Date.now() - 24 * 60 * 60_000);
-
-    const orders = await prisma.order.findMany({
-      where: {
-        userId: user.id,
-        updatedAt: { gte: since },
-        status: {
-          in: [
-            "ACCEPTED",
-            "DENIED",
-            "READY",
-            "PICKED_UP",
-            "PARTIALLY_DENIED",
-            "PREPARING",
-          ],
-        },
-      },
-      select: {
-        id: true,
-        orderNumber: true,
-        status: true,
-        updatedAt: true,
-        shop: { select: { name: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 20,
+    const notifications = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: [{ read: "asc" }, { createdAt: "desc" }],
+      take: 30,
     });
-
-    const notifications = orders.map((order) => ({
-      id: order.id,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      status: order.status,
-      shopName: order.shop.name,
-      updatedAt: order.updatedAt.toISOString(),
-    }));
 
     return apiSuccess(notifications);
   } catch (error) {

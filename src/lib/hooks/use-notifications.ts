@@ -1,33 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export type AppNotification = {
   id: string;
-  orderId: string;
-  orderNumber: string;
-  status: string;
-  shopName: string;
-  updatedAt: string;
+  type: string;
+  message: string;
+  orderId: string | null;
   read: boolean;
+  createdAt: string;
 };
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const readIdsRef = useRef<Set<string>>(new Set());
 
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications");
       if (!res.ok) return;
       const json = await res.json();
-      const items: AppNotification[] = (json.data || []).map(
-        (n: AppNotification) => ({
-          ...n,
-          read: readIdsRef.current.has(n.id),
-        })
-      );
-      setNotifications(items);
+      setNotifications(json.data || []);
     } catch {
       // silent
     }
@@ -35,25 +27,23 @@ export function useNotifications() {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15_000);
+    const interval = setInterval(fetchNotifications, 30_000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  const markAsRead = useCallback((id: string) => {
-    readIdsRef.current.add(id);
+  const markAsRead = useCallback(async (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    await fetch(`/api/notifications/${id}/read`, { method: "PATCH" }).catch(() => {});
   }, []);
 
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => {
-      for (const n of prev) readIdsRef.current.add(n.id);
-      return prev.map((n) => ({ ...n, read: true }));
-    });
+  const markAllAsRead = useCallback(async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    await fetch("/api/notifications/all/read", { method: "PATCH" }).catch(() => {});
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  return { notifications, unreadCount, markAsRead, markAllAsRead };
+  return { notifications, unreadCount, markAsRead, markAllAsRead, refetch: fetchNotifications };
 }

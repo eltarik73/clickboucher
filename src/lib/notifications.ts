@@ -116,6 +116,40 @@ export async function sendWhatsapp(to: string, body: string) {
 }
 
 // ─────────────────────────────────────────────
+// Resolve recipient internal user ID
+// ─────────────────────────────────────────────
+async function resolveRecipientId(event: NotifEvent, data: NotifData): Promise<string | null> {
+  if (event === "ORDER_PENDING" && data.shopId) {
+    const shop = await prisma.shop.findUnique({
+      where: { id: data.shopId },
+      select: { ownerId: true },
+    });
+    if (shop?.ownerId) {
+      const owner = await prisma.user.findUnique({
+        where: { clerkId: shop.ownerId },
+        select: { id: true },
+      });
+      return owner?.id ?? null;
+    }
+    return null;
+  }
+  if (data.userId) {
+    // userId might be clerkId or internal id
+    const byClerk = await prisma.user.findUnique({
+      where: { clerkId: data.userId },
+      select: { id: true },
+    });
+    if (byClerk) return byClerk.id;
+    const byId = await prisma.user.findUnique({
+      where: { id: data.userId },
+      select: { id: true },
+    });
+    return byId?.id ?? null;
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────
 // Main function
 // ─────────────────────────────────────────────
 export async function sendNotification(event: NotifEvent, data: NotifData) {
@@ -198,6 +232,19 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
         where: { id: data.orderId },
         data: {
           notifSent: [...existing, logEntry],
+        },
+      });
+    }
+
+    // Create in-app notification in DB
+    const recipientId = await resolveRecipientId(event, data);
+    if (recipientId) {
+      await prisma.notification.create({
+        data: {
+          userId: recipientId,
+          type: event,
+          message: plainText,
+          orderId: data.orderId ?? null,
         },
       });
     }

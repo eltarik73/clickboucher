@@ -77,6 +77,7 @@ model User {
   // Relations
   orders        Order[]
   favoriteShops Shop[] @relation("UserFavorites")
+  notifications Notification[]
 
   @@map("users")
 }
@@ -176,6 +177,23 @@ model Product {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("products")
+}
+
+// ── Notification ──────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // ORDER_PENDING, ORDER_ACCEPTED, ORDER_READY, etc.
+  message   String
+  orderId   String?  @map("order_id")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 // ── Order ────────────────────────────────────
