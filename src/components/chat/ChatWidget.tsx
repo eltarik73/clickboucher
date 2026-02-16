@@ -492,17 +492,17 @@ export function ChatWidget() {
                 )}
 
                 {/* Recap checkout CTA */}
-                {isLastBot && msgIsRecap && (
+                {isLastBot && (msgIsRecap || hasCheckout) && (
                   <RecapActions
                     total={msgRecapInfo?.total ?? null}
                     prepTime={msgRecapInfo?.prepTime ?? null}
                     onCheckout={() => {
                       clearQuickActions();
-                      router.push("/panier");
+                      router.push("/checkout");
                     }}
                     onModify={() => {
                       clearQuickActions();
-                      router.push("/panier");
+                      inputRef.current?.focus();
                     }}
                   />
                 )}
