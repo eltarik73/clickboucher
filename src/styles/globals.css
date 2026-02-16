@@ -33,6 +33,57 @@
   --radius-xs: 10px;
   --font-display: "Plus Jakarta Sans", sans-serif;
   --font-body: "DM Sans", sans-serif;
+
+  /* shadcn/ui variables — light */
+  --background: 30 25% 97%;
+  --foreground: 24 20% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 20% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 20% 14%;
+  --primary: 0 76% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 30 15% 93%;
+  --secondary-foreground: 24 20% 14%;
+  --muted: 30 15% 93%;
+  --muted-foreground: 24 5% 45%;
+  --accent: 30 15% 93%;
+  --accent-foreground: 24 20% 14%;
+  --destructive: 0 76% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 30 15% 90%;
+  --input: 30 15% 90%;
+  --ring: 0 76% 50%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+}
+
+.dark {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 76% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 55%;
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 76% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 100% / 0.1;
+  --input: 0 0% 100% / 0.1;
+  --ring: 0 76% 50%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
 }
 
 /* ─── Base ──────────────────────────────────── */

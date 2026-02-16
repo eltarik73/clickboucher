@@ -85,10 +85,10 @@ function FaqItem({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-[#ece8e3] dark:border-[#3a3530] rounded-xl overflow-hidden">
+    <div className="border border-[#ece8e3] dark:border-white/10 rounded-xl overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-[#2a2520] transition-colors"
+        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
       >
         <span className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
           {question}
@@ -125,7 +125,7 @@ function Feature({ children }: { children: React.ReactNode }) {
 // ─────────────────────────────────────────────────
 export default function EspaceBoucherPage() {
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* ══════════════════════════════════════════ */}
       {/* HERO                                      */}
       {/* ══════════════════════════════════════════ */}
@@ -229,8 +229,8 @@ export default function EspaceBoucherPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
           {/* ── PACK ESSENTIEL ── */}
-          <div className="bg-white dark:bg-[#2a2520] border border-[#ece8e3] dark:border-[#3a3530] rounded-2xl p-7 relative">
-            <span className="inline-block text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-[#1a1814] px-3 py-1 rounded-full mb-4">
+          <div className="bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl p-7 relative">
+            <span className="inline-block text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-[#0a0a0a] px-3 py-1 rounded-full mb-4">
               Pour demarrer
             </span>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -260,7 +260,7 @@ export default function EspaceBoucherPage() {
           </div>
 
           {/* ── PACK PREMIUM ── */}
-          <div className="bg-white dark:bg-[#2a2520] border-2 border-[#DC2626] rounded-2xl p-7 shadow-lg relative">
+          <div className="bg-white dark:bg-[#141414] border-2 border-[#DC2626] rounded-2xl p-7 shadow-lg relative">
             <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#DC2626] text-white px-4 py-1 rounded-full text-xs font-bold">
               POPULAIRE
             </span>
@@ -341,7 +341,7 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       {/* COMMENT CA MARCHE                         */}
       {/* ══════════════════════════════════════════ */}
-      <section className="bg-white dark:bg-[#2a2520] border-y border-[#ece8e3] dark:border-[#3a3530] py-16">
+      <section className="bg-white dark:bg-[#141414] border-y border-[#ece8e3] dark:border-white/10 py-16">
         <div className="max-w-4xl mx-auto px-5 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-serif mb-12">
             Comment ca marche ?

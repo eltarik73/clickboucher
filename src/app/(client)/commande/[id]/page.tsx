@@ -112,10 +112,10 @@ function TimeProgress({ estimatedReady }: { estimatedReady: string }) {
 
   return (
     <div className="mt-4">
-      <p className="text-sm font-semibold text-[#2a2018] text-center mb-2">
+      <p className="text-sm font-semibold text-[#2a2018] dark:text-white text-center mb-2">
         Prete dans environ {minsLeft} min
       </p>
-      <div className="h-2 bg-[#ece8e3] rounded-full overflow-hidden">
+      <div className="h-2 bg-[#ece8e3] dark:bg-white dark:bg-[#141414]/10 rounded-full overflow-hidden">
         <div
           className="h-full bg-[#DC2626] rounded-full transition-all duration-1000"
           style={{ width: `${pct}%` }}
@@ -139,7 +139,7 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
 
   return (
     <div className="flex flex-col items-center mt-5">
-      <div className="bg-white p-4 rounded-2xl border border-[#ece8e3] shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+      <div className="bg-white p-4 rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
         <QRCodeSVG value={qrCode} size={size} level="M" />
       </div>
       <button
@@ -157,24 +157,24 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
 
 function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: number }) {
   return (
-    <div className="mt-6 p-4 bg-white rounded-2xl border border-[#ece8e3]">
-      <h3 className="text-sm font-bold text-[#2a2018] mb-3">Recapitulatif</h3>
+    <div className="mt-6 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+      <h3 className="text-sm font-bold text-[#2a2018] dark:text-white mb-3">Recapitulatif</h3>
       {items.map((item) => (
         <div key={item.id} className="flex justify-between text-xs py-1.5">
-          <div className="text-[#555]">
+          <div className="text-[#555] dark:text-gray-300">
             {item.name}
-            <span className="text-[#999] ml-1">
+            <span className="text-[#999] dark:text-gray-400 ml-1">
               x{item.quantity} {unitLabel(item.unit)}
             </span>
           </div>
-          <span className="font-semibold text-[#2a2018]">
+          <span className="font-semibold text-[#2a2018] dark:text-white">
             {fmtPrice(item.totalCents)}
           </span>
         </div>
       ))}
-      <div className="border-t border-[#ece8e3] pt-2 mt-2 flex justify-between">
-        <span className="text-sm font-bold text-[#2a2018]">Total</span>
-        <span className="text-sm font-extrabold text-[#2a2018]">
+      <div className="border-t border-[#ece8e3] dark:border-white/10 pt-2 mt-2 flex justify-between">
+        <span className="text-sm font-bold text-[#2a2018] dark:text-white">Total</span>
+        <span className="text-sm font-extrabold text-[#2a2018] dark:text-white">
           {fmtPrice(totalCents)}
         </span>
       </div>
@@ -367,7 +367,7 @@ export default function CommandePage({
   // ── Loading / Error states ─────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex items-center justify-center">
         <LoadingDots />
       </div>
     );
@@ -375,9 +375,9 @@ export default function CommandePage({
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] flex flex-col items-center justify-center px-5">
-        <p className="text-lg font-bold text-[#2a2018] mb-2">Erreur</p>
-        <p className="text-sm text-[#999] mb-6">{error || "Commande introuvable"}</p>
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex flex-col items-center justify-center px-5">
+        <p className="text-lg font-bold text-[#2a2018] dark:text-white mb-2">Erreur</p>
+        <p className="text-sm text-[#999] dark:text-gray-400 mb-6">{error || "Commande introuvable"}</p>
         <Button className="bg-[#DC2626] hover:bg-[#DC2626]" asChild>
           <Link href="/commandes">Mes commandes</Link>
         </Button>
@@ -391,21 +391,21 @@ export default function CommandePage({
 
   // ── Render ─────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f8f6f3] pb-10">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-10">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 backdrop-blur-xl border-b border-[#ece8e3] px-5 py-4">
+      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
         <div className="max-w-xl mx-auto flex items-center gap-3">
           <Link
             href="/commandes"
-            className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white border border-[#ece8e3] shadow-sm"
+            className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
           >
-            <ArrowLeft size={17} className="text-[#333]" />
+            <ArrowLeft size={17} className="text-[#333] dark:text-white" />
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-[#2a2018]">
+            <h1 className="text-base font-bold text-[#2a2018] dark:text-white">
               Commande {order.orderNumber}
             </h1>
-            <p className="text-[11px] text-[#999]">{order.shop.name}</p>
+            <p className="text-[11px] text-[#999] dark:text-gray-400">{order.shop.name}</p>
           </div>
         </div>
       </header>
@@ -413,14 +413,14 @@ export default function CommandePage({
       <main className="max-w-xl mx-auto px-5 mt-6">
         {/* ═══ PENDING ═══ */}
         {order.status === "PENDING" && (
-          <div className="text-center p-6 bg-white rounded-2xl border border-[#ece8e3]">
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
             <LoadingDots />
-            <h2 className="text-xl font-bold text-[#2a2018] mt-2">
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white mt-2">
               En attente du boucher...
             </h2>
-            <p className="text-sm text-[#999] mt-2">
+            <p className="text-sm text-[#999] dark:text-gray-400 mt-2">
               Votre commande a ete envoyee a{" "}
-              <span className="font-semibold text-[#555]">{order.shop.name}</span>.
+              <span className="font-semibold text-[#555] dark:text-gray-300">{order.shop.name}</span>.
               Le boucher va la confirmer.
             </p>
             <Button
@@ -440,16 +440,16 @@ export default function CommandePage({
           const availableItems = order.items.filter((i) => i.available);
 
           return (
-            <div className="p-5 bg-white rounded-2xl border border-orange-200 shadow-[0_0_20px_rgba(245,158,11,0.08)]">
+            <div className="p-5 bg-white dark:bg-[#141414] rounded-2xl border border-orange-200 shadow-[0_0_20px_rgba(245,158,11,0.08)]">
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle size={22} className="text-orange-500" />
-                <h2 className="text-lg font-bold text-[#2a2018]">
+                <h2 className="text-lg font-bold text-[#2a2018] dark:text-white">
                   Rupture de stock
                 </h2>
               </div>
-              <p className="text-sm text-[#777] mb-4">
+              <p className="text-sm text-[#777] dark:text-gray-400 mb-4">
                 Certains articles ne sont plus disponibles chez{" "}
-                <span className="font-semibold text-[#555]">{order.shop.name}</span>.
+                <span className="font-semibold text-[#555] dark:text-gray-300">{order.shop.name}</span>.
                 Choisis une alternative ou retire l&apos;article.
               </p>
 
@@ -473,7 +473,7 @@ export default function CommandePage({
                       {/* Alternative options */}
                       {alts.length > 0 && (
                         <div className="space-y-1.5">
-                          <p className="text-xs font-medium text-[#777]">Alternatives :</p>
+                          <p className="text-xs font-medium text-[#777] dark:text-gray-400">Alternatives :</p>
                           {alts.map((alt) => (
                             <button
                               key={alt.id}
@@ -486,7 +486,7 @@ export default function CommandePage({
                               className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-sm transition-colors ${
                                 decision?.action === "replace" && decision.replacementProductId === alt.id
                                   ? "border-emerald-400 bg-emerald-50 text-emerald-800"
-                                  : "border-[#ece8e3] bg-white text-[#555] hover:border-emerald-300 hover:bg-emerald-50/50"
+                                  : "border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] text-[#555] dark:text-gray-300 hover:border-emerald-300 hover:bg-emerald-50/50"
                               }`}
                             >
                               <div className="flex items-center gap-2">
@@ -512,7 +512,7 @@ export default function CommandePage({
                         className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-sm transition-colors ${
                           decision?.action === "remove"
                             ? "border-red-400 bg-red-50 text-red-700"
-                            : "border-[#ece8e3] bg-white text-[#999] hover:border-red-300"
+                            : "border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] text-[#999] dark:text-gray-400 hover:border-red-300"
                         }`}
                       >
                         <Trash2 size={13} />
@@ -550,7 +550,7 @@ export default function CommandePage({
               <button
                 onClick={handleCancel}
                 disabled={cancelling}
-                className="w-full mt-2 text-xs text-[#999] hover:text-red-500 transition-colors text-center py-2"
+                className="w-full mt-2 text-xs text-[#999] dark:text-gray-400 hover:text-red-500 transition-colors text-center py-2"
               >
                 {cancelling ? "Annulation..." : "Annuler la commande"}
               </button>
@@ -560,9 +560,9 @@ export default function CommandePage({
 
         {/* ═══ ACCEPTED ═══ */}
         {order.status === "ACCEPTED" && (
-          <div className="text-center p-6 bg-white rounded-2xl border border-[#ece8e3]">
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
             <div className="text-5xl mb-3">✅</div>
-            <h2 className="text-xl font-bold text-[#2a2018]">
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
               Commande acceptee !
             </h2>
             {order.estimatedReady && (
@@ -574,9 +574,9 @@ export default function CommandePage({
 
         {/* ═══ PREPARING ═══ */}
         {order.status === "PREPARING" && (
-          <div className="text-center p-6 bg-white rounded-2xl border border-[#ece8e3]">
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
             <div className="text-5xl mb-3">🔪</div>
-            <h2 className="text-xl font-bold text-[#2a2018]">
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
               En preparation...
             </h2>
             {order.estimatedReady && (
@@ -588,12 +588,12 @@ export default function CommandePage({
 
         {/* ═══ READY ═══ */}
         {order.status === "READY" && (
-          <div className="text-center p-6 bg-white rounded-2xl border border-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
             <div className="text-6xl mb-3 animate-bounce">🎉</div>
-            <h2 className="text-2xl font-bold text-[#2a2018]">
+            <h2 className="text-2xl font-bold text-[#2a2018] dark:text-white">
               Votre commande est prete !
             </h2>
-            <div className="mt-4 flex items-center justify-center gap-1 text-sm text-[#555]">
+            <div className="mt-4 flex items-center justify-center gap-1 text-sm text-[#555] dark:text-gray-300">
               <MapPin size={14} className="text-[#DC2626]" />
               <span className="font-semibold">
                 {order.shop.address}, {order.shop.city}
@@ -602,7 +602,7 @@ export default function CommandePage({
             {order.qrCode && (
               <>
                 <QRSection qrCode={order.qrCode} size={220} />
-                <p className="text-xs text-[#999] mt-3">
+                <p className="text-xs text-[#999] dark:text-gray-400 mt-3">
                   Presentez ce QR code au boucher
                 </p>
               </>
@@ -621,17 +621,17 @@ export default function CommandePage({
 
         {/* ═══ PICKED_UP / COMPLETED ═══ */}
         {(order.status === "PICKED_UP" || order.status === "COMPLETED") && (
-          <div className="text-center p-6 bg-white rounded-2xl border border-[#ece8e3]">
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
             <div className="text-5xl mb-3">✅</div>
-            <h2 className="text-xl font-bold text-[#2a2018]">
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
               Commande recuperee !
             </h2>
-            <p className="text-sm text-[#999] mt-1">Bon appetit ! 😊</p>
+            <p className="text-sm text-[#999] dark:text-gray-400 mt-1">Bon appetit ! 😊</p>
 
             {/* Rating */}
             {!ratingDone ? (
-              <div className="mt-6 p-4 bg-[#f8f6f3] rounded-2xl">
-                <p className="text-sm font-semibold text-[#2a2018] mb-3">
+              <div className="mt-6 p-4 bg-[#f8f6f3] dark:bg-[#0a0a0a] rounded-2xl">
+                <p className="text-sm font-semibold text-[#2a2018] dark:text-white mb-3">
                   Comment etait votre commande ?
                 </p>
                 <StarRating value={ratingValue} onChange={setRatingValue} size="lg" className="justify-center" />
@@ -643,7 +643,7 @@ export default function CommandePage({
                       placeholder="Un commentaire ? (optionnel)"
                       maxLength={1000}
                       rows={3}
-                      className="mt-3 w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] placeholder:text-[#ccc] resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
+                      className="mt-3 w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] px-4 py-3 text-sm text-[#2a2018] dark:text-white placeholder:text-[#ccc] dark:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                     />
                     <Button
                       onClick={handleRate}
@@ -667,9 +667,9 @@ export default function CommandePage({
 
         {/* ═══ DENIED ═══ */}
         {order.status === "DENIED" && (
-          <div className="text-center p-6 bg-white rounded-2xl border border-red-200">
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-red-200">
             <div className="text-5xl mb-3">❌</div>
-            <h2 className="text-xl font-bold text-[#2a2018]">
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
               Commande refusee
             </h2>
             {order.denyReason && (
@@ -688,12 +688,12 @@ export default function CommandePage({
 
         {/* ═══ CANCELLED ═══ */}
         {order.status === "CANCELLED" && (
-          <div className="text-center p-6 bg-white rounded-2xl border border-[#ece8e3]">
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
             <div className="text-5xl mb-3">🚫</div>
-            <h2 className="text-xl font-bold text-[#2a2018]">
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
               Commande annulee
             </h2>
-            <p className="text-sm text-[#999] mt-2">
+            <p className="text-sm text-[#999] dark:text-gray-400 mt-2">
               Cette commande a ete annulee.
             </p>
             <Button

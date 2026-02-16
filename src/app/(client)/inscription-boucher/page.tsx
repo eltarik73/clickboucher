@@ -24,7 +24,7 @@ export default function InscriptionBoucherPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814] flex items-center justify-center">
+        <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex items-center justify-center">
           <Loader2 size={32} className="animate-spin text-[#DC2626]" />
         </div>
       }
@@ -97,7 +97,7 @@ function InscriptionBoucherContent() {
   // ── Success ──
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -130,7 +130,7 @@ function InscriptionBoucherContent() {
   // ── Not signed in ──
   if (isLoaded && !isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -160,7 +160,7 @@ function InscriptionBoucherContent() {
 
   // ── Form ──
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814] pb-12">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-12">
       <Header />
 
       <main className="max-w-xl mx-auto px-5 mt-6 space-y-5">
@@ -179,7 +179,7 @@ function InscriptionBoucherContent() {
         </div>
 
         {/* Form card */}
-        <div className="bg-white dark:bg-[#2a2520] rounded-2xl border border-[#ece8e3] dark:border-[#3a3530] shadow-sm p-5 space-y-5">
+        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-sm p-5 space-y-5">
           <h3 className="text-sm font-bold text-gray-900 dark:text-white">
             Informations de votre boucherie
           </h3>
@@ -193,7 +193,7 @@ function InscriptionBoucherContent() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Boucherie El Fath"
-              className="border-[#ece8e3] dark:border-[#3a3530] dark:bg-[#1a1814] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
+              className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
 
@@ -206,7 +206,7 @@ function InscriptionBoucherContent() {
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="15 rue de Boigne"
-              className="border-[#ece8e3] dark:border-[#3a3530] dark:bg-[#1a1814] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
+              className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
 
@@ -219,7 +219,7 @@ function InscriptionBoucherContent() {
               value={city}
               onChange={(e) => setCity(e.target.value)}
               placeholder="Chambery"
-              className="border-[#ece8e3] dark:border-[#3a3530] dark:bg-[#1a1814] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
+              className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
 
@@ -233,7 +233,7 @@ function InscriptionBoucherContent() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+33 6 12 34 56 78"
-              className="border-[#ece8e3] dark:border-[#3a3530] dark:bg-[#1a1814] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
+              className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
 
@@ -247,7 +247,7 @@ function InscriptionBoucherContent() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="contact@maboucherie.fr"
-              className="border-[#ece8e3] dark:border-[#3a3530] dark:bg-[#1a1814] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
+              className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
 
@@ -265,7 +265,7 @@ function InscriptionBoucherContent() {
               placeholder="12345678901234"
               maxLength={14}
               inputMode="numeric"
-              className="border-[#ece8e3] dark:border-[#3a3530] dark:bg-[#1a1814] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626] font-mono"
+              className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626] font-mono"
             />
             {siret.length > 0 && !siretValid && (
               <p className="text-[11px] text-red-500 mt-1">
@@ -288,7 +288,7 @@ function InscriptionBoucherContent() {
               placeholder="Boucherie halal artisanale, viandes fraiches du jour..."
               rows={3}
               maxLength={500}
-              className="flex w-full rounded-xl border border-[#ece8e3] dark:border-[#3a3530] dark:bg-[#1a1814] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors resize-none"
+              className="flex w-full rounded-xl border border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors resize-none"
             />
           </div>
 
@@ -337,11 +337,11 @@ function InscriptionBoucherContent() {
 // ── Header ───────────────────────────────────────
 function Header() {
   return (
-    <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#1a1814]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-[#3a3530] px-5 py-4">
+    <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
       <div className="max-w-xl mx-auto flex items-center gap-3">
         <Link
           href="/espace-boucher"
-          className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#2a2520] border border-[#ece8e3] dark:border-[#3a3530] shadow-sm"
+          className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
         >
           <ArrowLeft size={17} className="text-gray-700 dark:text-gray-300" />
         </Link>

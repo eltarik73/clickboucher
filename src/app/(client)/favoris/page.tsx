@@ -49,14 +49,14 @@ export default function FavorisPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814] pb-20">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-20">
         <div className="max-w-3xl mx-auto px-4 pt-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-serif mb-6">
             Mes favoris
           </h1>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-28 bg-gray-100 dark:bg-[#2a2520] rounded-2xl animate-pulse" />
+              <div key={i} className="h-28 bg-gray-100 dark:bg-[#141414] rounded-2xl animate-pulse" />
             ))}
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function FavorisPage() {
 
   if (!userId) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814] pb-20">
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-20">
         <div className="max-w-3xl mx-auto px-4 pt-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-serif mb-6">
             Mes favoris
@@ -89,7 +89,7 @@ export default function FavorisPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814] pb-20">
+    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-20">
       <div className="max-w-3xl mx-auto px-4 pt-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-serif mb-6">
           Mes favoris
@@ -121,7 +121,7 @@ export default function FavorisPage() {
                 <Link
                   key={shop.id}
                   href={`/boutique/${shop.slug}`}
-                  className={`flex gap-4 p-3 bg-white dark:bg-[#2a2520] border border-[#ece8e3] dark:border-[#3a3530] rounded-2xl shadow-sm hover:shadow-md transition-all ${
+                  className={`flex gap-4 p-3 bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl shadow-sm hover:shadow-md transition-all ${
                     !shop.isOpen ? "opacity-60" : ""
                   }`}
                 >
