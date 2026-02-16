@@ -10,34 +10,20 @@ Application Next.js 14 de Click & Collect pour boucheries artisanales. Design pr
 | Élément | URL |
 |---------|-----|
 | **GitHub Repo** | https://github.com/eltarik73/clickboucher |
-| **Production** | https://clickboucher.vercel.app (ou Railway) |
+| **Production** | Railway (full stack) |
 | **Railway Dashboard** | https://railway.app |
-| **Vercel Dashboard** | https://vercel.com |
 
 ---
 
 ## 🏗 ARCHITECTURE HÉBERGEMENT
 
-### Option Actuelle : Railway (Full-Stack)
+### Railway (Full-Stack)
 ```
 Railway
 ├── Frontend (Next.js)
 ├── Backend (API Routes)
 └── PostgreSQL Database
 ```
-
-### Option Recommandée : Vercel + Railway
-```
-Vercel (Frontend + API)     Railway (Database)
-├── Next.js App      ────►  PostgreSQL
-├── API Routes
-└── Edge Functions
-```
-
-**Pourquoi migrer ?**
-- Vercel = optimisé pour Next.js, plus rapide
-- Railway = garder uniquement la DB PostgreSQL
-- Gratuit pour les petits projets
 
 ---
 
@@ -297,8 +283,8 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
 ```
 
-### Railway/Vercel (Production)
-Mêmes variables à configurer dans le dashboard.
+### Railway (Production)
+Mêmes variables à configurer dans le dashboard Railway.
 
 ---
 
@@ -308,8 +294,7 @@ Mêmes variables à configurer dans le dashboard.
 2. [ ] Vérifier que les clics sur boucheries fonctionnent
 3. [ ] Tester ajout au panier
 4. [ ] Configurer DATABASE_URL en production
-5. [ ] Migrer vers Vercel (optionnel)
-6. [ ] Ajouter persistance localStorage au panier
+5. [ ] Ajouter persistance localStorage au panier
 7. [ ] Connecter vraies données Prisma
 
 ---

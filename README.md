@@ -13,7 +13,7 @@ MVP premium de Click & Collect pour boucheries artisanales, inspiré d'Uber.
 | ORM           | Prisma                               |
 | Paiement      | Mock (structure prête)               |
 | Notifications | Stubs (WhatsApp/SMS/Push)            |
-| Hébergement   | Vercel (front+back) + Railway (DB)   |
+| Hébergement   | Railway (full stack)                 |
 
 ## Structure du projet
 
@@ -115,17 +115,21 @@ npm run dev
 
 Ouvrir [http://localhost:3000](http://localhost:3000) — redirige vers `/decouvrir`.
 
-## Déploiement Railway + Vercel
+## Deploiement Railway (full stack)
 
 ```bash
-# 1. Railway — créer le projet PostgreSQL
-# → Copier la DATABASE_URL fournie par Railway
+# 1. Railway — creer le projet
+# → Ajouter un service PostgreSQL
+# → Ajouter un service depuis le repo Git (Next.js)
+# → Variables : DATABASE_URL (auto), CLERK keys, etc.
 
-# 2. Vercel — connecter le repo Git
-# → Ajouter la variable DATABASE_URL dans Settings > Environment Variables
-# → Le postinstall script lance automatiquement "prisma generate"
+# 2. Build command (configure dans Railway)
+npx prisma generate && npm run build
 
-# 3. Première migration en production
+# 3. Start command
+npm run start
+
+# 4. Premiere migration en production
 npx prisma migrate deploy
 npx prisma db seed
 ```
