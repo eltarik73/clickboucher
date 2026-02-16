@@ -174,7 +174,7 @@ export function QRScanner({
       {/* Start state */}
       {!scanning && !result && !processing && (
         <div className="flex flex-col items-center gap-4 py-6">
-          <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-[#3a3530] flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-[white/10] flex items-center justify-center">
             <Camera size={32} className="text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
@@ -204,7 +204,7 @@ export function QRScanner({
             V&eacute;rification en cours...
           </p>
           {scannedCode && (
-            <div className="bg-gray-50 dark:bg-[#1a1814] rounded-lg px-4 py-2 mt-1">
+            <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg px-4 py-2 mt-1">
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
                 Code scann&eacute;
               </p>
@@ -258,7 +258,7 @@ export function QRScanner({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
+              className="flex-1 dark:border-[white/10] dark:text-gray-300 dark:hover:bg-[white/10]"
               onClick={() => {
                 setResult(null);
                 setScannedCode(null);
@@ -281,7 +281,7 @@ export function QRScanner({
       {scanning && (
         <Button
           variant="outline"
-          className="w-full gap-2 dark:border-[#3a3530] dark:text-gray-300 dark:hover:bg-[#3a3530]"
+          className="w-full gap-2 dark:border-[white/10] dark:text-gray-300 dark:hover:bg-[white/10]"
           onClick={stopScanner}
         >
           <X size={16} /> Arr&ecirc;ter le scanner

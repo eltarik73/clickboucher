@@ -29,7 +29,7 @@ export default function AdminLayout({
   //
   // if (!isLoaded) {
   //   return (
-  //     <div className="flex items-center justify-center h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+  //     <div className="flex items-center justify-center h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
   //       <div className="w-8 h-8 border-3 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
   //     </div>
   //   );
@@ -38,7 +38,7 @@ export default function AdminLayout({
   // if (user?.publicMetadata?.role !== "admin") return null;
 
   return (
-    <div className="flex min-h-screen bg-[#f8f6f3] dark:bg-[#1a1814]">
+    <div className="flex min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* Desktop sidebar */}
       <AdminSidebar />
 

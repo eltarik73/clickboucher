@@ -322,7 +322,7 @@ export default function AdminShopsPage() {
             placeholder="Rechercher par nom, ville, propriétaire..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
           />
         </div>
         <div className="flex gap-2">
@@ -332,7 +332,7 @@ export default function AdminShopsPage() {
               onChange={(e) =>
                 setStatusFilter(e.target.value as StatusFilter)
               }
-              className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+              className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
             >
               <option value="all">Tous les statuts</option>
               <option value="open">Ouvert</option>
@@ -348,7 +348,7 @@ export default function AdminShopsPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+              className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
             >
               <option value="date">Plus récent</option>
               <option value="rating">Meilleure note</option>
@@ -365,7 +365,7 @@ export default function AdminShopsPage() {
 
       {/* Table (desktop) / Cards (mobile) */}
       {filtered.length === 0 ? (
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] p-12 text-center">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-12 text-center">
           <p className="text-gray-400 dark:text-gray-500">
             Aucune boucherie trouv\u00e9e.
           </p>
@@ -373,11 +373,11 @@ export default function AdminShopsPage() {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[#3a3530]">
+                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[white/10]">
                     <th className="px-5 py-3 font-medium">Boucherie</th>
                     <th className="px-4 py-3 font-medium">Ville</th>
                     <th className="px-4 py-3 font-medium">Propri\u00e9taire</th>
@@ -395,11 +395,11 @@ export default function AdminShopsPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-[#3a3530]">
+                <tbody className="divide-y divide-gray-50 dark:divide-[white/10]">
                   {filtered.map((shop) => (
                     <tr
                       key={shop.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-[#3a3530]/30 transition-colors"
+                      className="hover:bg-gray-50/50 dark:hover:bg-[white/10]/30 transition-colors"
                     >
                       <td className="px-5 py-3">
                         <span className="font-medium text-gray-900 dark:text-[#f8f6f3]">
@@ -441,14 +441,14 @@ export default function AdminShopsPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => openEdit(shop)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3a3530] text-gray-500 dark:text-gray-400 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[white/10] text-gray-500 dark:text-gray-400 transition-colors"
                             title="Modifier"
                           >
                             <Pencil size={14} />
                           </button>
                           <button
                             onClick={() => togglePause(shop)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3a3530] text-gray-500 dark:text-gray-400 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[white/10] text-gray-500 dark:text-gray-400 transition-colors"
                             title={shop.paused ? "Reprendre" : "Suspendre"}
                           >
                             {shop.paused ? (
@@ -478,7 +478,7 @@ export default function AdminShopsPage() {
             {filtered.map((shop) => (
               <div
                 key={shop.id}
-                className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm p-4"
+                className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -520,16 +520,16 @@ export default function AdminShopsPage() {
                     <p className="text-[10px] text-gray-400">Com.</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-[#3a3530]">
+                <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-[white/10]">
                   <button
                     onClick={() => openEdit(shop)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[#3a3530] rounded-lg hover:bg-gray-100 dark:hover:bg-[#4a4540] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[white/10] rounded-lg hover:bg-gray-100 dark:hover:bg-[white/15] transition-colors"
                   >
                     <Pencil size={12} /> Modifier
                   </button>
                   <button
                     onClick={() => togglePause(shop)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[#3a3530] rounded-lg hover:bg-gray-100 dark:hover:bg-[#4a4540] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[white/10] rounded-lg hover:bg-gray-100 dark:hover:bg-[white/15] transition-colors"
                   >
                     {shop.paused ? (
                       <>
@@ -543,7 +543,7 @@ export default function AdminShopsPage() {
                   </button>
                   <button
                     onClick={() => setDeleteTarget(shop)}
-                    className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-[#3a3530] rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                    className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-[white/10] rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -590,7 +590,7 @@ export default function AdminShopsPage() {
                       ...(!editShop ? { slug: slugify(name) } : {}),
                     }));
                   }}
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                 />
               </div>
               {!editShop && (
@@ -605,7 +605,7 @@ export default function AdminShopsPage() {
                       setForm((f) => ({ ...f, slug: e.target.value }))
                     }
                     pattern="[a-z0-9\-]+"
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30 font-mono"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30 font-mono"
                   />
                 </div>
               )}
@@ -623,7 +623,7 @@ export default function AdminShopsPage() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, commissionPct: e.target.value }))
                     }
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                   />
                 </div>
               )}
@@ -639,7 +639,7 @@ export default function AdminShopsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, address: e.target.value }))
                 }
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
               />
             </div>
 
@@ -654,7 +654,7 @@ export default function AdminShopsPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, city: e.target.value }))
                   }
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                 />
               </div>
               <div>
@@ -668,7 +668,7 @@ export default function AdminShopsPage() {
                     setForm((f) => ({ ...f, phone: e.target.value }))
                   }
                   placeholder="+33 X XX XX XX XX"
-                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                 />
               </div>
             </div>
@@ -683,7 +683,7 @@ export default function AdminShopsPage() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
                 }
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30 resize-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30 resize-none"
               />
             </div>
 
@@ -700,7 +700,7 @@ export default function AdminShopsPage() {
                       onChange={(e) =>
                         setForm((f) => ({ ...f, ownerId: e.target.value }))
                       }
-                      className="w-full appearance-none px-3 pr-8 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                      className="w-full appearance-none px-3 pr-8 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                     >
                       <option value="">S\u00e9lectionner...</option>
                       {bouchers.map((b) => (
@@ -731,7 +731,7 @@ export default function AdminShopsPage() {
                         commissionPct: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1814] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                   />
                 </div>
               </div>

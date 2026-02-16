@@ -138,7 +138,7 @@ export default function AdminDashboardPage() {
       bg:
         stats.pendingOrders > 0
           ? "bg-red-50 dark:bg-red-500/10"
-          : "bg-gray-50 dark:bg-[#3a3530]",
+          : "bg-gray-50 dark:bg-[white/10]",
     },
     {
       label: "Produits en catalogue",
@@ -158,7 +158,7 @@ export default function AdminDashboardPage() {
       bg:
         stats.pendingProRequests > 0
           ? "bg-orange-50 dark:bg-orange-500/10"
-          : "bg-gray-50 dark:bg-[#3a3530]",
+          : "bg-gray-50 dark:bg-[white/10]",
     },
   ];
 
@@ -186,7 +186,7 @@ export default function AdminDashboardPage() {
           return (
             <div
               key={kpi.label}
-              className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] p-4 shadow-sm"
+              className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-4 shadow-sm"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className={`p-2 rounded-lg ${kpi.bg}`}>
@@ -206,8 +206,8 @@ export default function AdminDashboardPage() {
 
       <div className="grid md:grid-cols-2 gap-4 md:gap-6">
         {/* Top 5 Shops */}
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3a3530]">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
             <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
               Top 5 Boucheries
             </h2>
@@ -227,12 +227,12 @@ export default function AdminDashboardPage() {
                     <th className="px-5 py-3 font-medium text-right">Note</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-[#3a3530]">
+                <tbody className="divide-y divide-gray-50 dark:divide-[white/10]">
                   {stats.topShops.map((shop, i) => (
                     <tr key={shop.id}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#3a3530] text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                          <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[white/10] text-[10px] font-bold text-gray-500 dark:text-gray-400">
                             {i + 1}
                           </span>
                           <span className="font-medium text-gray-900 dark:text-[#f8f6f3]">
@@ -261,8 +261,8 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Alerts */}
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3a3530]">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
             <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] flex items-center gap-2">
               <AlertTriangle
                 size={16}
@@ -367,7 +367,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick stats footer */}
-      <div className="flex items-center justify-between bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm px-5 py-4">
+      <div className="flex items-center justify-between bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm px-5 py-4">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <span>Total commandes :</span>
           <span className="font-semibold text-gray-900 dark:text-[#f8f6f3]">

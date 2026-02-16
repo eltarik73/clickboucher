@@ -268,7 +268,7 @@ export default function AdminOrdersPage() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] p-4 shadow-sm">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10">
               <Package size={14} className="text-blue-600 dark:text-blue-400" />
@@ -281,7 +281,7 @@ export default function AdminOrdersPage() {
             {total}
           </p>
         </div>
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] p-4 shadow-sm">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
               <DollarSign
@@ -297,7 +297,7 @@ export default function AdminOrdersPage() {
             {fmt(statusTab === "all" ? revenue : filteredRevenue)} \u20ac
           </p>
         </div>
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] p-4 shadow-sm">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-lg bg-violet-50 dark:bg-violet-500/10">
               <Clock
@@ -316,14 +316,14 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-[#2a2520] rounded-lg p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-gray-100 dark:bg-[#141414] rounded-lg p-1 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setStatusTab(tab.key)}
             className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors ${
               statusTab === tab.key
-                ? "bg-white dark:bg-[#3a3530] text-gray-900 dark:text-[#f8f6f3] shadow-sm"
+                ? "bg-white dark:bg-[white/10] text-gray-900 dark:text-[#f8f6f3] shadow-sm"
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
@@ -344,7 +344,7 @@ export default function AdminOrdersPage() {
             placeholder="N\u00b0 commande, nom client, email..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -352,7 +352,7 @@ export default function AdminOrdersPage() {
             <select
               value={shopFilter}
               onChange={(e) => setShopFilter(e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+              className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
             >
               <option value="">Toutes les boucheries</option>
               {shops.map((s) => (
@@ -370,14 +370,14 @@ export default function AdminOrdersPage() {
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="px-3 py-2.5 bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+            className="px-3 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
             title="Date d\u00e9but"
           />
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="px-3 py-2.5 bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+            className="px-3 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
             title="Date fin"
           />
           {(shopFilter || dateFrom || dateTo || search) && (
@@ -403,7 +403,7 @@ export default function AdminOrdersPage() {
           <div className="w-8 h-8 border-3 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] p-12 text-center">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-12 text-center">
           <p className="text-gray-400 dark:text-gray-500">
             Aucune commande trouv\u00e9e.
           </p>
@@ -411,11 +411,11 @@ export default function AdminOrdersPage() {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[#3a3530]">
+                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[white/10]">
                     <th className="px-5 py-3 font-medium">Commande</th>
                     <th className="px-4 py-3 font-medium">Client</th>
                     <th className="px-4 py-3 font-medium">Boucherie</th>
@@ -427,11 +427,11 @@ export default function AdminOrdersPage() {
                     <th className="px-4 py-3 font-medium text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-[#3a3530]">
+                <tbody className="divide-y divide-gray-50 dark:divide-[white/10]">
                   {filtered.map((order) => (
                     <tr
                       key={order.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-[#3a3530]/30 transition-colors cursor-pointer"
+                      className="hover:bg-gray-50/50 dark:hover:bg-[white/10]/30 transition-colors cursor-pointer"
                       onClick={() => setDetail(order)}
                     >
                       <td className="px-5 py-3">
@@ -477,7 +477,7 @@ export default function AdminOrdersPage() {
                             e.stopPropagation();
                             setDetail(order);
                           }}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3a3530] text-gray-500 dark:text-gray-400 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[white/10] text-gray-500 dark:text-gray-400 transition-colors"
                         >
                           <Eye size={14} />
                         </button>
@@ -495,7 +495,7 @@ export default function AdminOrdersPage() {
               <button
                 key={order.id}
                 onClick={() => setDetail(order)}
-                className="w-full text-left bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm p-4"
+                className="w-full text-left bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm p-4"
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-mono font-semibold text-gray-900 dark:text-[#f8f6f3]">
@@ -536,14 +536,14 @@ export default function AdminOrdersPage() {
                 <button
                   onClick={() => loadOrders(page - 1)}
                   disabled={page <= 1}
-                  className="p-2 rounded-lg bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-[#3a3530] transition-colors"
+                  className="p-2 rounded-lg bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-[white/10] transition-colors"
                 >
                   <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
                 <button
                   onClick={() => loadOrders(page + 1)}
                   disabled={page >= totalPages}
-                  className="p-2 rounded-lg bg-white dark:bg-[#2a2520] border border-gray-200 dark:border-[#3a3530] disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-[#3a3530] transition-colors"
+                  className="p-2 rounded-lg bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-[white/10] transition-colors"
                 >
                   <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
@@ -633,7 +633,7 @@ export default function AdminOrdersPage() {
                 <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Articles ({detail.items.length})
                 </h3>
-                <div className="divide-y divide-gray-100 dark:divide-[#3a3530] border border-gray-100 dark:border-[#3a3530] rounded-lg overflow-hidden">
+                <div className="divide-y divide-gray-100 dark:divide-[white/10] border border-gray-100 dark:border-[white/10] rounded-lg overflow-hidden">
                   {detail.items.map((item) => (
                     <div
                       key={item.id}
@@ -682,7 +682,7 @@ export default function AdminOrdersPage() {
                     Notes
                   </h3>
                   {detail.customerNote && (
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#1a1814] text-xs text-gray-600 dark:text-gray-300">
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#0a0a0a] text-xs text-gray-600 dark:text-gray-300">
                       <span className="font-semibold text-gray-500 dark:text-gray-400">
                         Client :
                       </span>{" "}
@@ -690,7 +690,7 @@ export default function AdminOrdersPage() {
                     </div>
                   )}
                   {detail.boucherNote && (
-                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#1a1814] text-xs text-gray-600 dark:text-gray-300">
+                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#0a0a0a] text-xs text-gray-600 dark:text-gray-300">
                       <span className="font-semibold text-gray-500 dark:text-gray-400">
                         Boucher :
                       </span>{" "}
@@ -702,7 +702,7 @@ export default function AdminOrdersPage() {
 
               {/* QR Code */}
               {detail.qrCode && (
-                <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#1a1814] text-center">
+                <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#0a0a0a] text-center">
                   <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">
                     QR Code
                   </p>

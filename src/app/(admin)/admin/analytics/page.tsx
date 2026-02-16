@@ -189,14 +189,14 @@ export default function AdminAnalyticsPage() {
             bg:
               data.denyRate > 0.1
                 ? "bg-red-50 dark:bg-red-500/10"
-                : "bg-gray-50 dark:bg-[#3a3530]",
+                : "bg-gray-50 dark:bg-[white/10]",
           },
         ].map((kpi) => {
           const Icon = kpi.icon;
           return (
             <div
               key={kpi.label}
-              className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] p-4 shadow-sm"
+              className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-4 shadow-sm"
             >
               <div className="flex items-center gap-2 mb-3">
                 <div className={`p-2 rounded-lg ${kpi.bg}`}>
@@ -215,7 +215,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Revenue chart */}
-      <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm p-5">
+      <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm p-5">
         <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4">
           Revenus \u2014 30 derniers jours
         </h2>
@@ -260,7 +260,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Orders chart */}
-      <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm p-5">
+      <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm p-5">
         <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4">
           Commandes par jour
         </h2>
@@ -291,8 +291,8 @@ export default function AdminAnalyticsPage() {
 
       <div className="grid md:grid-cols-2 gap-4 md:gap-6">
         {/* Status breakdown */}
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3a3530]">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
             <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
               R\u00e9partition par statut
             </h2>
@@ -315,7 +315,7 @@ export default function AdminAnalyticsPage() {
                         {s.count} ({pct.toFixed(1)}%)
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-gray-100 dark:bg-[#3a3530] rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-gray-100 dark:bg-[white/10] rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -332,8 +332,8 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* User growth */}
-        <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3a3530]">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
             <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
               Nouveaux utilisateurs (8 semaines)
             </h2>
@@ -370,8 +370,8 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Top 10 products */}
-      <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3a3530]">
+      <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
           <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
             Top 10 Produits
           </h2>
@@ -384,7 +384,7 @@ export default function AdminAnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[#3a3530]">
+                <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[white/10]">
                   <th className="px-5 py-3 font-medium w-8">#</th>
                   <th className="px-4 py-3 font-medium">Produit</th>
                   <th className="px-4 py-3 font-medium text-right">
@@ -394,7 +394,7 @@ export default function AdminAnalyticsPage() {
                   <th className="px-4 py-3 font-medium text-right">Revenus</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-[#3a3530]">
+              <tbody className="divide-y divide-gray-50 dark:divide-[white/10]">
                 {data.topProducts.map((p, i) => (
                   <tr key={p.name}>
                     <td className="px-5 py-3 text-gray-400 dark:text-gray-500 font-medium">
@@ -407,7 +407,7 @@ export default function AdminAnalyticsPage() {
                       {p.count}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="w-full h-2 bg-gray-100 dark:bg-[#3a3530] rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-gray-100 dark:bg-[white/10] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-[#DC2626] rounded-full"
                           style={{
@@ -428,8 +428,8 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Top 5 shops */}
-      <div className="bg-white dark:bg-[#2a2520] rounded-xl border border-gray-100 dark:border-[#3a3530] shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-[#3a3530]">
+      <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
           <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
             Top 5 Boucheries
           </h2>
@@ -442,7 +442,7 @@ export default function AdminAnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[#3a3530]">
+                <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[white/10]">
                   <th className="px-5 py-3 font-medium w-8">#</th>
                   <th className="px-4 py-3 font-medium">Boucherie</th>
                   <th className="px-4 py-3 font-medium text-right">
@@ -453,7 +453,7 @@ export default function AdminAnalyticsPage() {
                   <th className="px-4 py-3 font-medium text-right">Note</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-[#3a3530]">
+              <tbody className="divide-y divide-gray-50 dark:divide-[white/10]">
                 {data.topShops.map((s, i) => (
                   <tr key={s.name}>
                     <td className="px-5 py-3 text-gray-400 dark:text-gray-500 font-medium">
@@ -466,7 +466,7 @@ export default function AdminAnalyticsPage() {
                       {s.orders}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="w-full h-2 bg-gray-100 dark:bg-[#3a3530] rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-gray-100 dark:bg-[white/10] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-[#DC2626] rounded-full"
                           style={{

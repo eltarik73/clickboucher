@@ -455,7 +455,7 @@ function AddProductForm({
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nouveau produit</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3a3530] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#4a4540]"
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[white/10] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[white/15]"
           >
             <X size={16} className="text-gray-500 dark:text-gray-400" />
           </button>

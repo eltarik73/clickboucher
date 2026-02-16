@@ -251,7 +251,7 @@ export default function BoucherDashboardPage() {
             <Link href="/boucher/commandes">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[white/10] border-gray-200 dark:border-[white/10]"
               >
                 <div className="relative">
                   <Bell className="w-5 h-5 text-[#DC2626]" />
@@ -268,7 +268,7 @@ export default function BoucherDashboardPage() {
             <Link href="/boucher/produits">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[#3a3530] border-gray-200 dark:border-[#3a3530]"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[white/10] border-gray-200 dark:border-[white/10]"
               >
                 <Package className="w-5 h-5 text-[#DC2626]" />
                 <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Stock</span>

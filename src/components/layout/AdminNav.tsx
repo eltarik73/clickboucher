@@ -26,12 +26,12 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex flex-col w-[250px] h-screen bg-white dark:bg-[#2a2520] border-r border-gray-200 dark:border-[#3a3530] shrink-0 sticky top-0">
+    <aside className="hidden md:flex flex-col w-[250px] h-screen bg-white dark:bg-[#141414] border-r border-gray-200 dark:border-[white/10] shrink-0 sticky top-0">
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-gray-100 dark:border-[#3a3530]">
+      <div className="px-6 py-5 border-b border-gray-100 dark:border-[white/10]">
         <Link href="/admin/dashboard" className="flex items-center gap-2">
           <span className="text-lg font-bold text-[#DC2626]">Klik&Go</span>
-          <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-[#3a3530] px-1.5 py-0.5 rounded">
+          <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-[white/10] px-1.5 py-0.5 rounded">
             Admin
           </span>
         </Link>
@@ -51,7 +51,7 @@ export function AdminSidebar() {
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-[#DC2626]/10 text-[#DC2626]"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530] hover:text-gray-900 dark:hover:text-[#f8f6f3]"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[white/10] hover:text-gray-900 dark:hover:text-[#f8f6f3]"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
@@ -62,7 +62,7 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-gray-100 dark:border-[#3a3530]">
+      <div className="px-6 py-4 border-t border-gray-100 dark:border-[white/10]">
         <Link
           href="/decouvrir"
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#DC2626] transition-colors"
@@ -79,7 +79,7 @@ export function AdminMobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-[#2a2520] border-t border-gray-100 dark:border-[#3a3530] px-1 pb-safe z-50">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-[#141414] border-t border-gray-100 dark:border-[white/10] px-1 pb-safe z-50">
       <div className="flex items-center justify-around">
         {NAV_ITEMS.map((item) => {
           const isActive =
@@ -123,10 +123,10 @@ export function AdminMobileHeader({
   return (
     <>
       {/* Header bar */}
-      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-[#2a2520] border-b border-gray-100 dark:border-[#3a3530] sticky top-0 z-40">
+      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-[#141414] border-b border-gray-100 dark:border-[white/10] sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-[#DC2626]">Klik&Go</span>
-          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-[#3a3530] px-1.5 py-0.5 rounded">
+          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-[white/10] px-1.5 py-0.5 rounded">
             Admin
           </span>
         </div>
@@ -145,14 +145,14 @@ export function AdminMobileHeader({
             className="absolute inset-0 bg-black/40"
             onClick={onToggle}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-[260px] bg-white dark:bg-[#2a2520] p-4 shadow-xl">
+          <aside className="absolute left-0 top-0 bottom-0 w-[260px] bg-white dark:bg-[#141414] p-4 shadow-xl">
             <div className="flex items-center justify-between mb-6">
               <span className="text-lg font-bold text-[#DC2626]">
                 Klik&Go Admin
               </span>
               <button
                 onClick={onToggle}
-                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-[#3a3530]"
+                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-[white/10]"
               >
                 <X size={20} className="text-gray-500" />
               </button>
@@ -171,7 +171,7 @@ export function AdminMobileHeader({
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-[#DC2626]/10 text-[#DC2626]"
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3a3530]"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[white/10]"
                     }`}
                   >
                     <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />

@@ -35,7 +35,7 @@ const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%]",
-        "bg-white dark:bg-[#2a2520] rounded-2xl shadow-lg",
+        "bg-white dark:bg-[#141414] rounded-2xl shadow-lg",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -47,7 +47,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3a3530] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#4a4540] transition-colors">
+      <DialogPrimitive.Close className="absolute right-4 top-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-[white/10] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[white/15] transition-colors">
         <X size={16} className="text-gray-500 dark:text-gray-400" />
         <span className="sr-only">Fermer</span>
       </DialogPrimitive.Close>
@@ -62,7 +62,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "border-b border-gray-100 dark:border-[#3a3530] px-5 py-4",
+      "border-b border-gray-100 dark:border-[white/10] px-5 py-4",
       className
     )}
     {...props}
