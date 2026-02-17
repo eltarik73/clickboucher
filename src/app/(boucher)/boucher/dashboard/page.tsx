@@ -23,6 +23,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { useOrderStream } from "@/hooks/useOrderStream";
+import OnboardingChecklist from "@/components/boucher/OnboardingChecklist";
 import { toast } from "sonner";
 
 // ─────────────────────────────────────────────
@@ -327,6 +328,9 @@ export default function BoucherDashboardPage() {
             )}
           </div>
         </div>
+
+        {/* ── Onboarding Checklist ── */}
+        <OnboardingChecklist />
 
         {/* ── Status Bar (Uber Eats style) ── */}
         {shop && (
