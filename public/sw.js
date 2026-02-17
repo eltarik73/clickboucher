@@ -84,3 +84,44 @@ self.addEventListener("fetch", (event) => {
       )
   );
 });
+
+// ── Push Notifications ──
+self.addEventListener("push", function (event) {
+  if (!event.data) return;
+
+  try {
+    const payload = event.data.json();
+    const title = payload.title || "Klik&Go";
+    const options = {
+      body: payload.body || "",
+      icon: payload.icon || "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: payload.url || "/" },
+      vibrate: [200, 100, 200],
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (e) {
+    console.error("[SW] Push parse error:", e);
+  }
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(function (clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+          if (clientList[i].url.includes(url) && "focus" in clientList[i]) {
+            return clientList[i].focus();
+          }
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(url);
+        }
+      })
+  );
+});

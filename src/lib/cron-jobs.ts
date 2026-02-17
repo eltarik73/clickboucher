@@ -3,6 +3,7 @@ import cron from "node-cron";
 import prisma from "@/lib/prisma";
 import { checkAutoPause } from "@/lib/shop-status";
 import { unsnoozeExpiredProducts } from "@/lib/product-snooze";
+import { sendNotification } from "@/lib/notifications";
 
 let started = false;
 
@@ -111,15 +112,12 @@ export function startCronJobs() {
           data: { abandonedAt: new Date() },
         });
 
-        // Create reminder notifications
+        // Send multichannel notifications
         for (const cart of abandonedCarts) {
-          await prisma.notification.create({
-            data: {
-              userId: cart.userId,
-              type: "CART_ABANDONED",
-              message: `Vous avez ${cart.items.length} article${cart.items.length > 1 ? "s" : ""} en attente chez ${cart.shop.name}. Finalisez votre commande !`,
-              channel: "PUSH",
-            },
+          await sendNotification("CART_ABANDONED", {
+            userId: cart.userId,
+            shopName: cart.shop.name,
+            nbItems: cart.items.length,
           });
         }
 

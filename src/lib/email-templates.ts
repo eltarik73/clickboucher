@@ -188,3 +188,66 @@ export function proRejected(): string {
     ${button(`${baseUrl}/decouvrir`, "Retour \u00e0 l\u2019accueil")}
   `);
 }
+
+export function cartAbandoned(data: {
+  shopName?: string;
+  nbItems?: number;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\uded2 Votre panier vous attend !</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Vous avez <strong>${data.nbItems || "des"} article(s)</strong> en attente chez <strong>${data.shopName || "votre boucherie"}</strong>.
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Finalisez votre commande avant qu\u2019il ne soit trop tard !</p>
+    ${button(`${baseUrl}/panier`, "Voir mon panier")}
+  `);
+}
+
+export function accountApproved(data: {
+  shopName?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Bienvenue sur Klik&amp;Go !</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Votre boutique <strong>${data.shopName || ""}</strong> est d\u00e9sormais activ\u00e9e sur Klik&amp;Go.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0 0 4px;font-size:13px;color:#047857;font-weight:600">Prochaines \u00e9tapes</p>
+        <p style="margin:0;font-size:14px;color:#065f46">\u2022 Ajoutez vos produits<br>\u2022 Configurez vos cr\u00e9neaux de retrait<br>\u2022 Commencez \u00e0 recevoir des commandes !</p>
+      </td></tr>
+    </table>
+    ${button(`${baseUrl}/boucher/dashboard`, "Acc\u00e9der \u00e0 mon espace")}
+  `);
+}
+
+export function trialExpiring(data: {
+  shopName?: string;
+  message?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f3 Votre essai se termine bient\u00f4t</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      ${data.message || `L\u2019essai gratuit de <strong>${data.shopName || "votre boutique"}</strong> se termine dans 7 jours.`}
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Passez au paiement pour continuer \u00e0 recevoir des commandes sans interruption.</p>
+    ${button(`${baseUrl}/boucher/dashboard/abonnement`, "G\u00e9rer mon abonnement")}
+  `);
+}
+
+export function calendarAlert(data: {
+  message?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcc5 \u00c9v\u00e9nement \u00e0 venir</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      ${data.message || "Un \u00e9v\u00e9nement important approche !"}
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Pr\u00e9parez vos produits et vos stocks pour r\u00e9pondre \u00e0 la demande.</p>
+    ${button(`${baseUrl}/boucher/dashboard`, "Mon tableau de bord")}
+  `);
+}
