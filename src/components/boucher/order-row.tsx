@@ -53,6 +53,9 @@ export function OrderRow({ order, onStatusChange, onSelect }: OrderRowProps) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(order.id); }}
       className={`rounded-2xl border p-3.5 transition-all ${config.bg} cursor-pointer`}
       onClick={() => onSelect(order.id)}
     >

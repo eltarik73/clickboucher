@@ -438,9 +438,9 @@ export function startCronJobs() {
           // Calculate next run date
           const freq = rec.frequency;
           const next = new Date(rec.nextRunAt || today);
-          if (freq === "weekly") next.setDate(next.getDate() + 7);
-          else if (freq === "biweekly") next.setDate(next.getDate() + 14);
-          else if (freq === "monthly") next.setMonth(next.getMonth() + 1);
+          if (freq === "WEEKLY") next.setDate(next.getDate() + 7);
+          else if (freq === "BIWEEKLY") next.setDate(next.getDate() + 14);
+          else if (freq === "MONTHLY") next.setMonth(next.getMonth() + 1);
 
           await prisma.recurringOrder.update({
             where: { id: rec.id },

@@ -19,7 +19,7 @@ export function CartDrawer({ open, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" role="presentation" aria-hidden="true" onClick={onClose} />
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">Panier ({count})</h2>
@@ -29,7 +29,7 @@ export function CartDrawer({ open, onClose }: Props) {
                 Vider
               </button>
             )}
-            <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <button type="button" aria-label="Fermer le panier" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>

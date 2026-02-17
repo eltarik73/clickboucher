@@ -134,6 +134,12 @@ enum ShopStatus {
   VACATION
 }
 
+enum RecurringFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
 enum SnoozeType {
   NONE
   ONE_HOUR
@@ -589,7 +595,7 @@ model RecurringOrder {
   shopId        String    @map("shop_id")
   shop          Shop      @relation(fields: [shopId], references: [id])
   itemsSnapshot Json      @map("items_snapshot")
-  frequency     String    @default("weekly")
+  frequency     RecurringFrequency @default(WEEKLY)
   dayOfWeek     Int?      @map("day_of_week")
   nextRunAt     DateTime? @map("next_run_at")
   active        Boolean   @default(true)

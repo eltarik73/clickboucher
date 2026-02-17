@@ -420,6 +420,7 @@ export function ChatWidget() {
             </p>
           </div>
           <button
+            aria-label="Fermer le chat"
             onClick={() => setOpen(false)}
             className="text-white/70 hover:text-white transition-colors p-1"
           >
@@ -546,6 +547,7 @@ export function ChatWidget() {
               className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1a] rounded-full text-sm text-gray-900 dark:text-white outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <button
+              aria-label="Envoyer"
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || isLoading}
               className="w-9 h-9 bg-[#DC2626] rounded-full flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#b91c1c] transition-colors shrink-0"

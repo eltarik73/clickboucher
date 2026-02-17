@@ -6,7 +6,10 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 
-function getNextRunDate(frequency: string, dayOfWeek: number): Date {
+const VALID_FREQUENCIES = ["WEEKLY", "BIWEEKLY", "MONTHLY"] as const;
+type Frequency = (typeof VALID_FREQUENCIES)[number];
+
+function getNextRunDate(frequency: Frequency, dayOfWeek: number): Date {
   const now = new Date();
   const target = new Date(now);
 
@@ -15,9 +18,9 @@ function getNextRunDate(frequency: string, dayOfWeek: number): Date {
   let daysUntil = dayOfWeek - currentDay;
   if (daysUntil <= 0) daysUntil += 7;
 
-  if (frequency === "biweekly") {
+  if (frequency === "BIWEEKLY") {
     daysUntil += 7; // Start in 2 weeks
-  } else if (frequency === "monthly") {
+  } else if (frequency === "MONTHLY") {
     target.setMonth(target.getMonth() + 1);
     // Adjust to the right day of week
     const diff = dayOfWeek - target.getDay();
@@ -77,8 +80,9 @@ export async function POST(req: NextRequest) {
       return apiError("VALIDATION_ERROR", "orderId et frequency requis");
     }
 
-    if (!["weekly", "biweekly", "monthly"].includes(frequency)) {
-      return apiError("VALIDATION_ERROR", "Fréquence invalide");
+    const freq = frequency.toUpperCase();
+    if (!VALID_FREQUENCIES.includes(freq as Frequency)) {
+      return apiError("VALIDATION_ERROR", "Fréquence invalide (WEEKLY, BIWEEKLY, MONTHLY)");
     }
 
     const dow = typeof dayOfWeek === "number" ? dayOfWeek : 1; // Default Monday
@@ -105,14 +109,15 @@ export async function POST(req: NextRequest) {
       itemNote: i.itemNote,
     }));
 
-    const nextRunAt = getNextRunDate(frequency, dow);
+    const normalizedFreq = freq as Frequency;
+    const nextRunAt = getNextRunDate(normalizedFreq, dow);
 
     const recurring = await prisma.recurringOrder.create({
       data: {
         userId: user.id,
         shopId: original.shopId,
         itemsSnapshot,
-        frequency,
+        frequency: normalizedFreq,
         dayOfWeek: dow,
         nextRunAt,
         active: true,

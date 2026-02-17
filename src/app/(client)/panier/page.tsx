@@ -204,7 +204,7 @@ export default function PanierPage() {
         orderBody.pickupSlotStart = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
         orderBody.pickupSlotEnd = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
       }
-      console.log("[Panier] ORDER BODY:", JSON.stringify(orderBody, null, 2));
+      // Debug removed for production
 
       const res = await fetch("/api/orders", {
         method: "POST",

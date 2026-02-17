@@ -17,7 +17,7 @@ export default async function BoucherLayout({ children }: { children: React.Reac
   const user = await getOrCreateUser(clerkId);
 
   if (!user || (user.role !== "BOUCHER" && user.role !== "ADMIN")) {
-    console.log("[BoucherLayout] Access denied for", clerkId, "role:", user?.role);
+    // Access denied — redirect silently
     redirect("/decouvrir");
   }
 

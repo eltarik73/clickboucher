@@ -58,7 +58,7 @@ export function OrderDetail({ order, onBack, onStatusChange, onStartWeighing, on
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-muted">
+        <button aria-label="Retour" onClick={onBack} className="p-2 rounded-full hover:bg-muted">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">

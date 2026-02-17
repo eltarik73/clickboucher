@@ -94,6 +94,9 @@ export function NotificationBell() {
                 const content = (
                   <div
                     key={notif.id}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleNotifClick(notif); }}
                     onClick={() => handleNotifClick(notif)}
                     className={`flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
                       !notif.read ? "bg-[#DC2626]/5 dark:bg-[#DC2626]/10" : ""

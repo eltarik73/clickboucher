@@ -18,7 +18,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
       {/* Image */}
       <div className="w-14 h-14 rounded-xl bg-[#F5F3F0] overflow-hidden shrink-0">
         {item.imageUrl ? (
-          <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🥩</div>
         )}
@@ -56,8 +56,9 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
               +
             </button>
           </div>
-          <button 
-            type="button" 
+          <button
+            type="button"
+            aria-label="Supprimer"
             onClick={() => onRemove(item.id)}
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
           >

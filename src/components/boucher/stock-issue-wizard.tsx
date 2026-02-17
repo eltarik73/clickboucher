@@ -43,7 +43,7 @@ export function StockIssueWizard({ orderId, orderNumber, items, onResolve, onClo
             <p className="text-xs text-muted-foreground font-mono">{orderNumber}</p>
           </div>
         </div>
-        <button onClick={onClose} className="p-2 rounded-full hover:bg-muted">
+        <button aria-label="Fermer" onClick={onClose} className="p-2 rounded-full hover:bg-muted">
           <X size={16} />
         </button>
       </div>

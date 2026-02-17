@@ -65,7 +65,7 @@ export function WeighingPanel({ orderId, orderNumber, items, onSubmit, onCancel 
             <p className="text-xs text-muted-foreground font-mono">{orderNumber}</p>
           </div>
         </div>
-        <button onClick={onCancel} className="p-2 rounded-full hover:bg-muted">
+        <button aria-label="Annuler" onClick={onCancel} className="p-2 rounded-full hover:bg-muted">
           <X size={16} />
         </button>
       </div>

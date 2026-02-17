@@ -8,11 +8,11 @@ export default function ServiceWorkerRegistration() {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
-        .then((reg) => {
-          console.log("[SW] Registered, scope:", reg.scope);
+        .then(() => {
+          // SW registered successfully
         })
-        .catch((err) => {
-          console.error("[SW] Registration failed:", err);
+        .catch(() => {
+          // SW registration failed — non-critical
         });
     }
   }, []);

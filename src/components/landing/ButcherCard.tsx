@@ -17,14 +17,14 @@ interface Props {
 
 export function ButcherCard({ butcher }: Props) {
   return (
-    <div className={`group relative bg-white rounded-2xl border transition-all duration-300 overflow-hidden
+    <div className={`group relative bg-white dark:bg-[#141414] rounded-2xl border transition-all duration-300 overflow-hidden
       ${(butcher.status === "OPEN" || butcher.status === "BUSY")
-        ? "border-[#E8E5E1] shadow-sm hover:shadow-lg hover:border-[#D5D0CA]"
-        : "border-[#E8E5E1] opacity-60"
+        ? "border-[#E8E5E1] dark:border-white/10 shadow-sm hover:shadow-lg hover:border-[#D5D0CA] dark:hover:border-white/20"
+        : "border-[#E8E5E1] dark:border-white/10 opacity-60"
       }`}>
-      
+
       {/* Image placeholder */}
-      <div className="relative h-28 bg-gradient-to-br from-[#F5F3F0] to-[#EBE8E4] overflow-hidden">
+      <div className="relative h-28 bg-gradient-to-br from-[#F5F3F0] to-[#EBE8E4] dark:from-[#1a1a1a] dark:to-[#111] overflow-hidden">
         {butcher.image ? (
           <img src={butcher.image} alt={butcher.name} className="w-full h-full object-cover" />
         ) : (
@@ -40,7 +40,7 @@ export function ButcherCard({ butcher }: Props) {
         <div className="absolute top-2.5 left-2.5 flex gap-1.5">
           {butcher.status === "BUSY" ? (
             <span className="px-2 py-0.5 rounded-md bg-[#F59E0B] text-white text-[10px] font-semibold shadow-sm">
-              Occup&eacute;
+              Occupé
             </span>
           ) : (butcher.status === "OPEN") ? (
             <span className="px-2 py-0.5 rounded-md bg-[#16A34A] text-white text-[10px] font-semibold shadow-sm">
@@ -52,7 +52,7 @@ export function ButcherCard({ butcher }: Props) {
             </span>
           ) : (
             <span className="px-2 py-0.5 rounded-md bg-[#6B6560] text-white text-[10px] font-semibold">
-              Ferm&eacute;
+              Fermé
             </span>
           )}
           {butcher.isExpress && (butcher.status === "OPEN" || butcher.status === "BUSY") && (
@@ -68,11 +68,11 @@ export function ButcherCard({ butcher }: Props) {
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-semibold text-[#1A1A1A] text-[15px] leading-tight mb-1.5">
+        <h3 className="font-semibold text-[#1A1A1A] dark:text-white text-[15px] leading-tight mb-1.5">
           {butcher.name}
         </h3>
-        
-        <div className="flex items-center gap-3 text-sm text-[#6B6560]">
+
+        <div className="flex items-center gap-3 text-sm text-[#6B6560] dark:text-gray-400">
           {/* Rating */}
           <div className="flex items-center gap-1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="1">
@@ -94,10 +94,10 @@ export function ButcherCard({ butcher }: Props) {
         <button type="button" disabled={butcher.status === "CLOSED" || butcher.status === "VACATION"}
           className={`w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
             ${(butcher.status === "OPEN" || butcher.status === "BUSY")
-              ? "bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98]"
-              : "bg-[#F0EDEA] text-[#9C9590] cursor-not-allowed"
+              ? "bg-[#1A1A1A] dark:bg-white text-white dark:text-[#0a0a0a] hover:bg-[#333] dark:hover:bg-gray-200 active:scale-[0.98]"
+              : "bg-[#F0EDEA] dark:bg-white/10 text-[#9C9590] dark:text-gray-500 cursor-not-allowed"
             }`}>
-          {(butcher.status === "OPEN" || butcher.status === "BUSY") ? "Choisir cette boucherie" : "Actuellement ferm\u00e9e"}
+          {(butcher.status === "OPEN" || butcher.status === "BUSY") ? "Choisir cette boucherie" : "Actuellement fermée"}
         </button>
       </div>
     </div>
