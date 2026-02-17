@@ -110,6 +110,25 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
     [filtered, shop.id]
   );
 
+  // Separate promo products from non-promo
+  const promoProducts = useMemo(
+    () => cardProducts.filter((p) =>
+      p.promoPct != null && p.promoPct > 0 && p.inStock &&
+      (!p.promoEnd || new Date(p.promoEnd) > new Date())
+    ),
+    [cardProducts]
+  );
+
+  const nonPromoProducts = useMemo(
+    () => activeCat === "Tout"
+      ? cardProducts.filter((p) =>
+          !(p.promoPct != null && p.promoPct > 0 && p.inStock &&
+            (!p.promoEnd || new Date(p.promoEnd) > new Date()))
+        )
+      : cardProducts,
+    [cardProducts, activeCat]
+  );
+
   const handleAdd = useCallback(
     (p: ProductCardData) => {
       if (p.unit === "KG") {
@@ -206,8 +225,18 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
         </div>
       </div>
 
+      {/* Promo section — show before main grid */}
+      {activeCat === "Tout" && promoProducts.length > 0 && (
+        <div className="px-4 mb-2">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-1.5">
+            <span className="text-base">{"\u{1F525}"}</span> Bons plans
+          </h3>
+          <ProductGrid products={promoProducts} onAdd={handleAdd} />
+        </div>
+      )}
+
       {/* Product grid */}
-      <ProductGrid products={cardProducts} onAdd={handleAdd} />
+      <ProductGrid products={nonPromoProducts} onAdd={handleAdd} />
 
       {/* Cart bar */}
       {cartCount > 0 && (

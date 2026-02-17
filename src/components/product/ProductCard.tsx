@@ -4,6 +4,7 @@
 import { useState, useCallback } from "react";
 import { getProductImage } from "@/lib/product-images";
 import { getFlag, getOriginCountry } from "@/lib/flags";
+import { FlashCountdown } from "@/components/product/FlashCountdown";
 import type { Product as ProductV2, ProductImage as ProductImageType } from "@/types";
 
 // ── Types ────────────────────────────────────────
@@ -119,10 +120,15 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
 
         {/* Promo badge top-left */}
         {hasPromo && (
-          <div className={`absolute top-2 left-2 z-10 px-2 py-0.5 rounded-lg text-[10px] font-extrabold text-white
-            ${flash ? "bg-gradient-to-r from-red-600 to-orange-500 animate-pulse" : "bg-[#DC2626]"}`}>
-            -{product.promoPct}%
-            {flash && <span className="ml-1 text-[8px] font-bold">FLASH</span>}
+          <div className="absolute top-2 left-2 z-10 flex flex-col gap-0.5">
+            <div className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold text-white shadow-md
+              ${flash ? "bg-gradient-to-r from-red-600 to-orange-500 animate-pulse" : "bg-[#DC2626]"}`}>
+              -{product.promoPct}%
+              {flash && <span className="ml-1 text-[8px] font-bold">FLASH</span>}
+            </div>
+            {flash && product.promoEnd && (
+              <FlashCountdown promoEnd={product.promoEnd} compact />
+            )}
           </div>
         )}
 

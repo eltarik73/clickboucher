@@ -1,54 +1,81 @@
-"use client";
+// src/app/(client)/bons-plans/page.tsx — All active promos across all shops
 export const dynamic = "force-dynamic";
 
-import React, { useState } from "react";
-import { Flame } from "lucide-react";
-import { ClientHeader } from "@/components/layout/client-header";
-import { PageContainer } from "@/components/layout/page-container";
-import { TogglePill } from "@/components/ui/toggle-pill";
-import { OfferCard } from "@/components/offer/offer-card";
-import { EmptyState } from "@/components/ui/empty-state";
-import { UNSPLASH } from "@/lib/utils";
+import Link from "next/link";
+import prisma from "@/lib/prisma";
+import { getProductImage } from "@/lib/product-images";
+import { getFlag, getOriginCountry } from "@/lib/flags";
+import { BonsPlansClient } from "./BonsPlansClient";
 
-const MOCK_OFFERS = [
-  { id: "o1", name: "Entrecôte maturée 21j — Fin de journée", description: "Dernières entrecôtes du jour, à saisir !", imageUrl: UNSPLASH.products[0], originalCents: 3200, discountCents: 2200, remainingQty: 3, expiresAt: new Date(Date.now() + 2 * 3600_000).toISOString(), isSponsored: true, shop: { id: "shop-1", name: "Savoie Tradition", slug: "savoie-tradition" }, category: "Bœuf" },
-  { id: "o2", name: "Diots de Savoie — Promo du jour", description: "Barquette de 6 diots à prix cassé", imageUrl: UNSPLASH.products[4], originalCents: 990, discountCents: 590, remainingQty: 5, expiresAt: new Date(Date.now() + 4 * 3600_000).toISOString(), isSponsored: false, shop: { id: "shop-2", name: "Maison Perrin", slug: "maison-perrin" }, category: "Charcuterie" },
-  { id: "o3", name: "Entrecôte bio — Dernière minute", description: "Restant du jour, qualité exceptionnelle", imageUrl: UNSPLASH.products[0], originalCents: 3900, discountCents: 2790, remainingQty: 2, expiresAt: new Date(Date.now() + 1.5 * 3600_000).toISOString(), isSponsored: false, shop: { id: "shop-3", name: "L'Étal du Marché", slug: "etal-du-marche" }, category: "Bœuf" },
-];
+export const metadata = {
+  title: "Bons plans — Klik&Go",
+  description: "Toutes les promotions et offres flash des boucheries pres de chez vous",
+};
 
-const CATEGORIES = ["Tout", "Bœuf", "Volaille", "Charcuterie", "Veau", "Agneau"];
+export default async function BonsPlansPage() {
+  let promos: {
+    id: string;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
+    priceCents: number;
+    unit: string;
+    promoPct: number;
+    promoEnd: string | null;
+    promoType: string | null;
+    origin: string | null;
+    halalOrg: string | null;
+    category: { id: string; name: string; emoji: string | null };
+    shop: { id: string; name: string; slug: string };
+    images: { url: string; isPrimary: boolean }[];
+  }[] = [];
 
-export default function BonsPlansPage() {
-  const [cat, setCat] = useState("Tout");
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        promoPct: { gt: 0 },
+        inStock: true,
+        OR: [
+          { promoEnd: null },
+          { promoEnd: { gt: new Date() } },
+        ],
+      },
+      include: {
+        category: true,
+        shop: { select: { id: true, name: true, slug: true } },
+        images: { where: { isPrimary: true }, take: 1, select: { url: true, isPrimary: true } },
+      },
+      orderBy: [{ promoType: "asc" }, { promoPct: "desc" }],
+    });
 
-  const filtered = cat === "Tout"
-    ? MOCK_OFFERS
-    : MOCK_OFFERS.filter((o) => o.category === cat);
+    promos = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      imageUrl: p.imageUrl,
+      priceCents: p.priceCents,
+      unit: p.unit,
+      promoPct: p.promoPct!,
+      promoEnd: p.promoEnd?.toISOString() ?? null,
+      promoType: p.promoType,
+      origin: p.origin,
+      halalOrg: p.halalOrg,
+      category: { id: p.category.id, name: p.category.name, emoji: p.category.emoji },
+      shop: p.shop,
+      images: p.images.map((i) => ({ url: i.url, isPrimary: i.isPrimary })),
+    }));
+  } catch (error) {
+    console.error("[BonsPlans] Error:", error);
+  }
 
-  return (
-    <PageContainer>
-      <ClientHeader title="Bons plans" showLocation={false} />
+  // Extract unique categories
+  const categorySet = new Map<string, { id: string; name: string; emoji: string | null }>();
+  for (const p of promos) {
+    if (!categorySet.has(p.category.id)) {
+      categorySet.set(p.category.id, p.category);
+    }
+  }
+  const categories = Array.from(categorySet.values());
 
-      {/* Category filters */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
-        {CATEGORIES.map((c) => (
-          <TogglePill key={c} active={cat === c} onClick={() => setCat(c)} label={c} />
-        ))}
-      </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={<Flame size={28} strokeWidth={1.5} />}
-          title="Aucune offre"
-          description="Les offres dernière minute apparaîtront ici."
-        />
-      ) : (
-        <div className="px-4 pb-6 space-y-3">
-          {filtered.map((offer) => (
-            <OfferCard key={offer.id} {...offer} />
-          ))}
-        </div>
-      )}
-    </PageContainer>
-  );
+  return <BonsPlansClient promos={promos} categories={categories} />;
 }
