@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
 import { createOrderSchema, orderListQuerySchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError, formatZodError } from "@/lib/api/errors";
@@ -8,6 +9,7 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getShopStatus } from "@/lib/shop-status";
 import { setBusyMode } from "@/lib/shop-status";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
+import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 
 // ── GET /api/orders ────────────────────────────
 // Role-based: client sees own orders, boucher sees shop orders, admin sees all
@@ -121,6 +123,7 @@ export async function POST(req: NextRequest) {
         id: true, status: true, autoAccept: true, acceptTimeoutMin: true,
         busyMode: true, busyExtraMin: true, prepTimeMin: true,
         maxOrdersPerSlot: true, maxOrdersPerHour: true, autoBusyThreshold: true,
+        minOrderCents: true, commissionPct: true, commissionEnabled: true,
       },
     });
     if (!shop) {
@@ -139,8 +142,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Order throttling (Uber Eats style) ──
-
-    // Check max orders per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const ordersLastHour = await prisma.order.count({
       where: {
@@ -188,12 +189,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Calculate totalCents
+    // ── Calculate totalCents with promo + weight ──
     let totalCents = 0;
     const orderItems = data.items.map((item) => {
       const product = productMap.get(item.productId)!;
-      const unitPrice = isPro && product.proPriceCents ? product.proPriceCents : product.priceCents;
-      const itemTotal = Math.round(unitPrice * item.quantity);
+      let unitPrice = isPro && product.proPriceCents ? product.proPriceCents : product.priceCents;
+
+      // Apply promo if active
+      if (product.promoPct && product.promoEnd && new Date(product.promoEnd) > new Date()) {
+        unitPrice = Math.round(unitPrice * (1 - product.promoPct / 100));
+      }
+
+      // Weight-based pricing for KG items
+      const weightGrams = item.weightGrams ?? null;
+      let itemTotal: number;
+      if (product.unit === "KG" && weightGrams) {
+        itemTotal = Math.round(unitPrice * (weightGrams / 1000));
+      } else {
+        itemTotal = Math.round(unitPrice * item.quantity);
+      }
+
       totalCents += itemTotal;
       return {
         productId: product.id,
@@ -202,8 +217,23 @@ export async function POST(req: NextRequest) {
         unit: product.unit,
         priceCents: unitPrice,
         totalCents: itemTotal,
+        weightGrams,
+        itemNote: item.itemNote ?? null,
       };
     });
+
+    // ── Min order check ──
+    if (shop.minOrderCents > 0 && totalCents < shop.minOrderCents) {
+      return apiError(
+        "VALIDATION_ERROR",
+        `Commande minimum de ${(shop.minOrderCents / 100).toFixed(2)}€ requise`
+      );
+    }
+
+    // ── Commission calc ──
+    const commissionCents = shop.commissionEnabled
+      ? Math.round(totalCents * (shop.commissionPct / 100))
+      : 0;
 
     // Generate orderNumber: KG-YYYY-XXXXX
     const year = new Date().getFullYear();
@@ -222,6 +252,21 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date(Date.now() + shop.acceptTimeoutMin * 60 * 1000);
     const initialStatus = shop.autoAccept ? "ACCEPTED" : "PENDING";
 
+    // ── Dynamic prep time + QR + estimatedReady ──
+    const itemCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
+    const prepMinutes = await calculatePrepTime({
+      shopId: shop.id,
+      basePrepMin: shop.prepTimeMin,
+      busyMode: shop.busyMode,
+      busyExtraMin: shop.busyExtraMin,
+      itemCount,
+    });
+
+    const qrCode = shop.autoAccept ? randomUUID() : null;
+    const estimatedReady = shop.autoAccept
+      ? new Date(Date.now() + prepMinutes * 60_000)
+      : null;
+
     const order = await prisma.order.create({
       data: {
         orderNumber,
@@ -232,10 +277,14 @@ export async function POST(req: NextRequest) {
         requestedTime: data.requestedTime,
         customerNote: data.customerNote,
         totalCents,
+        commissionCents,
         expiresAt: initialStatus === "PENDING" ? expiresAt : null,
         idempotencyKey: body.idempotencyKey || null,
         pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
         pickupSlotEnd: data.pickupSlotEnd ? new Date(data.pickupSlotEnd) : null,
+        qrCode,
+        estimatedReady,
+        paymentMethod: data.paymentMethod ?? "ON_PICKUP",
         items: { create: orderItems },
       },
       include: {

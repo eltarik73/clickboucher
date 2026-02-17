@@ -170,6 +170,8 @@ export const reorderProductsSchema = z.object({
 const cartItemSchema = z.object({
   productId: z.string().min(1, "productId requis"),
   quantity: z.number().min(0.01).max(100),
+  weightGrams: z.number().int().min(1).optional(),
+  itemNote: z.string().max(300).optional(),
 });
 
 export const createOrderSchema = z.object({
@@ -180,6 +182,29 @@ export const createOrderSchema = z.object({
   pickupSlotStart: z.string().datetime().optional(),
   pickupSlotEnd: z.string().datetime().optional(),
   idempotencyKey: z.string().max(100).optional(),
+  paymentMethod: z.enum(["ONLINE", "ON_PICKUP"]).optional(),
+});
+
+// -- Boucher unified action --
+
+export const boucherActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("accept"), estimatedMinutes: z.number().int().min(1).max(480) }),
+  z.object({ action: z.literal("deny"), reason: z.string().min(1).max(500) }),
+  z.object({ action: z.literal("start_preparing"), addMinutes: z.number().int().min(0).max(120).optional() }),
+  z.object({ action: z.literal("add_time"), addMinutes: z.number().int().min(1).max(120) }),
+  z.object({ action: z.literal("mark_ready") }),
+  z.object({ action: z.literal("item_unavailable"), itemIds: z.array(z.string().min(1)).min(1) }),
+  z.object({ action: z.literal("adjust_weight"), items: z.array(z.object({ orderItemId: z.string().min(1), actualWeightGrams: z.number().int().min(1) })).min(1) }),
+  z.object({ action: z.literal("adjust_price"), items: z.array(z.object({ orderItemId: z.string().min(1), newPriceCents: z.number().int().min(0) })).min(1) }),
+  z.object({ action: z.literal("confirm_pickup"), qrCode: z.string().uuid() }),
+  z.object({ action: z.literal("cancel"), reason: z.string().max(500).optional() }),
+  z.object({ action: z.literal("add_note"), note: z.string().min(1).max(500) }),
+]);
+
+// -- Client respond to modifications --
+
+export const respondModificationSchema = z.object({
+  action: z.enum(["accept_changes", "cancel_order"]),
 });
 
 export const orderListQuerySchema = z.object({
