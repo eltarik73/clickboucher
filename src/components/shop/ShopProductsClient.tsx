@@ -27,21 +27,21 @@ export interface ProductData {
   unit: string;
   inStock: boolean;
   tags: string[];
-  origin: string | null;
+  origin: string;
   halalOrg: string | null;
   race: string | null;
-  freshness: string | null;
+  freshness: string;
   popular: boolean;
   promoPct: number | null;
   promoEnd: string | null;
   promoType: string | null;
   customerNote: string | null;
-  minWeightG: number | null;
-  weightStepG: number | null;
-  maxWeightG: number | null;
+  minWeightG: number;
+  weightStepG: number;
+  maxWeightG: number;
   category: CategoryData;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
-  labels: { id: string; name: string; color: string | null; icon: string | null }[];
+  labels: { id: string; name: string; color: string | null }[];
 }
 
 export interface ShopInfo {

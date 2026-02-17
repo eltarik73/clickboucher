@@ -1,8 +1,14 @@
-// ═══════════════════════════════════════════════
-// KLIK&GO — Prisma Schema V2
-// PostgreSQL • Prisma ORM
-// Photos, Labels, Reviews, Loyalty
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// KLIK&GO — Prisma Schema V4 UBER EATS / DELIVEROO STYLE
+// PostgreSQL • Prisma ORM • Upstash Redis (cache + temps réel)
+//
+// Copie des mécanismes exacts d'Uber Eats & Deliveroo :
+// - Pause manuelle / Busy mode / Auto-pause
+// - Snooze produit temporisé (1h, 2h, fin de journée, indéfini)
+// - Auto-annulation commandes non acceptées
+// - Order throttling par créneau
+// - Notification sonore + flash + push + vibration
+// ═══════════════════════════════════════════════════════════
 
 generator client {
   provider      = "prisma-client-js"
@@ -14,7 +20,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── Enums ────────────────────────────────────
+// ══════════════════════════════════════════
+// ENUMS
+// ══════════════════════════════════════════
 
 enum Role {
   CLIENT
@@ -40,6 +48,7 @@ enum OrderStatus {
   DENIED
   CANCELLED
   PARTIALLY_DENIED
+  AUTO_CANCELLED
 }
 
 enum Unit {
@@ -48,13 +57,95 @@ enum Unit {
   BARQUETTE
 }
 
-enum RewardType {
-  DISCOUNT
-  FREE_PRODUCT
-  PERCENTAGE
+enum Origin {
+  FRANCE
+  EU
+  ESPAGNE
+  IRLANDE
+  BELGIQUE
+  ALLEMAGNE
+  NOUVELLE_ZELANDE
+  BRESIL
+  POLOGNE
+  ITALIE
+  UK
+  AUTRE
 }
 
-// ── User ─────────────────────────────────────
+enum Freshness {
+  FRAIS
+  SURGELE
+  SOUS_VIDE
+}
+
+enum PromoType {
+  PERCENTAGE
+  FLASH
+  BUY_X_GET_Y
+}
+
+enum SubscriptionPlan {
+  STARTER
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
+
+enum TicketStatus {
+  OPEN
+  AI_HANDLED
+  ESCALATED
+  RESOLVED
+  CLOSED
+}
+
+enum PaymentMethod {
+  ONLINE
+  ON_PICKUP
+}
+
+enum NotifChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum Language {
+  FR
+  AR
+  TR
+}
+
+enum ShopStatus {
+  OPEN
+  BUSY
+  PAUSED
+  AUTO_PAUSED
+  CLOSED
+  VACATION
+}
+
+enum SnoozeType {
+  NONE
+  ONE_HOUR
+  TWO_HOURS
+  END_OF_DAY
+  INDEFINITE
+  CUSTOM
+}
+
+// ══════════════════════════════════════════
+// USER
+// ══════════════════════════════════════════
 
 model User {
   id        String   @id @default(cuid())
@@ -65,7 +156,13 @@ model User {
   lastName  String   @map("last_name")
   role      Role     @default(CLIENT)
 
-  // PRO fields
+  latitude  Float?
+  longitude Float?
+  city      String?
+  address   String?
+
+  language Language @default(FR)
+
   companyName    String?    @map("company_name")
   siret          String?
   sector         String?
@@ -73,25 +170,33 @@ model User {
   proValidatedBy String?    @map("pro_validated_by")
   proValidatedAt DateTime?  @map("pro_validated_at")
 
-  // Notification preferences
   notifEmail    Boolean @default(true)  @map("notif_email")
   notifSms      Boolean @default(false) @map("notif_sms")
-  notifWhatsapp Boolean @default(false) @map("notif_whatsapp")
+  notifWhatsapp Boolean @default(true)  @map("notif_whatsapp")
+  notifPush     Boolean @default(true)  @map("notif_push")
+
+  pushSubscription Json? @map("push_subscription")
+
+  referralCode   String?  @unique @map("referral_code")
+  referredBy     String?  @map("referred_by")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  // Relations
-  orders        Order[]
-  favoriteShops Shop[] @relation("UserFavorites")
-  notifications Notification[]
-  reviews       Review[]
-  loyaltyPoints LoyaltyPoints[]
+  orders          Order[]
+  favoriteShops   Shop[]          @relation("UserFavorites")
+  notifications   Notification[]
+  reviews         Review[]
+  loyaltyPoints   LoyaltyPoint[]
+  carts           Cart[]
+  recurringOrders RecurringOrder[]
 
   @@map("users")
 }
 
-// ── Shop ─────────────────────────────────────
+// ══════════════════════════════════════════
+// SHOP — Système Uber Eats complet
+// ══════════════════════════════════════════
 
 model Shop {
   id          String  @id @default(cuid())
@@ -103,59 +208,157 @@ model Shop {
   imageUrl    String? @map("image_url")
   description String?
 
-  // Opening hours — JSON { lundi: { open: "08:00", close: "19:00" }, ... }
+  ownerPhotoUrl String? @map("owner_photo_url")
+  ownerName     String? @map("owner_name")
+
+  latitude  Float?
+  longitude Float?
+  deliveryRadius Float @default(15) @map("delivery_radius")
+
+  // ── STATUT BOUTIQUE (Uber Eats style) ──
+  status ShopStatus @default(OPEN)
+
   openingHours Json @default("{}") @map("opening_hours")
+  pickupSlots  Json @default("[]") @map("pickup_slots")
 
-  // Service controls
-  prepTimeMin   Int     @default(15)    @map("prep_time_min")
-  busyMode      Boolean @default(false) @map("busy_mode")
-  busyExtraMin  Int     @default(10)    @map("busy_extra_min")
-  paused        Boolean @default(false)
-  isOpen        Boolean @default(true)  @map("is_open")
-  autoAccept    Boolean @default(false) @map("auto_accept")
-  maxOrdersHour Int     @default(20)    @map("max_orders_hour")
+  // ── Busy Mode (Uber Eats) ──
+  busyMode         Boolean   @default(false) @map("busy_mode")
+  busyExtraMin     Int       @default(15)    @map("busy_extra_min")
+  busyModeEndsAt   DateTime? @map("busy_mode_ends_at")
 
-  // Stats
+  // ── Pause manuelle (Uber Eats "Pause new orders") ──
+  paused         Boolean   @default(false)
+  pausedAt       DateTime? @map("paused_at")
+  pauseReason    String?   @map("pause_reason")
+  pauseEndsAt    DateTime? @map("pause_ends_at")
+
+  // ── Auto-pause (Uber Eats "auto-pause on inactivity") ──
+  autoPaused           Boolean   @default(false)  @map("auto_paused")
+  autoPausedAt         DateTime? @map("auto_paused_at")
+  autoPauseThreshold   Int       @default(3)      @map("auto_pause_threshold")
+  missedOrdersCount    Int       @default(0)      @map("missed_orders_count")
+
+  // ── Mode vacances (Deliveroo "vacation mode") ──
+  vacationMode     Boolean   @default(false) @map("vacation_mode")
+  vacationStart    DateTime? @map("vacation_start")
+  vacationEnd      DateTime? @map("vacation_end")
+  vacationMessage  String?   @map("vacation_message")
+
+  // ── Fermeture temporaire ──
+  closedMessage String?   @map("closed_message")
+  closedUntil   DateTime? @map("closed_until")
+
+  // ── Order Throttle (Uber Eats) ──
+  prepTimeMin      Int     @default(15)    @map("prep_time_min")
+  maxOrdersPerSlot Int     @default(5)     @map("max_orders_per_slot")
+  maxOrdersPerHour Int     @default(20)    @map("max_orders_hour")
+  autoBusyThreshold Int    @default(10)    @map("auto_busy_threshold")
+  autoAccept       Boolean @default(false) @map("auto_accept")
+  acceptTimeoutMin Int     @default(10)    @map("accept_timeout_min")
+
+  // ── Qualité ──
+  defaultHalalOrg  String?  @map("default_halal_org")
+  halalCertUrl     String?  @map("halal_cert_url")
+  defaultOrigin    Origin   @default(FRANCE) @map("default_origin")
+
+  minOrderCents    Int      @default(0)     @map("min_order_cents")
+
+  // ── Paiement ──
+  acceptOnline   Boolean @default(false) @map("accept_online")
+  acceptOnPickup Boolean @default(true)  @map("accept_on_pickup")
+
+  // ── Commission ──
+  commissionPct     Float   @default(0) @map("commission_pct")
+  commissionEnabled Boolean @default(false) @map("commission_enabled")
+
+  // ── Stats ──
   rating      Float @default(0)
   ratingCount Int   @default(0) @map("rating_count")
 
-  // Commission
-  commissionPct Float @default(0) @map("commission_pct")
-
-  // Owner (clerkId du boucher)
+  // ── Owner ──
   ownerId String @map("owner_id")
+
+  // ── Notifications boucher (Uber Eats tablette) ──
+  soundNotif    Boolean @default(true)  @map("sound_notif")
+  flashNotif    Boolean @default(true)  @map("flash_notif")
+  vibrateNotif  Boolean @default(true)  @map("vibrate_notif")
+
+  // ── Onboarding ──
+  onboardingCompleted Boolean @default(false) @map("onboarding_completed")
+  onboardingStep      Int     @default(0) @map("onboarding_step")
+  visible             Boolean @default(false)
+
+  // ── Parrainage ──
+  shopReferralCode String? @unique @map("shop_referral_code")
+  referredByShop   String? @map("referred_by_shop")
+
+  // ── Dernière activité (Uber Eats vérifie si tablette connectée) ──
+  lastSeenAt DateTime? @map("last_seen_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  // Relations
-  products     Product[]
-  categories   Category[]
-  orders       Order[]
-  favoritedBy  User[] @relation("UserFavorites")
-  reviews      Review[]
-  loyaltyRules LoyaltyRule[]
+  products       Product[]
+  categories     Category[]
+  orders         Order[]
+  favoritedBy    User[]          @relation("UserFavorites")
+  reviews        Review[]
+  loyaltyRules   LoyaltyRule[]
+  subscription   Subscription?
+  supportTickets SupportTicket[]
+  suggestRules   SuggestRule[]
+  carts          Cart[]
+  shopLogs       ShopLog[]
 
+  @@index([latitude, longitude])
+  @@index([city])
+  @@index([visible, status])
   @@map("shops")
 }
 
-// ── Category ─────────────────────────────────
+// ══════════════════════════════════════════
+// SHOP LOG (Audit)
+// ══════════════════════════════════════════
+
+model ShopLog {
+  id String @id @default(cuid())
+
+  shopId String @map("shop_id")
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  action      String
+  details     String?
+  triggeredBy String @default("system") @map("triggered_by")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([shopId, createdAt])
+  @@map("shop_logs")
+}
+
+// ══════════════════════════════════════════
+// CATEGORY
+// ══════════════════════════════════════════
 
 model Category {
-  id    String  @id @default(cuid())
-  name  String
-  emoji String?
-  order Int     @default(0)
+  id       String  @id @default(cuid())
+  name     String
+  emoji    String?
+  order    Int     @default(0)
+  imageUrl String? @map("image_url")
 
   shopId String @map("shop_id")
   shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   products Product[]
 
+  @@index([shopId, order])
   @@map("categories")
 }
 
-// ── Product ──────────────────────────────────
+// ══════════════════════════════════════════
+// PRODUCT — Avec Snooze Deliveroo-style
+// ══════════════════════════════════════════
 
 model Product {
   id          String  @id @default(cuid())
@@ -170,141 +373,55 @@ model Product {
   inStock  Boolean @default(true) @map("in_stock")
   stockQty Float?  @map("stock_qty")
 
-  // Weight controls (for KG products)
-  minWeightG  Int? @map("min_weight_g")   // min 100g
-  weightStepG Int? @map("weight_step_g")  // step 50g
-  maxWeightG  Int? @map("max_weight_g")   // max 5000g
+  minWeightG  Int @default(200)  @map("min_weight_g")
+  weightStepG Int @default(50)   @map("weight_step_g")
+  maxWeightG  Int @default(5000) @map("max_weight_g")
+
+  displayOrder Int     @default(0) @map("display_order")
+  featured     Boolean @default(false)
+  popular      Boolean @default(false)
 
   categoryId String   @map("category_id")
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   tags String[]
 
-  // Origin & Halal
-  origin   String? // "France — Charolais", "Nouvelle-Zélande"
-  halalOrg String? @map("halal_org") // "AVS", "ARGML"
-  race     String? // "Charolais", "Limousin", "Blonde d'Aquitaine"
+  promoPct  Int?       @map("promo_pct")
+  promoEnd  DateTime?  @map("promo_end")
+  promoType PromoType? @map("promo_type")
 
-  // Quality & info
-  freshness    String? // "Frais du jour", "Surgelé", "Maturation 21j"
-  customerNote String? @map("customer_note") // note affichée au client
+  origin       Origin    @default(FRANCE)
+  halalOrg     String?   @map("halal_org")
+  race         String?
+  freshness    Freshness @default(FRAIS)
+  customerNote String?   @map("customer_note")
 
-  // Display & sorting
-  displayOrder Int     @default(0) @map("display_order")
-  featured     Boolean @default(false)
-  popular      Boolean @default(false)
-
-  // Promo
-  promoPct  Int?      @map("promo_pct")
-  promoEnd  DateTime? @map("promo_end")
-  promoType String?   @map("promo_type") // "FLASH", "WEEKLY", "CLEARANCE"
+  // ── SNOOZE DELIVEROO-STYLE ──
+  snoozeType    SnoozeType @default(NONE)   @map("snooze_type")
+  snoozedAt     DateTime?  @map("snoozed_at")
+  snoozeEndsAt  DateTime?  @map("snooze_ends_at")
+  snoozeReason  String?    @map("snooze_reason")
 
   shopId String @map("shop_id")
   shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  // Relations
-  orderItems OrderItem[]
   images     ProductImage[]
-  labels     ProductLabel[] @relation("ProductLabels")
+  labels     ProductLabel[]
+  orderItems OrderItem[]
+  cartItems  CartItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([shopId, displayOrder])
+  @@index([shopId, categoryId])
+  @@index([shopId, inStock, snoozeType])
   @@map("products")
 }
 
-// ── Notification ──────────────────────────────
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  type      String   // ORDER_PENDING, ORDER_ACCEPTED, ORDER_READY, etc.
-  message   String
-  orderId   String?  @map("order_id")
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([userId, read])
-  @@index([userId, createdAt])
-  @@map("notifications")
-}
-
-// ── Order ────────────────────────────────────
-
-model Order {
-  id          String      @id @default(cuid())
-  orderNumber String      @unique @map("order_number")
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
-
-  isPro Boolean @default(false) @map("is_pro")
-
-  shopId String @map("shop_id")
-  shop   Shop   @relation(fields: [shopId], references: [id])
-
-  status OrderStatus @default(PENDING)
-
-  // Timing
-  requestedTime  String?   @map("requested_time")
-  estimatedReady DateTime? @map("estimated_ready")
-  actualReady    DateTime? @map("actual_ready")
-  pickedUpAt     DateTime? @map("picked_up_at")
-
-  totalCents Int @map("total_cents")
-
-  // QR Code
-  qrCode      String?   @unique @map("qr_code")
-  qrScannedAt DateTime? @map("qr_scanned_at")
-
-  // Rating
-  rating        Int?    @map("rating")
-  ratingComment String? @map("rating_comment")
-
-  // Notes
-  customerNote String? @map("customer_note")
-  boucherNote  String? @map("boucher_note")
-  denyReason   String? @map("deny_reason")
-
-  items OrderItem[]
-
-  // Notification tracking
-  notifSent Json? @map("notif_sent")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@index([shopId, status])
-  @@index([userId])
-  @@map("orders")
-}
-
-// ── Order Item ───────────────────────────────
-
-model OrderItem {
-  id String @id @default(cuid())
-
-  orderId String @map("order_id")
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  productId String  @map("product_id")
-  product   Product @relation(fields: [productId], references: [id])
-
-  name       String
-  quantity   Float
-  unit       Unit
-  priceCents Int    @map("price_cents")
-  totalCents Int    @map("total_cents")
-
-  available   Boolean @default(true)
-  replacement String?
-
-  @@map("order_items")
-}
-
-// ── Product Image ─────────────────────────────
+// ══════════════════════════════════════════
+// PRODUCT IMAGE
+// ══════════════════════════════════════════
 
 model ProductImage {
   id        String  @id @default(cuid())
@@ -318,89 +435,382 @@ model ProductImage {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@index([productId])
+  @@index([productId, order])
   @@map("product_images")
 }
 
-// ── Product Label ─────────────────────────────
+// ══════════════════════════════════════════
+// PRODUCT LABEL
+// ══════════════════════════════════════════
 
 model ProductLabel {
   id    String  @id @default(cuid())
-  name  String  @unique // "Halal", "Bio", "Local", "Promo", "Nouveau", "Race à Viande"
-  color String? // hex color for badge display
-  icon  String? // emoji or icon name
+  name  String
+  color String?
 
-  products Product[] @relation("ProductLabels")
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@index([productId])
   @@map("product_labels")
 }
 
-// ── Review ────────────────────────────────────
+// ══════════════════════════════════════════
+// SUBSCRIPTION
+// ══════════════════════════════════════════
+
+model Subscription {
+  id     String @id @default(cuid())
+  shopId String @unique @map("shop_id")
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  plan   SubscriptionPlan   @default(STARTER)
+  status SubscriptionStatus @default(TRIAL)
+
+  trialEndsAt          DateTime? @map("trial_ends_at")
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  billingCycle         String    @default("monthly") @map("billing_cycle")
+  yearlyDiscount       Boolean   @default(false) @map("yearly_discount")
+
+  validatedAt        DateTime? @map("validated_at")
+  validatedBy        String?   @map("validated_by")
+  currentPeriodStart DateTime? @map("current_period_start")
+  currentPeriodEnd   DateTime? @map("current_period_end")
+  adminNote          String?   @map("admin_note")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+// ══════════════════════════════════════════
+// PLAN FEATURE
+// ══════════════════════════════════════════
+
+model PlanFeature {
+  id          String           @id @default(cuid())
+  plan        SubscriptionPlan
+  featureKey  String           @map("feature_key")
+  featureName String           @map("feature_name")
+  description String?
+  enabled     Boolean          @default(true)
+
+  @@unique([plan, featureKey])
+  @@map("plan_features")
+}
+
+// ══════════════════════════════════════════
+// SUPPORT
+// ══════════════════════════════════════════
+
+model SupportTicket {
+  id      String @id @default(cuid())
+  shopId  String @map("shop_id")
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId  String @map("user_id")
+  subject String
+  status  TicketStatus @default(OPEN)
+
+  escalatedAt DateTime? @map("escalated_at")
+  resolvedAt  DateTime? @map("resolved_at")
+  messages    SupportMessage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([shopId, status])
+  @@index([status, createdAt])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id       String        @id @default(cuid())
+  ticketId String        @map("ticket_id")
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  role     String
+  content  String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ticketId, createdAt])
+  @@map("support_messages")
+}
+
+// ══════════════════════════════════════════
+// CART + ABANDONED
+// ══════════════════════════════════════════
+
+model Cart {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+  shopId String @map("shop_id")
+  shop   Shop   @relation(fields: [shopId], references: [id])
+  items  CartItem[]
+
+  reminderSentAt DateTime? @map("reminder_sent_at")
+  abandonedAt    DateTime? @map("abandoned_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, shopId])
+  @@index([updatedAt])
+  @@map("carts")
+}
+
+model CartItem {
+  id          String  @id @default(cuid())
+  cartId      String  @map("cart_id")
+  cart        Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId   String  @map("product_id")
+  product     Product @relation(fields: [productId], references: [id])
+  quantity    Float
+  weightGrams Int?    @map("weight_grams")
+  itemNote    String? @map("item_note")
+
+  @@map("cart_items")
+}
+
+// ══════════════════════════════════════════
+// RECURRING ORDER
+// ══════════════════════════════════════════
+
+model RecurringOrder {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+  shopId        String    @map("shop_id")
+  itemsSnapshot Json      @map("items_snapshot")
+  frequency     String    @default("weekly")
+  dayOfWeek     Int?      @map("day_of_week")
+  nextRunAt     DateTime? @map("next_run_at")
+  active        Boolean   @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, active])
+  @@index([nextRunAt])
+  @@map("recurring_orders")
+}
+
+// ══════════════════════════════════════════
+// SUGGEST RULE
+// ══════════════════════════════════════════
+
+model SuggestRule {
+  id              String @id @default(cuid())
+  shopId          String @map("shop_id")
+  shop            Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  sourceProductId String @map("source_product_id")
+  targetProductId String @map("target_product_id")
+  weight          Int    @default(1)
+
+  @@unique([shopId, sourceProductId, targetProductId])
+  @@map("suggest_rules")
+}
+
+// ══════════════════════════════════════════
+// CALENDAR EVENT
+// ══════════════════════════════════════════
+
+model CalendarEvent {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  date              DateTime
+  type              String
+  alertDaysBefore   Int      @default(7) @map("alert_days_before")
+  suggestedProducts Json?    @map("suggested_products")
+  active            Boolean  @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([date])
+  @@map("calendar_events")
+}
+
+// ══════════════════════════════════════════
+// REFERRAL
+// ══════════════════════════════════════════
+
+model Referral {
+  id                    String  @id @default(cuid())
+  referrerShopId        String  @map("referrer_shop_id")
+  referredShopId        String  @unique @map("referred_shop_id")
+  referrerRewardApplied Boolean @default(false) @map("referrer_reward_applied")
+  referredRewardApplied Boolean @default(false) @map("referred_reward_applied")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("referrals")
+}
+
+// ══════════════════════════════════════════
+// REVIEW
+// ══════════════════════════════════════════
 
 model Review {
   id      String  @id @default(cuid())
-  rating  Int     // 1–5
+  rating  Int
   comment String?
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
-
-  shopId String @map("shop_id")
-  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  orderId String? @unique @map("order_id")
+  userId  String  @map("user_id")
+  user    User    @relation(fields: [userId], references: [id])
+  shopId  String  @map("shop_id")
+  shop    Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderId String? @map("order_id")
 
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([userId, shopId, orderId])
-  @@index([shopId])
+  @@index([shopId, createdAt])
   @@map("reviews")
 }
 
-// ── Loyalty Rule ──────────────────────────────
+// ══════════════════════════════════════════
+// LOYALTY
+// ══════════════════════════════════════════
 
 model LoyaltyRule {
-  id          String  @id @default(cuid())
-  name        String  // "1 point par euro dépensé"
-  description String?
-
-  pointsPerEuro   Float      @default(1)   @map("points_per_euro")
-  rewardThreshold Int        @default(100) @map("reward_threshold")
-  rewardType      RewardType @default(DISCOUNT) @map("reward_type")
-  rewardValue     Int        @default(500)  @map("reward_value") // cents or %
-
-  // Order-count based loyalty (PROMPT 8)
-  ordersRequired Int @default(10) @map("orders_required")
-  rewardPct      Int @default(10) @map("reward_pct") // discount %
-
-  active Boolean @default(true)
-
-  shopId String @map("shop_id")
-  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id              String  @id @default(cuid())
+  shopId          String  @map("shop_id")
+  shop            Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  ordersRequired  Int     @default(10) @map("orders_required")
+  rewardPct       Int     @default(10) @map("reward_pct")
+  description     String  @default("Programme fidélité")
+  active          Boolean @default(true)
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@index([shopId])
   @@map("loyalty_rules")
 }
 
-// ── Loyalty Points (per user per shop) ────────
-
-model LoyaltyPoints {
-  id     String @id @default(cuid())
-  points Int    @default(0)
-
-  // Order-count based loyalty (PROMPT 8)
-  orderCount    Int @default(0) @map("order_count")
-  rewardsEarned Int @default(0) @map("rewards_earned")
-
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
-
-  shopId String @map("shop_id")
+model LoyaltyPoint {
+  id            String @id @default(cuid())
+  userId        String @map("user_id")
+  user          User   @relation(fields: [userId], references: [id])
+  shopId        String @map("shop_id")
+  orderCount    Int    @default(0) @map("order_count")
+  rewardsEarned Int    @default(0) @map("rewards_earned")
+  rewardsUsed   Int    @default(0) @map("rewards_used")
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, shopId])
   @@map("loyalty_points")
+}
+
+// ══════════════════════════════════════════
+// NOTIFICATION
+// ══════════════════════════════════════════
+
+model Notification {
+  id         String       @id @default(cuid())
+  userId     String       @map("user_id")
+  user       User         @relation(fields: [userId], references: [id])
+  type       String
+  message    String
+  channel    NotifChannel @default(PUSH)
+  orderId    String?      @map("order_id")
+  read       Boolean      @default(false)
+  externalId String?      @map("external_id")
+  delivered  Boolean      @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ══════════════════════════════════════════
+// ORDER — Avec auto-cancel Uber Eats style
+// ══════════════════════════════════════════
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique @map("order_number")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+  isPro  Boolean @default(false) @map("is_pro")
+
+  shopId String @map("shop_id")
+  shop   Shop   @relation(fields: [shopId], references: [id])
+
+  status OrderStatus @default(PENDING)
+
+  requestedTime  String?   @map("requested_time")
+  estimatedReady DateTime? @map("estimated_ready")
+  actualReady    DateTime? @map("actual_ready")
+  pickedUpAt     DateTime? @map("picked_up_at")
+
+  pickupSlotStart DateTime? @map("pickup_slot_start")
+  pickupSlotEnd   DateTime? @map("pickup_slot_end")
+
+  totalCents      Int @map("total_cents")
+  commissionCents Int @default(0) @map("commission_cents")
+
+  paymentMethod   PaymentMethod @default(ON_PICKUP) @map("payment_method")
+  paidAt          DateTime?     @map("paid_at")
+  stripePaymentId String?       @map("stripe_payment_id")
+
+  qrCode      String?   @unique @map("qr_code")
+  qrScannedAt DateTime? @map("qr_scanned_at")
+
+  rating        Int?    @map("rating")
+  ratingComment String? @map("rating_comment")
+
+  customerNote String? @map("customer_note")
+  boucherNote  String? @map("boucher_note")
+  denyReason   String? @map("deny_reason")
+
+  // ── AUTO-CANCEL UBER EATS STYLE ──
+  expiresAt       DateTime? @map("expires_at")
+  autoCancelledAt DateTime? @map("auto_cancelled_at")
+
+  // ── Idempotence (anti double-commande) ──
+  idempotencyKey String? @unique @map("idempotency_key")
+
+  source      String  @default("app")
+  isRecurring Boolean @default(false) @map("is_recurring")
+
+  items OrderItem[]
+
+  notifSent Json? @map("notif_sent")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([shopId, status])
+  @@index([shopId, createdAt])
+  @@index([userId])
+  @@index([expiresAt, status])
+  @@map("orders")
+}
+
+// ══════════════════════════════════════════
+// ORDER ITEM
+// ══════════════════════════════════════════
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String  @map("order_id")
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String  @map("product_id")
+  product     Product @relation(fields: [productId], references: [id])
+  name        String
+  quantity    Float
+  unit        Unit
+  priceCents  Int     @map("price_cents")
+  totalCents  Int     @map("total_cents")
+  weightGrams Int?    @map("weight_grams")
+  itemNote    String? @map("item_note")
+  available   Boolean @default(true)
+  replacement String?
+
+  @@map("order_items")
 }

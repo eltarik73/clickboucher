@@ -81,7 +81,7 @@ export async function POST(
       });
 
       if (dbUser) {
-        const loyaltyPoints = await prisma.loyaltyPoints.upsert({
+        const loyalty = await prisma.loyaltyPoint.upsert({
           where: { userId_shopId: { userId: dbUser.id, shopId: order.shopId } },
           create: { userId: dbUser.id, shopId: order.shopId, orderCount: 1, rewardsEarned: 0 },
           update: { orderCount: { increment: 1 } },
@@ -92,9 +92,9 @@ export async function POST(
           where: { shopId: order.shopId, active: true },
         });
 
-        if (rule && loyaltyPoints.orderCount % rule.ordersRequired === 0) {
-          await prisma.loyaltyPoints.update({
-            where: { id: loyaltyPoints.id },
+        if (rule && loyalty.orderCount % rule.ordersRequired === 0) {
+          await prisma.loyaltyPoint.update({
+            where: { id: loyalty.id },
             data: { rewardsEarned: { increment: 1 } },
           });
         }

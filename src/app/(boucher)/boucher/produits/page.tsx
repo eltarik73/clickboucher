@@ -42,7 +42,6 @@ type ProductLabel = {
   id: string;
   name: string;
   color: string | null;
-  icon: string | null;
 };
 
 type Product = {
@@ -598,7 +597,7 @@ function ProductRow({
                   border: `1px solid ${label.color ? `${label.color}30` : "#e5e7eb"}`,
                 }}
               >
-                {label.icon ? `${label.icon} ` : ""}{label.name}
+                {label.name}
               </span>
             ))}
           </div>

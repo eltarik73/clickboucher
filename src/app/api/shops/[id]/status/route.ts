@@ -45,10 +45,10 @@ export async function PATCH(
       busyMode: updated.busyMode,
       busyExtraMin: updated.busyExtraMin,
       paused: updated.paused,
-      isOpen: updated.isOpen,
+      status: updated.status,
       prepTimeMin: updated.prepTimeMin,
       autoAccept: updated.autoAccept,
-      maxOrdersHour: updated.maxOrdersHour,
+      maxOrdersPerHour: updated.maxOrdersPerHour,
       effectivePrepTime: updated.prepTimeMin + (updated.busyMode ? updated.busyExtraMin : 0),
     });
   } catch (error) {

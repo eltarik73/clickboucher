@@ -6,7 +6,7 @@ export interface Butcher {
   name: string;
   rating: number;
   distance: string;
-  isOpen: boolean;
+  status: string;
   isExpress: boolean;
   image?: string | null;
 }
@@ -18,7 +18,7 @@ interface Props {
 export function ButcherCard({ butcher }: Props) {
   return (
     <div className={`group relative bg-white rounded-2xl border transition-all duration-300 overflow-hidden
-      ${butcher.isOpen
+      ${(butcher.status === "OPEN" || butcher.status === "BUSY")
         ? "border-[#E8E5E1] shadow-sm hover:shadow-lg hover:border-[#D5D0CA]"
         : "border-[#E8E5E1] opacity-60"
       }`}>
@@ -38,16 +38,24 @@ export function ButcherCard({ butcher }: Props) {
 
         {/* Badges */}
         <div className="absolute top-2.5 left-2.5 flex gap-1.5">
-          {butcher.isOpen ? (
+          {butcher.status === "BUSY" ? (
+            <span className="px-2 py-0.5 rounded-md bg-[#F59E0B] text-white text-[10px] font-semibold shadow-sm">
+              Occup&eacute;
+            </span>
+          ) : (butcher.status === "OPEN") ? (
             <span className="px-2 py-0.5 rounded-md bg-[#16A34A] text-white text-[10px] font-semibold shadow-sm">
               Ouvert
+            </span>
+          ) : (butcher.status === "PAUSED" || butcher.status === "AUTO_PAUSED") ? (
+            <span className="px-2 py-0.5 rounded-md bg-[#F59E0B] text-white text-[10px] font-semibold">
+              Pause
             </span>
           ) : (
             <span className="px-2 py-0.5 rounded-md bg-[#6B6560] text-white text-[10px] font-semibold">
               Ferm&eacute;
             </span>
           )}
-          {butcher.isExpress && butcher.isOpen && (
+          {butcher.isExpress && (butcher.status === "OPEN" || butcher.status === "BUSY") && (
             <span className="px-2 py-0.5 rounded-md bg-[#F59E0B] text-white text-[10px] font-semibold shadow-sm flex items-center gap-1">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -83,13 +91,13 @@ export function ButcherCard({ butcher }: Props) {
         </div>
 
         {/* CTA */}
-        <button type="button" disabled={!butcher.isOpen}
+        <button type="button" disabled={butcher.status === "CLOSED" || butcher.status === "VACATION"}
           className={`w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
-            ${butcher.isOpen
+            ${(butcher.status === "OPEN" || butcher.status === "BUSY")
               ? "bg-[#1A1A1A] text-white hover:bg-[#333] active:scale-[0.98]"
               : "bg-[#F0EDEA] text-[#9C9590] cursor-not-allowed"
             }`}>
-          {butcher.isOpen ? "Choisir cette boucherie" : "Actuellement ferm\u00e9e"}
+          {(butcher.status === "OPEN" || butcher.status === "BUSY") ? "Choisir cette boucherie" : "Actuellement ferm\u00e9e"}
         </button>
       </div>
     </div>

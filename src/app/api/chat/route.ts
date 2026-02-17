@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
 
       const [shopsResult, ...productResults] = await Promise.all([
         prisma.shop.findMany({
-          where: { isOpen: true, paused: false },
+          where: { status: { in: ["OPEN", "BUSY"] } },
           select: {
             id: true, name: true, slug: true,
             prepTimeMin: true, busyMode: true, busyExtraMin: true, rating: true,

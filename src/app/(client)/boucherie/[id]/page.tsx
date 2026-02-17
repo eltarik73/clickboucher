@@ -62,7 +62,7 @@ export default function BoutiquePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
         <div className="absolute bottom-3.5 left-5 flex gap-1.5">
           {shop.halal && <Badge variant="halal" className="bg-emerald-50/95">Halal</Badge>}
-          {shop.isOpen ? (
+          {shop.status === "OPEN" || shop.status === "BUSY" ? (
             <Badge variant="open" className="bg-green-50/95">Ouvert</Badge>
           ) : (
             <Badge variant="closed" className="bg-red-50/95">Ferme</Badge>

@@ -81,8 +81,7 @@ type ShopData = {
   prepTimeMin: number;
   busyMode: boolean;
   busyExtraMin: number;
-  paused: boolean;
-  isOpen: boolean;
+  status: string;
   rating: number;
   ratingCount: number;
 };
@@ -102,7 +101,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
     <Link
       href={`/boutique/${shop.slug}`}
       className={`group bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
-        !shop.isOpen ? "opacity-60" : ""
+        (shop.status === "CLOSED" || shop.status === "VACATION") ? "opacity-60" : ""
       }`}
     >
       {/* Image with permanent gradient overlay */}
@@ -116,7 +115,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
 
         {/* Top-left badges */}
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          {shop.isOpen ? (
+          {(shop.status === "OPEN" || shop.status === "BUSY") ? (
             <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${prepBadgeClasses}`}>
               {effectiveTime <= 15 && (
                 <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
@@ -128,12 +127,12 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
               Ferme
             </span>
           )}
-          {shop.busyMode && shop.isOpen && (
+          {shop.status === "BUSY" && (
             <span className="px-2 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-lg">
               Occupe
             </span>
           )}
-          {shop.paused && shop.isOpen && (
+          {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
             <span className="px-2 py-1 bg-red-500/90 text-white text-xs font-semibold rounded-lg">
               Pause
             </span>
@@ -149,7 +148,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
         </div>
 
         {/* Hover CTA */}
-        {shop.isOpen && (
+        {(shop.status === "OPEN" || shop.status === "BUSY") && (
           <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
             <span className="block w-full py-2.5 bg-white dark:bg-[#141414] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
               Voir la boutique
@@ -250,8 +249,7 @@ export default async function DecouvrirPage() {
         prepTimeMin: true,
         busyMode: true,
         busyExtraMin: true,
-        paused: true,
-        isOpen: true,
+        status: true,
         rating: true,
         ratingCount: true,
       },

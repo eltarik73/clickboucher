@@ -29,9 +29,7 @@ type Shop = {
   phone: string;
   description: string | null;
   imageUrl: string | null;
-  isOpen: boolean;
-  paused: boolean;
-  busyMode: boolean;
+  status: string;
   rating: number;
   ratingCount: number;
   commissionPct: number;
@@ -76,29 +74,35 @@ type SortBy = "date" | "rating" | "orders" | "name";
 
 // ── Helpers ──────────────────────────────────────
 function statusBadge(shop: Shop) {
-  if (shop.paused)
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400">
-        Pause
-      </span>
-    );
-  if (shop.busyMode)
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400">
-        Occupé
-      </span>
-    );
-  if (!shop.isOpen)
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
-        Fermé
-      </span>
-    );
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
-      Ouvert
-    </span>
-  );
+  switch (shop.status) {
+    case "PAUSED":
+    case "AUTO_PAUSED":
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400">
+          Pause
+        </span>
+      );
+    case "BUSY":
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400">
+          Occupé
+        </span>
+      );
+    case "CLOSED":
+    case "VACATION":
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+          Fermé
+        </span>
+      );
+    case "OPEN":
+    default:
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+          Ouvert
+        </span>
+      );
+  }
 }
 
 function slugify(str: string) {
@@ -170,9 +174,9 @@ export default function AdminShopsPage() {
     }
 
     if (statusFilter === "open")
-      list = list.filter((s) => s.isOpen && !s.paused);
-    if (statusFilter === "closed") list = list.filter((s) => !s.isOpen);
-    if (statusFilter === "paused") list = list.filter((s) => s.paused);
+      list = list.filter((s) => s.status === "OPEN" || s.status === "BUSY");
+    if (statusFilter === "closed") list = list.filter((s) => s.status === "CLOSED" || s.status === "VACATION");
+    if (statusFilter === "paused") list = list.filter((s) => s.status === "PAUSED" || s.status === "AUTO_PAUSED");
 
     if (sortBy === "rating") list.sort((a, b) => b.rating - a.rating);
     if (sortBy === "orders") list.sort((a, b) => b.orderCount - a.orderCount);
@@ -258,10 +262,11 @@ export default function AdminShopsPage() {
 
   // ── Toggle pause ───────────────────────────────
   async function togglePause(shop: Shop) {
+    const isPaused = shop.status === "PAUSED" || shop.status === "AUTO_PAUSED";
     await fetch(`/api/shops/${shop.id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paused: !shop.paused }),
+      body: JSON.stringify({ status: isPaused ? "OPEN" : "PAUSED" }),
     });
     await loadShops();
   }
@@ -449,9 +454,9 @@ export default function AdminShopsPage() {
                           <button
                             onClick={() => togglePause(shop)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[white/10] text-gray-500 dark:text-gray-400 transition-colors"
-                            title={shop.paused ? "Reprendre" : "Suspendre"}
+                            title={(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "Reprendre" : "Suspendre"}
                           >
-                            {shop.paused ? (
+                            {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? (
                               <Play size={14} />
                             ) : (
                               <Pause size={14} />
@@ -531,7 +536,7 @@ export default function AdminShopsPage() {
                     onClick={() => togglePause(shop)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[white/10] rounded-lg hover:bg-gray-100 dark:hover:bg-[white/15] transition-colors"
                   >
-                    {shop.paused ? (
+                    {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? (
                       <>
                         <Play size={12} /> Reprendre
                       </>

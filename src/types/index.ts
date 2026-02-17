@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-// KLIK&GO — Types V2
+// KLIK&GO — Types V4
 // ═══════════════════════════════════════════════
 
 export type ProductImage = {
@@ -14,7 +14,6 @@ export type ProductLabel = {
   id: string;
   name: string;
   color: string | null;
-  icon: string | null;
 };
 
 export type CategoryInfo = {
@@ -35,17 +34,17 @@ export type Product = {
   unit: "KG" | "PIECE" | "BARQUETTE";
   inStock: boolean;
   stockQty: number | null;
-  minWeightG: number | null;
-  weightStepG: number | null;
-  maxWeightG: number | null;
+  minWeightG: number;
+  weightStepG: number;
+  maxWeightG: number;
   displayOrder: number;
   featured: boolean;
   popular: boolean;
   tags: string[];
-  origin: string | null;
+  origin: string;
   halalOrg: string | null;
   race: string | null;
-  freshness: string | null;
+  freshness: string;
   customerNote: string | null;
   promoPct: number | null;
   promoEnd: string | null;
@@ -68,7 +67,7 @@ export type Shop = {
   description?: string | null;
   rating: number;
   ratingCount: number;
-  isOpen: boolean;
+  status: string;
   prepTimeMin?: number;
   tags?: string[];
   // Legacy fields (seed/data.ts)

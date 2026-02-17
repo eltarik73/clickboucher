@@ -16,7 +16,7 @@ type FavoriteShop = {
   prepTimeMin: number;
   busyMode: boolean;
   busyExtraMin: number;
-  isOpen: boolean;
+  status: string;
   rating: number;
   ratingCount: number;
 };
@@ -122,7 +122,7 @@ export default function FavorisPage() {
                   key={shop.id}
                   href={`/boutique/${shop.slug}`}
                   className={`flex gap-4 p-3 bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl shadow-sm hover:shadow-md transition-all ${
-                    !shop.isOpen ? "opacity-60" : ""
+                    (shop.status === "CLOSED" || shop.status === "VACATION") ? "opacity-60" : ""
                   }`}
                 >
                   {/* Image */}
@@ -132,7 +132,7 @@ export default function FavorisPage() {
                       alt={shop.name}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
-                    {!shop.isOpen && (
+                    {(shop.status === "CLOSED" || shop.status === "VACATION") && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <span className="text-white text-xs font-bold">Ferme</span>
                       </div>
@@ -169,7 +169,7 @@ export default function FavorisPage() {
                         </span>
                         <span className="text-gray-400">({shop.ratingCount})</span>
                       </div>
-                      {shop.isOpen && (
+                      {(shop.status === "OPEN" || shop.status === "BUSY") && (
                         <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Clock size={11} />
                           <span className={

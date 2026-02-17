@@ -149,7 +149,6 @@ export default async function BoutiquePage({
       id: l.id,
       name: l.name,
       color: l.color,
-      icon: l.icon,
     })),
   }));
 
@@ -208,14 +207,14 @@ export default async function BoutiquePage({
               </div>
 
               {/* Busy mode badge */}
-              {shop.busyMode && (
+              {shop.status === "BUSY" && (
                 <span className="px-3 py-1.5 bg-amber-500/80 backdrop-blur-xl text-white text-xs font-bold rounded-[10px]">
                   Mode occupe
                 </span>
               )}
 
               {/* Paused badge */}
-              {shop.paused && (
+              {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
                 <span className="px-3 py-1.5 bg-red-500/80 backdrop-blur-xl text-white text-xs font-bold rounded-[10px]">
                   Pause
                 </span>

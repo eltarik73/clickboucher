@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const promoSchema = z.object({
   promoPct: z.number().min(1).max(90).nullable(),
-  promoType: z.enum(["PERCENTAGE", "FLASH"]).nullable().optional(),
+  promoType: z.enum(["PERCENTAGE", "FLASH", "BUY_X_GET_Y"]).nullable().optional(),
   promoEnd: z.string().nullable().optional(),
 });
 

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get or create loyalty points for this user+shop
-    const points = await prisma.loyaltyPoints.upsert({
+    const points = await prisma.loyaltyPoint.upsert({
       where: { userId_shopId: { userId: user.id, shopId } },
       create: { userId: user.id, shopId, orderCount: 0, rewardsEarned: 0 },
       update: {},

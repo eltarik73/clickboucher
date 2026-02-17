@@ -74,7 +74,7 @@ export async function PATCH(req: NextRequest) {
     } else {
       rule = await prisma.loyaltyRule.create({
         data: {
-          name: `Fidélité ${shop.name}`,
+          description: `Fidélité ${shop.name}`,
           ordersRequired: data.ordersRequired,
           rewardPct: data.rewardPct,
           active: data.active,

@@ -27,13 +27,12 @@ type Shop = {
   address: string;
   city: string;
   phone: string;
-  isOpen: boolean;
+  status: string;
   busyMode: boolean;
   busyExtraMin: number;
-  paused: boolean;
   prepTimeMin: number;
   autoAccept: boolean;
-  maxOrdersHour: number;
+  maxOrdersPerHour: number;
   openingHours: Record<string, { open: string; close: string }> | null;
 };
 
@@ -229,23 +228,23 @@ export default function BoucherParametresPage() {
         <SettingCard
           icon={<Store size={18} className="text-emerald-600" />}
           title="Status de la boutique"
-          accent={shop.isOpen ? "border-l-emerald-500" : "border-l-red-400"}
+          accent={(shop.status === "OPEN" || shop.status === "BUSY") ? "border-l-emerald-500" : "border-l-red-400"}
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">
-                {shop.isOpen ? "Ouvert" : "Fermé"}
+                {(shop.status === "OPEN" || shop.status === "BUSY") ? "Ouvert" : "Fermé"}
               </p>
-              {!shop.isOpen && (
+              {(shop.status === "CLOSED" || shop.status === "VACATION") && (
                 <p className="text-xs text-red-500 mt-0.5">
                   Les clients ne peuvent pas commander
                 </p>
               )}
             </div>
             <Switch
-              checked={shop.isOpen}
-              onCheckedChange={(v) => patchStatus({ isOpen: v })}
-              className={shop.isOpen ? "!bg-emerald-500" : "!bg-red-400"}
+              checked={shop.status === "OPEN" || shop.status === "BUSY"}
+              onCheckedChange={(v) => patchStatus({ status: v ? "OPEN" : "CLOSED" })}
+              className={(shop.status === "OPEN" || shop.status === "BUSY") ? "!bg-emerald-500" : "!bg-red-400"}
             />
           </div>
         </SettingCard>
@@ -297,18 +296,18 @@ export default function BoucherParametresPage() {
         <SettingCard
           icon={<Pause size={18} className="text-red-500" />}
           title="Pause commandes"
-          accent={shop.paused ? "border-l-red-500" : "border-l-transparent"}
+          accent={(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "border-l-red-500" : "border-l-transparent"}
         >
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-gray-900 dark:text-white">Pause nouvelles commandes</p>
               <Switch
-                checked={shop.paused}
-                onCheckedChange={(v) => patchStatus({ paused: v })}
-                className={shop.paused ? "!bg-red-500" : ""}
+                checked={shop.status === "PAUSED" || shop.status === "AUTO_PAUSED"}
+                onCheckedChange={(v) => patchStatus({ status: v ? "PAUSED" : "OPEN" })}
+                className={(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "!bg-red-500" : ""}
               />
             </div>
-            {shop.paused && (
+            {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
               <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
                 <p className="text-sm text-red-700 dark:text-red-300 font-medium">
                   Aucune nouvelle commande ne sera acceptée
@@ -384,12 +383,12 @@ export default function BoucherParametresPage() {
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
-                  value={shop.maxOrdersHour}
+                  value={shop.maxOrdersPerHour}
                   onChange={(e) => {
                     const val = Number(e.target.value);
-                    setShop((prev) => (prev ? { ...prev, maxOrdersHour: val } : prev));
+                    setShop((prev) => (prev ? { ...prev, maxOrdersPerHour: val } : prev));
                   }}
-                  onBlur={() => patchStatus({ maxOrdersHour: shop.maxOrdersHour })}
+                  onBlur={() => patchStatus({ maxOrdersPerHour: shop.maxOrdersPerHour })}
                   className="w-24 h-9"
                   min={1}
                   max={100}

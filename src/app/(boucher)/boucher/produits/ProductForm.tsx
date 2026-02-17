@@ -57,11 +57,11 @@ export type EditProduct = {
   promoEnd: string | null;
   promoType: string | null;
   customerNote: string | null;
-  minWeightG: number | null;
-  weightStepG: number | null;
+  minWeightG: number;
+  weightStepG: number;
   popular: boolean;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
-  labels: { id: string; name: string; color: string | null; icon: string | null }[];
+  labels: { id: string; name: string; color: string | null }[];
 };
 
 interface Props {

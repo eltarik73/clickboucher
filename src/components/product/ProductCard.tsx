@@ -16,7 +16,7 @@ export type ProductCardData = Pick<ProductV2,
 > & {
   category: { id: string; name: string; emoji: string | null };
   images: ProductImageType[];
-  labels: { id: string; name: string; color: string | null; icon: string | null }[];
+  labels: { id: string; name: string; color: string | null }[];
 };
 
 interface Props {
@@ -199,7 +199,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
                   border: `1px solid ${label.color ? `${label.color}30` : "#e5e7eb"}`,
                 }}
               >
-                {label.icon ? `${label.icon} ` : ""}{label.name}
+                {label.name}
               </span>
             ))}
           </div>

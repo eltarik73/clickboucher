@@ -25,10 +25,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (query.open === "true") {
-      where.isOpen = true;
-      where.paused = false;
+      where.status = { in: ["OPEN", "BUSY"] };
     } else if (query.open === "false") {
-      where.OR = [{ isOpen: false }, { paused: true }];
+      where.status = { in: ["PAUSED", "AUTO_PAUSED", "CLOSED", "VACATION"] };
     }
 
     const [shops, total] = await Promise.all([

@@ -29,7 +29,7 @@ export async function GET() {
             prepTimeMin: true,
             busyMode: true,
             busyExtraMin: true,
-            isOpen: true,
+            status: true,
             rating: true,
             ratingCount: true,
           },

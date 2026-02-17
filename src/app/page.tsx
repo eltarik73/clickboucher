@@ -25,7 +25,7 @@ async function getAuthAndShops() {
     prepTimeMin: number;
     busyMode: boolean;
     busyExtraMin: number;
-    isOpen: boolean;
+    status: string;
   }[] = [];
 
   try {
@@ -42,7 +42,7 @@ async function getAuthAndShops() {
         prepTimeMin: true,
         busyMode: true,
         busyExtraMin: true,
-        isOpen: true,
+        status: true,
       },
     });
   } catch {
@@ -266,7 +266,7 @@ export default async function HomePage() {
                       </div>
 
                       {/* Closed badge */}
-                      {!shop.isOpen && (
+                      {(shop.status === "CLOSED" || shop.status === "VACATION") && (
                         <div className="absolute top-3 right-3">
                           <span className="px-2.5 py-1 bg-gray-600/90 text-white text-xs font-semibold rounded-lg">
                             Ferm&eacute;

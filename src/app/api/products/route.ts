@@ -100,19 +100,6 @@ export async function POST(req: NextRequest) {
       return apiError("VALIDATION_ERROR", "La catégorie n'appartient pas à cette boucherie");
     }
 
-    // Resolve labels: find or create
-    const labelConnections: { id: string }[] = [];
-    if (data.labels?.length) {
-      for (const l of data.labels) {
-        const label = await prisma.productLabel.upsert({
-          where: { name: l.name },
-          update: {},
-          create: { name: l.name, color: l.color },
-        });
-        labelConnections.push({ id: label.id });
-      }
-    }
-
     const product = await prisma.product.create({
       data: {
         name: data.name,
@@ -150,8 +137,13 @@ export async function POST(req: NextRequest) {
             })),
           },
         }),
-        ...(labelConnections.length > 0 && {
-          labels: { connect: labelConnections },
+        ...(data.labels?.length && {
+          labels: {
+            create: data.labels.map((l) => ({
+              name: l.name,
+              color: l.color,
+            })),
+          },
         }),
       },
       include: PRODUCT_INCLUDE,

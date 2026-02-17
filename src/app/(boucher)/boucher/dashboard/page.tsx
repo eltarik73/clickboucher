@@ -25,9 +25,8 @@ type Shop = {
   name: string;
   rating: number;
   ratingCount: number;
+  status: string;
   busyMode: boolean;
-  paused: boolean;
-  isOpen: boolean;
   prepTimeMin: number;
   busyExtraMin: number;
 };
@@ -152,11 +151,13 @@ export default function BoucherDashboardPage() {
     );
   }
 
-  const shopStatus = shop?.paused
+  const shopStatus = (shop?.status === "PAUSED" || shop?.status === "AUTO_PAUSED")
     ? { label: "Pause", style: "bg-red-100 text-red-700 border-red-200" }
-    : shop?.busyMode
+    : shop?.status === "BUSY"
       ? { label: "Occupe", style: "bg-amber-100 text-amber-700 border-amber-200" }
-      : { label: "Ouvert", style: "bg-emerald-100 text-emerald-700 border-emerald-200" };
+      : (shop?.status === "CLOSED" || shop?.status === "VACATION")
+        ? { label: "Ferme", style: "bg-gray-100 text-gray-700 border-gray-200" }
+        : { label: "Ouvert", style: "bg-emerald-100 text-emerald-700 border-emerald-200" };
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">

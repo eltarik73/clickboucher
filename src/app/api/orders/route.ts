@@ -98,12 +98,12 @@ export async function POST(req: NextRequest) {
     // Verify shop exists and is open
     const shop = await prisma.shop.findUnique({
       where: { id: data.shopId },
-      select: { id: true, isOpen: true, paused: true },
+      select: { id: true, status: true },
     });
     if (!shop) {
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
-    if (!shop.isOpen || shop.paused) {
+    if (shop.status !== "OPEN" && shop.status !== "BUSY") {
       return apiError("SERVICE_DISABLED", "La boucherie est actuellement fermée");
     }
 

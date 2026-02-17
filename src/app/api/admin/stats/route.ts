@@ -61,7 +61,7 @@ export async function GET() {
 
       // Active shops
       prisma.shop.count({
-        where: { isOpen: true, paused: false },
+        where: { status: { in: ["OPEN", "BUSY"] } },
       }),
 
       // Total users

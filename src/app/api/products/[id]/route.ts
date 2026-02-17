@@ -103,38 +103,19 @@ export async function PATCH(
       }
     }
 
-    // Replace labels if provided (disconnect all, then connect/create)
+    // Replace labels if provided (delete old, create new with productId)
     if (labels !== undefined) {
-      // Disconnect all current labels
-      const currentLabels = await prisma.product.findUnique({
-        where: { id },
-        select: { labels: { select: { id: true } } },
-      });
-      if (currentLabels?.labels.length) {
-        updateData.labels = {
-          disconnect: currentLabels.labels.map((l) => ({ id: l.id })),
-        };
-      }
-      // We need a second update for connecting new labels
+      // Delete all current labels for this product
+      await prisma.productLabel.deleteMany({ where: { productId: id } });
+
+      // Create new labels if any
       if (labels.length > 0) {
-        const labelConnections: { id: string }[] = [];
-        for (const l of labels) {
-          const label = await prisma.productLabel.upsert({
-            where: { name: l.name },
-            update: {},
-            create: { name: l.name, color: l.color },
-          });
-          labelConnections.push({ id: label.id });
-        }
-        // First disconnect, then connect in two steps
-        if (updateData.labels) {
-          await prisma.product.update({
-            where: { id },
-            data: { labels: updateData.labels as { disconnect: { id: string }[] } },
-          });
-          delete updateData.labels;
-        }
-        updateData.labels = { connect: labelConnections };
+        updateData.labels = {
+          create: labels.map((l) => ({
+            name: l.name,
+            color: l.color,
+          })),
+        };
       }
     }
 
@@ -185,8 +166,7 @@ export async function DELETE(
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 
-    // Cascade: images are deleted via onDelete: Cascade
-    // Labels are many-to-many, disconnect happens automatically on product delete
+    // Cascade: images and labels are deleted via onDelete: Cascade
     await prisma.product.delete({ where: { id } });
 
     return apiSuccess({ deleted: true });
