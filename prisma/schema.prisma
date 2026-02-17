@@ -170,18 +170,34 @@ model Product {
   inStock  Boolean @default(true) @map("in_stock")
   stockQty Float?  @map("stock_qty")
 
+  // Weight controls (for KG products)
+  minWeightG  Int? @map("min_weight_g")   // min 100g
+  weightStepG Int? @map("weight_step_g")  // step 50g
+  maxWeightG  Int? @map("max_weight_g")   // max 5000g
+
   categoryId String   @map("category_id")
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   tags String[]
 
   // Origin & Halal
-  origin   String? // "France", "Irlande", "Nouvelle-Zélande"
-  halalOrg String? @map("halal_org") // "AVS", "ARGML", "Mosquée de Paris"
+  origin   String? // "France — Charolais", "Nouvelle-Zélande"
+  halalOrg String? @map("halal_org") // "AVS", "ARGML"
+  race     String? // "Charolais", "Limousin", "Blonde d'Aquitaine"
+
+  // Quality & info
+  freshness    String? // "Frais du jour", "Surgelé", "Maturation 21j"
+  customerNote String? @map("customer_note") // note affichée au client
+
+  // Display & sorting
+  displayOrder Int     @default(0) @map("display_order")
+  featured     Boolean @default(false)
+  popular      Boolean @default(false)
 
   // Promo
-  promoPct Int?      @map("promo_pct")
-  promoEnd DateTime? @map("promo_end")
+  promoPct  Int?      @map("promo_pct")
+  promoEnd  DateTime? @map("promo_end")
+  promoType String?   @map("promo_type") // "FLASH", "WEEKLY", "CLEARANCE"
 
   shopId String @map("shop_id")
   shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -194,6 +210,7 @@ model Product {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([shopId, displayOrder])
   @@map("products")
 }
 

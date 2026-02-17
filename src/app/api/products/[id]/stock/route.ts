@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { toggleStockSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 // ── PATCH /api/products/[id]/stock ─────────────
 // Boucher (owner) only — quick stock toggle
 export async function PATCH(

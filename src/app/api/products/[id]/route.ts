@@ -4,8 +4,17 @@ import prisma from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
+const PRODUCT_INCLUDE = {
+  category: true,
+  images: { orderBy: { order: "asc" as const } },
+  labels: true,
+  shop: { select: { id: true, name: true, slug: true } },
+};
+
 // ── GET /api/products/[id] ─────────────────────
-// Public — product detail
+// Public — product detail with all relations
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,7 +24,7 @@ export async function GET(
 
     const product = await prisma.product.findUnique({
       where: { id },
-      include: { category: true, shop: { select: { id: true, name: true, slug: true } } },
+      include: PRODUCT_INCLUDE,
     });
 
     if (!product) {
@@ -71,15 +80,72 @@ export async function PATCH(
       }
     }
 
-    const updateData: Record<string, unknown> = { ...data };
-    if (data.promoEnd !== undefined) {
-      updateData.promoEnd = data.promoEnd ? new Date(data.promoEnd) : null;
+    // Separate images/labels from scalar fields
+    const { images, labels, promoEnd, ...scalarData } = data;
+
+    const updateData: Record<string, unknown> = { ...scalarData };
+    if (promoEnd !== undefined) {
+      updateData.promoEnd = promoEnd ? new Date(promoEnd) : null;
+    }
+
+    // Replace images if provided (delete old, create new)
+    if (images !== undefined) {
+      await prisma.productImage.deleteMany({ where: { productId: id } });
+      if (images.length > 0) {
+        updateData.images = {
+          create: images.map((img) => ({
+            url: img.url,
+            alt: img.alt,
+            order: img.order,
+            isPrimary: img.isPrimary,
+          })),
+        };
+      }
+    }
+
+    // Replace labels if provided (disconnect all, then connect/create)
+    if (labels !== undefined) {
+      // Disconnect all current labels
+      const currentLabels = await prisma.product.findUnique({
+        where: { id },
+        select: { labels: { select: { id: true } } },
+      });
+      if (currentLabels?.labels.length) {
+        updateData.labels = {
+          disconnect: currentLabels.labels.map((l) => ({ id: l.id })),
+        };
+      }
+      // We need a second update for connecting new labels
+      if (labels.length > 0) {
+        const labelConnections: { id: string }[] = [];
+        for (const l of labels) {
+          const label = await prisma.productLabel.upsert({
+            where: { name: l.name },
+            update: {},
+            create: { name: l.name, color: l.color },
+          });
+          labelConnections.push({ id: label.id });
+        }
+        // First disconnect, then connect in two steps
+        if (updateData.labels) {
+          await prisma.product.update({
+            where: { id },
+            data: { labels: updateData.labels as { disconnect: { id: string }[] } },
+          });
+          delete updateData.labels;
+        }
+        updateData.labels = { connect: labelConnections };
+      }
     }
 
     const updated = await prisma.product.update({
       where: { id },
       data: updateData,
-      include: { category: true },
+      include: {
+        category: true,
+        images: { orderBy: { order: "asc" } },
+        labels: true,
+      },
     });
 
     return apiSuccess(updated);
@@ -105,7 +171,10 @@ export async function DELETE(
 
     const product = await prisma.product.findUnique({
       where: { id },
-      select: { shop: { select: { ownerId: true } } },
+      select: {
+        shop: { select: { ownerId: true } },
+        _count: { select: { orderItems: true } },
+      },
     });
 
     if (!product) {
@@ -116,6 +185,8 @@ export async function DELETE(
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 
+    // Cascade: images are deleted via onDelete: Cascade
+    // Labels are many-to-many, disconnect happens automatically on product delete
     await prisma.product.delete({ where: { id } });
 
     return apiSuccess({ deleted: true });

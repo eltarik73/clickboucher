@@ -4,6 +4,15 @@ import prisma from "@/lib/prisma";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
+// Include block for all product queries
+const PRODUCT_INCLUDE = {
+  category: true,
+  images: { orderBy: { order: "asc" as const } },
+  labels: true,
+};
+
 // ── GET /api/products ──────────────────────────
 // Public — list products for a shop
 export async function GET(req: NextRequest) {
@@ -21,14 +30,20 @@ export async function GET(req: NextRequest) {
     } else if (query.inStock === "false") {
       where.inStock = false;
     }
+    if (query.featured === "true") {
+      where.featured = true;
+    }
     if (query.tag) {
       where.tags = { has: query.tag };
+    }
+    if (query.search) {
+      where.name = { contains: query.search, mode: "insensitive" };
     }
 
     const products = await prisma.product.findMany({
       where,
-      include: { category: true },
-      orderBy: [{ category: { order: "asc" } }, { name: "asc" }],
+      include: PRODUCT_INCLUDE,
+      orderBy: [{ displayOrder: "asc" }, { category: { order: "asc" } }, { name: "asc" }],
     });
 
     // Check if user is CLIENT_PRO to include proPriceCents
@@ -37,8 +52,9 @@ export async function GET(req: NextRequest) {
     const isPro = role === "client_pro";
 
     const data = products.map((p) => {
+      if (isPro) return p;
       const { proPriceCents, ...rest } = p;
-      return isPro ? p : rest;
+      return rest;
     });
 
     return apiSuccess(data);
@@ -84,6 +100,19 @@ export async function POST(req: NextRequest) {
       return apiError("VALIDATION_ERROR", "La catégorie n'appartient pas à cette boucherie");
     }
 
+    // Resolve labels: find or create
+    const labelConnections: { id: string }[] = [];
+    if (data.labels?.length) {
+      for (const l of data.labels) {
+        const label = await prisma.productLabel.upsert({
+          where: { name: l.name },
+          update: {},
+          create: { name: l.name, color: l.color },
+        });
+        labelConnections.push({ id: label.id });
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name: data.name,
@@ -94,13 +123,38 @@ export async function POST(req: NextRequest) {
         unit: data.unit,
         inStock: data.inStock ?? true,
         stockQty: data.stockQty,
+        minWeightG: data.minWeightG,
+        weightStepG: data.weightStepG,
+        maxWeightG: data.maxWeightG,
+        displayOrder: data.displayOrder ?? 0,
+        featured: data.featured ?? false,
+        popular: data.popular ?? false,
         categoryId: data.categoryId,
         shopId: data.shopId,
         tags: data.tags ?? [],
+        origin: data.origin,
+        halalOrg: data.halalOrg,
+        race: data.race,
+        freshness: data.freshness,
+        customerNote: data.customerNote,
         promoPct: data.promoPct,
         promoEnd: data.promoEnd ? new Date(data.promoEnd) : null,
+        promoType: data.promoType,
+        ...(data.images?.length && {
+          images: {
+            create: data.images.map((img) => ({
+              url: img.url,
+              alt: img.alt,
+              order: img.order,
+              isPrimary: img.isPrimary,
+            })),
+          },
+        }),
+        ...(labelConnections.length > 0 && {
+          labels: { connect: labelConnections },
+        }),
       },
-      include: { category: true },
+      include: PRODUCT_INCLUDE,
     });
 
     return apiSuccess(product, 201);

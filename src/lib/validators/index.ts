@@ -77,7 +77,21 @@ export const productListQuerySchema = z.object({
   shopId: z.string().cuid("shopId requis"),
   categoryId: z.string().cuid().optional(),
   inStock: z.enum(["true", "false"]).optional(),
+  featured: z.enum(["true", "false"]).optional(),
+  search: z.string().max(100).optional(),
   tag: z.string().optional(),
+});
+
+const productImageSchema = z.object({
+  url: z.string().url(),
+  alt: z.string().max(200).optional(),
+  order: z.number().int().min(0).default(0),
+  isPrimary: z.boolean().default(false),
+});
+
+const productLabelInputSchema = z.object({
+  name: z.string().min(1).max(100),
+  color: z.string().max(20).optional(),
 });
 
 export const createProductSchema = z.object({
@@ -89,11 +103,25 @@ export const createProductSchema = z.object({
   unit: z.enum(["KG", "PIECE", "BARQUETTE"]),
   inStock: z.boolean().optional(),
   stockQty: z.number().min(0).nullable().optional(),
+  minWeightG: z.number().int().min(1).nullable().optional(),
+  weightStepG: z.number().int().min(1).nullable().optional(),
+  maxWeightG: z.number().int().min(1).nullable().optional(),
+  displayOrder: z.number().int().min(0).optional(),
+  featured: z.boolean().optional(),
+  popular: z.boolean().optional(),
   categoryId: z.string().cuid(),
   shopId: z.string().cuid(),
   tags: z.array(z.string().max(50)).optional(),
+  origin: z.string().max(200).nullable().optional(),
+  halalOrg: z.string().max(200).nullable().optional(),
+  race: z.string().max(200).nullable().optional(),
+  freshness: z.string().max(200).nullable().optional(),
+  customerNote: z.string().max(500).nullable().optional(),
   promoPct: z.number().int().min(1).max(99).nullable().optional(),
   promoEnd: z.string().datetime().nullable().optional(),
+  promoType: z.string().max(50).nullable().optional(),
+  images: z.array(productImageSchema).optional(),
+  labels: z.array(productLabelInputSchema).optional(),
 });
 
 export const updateProductSchema = z.object({
@@ -105,10 +133,24 @@ export const updateProductSchema = z.object({
   unit: z.enum(["KG", "PIECE", "BARQUETTE"]).optional(),
   inStock: z.boolean().optional(),
   stockQty: z.number().min(0).nullable().optional(),
+  minWeightG: z.number().int().min(1).nullable().optional(),
+  weightStepG: z.number().int().min(1).nullable().optional(),
+  maxWeightG: z.number().int().min(1).nullable().optional(),
+  displayOrder: z.number().int().min(0).optional(),
+  featured: z.boolean().optional(),
+  popular: z.boolean().optional(),
   categoryId: z.string().cuid().optional(),
   tags: z.array(z.string().max(50)).optional(),
+  origin: z.string().max(200).nullable().optional(),
+  halalOrg: z.string().max(200).nullable().optional(),
+  race: z.string().max(200).nullable().optional(),
+  freshness: z.string().max(200).nullable().optional(),
+  customerNote: z.string().max(500).nullable().optional(),
   promoPct: z.number().int().min(1).max(99).nullable().optional(),
   promoEnd: z.string().datetime().nullable().optional(),
+  promoType: z.string().max(50).nullable().optional(),
+  images: z.array(productImageSchema).optional(),
+  labels: z.array(productLabelInputSchema).optional(),
 });
 
 export const toggleStockSchema = z.object({
@@ -116,6 +158,11 @@ export const toggleStockSchema = z.object({
   stockQty: z.number().min(0).optional(),
 }).refine((d) => d.inStock !== undefined || d.stockQty !== undefined, {
   message: "inStock ou stockQty requis",
+});
+
+export const reorderProductsSchema = z.object({
+  shopId: z.string().cuid(),
+  productIds: z.array(z.string().cuid()).min(1),
 });
 
 // -- Cart / Order --
