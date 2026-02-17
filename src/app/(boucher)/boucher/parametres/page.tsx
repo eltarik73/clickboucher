@@ -17,11 +17,19 @@ import {
   Building2,
   Gift,
   MapPin,
+  CreditCard,
+  CalendarClock,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
+type PickupSlotsConfig = {
+  intervalMin: number;
+  maxPerSlot: number;
+  slots: Record<string, { start: string; end: string }>;
+};
+
 type Shop = {
   id: string;
   name: string;
@@ -38,6 +46,9 @@ type Shop = {
   latitude: number | null;
   longitude: number | null;
   deliveryRadius: number;
+  pickupSlots: PickupSlotsConfig | null;
+  acceptOnline: boolean;
+  acceptOnPickup: boolean;
 };
 
 const DAYS = [
@@ -88,6 +99,20 @@ export default function BoucherParametresPage() {
   const [geoLng, setGeoLng] = useState<number | null>(null);
   const [geoRadius, setGeoRadius] = useState(15);
   const [geoLoading, setGeoLoading] = useState(false);
+
+  // Pickup slots state
+  const defaultSlotConfig: PickupSlotsConfig = {
+    intervalMin: 30,
+    maxPerSlot: 3,
+    slots: DAYS.reduce((acc, d) => ({ ...acc, [d.key]: { start: "08:00", end: "19:00" } }), {} as Record<string, { start: string; end: string }>),
+  };
+  const [pickupConfig, setPickupConfig] = useState<PickupSlotsConfig>(defaultSlotConfig);
+  const [pickupSaving, setPickupSaving] = useState(false);
+
+  // Payment state
+  const [acceptOnline, setAcceptOnline] = useState(false);
+  const [acceptOnPickup, setAcceptOnPickup] = useState(true);
+  const [paymentSaving, setPaymentSaving] = useState(false);
 
   // Loyalty state
   const [loyaltyActive, setLoyaltyActive] = useState(false);
@@ -154,6 +179,11 @@ export default function BoucherParametresPage() {
       setGeoLat(data.latitude);
       setGeoLng(data.longitude);
       setGeoRadius(data.deliveryRadius || 15);
+      if (data.pickupSlots && typeof data.pickupSlots === "object" && "intervalMin" in data.pickupSlots) {
+        setPickupConfig(data.pickupSlots as PickupSlotsConfig);
+      }
+      setAcceptOnline(data.acceptOnline ?? false);
+      setAcceptOnPickup(data.acceptOnPickup ?? true);
     } catch {
       setError("Erreur de connexion");
     } finally {
@@ -228,6 +258,36 @@ export default function BoucherParametresPage() {
         <p className="text-sm text-gray-500 dark:text-gray-400">{error || "Boucherie introuvable"}</p>
       </div>
     );
+  }
+
+  async function savePickupSlots() {
+    if (!shop) return;
+    setPickupSaving(true);
+    try {
+      const res = await fetch(`/api/shops/${shop.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pickupSlots: pickupConfig }),
+      });
+      if (res.ok) toast.show();
+    } catch {} finally {
+      setPickupSaving(false);
+    }
+  }
+
+  async function savePayment() {
+    if (!shop) return;
+    setPaymentSaving(true);
+    try {
+      const res = await fetch(`/api/shops/${shop.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acceptOnline, acceptOnPickup }),
+      });
+      if (res.ok) toast.show();
+    } catch {} finally {
+      setPaymentSaving(false);
+    }
   }
 
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
@@ -330,7 +390,165 @@ export default function BoucherParametresPage() {
           </div>
         </SettingCard>
 
-        {/* ── 4. TEMPS DE PRÉPARATION ── */}
+        {/* ── 4. CRÉNEAUX DE RETRAIT ── */}
+        <SettingCard
+          icon={<CalendarClock size={18} className="text-indigo-600" />}
+          title="Créneaux de retrait"
+          accent="border-l-indigo-500"
+        >
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Configurez les créneaux disponibles pour le retrait des commandes.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  Intervalle
+                </label>
+                <select
+                  value={pickupConfig.intervalMin}
+                  onChange={(e) =>
+                    setPickupConfig((prev) => ({ ...prev, intervalMin: Number(e.target.value) }))
+                  }
+                  className="w-full h-9 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 text-sm"
+                >
+                  <option value={15}>15 min</option>
+                  <option value={30}>30 min</option>
+                  <option value={60}>1 heure</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  Max / créneau
+                </label>
+                <Input
+                  type="number"
+                  value={pickupConfig.maxPerSlot}
+                  onChange={(e) =>
+                    setPickupConfig((prev) => ({ ...prev, maxPerSlot: Number(e.target.value) }))
+                  }
+                  className="h-9"
+                  min={1}
+                  max={20}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Horaires par jour
+              </label>
+              {DAYS.map((day) => {
+                const slot = pickupConfig.slots[day.key] || { start: "08:00", end: "19:00" };
+                return (
+                  <div key={day.key} className="flex items-center gap-2">
+                    <span className="w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">
+                      {day.label}
+                    </span>
+                    <Input
+                      type="time"
+                      value={slot.start}
+                      onChange={(e) =>
+                        setPickupConfig((prev) => ({
+                          ...prev,
+                          slots: {
+                            ...prev.slots,
+                            [day.key]: { ...prev.slots[day.key], start: e.target.value },
+                          },
+                        }))
+                      }
+                      className="h-9 w-28"
+                    />
+                    <span className="text-xs text-gray-400">à</span>
+                    <Input
+                      type="time"
+                      value={slot.end}
+                      onChange={(e) =>
+                        setPickupConfig((prev) => ({
+                          ...prev,
+                          slots: {
+                            ...prev.slots,
+                            [day.key]: { ...prev.slots[day.key], end: e.target.value },
+                          },
+                        }))
+                      }
+                      className="h-9 w-28"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            <Button
+              onClick={savePickupSlots}
+              disabled={pickupSaving}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-10"
+            >
+              {pickupSaving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Enregistrer les créneaux"
+              )}
+            </Button>
+          </div>
+        </SettingCard>
+
+        {/* ── 5. MODE DE PAIEMENT ── */}
+        <SettingCard
+          icon={<CreditCard size={18} className="text-emerald-600" />}
+          title="Modes de paiement"
+          accent={acceptOnPickup || acceptOnline ? "border-l-emerald-500" : "border-l-transparent"}
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-white">Paiement sur place</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Le client paie au retrait (espèces, CB, etc.)
+                </p>
+              </div>
+              <Switch
+                checked={acceptOnPickup}
+                onCheckedChange={setAcceptOnPickup}
+                className={acceptOnPickup ? "!bg-emerald-500" : ""}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-white">Paiement en ligne</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Le client paie par carte lors de la commande
+                </p>
+              </div>
+              <Switch
+                checked={acceptOnline}
+                onCheckedChange={setAcceptOnline}
+                className={acceptOnline ? "!bg-emerald-500" : ""}
+              />
+            </div>
+            {!acceptOnPickup && !acceptOnline && (
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                  Au moins un mode de paiement doit être activé
+                </p>
+              </div>
+            )}
+            <Button
+              onClick={savePayment}
+              disabled={paymentSaving || (!acceptOnPickup && !acceptOnline)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-10"
+            >
+              {paymentSaving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Enregistrer le paiement"
+              )}
+            </Button>
+          </div>
+        </SettingCard>
+
+        {/* ── 6. TEMPS DE PRÉPARATION ── */}
         <SettingCard
           icon={<Clock size={18} className="text-blue-600" />}
           title="Temps de préparation"

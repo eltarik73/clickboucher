@@ -65,6 +65,9 @@ export const updateShopSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   deliveryRadius: z.number().min(1).max(100).optional(),
+  pickupSlots: z.any().optional(),
+  acceptOnline: z.boolean().optional(),
+  acceptOnPickup: z.boolean().optional(),
 });
 
 export const updateShopStatusSchema = z.object({

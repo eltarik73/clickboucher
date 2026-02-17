@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock } from "lucide-react";
+import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, type CartItem } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,15 @@ function CartItemRow({
   );
 }
 
+// ── Slot type ────────────────────────────────────
+
+type PickupSlot = {
+  start: string;
+  end: string;
+  available: boolean;
+  remaining: number;
+};
+
 // ── Main Page ────────────────────────────────────
 
 export default function PanierPage() {
@@ -104,13 +113,68 @@ export default function PanierPage() {
   const { user, isSignedIn, isLoaded } = useUser();
   const { state, updateQty, removeItem, clear, itemCount, totalCents } = useCart();
 
-  const [timeMode, setTimeMode] = useState<"asap" | "scheduled">("asap");
+  const [timeMode, setTimeMode] = useState<"asap" | "slot">("asap");
   const [scheduledTime, setScheduledTime] = useState("");
   const [customerNote, setCustomerNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"ON_PICKUP" | "ONLINE">("ON_PICKUP");
+
+  // Pickup slots
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [slots, setSlots] = useState<PickupSlot[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<PickupSlot | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Shop payment config
+  const [shopAcceptOnline, setShopAcceptOnline] = useState(false);
+  const [shopAcceptOnPickup, setShopAcceptOnPickup] = useState(true);
 
   const role = user?.publicMetadata?.role as string | undefined;
   const isPro = role === "client_pro";
+
+  // Fetch shop payment config
+  useEffect(() => {
+    if (!state.shopId) return;
+    fetch(`/api/shops/${state.shopId}`)
+      .then((r) => r.json())
+      .then((json) => {
+        const shop = json.data || json;
+        setShopAcceptOnline(shop.acceptOnline ?? false);
+        setShopAcceptOnPickup(shop.acceptOnPickup ?? true);
+        if (!shop.acceptOnPickup && shop.acceptOnline) {
+          setPaymentMethod("ONLINE");
+        }
+      })
+      .catch(() => {});
+  }, [state.shopId]);
+
+  // Fetch available slots when date or shop changes
+  const fetchSlots = useCallback(async () => {
+    if (!state.shopId) return;
+    setSlotsLoading(true);
+    try {
+      const res = await fetch(`/api/shops/${state.shopId}/available-slots?date=${selectedDate}`);
+      const json = await res.json();
+      setSlots(json.data?.slots || []);
+    } catch {
+      setSlots([]);
+    } finally {
+      setSlotsLoading(false);
+    }
+  }, [state.shopId, selectedDate]);
+
+  useEffect(() => {
+    if (timeMode === "slot") fetchSlots();
+  }, [timeMode, fetchSlots]);
+
+  function navigateDate(dir: number) {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + dir);
+    const today = new Date().toISOString().slice(0, 10);
+    if (d.toISOString().slice(0, 10) < today) return;
+    setSelectedDate(d.toISOString().slice(0, 10));
+    setSelectedSlot(null);
+  }
 
   const handleOrder = async () => {
     if (!state.shopId || state.items.length === 0) return;
@@ -118,11 +182,11 @@ export default function PanierPage() {
     setSubmitting(true);
     try {
       const requestedTime =
-        timeMode === "scheduled" && scheduledTime
-          ? new Date(scheduledTime).toISOString()
+        timeMode === "slot" && selectedSlot
+          ? `${selectedDate}T${selectedSlot.start}:00`
           : "asap";
 
-      const orderBody = {
+      const orderBody: Record<string, unknown> = {
         shopId: state.shopId,
         items: state.items.map((i) => ({
           productId: i.productId || i.id,
@@ -132,7 +196,13 @@ export default function PanierPage() {
         })),
         requestedTime,
         customerNote: customerNote.trim() || undefined,
+        paymentMethod,
       };
+
+      if (timeMode === "slot" && selectedSlot) {
+        orderBody.pickupSlotStart = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
+        orderBody.pickupSlotEnd = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
+      }
       console.log("[Panier] ORDER BODY:", JSON.stringify(orderBody, null, 2));
 
       const res = await fetch("/api/orders", {
@@ -322,28 +392,79 @@ export default function PanierPage() {
                   <input
                     type="radio"
                     name="timeSlot"
-                    checked={timeMode === "scheduled"}
-                    onChange={() => setTimeMode("scheduled")}
+                    checked={timeMode === "slot"}
+                    onChange={() => setTimeMode("slot")}
                     className="w-4 h-4 accent-[#DC2626]"
                   />
                   <div className="flex-1">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      Programmer un retrait
+                      Choisir un creneau
                     </span>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                      Choisissez un horaire precis
+                      Selectionnez un creneau de 30 min
                     </p>
                   </div>
                 </label>
 
-                {timeMode === "scheduled" && (
-                  <input
-                    type="datetime-local"
-                    value={scheduledTime}
-                    onChange={(e) => setScheduledTime(e.target.value)}
-                    min={new Date().toISOString().slice(0, 16)}
-                    className="mt-3 w-full h-12 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
-                  />
+                {timeMode === "slot" && (
+                  <div className="mt-3 space-y-3">
+                    {/* Date navigator */}
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => navigateDate(-1)}
+                        className="w-8 h-8 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {new Date(selectedDate + "T12:00:00").toLocaleDateString("fr-FR", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                        })}
+                      </span>
+                      <button
+                        onClick={() => navigateDate(1)}
+                        className="w-8 h-8 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+
+                    {/* Slots grid */}
+                    {slotsLoading ? (
+                      <p className="text-xs text-gray-400 text-center py-4">Chargement...</p>
+                    ) : slots.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-4">Aucun creneau disponible ce jour</p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2">
+                        {slots.map((slot) => {
+                          const isSelected = selectedSlot?.start === slot.start;
+                          return (
+                            <button
+                              key={slot.start}
+                              onClick={() => slot.available && setSelectedSlot(slot)}
+                              disabled={!slot.available}
+                              className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors border ${
+                                isSelected
+                                  ? "bg-[#DC2626] text-white border-[#DC2626]"
+                                  : slot.available
+                                  ? "bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-200 dark:border-white/10 hover:border-[#DC2626]/50"
+                                  : "bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 border-transparent cursor-not-allowed"
+                              }`}
+                            >
+                              {slot.start}
+                              {slot.available && (
+                                <span className={`block text-[10px] mt-0.5 ${isSelected ? "text-white/70" : "text-gray-400"}`}>
+                                  {slot.remaining} place{slot.remaining > 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -363,26 +484,78 @@ export default function PanierPage() {
                 />
               </div>
 
-              {/* Payment note */}
-              <div className="flex items-center gap-2 px-1">
-                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+              {/* Payment method */}
+              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard size={16} className="text-[#DC2626]" />
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Mode de paiement
+                  </span>
                 </div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Paiement sur place au retrait — pas de paiement en ligne
-                </span>
+
+                {shopAcceptOnPickup && (
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors mb-2 ${
+                    paymentMethod === "ON_PICKUP"
+                      ? "border-[#DC2626] bg-[#DC2626]/5"
+                      : "border-[#ece8e3] dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "ON_PICKUP"}
+                      onChange={() => setPaymentMethod("ON_PICKUP")}
+                      className="w-4 h-4 accent-[#DC2626]"
+                    />
+                    <Banknote size={18} className="text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        Paiement sur place
+                      </span>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        Payez au retrait (especes, CB)
+                      </p>
+                    </div>
+                  </label>
+                )}
+
+                {shopAcceptOnline && (
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    paymentMethod === "ONLINE"
+                      ? "border-[#DC2626] bg-[#DC2626]/5"
+                      : "border-[#ece8e3] dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "ONLINE"}
+                      onChange={() => setPaymentMethod("ONLINE")}
+                      className="w-4 h-4 accent-[#DC2626]"
+                    />
+                    <CreditCard size={18} className="text-blue-600 shrink-0" />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        Paiement en ligne
+                      </span>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        Payez par carte maintenant
+                      </p>
+                    </div>
+                  </label>
+                )}
               </div>
 
               {/* Submit */}
               <Button
                 onClick={handleOrder}
-                disabled={submitting || (timeMode === "scheduled" && !scheduledTime)}
-                className="w-full bg-[#DC2626] hover:bg-[#DC2626] disabled:opacity-50"
+                disabled={submitting || (timeMode === "slot" && !selectedSlot)}
+                className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50"
                 size="lg"
               >
-                {submitting ? "Envoi en cours..." : "Confirmer ma commande"}
+                {submitting
+                  ? "Envoi en cours..."
+                  : paymentMethod === "ONLINE"
+                  ? `Payer ${fmtPrice(totalCents)} et commander`
+                  : "Confirmer ma commande"}
               </Button>
             </div>
           )}
