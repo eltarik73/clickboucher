@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { requireAdmin } from "@/lib/admin-auth";
 import { handleApiError } from "@/lib/api/errors";
 
-// Admin-only: all shops with counts + owner info
+// Admin-only: all shops with counts + owner info + subscription
 export async function GET() {
   try {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string>)?.role;
-    if (role !== "admin") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
+    const admin = await requireAdmin();
+    if (admin.error) return admin.error;
 
     const shops = await prisma.shop.findMany({
       include: {
-        _count: { select: { products: true, orders: true } },
+        subscription: {
+          select: { plan: true, status: true, trialEndsAt: true, validatedAt: true },
+        },
+        _count: { select: { products: true, orders: true, reviews: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -37,6 +37,7 @@ export async function GET() {
         ownerEmail: owner?.email || null,
         productCount: s._count.products,
         orderCount: s._count.orders,
+        reviewCount: s._count.reviews,
       };
     });
 
@@ -49,11 +50,8 @@ export async function GET() {
 // Admin-only: list boucher users (for owner select)
 export async function POST() {
   try {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string>)?.role;
-    if (role !== "admin") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
+    const admin = await requireAdmin();
+    if (admin.error) return admin.error;
 
     const bouchers = await prisma.user.findMany({
       where: { role: "BOUCHER" },

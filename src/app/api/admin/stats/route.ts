@@ -1,20 +1,24 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import { handleApiError } from "@/lib/api/errors";
+import { requireAdmin } from "@/lib/admin-auth";
+import { apiSuccess, handleApiError } from "@/lib/api/errors";
 
 export async function GET() {
   try {
-    // Auth check
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string>)?.role;
-    if (role !== "admin") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
+    const admin = await requireAdmin();
+    if (admin.error) return admin.error;
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Last 7 days boundaries
+    const days7: Date[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      days7.push(d);
+    }
 
     const [
       totalRevenue,
@@ -23,6 +27,7 @@ export async function GET() {
       todayOrders,
       pendingOrders,
       activeShops,
+      totalShops,
       totalUsers,
       totalProducts,
       pendingProRequests,
@@ -30,6 +35,9 @@ export async function GET() {
       topShopsRaw,
       staleOrders,
       pausedShops,
+      totalCommission,
+      shopsByPlanRaw,
+      ordersLast7DaysRaw,
     ] = await Promise.all([
       // Total revenue (COMPLETED + PICKED_UP)
       prisma.order.aggregate({
@@ -63,6 +71,9 @@ export async function GET() {
       prisma.shop.count({
         where: { status: { in: ["OPEN", "BUSY"] } },
       }),
+
+      // Total shops
+      prisma.shop.count(),
 
       // Total users
       prisma.user.count(),
@@ -117,6 +128,24 @@ export async function GET() {
         where: { paused: true },
         select: { id: true, name: true },
       }),
+
+      // Total commission
+      prisma.order.aggregate({
+        where: { status: { in: ["COMPLETED", "PICKED_UP"] } },
+        _sum: { commissionCents: true },
+      }),
+
+      // Shops by plan
+      prisma.subscription.groupBy({
+        by: ["plan"],
+        _count: true,
+      }),
+
+      // Orders last 7 days (one query, group in JS)
+      prisma.order.findMany({
+        where: { createdAt: { gte: days7[0] } },
+        select: { createdAt: true, totalCents: true, status: true },
+      }),
     ]);
 
     const topShops = topShopsRaw.map((s) => ({
@@ -127,17 +156,42 @@ export async function GET() {
       revenue: s.orders.reduce((sum, o) => sum + o.totalCents, 0),
     }));
 
-    return NextResponse.json({
+    // Build shopsByPlan map
+    const shopsByPlan: Record<string, number> = { STARTER: 0, PRO: 0, PREMIUM: 0 };
+    for (const row of shopsByPlanRaw) {
+      shopsByPlan[row.plan] = row._count;
+    }
+
+    // Build ordersLast7Days chart data
+    const ordersLast7Days = days7.map((dayStart, i) => {
+      const dayEnd = i < 6 ? days7[i + 1] : new Date(dayStart.getTime() + 86400000);
+      const dayOrders = ordersLast7DaysRaw.filter(
+        (o) => o.createdAt >= dayStart && o.createdAt < dayEnd
+      );
+      return {
+        date: dayStart.toISOString().slice(0, 10),
+        orders: dayOrders.length,
+        revenue: dayOrders
+          .filter((o) => o.status === "COMPLETED" || o.status === "PICKED_UP")
+          .reduce((s, o) => s + o.totalCents, 0),
+      };
+    });
+
+    return apiSuccess({
       totalRevenue: totalRevenue._sum.totalCents || 0,
       revenueThisMonth: revenueThisMonth._sum.totalCents || 0,
       totalOrders,
       todayOrders,
       pendingOrders,
       activeShops,
+      totalShops,
       totalUsers,
       totalProducts,
       pendingProRequests,
       avgRating: avgRating._avg.rating || 0,
+      totalCommissionCents: totalCommission._sum.commissionCents || 0,
+      shopsByPlan,
+      ordersLast7Days,
       topShops,
       alerts: {
         staleOrders: staleOrders.map((o) => ({
