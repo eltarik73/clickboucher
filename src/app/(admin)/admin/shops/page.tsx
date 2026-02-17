@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Search,
   Plus,
@@ -10,6 +11,7 @@ import {
   Play,
   Star,
   ChevronDown,
+  Eye,
 } from "lucide-react";
 import {
   Dialog,
@@ -38,6 +40,12 @@ type Shop = {
   ownerEmail: string | null;
   productCount: number;
   orderCount: number;
+  reviewCount: number;
+  subscription: {
+    plan: string;
+    status: string;
+    trialEndsAt: string | null;
+  } | null;
 };
 
 type Boucher = {
@@ -426,7 +434,22 @@ export default function AdminShopsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3">{statusBadge(shop)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          {statusBadge(shop)}
+                          {shop.subscription && (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                              shop.subscription.plan === "PREMIUM"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
+                                : shop.subscription.plan === "PRO"
+                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"
+                                  : "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400"
+                            }`}>
+                              {shop.subscription.plan}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs">
                           <Star size={12} fill="currentColor" />
@@ -444,6 +467,13 @@ export default function AdminShopsPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/admin/shops/${shop.id}`}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[white/10] text-gray-500 dark:text-gray-400 transition-colors"
+                            title="Voir détail"
+                          >
+                            <Eye size={14} />
+                          </Link>
                           <button
                             onClick={() => openEdit(shop)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[white/10] text-gray-500 dark:text-gray-400 transition-colors"

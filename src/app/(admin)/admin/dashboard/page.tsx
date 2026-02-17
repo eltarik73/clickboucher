@@ -12,6 +12,8 @@ import {
   Briefcase,
   TrendingUp,
   Star,
+  CreditCard,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -22,10 +24,14 @@ type Stats = {
   todayOrders: number;
   pendingOrders: number;
   activeShops: number;
+  totalShops: number;
   totalUsers: number;
   totalProducts: number;
   pendingProRequests: number;
   avgRating: number;
+  totalCommissionCents: number;
+  shopsByPlan: Record<string, number>;
+  ordersLast7Days: { date: string; orders: number; revenue: number }[];
   topShops: {
     id: string;
     name: string;
@@ -61,7 +67,8 @@ export default function AdminDashboardPage() {
     fetch("/api/admin/stats")
       .then(async (r) => {
         if (!r.ok) throw new Error("Erreur chargement");
-        return r.json();
+        const json = await r.json();
+        return json.data || json;
       })
       .then(setStats)
       .catch((e) => setError(e.message))
@@ -107,6 +114,13 @@ export default function AdminDashboardPage() {
       bg: "bg-emerald-50 dark:bg-emerald-500/10",
     },
     {
+      label: "Commission totale",
+      value: fmt(stats.totalCommissionCents) + " \u20ac",
+      icon: CreditCard,
+      color: "text-purple-600 dark:text-purple-400",
+      bg: "bg-purple-50 dark:bg-purple-500/10",
+    },
+    {
       label: "Commandes aujourd\u2019hui",
       value: stats.todayOrders.toString(),
       icon: Package,
@@ -115,7 +129,7 @@ export default function AdminDashboardPage() {
     },
     {
       label: "Boucheries actives",
-      value: stats.activeShops.toString(),
+      value: `${stats.activeShops} / ${stats.totalShops}`,
       icon: Store,
       color: "text-violet-600 dark:text-violet-400",
       bg: "bg-violet-50 dark:bg-violet-500/10",
@@ -128,7 +142,7 @@ export default function AdminDashboardPage() {
       bg: "bg-sky-50 dark:bg-sky-500/10",
     },
     {
-      label: "Commandes en attente",
+      label: "En attente",
       value: stats.pendingOrders.toString(),
       icon: Clock,
       color:
@@ -138,27 +152,14 @@ export default function AdminDashboardPage() {
       bg:
         stats.pendingOrders > 0
           ? "bg-red-50 dark:bg-red-500/10"
-          : "bg-gray-50 dark:bg-[white/10]",
+          : "bg-gray-50 dark:bg-white/5",
     },
     {
-      label: "Produits en catalogue",
+      label: "Produits",
       value: stats.totalProducts.toString(),
       icon: ShoppingBag,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-50 dark:bg-amber-500/10",
-    },
-    {
-      label: "Demandes Pro",
-      value: stats.pendingProRequests.toString(),
-      icon: Briefcase,
-      color:
-        stats.pendingProRequests > 0
-          ? "text-orange-600 dark:text-orange-400"
-          : "text-gray-600 dark:text-gray-400",
-      bg:
-        stats.pendingProRequests > 0
-          ? "bg-orange-50 dark:bg-orange-500/10"
-          : "bg-gray-50 dark:bg-[white/10]",
     },
   ];
 
@@ -166,6 +167,9 @@ export default function AdminDashboardPage() {
     stats.alerts.staleOrders.length > 0 ||
     stats.alerts.pausedShops.length > 0 ||
     stats.alerts.pendingProRequests > 0;
+
+  // Chart: max value for scaling bars
+  const maxOrders = Math.max(...stats.ordersLast7Days.map((d) => d.orders), 1);
 
   return (
     <div className="space-y-6">
@@ -186,7 +190,7 @@ export default function AdminDashboardPage() {
           return (
             <div
               key={kpi.label}
-              className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-4 shadow-sm"
+              className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-4 shadow-sm"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className={`p-2 rounded-lg ${kpi.bg}`}>
@@ -204,17 +208,95 @@ export default function AdminDashboardPage() {
         })}
       </div>
 
+      {/* Charts row */}
+      <div className="grid md:grid-cols-3 gap-4 md:gap-6">
+        {/* Orders last 7 days bar chart */}
+        <div className="md:col-span-2 bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+          <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4">
+            Commandes (7 derniers jours)
+          </h2>
+          <div className="flex items-end gap-2 h-40">
+            {stats.ordersLast7Days.map((day) => {
+              const pct = (day.orders / maxOrders) * 100;
+              const dayLabel = new Date(day.date + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short" });
+              return (
+                <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs font-semibold text-gray-900 dark:text-[#f8f6f3]">
+                    {day.orders}
+                  </span>
+                  <div className="w-full bg-gray-100 dark:bg-white/5 rounded-t-md relative" style={{ height: "100px" }}>
+                    <div
+                      className="absolute bottom-0 left-0 right-0 bg-[#DC2626] rounded-t-md transition-all duration-500"
+                      style={{ height: `${Math.max(pct, 4)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 capitalize">
+                    {dayLabel}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Shops by plan */}
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+          <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4 flex items-center gap-2">
+            <Crown size={16} className="text-amber-500" />
+            Répartition formules
+          </h2>
+          <div className="space-y-4">
+            {(["STARTER", "PRO", "PREMIUM"] as const).map((plan) => {
+              const count = stats.shopsByPlan[plan] || 0;
+              const total = Object.values(stats.shopsByPlan).reduce((s, v) => s + v, 0) || 1;
+              const pct = Math.round((count / total) * 100);
+              const colors: Record<string, string> = {
+                STARTER: "bg-gray-400",
+                PRO: "bg-blue-500",
+                PREMIUM: "bg-amber-500",
+              };
+              return (
+                <div key={plan}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {plan}
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
+                      {count}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${colors[plan]}`}
+                      style={{ width: `${Math.max(pct, 2)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            <div className="pt-2 border-t border-gray-100 dark:border-white/10">
+              <Link
+                href="/admin/formules"
+                className="text-xs text-[#DC2626] font-medium hover:underline"
+              >
+                Gérer les formules →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-4 md:gap-6">
         {/* Top 5 Shops */}
-        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10">
             <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
               Top 5 Boucheries
             </h2>
           </div>
           {stats.topShops.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-              Aucune commande finalis\u00e9e pour le moment.
+              Aucune commande finalisée pour le moment.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -227,24 +309,27 @@ export default function AdminDashboardPage() {
                     <th className="px-5 py-3 font-medium text-right">Note</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-[white/10]">
+                <tbody className="divide-y divide-gray-50 dark:divide-white/5">
                   {stats.topShops.map((shop, i) => (
                     <tr key={shop.id}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[white/10] text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                          <span className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-[10px] font-bold text-gray-500 dark:text-gray-400">
                             {i + 1}
                           </span>
-                          <span className="font-medium text-gray-900 dark:text-[#f8f6f3]">
+                          <Link
+                            href={`/admin/shops/${shop.id}`}
+                            className="font-medium text-gray-900 dark:text-[#f8f6f3] hover:text-[#DC2626] transition-colors"
+                          >
                             {shop.name}
-                          </span>
+                          </Link>
                         </div>
                       </td>
                       <td className="px-5 py-3 text-right text-gray-600 dark:text-gray-300">
                         {shop.orderCount}
                       </td>
                       <td className="px-5 py-3 text-right font-medium text-gray-900 dark:text-[#f8f6f3]">
-                        {fmt(shop.revenue)} \u20ac
+                        {fmt(shop.revenue)} €
                       </td>
                       <td className="px-5 py-3 text-right">
                         <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
@@ -261,8 +346,8 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Alerts */}
-        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-[white/10]">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10">
             <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] flex items-center gap-2">
               <AlertTriangle
                 size={16}
@@ -287,7 +372,6 @@ export default function AdminDashboardPage() {
               </p>
             )}
 
-            {/* Stale orders */}
             {stats.alerts.staleOrders.length > 0 && (
               <div>
                 <h3 className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
@@ -317,7 +401,6 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* Paused shops */}
             {stats.alerts.pausedShops.length > 0 && (
               <div>
                 <h3 className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">
@@ -327,7 +410,7 @@ export default function AdminDashboardPage() {
                   {stats.alerts.pausedShops.map((s) => (
                     <Link
                       key={s.id}
-                      href="/admin/shops"
+                      href={`/admin/shops/${s.id}`}
                       className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/15 transition-colors"
                     >
                       <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
@@ -342,7 +425,6 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* Pending pro requests */}
             {stats.alerts.pendingProRequests > 0 && (
               <div>
                 <h3 className="text-xs font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-wider mb-2">
@@ -357,7 +439,7 @@ export default function AdminDashboardPage() {
                     {stats.alerts.pendingProRequests > 1 ? "s" : ""} en attente
                   </span>
                   <span className="text-xs text-orange-500 dark:text-orange-400 font-medium">
-                    Voir &rarr;
+                    Voir →
                   </span>
                 </Link>
               </div>
@@ -367,19 +449,25 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick stats footer */}
-      <div className="flex items-center justify-between bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm px-5 py-4">
+      <div className="flex items-center justify-between bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm px-5 py-4">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <span>Total commandes :</span>
           <span className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
             {stats.totalOrders}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-          <span>Note moyenne :</span>
-          <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-            <Star size={14} fill="currentColor" />
-            {stats.avgRating.toFixed(1)}
-          </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <span>Note moyenne :</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+              <Star size={14} fill="currentColor" />
+              {stats.avgRating.toFixed(1)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <Briefcase size={14} />
+            <span>{stats.pendingProRequests} demande(s) Pro</span>
+          </div>
         </div>
       </div>
     </div>
