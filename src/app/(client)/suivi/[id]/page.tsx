@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin } from "lucide-react";
 import prisma from "@/lib/prisma";
 import OrderTracker from "@/components/order/OrderTracker";
+import ReorderSection from "@/components/order/ReorderSection";
 
 // ── Helpers ──────────────────────────────────────
 
@@ -45,6 +46,7 @@ export default async function SuiviPage({
 
   const st = STATUS_LABELS[order.status] || STATUS_LABELS.PENDING;
   const isReady = order.status === "READY";
+  const isCompleted = order.status === "COMPLETED" || order.status === "PICKED_UP";
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
@@ -137,6 +139,11 @@ export default async function SuiviPage({
               {order.qrCode.slice(0, 8).toUpperCase()}
             </div>
           </div>
+        )}
+
+        {/* Reorder section for completed orders */}
+        {isCompleted && (
+          <ReorderSection orderId={order.id} shopName={order.shop.name} />
         )}
 
         {/* Date */}

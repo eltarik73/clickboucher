@@ -12,6 +12,7 @@ import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { StarRating } from "@/components/ui/StarRating";
 import { getShopImage } from "@/lib/product-images";
 import NearbyShops from "./NearbyShops";
+import CalendarBanner from "@/components/landing/CalendarBanner";
 
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header)
@@ -327,6 +328,13 @@ export default async function DecouvrirPage() {
       {/* HOW IT WORKS */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <HowItWorks />
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* CALENDAR BANNER */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="max-w-6xl mx-auto px-5 pt-10">
+        <CalendarBanner />
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* BUTCHERS SECTION */}

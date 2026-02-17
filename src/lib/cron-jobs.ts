@@ -229,5 +229,111 @@ export function startCronJobs() {
     }
   });
 
+  // ═══════════════════════════════════════════
+  // 9. Calendar alerts — daily at 9:00 AM
+  // ═══════════════════════════════════════════
+  cron.schedule("0 9 * * *", async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const events = await prisma.calendarEvent.findMany({
+        where: { active: true },
+      });
+
+      for (const event of events) {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === event.alertDaysBefore) {
+          // Notify all bouchers
+          const shops = await prisma.shop.findMany({
+            where: { visible: true },
+            select: { ownerId: true, name: true },
+          });
+
+          for (const shop of shops) {
+            try {
+              const owner = await prisma.user.findUnique({
+                where: { clerkId: shop.ownerId },
+                select: { id: true },
+              });
+              if (owner) {
+                await sendNotification("CALENDAR_ALERT", {
+                  userId: owner.id,
+                  shopName: shop.name,
+                  message: `${event.name} dans ${diffDays} jours ! Préparez vos stocks et vos produits saisonniers.`,
+                });
+              }
+            } catch {
+              // Continue with next shop
+            }
+          }
+
+          console.log(`[CRON][calendar-alerts] Sent alerts for "${event.name}" (J-${diffDays})`);
+        }
+      }
+    } catch (error) {
+      console.error("[CRON][calendar-alerts] Error:", error);
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  // 10. Recurring order reminders — daily at 8:00 AM
+  // ═══════════════════════════════════════════
+  cron.schedule("0 8 * * *", async () => {
+    try {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      const dueRecurring = await prisma.recurringOrder.findMany({
+        where: {
+          active: true,
+          nextRunAt: { lte: today },
+        },
+        include: {
+          user: { select: { id: true, firstName: true } },
+        },
+      });
+
+      for (const rec of dueRecurring) {
+        try {
+          const shop = await prisma.shop.findUnique({
+            where: { id: rec.shopId },
+            select: { name: true },
+          });
+
+          // Send reminder notification (user must confirm)
+          await sendNotification("RECURRING_REMINDER", {
+            userId: rec.userId,
+            shopName: shop?.name || "votre boucherie",
+            message: `Votre commande récurrente chez ${shop?.name} est prête à être confirmée.`,
+          });
+
+          // Calculate next run date
+          const freq = rec.frequency;
+          const next = new Date(rec.nextRunAt || today);
+          if (freq === "weekly") next.setDate(next.getDate() + 7);
+          else if (freq === "biweekly") next.setDate(next.getDate() + 14);
+          else if (freq === "monthly") next.setMonth(next.getMonth() + 1);
+
+          await prisma.recurringOrder.update({
+            where: { id: rec.id },
+            data: { nextRunAt: next },
+          });
+        } catch {
+          // Continue with next recurring order
+        }
+      }
+
+      if (dueRecurring.length > 0) {
+        console.log(`[CRON][recurring-orders] Sent ${dueRecurring.length} reminders`);
+      }
+    } catch (error) {
+      console.error("[CRON][recurring-orders] Error:", error);
+    }
+  });
+
   console.log("[CRON] All cron jobs scheduled successfully");
 }
