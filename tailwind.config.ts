@@ -57,9 +57,9 @@ const config: Config = {
         sm: "calc(var(--radius) - 8px)",
       },
       fontFamily: {
-        sans: ["'DM Sans'", "'Inter'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["'Plus Jakarta Sans'", "'Inter'", "system-ui", "-apple-system", "sans-serif"],
-        serif: ["'Cormorant Garamond'", "Georgia", "serif"],
+        sans: ["var(--font-body)", "'DM Sans'", "system-ui", "-apple-system", "sans-serif"],
+        display: ["var(--font-display)", "'Plus Jakarta Sans'", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "'Cormorant Garamond'", "Georgia", "serif"],
       },
       fontSize: {
         "hero": ["2.5rem", { lineHeight: "1.1", letterSpacing: "-0.03em", fontWeight: "700" }],

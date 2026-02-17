@@ -241,9 +241,10 @@ export default async function DecouvrirPage() {
     void authErr; // Auth failed — non-blocking
   }
 
-  // 2. Fetch shops from DB
+  // 2. Fetch shops + favorites in parallel
   try {
-    shops = await prisma.shop.findMany({
+    const shopsPromise = prisma.shop.findMany({
+      where: { visible: true },
       orderBy: { rating: "desc" },
       select: {
         id: true,
@@ -260,25 +261,22 @@ export default async function DecouvrirPage() {
         ratingCount: true,
       },
     });
+
+    const favPromise = clerkId
+      ? prisma.user.findUnique({
+          where: { clerkId },
+          select: { favoriteShops: { select: { id: true } } },
+        })
+      : Promise.resolve(null);
+
+    const [shopsResult, favResult] = await Promise.all([shopsPromise, favPromise]);
+    shops = shopsResult;
+    if (favResult?.favoriteShops) {
+      favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
+    }
   } catch (error) {
     dbError = true;
-    const msg = error instanceof Error ? error.message : String(error);
-    void msg; // DB error — page will show fallback
-  }
-
-  // 3. Fetch favorites (non-blocking)
-  if (clerkId && !dbError) {
-    try {
-      const userResult = await prisma.user.findUnique({
-        where: { clerkId },
-        select: { favoriteShops: { select: { id: true } } },
-      });
-      if (userResult?.favoriteShops) {
-        favoriteIds = new Set(userResult.favoriteShops.map((s) => s.id));
-      }
-    } catch (favErr) {
-      void favErr; // Favorites fetch failed — non-blocking
-    }
+    void error;
   }
 
   return (

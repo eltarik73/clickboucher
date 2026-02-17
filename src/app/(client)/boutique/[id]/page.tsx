@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getShopImage } from "@/lib/product-images";
@@ -8,6 +9,33 @@ import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import {
+  ShopProductsClient,
+  type CategoryData,
+  type ProductData,
+} from "@/components/shop/ShopProductsClient";
+import { ReviewList } from "@/components/shop/ReviewList";
+import { LoyaltyBadge } from "@/components/shop/LoyaltyBadge";
+
+// ── Cached shop query (shared between generateMetadata & page) ──
+
+const getShop = cache(async (slug: string) => {
+  return prisma.shop.findUnique({
+    where: { slug },
+    include: {
+      categories: { orderBy: { order: "asc" } },
+      products: {
+        where: { inStock: true },
+        include: {
+          category: true,
+          images: { orderBy: { order: "asc" } },
+          labels: true,
+        },
+        orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      },
+    },
+  });
+});
 
 // ── Dynamic metadata for SEO ────────────────────
 
@@ -16,11 +44,7 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const { id: slug } = params;
-  const shop = await prisma.shop.findUnique({
-    where: { slug },
-    select: { name: true, city: true, description: true },
-  });
+  const shop = await getShop(params.id);
 
   if (!shop) {
     return { title: "Boutique introuvable — Klik&Go" };
@@ -40,13 +64,6 @@ export async function generateMetadata({
     },
   };
 }
-import {
-  ShopProductsClient,
-  type CategoryData,
-  type ProductData,
-} from "@/components/shop/ShopProductsClient";
-import { ReviewList } from "@/components/shop/ReviewList";
-import { LoyaltyBadge } from "@/components/shop/LoyaltyBadge";
 
 // ── Prep time color helper ───────────────────────
 
@@ -67,20 +84,7 @@ export default async function BoutiquePage({
 
   let shop;
   try {
-    shop = await prisma.shop.findUnique({
-      where: { slug },
-      include: {
-        categories: { orderBy: { order: "asc" } },
-        products: {
-          include: {
-            category: true,
-            images: { orderBy: { order: "asc" } },
-            labels: true,
-          },
-          orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
-        },
-      },
-    });
+    shop = await getShop(slug);
   } catch {
     notFound();
   }

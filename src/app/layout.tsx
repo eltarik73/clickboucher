@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { DM_Sans, Plus_Jakarta_Sans, Cormorant_Garamond } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
@@ -10,6 +11,27 @@ import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistratio
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import OfflineBanner from "@/components/pwa/OfflineBanner";
 import "@/styles/globals.css";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-serif",
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -53,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
-        <body className="bg-[#f8f6f3] text-gray-900 dark:bg-[#0a0a0a] dark:text-white antialiased transition-colors duration-300">
+        <body className={`${dmSans.variable} ${plusJakarta.variable} ${cormorant.variable} bg-[#f8f6f3] text-gray-900 dark:bg-[#0a0a0a] dark:text-white antialiased transition-colors duration-300`}>
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>

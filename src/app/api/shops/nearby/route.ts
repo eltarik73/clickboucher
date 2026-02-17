@@ -23,63 +23,66 @@ export async function GET(req: NextRequest) {
 
     const { lat, lng, radius } = parseResult.data;
 
-    // Haversine query with Prisma.$queryRaw (parameterized)
-    const shops = await prisma.$queryRaw<
-      Array<{
-        id: string;
-        slug: string;
-        name: string;
-        address: string;
-        city: string;
-        image_url: string | null;
-        latitude: number | null;
-        longitude: number | null;
-        prep_time_min: number;
-        busy_mode: boolean;
-        busy_extra_min: number;
-        status: string;
-        rating: number;
-        rating_count: number;
-        delivery_radius: number;
-        distance: number;
-      }>
-    >`SELECT
-        s.id, s.slug, s.name, s.address, s.city, s.image_url,
-        s.latitude, s.longitude,
-        s.prep_time_min, s.busy_mode, s.busy_extra_min,
-        s.status, s.rating, s.rating_count, s.delivery_radius,
-        (6371 * acos(
+    // Run both queries in parallel
+    const [shops, shopsWithoutCoords] = await Promise.all([
+      // Haversine query for shops WITH coordinates
+      prisma.$queryRaw<
+        Array<{
+          id: string;
+          slug: string;
+          name: string;
+          address: string;
+          city: string;
+          image_url: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          prep_time_min: number;
+          busy_mode: boolean;
+          busy_extra_min: number;
+          status: string;
+          rating: number;
+          rating_count: number;
+          delivery_radius: number;
+          distance: number;
+        }>
+      >`SELECT
+          s.id, s.slug, s.name, s.address, s.city, s.image_url,
+          s.latitude, s.longitude,
+          s.prep_time_min, s.busy_mode, s.busy_extra_min,
+          s.status, s.rating, s.rating_count, s.delivery_radius,
+          (6371 * acos(
+            LEAST(1.0, GREATEST(-1.0,
+              cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
+              + sin(radians(${lat})) * sin(radians(s.latitude))
+            ))
+          )) AS distance
+        FROM shops s
+        WHERE s.visible = true
+          AND s.latitude IS NOT NULL
+          AND s.longitude IS NOT NULL
+        HAVING (6371 * acos(
           LEAST(1.0, GREATEST(-1.0,
             cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
             + sin(radians(${lat})) * sin(radians(s.latitude))
           ))
-        )) AS distance
-      FROM shops s
-      WHERE s.visible = true
-        AND s.latitude IS NOT NULL
-        AND s.longitude IS NOT NULL
-      HAVING (6371 * acos(
-        LEAST(1.0, GREATEST(-1.0,
-          cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
-          + sin(radians(${lat})) * sin(radians(s.latitude))
-        ))
-      )) <= ${radius}
-      ORDER BY distance ASC`;
-
-    // Also get shops without coordinates (show at end)
-    const shopsWithoutCoords = await prisma.shop.findMany({
-      where: {
-        visible: true,
-        OR: [{ latitude: null }, { longitude: null }],
-      },
-      select: {
-        id: true, slug: true, name: true, address: true, city: true,
-        imageUrl: true, latitude: true, longitude: true,
-        prepTimeMin: true, busyMode: true, busyExtraMin: true,
-        status: true, rating: true, ratingCount: true,
-      },
-      orderBy: { rating: "desc" },
-    });
+        )) <= ${radius}
+        ORDER BY distance ASC`,
+      // Shops without coordinates (show at end)
+      prisma.shop.findMany({
+        where: {
+          visible: true,
+          OR: [{ latitude: null }, { longitude: null }],
+        },
+        select: {
+          id: true, slug: true, name: true, address: true, city: true,
+          imageUrl: true, latitude: true, longitude: true,
+          prepTimeMin: true, busyMode: true, busyExtraMin: true,
+          status: true, rating: true, ratingCount: true,
+        },
+        orderBy: { rating: "desc" },
+        take: 20,
+      }),
+    ]);
 
     // Normalize field names from raw SQL (snake_case → camelCase)
     const nearbyNormalized = shops.map((s) => ({

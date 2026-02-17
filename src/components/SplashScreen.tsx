@@ -10,11 +10,11 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
     if (sessionStorage.getItem("splash-seen") === "true") return;
     setShowSplash(true);
 
-    const fadeTimer = setTimeout(() => setFadeOut(true), 2200);
+    const fadeTimer = setTimeout(() => setFadeOut(true), 900);
     const hideTimer = setTimeout(() => {
       setShowSplash(false);
       sessionStorage.setItem("splash-seen", "true");
-    }, 2500);
+    }, 1200);
 
     return () => {
       clearTimeout(fadeTimer);
@@ -89,23 +89,23 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
 
             .splash-k {
               animation:
-                slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-                shake 0.3s ease 0.4s;
+                slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+                shake 0.2s ease 0.25s;
             }
             .splash-text {
               opacity: 0;
-              animation: fadeIn 0.4s ease 0.6s forwards;
+              animation: fadeIn 0.25s ease 0.3s forwards;
             }
             .splash-tagline {
               opacity: 0;
-              animation: taglineFade 0.5s ease 1s forwards;
+              animation: taglineFade 0.3s ease 0.5s forwards;
             }
             .splash-lines {
               opacity: 0;
-              animation: linesFade 0.4s ease 1.5s forwards;
+              animation: linesFade 0.2s ease 0.7s forwards;
             }
             .splash-bar {
-              animation: fillBar 2.5s linear forwards;
+              animation: fillBar 1.2s linear forwards;
             }
           `}</style>
         </div>
