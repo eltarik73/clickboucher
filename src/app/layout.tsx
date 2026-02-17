@@ -6,6 +6,9 @@ import { CartProviderWrapper } from "@/components/providers/CartProviderWrapper"
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { SplashScreen } from "@/components/SplashScreen";
 import { NotificationProvider } from "@/components/ui/NotificationToast";
+import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
+import OfflineBanner from "@/components/pwa/OfflineBanner";
 import "@/styles/globals.css";
 
 export const viewport: Viewport = {
@@ -55,7 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Toaster position="top-center" richColors />
             <NotificationProvider>
               <CartProviderWrapper>
+                <ServiceWorkerRegistration />
+                <OfflineBanner />
                 <SplashScreen>{children}</SplashScreen>
+                <InstallPrompt />
               </CartProviderWrapper>
             </NotificationProvider>
           </ThemeProvider>
