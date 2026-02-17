@@ -1,4 +1,11 @@
 // ─────────────────────────────────────────────
+// HTML escape — prevent XSS in user-supplied fields
+// ─────────────────────────────────────────────
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ─────────────────────────────────────────────
 // Shared layout wrapper
 // ─────────────────────────────────────────────
 function layout(content: string): string {
@@ -107,7 +114,7 @@ export function orderDenied(data: {
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:13px;color:#991b1b;font-weight:600">Raison</p>
-        <p style="margin:0;font-size:14px;color:#7f1d1d">${data.denyReason || "Non pr\u00e9cis\u00e9e"}</p>
+        <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason || "Non précisée")}</p>
       </td></tr>
     </table>
     <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande aupr\u00e8s d\u2019une autre boucherie.</p>
@@ -123,7 +130,7 @@ export function orderPending(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udd14 Nouvelle commande !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Vous avez re\u00e7u une nouvelle commande <strong>#${data.orderNumber}</strong> de <strong>${data.customerName || "un client"}</strong>.
+      Vous avez re\u00e7u une nouvelle commande <strong>#${data.orderNumber}</strong> de <strong>${esc(data.customerName || "un client")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Connectez-vous \u00e0 votre espace boucher pour accepter ou refuser cette commande.</p>
     ${button(`${baseUrl}/boucher/commandes`, "G\u00e9rer les commandes")}
@@ -231,7 +238,7 @@ export function trialExpiring(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f3 Votre essai se termine bient\u00f4t</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      ${data.message || `L\u2019essai gratuit de <strong>${data.shopName || "votre boutique"}</strong> se termine dans 7 jours.`}
+      ${data.message ? esc(data.message) : `L\u2019essai gratuit de <strong>${esc(data.shopName || "votre boutique")}</strong> se termine dans 7 jours.`}
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Passez au paiement pour continuer \u00e0 recevoir des commandes sans interruption.</p>
     ${button(`${baseUrl}/boucher/dashboard/abonnement`, "G\u00e9rer mon abonnement")}
@@ -295,7 +302,7 @@ export function calendarAlert(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcc5 \u00c9v\u00e9nement \u00e0 venir</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      ${data.message || "Un \u00e9v\u00e9nement important approche !"}
+      ${esc(data.message || "Un événement important approche !")}
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Pr\u00e9parez vos produits et vos stocks pour r\u00e9pondre \u00e0 la demande.</p>
     ${button(`${baseUrl}/boucher/dashboard`, "Mon tableau de bord")}

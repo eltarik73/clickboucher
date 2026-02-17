@@ -1,4 +1,5 @@
 // POST /api/orders/reorder — Re-create an order from an existing one (1-click reorder)
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { randomUUID } from "crypto";
