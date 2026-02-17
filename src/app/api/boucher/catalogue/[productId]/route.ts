@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { productId: string } }
