@@ -1,6 +1,6 @@
-import type { Shop, Product, Order } from "@/types";
-
-export const SHOPS: Shop[] = [
+// Legacy seed data — uses old types, kept for backward compatibility
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const SHOPS: any[] = [
   {
     id: "cb_savoie_halal_1",
     name: "Boucherie Halal Saint-Leger",
@@ -45,7 +45,8 @@ export const SHOPS: Shop[] = [
   },
 ];
 
-export const PRODUCTS: Product[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const PRODUCTS: any[] = [
   { id: "p1", shopId: "cb_savoie_halal_1", name: "Viande hachee 5% (boeuf)", unit: "kg", publicPrice: 13.90, proPrice: 11.90, tags: ["Halal"], stock: true, prepTime: 5 },
   { id: "p2", shopId: "cb_savoie_halal_1", name: "Merguez (lot)", unit: "kg", publicPrice: 12.90, proPrice: 10.90, tags: ["Halal", "BBQ"], stock: true, prepTime: 5 },
   { id: "p3", shopId: "cb_savoie_halal_1", name: "Brochettes de poulet", unit: "kg", publicPrice: 16.90, proPrice: 14.90, tags: ["Halal", "BBQ"], stock: true, prepTime: 10 },
@@ -60,7 +61,8 @@ export const PRODUCTS: Product[] = [
   { id: "p12", shopId: "cb_savoie_halal_3", name: "Bourguignon (boeuf)", unit: "kg", publicPrice: 16.90, proPrice: 14.90, tags: ["Halal"], stock: true, prepTime: 15 },
 ];
 
-export const SEED_ORDERS: Order[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const SEED_ORDERS: any[] = [
   { id: "CMD-001", shopId: "cb_savoie_halal_1", shopName: "Boucherie Halal Saint-Leger", customerName: "Karim B.", items: [{ name: "Merguez (lot)", qty: 2, unit: "kg" }, { name: "Brochettes de poulet", qty: 1.5, unit: "kg" }], total: 51.15, status: "confirmed", createdAt: "14:23", pickupSlot: "15:00" },
   { id: "CMD-002", shopId: "cb_savoie_halal_1", shopName: "Boucherie Halal Saint-Leger", customerName: "Sophie M.", items: [{ name: "Filet de poulet (entier)", qty: 1, unit: "kg" }], total: 12.90, status: "preparing", createdAt: "14:45", pickupSlot: "15:30" },
   { id: "CMD-003", shopId: "cb_savoie_halal_2", shopName: "Maison Halal des Halles", customerName: "Ahmed L.", items: [{ name: "Gigot d'agneau", qty: 2, unit: "kg" }, { name: "Saucisse fromage", qty: 1, unit: "kg" }], total: 53.70, status: "ready", createdAt: "13:10", pickupSlot: "14:00" },

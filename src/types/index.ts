@@ -1,49 +1,113 @@
-export type Shop = {
+// ═══════════════════════════════════════════════
+// KLIK&GO — Types V2
+// ═══════════════════════════════════════════════
+
+export type ProductImage = {
+  id: string;
+  url: string;
+  alt: string | null;
+  order: number;
+  isPrimary: boolean;
+};
+
+export type ProductLabel = {
   id: string;
   name: string;
-  city: string;
-  rating?: number;
-  ratingCount?: number;
-  distanceLabel?: string;
-  nextSlotLabel?: string | null;
-  isOpen?: boolean;
-  closesAt?: string;
-  opensAt?: string;
-  tags?: string[];
-  imageUrl?: string;
-  halal?: boolean;
+  color: string | null;
+  icon: string | null;
+};
+
+export type CategoryInfo = {
+  id: string;
+  name: string;
+  emoji: string | null;
+  order: number;
 };
 
 export type Product = {
   id: string;
   shopId: string;
   name: string;
-  unit: string;
-  publicPrice: number;
-  proPrice: number;
+  description: string | null;
+  imageUrl: string | null;
+  priceCents: number;
+  proPriceCents?: number | null;
+  unit: "KG" | "PIECE" | "BARQUETTE";
+  inStock: boolean;
+  stockQty: number | null;
+  minWeightG: number | null;
+  weightStepG: number | null;
+  maxWeightG: number | null;
+  displayOrder: number;
+  featured: boolean;
+  popular: boolean;
   tags: string[];
-  stock: boolean;
-  prepTime: number;
+  origin: string | null;
+  halalOrg: string | null;
+  race: string | null;
+  freshness: string | null;
+  customerNote: string | null;
+  promoPct: number | null;
+  promoEnd: string | null;
+  promoType: string | null;
+  category: CategoryInfo;
+  images: ProductImage[];
+  labels: ProductLabel[];
+  createdAt: string;
+  updatedAt: string;
 };
 
-export type OrderStatus = "confirmed" | "preparing" | "ready" | "picked";
+export type Shop = {
+  id: string;
+  name: string;
+  slug?: string;
+  city: string;
+  address?: string;
+  phone?: string;
+  imageUrl?: string | null;
+  description?: string | null;
+  rating: number;
+  ratingCount: number;
+  isOpen: boolean;
+  prepTimeMin?: number;
+  tags?: string[];
+  // Legacy fields (seed/data.ts)
+  halal?: boolean;
+  distanceLabel?: string;
+  closesAt?: string;
+  nextSlotLabel?: string;
+};
+
+export type OrderStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "PREPARING"
+  | "READY"
+  | "PICKED_UP"
+  | "COMPLETED"
+  | "DENIED"
+  | "CANCELLED"
+  | "PARTIALLY_DENIED";
 
 export type OrderItem = {
+  id: string;
   name: string;
-  qty: number;
+  quantity: number;
   unit: string;
+  priceCents: number;
+  totalCents: number;
+  available: boolean;
+  replacement: string | null;
 };
 
 export type Order = {
   id: string;
+  orderNumber: string;
   shopId: string;
-  shopName: string;
-  customerName: string;
-  items: OrderItem[];
-  total: number;
   status: OrderStatus;
+  totalCents: number;
+  items: OrderItem[];
   createdAt: string;
-  pickupSlot: string;
 };
 
 export type CartItem = Product & { qty: number };

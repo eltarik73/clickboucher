@@ -70,9 +70,12 @@ export default async function BoutiquePage({
       include: {
         categories: { orderBy: { order: "asc" } },
         products: {
-          where: { inStock: true },
-          include: { category: true },
-          orderBy: { name: "asc" },
+          include: {
+            category: true,
+            images: { orderBy: { order: "asc" } },
+            labels: true,
+          },
+          orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
         },
       },
     });
@@ -114,13 +117,38 @@ export default async function BoutiquePage({
     imageUrl: p.imageUrl,
     priceCents: p.priceCents,
     unit: p.unit,
+    inStock: p.inStock,
     tags: p.tags,
+    origin: p.origin,
+    halalOrg: p.halalOrg,
+    race: p.race,
+    freshness: p.freshness,
+    popular: p.popular,
     promoPct: p.promoPct,
+    promoEnd: p.promoEnd ? p.promoEnd.toISOString() : null,
+    promoType: p.promoType,
+    customerNote: p.customerNote,
+    minWeightG: p.minWeightG,
+    weightStepG: p.weightStepG,
+    maxWeightG: p.maxWeightG,
     category: {
       id: p.category.id,
       name: p.category.name,
       emoji: p.category.emoji,
     },
+    images: p.images.map((img) => ({
+      id: img.id,
+      url: img.url,
+      alt: img.alt,
+      order: img.order,
+      isPrimary: img.isPrimary,
+    })),
+    labels: p.labels.map((l) => ({
+      id: l.id,
+      name: l.name,
+      color: l.color,
+      icon: l.icon,
+    })),
   }));
 
   return (
