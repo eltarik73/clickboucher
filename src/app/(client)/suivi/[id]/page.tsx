@@ -2,8 +2,9 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, MapPin, Check, Package, Truck } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import prisma from "@/lib/prisma";
+import OrderTracker from "@/components/order/OrderTracker";
 
 // ── Helpers ──────────────────────────────────────
 
@@ -21,19 +22,6 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
   DENIED:           { label: "Refusee",        color: "text-red-700",     bg: "bg-red-50" },
   CANCELLED:        { label: "Annulee",        color: "text-gray-500",    bg: "bg-gray-50" },
   PARTIALLY_DENIED: { label: "Partielle",      color: "text-orange-700",  bg: "bg-orange-50" },
-};
-
-const STEPS = [
-  { key: "PENDING",    label: "Commande recue",   icon: Check },
-  { key: "ACCEPTED",   label: "Acceptee",         icon: Check },
-  { key: "PREPARING",  label: "En preparation",   icon: Package },
-  { key: "READY",      label: "Prete au retrait", icon: Truck },
-  { key: "PICKED_UP",  label: "Retiree",          icon: Check },
-];
-
-const STATUS_INDEX: Record<string, number> = {
-  PENDING: 0, ACCEPTED: 1, PREPARING: 2, READY: 3, PICKED_UP: 4, COMPLETED: 4,
-  DENIED: -1, CANCELLED: -1, PARTIALLY_DENIED: 1,
 };
 
 // ── Page ─────────────────────────────────────────
@@ -55,11 +43,8 @@ export default async function SuiviPage({
 
   if (!order) notFound();
 
-  const currentIdx = STATUS_INDEX[order.status] ?? 0;
   const st = STATUS_LABELS[order.status] || STATUS_LABELS.PENDING;
   const isReady = order.status === "READY";
-  const isDone = order.status === "PICKED_UP" || order.status === "COMPLETED";
-  const isDenied = order.status === "DENIED" || order.status === "CANCELLED";
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
@@ -87,92 +72,16 @@ export default async function SuiviPage({
       </header>
 
       <main className="max-w-xl mx-auto px-5 py-6 space-y-5">
-        {/* Status card */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-6 text-center">
-          <div
-            className={`w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center ${
-              isReady || isDone
-                ? "bg-emerald-100"
-                : isDenied
-                ? "bg-red-100"
-                : "bg-amber-100"
-            }`}
-          >
-            {isReady || isDone ? (
-              <Check size={24} className="text-emerald-600" />
-            ) : isDenied ? (
-              <span className="text-red-500 text-xl">✕</span>
-            ) : (
-              <Clock size={24} className="text-amber-600" />
-            )}
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            {isReady
-              ? "Ta commande est prete !"
-              : isDone
-              ? "Commande terminee"
-              : isDenied
-              ? "Commande refusee"
-              : "En cours de traitement"}
-          </h2>
-          {order.estimatedReady && !isDone && !isDenied && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center justify-center gap-1">
-              <Clock size={13} />
-              Estimee prete a{" "}
-              {new Date(order.estimatedReady).toLocaleTimeString("fr-FR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
-          {order.denyReason && (
-            <p className="text-sm text-red-600 mt-2">Raison : {order.denyReason}</p>
-          )}
-        </div>
-
-        {/* Timeline (hide if denied) */}
-        {!isDenied && (
-          <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-5">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Suivi</h3>
-            <div className="space-y-0">
-              {STEPS.map((s, i) => {
-                const done = i <= currentIdx;
-                const current = i === currentIdx;
-                return (
-                  <div key={s.key} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={`w-3 h-3 rounded-full border-2 ${
-                          done
-                            ? "bg-[#DC2626] border-[#DC2626]"
-                            : "bg-white dark:bg-[#0a0a0a] border-gray-300 dark:border-gray-600"
-                        } ${current ? "ring-4 ring-[#DC2626]/15" : ""}`}
-                      />
-                      {i < STEPS.length - 1 && (
-                        <div
-                          className={`w-0.5 h-8 ${
-                            done ? "bg-[#DC2626]" : "bg-gray-200 dark:bg-gray-700"
-                          }`}
-                        />
-                      )}
-                    </div>
-                    <div className="pb-6">
-                      <span
-                        className={`text-sm ${
-                          done
-                            ? "text-gray-900 dark:text-white font-medium"
-                            : "text-gray-400 dark:text-gray-500"
-                        } ${current ? "font-bold" : ""}`}
-                      >
-                        {s.label}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Real-time order tracker with SSE */}
+        <OrderTracker
+          orderId={order.id}
+          status={order.status as "PENDING" | "ACCEPTED" | "PREPARING" | "READY" | "PICKED_UP" | "COMPLETED" | "DENIED" | "CANCELLED" | "PARTIALLY_DENIED" | "AUTO_CANCELLED"}
+          estimatedReady={order.estimatedReady?.toISOString() ?? null}
+          actualReady={order.actualReady?.toISOString() ?? null}
+          denyReason={order.denyReason}
+          shopName={order.shop.name}
+          enableSSE
+        />
 
         {/* Shop info */}
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-4">
