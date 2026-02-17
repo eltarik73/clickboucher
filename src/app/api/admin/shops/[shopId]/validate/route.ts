@@ -124,8 +124,8 @@ export async function PATCH(
               });
             }
           }
-        } catch (refErr) {
-          console.error("[admin/validate] Referral processing error:", refErr);
+        } catch {
+          // Referral processing failed — non-critical, shop is still validated
         }
       }
 

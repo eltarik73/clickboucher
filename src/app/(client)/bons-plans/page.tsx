@@ -64,8 +64,8 @@ export default async function BonsPlansPage() {
       shop: p.shop,
       images: p.images.map((i) => ({ url: i.url, isPrimary: i.isPrimary })),
     }));
-  } catch (error) {
-    console.error("[BonsPlans] Error:", error);
+  } catch {
+    // Promo fetch failed — continue with empty list
   }
 
   // Extract unique categories

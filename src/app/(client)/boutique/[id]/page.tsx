@@ -81,8 +81,7 @@ export default async function BoutiquePage({
         },
       },
     });
-  } catch (error) {
-    console.error("[BoutiquePage] Prisma error:", error);
+  } catch {
     notFound();
   }
 

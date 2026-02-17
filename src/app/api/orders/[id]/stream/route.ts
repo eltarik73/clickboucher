@@ -81,8 +81,7 @@ export async function GET(
               `data: ${JSON.stringify({ type: "HEARTBEAT", timestamp: Date.now() })}\n\n`
             )
           );
-        } catch (e) {
-          console.error("[SSE][order-stream] Error:", (e as Error).message);
+        } catch {
           clearInterval(interval);
           controller.close();
         }

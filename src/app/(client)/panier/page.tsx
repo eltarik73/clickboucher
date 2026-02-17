@@ -219,7 +219,6 @@ export default function PanierPage() {
         toast.success(`Commande ${data.data.orderNumber} confirmee !`);
         router.push(`/suivi/${data.data.id}`);
       } else {
-        console.error("[Panier] API error:", JSON.stringify(data, null, 2));
         const errMsg = data.error?.message || "Erreur lors de la commande";
         const details = data.error?.details;
         const detailStr = details ? " — " + Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(", ") : "";

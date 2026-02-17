@@ -110,8 +110,7 @@ export async function GET() {
             where: { id: shopId },
             data: { lastSeenAt: new Date() },
           });
-        } catch (e) {
-          console.error("[SSE] Stream error:", (e as Error).message);
+        } catch {
           clearInterval(interval);
           controller.close();
         }

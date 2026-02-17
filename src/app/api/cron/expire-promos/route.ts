@@ -26,8 +26,6 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.log(`[expire-promos] Expired ${result.count} promos`);
-
     return apiSuccess({
       expired: result.count,
       at: new Date().toISOString(),

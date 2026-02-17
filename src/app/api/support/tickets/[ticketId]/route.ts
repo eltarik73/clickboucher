@@ -76,7 +76,7 @@ export async function POST(
     });
 
     // Trigger AI response
-    triggerAIResponse(ticketId, data.content, shop?.name || "").catch(console.error);
+    triggerAIResponse(ticketId, data.content, shop?.name || "").catch(() => {});
 
     return apiSuccess(message, 201);
   } catch (error) {

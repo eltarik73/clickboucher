@@ -25,8 +25,6 @@ export async function PATCH(
       data: updateData,
     });
 
-    console.log(`[BOUCHER] Product ${updated.name} updated:`, updateData);
-
     return apiSuccess(updated);
   } catch (error) {
     return handleApiError(error);

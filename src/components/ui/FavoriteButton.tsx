@@ -43,11 +43,9 @@ export function FavoriteButton({
         setIsFavorite(data.data.isFavorite);
         onToggle?.(data.data.isFavorite);
       } else {
-        console.error("[FavoriteButton] API error:", data.error || res.status);
         setIsFavorite((prev) => !prev);
       }
-    } catch (err) {
-      console.error("[FavoriteButton] Network error:", err);
+    } catch {
       setIsFavorite((prev) => !prev);
     }
   };

@@ -101,8 +101,8 @@ export async function POST(
           });
         }
       }
-    } catch (loyaltyErr) {
-      console.error("[Rate] Loyalty error (non-blocking):", loyaltyErr);
+    } catch {
+      // Loyalty error (non-blocking)
     }
 
     return apiSuccess(updated);

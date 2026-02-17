@@ -205,9 +205,8 @@ export async function POST(req: NextRequest) {
         });
         matchedProducts = popular;
       }
-    } catch (dbError: unknown) {
-      const msg = dbError instanceof Error ? dbError.message : String(dbError);
-      console.error("[chat] DB context fetch failed (non-blocking):", msg);
+    } catch {
+      // DB context fetch failed (non-blocking)
     }
 
     // ── Format context strings ───────────────────
@@ -230,8 +229,6 @@ export async function POST(req: NextRequest) {
           })
           .join("\n")
       : "Aucun produit en base.";
-
-    console.log("[chat] Keywords:", keywords, "| Products found:", matchedProducts.length);
 
     // ── System prompt ────────────────────────────
     const systemPrompt = `Tu es l'assistant Klik&Go, expert en viande halal a Chambery. Tu tutoies le client. Sois CONCIS (3-4 phrases max).
@@ -268,7 +265,6 @@ REGLES :
     return NextResponse.json({ role: "assistant", content });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[chat] Error:", message);
 
     if (error instanceof Anthropic.RateLimitError) {
       return NextResponse.json(

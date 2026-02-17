@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Trigger AI auto-response asynchronously (don't await)
-    triggerAIResponse(ticket.id, data.message, shop.name).catch(console.error);
+    triggerAIResponse(ticket.id, data.message, shop.name).catch(() => {});
 
     return apiSuccess(ticket, 201);
   } catch (error) {

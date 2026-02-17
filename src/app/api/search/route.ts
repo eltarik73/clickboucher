@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ query: q, count: results.length, results });
   } catch (error) {
-    console.error("[search] Error:", error);
+    void error;
     return NextResponse.json(
       { error: "Erreur de recherche" },
       { status: 500 }

@@ -86,7 +86,8 @@ export type OrderStatus =
   | "COMPLETED"
   | "DENIED"
   | "CANCELLED"
-  | "PARTIALLY_DENIED";
+  | "PARTIALLY_DENIED"
+  | "AUTO_CANCELLED";
 
 export type OrderItem = {
   id: string;

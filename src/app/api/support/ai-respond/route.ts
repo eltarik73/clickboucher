@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, escalated: isEscalated });
   } catch (error) {
-    console.error("[AI Support]", error);
+    void error;
     return NextResponse.json({ error: "AI response failed" }, { status: 500 });
   }
 }
