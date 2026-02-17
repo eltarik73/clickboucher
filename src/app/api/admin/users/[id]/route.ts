@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { NextRequest } from "next/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import { handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { requireAdmin } from "@/lib/admin-auth";
+
+export const dynamic = "force-dynamic";
 
 const ROLE_MAP: Record<string, string> = {
   client: "CLIENT",
@@ -17,20 +20,14 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const { sessionClaims } = await auth();
-    const callerRole = (sessionClaims?.metadata as Record<string, string>)?.role;
-    if (callerRole !== "admin") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
+    const adminCheck = await requireAdmin();
+    if (adminCheck.error) return adminCheck.error;
 
     const body = await req.json();
     const newRole = body.role as string;
 
     if (!newRole || !ROLE_MAP[newRole]) {
-      return NextResponse.json(
-        { error: "Rôle invalide. Valeurs acceptées : " + Object.keys(ROLE_MAP).join(", ") },
-        { status: 400 }
-      );
+      return apiError("VALIDATION_ERROR", "Rôle invalide. Valeurs acceptées : " + Object.keys(ROLE_MAP).join(", "));
     }
 
     // Find user
@@ -40,7 +37,7 @@ export async function PATCH(
     });
 
     if (!user) {
-      return NextResponse.json({ error: "Utilisateur introuvable" }, { status: 404 });
+      return apiError("NOT_FOUND", "Utilisateur introuvable");
     }
 
     const prismaRole = ROLE_MAP[newRole] as "CLIENT" | "CLIENT_PRO" | "CLIENT_PRO_PENDING" | "BOUCHER" | "ADMIN";
@@ -65,7 +62,7 @@ export async function PATCH(
       publicMetadata: { role: newRole },
     });
 
-    return NextResponse.json({ success: true, role: prismaRole });
+    return apiSuccess({ role: prismaRole });
   } catch (error) {
     return handleApiError(error, "admin/users/patch");
   }

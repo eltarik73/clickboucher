@@ -29,7 +29,7 @@ export default function PushPrompt() {
       const vapidPublicKey = keyJson.data?.vapidPublicKey;
 
       if (!vapidPublicKey) {
-        console.warn("[PushPrompt] VAPID key not configured");
+        // VAPID key not configured
         setShow(false);
         return;
       }
@@ -60,7 +60,7 @@ export default function PushPrompt() {
 
       setShow(false);
     } catch (error) {
-      console.error("[PushPrompt] Error:", error);
+      void error; // Push setup failed — non-critical
     } finally {
       setLoading(false);
     }
@@ -104,6 +104,7 @@ export default function PushPrompt() {
             </div>
           </div>
           <button
+            aria-label="Fermer"
             onClick={handleDismiss}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >

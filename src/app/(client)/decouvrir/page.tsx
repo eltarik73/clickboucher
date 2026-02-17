@@ -234,7 +234,7 @@ export default async function DecouvrirPage() {
     const authResult = await auth();
     clerkId = authResult.userId;
   } catch (authErr) {
-    console.warn("[DecouvrirPage] Auth failed (non-blocking):", authErr);
+    void authErr; // Auth failed — non-blocking
   }
 
   // 2. Fetch shops from DB
@@ -259,7 +259,7 @@ export default async function DecouvrirPage() {
   } catch (error) {
     dbError = true;
     const msg = error instanceof Error ? error.message : String(error);
-    console.error("[DecouvrirPage] DB Error:", msg);
+    void msg; // DB error — page will show fallback
   }
 
   // 3. Fetch favorites (non-blocking)
@@ -273,7 +273,7 @@ export default async function DecouvrirPage() {
         favoriteIds = new Set(userResult.favoriteShops.map((s) => s.id));
       }
     } catch (favErr) {
-      console.warn("[DecouvrirPage] Favorites fetch failed (non-blocking):", favErr);
+      void favErr; // Favorites fetch failed — non-blocking
     }
   }
 

@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { handleApiError } from "@/lib/api/errors";
+import { apiSuccess, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +42,7 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json(data);
+    return apiSuccess(data);
   } catch (error) {
     return handleApiError(error, "admin/shops");
   }
@@ -66,7 +65,7 @@ export async function POST() {
       orderBy: { firstName: "asc" },
     });
 
-    return NextResponse.json(bouchers);
+    return apiSuccess(bouchers);
   } catch (error) {
     return handleApiError(error, "admin/shops/bouchers");
   }
