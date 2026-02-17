@@ -88,18 +88,42 @@ export function startCronJobs() {
     try {
       const threshold = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
 
-      // Mark carts as abandoned if not updated in 2h and have items
-      const abandoned = await prisma.cart.updateMany({
+      // Find carts abandoned for 2h+ that haven't been reminded
+      const abandonedCarts = await prisma.cart.findMany({
         where: {
           updatedAt: { lte: threshold },
           abandonedAt: null,
           items: { some: {} },
         },
-        data: { abandonedAt: new Date() },
+        select: {
+          id: true,
+          userId: true,
+          shopId: true,
+          shop: { select: { name: true } },
+          items: { select: { id: true } },
+        },
       });
 
-      if (abandoned.count > 0) {
-        console.log(`[CRON][abandoned-carts] Marked ${abandoned.count} carts as abandoned`);
+      if (abandonedCarts.length > 0) {
+        // Mark as abandoned
+        await prisma.cart.updateMany({
+          where: { id: { in: abandonedCarts.map((c) => c.id) } },
+          data: { abandonedAt: new Date() },
+        });
+
+        // Create reminder notifications
+        for (const cart of abandonedCarts) {
+          await prisma.notification.create({
+            data: {
+              userId: cart.userId,
+              type: "CART_ABANDONED",
+              message: `Vous avez ${cart.items.length} article${cart.items.length > 1 ? "s" : ""} en attente chez ${cart.shop.name}. Finalisez votre commande !`,
+              channel: "PUSH",
+            },
+          });
+        }
+
+        console.log(`[CRON][abandoned-carts] Marked ${abandonedCarts.length} carts as abandoned + sent reminders`);
       }
     } catch (error) {
       console.error("[CRON][abandoned-carts] Error:", error);

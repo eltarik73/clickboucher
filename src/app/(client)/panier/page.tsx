@@ -8,6 +8,7 @@ import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknot
 import { toast } from "sonner";
 import { useCart, type CartItem } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
+import CartSuggestions from "@/components/cart/CartSuggestions";
 
 // ── Helpers ──────────────────────────────────────
 
@@ -316,6 +317,9 @@ export default function PanierPage() {
             />
           ))}
         </div>
+
+        {/* Suggestions */}
+        <CartSuggestions />
 
         {/* Total */}
         <div className="mt-5 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef } from "react";
 
 // ── Types ────────────────────────────────────
 
@@ -33,6 +33,7 @@ type CartAction =
   | { type: "REMOVE_ITEM"; payload: { id: string } }
   | { type: "UPDATE_QTY"; payload: { id: string; quantity: number } }
   | { type: "UPDATE_WEIGHT"; payload: { id: string; weightGrams: number } }
+  | { type: "SET_STATE"; payload: CartState }
   | { type: "CLEAR" };
 
 export interface CartContextType {
@@ -121,6 +122,9 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       };
     }
 
+    case "SET_STATE":
+      return action.payload;
+
     case "CLEAR":
       return initialState;
 
@@ -135,12 +139,91 @@ const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, initialState, loadState);
+  const syncTimer = useRef<ReturnType<typeof setTimeout>>();
+  const initialLoadDone = useRef(false);
 
+  // Persist to sessionStorage
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch { /* SSR or quota exceeded — ignore */ }
   }, [state]);
+
+  // DB sync: debounced POST to /api/cart on every state change
+  useEffect(() => {
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      return;
+    }
+
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+
+    syncTimer.current = setTimeout(() => {
+      if (!state.shopId || state.items.length === 0) {
+        // Clear DB cart
+        fetch("/api/cart", { method: "DELETE" }).catch(() => {});
+        return;
+      }
+
+      fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shopId: state.shopId,
+          items: state.items.map((i) => ({
+            productId: i.productId || i.id,
+            quantity: i.quantity,
+            weightGrams: i.weightGrams,
+          })),
+        }),
+      }).catch(() => {});
+    }, 2000);
+
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    };
+  }, [state]);
+
+  // On mount: try loading from DB if sessionStorage is empty
+  useEffect(() => {
+    async function loadFromDB() {
+      try {
+        const localState = loadState();
+        if (localState.items.length > 0) return; // Local has data, don't overwrite
+
+        const res = await fetch("/api/cart");
+        if (!res.ok) return;
+        const json = await res.json();
+        const dbCart = json.data;
+        if (!dbCart || !dbCart.items || dbCart.items.length === 0) return;
+
+        dispatch({
+          type: "SET_STATE",
+          payload: {
+            shopId: dbCart.shopId,
+            shopName: dbCart.shopName,
+            shopSlug: dbCart.shopSlug,
+            items: dbCart.items.filter((i: { inStock: boolean; snoozed: boolean }) => i.inStock && !i.snoozed).map(
+              (i: { id: string; productId: string; name: string; imageUrl: string; priceCents: number; unit: string; quantity: number; weightGrams?: number }) => ({
+                id: i.productId,
+                productId: i.productId,
+                name: i.name,
+                imageUrl: i.imageUrl,
+                priceCents: i.priceCents,
+                unit: i.unit,
+                quantity: i.quantity,
+                weightGrams: i.weightGrams,
+              })
+            ),
+          },
+        });
+      } catch {
+        // Silent — sessionStorage is the primary source
+      }
+    }
+    loadFromDB();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addItem = useCallback(
     (item: CartItem, shop: { id: string; name: string; slug: string }) => {
@@ -155,7 +238,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const removeItem = useCallback((id: string) => dispatch({ type: "REMOVE_ITEM", payload: { id } }), []);
   const updateQty = useCallback((id: string, quantity: number) => dispatch({ type: "UPDATE_QTY", payload: { id, quantity } }), []);
   const updateWeight = useCallback((id: string, weightGrams: number) => dispatch({ type: "UPDATE_WEIGHT", payload: { id, weightGrams } }), []);
-  const clear = useCallback(() => dispatch({ type: "CLEAR" }), []);
+  const clear = useCallback(() => {
+    dispatch({ type: "CLEAR" });
+    fetch("/api/cart", { method: "DELETE" }).catch(() => {});
+  }, []);
 
   const itemCount = useMemo(() => state.items.reduce((sum, i) => sum + i.quantity, 0), [state.items]);
 
