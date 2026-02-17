@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { rateOrderSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 // ── POST /api/orders/[id]/rate ─────────────────
 // Client — rate a completed/picked-up order
 export async function POST(

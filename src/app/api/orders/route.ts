@@ -11,6 +11,8 @@ import { setBusyMode } from "@/lib/shop-status";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 
+export const dynamic = "force-dynamic";
+
 // ── GET /api/orders ────────────────────────────
 // Role-based: client sees own orders, boucher sees shop orders, admin sees all
 export async function GET(req: NextRequest) {

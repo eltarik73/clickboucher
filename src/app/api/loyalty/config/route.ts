@@ -5,6 +5,8 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 const configSchema = z.object({
   ordersRequired: z.number().int().min(2).max(50),
   rewardPct: z.number().int().min(1).max(50),

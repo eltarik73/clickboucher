@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 
+export const dynamic = "force-dynamic";
+
 // ── GET /api/loyalty?shopId=X — Get loyalty status for user+shop ──
 export async function GET(req: NextRequest) {
   try {

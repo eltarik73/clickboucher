@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const changePlanSchema = z.object({
   plan: z.enum(["STARTER", "PRO", "PREMIUM"]),
   adminNote: z.string().max(500).optional(),

@@ -5,6 +5,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 // GET — List boucher's tickets
 export async function GET() {
   try {

@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isCancellable } from "@/lib/order-state-machine";
 
+export const dynamic = "force-dynamic";
+
 // ── POST /api/orders/[id]/cancel ───────────────
 // Client (order owner) — cancel a pending order or ACCEPTED within 5 min
 export async function POST(

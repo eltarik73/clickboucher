@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const choiceSchema = z.object({
   decisions: z.array(
     z.object({

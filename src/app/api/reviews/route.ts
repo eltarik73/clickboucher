@@ -6,6 +6,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 
+export const dynamic = "force-dynamic";
+
 const createReviewSchema = z.object({
   shopId: z.string().min(1),
   rating: z.number().int().min(1).max(5),

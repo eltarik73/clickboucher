@@ -5,6 +5,8 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const updateMeSchema = z.object({
   notifSms: z.boolean().optional(),
   notifWhatsapp: z.boolean().optional(),

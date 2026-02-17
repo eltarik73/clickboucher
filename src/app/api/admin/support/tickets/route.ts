@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const querySchema = z.object({
   status: z.enum(["OPEN", "AI_HANDLED", "ESCALATED", "RESOLVED", "CLOSED"]).optional(),
   shopId: z.string().optional(),

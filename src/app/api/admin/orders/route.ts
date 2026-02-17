@@ -1,15 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { handleApiError } from "@/lib/api/errors";
+import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { requireAdmin } from "@/lib/admin-auth";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string>)?.role;
-    if (role !== "admin") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
+    const adminCheck = await requireAdmin();
+    if (adminCheck.error) return adminCheck.error;
 
     const sp = req.nextUrl.searchParams;
     const status = sp.get("status") || undefined;
@@ -106,7 +105,7 @@ export async function GET(req: NextRequest) {
       _sum: { totalCents: true },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       orders,
       total,
       page,

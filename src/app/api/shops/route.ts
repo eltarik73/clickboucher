@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
 import { apiSuccess, apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 // ── GET /api/shops ─────────────────────────────
 // Public — list shops with optional ?city, ?search, ?open filters
 export async function GET(req: NextRequest) {

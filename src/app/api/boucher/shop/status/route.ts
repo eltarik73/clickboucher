@@ -14,6 +14,8 @@ import {
 } from "@/lib/shop-status";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 // ── GET — Current shop status + details ──
 export async function GET() {
   try {

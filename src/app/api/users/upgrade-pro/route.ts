@@ -5,6 +5,8 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const upgradeProSchema = z.object({
   companyName: z.string().min(2, "Nom d'entreprise requis").max(200),
   siret: z.string().regex(/^[0-9]{14}$/, "SIRET invalide (14 chiffres)"),

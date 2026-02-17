@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const globalCommissionSchema = z.object({
   commissionPct: z.number().min(0).max(100),
   commissionEnabled: z.boolean().optional().default(true),

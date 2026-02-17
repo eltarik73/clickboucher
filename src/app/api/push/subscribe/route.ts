@@ -7,6 +7,8 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getVapidPublicKey } from "@/lib/push";
 
+export const dynamic = "force-dynamic";
+
 // GET — return VAPID public key so client can subscribe
 export async function GET() {
   const key = getVapidPublicKey();

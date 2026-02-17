@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const replySchema = z.object({
   content: z.string().min(1).max(5000),
   closeTicket: z.boolean().optional().default(false),

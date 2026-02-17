@@ -6,6 +6,8 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const validateSchema = z.object({
   approved: z.boolean(),
   plan: z.enum(["STARTER", "PRO", "PREMIUM"]).optional().default("STARTER"),

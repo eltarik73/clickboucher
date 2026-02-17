@@ -10,6 +10,8 @@ import { canTransition } from "@/lib/order-state-machine";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import type { OrderStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }

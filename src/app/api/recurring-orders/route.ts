@@ -6,6 +6,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 
+export const dynamic = "force-dynamic";
+
 const VALID_FREQUENCIES = ["WEEKLY", "BIWEEKLY", "MONTHLY"] as const;
 type Frequency = (typeof VALID_FREQUENCIES)[number];
 

@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 // Admin-only: all shops with counts + owner info + subscription
 export async function GET() {
   try {

@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const suspendSchema = z.object({
   suspended: z.boolean(),
   reason: z.string().max(500).optional(),

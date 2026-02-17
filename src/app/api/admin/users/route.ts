@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
 import { requireAdmin } from "@/lib/admin-auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const adminCheck = await requireAdmin();

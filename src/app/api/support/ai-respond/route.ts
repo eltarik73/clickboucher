@@ -4,6 +4,8 @@ import { auth } from "@clerk/nextjs/server";
 import Anthropic from "@anthropic-ai/sdk";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 const SYSTEM_PROMPT = `Tu es l'assistant support de Klik&Go, une plateforme de click & collect pour boucheries halal.
 Tu aides les bouchers qui utilisent la plateforme avec leurs questions sur :
 - La gestion de leur boutique (produits, catégories, horaires)

@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
+export const dynamic = "force-dynamic";
+
 // ── GET /api/orders/[id]/alternatives?products=id1,id2 ──
 // Client — get alternative products for unavailable items
 export async function GET(

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchProducts } from "@/lib/ai-search";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;

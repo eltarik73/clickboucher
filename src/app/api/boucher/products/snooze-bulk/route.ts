@@ -6,6 +6,8 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { snoozeProduct } from "@/lib/product-snooze";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const bulkSchema = z.object({
   productIds: z.array(z.string()).min(1).max(100),
   type: z.enum(["NONE", "ONE_HOUR", "TWO_HOURS", "END_OF_DAY", "INDEFINITE"]),

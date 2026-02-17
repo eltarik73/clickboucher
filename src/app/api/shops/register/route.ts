@@ -5,6 +5,8 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const registerSchema = z.object({
   name: z.string().min(2, "Nom de la boucherie requis").max(200),
   address: z.string().min(5, "Adresse requise").max(500),
