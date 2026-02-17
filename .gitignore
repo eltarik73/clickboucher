@@ -40,3 +40,7 @@ node_modules
 .env.local
 design-uber-v2/
 __MACOSX/
+
+# uploads (keep structure, ignore uploaded files)
+/uploads/products/*
+!/uploads/products/.gitkeep
