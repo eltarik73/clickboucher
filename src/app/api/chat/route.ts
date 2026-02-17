@@ -72,7 +72,8 @@ async function callClaude(
         messages,
       });
 
-      return response.content[0].type === "text" ? response.content[0].text : "";
+      const block = response.content[0];
+      return block && block.type === "text" ? block.text : "";
     } catch (err: unknown) {
       const isRateLimit = err instanceof Anthropic.RateLimitError;
       const isOverloaded =

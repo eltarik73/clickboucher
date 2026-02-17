@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiError } from "@/lib/api/errors";
 
 export async function GET(
   _req: NextRequest,
   _context: { params: { orderId: string } }
 ) {
-  return NextResponse.json(
-    { error: "Not implemented - schema migration pending" },
-    { status: 501 }
-  );
+  return apiError("SERVICE_DISABLED", "Not implemented - schema migration pending");
 }

@@ -65,7 +65,11 @@ export const updateShopSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   deliveryRadius: z.number().min(1).max(100).optional(),
-  pickupSlots: z.any().optional(),
+  pickupSlots: z.object({
+    intervalMin: z.number().int().min(5).max(120),
+    maxPerSlot: z.number().int().min(1).max(50),
+    slots: z.record(z.object({ start: z.string(), end: z.string() })),
+  }).optional(),
   acceptOnline: z.boolean().optional(),
   acceptOnPickup: z.boolean().optional(),
 });

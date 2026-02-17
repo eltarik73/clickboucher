@@ -1,9 +1,6 @@
 "use client";
 
 import { useState } from "react";
-// import { useUser } from "@clerk/nextjs";
-// import { useRouter } from "next/navigation";
-// import { useEffect } from "react";
 import {
   AdminSidebar,
   AdminMobileNav,
@@ -16,26 +13,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // ── Role check (commented out for testing) ────
-  // const { user, isLoaded } = useUser();
-  // const router = useRouter();
-  //
-  // useEffect(() => {
-  //   if (isLoaded && user?.publicMetadata?.role !== "admin") {
-  //     router.replace("/decouvrir");
-  //   }
-  // }, [isLoaded, user, router]);
-  //
-  // if (!isLoaded) {
-  //   return (
-  //     <div className="flex items-center justify-center h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-  //       <div className="w-8 h-8 border-3 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
-  //     </div>
-  //   );
-  // }
-  //
-  // if (user?.publicMetadata?.role !== "admin") return null;
 
   return (
     <div className="flex min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
