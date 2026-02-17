@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, MapPin, Clock, Store } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -140,10 +141,13 @@ export default function FavorisPage() {
                 >
                   {/* Image */}
                   <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0">
-                    <img
+                    <Image
                       src={imgSrc}
                       alt={shop.name}
-                      className="absolute inset-0 w-full h-full object-cover"
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                      quality={75}
                     />
                     {(shop.status === "CLOSED" || shop.status === "VACATION") && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">

@@ -1,6 +1,7 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR — rebuild every 60s
 
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { HowItWorks } from "@/components/landing/HowItWorks";
@@ -110,11 +111,13 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
     >
       {/* Image with permanent gradient overlay */}
       <div className="relative h-48 overflow-hidden">
-        <img
+        <Image
           src={imgSrc}
           alt={shop.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          referrerPolicy="no-referrer"
+          fill
+          sizes="(max-width: 640px) 100vw, 50vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          quality={75}
           onError={(e) => { (e.target as HTMLImageElement).src = SHOP_PLACEHOLDER; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
@@ -191,15 +194,15 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
 // PROMOS (hardcoded for now)
 // ─────────────────────────────────────────────────────────────
 const PROMOS = [
-  { id: "p1", title: "Merguez maison", discount: "20", price: 10.32, oldPrice: 12.90, shop: "Dupont", shopId: "1" },
-  { id: "p2", title: "Entrecote premium", discount: "15", price: 32.30, oldPrice: 38.00, shop: "L'Artisan", shopId: "3" },
-  { id: "p3", title: "Brochettes BBQ", discount: "10", price: 19.80, oldPrice: 22.00, shop: "Maison", shopId: "2" },
+  { id: "p1", title: "Merguez maison", discount: "20", price: 10.32, oldPrice: 12.90, shop: "El Fathe", shopSlug: "el-fathe" },
+  { id: "p2", title: "Entrecote premium", discount: "15", price: 32.30, oldPrice: 38.00, shop: "Elba Market", shopSlug: "elba-market" },
+  { id: "p3", title: "Brochettes BBQ", discount: "10", price: 19.80, oldPrice: 22.00, shop: "Boucherie de Joppet", shopSlug: "boucherie-joppet" },
 ];
 
 function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
   return (
     <Link
-      href={`/boutique/${promo.shopId}`}
+      href={`/boutique/${promo.shopSlug}`}
       className="flex items-center gap-4 p-4 bg-white dark:bg-white/[0.03] rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:shadow-sm transition-all cursor-pointer group"
     >
       <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">

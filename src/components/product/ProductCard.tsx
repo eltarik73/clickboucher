@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import { getProductImage } from "@/lib/product-images";
 import { getFlag, getOriginCountry } from "@/lib/flags";
 import { FlashCountdown } from "@/components/product/FlashCountdown";
@@ -56,12 +57,13 @@ function ImageCarousel({ images, fallback, alt }: { images: ProductImageType[]; 
 
   return (
     <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
-      <img
+      <Image
         src={srcs[idx]}
         alt={alt}
-        className="w-full h-full object-cover transition-opacity duration-300"
-        loading="lazy"
-        referrerPolicy="no-referrer"
+        fill
+        sizes="(max-width: 640px) 50vw, 200px"
+        className="object-cover transition-opacity duration-300"
+        quality={75}
         onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
       />
       {count > 1 && (

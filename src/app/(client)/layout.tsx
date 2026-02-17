@@ -1,7 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { ChatWidget } from "@/components/chat/ChatWidget";
+
+const ChatWidget = dynamic(() => import("@/components/chat/ChatWidget").then(m => m.ChatWidget), {
+  ssr: false,
+});
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (

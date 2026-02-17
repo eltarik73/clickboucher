@@ -6,7 +6,34 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
-// Include block for all product queries
+// Lean select for product listings (faster queries)
+const PRODUCT_SELECT = {
+  id: true,
+  name: true,
+  description: true,
+  imageUrl: true,
+  priceCents: true,
+  proPriceCents: true,
+  unit: true,
+  inStock: true,
+  tags: true,
+  origin: true,
+  halalOrg: true,
+  race: true,
+  freshness: true,
+  popular: true,
+  promoPct: true,
+  promoEnd: true,
+  promoType: true,
+  customerNote: true,
+  shopId: true,
+  displayOrder: true,
+  category: { select: { id: true, name: true, emoji: true } },
+  images: { orderBy: { order: "asc" as const }, select: { id: true, url: true, alt: true, order: true, isPrimary: true } },
+  labels: { select: { id: true, name: true, color: true } },
+};
+
+// Full include block for create/update
 const PRODUCT_INCLUDE = {
   category: true,
   images: { orderBy: { order: "asc" as const } },
@@ -42,7 +69,7 @@ export async function GET(req: NextRequest) {
 
     const products = await prisma.product.findMany({
       where,
-      include: PRODUCT_INCLUDE,
+      select: PRODUCT_SELECT,
       orderBy: [{ displayOrder: "asc" }, { category: { order: "asc" } }, { name: "asc" }],
     });
 

@@ -62,6 +62,20 @@ export function apiSuccess<T>(data: T, status = 200) {
 }
 
 /**
+ * Return a cached success response (public GET APIs)
+ */
+export function apiCached<T>(data: T, maxAge = 60) {
+  return NextResponse.json(
+    { success: true, data },
+    {
+      headers: {
+        "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}`,
+      },
+    }
+  );
+}
+
+/**
  * Return a paginated success response
  */
 export function apiPaginated<T>(

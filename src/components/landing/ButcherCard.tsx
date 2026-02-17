@@ -1,6 +1,8 @@
 // src/components/landing/ButcherCard.tsx
 "use client";
 
+import Image from "next/image";
+
 export interface Butcher {
   id: string;
   name: string;
@@ -26,7 +28,7 @@ export function ButcherCard({ butcher }: Props) {
       {/* Image placeholder */}
       <div className="relative h-28 bg-gradient-to-br from-[#F5F3F0] to-[#EBE8E4] dark:from-[#1a1a1a] dark:to-[#111] overflow-hidden">
         {butcher.image ? (
-          <img src={butcher.image} alt={butcher.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <Image src={butcher.image} alt={butcher.name} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-cover" quality={75} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C5C0BA" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

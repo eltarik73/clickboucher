@@ -1,8 +1,9 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 30; // ISR — rebuild every 30s
 
 import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { getShopImage } from "@/lib/product-images";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
@@ -164,12 +165,14 @@ export default async function BoutiquePage({
         <div className="relative mx-3 mt-3 rounded-[24px] overflow-hidden h-[300px]">
           {shop.imageUrl ? (
             <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={heroImg}
                 alt={shop.name}
-                className="absolute inset-0 w-full h-full object-cover"
-                referrerPolicy="no-referrer"
+                fill
+                sizes="(max-width: 768px) 100vw, 1024px"
+                className="object-cover"
+                quality={80}
+                priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </>

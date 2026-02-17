@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import LocationPicker from "@/components/location/LocationPicker";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { StarRating } from "@/components/ui/StarRating";
@@ -167,11 +168,13 @@ function NearbyButcherCard({
     >
       {/* Image */}
       <div className="relative h-48 overflow-hidden">
-        <img
+        <Image
           src={imgSrc}
           alt={shop.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          referrerPolicy="no-referrer"
+          fill
+          sizes="(max-width: 640px) 100vw, 50vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          quality={75}
           onError={(e) => { (e.target as HTMLImageElement).src = SHOP_PLACEHOLDER; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />

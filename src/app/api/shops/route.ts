@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
-import { apiSuccess, apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiPaginated, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,20 @@ export async function GET(req: NextRequest) {
     const [shops, total] = await Promise.all([
       prisma.shop.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          address: true,
+          city: true,
+          imageUrl: true,
+          status: true,
+          rating: true,
+          ratingCount: true,
+          prepTimeMin: true,
+          busyMode: true,
+          busyExtraMin: true,
+          description: true,
           _count: { select: { products: true } },
         },
         orderBy: [{ rating: "desc" }, { ratingCount: "desc" }],
