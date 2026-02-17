@@ -1,7 +1,0 @@
-{
-  "crons": [
-    { "path": "/api/cron/auto-cancel", "schedule": "* * * * *" },
-    { "path": "/api/cron/unsnooze", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/expire-promos", "schedule": "0 * * * *" }
-  ]
-}

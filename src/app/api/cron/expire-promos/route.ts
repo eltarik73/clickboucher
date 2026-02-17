@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 // ── GET /api/cron/expire-promos ──────────────
 // Expire all promos where promoEnd < now()
-// Call via Vercel Cron, Railway cron, or manually
+// Called by node-cron on Railway, or manually via GET
 export async function GET() {
   try {
     const result = await prisma.product.updateMany({
