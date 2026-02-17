@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -15,12 +14,11 @@ import {
   Package,
   Search,
   GripVertical,
-  TrendingDown,
-  Tag,
   ArrowUpDown,
   ChevronDown,
 } from "lucide-react";
 import { getFlag, getOriginCountry } from "@/lib/flags";
+import { ProductForm, type EditProduct } from "./ProductForm";
 
 // ─────────────────────────────────────────────
 // Types
@@ -88,8 +86,6 @@ const UNIT_LABELS: Record<string, string> = {
   BARQUETTE: "/barq.",
 };
 
-const AVAILABLE_TAGS = ["Halal", "Bio", "Nouveau"];
-
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
@@ -129,8 +125,9 @@ export default function BoucherProduitsPage() {
   const [sortMode, setSortMode] = useState<SortMode>("custom");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Add form
+  // Form
   const [showForm, setShowForm] = useState(false);
+  const [editProduct, setEditProduct] = useState<EditProduct | null>(null);
 
   // Drag & drop
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -472,6 +469,7 @@ export default function BoucherProduitsPage() {
                 <ProductRow
                   product={product}
                   onToggleStock={() => toggleStock(product)}
+                  onEdit={() => { setEditProduct(product as unknown as EditProduct); setShowForm(true); }}
                   isDraggable={isDraggable}
                 />
               </div>
@@ -479,13 +477,14 @@ export default function BoucherProduitsPage() {
           </div>
         )}
 
-        {/* ── Add form modal ── */}
+        {/* ── Product form (add / edit) ── */}
         {showForm && shop && (
-          <AddProductForm
+          <ProductForm
             shopId={shop.id}
             categories={categories}
-            onClose={() => setShowForm(false)}
-            onCreated={() => { setShowForm(false); fetchData(); }}
+            product={editProduct}
+            onClose={() => { setShowForm(false); setEditProduct(null); }}
+            onSaved={() => { setShowForm(false); setEditProduct(null); fetchData(); }}
           />
         )}
       </div>
@@ -499,10 +498,12 @@ export default function BoucherProduitsPage() {
 function ProductRow({
   product,
   onToggleStock,
+  onEdit,
   isDraggable,
 }: {
   product: Product;
   onToggleStock: () => void;
+  onEdit: () => void;
   isDraggable: boolean;
 }) {
   const hasPromo = product.promoPct != null && product.promoPct > 0;
@@ -551,8 +552,8 @@ function ProductRow({
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
+      {/* Info (clickable to edit) */}
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={onEdit}>
         <div className="flex items-center gap-1.5">
           <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate">
             {product.name}
@@ -638,211 +639,3 @@ function ProductRow({
   );
 }
 
-// ─────────────────────────────────────────────
-// Add Product Form (Modal overlay)
-// ─────────────────────────────────────────────
-function AddProductForm({
-  shopId,
-  categories,
-  onClose,
-  onCreated,
-}: {
-  shopId: string;
-  categories: Category[];
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [proPrice, setProPrice] = useState("");
-  const [unit, setUnit] = useState<"KG" | "PIECE" | "BARQUETTE">("KG");
-  const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
-  const [tags, setTags] = useState<Set<string>>(new Set());
-  const [imageUrl, setImageUrl] = useState("");
-  const [origin, setOrigin] = useState("");
-  const [halalOrg, setHalalOrg] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-
-  function toggleTag(tag: string) {
-    const next = new Set(tags);
-    if (next.has(tag)) next.delete(tag);
-    else next.add(tag);
-    setTags(next);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError(null);
-
-    if (!name.trim() || !price) {
-      setFormError("Nom et prix requis");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const body: Record<string, unknown> = {
-        name: name.trim(),
-        priceCents: Math.round(parseFloat(price) * 100),
-        unit,
-        categoryId,
-        shopId,
-        tags: [...tags],
-      };
-      if (description.trim()) body.description = description.trim();
-      if (proPrice) body.proPriceCents = Math.round(parseFloat(proPrice) * 100);
-      if (imageUrl.trim()) body.imageUrl = imageUrl.trim();
-      if (origin.trim()) body.origin = origin.trim();
-      if (halalOrg.trim()) body.halalOrg = halalOrg.trim();
-
-      const res = await fetch("/api/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        onCreated();
-      } else {
-        const json = await res.json();
-        setFormError(json.error?.message || "Erreur lors de la création");
-      }
-    } catch {
-      setFormError("Erreur de connexion");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#141414] rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white dark:bg-[#141414] border-b border-[#ece8e3] dark:border-white/10 px-5 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nouveau produit</h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/15"
-          >
-            <X size={16} className="text-gray-500 dark:text-gray-400" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-              Nom du produit *
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Entrecôte maturée"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description du produit..."
-              rows={2}
-              className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 py-2 text-sm text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Prix (€) *</label>
-              <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="12.50" required />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Prix Pro (€)</label>
-              <Input type="number" step="0.01" min="0" value={proPrice} onChange={(e) => setProPrice(e.target.value)} placeholder="10.00" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Unité</label>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value as "KG" | "PIECE" | "BARQUETTE")}
-                className="w-full h-10 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
-              >
-                <option value="KG">Kilogramme (kg)</option>
-                <option value="PIECE">Pièce</option>
-                <option value="BARQUETTE">Barquette</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Catégorie</label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full h-10 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
-              >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.emoji ? `${cat.emoji} ` : ""}{cat.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Origin & Halal */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Origine</label>
-              <Input value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="France — Charolais" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Certification Halal</label>
-              <Input value={halalOrg} onChange={(e) => setHalalOrg(e.target.value)} placeholder="AVS, MCI..." />
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">Tags</label>
-            <div className="flex gap-2">
-              {AVAILABLE_TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-                    tags.has(tag)
-                      ? "bg-[#2A2018] text-white border-[#2A2018]"
-                      : "bg-white dark:bg-[#0a0a0a] text-gray-400 border-[#ece8e3] dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">URL image</label>
-            <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." type="url" />
-          </div>
-
-          {formError && (
-            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-sm text-red-700 dark:text-red-300">
-              {formError}
-            </div>
-          )}
-
-          <Button type="submit" disabled={submitting} className="w-full bg-[#DC2626] hover:bg-[#b91c1c] h-11">
-            {submitting ? <Loader2 size={16} className="animate-spin" /> : "Créer le produit"}
-          </Button>
-        </form>
-      </div>
-    </div>
-  );
-}
