@@ -337,11 +337,12 @@ export default function CommandePage({
     }
   };
 
-  // Rate handler
+  // Rate handler — also creates a Review via /api/reviews
   const handleRate = async () => {
     if (!order || ratingValue === 0) return;
     setRatingSubmitting(true);
     try {
+      // 1) Rate the order (marks COMPLETED + updates shop avg)
       const res = await fetch(`/api/orders/${order.id}/rate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -354,6 +355,18 @@ export default function CommandePage({
       if (data.success) {
         setRatingDone(true);
         toast.success("Merci pour votre avis !");
+
+        // 2) Also create a Review entry (non-blocking)
+        fetch("/api/reviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shopId: order.shop.id,
+            rating: ratingValue,
+            comment: ratingComment.trim() || undefined,
+            orderId: order.id,
+          }),
+        }).catch(() => {});
       } else {
         toast.error(data.error?.message || "Erreur");
       }

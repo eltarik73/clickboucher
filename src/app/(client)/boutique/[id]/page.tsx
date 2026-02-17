@@ -45,6 +45,8 @@ import {
   type CategoryData,
   type ProductData,
 } from "@/components/shop/ShopProductsClient";
+import { ReviewList } from "@/components/shop/ReviewList";
+import { LoyaltyBadge } from "@/components/shop/LoyaltyBadge";
 
 // ── Prep time color helper ───────────────────────
 
@@ -245,12 +247,26 @@ export default async function BoutiquePage({
         </div>
 
         {/* ═══════════════════════════════════════════ */}
+        {/* LOYALTY BADGE */}
+        {/* ═══════════════════════════════════════════ */}
+        <LoyaltyBadge shopId={shop.id} />
+
+        {/* ═══════════════════════════════════════════ */}
         {/* CLIENT-SIDE: categories, products, cart */}
         {/* ═══════════════════════════════════════════ */}
         <ShopProductsClient
           products={products}
           categories={categories}
           shop={{ id: shop.id, name: shop.name, slug: shop.slug }}
+        />
+
+        {/* ═══════════════════════════════════════════ */}
+        {/* REVIEWS */}
+        {/* ═══════════════════════════════════════════ */}
+        <ReviewList
+          shopId={shop.id}
+          rating={shop.rating}
+          ratingCount={shop.ratingCount}
         />
       </div>
     </div>

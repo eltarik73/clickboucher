@@ -369,6 +369,10 @@ model LoyaltyRule {
   rewardType      RewardType @default(DISCOUNT) @map("reward_type")
   rewardValue     Int        @default(500)  @map("reward_value") // cents or %
 
+  // Order-count based loyalty (PROMPT 8)
+  ordersRequired Int @default(10) @map("orders_required")
+  rewardPct      Int @default(10) @map("reward_pct") // discount %
+
   active Boolean @default(true)
 
   shopId String @map("shop_id")
@@ -385,6 +389,10 @@ model LoyaltyRule {
 model LoyaltyPoints {
   id     String @id @default(cuid())
   points Int    @default(0)
+
+  // Order-count based loyalty (PROMPT 8)
+  orderCount    Int @default(0) @map("order_count")
+  rewardsEarned Int @default(0) @map("rewards_earned")
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])

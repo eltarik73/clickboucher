@@ -15,6 +15,7 @@ import {
   Clock,
   Bot,
   Building2,
+  Gift,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
@@ -79,6 +80,47 @@ export default function BoucherParametresPage() {
   const [hours, setHours] = useState<Record<string, { open: string; close: string }>>({});
   const [infoSaving, setInfoSaving] = useState(false);
 
+  // Loyalty state
+  const [loyaltyActive, setLoyaltyActive] = useState(false);
+  const [loyaltyOrders, setLoyaltyOrders] = useState(10);
+  const [loyaltyPct, setLoyaltyPct] = useState(10);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(true);
+  const [loyaltySaving, setLoyaltySaving] = useState(false);
+
+  const fetchLoyaltyConfig = useCallback(async () => {
+    try {
+      const res = await fetch("/api/loyalty/config");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setLoyaltyActive(json.data.active);
+          setLoyaltyOrders(json.data.ordersRequired);
+          setLoyaltyPct(json.data.rewardPct);
+        }
+      }
+    } catch {} finally {
+      setLoyaltyLoading(false);
+    }
+  }, []);
+
+  const saveLoyalty = async () => {
+    setLoyaltySaving(true);
+    try {
+      const res = await fetch("/api/loyalty/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          active: loyaltyActive,
+          ordersRequired: loyaltyOrders,
+          rewardPct: loyaltyPct,
+        }),
+      });
+      if (res.ok) toast.show();
+    } catch {} finally {
+      setLoyaltySaving(false);
+    }
+  };
+
   const fetchShop = useCallback(async () => {
     try {
       const res = await fetch("/api/shops/my-shop");
@@ -109,7 +151,8 @@ export default function BoucherParametresPage() {
 
   useEffect(() => {
     fetchShop();
-  }, [fetchShop]);
+    fetchLoyaltyConfig();
+  }, [fetchShop, fetchLoyaltyConfig]);
 
   // ── PATCH status (instant toggle) ──
   async function patchStatus(data: Record<string, unknown>) {
@@ -357,7 +400,96 @@ export default function BoucherParametresPage() {
           </div>
         </SettingCard>
 
-        {/* ── 6. INFORMATIONS BOUTIQUE ── */}
+        {/* ── 6. PROGRAMME FIDÉLITÉ ── */}
+        <SettingCard
+          icon={<Gift size={18} className="text-amber-600" />}
+          title="Programme fidélité"
+          accent={loyaltyActive ? "border-l-amber-500" : "border-l-transparent"}
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-white">Activer la fidélité</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Récompensez vos clients réguliers
+                </p>
+              </div>
+              <Switch
+                checked={loyaltyActive}
+                onCheckedChange={(v) => setLoyaltyActive(v)}
+                className={loyaltyActive ? "!bg-amber-500" : ""}
+              />
+            </div>
+            {loyaltyActive && (
+              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1.5 block">
+                    Nombre de commandes requises
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={loyaltyOrders}
+                      onChange={(e) => setLoyaltyOrders(Number(e.target.value))}
+                      className="w-24 h-9"
+                      min={2}
+                      max={50}
+                    />
+                    <span className="text-sm text-gray-500 dark:text-gray-400">commandes</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1.5 block">
+                    Réduction offerte
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={loyaltyPct}
+                      onChange={(e) => setLoyaltyPct(Number(e.target.value))}
+                      className="w-24 h-9"
+                      min={1}
+                      max={50}
+                    />
+                    <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-[#141414] rounded-lg px-3 py-2 border border-amber-200 dark:border-amber-800/30">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Vos clients verront : &laquo; Encore X commandes pour -{loyaltyPct}% ! &raquo;
+                  </p>
+                </div>
+                <Button
+                  onClick={saveLoyalty}
+                  disabled={loyaltySaving}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white h-10"
+                >
+                  {loyaltySaving ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    "Enregistrer la fidélité"
+                  )}
+                </Button>
+              </div>
+            )}
+            {!loyaltyActive && !loyaltyLoading && (
+              <Button
+                onClick={saveLoyalty}
+                disabled={loyaltySaving}
+                variant="outline"
+                className="w-full h-10 text-sm"
+              >
+                {loyaltySaving ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  "Désactiver et sauvegarder"
+                )}
+              </Button>
+            )}
+          </div>
+        </SettingCard>
+
+        {/* ── 7. INFORMATIONS BOUTIQUE ── */}
         <SettingCard
           icon={<Building2 size={18} className="text-gray-600 dark:text-gray-400" />}
           title="Informations boutique"

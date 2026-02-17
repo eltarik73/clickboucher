@@ -73,6 +73,36 @@ export async function POST(
       });
     }
 
+    // ── Loyalty: increment orderCount when order completes ──
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { clerkId: userId },
+        select: { id: true },
+      });
+
+      if (dbUser) {
+        const loyaltyPoints = await prisma.loyaltyPoints.upsert({
+          where: { userId_shopId: { userId: dbUser.id, shopId: order.shopId } },
+          create: { userId: dbUser.id, shopId: order.shopId, orderCount: 1, rewardsEarned: 0 },
+          update: { orderCount: { increment: 1 } },
+        });
+
+        // Check if a reward is earned
+        const rule = await prisma.loyaltyRule.findFirst({
+          where: { shopId: order.shopId, active: true },
+        });
+
+        if (rule && loyaltyPoints.orderCount % rule.ordersRequired === 0) {
+          await prisma.loyaltyPoints.update({
+            where: { id: loyaltyPoints.id },
+            data: { rewardsEarned: { increment: 1 } },
+          });
+        }
+      }
+    } catch (loyaltyErr) {
+      console.error("[Rate] Loyalty error (non-blocking):", loyaltyErr);
+    }
+
     return apiSuccess(updated);
   } catch (error) {
     return handleApiError(error);
