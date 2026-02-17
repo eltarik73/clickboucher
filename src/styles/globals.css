@@ -168,6 +168,19 @@ body {
     font-family: var(--font-display-stack);
   }
 
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
   .delay-1 { animation-delay: 70ms; }
   .delay-2 { animation-delay: 140ms; }
   .delay-3 { animation-delay: 210ms; }

@@ -55,7 +55,7 @@ function ImageCarousel({ images, fallback, alt }: { images: ProductImageType[]; 
   const count = srcs.length;
 
   return (
-    <div className="relative w-full aspect-square overflow-hidden rounded-[14px] bg-gray-100 dark:bg-white/5">
+    <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
       <img
         src={srcs[idx]}
         alt={alt}
@@ -112,9 +112,9 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
 
   return (
     <div
-      className={`group relative flex flex-col bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-[18px] overflow-hidden
+      className={`group relative flex flex-col bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-[16px] overflow-hidden
         transition-all duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.03)]
-        hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[#ddd5cc] dark:hover:border-white/20
+        hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[#ddd5cc] dark:hover:border-white/15
         ${outOfStock ? "opacity-60" : ""} ${animating ? "scale-[0.97]" : ""}`}
       style={style}
     >
@@ -145,7 +145,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
 
         {/* Out of stock overlay */}
         {outOfStock && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 rounded-[14px]">
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
             <span className="bg-white/90 dark:bg-black/80 text-gray-900 dark:text-white text-xs font-bold px-3 py-1 rounded-full">
               Rupture
             </span>
@@ -154,7 +154,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
       </div>
 
       {/* ── Info section ── */}
-      <div className="flex-1 flex flex-col p-2.5 pt-2">
+      <div className="flex-1 flex flex-col p-2 pt-1.5">
         {/* Category */}
         <span className="text-[8px] font-bold text-[#DC2626] uppercase tracking-wider mb-0.5">
           {product.category.emoji ? `${product.category.emoji} ` : ""}{product.category.name}
@@ -162,28 +162,24 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
 
         {/* Name */}
         <h3
-          className="text-[14px] font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 font-serif"
+          className="text-[13px] font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 font-display"
         >
           {product.name}
         </h3>
 
-        {/* Description */}
-        {product.description && (
-          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-            {product.description}
-          </p>
-        )}
-
-        {/* Origin & Halal badges */}
+        {/* Origin & Halal — single condensed line */}
         {(product.origin || product.halalOrg) && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
+          <div className="flex items-center gap-1.5 mt-1">
             {product.origin && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded text-[8px] font-semibold text-blue-700 dark:text-blue-300">
+              <span className="text-[8px] font-semibold text-blue-600 dark:text-blue-400">
                 {getFlag(product.origin)} {getOriginCountry(product.origin)}
               </span>
             )}
+            {product.origin && product.halalOrg && (
+              <span className="text-[8px] text-gray-300 dark:text-gray-600">•</span>
+            )}
             {product.halalOrg && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 rounded text-[8px] font-semibold text-emerald-700 dark:text-emerald-300">
+              <span className="text-[8px] font-semibold text-emerald-600 dark:text-emerald-400">
                 ☪ {product.halalOrg}
               </span>
             )}
@@ -193,10 +189,10 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
         {/* Labels */}
         {product.labels.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {product.labels.slice(0, 3).map((label) => (
+            {product.labels.slice(0, 2).map((label) => (
               <span
                 key={label.id}
-                className="px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-wide"
+                className="px-1 py-0 rounded text-[7px] font-bold uppercase tracking-wide"
                 style={{
                   backgroundColor: label.color ? `${label.color}15` : "#f3f4f6",
                   color: label.color || "#6b7280",
@@ -207,13 +203,6 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
               </span>
             ))}
           </div>
-        )}
-
-        {/* Race badge */}
-        {product.race && (
-          <span className="mt-1 inline-flex self-start px-1.5 py-0.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/30 rounded text-[8px] font-semibold text-orange-700 dark:text-orange-300">
-            {product.race}
-          </span>
         )}
 
         {/* Spacer */}
@@ -243,7 +232,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
           <button
             onClick={(e) => { e.stopPropagation(); handleAdd(); }}
             disabled={outOfStock}
-            className={`min-h-[36px] px-3 rounded-xl text-[11px] font-bold transition-all duration-200 active:scale-95
+            className={`min-h-[32px] px-2.5 rounded-xl text-[11px] font-bold transition-all duration-200 active:scale-95
               ${animating
                 ? "bg-emerald-500 text-white"
                 : outOfStock

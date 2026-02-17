@@ -29,7 +29,7 @@ export function BottomNav() {
   const navItems = getNavItems();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-white dark:bg-[#0a0a0a] border-t border-gray-100 dark:border-white/10 px-2 pb-safe z-50">
+    <nav className="fixed bottom-0 inset-x-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-t border-gray-100/80 dark:border-white/[0.06] px-2 pb-safe z-50">
       <div className="flex items-center justify-around">
         {navItems.map((item) => {
           const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;

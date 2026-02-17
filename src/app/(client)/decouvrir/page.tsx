@@ -104,7 +104,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
   return (
     <Link
       href={`/boutique/${shop.slug}`}
-      className={`group bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
+      className={`group bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
         (shop.status === "CLOSED" || shop.status === "VACATION") ? "opacity-60" : ""
       }`}
     >
@@ -156,7 +156,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
         {/* Hover CTA */}
         {(shop.status === "OPEN" || shop.status === "BUSY") && (
           <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="block w-full py-2.5 bg-white dark:bg-[#141414] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
+            <span className="block w-full py-2.5 bg-white dark:bg-white/[0.08] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm backdrop-blur-xl">
               Voir la boutique
             </span>
           </div>
@@ -166,7 +166,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
       {/* Card body */}
       <div className="p-4">
         <h3
-          className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#DC2626] dark:group-hover:text-[#DC2626] transition-colors font-serif"
+          className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#DC2626] dark:group-hover:text-[#DC2626] transition-colors font-display"
         >
           {shop.name}
         </h3>
@@ -200,7 +200,7 @@ function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
   return (
     <Link
       href={`/boutique/${promo.shopId}`}
-      className="flex items-center gap-4 p-4 bg-white dark:bg-[#141414] rounded-xl border border-[#ece8e3] dark:border-white/10 hover:shadow-sm transition-all cursor-pointer group"
+      className="flex items-center gap-4 p-4 bg-white dark:bg-white/[0.03] rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:shadow-sm transition-all cursor-pointer group"
     >
       <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
         <span className="text-white text-sm font-bold">-{promo.discount}%</span>
@@ -349,34 +349,36 @@ export default async function DecouvrirPage() {
           </div>
         )}
 
+        {/* Promos FIRST — horizontal scroll */}
+        {PROMOS.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-[#DC2626] rounded-full" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white font-display">
+                Offres du moment
+              </h3>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+              {PROMOS.map((promo) => (
+                <div key={promo.id} className="min-w-[280px] shrink-0">
+                  <PromoCard promo={promo} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Geolocation-aware shop list */}
         <NearbyShops
           initialShops={shops.map((s) => ({ ...s, distance: null }))}
           favoriteIds={Array.from(favoriteIds)}
         />
-
-        {/* Promos section */}
-        <div className="mt-14">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white font-serif">
-              Offres du moment
-            </h3>
-            <button className="text-sm text-[#DC2626] dark:text-[#DC2626] font-medium hover:underline">
-              Voir tout
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {PROMOS.map((promo) => (
-              <PromoCard key={promo.id} promo={promo} />
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* FOOTER */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <footer className="border-t border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] py-10">
+      <footer className="border-t border-[#ece8e3] dark:border-white/[0.06] bg-white dark:bg-white/[0.02] py-10">
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />

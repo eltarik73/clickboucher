@@ -266,17 +266,26 @@ export default function CommandesPage() {
       <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <Header />
         <main className="max-w-xl mx-auto px-5 mt-8">
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="text-5xl mb-4">📋</div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              Pas encore de commande
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="relative mb-6">
+              <div className="w-20 h-20 rounded-full bg-[#DC2626]/10 flex items-center justify-center">
+                <ShoppingBag size={36} className="text-[#DC2626] animate-pulse" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white font-display">
+              Aucune commande
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Vos commandes apparaîtront ici après votre premier achat.
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs">
+              Passez votre premiere commande et retrouvez-la ici avec le suivi en temps reel.
             </p>
-            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
-              <Link href="/decouvrir">Découvrir les boucheries</Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <Button className="bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
+                <Link href="/decouvrir">Decouvrir les boucheries</Link>
+              </Button>
+              <Button variant="outline" size="lg" asChild>
+                <Link href="/favoris">Mes favoris</Link>
+              </Button>
+            </div>
           </div>
         </main>
       </div>

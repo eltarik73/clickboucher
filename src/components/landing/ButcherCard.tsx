@@ -17,10 +17,10 @@ interface Props {
 
 export function ButcherCard({ butcher }: Props) {
   return (
-    <div className={`group relative bg-white dark:bg-[#141414] rounded-2xl border transition-all duration-300 overflow-hidden
+    <div className={`group relative bg-white dark:bg-white/[0.03] rounded-2xl border transition-all duration-300 overflow-hidden
       ${(butcher.status === "OPEN" || butcher.status === "BUSY")
-        ? "border-[#E8E5E1] dark:border-white/10 shadow-sm hover:shadow-lg hover:border-[#D5D0CA] dark:hover:border-white/20"
-        : "border-[#E8E5E1] dark:border-white/10 opacity-60"
+        ? "border-[#E8E5E1] dark:border-white/[0.06] shadow-sm hover:shadow-lg hover:border-[#D5D0CA] dark:hover:border-white/20"
+        : "border-[#E8E5E1] dark:border-white/[0.06] opacity-60"
       }`}>
 
       {/* Image placeholder */}

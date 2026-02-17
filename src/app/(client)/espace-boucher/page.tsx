@@ -219,7 +219,7 @@ export default function EspaceBoucherPage() {
         className="max-w-6xl mx-auto px-5 py-20"
       >
         <div className="text-center mb-14">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-serif">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-display">
             Choisissez votre formule
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
@@ -343,7 +343,7 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       <section className="bg-white dark:bg-[#141414] border-y border-[#ece8e3] dark:border-white/10 py-16">
         <div className="max-w-4xl mx-auto px-5 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-serif mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-display mb-12">
             Comment ca marche ?
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
@@ -391,7 +391,7 @@ export default function EspaceBoucherPage() {
       {/* FAQ                                       */}
       {/* ══════════════════════════════════════════ */}
       <section className="max-w-3xl mx-auto px-5 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif text-center mb-10">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-display text-center mb-10">
           Questions frequentes
         </h2>
         <div className="space-y-3">

@@ -97,9 +97,12 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
       {/* Subtitle */}
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif">
-            {geoActive ? "Boucheries proches" : "Boucheries disponibles"}
-          </h2>
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-6 bg-[#DC2626] rounded-full" />
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-display">
+              {geoActive ? "Boucheries proches" : "Boucheries disponibles"}
+            </h2>
+          </div>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
             {shops.length > 0
               ? `${shops.length} boucherie${shops.length > 1 ? "s" : ""}${geoActive ? " à proximité" : " près de chez vous"}`
@@ -110,7 +113,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
 
       {/* No shops nearby message */}
       {geoActive && shops.length === 0 && !loading && (
-        <div className="text-center py-12 bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10">
+        <div className="text-center py-12 bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200 dark:border-white/[0.06]">
           <MapPin className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <p className="text-gray-600 dark:text-gray-400 font-medium">
             Aucune boucherie trouvée à proximité
@@ -158,7 +161,7 @@ function NearbyButcherCard({
   return (
     <Link
       href={`/boutique/${shop.slug}`}
-      className={`group bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
+      className={`group bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
         shop.status === "CLOSED" || shop.status === "VACATION" ? "opacity-60" : ""
       }`}
     >
@@ -212,7 +215,7 @@ function NearbyButcherCard({
         {/* Hover CTA */}
         {(shop.status === "OPEN" || shop.status === "BUSY") && (
           <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="block w-full py-2.5 bg-white dark:bg-[#141414] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
+            <span className="block w-full py-2.5 bg-white dark:bg-white/[0.03] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
               Voir la boutique
             </span>
           </div>
@@ -221,7 +224,7 @@ function NearbyButcherCard({
 
       {/* Card body */}
       <div className="p-4">
-        <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#DC2626] transition-colors font-serif">
+        <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#DC2626] transition-colors font-display">
           {shop.name}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">

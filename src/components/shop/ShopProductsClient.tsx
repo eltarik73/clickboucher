@@ -195,15 +195,15 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
   return (
     <>
       {/* Sticky category pills */}
-      <div className="sticky top-0 z-20 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl px-5 py-3">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2.5 font-serif">Catalogue</h2>
+      <div className="sticky top-0 z-20 bg-[#f8f6f3]/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl px-5 py-3">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2.5 font-display">Catalogue</h2>
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           <button
             onClick={() => setActiveCat("Tout")}
             className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] min-h-[36px] ${
               activeCat === "Tout"
                 ? "bg-[#2A2018] dark:bg-white border-[#2A2018] dark:border-white text-white dark:text-[#0a0a0a]"
-                : "bg-white dark:bg-[#141414] border-[#e8e4df] dark:border-white/10 text-gray-500 dark:text-gray-400"
+                : "bg-white dark:bg-white/[0.05] border-[#e8e4df] dark:border-white/[0.08] text-gray-500 dark:text-gray-400"
             }`}
           >
             Tout
@@ -215,7 +215,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
               className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] min-h-[36px] ${
                 activeCat === c.id
                   ? "bg-[#2A2018] dark:bg-white border-[#2A2018] dark:border-white text-white dark:text-[#0a0a0a]"
-                  : "bg-white dark:bg-[#141414] border-[#e8e4df] dark:border-white/10 text-gray-500 dark:text-gray-400"
+                  : "bg-white dark:bg-white/[0.05] border-[#e8e4df] dark:border-white/[0.08] text-gray-500 dark:text-gray-400"
               }`}
             >
               {c.emoji ? `${c.emoji} ` : ""}
@@ -240,7 +240,7 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
 
       {/* Cart bar */}
       {cartCount > 0 && (
-        <div className="fixed bottom-0 inset-x-0 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-[#ece8e3] dark:border-white/10 px-4 py-3 flex items-center justify-between shadow-lg z-50">
+        <div className="fixed bottom-0 inset-x-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-t border-[#ece8e3]/80 dark:border-white/[0.06] px-4 py-3 flex items-center justify-between shadow-lg z-50">
           <div className="min-w-0">
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {cartCount} article{cartCount > 1 ? "s" : ""}

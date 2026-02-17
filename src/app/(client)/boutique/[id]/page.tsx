@@ -162,14 +162,28 @@ export default async function BoutiquePage({
         {/* HERO */}
         {/* ═══════════════════════════════════════════ */}
         <div className="relative mx-3 mt-3 rounded-[24px] overflow-hidden h-[300px]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={heroImg}
-            alt={shop.name}
-            className="absolute inset-0 w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          {shop.imageUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={heroImg}
+                alt={shop.name}
+                className="absolute inset-0 w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            </>
+          ) : (
+            <>
+              {/* Gradient fallback when no shop image */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#DC2626] via-[#991b1b] to-[#450a0a]" />
+              <div className="absolute inset-0 opacity-10" style={{
+                backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                backgroundSize: "24px 24px",
+              }} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            </>
+          )}
 
           {/* Back button + Favorite */}
           <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
