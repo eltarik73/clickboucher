@@ -62,6 +62,9 @@ export const updateShopSchema = z.object({
   description: z.string().max(1000).nullable().optional(),
   openingHours: z.record(z.object({ open: z.string(), close: z.string() })).optional(),
   commissionPct: z.number().min(0).max(100).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  deliveryRadius: z.number().min(1).max(100).optional(),
 });
 
 export const updateShopStatusSchema = z.object({

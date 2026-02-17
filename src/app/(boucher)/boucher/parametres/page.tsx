@@ -16,6 +16,7 @@ import {
   Bot,
   Building2,
   Gift,
+  MapPin,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
@@ -34,6 +35,9 @@ type Shop = {
   autoAccept: boolean;
   maxOrdersPerHour: number;
   openingHours: Record<string, { open: string; close: string }> | null;
+  latitude: number | null;
+  longitude: number | null;
+  deliveryRadius: number;
 };
 
 const DAYS = [
@@ -78,6 +82,12 @@ export default function BoucherParametresPage() {
   const [infoPhone, setInfoPhone] = useState("");
   const [hours, setHours] = useState<Record<string, { open: string; close: string }>>({});
   const [infoSaving, setInfoSaving] = useState(false);
+
+  // Geo state
+  const [geoLat, setGeoLat] = useState<number | null>(null);
+  const [geoLng, setGeoLng] = useState<number | null>(null);
+  const [geoRadius, setGeoRadius] = useState(15);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   // Loyalty state
   const [loyaltyActive, setLoyaltyActive] = useState(false);
@@ -141,6 +151,9 @@ export default function BoucherParametresPage() {
             {} as Record<string, { open: string; close: string }>
           )
       );
+      setGeoLat(data.latitude);
+      setGeoLng(data.longitude);
+      setGeoRadius(data.deliveryRadius || 15);
     } catch {
       setError("Erreur de connexion");
     } finally {
@@ -574,6 +587,110 @@ export default function BoucherParametresPage() {
                 "Enregistrer les informations"
               )}
             </Button>
+          </div>
+        </SettingCard>
+
+        {/* ── 8. GÉOLOCALISATION ── */}
+        <SettingCard
+          icon={<MapPin size={18} className="text-red-600" />}
+          title="Géolocalisation"
+          accent={geoLat ? "border-l-red-500" : "border-l-transparent"}
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Géocodez votre adresse pour apparaître dans les recherches par proximité.
+              </p>
+              {geoLat && geoLng ? (
+                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/30 rounded-lg px-3 py-2 mb-3">
+                  <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+                    Position enregistrée : {geoLat.toFixed(4)}, {geoLng.toFixed(4)}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800/30 rounded-lg px-3 py-2 mb-3">
+                  <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                    Aucune position enregistrée. Les clients ne pourront pas vous trouver par proximité.
+                  </p>
+                </div>
+              )}
+              <Button
+                onClick={async () => {
+                  if (!infoAddress && !infoCity) return;
+                  setGeoLoading(true);
+                  try {
+                    const query = `${infoAddress}, ${infoCity}`;
+                    const res = await fetch(
+                      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=fr`,
+                      { headers: { "User-Agent": "KlikGo/1.0" } }
+                    );
+                    const results = await res.json();
+                    if (results.length > 0) {
+                      const lat = parseFloat(results[0].lat);
+                      const lng = parseFloat(results[0].lon);
+                      setGeoLat(lat);
+                      setGeoLng(lng);
+                      // Save to DB
+                      await fetch(`/api/shops/${shop.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ latitude: lat, longitude: lng }),
+                      });
+                      toast.show();
+                    }
+                  } catch {} finally {
+                    setGeoLoading(false);
+                  }
+                }}
+                disabled={geoLoading || (!infoAddress && !infoCity)}
+                variant="outline"
+                className="w-full h-10 text-sm"
+              >
+                {geoLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    <MapPin size={14} className="mr-1.5" />
+                    Géocoder mon adresse
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                Rayon de chalandise : <span className="font-bold text-red-600">{geoRadius} km</span>
+              </label>
+              <input
+                type="range"
+                min={5}
+                max={30}
+                step={1}
+                value={geoRadius}
+                onChange={(e) => setGeoRadius(Number(e.target.value))}
+                onMouseUp={async () => {
+                  await fetch(`/api/shops/${shop.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ deliveryRadius: geoRadius }),
+                  });
+                  toast.show();
+                }}
+                onTouchEnd={async () => {
+                  await fetch(`/api/shops/${shop.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ deliveryRadius: geoRadius }),
+                  });
+                  toast.show();
+                }}
+                className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>5 km</span>
+                <span>30 km</span>
+              </div>
+            </div>
           </div>
         </SettingCard>
       </div>

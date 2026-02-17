@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { StarRating } from "@/components/ui/StarRating";
 import { getShopImage } from "@/lib/product-images";
+import NearbyShops from "./NearbyShops";
 
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header)
@@ -331,20 +332,6 @@ export default async function DecouvrirPage() {
       {/* BUTCHERS SECTION */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <section id="butchers" className="max-w-6xl mx-auto px-5 py-14">
-        {/* Section header */}
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-serif">
-              Boucheries disponibles
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-              {shops.length > 0
-                ? `${shops.length} boucherie${shops.length > 1 ? "s" : ""} pres de chez vous`
-                : "Aucune boucherie disponible pour le moment"}
-            </p>
-          </div>
-        </div>
-
         {/* DB error warning */}
         {dbError && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
@@ -352,12 +339,11 @@ export default async function DecouvrirPage() {
           </div>
         )}
 
-        {/* Grid - 2 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {shops.map((shop, i) => (
-            <ButcherCard key={shop.id} shop={shop} index={i} isFavorite={favoriteIds.has(shop.id)} />
-          ))}
-        </div>
+        {/* Geolocation-aware shop list */}
+        <NearbyShops
+          initialShops={shops.map((s) => ({ ...s, distance: null }))}
+          favoriteIds={Array.from(favoriteIds)}
+        />
 
         {/* Promos section */}
         <div className="mt-14">
