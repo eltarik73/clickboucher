@@ -154,13 +154,13 @@ enum SnoozeType {
 // ══════════════════════════════════════════
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique @map("clerk_id")
-  email     String   @unique
+  id        String  @id @default(cuid())
+  clerkId   String  @unique @map("clerk_id")
+  email     String  @unique
   phone     String?
-  firstName String   @map("first_name")
-  lastName  String   @map("last_name")
-  role      Role     @default(CLIENT)
+  firstName String  @map("first_name")
+  lastName  String  @map("last_name")
+  role      Role    @default(CLIENT)
 
   latitude  Float?
   longitude Float?
@@ -176,21 +176,21 @@ model User {
   proValidatedBy String?    @map("pro_validated_by")
   proValidatedAt DateTime?  @map("pro_validated_at")
 
-  notifEmail    Boolean @default(true)  @map("notif_email")
+  notifEmail    Boolean @default(true) @map("notif_email")
   notifSms      Boolean @default(false) @map("notif_sms")
-  notifWhatsapp Boolean @default(true)  @map("notif_whatsapp")
-  notifPush     Boolean @default(true)  @map("notif_push")
+  notifWhatsapp Boolean @default(true) @map("notif_whatsapp")
+  notifPush     Boolean @default(true) @map("notif_push")
 
   pushSubscription Json? @map("push_subscription")
 
-  referralCode   String?  @unique @map("referral_code")
-  referredBy     String?  @map("referred_by")
+  referralCode String? @unique @map("referral_code")
+  referredBy   String? @map("referred_by")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   orders          Order[]
-  favoriteShops   Shop[]          @relation("UserFavorites")
+  favoriteShops   Shop[]           @relation("UserFavorites")
   notifications   Notification[]
   reviews         Review[]
   loyaltyPoints   LoyaltyPoint[]
@@ -218,9 +218,9 @@ model Shop {
   ownerPhotoUrl String? @map("owner_photo_url")
   ownerName     String? @map("owner_name")
 
-  latitude  Float?
-  longitude Float?
-  deliveryRadius Float @default(15) @map("delivery_radius")
+  latitude       Float?
+  longitude      Float?
+  deliveryRadius Float  @default(15) @map("delivery_radius")
 
   // ── STATUT BOUTIQUE (Uber Eats style) ──
   status ShopStatus @default(OPEN)
@@ -229,50 +229,50 @@ model Shop {
   pickupSlots  Json @default("[]") @map("pickup_slots")
 
   // ── Busy Mode (Uber Eats) ──
-  busyMode         Boolean   @default(false) @map("busy_mode")
-  busyExtraMin     Int       @default(15)    @map("busy_extra_min")
-  busyModeEndsAt   DateTime? @map("busy_mode_ends_at")
+  busyMode       Boolean   @default(false) @map("busy_mode")
+  busyExtraMin   Int       @default(15) @map("busy_extra_min")
+  busyModeEndsAt DateTime? @map("busy_mode_ends_at")
 
   // ── Pause manuelle (Uber Eats "Pause new orders") ──
-  paused         Boolean   @default(false)
-  pausedAt       DateTime? @map("paused_at")
-  pauseReason    String?   @map("pause_reason")
-  pauseEndsAt    DateTime? @map("pause_ends_at")
+  paused      Boolean   @default(false)
+  pausedAt    DateTime? @map("paused_at")
+  pauseReason String?   @map("pause_reason")
+  pauseEndsAt DateTime? @map("pause_ends_at")
 
   // ── Auto-pause (Uber Eats "auto-pause on inactivity") ──
-  autoPaused           Boolean   @default(false)  @map("auto_paused")
-  autoPausedAt         DateTime? @map("auto_paused_at")
-  autoPauseThreshold   Int       @default(3)      @map("auto_pause_threshold")
-  missedOrdersCount    Int       @default(0)      @map("missed_orders_count")
+  autoPaused         Boolean   @default(false) @map("auto_paused")
+  autoPausedAt       DateTime? @map("auto_paused_at")
+  autoPauseThreshold Int       @default(3) @map("auto_pause_threshold")
+  missedOrdersCount  Int       @default(0) @map("missed_orders_count")
 
   // ── Mode vacances (Deliveroo "vacation mode") ──
-  vacationMode     Boolean   @default(false) @map("vacation_mode")
-  vacationStart    DateTime? @map("vacation_start")
-  vacationEnd      DateTime? @map("vacation_end")
-  vacationMessage  String?   @map("vacation_message")
+  vacationMode    Boolean   @default(false) @map("vacation_mode")
+  vacationStart   DateTime? @map("vacation_start")
+  vacationEnd     DateTime? @map("vacation_end")
+  vacationMessage String?   @map("vacation_message")
 
   // ── Fermeture temporaire ──
   closedMessage String?   @map("closed_message")
   closedUntil   DateTime? @map("closed_until")
 
   // ── Order Throttle (Uber Eats) ──
-  prepTimeMin      Int     @default(15)    @map("prep_time_min")
-  maxOrdersPerSlot Int     @default(5)     @map("max_orders_per_slot")
-  maxOrdersPerHour Int     @default(20)    @map("max_orders_hour")
-  autoBusyThreshold Int    @default(10)    @map("auto_busy_threshold")
-  autoAccept       Boolean @default(false) @map("auto_accept")
-  acceptTimeoutMin Int     @default(10)    @map("accept_timeout_min")
+  prepTimeMin       Int     @default(15) @map("prep_time_min")
+  maxOrdersPerSlot  Int     @default(5) @map("max_orders_per_slot")
+  maxOrdersPerHour  Int     @default(20) @map("max_orders_hour")
+  autoBusyThreshold Int     @default(10) @map("auto_busy_threshold")
+  autoAccept        Boolean @default(false) @map("auto_accept")
+  acceptTimeoutMin  Int     @default(10) @map("accept_timeout_min")
 
   // ── Qualité ──
-  defaultHalalOrg  String?  @map("default_halal_org")
-  halalCertUrl     String?  @map("halal_cert_url")
-  defaultOrigin    Origin   @default(FRANCE) @map("default_origin")
+  defaultHalalOrg String? @map("default_halal_org")
+  halalCertUrl    String? @map("halal_cert_url")
+  defaultOrigin   Origin  @default(FRANCE) @map("default_origin")
 
-  minOrderCents    Int      @default(0)     @map("min_order_cents")
+  minOrderCents Int @default(0) @map("min_order_cents")
 
   // ── Paiement ──
   acceptOnline   Boolean @default(false) @map("accept_online")
-  acceptOnPickup Boolean @default(true)  @map("accept_on_pickup")
+  acceptOnPickup Boolean @default(true) @map("accept_on_pickup")
 
   // ── Commission ──
   commissionPct     Float   @default(0) @map("commission_pct")
@@ -286,9 +286,9 @@ model Shop {
   ownerId String @map("owner_id")
 
   // ── Notifications boucher (Uber Eats tablette) ──
-  soundNotif    Boolean @default(true)  @map("sound_notif")
-  flashNotif    Boolean @default(true)  @map("flash_notif")
-  vibrateNotif  Boolean @default(true)  @map("vibrate_notif")
+  soundNotif   Boolean @default(true) @map("sound_notif")
+  flashNotif   Boolean @default(true) @map("flash_notif")
+  vibrateNotif Boolean @default(true) @map("vibrate_notif")
 
   // ── Onboarding ──
   onboardingCompleted Boolean @default(false) @map("onboarding_completed")
@@ -305,18 +305,21 @@ model Shop {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  products        Product[]
-  categories      Category[]
-  orders          Order[]
-  favoritedBy     User[]          @relation("UserFavorites")
-  reviews         Review[]
-  loyaltyRules    LoyaltyRule[]
-  subscription    Subscription?
-  supportTickets  SupportTicket[]
-  suggestRules    SuggestRule[]
-  carts           Cart[]
-  shopLogs        ShopLog[]
-  recurringOrders RecurringOrder[]
+  products          Product[]
+  categories        Category[]
+  orders            Order[]
+  favoritedBy       User[]           @relation("UserFavorites")
+  reviews           Review[]
+  loyaltyRules      LoyaltyRule[]
+  subscription      Subscription?
+  supportTickets    SupportTicket[]
+  suggestRules      SuggestRule[]
+  carts             Cart[]
+  shopLogs          ShopLog[]
+  recurringOrders   RecurringOrder[]
+  loyaltyPoints     LoyaltyPoint[]
+  referrerReferrals Referral[]       @relation("ReferrerShop")
+  referredReferrals Referral[]       @relation("ReferredShop")
 
   @@index([latitude, longitude])
   @@index([city])
@@ -336,7 +339,7 @@ model ShopLog {
 
   action      String
   details     String?
-  triggeredBy String @default("system") @map("triggered_by")
+  triggeredBy String  @default("system") @map("triggered_by")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -381,8 +384,8 @@ model Product {
   inStock  Boolean @default(true) @map("in_stock")
   stockQty Float?  @map("stock_qty")
 
-  minWeightG  Int @default(200)  @map("min_weight_g")
-  weightStepG Int @default(50)   @map("weight_step_g")
+  minWeightG  Int @default(200) @map("min_weight_g")
+  weightStepG Int @default(50) @map("weight_step_g")
   maxWeightG  Int @default(5000) @map("max_weight_g")
 
   displayOrder Int     @default(0) @map("display_order")
@@ -405,10 +408,10 @@ model Product {
   customerNote String?   @map("customer_note")
 
   // ── SNOOZE DELIVEROO-STYLE ──
-  snoozeType    SnoozeType @default(NONE)   @map("snooze_type")
-  snoozedAt     DateTime?  @map("snoozed_at")
-  snoozeEndsAt  DateTime?  @map("snooze_ends_at")
-  snoozeReason  String?    @map("snooze_reason")
+  snoozeType   SnoozeType @default(NONE) @map("snooze_type")
+  snoozedAt    DateTime?  @map("snoozed_at")
+  snoozeEndsAt DateTime?  @map("snooze_ends_at")
+  snoozeReason String?    @map("snooze_reason")
 
   shopId String @map("shop_id")
   shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -417,6 +420,9 @@ model Product {
   labels     ProductLabel[]
   orderItems OrderItem[]
   cartItems  CartItem[]
+
+  suggestSourceRules SuggestRule[] @relation("SuggestSource")
+  suggestTargetRules SuggestRule[] @relation("SuggestTarget")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -514,16 +520,16 @@ model PlanFeature {
 // ══════════════════════════════════════════
 
 model SupportTicket {
-  id      String @id @default(cuid())
-  shopId  String @map("shop_id")
-  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  userId  String @map("user_id")
-  user    User   @relation(fields: [userId], references: [id])
+  id      String       @id @default(cuid())
+  shopId  String       @map("shop_id")
+  shop    Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId  String       @map("user_id")
+  user    User         @relation(fields: [userId], references: [id])
   subject String
   status  TicketStatus @default(OPEN)
 
-  escalatedAt DateTime? @map("escalated_at")
-  resolvedAt  DateTime? @map("resolved_at")
+  escalatedAt DateTime?        @map("escalated_at")
+  resolvedAt  DateTime?        @map("resolved_at")
   messages    SupportMessage[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -553,11 +559,11 @@ model SupportMessage {
 // ══════════════════════════════════════════
 
 model Cart {
-  id     String @id @default(cuid())
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
-  shopId String @map("shop_id")
-  shop   Shop   @relation(fields: [shopId], references: [id])
+  id     String     @id @default(cuid())
+  userId String     @map("user_id")
+  user   User       @relation(fields: [userId], references: [id])
+  shopId String     @map("shop_id")
+  shop   Shop       @relation(fields: [shopId], references: [id])
   items  CartItem[]
 
   reminderSentAt DateTime? @map("reminder_sent_at")
@@ -589,16 +595,16 @@ model CartItem {
 // ══════════════════════════════════════════
 
 model RecurringOrder {
-  id            String    @id @default(cuid())
-  userId        String    @map("user_id")
-  user          User      @relation(fields: [userId], references: [id])
-  shopId        String    @map("shop_id")
-  shop          Shop      @relation(fields: [shopId], references: [id])
-  itemsSnapshot Json      @map("items_snapshot")
+  id            String             @id @default(cuid())
+  userId        String             @map("user_id")
+  user          User               @relation(fields: [userId], references: [id])
+  shopId        String             @map("shop_id")
+  shop          Shop               @relation(fields: [shopId], references: [id])
+  itemsSnapshot Json               @map("items_snapshot")
   frequency     RecurringFrequency @default(WEEKLY)
-  dayOfWeek     Int?      @map("day_of_week")
-  nextRunAt     DateTime? @map("next_run_at")
-  active        Boolean   @default(true)
+  dayOfWeek     Int?               @map("day_of_week")
+  nextRunAt     DateTime?          @map("next_run_at")
+  active        Boolean            @default(true)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -613,14 +619,17 @@ model RecurringOrder {
 // ══════════════════════════════════════════
 
 model SuggestRule {
-  id              String @id @default(cuid())
-  shopId          String @map("shop_id")
-  shop            Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  sourceProductId String @map("source_product_id")
-  targetProductId String @map("target_product_id")
-  weight          Int    @default(1)
+  id              String  @id @default(cuid())
+  shopId          String  @map("shop_id")
+  shop            Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  sourceProductId String  @map("source_product_id")
+  sourceProduct   Product @relation("SuggestSource", fields: [sourceProductId], references: [id], onDelete: Cascade)
+  targetProductId String  @map("target_product_id")
+  targetProduct   Product @relation("SuggestTarget", fields: [targetProductId], references: [id], onDelete: Cascade)
+  weight          Int     @default(1)
 
   @@unique([shopId, sourceProductId, targetProductId])
+  @@index([shopId])
   @@map("suggest_rules")
 }
 
@@ -651,12 +660,15 @@ model CalendarEvent {
 model Referral {
   id                    String  @id @default(cuid())
   referrerShopId        String  @map("referrer_shop_id")
+  referrerShop          Shop    @relation("ReferrerShop", fields: [referrerShopId], references: [id], onDelete: Cascade)
   referredShopId        String  @unique @map("referred_shop_id")
+  referredShop          Shop    @relation("ReferredShop", fields: [referredShopId], references: [id], onDelete: Cascade)
   referrerRewardApplied Boolean @default(false) @map("referrer_reward_applied")
   referredRewardApplied Boolean @default(false) @map("referred_reward_applied")
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([referrerShopId])
   @@map("referrals")
 }
 
@@ -686,13 +698,13 @@ model Review {
 // ══════════════════════════════════════════
 
 model LoyaltyRule {
-  id              String  @id @default(cuid())
-  shopId          String  @map("shop_id")
-  shop            Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  ordersRequired  Int     @default(10) @map("orders_required")
-  rewardPct       Int     @default(10) @map("reward_pct")
-  description     String  @default("Programme fidélité")
-  active          Boolean @default(true)
+  id             String  @id @default(cuid())
+  shopId         String  @map("shop_id")
+  shop           Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  ordersRequired Int     @default(10) @map("orders_required")
+  rewardPct      Int     @default(10) @map("reward_pct")
+  description    String  @default("Programme fidélité")
+  active         Boolean @default(true)
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -704,13 +716,16 @@ model LoyaltyPoint {
   userId        String @map("user_id")
   user          User   @relation(fields: [userId], references: [id])
   shopId        String @map("shop_id")
+  shop          Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
   orderCount    Int    @default(0) @map("order_count")
   rewardsEarned Int    @default(0) @map("rewards_earned")
   rewardsUsed   Int    @default(0) @map("rewards_used")
 
+  createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, shopId])
+  @@index([shopId])
   @@map("loyalty_points")
 }
 
@@ -734,6 +749,7 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+  @@index([orderId])
   @@map("notifications")
 }
 
@@ -742,11 +758,11 @@ model Notification {
 // ══════════════════════════════════════════
 
 model Order {
-  id          String      @id @default(cuid())
-  orderNumber String      @unique @map("order_number")
+  id          String @id @default(cuid())
+  orderNumber String @unique @map("order_number")
 
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id])
+  userId String  @map("user_id")
+  user   User    @relation(fields: [userId], references: [id])
   isPro  Boolean @default(false) @map("is_pro")
 
   shopId String @map("shop_id")
