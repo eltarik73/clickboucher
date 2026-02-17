@@ -266,13 +266,15 @@ export function startCronJobs() {
   });
 
   // ═══════════════════════════════════════════
-  // 8. Weekly stats report log — every Monday at 8:00 AM
+  // 8. Weekly stats report — every Monday at 9:00 AM
+  //    Sends per-shop report via notifications
   // ═══════════════════════════════════════════
-  cron.schedule("0 8 * * 1", async () => {
+  cron.schedule("0 9 * * 1", async () => {
     try {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-      const [orders, revenue, newUsers, newShops] = await Promise.all([
+      // Global log
+      const [globalOrders, globalRevenue, newUsers, newShops] = await Promise.all([
         prisma.order.count({ where: { createdAt: { gte: weekAgo } } }),
         prisma.order.aggregate({
           where: { status: { in: ["COMPLETED", "PICKED_UP"] }, createdAt: { gte: weekAgo } },
@@ -283,8 +285,69 @@ export function startCronJobs() {
       ]);
 
       console.log(
-        `[CRON][weekly-report] Week summary: ${orders} orders, ${((revenue._sum.totalCents || 0) / 100).toFixed(2)}€ revenue, ${newUsers} new users, ${newShops} new shops`
+        `[CRON][weekly-report] Global: ${globalOrders} orders, ${((globalRevenue._sum.totalCents || 0) / 100).toFixed(2)}€, ${newUsers} users, ${newShops} shops`
       );
+
+      // Per-shop reports
+      const shops = await prisma.shop.findMany({
+        where: { visible: true },
+        select: { id: true, name: true, ownerId: true, rating: true },
+      });
+
+      let sentCount = 0;
+
+      for (const shop of shops) {
+        try {
+          const shopOrders = await prisma.order.findMany({
+            where: {
+              shopId: shop.id,
+              status: { in: ["COMPLETED", "PICKED_UP"] },
+              createdAt: { gte: weekAgo },
+            },
+            select: {
+              totalCents: true,
+              items: { select: { name: true, totalCents: true } },
+            },
+          });
+
+          const weeklyRevenue = shopOrders.reduce((s, o) => s + o.totalCents, 0);
+          const weeklyOrders = shopOrders.length;
+          const weeklyAvgOrder = weeklyOrders > 0 ? Math.round(weeklyRevenue / weeklyOrders) : 0;
+
+          // Top product
+          const productMap = new Map<string, number>();
+          for (const order of shopOrders) {
+            for (const item of order.items) {
+              productMap.set(item.name, (productMap.get(item.name) || 0) + item.totalCents);
+            }
+          }
+          const topProduct = [...productMap.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map((e) => e[0])[0] || undefined;
+
+          const owner = await prisma.user.findUnique({
+            where: { clerkId: shop.ownerId },
+            select: { id: true },
+          });
+
+          if (owner) {
+            await sendNotification("WEEKLY_REPORT", {
+              userId: owner.id,
+              shopName: shop.name,
+              weeklyRevenue,
+              weeklyOrders,
+              weeklyAvgOrder,
+              weeklyRating: shop.rating,
+              weeklyTopProduct: topProduct,
+            });
+            sentCount++;
+          }
+        } catch {
+          // Continue with next shop
+        }
+      }
+
+      console.log(`[CRON][weekly-report] Sent ${sentCount} per-shop reports`);
     } catch (error) {
       console.error("[CRON][weekly-report] Error:", error);
     }
@@ -393,6 +456,79 @@ export function startCronJobs() {
       }
     } catch (error) {
       console.error("[CRON][recurring-orders] Error:", error);
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  // 11. Off-peak auto promos — every hour (PREMIUM only)
+  //     Applies -10% on featured products during off-peak hours
+  // ═══════════════════════════════════════════
+  cron.schedule("0 * * * *", async () => {
+    try {
+      const currentHour = new Date().getHours();
+
+      // Find PREMIUM shops with auto-promos enabled
+      const premiumFeatures = await prisma.planFeature.findMany({
+        where: {
+          plan: "PREMIUM",
+          featureKey: { startsWith: "auto_promos_" },
+          enabled: true,
+        },
+      });
+
+      if (premiumFeatures.length === 0) return;
+
+      for (const feature of premiumFeatures) {
+        try {
+          const shopId = feature.featureKey.replace("auto_promos_", "");
+
+          // Determine off-peak hours for this shop
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          const recentOrders = await prisma.order.findMany({
+            where: { shopId, createdAt: { gte: weekAgo } },
+            select: { createdAt: true },
+          });
+
+          // Calculate hourly distribution
+          const hourCounts = new Map<number, number>();
+          for (let h = 0; h < 24; h++) hourCounts.set(h, 0);
+          for (const o of recentOrders) {
+            const h = o.createdAt.getHours();
+            hourCounts.set(h, (hourCounts.get(h) || 0) + 1);
+          }
+
+          const peak = Math.max(...hourCounts.values(), 1);
+          const isOffPeak = (hourCounts.get(currentHour) || 0) < peak * 0.2;
+
+          if (isOffPeak) {
+            // Apply 10% promo on featured products (no existing promo)
+            const promoEnd = new Date();
+            promoEnd.setHours(promoEnd.getHours() + 1);
+
+            const result = await prisma.product.updateMany({
+              where: {
+                shopId,
+                featured: true,
+                inStock: true,
+                promoPct: null,
+              },
+              data: {
+                promoPct: 10,
+                promoType: "FLASH",
+                promoEnd,
+              },
+            });
+
+            if (result.count > 0) {
+              console.log(`[CRON][auto-promos] Applied -10% on ${result.count} products for shop ${shopId} (hour ${currentHour}h)`);
+            }
+          }
+        } catch {
+          // Continue with next shop
+        }
+      }
+    } catch (error) {
+      console.error("[CRON][auto-promos] Error:", error);
     }
   });
 

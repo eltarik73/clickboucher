@@ -238,6 +238,56 @@ export function trialExpiring(data: {
   `);
 }
 
+export function weeklyReport(data: {
+  shopName?: string;
+  weeklyRevenue?: number;
+  weeklyOrders?: number;
+  weeklyAvgOrder?: number;
+  weeklyRating?: number;
+  weeklyTopProduct?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const rev = ((data.weeklyRevenue || 0) / 100).toFixed(2);
+  const avg = ((data.weeklyAvgOrder || 0) / 100).toFixed(2);
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcca Rapport hebdomadaire</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Voici le r\u00e9sum\u00e9 de la semaine pour <strong>${data.shopName || "votre boutique"}</strong>.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <tr>
+        <td style="padding:12px 16px;background:#f9fafb;border-radius:8px 0 0 0;border-bottom:1px solid #f0f0f0">
+          <p style="margin:0;font-size:12px;color:#6b7280">Chiffre d'affaires</p>
+          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${rev} \u20ac</p>
+        </td>
+        <td style="padding:12px 16px;background:#f9fafb;border-radius:0 8px 0 0;border-bottom:1px solid #f0f0f0">
+          <p style="margin:0;font-size:12px;color:#6b7280">Commandes</p>
+          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${data.weeklyOrders || 0}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;background:#f9fafb;border-radius:0 0 0 8px">
+          <p style="margin:0;font-size:12px;color:#6b7280">Panier moyen</p>
+          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${avg} \u20ac</p>
+        </td>
+        <td style="padding:12px 16px;background:#f9fafb;border-radius:0 0 8px 0">
+          <p style="margin:0;font-size:12px;color:#6b7280">Note moyenne</p>
+          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${data.weeklyRating?.toFixed(1) || "\u2014"}/5</p>
+        </td>
+      </tr>
+    </table>
+    ${data.weeklyTopProduct ? `
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0 0 4px;font-size:12px;color:#047857;font-weight:600">\ud83c\udfc6 Produit star de la semaine</p>
+        <p style="margin:0;font-size:14px;color:#065f46;font-weight:600">${data.weeklyTopProduct}</p>
+      </td></tr>
+    </table>` : ""}
+    <p style="margin:0;font-size:13px;color:#6b7280">Consultez vos statistiques d\u00e9taill\u00e9es dans votre espace boucher.</p>
+    ${button(`${baseUrl}/boucher/dashboard/statistiques`, "Voir les statistiques")}
+  `);
+}
+
 export function calendarAlert(data: {
   message?: string;
 }): string {

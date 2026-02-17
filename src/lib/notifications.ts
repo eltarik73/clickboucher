@@ -23,7 +23,8 @@ export type NotifEvent =
   | "ACCOUNT_APPROVED"
   | "RECURRING_REMINDER"
   | "TRIAL_EXPIRING"
-  | "CALENDAR_ALERT";
+  | "CALENDAR_ALERT"
+  | "WEEKLY_REPORT";
 
 export type NotifData = {
   userId?: string;
@@ -38,6 +39,12 @@ export type NotifData = {
   nbItems?: number;
   slot?: string;
   message?: string;
+  // Weekly report data
+  weeklyRevenue?: number;
+  weeklyOrders?: number;
+  weeklyAvgOrder?: number;
+  weeklyRating?: number;
+  weeklyTopProduct?: string;
 };
 
 // ─────────────────────────────────────────────
@@ -136,6 +143,13 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         subject: data.message || `📅 Événement à venir`,
         html: tpl.calendarAlert(data),
         plainText: data.message || `Un événement important approche !`,
+      };
+
+    case "WEEKLY_REPORT":
+      return {
+        subject: `📊 Rapport hebdomadaire — ${data.shopName}`,
+        html: tpl.weeklyReport(data),
+        plainText: `Rapport hebdo ${data.shopName}: ${((data.weeklyRevenue || 0) / 100).toFixed(2)}€ CA, ${data.weeklyOrders || 0} commandes.`,
       };
 
     default:

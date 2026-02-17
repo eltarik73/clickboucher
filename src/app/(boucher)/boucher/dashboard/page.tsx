@@ -428,13 +428,13 @@ export default function BoucherDashboardPage() {
               </Button>
             </Link>
 
-            <Link href="/boucher/parametres">
+            <Link href="/boucher/dashboard/statistiques">
               <Button
                 variant="outline"
                 className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-white/5 border-gray-200 dark:border-white/10"
               >
-                <Clock className="w-5 h-5 text-[#DC2626]" />
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Parametres</span>
+                <Star className="w-5 h-5 text-[#DC2626]" />
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Statistiques</span>
               </Button>
             </Link>
           </div>
