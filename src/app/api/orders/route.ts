@@ -5,6 +5,9 @@ import { createOrderSchema, orderListQuerySchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError, formatZodError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { getShopStatus } from "@/lib/shop-status";
+import { setBusyMode } from "@/lib/shop-status";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 // ── GET /api/orders ────────────────────────────
 // Role-based: client sees own orders, boucher sees shop orders, admin sees all
@@ -68,7 +71,7 @@ export async function GET(req: NextRequest) {
 }
 
 // ── POST /api/orders ───────────────────────────
-// Client — create a new order
+// Client — create a new order (Uber Eats style with throttling + auto-cancel)
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -77,12 +80,28 @@ export async function POST(req: NextRequest) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    // Rate limit check
+    const rl = await checkRateLimit(rateLimits.orders, userId);
+    if (!rl.success) {
+      return apiError("CAPACITY_EXCEEDED", "Trop de commandes, veuillez patienter");
+    }
+
     const body = await req.json();
-    console.log("[POST /api/orders] RECEIVED BODY:", JSON.stringify(body, null, 2));
+
+    // Idempotency check (anti double-commande)
+    if (body.idempotencyKey) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey: body.idempotencyKey },
+        include: {
+          items: true,
+          shop: { select: { id: true, name: true, slug: true } },
+        },
+      });
+      if (existing) return apiSuccess(existing, 200);
+    }
 
     const parseResult = createOrderSchema.safeParse(body);
     if (!parseResult.success) {
-      console.error("[POST /api/orders] VALIDATION ERRORS:", JSON.stringify(parseResult.error.issues, null, 2));
       return apiError("VALIDATION_ERROR", "Donnees invalides", formatZodError(parseResult.error));
     }
     const data = parseResult.data;
@@ -95,19 +114,60 @@ export async function POST(req: NextRequest) {
 
     const isPro = user.role === "CLIENT_PRO";
 
-    // Verify shop exists and is open
+    // ── Check shop status via Redis-cached getShopStatus ──
     const shop = await prisma.shop.findUnique({
       where: { id: data.shopId },
-      select: { id: true, status: true },
+      select: {
+        id: true, status: true, autoAccept: true, acceptTimeoutMin: true,
+        busyMode: true, busyExtraMin: true, prepTimeMin: true,
+        maxOrdersPerSlot: true, maxOrdersPerHour: true, autoBusyThreshold: true,
+      },
     });
     if (!shop) {
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
-    if (shop.status !== "OPEN" && shop.status !== "BUSY") {
-      return apiError("SERVICE_DISABLED", "La boucherie est actuellement fermée");
+
+    const currentStatus = await getShopStatus(shop.id);
+    if (currentStatus !== "OPEN" && currentStatus !== "BUSY") {
+      const messages: Record<string, string> = {
+        PAUSED: "La boucherie a temporairement mis les commandes en pause",
+        AUTO_PAUSED: "La boucherie est temporairement indisponible",
+        CLOSED: "La boucherie est actuellement fermée",
+        VACATION: "La boucherie est en vacances",
+      };
+      return apiError("SERVICE_DISABLED", messages[currentStatus] || "Boutique indisponible");
     }
 
-    // Fetch products and verify stock
+    // ── Order throttling (Uber Eats style) ──
+
+    // Check max orders per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const ordersLastHour = await prisma.order.count({
+      where: {
+        shopId: shop.id,
+        createdAt: { gte: oneHourAgo },
+        status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
+      },
+    });
+    if (ordersLastHour >= shop.maxOrdersPerHour) {
+      return apiError("CAPACITY_EXCEEDED", "La boutique est temporairement surchargée");
+    }
+
+    // Check max orders per slot (if pickup slot specified)
+    if (data.pickupSlotStart) {
+      const ordersInSlot = await prisma.order.count({
+        where: {
+          shopId: shop.id,
+          pickupSlotStart: new Date(data.pickupSlotStart),
+          status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
+        },
+      });
+      if (ordersInSlot >= shop.maxOrdersPerSlot) {
+        return apiError("CAPACITY_EXCEEDED", "Ce créneau est complet");
+      }
+    }
+
+    // Fetch products and verify stock + snooze
     const productIds = data.items.map((i) => i.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds }, shopId: data.shopId },
@@ -115,7 +175,6 @@ export async function POST(req: NextRequest) {
 
     const productMap = new Map(products.map((p) => [p.id, p]));
 
-    // Verify all products exist and are in stock
     for (const item of data.items) {
       const product = productMap.get(item.productId);
       if (!product) {
@@ -123,6 +182,9 @@ export async function POST(req: NextRequest) {
       }
       if (!product.inStock) {
         return apiError("STOCK_INSUFFICIENT", `${product.name} n'est plus en stock`);
+      }
+      if (product.snoozeType !== "NONE") {
+        return apiError("STOCK_INSUFFICIENT", `${product.name} est temporairement indisponible`);
       }
     }
 
@@ -156,16 +218,24 @@ export async function POST(req: NextRequest) {
       : 1;
     const orderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
 
+    // Auto-cancel timer (Uber Eats style)
+    const expiresAt = new Date(Date.now() + shop.acceptTimeoutMin * 60 * 1000);
+    const initialStatus = shop.autoAccept ? "ACCEPTED" : "PENDING";
+
     const order = await prisma.order.create({
       data: {
         orderNumber,
         userId: user.id,
         isPro,
         shopId: data.shopId,
-        status: "PENDING",
+        status: initialStatus,
         requestedTime: data.requestedTime,
         customerNote: data.customerNote,
         totalCents,
+        expiresAt: initialStatus === "PENDING" ? expiresAt : null,
+        idempotencyKey: body.idempotencyKey || null,
+        pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
+        pickupSlotEnd: data.pickupSlotEnd ? new Date(data.pickupSlotEnd) : null,
         items: { create: orderItems },
       },
       include: {
@@ -181,6 +251,17 @@ export async function POST(req: NextRequest) {
       orderNumber: order.orderNumber,
       customerName: user.firstName,
     });
+
+    // Auto-busy if threshold reached (Uber Eats style)
+    const activeOrders = await prisma.order.count({
+      where: {
+        shopId: shop.id,
+        status: { in: ["PENDING", "ACCEPTED", "PREPARING"] },
+      },
+    });
+    if (activeOrders >= shop.autoBusyThreshold && !shop.busyMode) {
+      await setBusyMode(shop.id, { extraMin: 15, durationMin: 30 });
+    }
 
     return apiSuccess(order, 201);
   } catch (error) {

@@ -1,4 +1,4 @@
-// src/app/api/cron/route.ts — Master cron endpoint (runs all sub-crons)
+// src/app/api/cron/unsnooze/route.ts — Auto-unsnooze expired products (Deliveroo style)
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
 import { unsnoozeExpiredProducts } from "@/lib/product-snooze";
 
@@ -6,12 +6,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const unsnoozed = await unsnoozeExpiredProducts();
+    const count = await unsnoozeExpiredProducts();
     return apiSuccess({
-      unsnoozed,
+      unsnoozedCount: count,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    return handleApiError(error, "cron");
+    return handleApiError(error, "cron/unsnooze");
   }
 }

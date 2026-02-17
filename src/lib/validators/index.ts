@@ -177,6 +177,9 @@ export const createOrderSchema = z.object({
   items: z.array(cartItemSchema).min(1, "Au moins 1 article requis"),
   requestedTime: z.string().optional(),
   customerNote: z.string().max(500).optional(),
+  pickupSlotStart: z.string().datetime().optional(),
+  pickupSlotEnd: z.string().datetime().optional(),
+  idempotencyKey: z.string().max(100).optional(),
 });
 
 export const orderListQuerySchema = z.object({

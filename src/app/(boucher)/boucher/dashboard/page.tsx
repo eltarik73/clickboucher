@@ -1,6 +1,7 @@
+// src/app/(boucher)/boucher/dashboard/page.tsx — Uber Eats tablette style dashboard
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,23 +13,39 @@ import {
   Clock,
   Star,
   Bell,
-  Settings,
   Loader2,
   AlertCircle,
+  Pause,
+  Play,
+  Flame,
+  Palmtree,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
+import { useOrderStream } from "@/hooks/useOrderStream";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type Shop = {
+type ShopStatus = {
   id: string;
   name: string;
   rating: number;
   ratingCount: number;
   status: string;
   busyMode: boolean;
-  prepTimeMin: number;
   busyExtraMin: number;
+  busyModeEndsAt: string | null;
+  paused: boolean;
+  pauseReason: string | null;
+  pauseEndsAt: string | null;
+  autoPaused: boolean;
+  vacationMode: boolean;
+  vacationEnd: string | null;
+  vacationMessage: string | null;
+  prepTimeMin: number;
+  effectivePrepTime: number;
 };
 
 type Order = {
@@ -37,7 +54,8 @@ type Order = {
   status: string;
   totalCents: number;
   createdAt: string;
-  items: { id: string }[];
+  expiresAt: string | null;
+  items: { id: string; name: string; quantity: number }[];
   user: { firstName: string; lastName: string } | null;
 };
 
@@ -53,14 +71,128 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
   COMPLETED:        { label: "Terminee",    color: "text-green-700",   bg: "bg-green-50 border-green-200" },
   DENIED:           { label: "Refusee",     color: "text-red-700",     bg: "bg-red-50 border-red-200" },
   CANCELLED:        { label: "Annulee",     color: "text-gray-500",    bg: "bg-gray-50 border-gray-200" },
+  AUTO_CANCELLED:   { label: "Expiree",     color: "text-gray-500",    bg: "bg-gray-50 border-gray-200" },
   PARTIALLY_DENIED: { label: "Partielle",   color: "text-orange-700",  bg: "bg-orange-50 border-orange-200" },
 };
 
 function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(dateStr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function timeRemaining(dateStr: string): string {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  if (diff <= 0) return "Expire";
+  const min = Math.floor(diff / 60000);
+  const sec = Math.floor((diff % 60000) / 1000);
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+// ─────────────────────────────────────────────
+// Status Bar component (Uber Eats style)
+// ─────────────────────────────────────────────
+function StatusBar({
+  shop,
+  onAction,
+  loading,
+}: {
+  shop: ShopStatus;
+  onAction: (action: string, data?: Record<string, unknown>) => void;
+  loading: boolean;
+}) {
+  const configs: Record<string, { bg: string; text: string; label: string; icon: React.ReactNode }> = {
+    OPEN:        { bg: "bg-emerald-500", text: "text-white", label: "Vous etes en ligne", icon: <Play size={14} /> },
+    BUSY:        { bg: "bg-amber-500",   text: "text-white", label: `Mode occupe (+${shop.busyExtraMin}min)`, icon: <Flame size={14} /> },
+    PAUSED:      { bg: "bg-red-500",     text: "text-white", label: "Commandes en pause", icon: <Pause size={14} /> },
+    AUTO_PAUSED: { bg: "bg-red-600",     text: "text-white", label: "Pause automatique — commandes manquees", icon: <AlertCircle size={14} /> },
+    CLOSED:      { bg: "bg-gray-500",    text: "text-white", label: "Ferme", icon: <Pause size={14} /> },
+    VACATION:    { bg: "bg-purple-500",  text: "text-white", label: `Vacances${shop.vacationEnd ? ` jusqu'au ${new Date(shop.vacationEnd).toLocaleDateString("fr-FR")}` : ""}`, icon: <Palmtree size={14} /> },
+  };
+
+  const config = configs[shop.status] || configs.OPEN;
+  const isPausedState = shop.status === "PAUSED" || shop.status === "AUTO_PAUSED";
+  const isBusy = shop.status === "BUSY";
+  const isVacation = shop.status === "VACATION";
+
+  return (
+    <div className={`${config.bg} rounded-xl px-4 py-3 ${shop.status === "AUTO_PAUSED" ? "animate-pulse" : ""}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {config.icon}
+          <span className={`text-sm font-semibold ${config.text}`}>{config.label}</span>
+          {shop.pauseReason && isPausedState && (
+            <span className="text-xs text-white/70">({shop.pauseReason})</span>
+          )}
+        </div>
+        <div className="flex gap-1.5">
+          {isPausedState && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+              onClick={() => onAction("resume")}
+              disabled={loading}
+            >
+              <Play size={12} className="mr-1" /> Reprendre
+            </Button>
+          )}
+          {isVacation && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+              onClick={() => onAction("end_vacation")}
+              disabled={loading}
+            >
+              Fin vacances
+            </Button>
+          )}
+          {isBusy && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+              onClick={() => onAction("end_busy")}
+              disabled={loading}
+            >
+              Arreter busy
+            </Button>
+          )}
+          {shop.status === "OPEN" && (
+            <>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+                onClick={() => onAction("pause")}
+                disabled={loading}
+              >
+                <Pause size={12} className="mr-1" /> Pause
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+                onClick={() => onAction("busy", { extraMin: 15, durationMin: 60 })}
+                disabled={loading}
+              >
+                <Flame size={12} className="mr-1" /> Occupe
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+      {shop.pauseEndsAt && isPausedState && (
+        <p className="text-xs text-white/70 mt-1">
+          Reprise auto dans {timeRemaining(shop.pauseEndsAt)}
+        </p>
+      )}
+      {shop.busyModeEndsAt && isBusy && (
+        <p className="text-xs text-white/70 mt-1">
+          Fin du mode occupe dans {timeRemaining(shop.busyModeEndsAt)}
+        </p>
+      )}
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -68,31 +200,51 @@ function formatTime(dateStr: string) {
 // ─────────────────────────────────────────────
 export default function BoucherDashboardPage() {
   const { user } = useUser();
-  const [shop, setShop] = useState<Shop | null>(null);
+  const [shop, setShop] = useState<ShopStatus | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [togglingBusy, setTogglingBusy] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // SSE real-time stream
+  const { connected, pendingCount: ssePendingCount } = useOrderStream({
+    onNewOrder: () => {
+      toast.success("Nouvelle commande !");
+      fetchOrders();
+    },
+    onStatusChange: () => {
+      fetchShopStatus();
+    },
+    onAutoPaused: (message) => {
+      toast.error(message);
+      fetchShopStatus();
+    },
+  });
+
+  const fetchShopStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/boucher/shop/status");
+      if (res.ok) {
+        const json = await res.json();
+        setShop(json.data);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await fetch("/api/orders");
+      if (res.ok) {
+        const json = await res.json();
+        setOrders(json.data || []);
+      }
+    } catch { /* silent */ }
+  }, []);
 
   useEffect(() => {
     async function load() {
       try {
-        const [shopRes, ordersRes] = await Promise.all([
-          fetch("/api/shops/my-shop"),
-          fetch("/api/orders"),
-        ]);
-
-        if (shopRes.ok) {
-          const shopJson = await shopRes.json();
-          setShop(shopJson.data);
-        } else {
-          setError("Impossible de charger votre boucherie");
-        }
-
-        if (ordersRes.ok) {
-          const ordersJson = await ordersRes.json();
-          setOrders(ordersJson.data || []);
-        }
+        await Promise.all([fetchShopStatus(), fetchOrders()]);
       } catch {
         setError("Erreur de connexion au serveur");
       } finally {
@@ -100,39 +252,40 @@ export default function BoucherDashboardPage() {
       }
     }
     load();
-  }, []);
+  }, [fetchShopStatus, fetchOrders]);
 
-  // ── Toggle busy mode ──
-  async function toggleBusy() {
+  // ── Shop status action ──
+  async function handleStatusAction(action: string, data?: Record<string, unknown>) {
     if (!shop) return;
-    setTogglingBusy(true);
+    setActionLoading(true);
     try {
-      const res = await fetch(`/api/shops/${shop.id}/status`, {
+      const res = await fetch("/api/boucher/shop/status", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ busyMode: !shop.busyMode }),
+        body: JSON.stringify({ action, ...data }),
       });
       if (res.ok) {
-        setShop({ ...shop, busyMode: !shop.busyMode });
+        await fetchShopStatus();
+        toast.success(action === "resume" ? "Commandes reprises" : `Action: ${action}`);
+      } else {
+        toast.error("Erreur lors du changement de statut");
       }
     } catch {
-      // silent
+      toast.error("Erreur de connexion");
     } finally {
-      setTogglingBusy(false);
+      setActionLoading(false);
     }
   }
 
   // ── Stats calculations ──
   const today = new Date().toISOString().slice(0, 10);
-  const todayOrders = orders.filter(
-    (o) => o.createdAt.slice(0, 10) === today
-  );
+  const todayOrders = orders.filter((o) => o.createdAt.slice(0, 10) === today);
   const completedToday = todayOrders.filter((o) => o.status === "COMPLETED");
   const caToday = completedToday.reduce((sum, o) => sum + o.totalCents, 0) / 100;
-  const pendingCount = orders.filter((o) => o.status === "PENDING").length;
+  const pendingOrders = orders.filter((o) => o.status === "PENDING");
+  const pendingCount = pendingOrders.length;
   const recentOrders = orders.slice(0, 5);
 
-  // ── Loading ──
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -141,7 +294,6 @@ export default function BoucherDashboardPage() {
     );
   }
 
-  // ── Error ──
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-5">
@@ -151,37 +303,38 @@ export default function BoucherDashboardPage() {
     );
   }
 
-  const shopStatus = (shop?.status === "PAUSED" || shop?.status === "AUTO_PAUSED")
-    ? { label: "Pause", style: "bg-red-100 text-red-700 border-red-200" }
-    : shop?.status === "BUSY"
-      ? { label: "Occupe", style: "bg-amber-100 text-amber-700 border-amber-200" }
-      : (shop?.status === "CLOSED" || shop?.status === "VACATION")
-        ? { label: "Ferme", style: "bg-gray-100 text-gray-700 border-gray-200" }
-        : { label: "Ouvert", style: "bg-emerald-100 text-emerald-700 border-emerald-200" };
-
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <div className="max-w-3xl mx-auto px-5 py-6 space-y-6">
+      <div className="max-w-3xl mx-auto px-5 py-6 space-y-4">
 
         {/* ── Header ── */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Bonjour {user?.firstName || "Chef"} 👋
-          </h1>
-          <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Bonjour {user?.firstName || "Chef"}
+            </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">{shop?.name}</p>
-            <Badge
-              variant="outline"
-              className={`text-[10px] font-semibold border ${shopStatus.style}`}
-            >
-              {shopStatus.label}
-            </Badge>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {connected ? (
+              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-600 border-emerald-200 gap-1">
+                <Wifi size={10} /> En ligne
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] bg-red-50 text-red-600 border-red-200 gap-1">
+                <WifiOff size={10} /> Hors ligne
+              </Badge>
+            )}
           </div>
         </div>
 
+        {/* ── Status Bar (Uber Eats style) ── */}
+        {shop && (
+          <StatusBar shop={shop} onAction={handleStatusAction} loading={actionLoading} />
+        )}
+
         {/* ── Stats Grid 2x2 ── */}
         <div className="grid grid-cols-2 gap-3">
-          {/* CA du jour */}
           <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -191,12 +344,11 @@ export default function BoucherDashboardPage() {
                 <span className="text-xs text-gray-500 dark:text-gray-400">CA du jour</span>
               </div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {caToday.toFixed(2).replace(".", ",")} €
+                {caToday.toFixed(2).replace(".", ",")} EUR
               </p>
             </CardContent>
           </Card>
 
-          {/* Commandes du jour */}
           <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -205,14 +357,11 @@ export default function BoucherDashboardPage() {
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Commandes</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {todayOrders.length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{todayOrders.length}</p>
             </CardContent>
           </Card>
 
-          {/* En attente */}
-          <Card className={`border-0 shadow-sm ${pendingCount > 0 ? "bg-red-50" : "bg-white"}`}>
+          <Card className={`border-0 shadow-sm ${pendingCount > 0 ? "bg-red-50 dark:bg-red-950/20" : "bg-white dark:bg-[#141414]"}`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pendingCount > 0 ? "bg-red-200" : "bg-amber-100"}`}>
@@ -221,12 +370,11 @@ export default function BoucherDashboardPage() {
                 <span className="text-xs text-gray-500 dark:text-gray-400">En attente</span>
               </div>
               <p className={`text-2xl font-bold ${pendingCount > 0 ? "text-red-600" : "text-gray-900 dark:text-white"}`}>
-                {pendingCount}
+                {ssePendingCount || pendingCount}
               </p>
             </CardContent>
           </Card>
 
-          {/* Note moyenne */}
           <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -245,14 +393,14 @@ export default function BoucherDashboardPage() {
           </Card>
         </div>
 
-        {/* ── Actions rapides ── */}
+        {/* ── Quick actions ── */}
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Actions rapides</h2>
           <div className="grid grid-cols-3 gap-2">
             <Link href="/boucher/commandes">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[white/10] border-gray-200 dark:border-[white/10]"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-white/5 border-gray-200 dark:border-white/10"
               >
                 <div className="relative">
                   <Bell className="w-5 h-5 text-[#DC2626]" />
@@ -269,43 +417,30 @@ export default function BoucherDashboardPage() {
             <Link href="/boucher/produits">
               <Button
                 variant="outline"
-                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-[white/10] border-gray-200 dark:border-[white/10]"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-white/5 border-gray-200 dark:border-white/10"
               >
                 <Package className="w-5 h-5 text-[#DC2626]" />
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Stock</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Produits</span>
               </Button>
             </Link>
 
-            <Button
-              variant="outline"
-              onClick={toggleBusy}
-              disabled={togglingBusy}
-              className={`h-auto py-3 flex flex-col items-center gap-1.5 border-gray-200 ${
-                shop?.busyMode
-                  ? "bg-amber-50 hover:bg-amber-100 border-amber-300"
-                  : "bg-white hover:bg-gray-50"
-              }`}
-            >
-              {togglingBusy ? (
-                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-              ) : (
-                <Settings className={`w-5 h-5 ${shop?.busyMode ? "text-amber-600" : "text-[#DC2626]"}`} />
-              )}
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                {shop?.busyMode ? "Desactiver" : "Mode occupe"}
-              </span>
-            </Button>
+            <Link href="/boucher/parametres">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-white/5 border-gray-200 dark:border-white/10"
+              >
+                <Clock className="w-5 h-5 text-[#DC2626]" />
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Parametres</span>
+              </Button>
+            </Link>
           </div>
         </div>
 
-        {/* ── Dernieres commandes ── */}
+        {/* ── Recent orders ── */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dernières commandes</h2>
-            <Link
-              href="/boucher/commandes"
-              className="text-xs text-[#DC2626] font-medium hover:underline"
-            >
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dernieres commandes</h2>
+            <Link href="/boucher/commandes" className="text-xs text-[#DC2626] font-medium hover:underline">
               Tout voir
             </Link>
           </div>
@@ -346,14 +481,16 @@ export default function BoucherDashboardPage() {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-sm font-bold text-gray-900 dark:text-white">
-                              {(order.totalCents / 100).toFixed(2).replace(".", ",")} €
+                              {(order.totalCents / 100).toFixed(2).replace(".", ",")} EUR
                             </span>
-                            <Badge
-                              variant="outline"
-                              className={`text-[10px] font-semibold border ${st.bg} ${st.color}`}
-                            >
+                            <Badge variant="outline" className={`text-[10px] font-semibold border ${st.bg} ${st.color}`}>
                               {st.label}
                             </Badge>
+                            {order.status === "PENDING" && order.expiresAt && (
+                              <span className="text-[9px] font-mono text-red-500">
+                                {timeRemaining(order.expiresAt)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </CardContent>

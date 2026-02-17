@@ -16,6 +16,8 @@ import {
   GripVertical,
   ArrowUpDown,
   ChevronDown,
+  Timer,
+  Eye,
 } from "lucide-react";
 import { getFlag, getOriginCountry } from "@/lib/flags";
 import { ProductForm, type EditProduct } from "./ProductForm";
@@ -66,6 +68,10 @@ type Product = {
   promoPct: number | null;
   promoEnd: string | null;
   promoType: string | null;
+  snoozeType: string;
+  snoozedAt: string | null;
+  snoozeEndsAt: string | null;
+  snoozeReason: string | null;
   category: Category;
   images: ProductImage[];
   labels: ProductLabel[];
@@ -185,6 +191,40 @@ export default function BoucherProduitsPage() {
     }
   }
 
+  // ── Snooze product (Deliveroo style) ──
+  async function snoozeProduct(product: Product, type: string) {
+    // Optimistic
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === product.id
+          ? { ...p, snoozeType: type, inStock: type === "NONE" }
+          : p
+      )
+    );
+
+    try {
+      const res = await fetch(`/api/boucher/products/${product.id}/snooze`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === product.id
+              ? { ...p, ...json.data }
+              : p
+          )
+        );
+      } else {
+        fetchData();
+      }
+    } catch {
+      fetchData();
+    }
+  }
+
   // ── Drag & drop handlers ──
   function handleDragStart(idx: number) {
     setDragIdx(idx);
@@ -255,8 +295,9 @@ export default function BoucherProduitsPage() {
 
   // ── Stats ──
   const totalCount = products.length;
-  const inStockCount = products.filter((p) => p.inStock).length;
-  const outCount = totalCount - inStockCount;
+  const inStockCount = products.filter((p) => p.inStock && p.snoozeType === "NONE").length;
+  const snoozedCount = products.filter((p) => p.snoozeType !== "NONE").length;
+  const outCount = totalCount - inStockCount - snoozedCount;
   const promoCount = products.filter(
     (p) => p.promoPct && p.promoPct > 0 && (!p.promoEnd || new Date(p.promoEnd) > new Date())
   ).length;
@@ -320,22 +361,26 @@ export default function BoucherProduitsPage() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-4 gap-2">
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 text-center">
+          <div className="grid grid-cols-5 gap-1.5">
+            <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-white">{totalCount}</p>
-              <p className="text-[10px] text-gray-400 font-medium">Produits</p>
+              <p className="text-[9px] text-gray-400 font-medium">Produits</p>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 text-center">
+            <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-emerald-400">{inStockCount}</p>
-              <p className="text-[10px] text-gray-400 font-medium">En stock</p>
+              <p className="text-[9px] text-gray-400 font-medium">En stock</p>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 text-center">
+            <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-amber-400">{promoCount}</p>
-              <p className="text-[10px] text-gray-400 font-medium">Promos</p>
+              <p className="text-[9px] text-gray-400 font-medium">Promos</p>
             </div>
-            <div className="bg-white/10 rounded-xl px-3 py-2.5 text-center">
+            <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
+              <p className={`text-lg font-bold ${snoozedCount > 0 ? "text-orange-400" : "text-white"}`}>{snoozedCount}</p>
+              <p className="text-[9px] text-gray-400 font-medium">En pause</p>
+            </div>
+            <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className={`text-lg font-bold ${outCount > 0 ? "text-red-400" : "text-white"}`}>{outCount}</p>
-              <p className="text-[10px] text-gray-400 font-medium">Ruptures</p>
+              <p className="text-[9px] text-gray-400 font-medium">Ruptures</p>
             </div>
           </div>
         </div>
@@ -468,6 +513,7 @@ export default function BoucherProduitsPage() {
                 <ProductRow
                   product={product}
                   onToggleStock={() => toggleStock(product)}
+                  onSnooze={(type) => snoozeProduct(product, type)}
                   onEdit={() => { setEditProduct(product as unknown as EditProduct); setShowForm(true); }}
                   isDraggable={isDraggable}
                 />
@@ -497,27 +543,51 @@ export default function BoucherProduitsPage() {
 function ProductRow({
   product,
   onToggleStock,
+  onSnooze,
   onEdit,
   isDraggable,
 }: {
   product: Product;
   onToggleStock: () => void;
+  onSnooze: (type: string) => void;
   onEdit: () => void;
   isDraggable: boolean;
 }) {
+  const [showSnoozeMenu, setShowSnoozeMenu] = useState(false);
   const hasPromo = product.promoPct != null && product.promoPct > 0;
   const promoActive = hasPromo && (!product.promoEnd || new Date(product.promoEnd) > new Date());
   const isFlash = product.promoType === "FLASH" && promoActive;
-  const outOfStock = !product.inStock;
+  const isSnoozed = product.snoozeType !== "NONE";
+  const outOfStock = !product.inStock && !isSnoozed;
+
+  // Snooze badge text
+  function snoozeLabel(): string {
+    if (!isSnoozed) return "";
+    if (product.snoozeType === "INDEFINITE" || !product.snoozeEndsAt) return "Indisponible";
+    const diff = new Date(product.snoozeEndsAt).getTime() - Date.now();
+    if (diff <= 0) return "Bientot dispo";
+    const min = Math.floor(diff / 60000);
+    if (min < 60) return `Retour ${min}min`;
+    const h = Math.floor(min / 60);
+    return h < 24 ? `Retour ${h}h` : "Retour demain";
+  }
 
   // Pick best image
   const imgSrc = product.images.length > 0
     ? (product.images.find((i) => i.isPrimary) || product.images[0]).url
     : product.imageUrl;
 
+  const SNOOZE_OPTIONS = [
+    { type: "ONE_HOUR", label: "1 heure" },
+    { type: "TWO_HOURS", label: "2 heures" },
+    { type: "END_OF_DAY", label: "Fin de journee" },
+    { type: "INDEFINITE", label: "Indefini" },
+  ];
+
   return (
     <div
       className={`flex items-center gap-2.5 p-3 bg-white dark:bg-[#141414] rounded-[14px] border border-[#ece8e3] dark:border-white/10 transition-all ${
+        isSnoozed ? "opacity-60 bg-orange-50/50 dark:bg-orange-950/10 border-orange-200 dark:border-orange-800/30" :
         outOfStock ? "opacity-60 bg-red-50/50 dark:bg-red-950/10" : ""
       }`}
     >
@@ -549,6 +619,11 @@ function ProductRow({
             -{product.promoPct}%
           </div>
         )}
+        {isSnoozed && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <Timer size={16} className="text-white" />
+          </div>
+        )}
       </div>
 
       {/* Info (clickable to edit) */}
@@ -564,6 +639,15 @@ function ProductRow({
           )}
         </div>
 
+        {/* Snooze badge */}
+        {isSnoozed && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-[8px] font-bold rounded">
+              <Timer size={8} /> {snoozeLabel()}
+            </span>
+          </div>
+        )}
+
         {/* Meta row */}
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
@@ -575,7 +659,7 @@ function ProductRow({
             </span>
           )}
           <span className="text-[10px] text-gray-400 dark:text-gray-500">
-            {product.unit === "KG" ? "Poids" : product.unit === "PIECE" ? "Pièce" : "Barquette"}
+            {product.unit === "KG" ? "Poids" : product.unit === "PIECE" ? "Piece" : "Barquette"}
           </span>
         </div>
 
@@ -584,7 +668,7 @@ function ProductRow({
           <div className="flex items-center gap-1 mt-1 flex-wrap">
             {product.halalOrg && (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 rounded text-[8px] font-semibold text-emerald-700 dark:text-emerald-300">
-                ☪ {product.halalOrg}
+                {product.halalOrg}
               </span>
             )}
             {product.labels.slice(0, 3).map((label) => (
@@ -623,16 +707,73 @@ function ProductRow({
         <span className="text-[9px] text-gray-400 font-medium">{UNIT_LABELS[product.unit] || ""}</span>
       </div>
 
-      {/* Stock toggle */}
-      <div className="flex flex-col items-center gap-0.5 shrink-0">
-        <Switch
-          checked={product.inStock}
-          onCheckedChange={onToggleStock}
-          className={product.inStock ? "!bg-emerald-500" : "!bg-red-400"}
-        />
-        <span className={`text-[9px] font-medium ${product.inStock ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-          {product.inStock ? "Stock" : "Rupture"}
-        </span>
+      {/* Stock / Snooze controls */}
+      <div className="flex flex-col items-center gap-0.5 shrink-0 relative">
+        {isSnoozed ? (
+          <button
+            onClick={() => onSnooze("NONE")}
+            className="flex items-center gap-1 px-2 py-1.5 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 rounded-lg transition-colors"
+          >
+            <Eye size={12} className="text-orange-600" />
+            <span className="text-[9px] font-semibold text-orange-700 dark:text-orange-300">Remettre</span>
+          </button>
+        ) : (
+          <>
+            <Switch
+              checked={product.inStock}
+              onCheckedChange={() => {
+                if (product.inStock) {
+                  setShowSnoozeMenu(true);
+                } else {
+                  onToggleStock();
+                }
+              }}
+              className={product.inStock ? "!bg-emerald-500" : "!bg-red-400"}
+            />
+            <span className={`text-[9px] font-medium ${product.inStock ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+              {product.inStock ? "Dispo" : "Rupture"}
+            </span>
+          </>
+        )}
+
+        {/* Snooze dropdown (Deliveroo style) */}
+        {showSnoozeMenu && (
+          <>
+            <div className="fixed inset-0 z-30" onClick={() => setShowSnoozeMenu(false)} />
+            <div className="absolute right-0 top-full mt-1 z-40 bg-white dark:bg-[#1a1a1a] border border-[#ece8e3] dark:border-white/10 rounded-xl shadow-lg overflow-hidden min-w-[150px]">
+              <div className="px-3 py-1.5 border-b border-gray-100 dark:border-white/5">
+                <p className="text-[10px] font-semibold text-gray-500">Mettre en pause</p>
+              </div>
+              {SNOOZE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.type}
+                  onClick={() => { onSnooze(opt.type); setShowSnoozeMenu(false); }}
+                  className="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2"
+                >
+                  <Timer size={11} className="text-orange-500" />
+                  {opt.label}
+                </button>
+              ))}
+              <div className="border-t border-gray-100 dark:border-white/5">
+                <button
+                  onClick={() => { onToggleStock(); setShowSnoozeMenu(false); }}
+                  className="w-full text-left px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2"
+                >
+                  <X size={11} />
+                  Rupture de stock
+                </button>
+              </div>
+              <div className="border-t border-gray-100 dark:border-white/5">
+                <button
+                  onClick={() => setShowSnoozeMenu(false)}
+                  className="w-full text-left px-3 py-2 text-xs font-medium text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

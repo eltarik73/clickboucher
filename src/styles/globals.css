@@ -178,3 +178,19 @@ body {
   .delay-5 { animation-delay: 350ms; }
   .delay-6 { animation-delay: 420ms; }
 }
+
+/* ─── Uber Eats flash animations ──────────── */
+@keyframes flashGreen {
+  0%, 100% { background-color: inherit; }
+  50% { background-color: rgba(22, 163, 74, 0.15); }
+}
+@keyframes flashRed {
+  0%, 100% { background-color: inherit; }
+  50% { background-color: rgba(220, 38, 38, 0.15); }
+}
+.flash-green {
+  animation: flashGreen 0.5s ease 3;
+}
+.flash-red {
+  animation: flashRed 0.5s ease 3;
+}
