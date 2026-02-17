@@ -47,6 +47,7 @@ function InscriptionBoucherContent() {
   const [email, setEmail] = useState("");
   const [siret, setSiret] = useState("");
   const [description, setDescription] = useState("");
+  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
   const [acceptCgv, setAcceptCgv] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -79,6 +80,7 @@ function InscriptionBoucherContent() {
           siret: siret.trim(),
           description: description.trim() || undefined,
           pack: packKey,
+          referralCode: referralCode.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -290,6 +292,25 @@ function InscriptionBoucherContent() {
               maxLength={500}
               className="flex w-full rounded-xl border border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors resize-none"
             />
+          </div>
+
+          {/* Referral code */}
+          <div>
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
+              Code de parrainage
+              <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">
+                (optionnel)
+              </span>
+            </label>
+            <Input
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="CODE-PARRAIN"
+              className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626] font-mono"
+            />
+            <p className="text-[10px] text-gray-400 mt-1">
+              Un boucher vous a recommande ? Entrez son code pour gagner chacun 1 mois gratuit.
+            </p>
           </div>
 
           {/* CGV */}

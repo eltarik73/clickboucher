@@ -188,16 +188,77 @@ export function startCronJobs() {
   cron.schedule("0 2 * * *", async () => {
     try {
       const now = new Date();
-      const result = await prisma.subscription.updateMany({
+
+      // Find expiring trials
+      const expiredSubs = await prisma.subscription.findMany({
         where: {
           status: "TRIAL",
           trialEndsAt: { not: null, lte: now },
         },
-        data: { status: "EXPIRED" },
+        include: {
+          shop: { select: { id: true, ownerId: true, name: true } },
+        },
       });
 
-      if (result.count > 0) {
-        console.log(`[CRON][trial-expiry] Expired ${result.count} trial subscriptions`);
+      for (const sub of expiredSubs) {
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { status: "EXPIRED" },
+        });
+
+        // Hide the shop
+        await prisma.shop.update({
+          where: { id: sub.shopId },
+          data: { visible: false },
+        });
+
+        // Notify the boucher
+        const owner = await prisma.user.findUnique({
+          where: { clerkId: sub.shop.ownerId },
+          select: { id: true },
+        });
+        if (owner) {
+          await sendNotification("TRIAL_EXPIRING", {
+            userId: owner.id,
+            shopName: sub.shop.name,
+            message: `Votre essai gratuit pour ${sub.shop.name} a expiré. Passez au paiement pour réactiver votre boutique.`,
+          });
+        }
+      }
+
+      // Send 7-day warning for trials expiring soon
+      const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const sixDays = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+
+      const warningSubs = await prisma.subscription.findMany({
+        where: {
+          status: "TRIAL",
+          trialEndsAt: { gte: sixDays, lte: sevenDays },
+        },
+        include: {
+          shop: { select: { ownerId: true, name: true } },
+        },
+      });
+
+      for (const sub of warningSubs) {
+        const owner = await prisma.user.findUnique({
+          where: { clerkId: sub.shop.ownerId },
+          select: { id: true },
+        });
+        if (owner) {
+          await sendNotification("TRIAL_EXPIRING", {
+            userId: owner.id,
+            shopName: sub.shop.name,
+            message: `Votre essai se termine dans 7 jours. Passez au paiement pour continuer à recevoir des commandes.`,
+          });
+        }
+      }
+
+      if (expiredSubs.length > 0) {
+        console.log(`[CRON][trial-expiry] Expired ${expiredSubs.length} trial subscriptions`);
+      }
+      if (warningSubs.length > 0) {
+        console.log(`[CRON][trial-expiry] Sent ${warningSubs.length} 7-day warnings`);
       }
     } catch (error) {
       console.error("[CRON][trial-expiry] Error:", error);

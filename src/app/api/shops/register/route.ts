@@ -14,6 +14,7 @@ const registerSchema = z.object({
   siret: z.string().regex(/^[0-9]{14}$/, "SIRET invalide (14 chiffres)"),
   description: z.string().max(500).optional(),
   pack: z.enum(["essentiel", "premium", "entreprise"]).optional(),
+  referralCode: z.string().max(50).optional(),
 });
 
 // ── POST /api/shops/register ──────────────────────
@@ -58,6 +59,24 @@ export async function POST(req: NextRequest) {
       slug = `${baseSlug}-${counter}`;
     }
 
+    // Validate referral code if provided
+    let referredByShop: string | null = null;
+    if (data.referralCode) {
+      const referrerShop = await prisma.shop.findUnique({
+        where: { shopReferralCode: data.referralCode.toUpperCase() },
+        select: { id: true, shopReferralCode: true },
+      });
+      if (referrerShop) {
+        // Check max 10 referrals
+        const refCount = await prisma.referral.count({
+          where: { referrerShopId: referrerShop.id },
+        });
+        if (refCount < 10) {
+          referredByShop = data.referralCode.toUpperCase();
+        }
+      }
+    }
+
     // Create shop
     const shop = await prisma.shop.create({
       data: {
@@ -79,6 +98,7 @@ export async function POST(req: NextRequest) {
         maxOrdersPerHour: 20,
         commissionPct: 0,
         openingHours: JSON.stringify({}),
+        referredByShop,
       },
     });
 
