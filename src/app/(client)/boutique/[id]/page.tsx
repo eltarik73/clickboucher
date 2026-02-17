@@ -158,10 +158,12 @@ export default async function BoutiquePage({
         {/* HERO */}
         {/* ═══════════════════════════════════════════ */}
         <div className="relative mx-3 mt-3 rounded-[24px] overflow-hidden h-[300px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={heroImg}
             alt={shop.name}
             className="absolute inset-0 w-full h-full object-cover"
+            referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 

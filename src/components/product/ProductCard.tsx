@@ -47,6 +47,8 @@ function isFlashActive(promoEnd: string | null, promoType: string | null): boole
 
 // ── Image Carousel ──────────────────────────────
 
+const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' fill='%23e5e7eb'%3E%3Crect width='400' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🥩%3C/text%3E%3C/svg%3E";
+
 function ImageCarousel({ images, fallback, alt }: { images: ProductImageType[]; fallback: string; alt: string }) {
   const [idx, setIdx] = useState(0);
   const srcs = images.length > 0 ? images.map(i => i.url) : [fallback];
@@ -59,6 +61,8 @@ function ImageCarousel({ images, fallback, alt }: { images: ProductImageType[]; 
         alt={alt}
         className="w-full h-full object-cover transition-opacity duration-300"
         loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
       />
       {count > 1 && (
         <>

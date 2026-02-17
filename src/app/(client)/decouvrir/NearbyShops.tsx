@@ -9,6 +9,8 @@ import { StarRating } from "@/components/ui/StarRating";
 import { getShopImage } from "@/lib/product-images";
 import { MapPin, Loader2 } from "lucide-react";
 
+const SHOP_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' fill='%23e5e7eb'%3E%3Crect width='600' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🏪%3C/text%3E%3C/svg%3E";
+
 type ShopData = {
   id: string;
   slug: string;
@@ -166,6 +168,8 @@ function NearbyButcherCard({
           src={imgSrc}
           alt={shop.name}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          referrerPolicy="no-referrer"
+          onError={(e) => { (e.target as HTMLImageElement).src = SHOP_PLACEHOLDER; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 

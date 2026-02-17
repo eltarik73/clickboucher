@@ -22,6 +22,10 @@ const nextConfig = {
         source: "/(.*)",
         headers: [
           {
+            key: "Referrer-Policy",
+            value: "no-referrer-when-downgrade",
+          },
+          {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
