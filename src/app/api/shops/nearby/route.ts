@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
 
     const { lat, lng, radius } = parseResult.data;
 
-    // Haversine query with Prisma.$queryRawUnsafe
-    const shops = await prisma.$queryRawUnsafe<
+    // Haversine query with Prisma.$queryRaw (parameterized)
+    const shops = await prisma.$queryRaw<
       Array<{
         id: string;
         slug: string;
@@ -43,16 +43,15 @@ export async function GET(req: NextRequest) {
         delivery_radius: number;
         distance: number;
       }>
-    >(
-      `SELECT
+    >`SELECT
         s.id, s.slug, s.name, s.address, s.city, s.image_url,
         s.latitude, s.longitude,
         s.prep_time_min, s.busy_mode, s.busy_extra_min,
         s.status, s.rating, s.rating_count, s.delivery_radius,
         (6371 * acos(
           LEAST(1.0, GREATEST(-1.0,
-            cos(radians($1)) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians($2))
-            + sin(radians($1)) * sin(radians(s.latitude))
+            cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
+            + sin(radians(${lat})) * sin(radians(s.latitude))
           ))
         )) AS distance
       FROM shops s
@@ -61,15 +60,11 @@ export async function GET(req: NextRequest) {
         AND s.longitude IS NOT NULL
       HAVING (6371 * acos(
         LEAST(1.0, GREATEST(-1.0,
-          cos(radians($1)) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians($2))
-          + sin(radians($1)) * sin(radians(s.latitude))
+          cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
+          + sin(radians(${lat})) * sin(radians(s.latitude))
         ))
-      )) <= $3
-      ORDER BY distance ASC`,
-      lat,
-      lng,
-      radius
-    );
+      )) <= ${radius}
+      ORDER BY distance ASC`;
 
     // Also get shops without coordinates (show at end)
     const shopsWithoutCoords = await prisma.shop.findMany({

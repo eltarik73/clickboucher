@@ -1,15 +1,11 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
-import { handleApiError } from "@/lib/api/errors";
+import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { requireAdmin } from "@/lib/admin-auth";
 
 export async function GET() {
   try {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string>)?.role;
-    if (role !== "admin") {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
-    }
+    const adminCheck = await requireAdmin();
+    if (adminCheck.error) return adminCheck.error;
 
     const users = await prisma.user.findMany({
       select: {
@@ -49,7 +45,7 @@ export async function GET() {
       totalSpent: u.orders.reduce((sum, o) => sum + o.totalCents, 0),
     }));
 
-    return NextResponse.json(data);
+    return apiSuccess(data);
   } catch (error) {
     return handleApiError(error, "admin/users");
   }

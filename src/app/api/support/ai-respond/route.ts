@@ -1,5 +1,6 @@
 // POST /api/support/ai-respond — Claude AI auto-response for support tickets
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import Anthropic from "@anthropic-ai/sdk";
 import prisma from "@/lib/prisma";
 
@@ -20,11 +21,25 @@ Règles :
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Authentification requise" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { ticketId, userMessage, shopName } = body;
 
     if (!ticketId || !userMessage) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    // Verify ticket belongs to a shop owned by this user
+    const ticket = await prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+      select: { shop: { select: { ownerId: true } } },
+    });
+    if (!ticket || ticket.shop.ownerId !== userId) {
+      return NextResponse.json({ error: "Accès non autorisé" }, { status: 403 });
     }
 
     // Get conversation history

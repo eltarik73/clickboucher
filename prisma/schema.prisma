@@ -190,6 +190,7 @@ model User {
   loyaltyPoints   LoyaltyPoint[]
   carts           Cart[]
   recurringOrders RecurringOrder[]
+  supportTickets  SupportTicket[]
 
   @@map("users")
 }
@@ -298,17 +299,18 @@ model Shop {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  products       Product[]
-  categories     Category[]
-  orders         Order[]
-  favoritedBy    User[]          @relation("UserFavorites")
-  reviews        Review[]
-  loyaltyRules   LoyaltyRule[]
-  subscription   Subscription?
-  supportTickets SupportTicket[]
-  suggestRules   SuggestRule[]
-  carts          Cart[]
-  shopLogs       ShopLog[]
+  products        Product[]
+  categories      Category[]
+  orders          Order[]
+  favoritedBy     User[]          @relation("UserFavorites")
+  reviews         Review[]
+  loyaltyRules    LoyaltyRule[]
+  subscription    Subscription?
+  supportTickets  SupportTicket[]
+  suggestRules    SuggestRule[]
+  carts           Cart[]
+  shopLogs        ShopLog[]
+  recurringOrders RecurringOrder[]
 
   @@index([latitude, longitude])
   @@index([city])
@@ -510,6 +512,7 @@ model SupportTicket {
   shopId  String @map("shop_id")
   shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
   userId  String @map("user_id")
+  user    User   @relation(fields: [userId], references: [id])
   subject String
   status  TicketStatus @default(OPEN)
 
@@ -522,6 +525,7 @@ model SupportTicket {
 
   @@index([shopId, status])
   @@index([status, createdAt])
+  @@index([userId])
   @@map("support_tickets")
 }
 
@@ -583,6 +587,7 @@ model RecurringOrder {
   userId        String    @map("user_id")
   user          User      @relation(fields: [userId], references: [id])
   shopId        String    @map("shop_id")
+  shop          Shop      @relation(fields: [shopId], references: [id])
   itemsSnapshot Json      @map("items_snapshot")
   frequency     String    @default("weekly")
   dayOfWeek     Int?      @map("day_of_week")
