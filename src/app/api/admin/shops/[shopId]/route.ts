@@ -8,13 +8,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ shopId: string }> }
+  { params }: { params: { shopId: string } }
 ) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { shopId } = await params;
+    const { shopId } = params;
 
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },

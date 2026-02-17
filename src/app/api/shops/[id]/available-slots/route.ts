@@ -16,10 +16,10 @@ type SlotConfig = {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const dateStr = req.nextUrl.searchParams.get("date");
     if (!dateStr) return apiError("VALIDATION_ERROR", "Paramètre date requis (YYYY-MM-DD)");
 

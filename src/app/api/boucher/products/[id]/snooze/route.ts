@@ -16,10 +16,10 @@ const snoozeSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: productId } = await params;
+    const { id: productId } = params;
     const { userId } = await auth();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 

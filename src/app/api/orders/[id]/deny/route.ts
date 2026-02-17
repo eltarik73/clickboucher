@@ -9,10 +9,10 @@ import { sendNotification } from "@/lib/notifications";
 // Boucher (owner) — deny an order
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

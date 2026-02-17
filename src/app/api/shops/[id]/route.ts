@@ -8,10 +8,10 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 // Public — shop detail with categories & products
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
 
     const shop = await prisma.shop.findUnique({
       where: { id },
@@ -45,10 +45,10 @@ export async function GET(
 // Boucher (owner) or Admin — update shop info
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId, sessionClaims } = await auth();
     const role = sessionClaims?.metadata?.role;
 
@@ -90,10 +90,10 @@ export async function PATCH(
 // Admin only — delete a shop (cascade: categories, products)
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { sessionClaims } = await auth();
     const role = sessionClaims?.metadata?.role;
 

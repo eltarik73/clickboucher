@@ -14,13 +14,13 @@ const replySchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ ticketId: string }> }
+  { params }: { params: { ticketId: string } }
 ) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { ticketId } = await params;
+    const { ticketId } = params;
     const body = await req.json();
     const data = replySchema.parse(body);
 

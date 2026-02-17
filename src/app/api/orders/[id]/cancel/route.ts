@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
 // Client (order owner) — cancel a pending order or ACCEPTED within 5 min
 export async function POST(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

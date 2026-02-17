@@ -8,10 +8,10 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 // Authenticated — order detail (client owner, boucher owner, or admin)
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

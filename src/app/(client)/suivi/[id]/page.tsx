@@ -30,9 +30,9 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
 export default async function SuiviPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
 
   const order = await prisma.order.findUnique({
     where: { id },

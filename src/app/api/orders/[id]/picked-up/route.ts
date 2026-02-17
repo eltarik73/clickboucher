@@ -9,10 +9,10 @@ import { sendNotification } from "@/lib/notifications";
 // QR code scan — verify and mark as picked up
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

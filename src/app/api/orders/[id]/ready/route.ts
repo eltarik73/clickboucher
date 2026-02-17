@@ -8,10 +8,10 @@ import { sendNotification } from "@/lib/notifications";
 // Boucher (owner) — mark order as ready for pickup
 export async function POST(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

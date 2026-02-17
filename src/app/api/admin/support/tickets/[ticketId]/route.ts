@@ -10,13 +10,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ ticketId: string }> }
+  { params }: { params: { ticketId: string } }
 ) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { ticketId } = await params;
+    const { ticketId } = params;
 
     const ticket = await prisma.supportTicket.findUnique({
       where: { id: ticketId },
@@ -42,13 +42,13 @@ const updateTicketSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ ticketId: string }> }
+  { params }: { params: { ticketId: string } }
 ) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { ticketId } = await params;
+    const { ticketId } = params;
     const body = await req.json();
     const data = updateTicketSchema.parse(body);
 

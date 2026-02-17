@@ -12,10 +12,10 @@ const modifyOrderSchema = z.object({
 // Client — after partial deny, choose to continue or cancel
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

@@ -19,13 +19,13 @@ const updateEventSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { id } = await params;
+    const { id } = params;
     const body = await req.json();
     const data = updateEventSchema.parse(body);
 
@@ -50,13 +50,13 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { id } = await params;
+    const { id } = params;
 
     await prisma.calendarEvent.delete({ where: { id } });
 

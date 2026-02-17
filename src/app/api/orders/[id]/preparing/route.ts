@@ -13,10 +13,10 @@ const preparingSchema = z.object({
 // Boucher (owner) — transition ACCEPTED → PREPARING, optionally add extra time
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -94,8 +94,8 @@ function subStatusBadge(status: string) {
   return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.cls}`}>{s.label}</span>;
 }
 
-export default function AdminShopDetailPage({ params }: { params: Promise<{ shopId: string }> }) {
-  const { shopId } = use(params);
+export default function AdminShopDetailPage({ params }: { params: { shopId: string } }) {
+  const { shopId } = params;
   const [shop, setShop] = useState<ShopDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);

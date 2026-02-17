@@ -14,9 +14,9 @@ import { FavoriteButton } from "@/components/ui/FavoriteButton";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }): Promise<Metadata> {
-  const { id: slug } = await params;
+  const { id: slug } = params;
   const shop = await prisma.shop.findUnique({
     where: { slug },
     select: { name: true, city: true, description: true },
@@ -61,9 +61,9 @@ function prepTimeClasses(minutes: number) {
 export default async function BoutiquePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id: slug } = await params;
+  const { id: slug } = params;
 
   let shop;
   try {

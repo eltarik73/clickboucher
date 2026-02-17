@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
 // Client — rate a completed/picked-up order
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

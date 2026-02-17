@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, use } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send, Bot, User, Shield, Loader2 } from "lucide-react";
 
@@ -19,8 +19,8 @@ type Ticket = {
   messages: Message[];
 };
 
-export default function TicketChatPage({ params }: { params: Promise<{ ticketId: string }> }) {
-  const { ticketId } = use(params);
+export default function TicketChatPage({ params }: { params: { ticketId: string } }) {
+  const { ticketId } = params;
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");

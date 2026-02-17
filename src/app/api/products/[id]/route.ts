@@ -17,10 +17,10 @@ const PRODUCT_INCLUDE = {
 // Public — product detail with all relations
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -41,10 +41,10 @@ export async function GET(
 // Boucher (owner) or Admin — update product
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId, sessionClaims } = await auth();
     const role = sessionClaims?.metadata?.role;
 
@@ -139,10 +139,10 @@ export async function PATCH(
 // Boucher (owner) or Admin — delete product
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId, sessionClaims } = await auth();
     const role = sessionClaims?.metadata?.role;
 

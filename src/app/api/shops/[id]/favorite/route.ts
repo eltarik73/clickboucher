@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { userId: clerkId } = await auth();
@@ -15,7 +15,7 @@ export async function POST(
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    const { id: shopId } = await params;
+    const { id: shopId } = params;
 
     const baseUser = await getOrCreateUser(clerkId);
     if (!baseUser) {

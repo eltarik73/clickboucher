@@ -18,10 +18,10 @@ const MIME_MAP: Record<string, string> = {
 // Serve uploaded files from the uploads directory
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> }
+  { params }: { params: { path: string[] } }
 ) {
   try {
-    const { path: segments } = await params;
+    const { path: segments } = params;
     const relativePath = segments.join("/");
 
     // Security: no path traversal

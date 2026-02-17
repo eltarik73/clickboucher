@@ -14,10 +14,10 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: { orderId: string } }
 ) {
   try {
-    const { orderId } = await params;
+    const { orderId } = params;
     const { userId } = await auth();
 
     if (!userId) {

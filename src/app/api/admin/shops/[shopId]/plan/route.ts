@@ -14,13 +14,13 @@ const changePlanSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ shopId: string }> }
+  { params }: { params: { shopId: string } }
 ) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { shopId } = await params;
+    const { shopId } = params;
     const body = await req.json();
     const data = changePlanSchema.parse(body);
 

@@ -187,7 +187,7 @@ function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: num
 export default function CommandePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
   const router = useRouter();
   const { isSignedIn } = useUser();
@@ -208,12 +208,7 @@ export default function CommandePage({
   const [decisions, setDecisions] = useState<Record<string, { action: "replace" | "remove"; replacementProductId?: string }>>({});
   const [submittingAlts, setSubmittingAlts] = useState(false);
 
-  const [orderId, setOrderId] = useState<string | null>(null);
-
-  // Resolve params promise
-  useEffect(() => {
-    params.then((p) => setOrderId(p.id));
-  }, [params]);
+  const orderId = params.id;
 
   const fetchOrder = useCallback(async () => {
     if (!orderId) return;

@@ -15,10 +15,10 @@ const stockIssueSchema = z.object({
 // Boucher (owner) — mark items as unavailable + auto-toggle product stock + find alternatives
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const { userId } = await auth();
 
     if (!userId) {

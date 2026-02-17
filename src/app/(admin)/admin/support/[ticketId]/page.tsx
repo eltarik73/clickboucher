@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send, CheckCircle, XCircle } from "lucide-react";
 
@@ -21,8 +21,8 @@ type TicketDetail = {
   messages: Message[];
 };
 
-export default function AdminTicketDetailPage({ params }: { params: Promise<{ ticketId: string }> }) {
-  const { ticketId } = use(params);
+export default function AdminTicketDetailPage({ params }: { params: { ticketId: string } }) {
+  const { ticketId } = params;
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");

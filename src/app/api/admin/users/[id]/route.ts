@@ -16,10 +16,10 @@ const ROLE_MAP: Record<string, string> = {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const adminCheck = await requireAdmin();
     if (adminCheck.error) return adminCheck.error;
 
