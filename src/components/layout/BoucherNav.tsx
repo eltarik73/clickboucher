@@ -9,6 +9,7 @@ import {
   Package,
   Users,
   Settings,
+  Headphones,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { key: "commandes",  label: "Commandes",   href: "/boucher/commandes",  icon: ClipboardList, badge: true },
   { key: "produits",   label: "Produits",    href: "/boucher/produits",   icon: Package },
   { key: "clients",    label: "Clients",     href: "/boucher/clients",    icon: Users },
+  { key: "support",    label: "Support",     href: "/boucher/support",    icon: Headphones },
   { key: "parametres", label: "Paramètres",  href: "/boucher/parametres", icon: Settings },
 ] as const;
 
