@@ -3,7 +3,7 @@
 // 10 boucheries halal réalistes + catalogue complet
 // ═══════════════════════════════════════════════
 
-import { PrismaClient, Role, ProStatus, OrderStatus, Unit } from "@prisma/client";
+import { PrismaClient, Role, ProStatus, OrderStatus, Unit, RewardType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -163,82 +163,84 @@ interface ProductDef {
   proPriceCents: number;
   tags: string[];
   stockQty?: number;
+  origin?: string;
+  halalOrg?: string;
 }
 
 const PRODUCTS: ProductDef[] = [
   // ── 🥩 Bœuf ──
-  { category: "Bœuf", name: "Steak de bœuf", description: "Steak tendre, idéal grillé ou poêlé. Portion : 150g/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"] },
-  { category: "Bœuf", name: "Viande hachée de bœuf", description: "Hachée fraîche pur bœuf. Idéale pour boulettes, kefta, bolognaise. 150g/pers", unit: "KG", priceCents: 1090, proPriceCents: 890, tags: ["Halal"] },
-  { category: "Bœuf", name: "Steak haché (x4)", description: "4 steaks hachés de 125g. Prêts à cuire", unit: "BARQUETTE", priceCents: 550, proPriceCents: 450, tags: ["Halal"], stockQty: 30 },
-  { category: "Bœuf", name: "Entrecôte de bœuf", description: "Entrecôte persillée et savoureuse. 200g/pers", unit: "KG", priceCents: 1990, proPriceCents: 1690, tags: ["Halal", "Premium"] },
-  { category: "Bœuf", name: "Faux-filet de bœuf", description: "Pièce noble, tendre et juteuse. 150g/pers", unit: "KG", priceCents: 2190, proPriceCents: 1850, tags: ["Halal", "Premium"] },
-  { category: "Bœuf", name: "Côte de bœuf", description: "Pièce d'exception pour 3-4 personnes (1.2kg). 300g/pers", unit: "KG", priceCents: 2290, proPriceCents: 1990, tags: ["Halal", "Premium"] },
-  { category: "Bœuf", name: "Bourguignon de bœuf", description: "Morceaux pour mijoté. Paleron, macreuse. 250g/pers", unit: "KG", priceCents: 1290, proPriceCents: 1050, tags: ["Halal"] },
-  { category: "Bœuf", name: "Pot-au-feu (plat de côtes)", description: "Avec os, idéal pour bouillon. 300g/pers avec os", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"] },
-  { category: "Bœuf", name: "Rumsteak", description: "Tendre et savoureux, grillé ou poêlé. 150g/pers", unit: "KG", priceCents: 1690, proPriceCents: 1450, tags: ["Halal"] },
-  { category: "Bœuf", name: "Rôti de bœuf", description: "Ficelé, prêt à rôtir. 200g/pers", unit: "KG", priceCents: 1890, proPriceCents: 1590, tags: ["Halal"] },
-  { category: "Bœuf", name: "Bœuf à braiser (collier)", description: "Idéal tajine, couscous, daube. 250g/pers", unit: "KG", priceCents: 1150, proPriceCents: 950, tags: ["Halal"] },
-  { category: "Bœuf", name: "Langue de bœuf", description: "Pièce entière. 200g/pers", unit: "KG", priceCents: 1490, proPriceCents: 1250, tags: ["Halal"] },
+  { category: "Bœuf", name: "Steak de bœuf", description: "Steak tendre, idéal grillé ou poêlé. Portion : 150g/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"], origin: "France — Charolais", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Viande hachée de bœuf", description: "Hachée fraîche pur bœuf. Idéale pour boulettes, kefta, bolognaise. 150g/pers", unit: "KG", priceCents: 1090, proPriceCents: 890, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Steak haché (x4)", description: "4 steaks hachés de 125g. Prêts à cuire", unit: "BARQUETTE", priceCents: 550, proPriceCents: 450, tags: ["Halal"], stockQty: 30, origin: "France", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Entrecôte de bœuf", description: "Entrecôte persillée et savoureuse. 200g/pers", unit: "KG", priceCents: 1990, proPriceCents: 1690, tags: ["Halal", "Premium"], origin: "France — Blonde d'Aquitaine", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Faux-filet de bœuf", description: "Pièce noble, tendre et juteuse. 150g/pers", unit: "KG", priceCents: 2190, proPriceCents: 1850, tags: ["Halal", "Premium"], origin: "France — Limousin", halalOrg: "ARGML" },
+  { category: "Bœuf", name: "Côte de bœuf", description: "Pièce d'exception pour 3-4 personnes (1.2kg). 300g/pers", unit: "KG", priceCents: 2290, proPriceCents: 1990, tags: ["Halal", "Premium"], origin: "France — Charolais", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Bourguignon de bœuf", description: "Morceaux pour mijoté. Paleron, macreuse. 250g/pers", unit: "KG", priceCents: 1290, proPriceCents: 1050, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Pot-au-feu (plat de côtes)", description: "Avec os, idéal pour bouillon. 300g/pers avec os", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"], origin: "France" },
+  { category: "Bœuf", name: "Rumsteak", description: "Tendre et savoureux, grillé ou poêlé. 150g/pers", unit: "KG", priceCents: 1690, proPriceCents: 1450, tags: ["Halal"], origin: "France — Aubrac", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Rôti de bœuf", description: "Ficelé, prêt à rôtir. 200g/pers", unit: "KG", priceCents: 1890, proPriceCents: 1590, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Bœuf", name: "Bœuf à braiser (collier)", description: "Idéal tajine, couscous, daube. 250g/pers", unit: "KG", priceCents: 1150, proPriceCents: 950, tags: ["Halal"], origin: "France" },
+  { category: "Bœuf", name: "Langue de bœuf", description: "Pièce entière. 200g/pers", unit: "KG", priceCents: 1490, proPriceCents: 1250, tags: ["Halal"], origin: "France" },
 
   // ── 🐑 Agneau ──
-  { category: "Agneau", name: "Gigot d'agneau entier", description: "Avec os. 200g/pers. Idéal rôti au four", unit: "KG", priceCents: 1890, proPriceCents: 1650, tags: ["Halal"] },
-  { category: "Agneau", name: "Gigot d'agneau raccourci", description: "Plus charnu. 200g/pers", unit: "KG", priceCents: 2090, proPriceCents: 1850, tags: ["Halal"] },
-  { category: "Agneau", name: "Épaule d'agneau", description: "Avec os. Rôtie ou en tajine. 250g/pers", unit: "KG", priceCents: 1590, proPriceCents: 1390, tags: ["Halal"] },
-  { category: "Agneau", name: "Côtelettes d'agneau", description: "2-3 côtelettes/pers. Grillées ou poêlées", unit: "KG", priceCents: 1990, proPriceCents: 1750, tags: ["Halal"] },
-  { category: "Agneau", name: "Souris d'agneau", description: "1 souris/pers (~300g). Confite au four", unit: "KG", priceCents: 1790, proPriceCents: 1590, tags: ["Halal", "Premium"] },
-  { category: "Agneau", name: "Collier d'agneau", description: "Avec os. Pour couscous, tajine, navarin. 300g/pers", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal"] },
-  { category: "Agneau", name: "Selle d'agneau", description: "Pièce noble. 200g/pers", unit: "KG", priceCents: 2290, proPriceCents: 1990, tags: ["Halal", "Premium"] },
-  { category: "Agneau", name: "Agneau coupé (ragoût)", description: "Morceaux pour tajine/couscous. 250g/pers", unit: "KG", priceCents: 1450, proPriceCents: 1250, tags: ["Halal"] },
-  { category: "Agneau", name: "Foie d'agneau", description: "Tranché, poêlé. 150g/pers", unit: "KG", priceCents: 1290, proPriceCents: 1090, tags: ["Halal"] },
-  { category: "Agneau", name: "Rognons d'agneau", description: "Par paire. 150g/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"] },
+  { category: "Agneau", name: "Gigot d'agneau entier", description: "Avec os. 200g/pers. Idéal rôti au four", unit: "KG", priceCents: 1890, proPriceCents: 1650, tags: ["Halal"], origin: "France — Sisteron", halalOrg: "AVS" },
+  { category: "Agneau", name: "Gigot d'agneau raccourci", description: "Plus charnu. 200g/pers", unit: "KG", priceCents: 2090, proPriceCents: 1850, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Agneau", name: "Épaule d'agneau", description: "Avec os. Rôtie ou en tajine. 250g/pers", unit: "KG", priceCents: 1590, proPriceCents: 1390, tags: ["Halal"], origin: "France", halalOrg: "ARGML" },
+  { category: "Agneau", name: "Côtelettes d'agneau", description: "2-3 côtelettes/pers. Grillées ou poêlées", unit: "KG", priceCents: 1990, proPriceCents: 1750, tags: ["Halal"], origin: "Nouvelle-Zélande", halalOrg: "FIANZ" },
+  { category: "Agneau", name: "Souris d'agneau", description: "1 souris/pers (~300g). Confite au four", unit: "KG", priceCents: 1790, proPriceCents: 1590, tags: ["Halal", "Premium"], origin: "France — Sisteron", halalOrg: "AVS" },
+  { category: "Agneau", name: "Collier d'agneau", description: "Avec os. Pour couscous, tajine, navarin. 300g/pers", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal"], origin: "France" },
+  { category: "Agneau", name: "Selle d'agneau", description: "Pièce noble. 200g/pers", unit: "KG", priceCents: 2290, proPriceCents: 1990, tags: ["Halal", "Premium"], origin: "France — Aveyron", halalOrg: "AVS" },
+  { category: "Agneau", name: "Agneau coupé (ragoût)", description: "Morceaux pour tajine/couscous. 250g/pers", unit: "KG", priceCents: 1450, proPriceCents: 1250, tags: ["Halal"], origin: "France" },
+  { category: "Agneau", name: "Foie d'agneau", description: "Tranché, poêlé. 150g/pers", unit: "KG", priceCents: 1290, proPriceCents: 1090, tags: ["Halal"], origin: "France" },
+  { category: "Agneau", name: "Rognons d'agneau", description: "Par paire. 150g/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"], origin: "France" },
 
   // ── 🐔 Volaille ──
-  { category: "Volaille", name: "Poulet entier", description: "1.5-1.8kg. Pour 4-5 personnes (300g/pers avec os)", unit: "KG", priceCents: 790, proPriceCents: 650, tags: ["Halal"] },
-  { category: "Volaille", name: "Poulet fermier entier", description: "Label, élevé en plein air. 1.6-2kg", unit: "KG", priceCents: 1090, proPriceCents: 950, tags: ["Halal", "Fermier"] },
-  { category: "Volaille", name: "Cuisses de poulet", description: "1 cuisse/pers (~250g). Rôties ou en tajine", unit: "KG", priceCents: 690, proPriceCents: 550, tags: ["Halal"] },
-  { category: "Volaille", name: "Escalope de poulet", description: "Blanc tranché en escalopes fines. 150g/pers", unit: "KG", priceCents: 1290, proPriceCents: 1090, tags: ["Halal"] },
-  { category: "Volaille", name: "Blanc de poulet (filet)", description: "Filet entier à trancher. 150g/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"] },
-  { category: "Volaille", name: "Émincé de poulet", description: "Coupé en lanières. Idéal sautés, wraps, wok. 150g/pers", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal"] },
-  { category: "Volaille", name: "Pilons de poulet", description: "3-4 pilons/pers. Grillés ou au four", unit: "KG", priceCents: 590, proPriceCents: 490, tags: ["Halal"] },
-  { category: "Volaille", name: "Ailes de poulet", description: "5-6 ailes/pers. BBQ ou marinées", unit: "KG", priceCents: 550, proPriceCents: 450, tags: ["Halal"] },
-  { category: "Volaille", name: "Poulet coupé en morceaux", description: "Découpé en 8 ou 10 morceaux. Pour couscous, tajine", unit: "KG", priceCents: 890, proPriceCents: 750, tags: ["Halal"] },
-  { category: "Volaille", name: "Cuisse de poulet désossée", description: "Sans os, prête à farcir ou griller. 200g/pers", unit: "KG", priceCents: 1090, proPriceCents: 950, tags: ["Halal"] },
-  { category: "Volaille", name: "Escalope de dinde", description: "Tranchée fine. 150g/pers", unit: "KG", priceCents: 1150, proPriceCents: 990, tags: ["Halal"] },
-  { category: "Volaille", name: "Cuisse de dinde", description: "1 cuisse pour 3-4 pers", unit: "KG", priceCents: 650, proPriceCents: 550, tags: ["Halal"] },
+  { category: "Volaille", name: "Poulet entier", description: "1.5-1.8kg. Pour 4-5 personnes (300g/pers avec os)", unit: "KG", priceCents: 790, proPriceCents: 650, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Volaille", name: "Poulet fermier entier", description: "Label, élevé en plein air. 1.6-2kg", unit: "KG", priceCents: 1090, proPriceCents: 950, tags: ["Halal", "Fermier"], origin: "France — Loué", halalOrg: "AVS" },
+  { category: "Volaille", name: "Cuisses de poulet", description: "1 cuisse/pers (~250g). Rôties ou en tajine", unit: "KG", priceCents: 690, proPriceCents: 550, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Volaille", name: "Escalope de poulet", description: "Blanc tranché en escalopes fines. 150g/pers", unit: "KG", priceCents: 1290, proPriceCents: 1090, tags: ["Halal"], origin: "France" },
+  { category: "Volaille", name: "Blanc de poulet (filet)", description: "Filet entier à trancher. 150g/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal"], origin: "France" },
+  { category: "Volaille", name: "Émincé de poulet", description: "Coupé en lanières. Idéal sautés, wraps, wok. 150g/pers", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal"], origin: "France" },
+  { category: "Volaille", name: "Pilons de poulet", description: "3-4 pilons/pers. Grillés ou au four", unit: "KG", priceCents: 590, proPriceCents: 490, tags: ["Halal"], origin: "France" },
+  { category: "Volaille", name: "Ailes de poulet", description: "5-6 ailes/pers. BBQ ou marinées", unit: "KG", priceCents: 550, proPriceCents: 450, tags: ["Halal"], origin: "France" },
+  { category: "Volaille", name: "Poulet coupé en morceaux", description: "Découpé en 8 ou 10 morceaux. Pour couscous, tajine", unit: "KG", priceCents: 890, proPriceCents: 750, tags: ["Halal"], origin: "France" },
+  { category: "Volaille", name: "Cuisse de poulet désossée", description: "Sans os, prête à farcir ou griller. 200g/pers", unit: "KG", priceCents: 1090, proPriceCents: 950, tags: ["Halal"], origin: "France" },
+  { category: "Volaille", name: "Escalope de dinde", description: "Tranchée fine. 150g/pers", unit: "KG", priceCents: 1150, proPriceCents: 990, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Volaille", name: "Cuisse de dinde", description: "1 cuisse pour 3-4 pers", unit: "KG", priceCents: 650, proPriceCents: 550, tags: ["Halal"], origin: "France" },
 
   // ── 🫕 Veau ──
-  { category: "Veau", name: "Escalope de veau", description: "Tranchée fine. 150g/pers", unit: "KG", priceCents: 2690, proPriceCents: 2350, tags: ["Halal", "Premium"] },
-  { category: "Veau", name: "Blanquette de veau", description: "Morceaux tendres pour mijoté. 250g/pers", unit: "KG", priceCents: 1690, proPriceCents: 1450, tags: ["Halal"] },
-  { category: "Veau", name: "Côte de veau", description: "1 côte/pers (~250g)", unit: "KG", priceCents: 2290, proPriceCents: 1990, tags: ["Halal"] },
-  { category: "Veau", name: "Rôti de veau", description: "Ficelé, au four. 200g/pers", unit: "KG", priceCents: 2490, proPriceCents: 2190, tags: ["Halal"] },
-  { category: "Veau", name: "Osso buco", description: "Jarret tranché avec os. 250g/pers", unit: "KG", priceCents: 1590, proPriceCents: 1390, tags: ["Halal"] },
-  { category: "Veau", name: "Foie de veau", description: "Tranché, poêlé. 150g/pers", unit: "KG", priceCents: 1890, proPriceCents: 1650, tags: ["Halal"] },
+  { category: "Veau", name: "Escalope de veau", description: "Tranchée fine. 150g/pers", unit: "KG", priceCents: 2690, proPriceCents: 2350, tags: ["Halal", "Premium"], origin: "France — élevé sous la mère", halalOrg: "AVS" },
+  { category: "Veau", name: "Blanquette de veau", description: "Morceaux tendres pour mijoté. 250g/pers", unit: "KG", priceCents: 1690, proPriceCents: 1450, tags: ["Halal"], origin: "France", halalOrg: "AVS" },
+  { category: "Veau", name: "Côte de veau", description: "1 côte/pers (~250g)", unit: "KG", priceCents: 2290, proPriceCents: 1990, tags: ["Halal"], origin: "France", halalOrg: "ARGML" },
+  { category: "Veau", name: "Rôti de veau", description: "Ficelé, au four. 200g/pers", unit: "KG", priceCents: 2490, proPriceCents: 2190, tags: ["Halal"], origin: "France" },
+  { category: "Veau", name: "Osso buco", description: "Jarret tranché avec os. 250g/pers", unit: "KG", priceCents: 1590, proPriceCents: 1390, tags: ["Halal"], origin: "France" },
+  { category: "Veau", name: "Foie de veau", description: "Tranché, poêlé. 150g/pers", unit: "KG", priceCents: 1890, proPriceCents: 1650, tags: ["Halal"], origin: "France" },
 
   // ── 🔥 Grillades & BBQ ──
-  { category: "Grillades & BBQ", name: "Merguez bœuf/agneau", description: "Artisanales. 3-4 merguez/pers (~150g)", unit: "KG", priceCents: 1090, proPriceCents: 890, tags: ["Halal", "Maison"] },
-  { category: "Grillades & BBQ", name: "Brochettes de bœuf", description: "Marinées aux épices. 2 brochettes/pers", unit: "KG", priceCents: 1690, proPriceCents: 1450, tags: ["Halal"] },
-  { category: "Grillades & BBQ", name: "Brochettes de poulet", description: "Marinées. 2 brochettes/pers", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal"] },
-  { category: "Grillades & BBQ", name: "Brochettes d'agneau", description: "Marinées. 2 brochettes/pers", unit: "KG", priceCents: 1790, proPriceCents: 1550, tags: ["Halal"] },
-  { category: "Grillades & BBQ", name: "Brochettes mixtes (bœuf/poulet)", description: "Assortiment. 2-3 brochettes/pers", unit: "KG", priceCents: 1590, proPriceCents: 1350, tags: ["Halal"] },
-  { category: "Grillades & BBQ", name: "Saucisse de volaille", description: "2 saucisses/pers (~150g)", unit: "KG", priceCents: 990, proPriceCents: 850, tags: ["Halal"] },
-  { category: "Grillades & BBQ", name: "Chipolatas de bœuf", description: "2 chipolatas/pers", unit: "KG", priceCents: 1050, proPriceCents: 890, tags: ["Halal"] },
-  { category: "Grillades & BBQ", name: "Kefta de bœuf", description: "Viande hachée épicée. 3-4 kefta/pers", unit: "KG", priceCents: 1290, proPriceCents: 1090, tags: ["Halal", "Maison"] },
-  { category: "Grillades & BBQ", name: "Côtelettes d'agneau marinées", description: "Provençale ou orientale", unit: "KG", priceCents: 2190, proPriceCents: 1890, tags: ["Halal", "Mariné"] },
+  { category: "Grillades & BBQ", name: "Merguez bœuf/agneau", description: "Artisanales. 3-4 merguez/pers (~150g)", unit: "KG", priceCents: 1090, proPriceCents: 890, tags: ["Halal", "Maison"], origin: "Fabrication maison", halalOrg: "AVS" },
+  { category: "Grillades & BBQ", name: "Brochettes de bœuf", description: "Marinées aux épices. 2 brochettes/pers", unit: "KG", priceCents: 1690, proPriceCents: 1450, tags: ["Halal"], origin: "France" },
+  { category: "Grillades & BBQ", name: "Brochettes de poulet", description: "Marinées. 2 brochettes/pers", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal"], origin: "France" },
+  { category: "Grillades & BBQ", name: "Brochettes d'agneau", description: "Marinées. 2 brochettes/pers", unit: "KG", priceCents: 1790, proPriceCents: 1550, tags: ["Halal"], origin: "France" },
+  { category: "Grillades & BBQ", name: "Brochettes mixtes (bœuf/poulet)", description: "Assortiment. 2-3 brochettes/pers", unit: "KG", priceCents: 1590, proPriceCents: 1350, tags: ["Halal"], origin: "France" },
+  { category: "Grillades & BBQ", name: "Saucisse de volaille", description: "2 saucisses/pers (~150g)", unit: "KG", priceCents: 990, proPriceCents: 850, tags: ["Halal"], origin: "Fabrication maison" },
+  { category: "Grillades & BBQ", name: "Chipolatas de bœuf", description: "2 chipolatas/pers", unit: "KG", priceCents: 1050, proPriceCents: 890, tags: ["Halal"], origin: "Fabrication maison" },
+  { category: "Grillades & BBQ", name: "Kefta de bœuf", description: "Viande hachée épicée. 3-4 kefta/pers", unit: "KG", priceCents: 1290, proPriceCents: 1090, tags: ["Halal", "Maison"], origin: "Fabrication maison", halalOrg: "AVS" },
+  { category: "Grillades & BBQ", name: "Côtelettes d'agneau marinées", description: "Provençale ou orientale", unit: "KG", priceCents: 2190, proPriceCents: 1890, tags: ["Halal", "Mariné"], origin: "France" },
 
   // ── 🧆 Préparations ──
-  { category: "Préparations", name: "Cordon bleu de poulet (x4)", description: "1-2 pièces/pers", unit: "BARQUETTE", priceCents: 690, proPriceCents: 550, tags: ["Halal"], stockQty: 20 },
-  { category: "Préparations", name: "Paupiette de veau (x2)", description: "1 paupiette/pers", unit: "BARQUETTE", priceCents: 890, proPriceCents: 750, tags: ["Halal"], stockQty: 15 },
-  { category: "Préparations", name: "Boulettes de bœuf kefta", description: "Épicées. 4-5 boulettes/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal", "Maison"] },
-  { category: "Préparations", name: "Viande hachée d'agneau", description: "Pour kefta, boulettes. 150g/pers", unit: "KG", priceCents: 1490, proPriceCents: 1250, tags: ["Halal"] },
-  { category: "Préparations", name: "Poulet mariné à l'orientale", description: "Cuisses marinées curcuma-citron", unit: "KG", priceCents: 1090, proPriceCents: 950, tags: ["Halal", "Mariné"] },
-  { category: "Préparations", name: "Kebab maison (émincé)", description: "Émincé de bœuf épicé", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal", "Maison"] },
+  { category: "Préparations", name: "Cordon bleu de poulet (x4)", description: "1-2 pièces/pers", unit: "BARQUETTE", priceCents: 690, proPriceCents: 550, tags: ["Halal"], stockQty: 20, origin: "Fabrication maison" },
+  { category: "Préparations", name: "Paupiette de veau (x2)", description: "1 paupiette/pers", unit: "BARQUETTE", priceCents: 890, proPriceCents: 750, tags: ["Halal"], stockQty: 15, origin: "Fabrication maison" },
+  { category: "Préparations", name: "Boulettes de bœuf kefta", description: "Épicées. 4-5 boulettes/pers", unit: "KG", priceCents: 1190, proPriceCents: 990, tags: ["Halal", "Maison"], origin: "Fabrication maison" },
+  { category: "Préparations", name: "Viande hachée d'agneau", description: "Pour kefta, boulettes. 150g/pers", unit: "KG", priceCents: 1490, proPriceCents: 1250, tags: ["Halal"], origin: "France" },
+  { category: "Préparations", name: "Poulet mariné à l'orientale", description: "Cuisses marinées curcuma-citron", unit: "KG", priceCents: 1090, proPriceCents: 950, tags: ["Halal", "Mariné"], origin: "France" },
+  { category: "Préparations", name: "Kebab maison (émincé)", description: "Émincé de bœuf épicé", unit: "KG", priceCents: 1390, proPriceCents: 1190, tags: ["Halal", "Maison"], origin: "Fabrication maison" },
 
   // ── 🥘 Abats & Divers ──
-  { category: "Abats & Divers", name: "Foie de bœuf", description: "Tranché. 150g/pers", unit: "KG", priceCents: 990, proPriceCents: 850, tags: ["Halal"] },
-  { category: "Abats & Divers", name: "Tripes de bœuf", description: "Précuites. 200g/pers", unit: "KG", priceCents: 890, proPriceCents: 750, tags: ["Halal"] },
-  { category: "Abats & Divers", name: "Cervelle d'agneau", description: "150g/pers", unit: "KG", priceCents: 1490, proPriceCents: 1250, tags: ["Halal"] },
-  { category: "Abats & Divers", name: "Cœur de bœuf", description: "Tranché, grillé ou mijoté. 200g/pers", unit: "KG", priceCents: 850, proPriceCents: 700, tags: ["Halal"] },
-  { category: "Abats & Divers", name: "Pattes de poulet", description: "Pour bouillon", unit: "KG", priceCents: 390, proPriceCents: 300, tags: ["Halal"] },
+  { category: "Abats & Divers", name: "Foie de bœuf", description: "Tranché. 150g/pers", unit: "KG", priceCents: 990, proPriceCents: 850, tags: ["Halal"], origin: "France" },
+  { category: "Abats & Divers", name: "Tripes de bœuf", description: "Précuites. 200g/pers", unit: "KG", priceCents: 890, proPriceCents: 750, tags: ["Halal"], origin: "France" },
+  { category: "Abats & Divers", name: "Cervelle d'agneau", description: "150g/pers", unit: "KG", priceCents: 1490, proPriceCents: 1250, tags: ["Halal"], origin: "France" },
+  { category: "Abats & Divers", name: "Cœur de bœuf", description: "Tranché, grillé ou mijoté. 200g/pers", unit: "KG", priceCents: 850, proPriceCents: 700, tags: ["Halal"], origin: "France" },
+  { category: "Abats & Divers", name: "Pattes de poulet", description: "Pour bouillon", unit: "KG", priceCents: 390, proPriceCents: 300, tags: ["Halal"], origin: "France" },
 ];
 
 // ═══════════════════════════════════════════════
@@ -250,10 +252,16 @@ async function main() {
 
   // ── Clean ────────────────────────────────
   console.log("🗑  Cleaning existing data...");
+  await prisma.loyaltyPoints.deleteMany();
+  await prisma.loyaltyRule.deleteMany();
+  await prisma.review.deleteMany();
+  await prisma.productImage.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.productLabel.deleteMany();
   await prisma.shop.deleteMany();
   await prisma.user.deleteMany();
 
@@ -372,6 +380,8 @@ async function main() {
           stockQty: p.stockQty ?? null,
           promoPct: promoPct ?? null,
           promoEnd: promoEnd ?? null,
+          origin: p.origin ?? null,
+          halalOrg: p.halalOrg ?? null,
         },
       });
       totalProducts++;
@@ -509,17 +519,112 @@ async function main() {
   console.log("   ✅ 7 orders created");
 
   // ═══════════════════════════════════════════
+  // 4. PRODUCT LABELS
+  // ═══════════════════════════════════════════
+
+  console.log("\n🏷  Creating product labels...");
+
+  const labelDefs = [
+    { name: "Halal",          color: "#16a34a", icon: "☪️" },
+    { name: "Bio",            color: "#65a30d", icon: "🌿" },
+    { name: "Local",          color: "#2563eb", icon: "📍" },
+    { name: "Promo",          color: "#dc2626", icon: "🔥" },
+    { name: "Nouveau",        color: "#7c3aed", icon: "✨" },
+    { name: "Race à Viande",  color: "#b45309", icon: "🐂" },
+    { name: "Fermier",        color: "#059669", icon: "🌾" },
+    { name: "Premium",        color: "#ca8a04", icon: "⭐" },
+    { name: "Maison",         color: "#e11d48", icon: "👨‍🍳" },
+  ];
+
+  const labels = new Map<string, string>();
+  for (const l of labelDefs) {
+    const label = await prisma.productLabel.create({ data: l });
+    labels.set(l.name, label.id);
+  }
+  console.log(`   ✅ ${labelDefs.length} labels created`);
+
+  // Connect labels to products based on tags
+  const allProducts = await prisma.product.findMany({ select: { id: true, tags: true } });
+  let labelConnections = 0;
+  for (const prod of allProducts) {
+    const labelIds: string[] = [];
+    for (const tag of prod.tags) {
+      const lid = labels.get(tag);
+      if (lid) labelIds.push(lid);
+    }
+    if (labelIds.length > 0) {
+      await prisma.product.update({
+        where: { id: prod.id },
+        data: { labels: { connect: labelIds.map((id) => ({ id })) } },
+      });
+      labelConnections += labelIds.length;
+    }
+  }
+  console.log(`   ✅ ${labelConnections} label-product connections`);
+
+  // ═══════════════════════════════════════════
+  // 5. REVIEWS
+  // ═══════════════════════════════════════════
+
+  console.log("\n⭐ Creating reviews...");
+
+  const reviewData = [
+    { userId: clients[0].id, shopId: s1.id, rating: 5, comment: "Excellente qualité, viande toujours fraîche !" },
+    { userId: clients[1].id, shopId: s1.id, rating: 4, comment: "Bon rapport qualité/prix, je recommande." },
+    { userId: clients[2].id, shopId: s1.id, rating: 5, comment: "Le meilleur boucher du quartier, merguez exceptionnelles." },
+    { userId: clients[0].id, shopId: s2.id, rating: 4, comment: "Large choix, personnel agréable." },
+    { userId: clients[1].id, shopId: s2.id, rating: 5, comment: "Toujours satisfait, commande rapide." },
+    { userId: clients[2].id, shopId: s2.id, rating: 3, comment: "Correct mais un peu cher." },
+    { userId: pros[0].id,    shopId: s1.id, rating: 5, comment: "Fournisseur fiable pour mon restaurant. Prix pro intéressants." },
+    { userId: clients[0].id, shopId: shopRecords[2].id, rating: 4, comment: "Bonne boucherie en centre-ville." },
+    { userId: clients[1].id, shopId: shopRecords[3].id, rating: 5, comment: "Les merguez maison sont incroyables !" },
+    { userId: clients[2].id, shopId: shopRecords[4].id, rating: 4, comment: "Livraison rapide, viande de qualité." },
+  ];
+
+  for (const r of reviewData) {
+    await prisma.review.create({ data: r });
+  }
+  console.log(`   ✅ ${reviewData.length} reviews created`);
+
+  // ═══════════════════════════════════════════
+  // 6. LOYALTY RULES
+  // ═══════════════════════════════════════════
+
+  console.log("\n🎁 Creating loyalty rules...");
+
+  let loyaltyCount = 0;
+  for (const shop of shopRecords.slice(0, 5)) {
+    await prisma.loyaltyRule.create({
+      data: {
+        shopId: shop.id,
+        name: "1 point par euro dépensé",
+        description: "Cumulez des points à chaque commande. 100 points = 5€ de réduction !",
+        pointsPerEuro: 1,
+        rewardThreshold: 100,
+        rewardType: RewardType.DISCOUNT,
+        rewardValue: 500,
+        active: true,
+      },
+    });
+    loyaltyCount++;
+  }
+  console.log(`   ✅ ${loyaltyCount} loyalty rules created`);
+
+  // ═══════════════════════════════════════════
   // SUMMARY
   // ═══════════════════════════════════════════
 
   console.log("\n═══════════════════════════════════════════");
-  console.log("🌱 SEED COMPLETE!");
+  console.log("🌱 SEED COMPLETE! (Schema V2)");
   console.log("═══════════════════════════════════════════");
   console.log(`   👤 Users:      ${boucherUsers.length + clients.length + pros.length}`);
   console.log(`   🏪 Shops:      ${shopRecords.length}`);
   console.log(`   📂 Categories: ${totalCategories}`);
   console.log(`   🥩 Products:   ${totalProducts}`);
   console.log(`   📋 Orders:     7`);
+  console.log(`   🏷  Labels:     ${labelDefs.length}`);
+  console.log(`   ⭐ Reviews:    ${reviewData.length}`);
+  console.log(`   🎁 Loyalty:    ${loyaltyCount} rules`);
   console.log("═══════════════════════════════════════════\n");
 }
 

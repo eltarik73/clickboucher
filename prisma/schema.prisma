@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════
-// KLIK&GO — Prisma Schema
+// KLIK&GO — Prisma Schema V2
 // PostgreSQL • Prisma ORM
+// Photos, Labels, Reviews, Loyalty
 // ═══════════════════════════════════════════════
 
 generator client {
@@ -47,6 +48,12 @@ enum Unit {
   BARQUETTE
 }
 
+enum RewardType {
+  DISCOUNT
+  FREE_PRODUCT
+  PERCENTAGE
+}
+
 // ── User ─────────────────────────────────────
 
 model User {
@@ -78,6 +85,8 @@ model User {
   orders        Order[]
   favoriteShops Shop[] @relation("UserFavorites")
   notifications Notification[]
+  reviews       Review[]
+  loyaltyPoints LoyaltyPoints[]
 
   @@map("users")
 }
@@ -120,10 +129,12 @@ model Shop {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  products   Product[]
-  categories Category[]
-  orders     Order[]
-  favoritedBy User[] @relation("UserFavorites")
+  products     Product[]
+  categories   Category[]
+  orders       Order[]
+  favoritedBy  User[] @relation("UserFavorites")
+  reviews      Review[]
+  loyaltyRules LoyaltyRule[]
 
   @@map("shops")
 }
@@ -164,6 +175,10 @@ model Product {
 
   tags String[]
 
+  // Origin & Halal
+  origin   String? // "France", "Irlande", "Nouvelle-Zélande"
+  halalOrg String? @map("halal_org") // "AVS", "ARGML", "Mosquée de Paris"
+
   // Promo
   promoPct Int?      @map("promo_pct")
   promoEnd DateTime? @map("promo_end")
@@ -171,7 +186,10 @@ model Product {
   shopId String @map("shop_id")
   shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
+  // Relations
   orderItems OrderItem[]
+  images     ProductImage[]
+  labels     ProductLabel[] @relation("ProductLabels")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -267,4 +285,97 @@ model OrderItem {
   replacement String?
 
   @@map("order_items")
+}
+
+// ── Product Image ─────────────────────────────
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  url       String
+  alt       String?
+  order     Int     @default(0)
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ── Product Label ─────────────────────────────
+
+model ProductLabel {
+  id    String  @id @default(cuid())
+  name  String  @unique // "Halal", "Bio", "Local", "Promo", "Nouveau", "Race à Viande"
+  color String? // hex color for badge display
+  icon  String? // emoji or icon name
+
+  products Product[] @relation("ProductLabels")
+
+  @@map("product_labels")
+}
+
+// ── Review ────────────────────────────────────
+
+model Review {
+  id      String  @id @default(cuid())
+  rating  Int     // 1–5
+  comment String?
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  shopId String @map("shop_id")
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  orderId String? @unique @map("order_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, shopId, orderId])
+  @@index([shopId])
+  @@map("reviews")
+}
+
+// ── Loyalty Rule ──────────────────────────────
+
+model LoyaltyRule {
+  id          String  @id @default(cuid())
+  name        String  // "1 point par euro dépensé"
+  description String?
+
+  pointsPerEuro   Float      @default(1)   @map("points_per_euro")
+  rewardThreshold Int        @default(100) @map("reward_threshold")
+  rewardType      RewardType @default(DISCOUNT) @map("reward_type")
+  rewardValue     Int        @default(500)  @map("reward_value") // cents or %
+
+  active Boolean @default(true)
+
+  shopId String @map("shop_id")
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([shopId])
+  @@map("loyalty_rules")
+}
+
+// ── Loyalty Points (per user per shop) ────────
+
+model LoyaltyPoints {
+  id     String @id @default(cuid())
+  points Int    @default(0)
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  shopId String @map("shop_id")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, shopId])
+  @@map("loyalty_points")
 }
