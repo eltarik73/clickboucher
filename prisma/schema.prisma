@@ -324,6 +324,8 @@ model Shop {
   @@index([latitude, longitude])
   @@index([city])
   @@index([visible, status])
+  @@index([status, rating])
+  @@index([ownerId])
   @@map("shops")
 }
 
@@ -430,6 +432,7 @@ model Product {
   @@index([shopId, displayOrder])
   @@index([shopId, categoryId])
   @@index([shopId, inStock, snoozeType])
+  @@index([inStock, promoPct])
   @@map("products")
 }
 

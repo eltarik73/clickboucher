@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
         shop: { select: { id: true, name: true, slug: true, imageUrl: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: 50,
     });
 
     return apiSuccess(orders);
