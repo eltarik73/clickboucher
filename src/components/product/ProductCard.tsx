@@ -1,10 +1,11 @@
-// src/components/product/ProductCard.tsx — Uber Eats style compact card
+// src/components/product/ProductCard.tsx — V2 bis ultra-compact 4-col card
 "use client";
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { Plus, Check } from "lucide-react";
 import { getProductImage } from "@/lib/product-images";
+import { getFlag } from "@/lib/flags";
 import type { Product as ProductV2, ProductImage as ProductImageType } from "@/types";
 
 // ── Types ────────────────────────────────────────
@@ -51,6 +52,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
     : product.imageUrl || getProductImage(product.category.name, productIndex);
   const hasPromo = product.promoPct != null && product.promoPct > 0;
   const outOfStock = !product.inStock;
+  const isEager = productIndex < 4;
 
   const handleAdd = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -64,75 +66,115 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
 
   return (
     <div
-      className={`group relative bg-white dark:bg-white/[0.03] rounded-2xl overflow-hidden
-        transition-all duration-150 active:scale-[0.97]
+      className={`group relative overflow-hidden rounded-xl
+        bg-white dark:bg-[#141414]
+        border border-gray-200 dark:border-white/[0.06]
+        transition-transform duration-200 ease-out
+        hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)]
         ${outOfStock ? "opacity-50" : ""}`}
       style={style}
     >
-      {/* ── Image ── */}
-      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-white/5">
+      {/* ── Image 4:3 ── */}
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
         <Image
           src={imgSrc}
           alt={product.name}
           fill
-          sizes="(max-width: 640px) 46vw, 180px"
-          className="object-cover"
+          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
           quality={70}
+          priority={isEager}
+          loading={isEager ? "eager" : "lazy"}
           onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
         />
 
-        {/* Promo badge */}
+        {/* Promo badge — top-left */}
         {hasPromo && (
-          <div className={`absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white
-            ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#DC2626]"}`}>
+          <div
+            className={`absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)]
+              ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#EF4444]"}`}
+          >
             -{product.promoPct}%
           </div>
         )}
 
-        {/* "+" button overlay bottom-right */}
-        {!outOfStock && (
-          <button
-            onClick={handleAdd}
-            className={`absolute bottom-1.5 right-1.5 z-10 w-8 h-8 rounded-full flex items-center justify-center
-              shadow-lg transition-all duration-150 active:scale-90
-              ${animating
-                ? "bg-emerald-500 text-white"
-                : "bg-white dark:bg-white/90 text-gray-900 hover:bg-gray-100"
-              }`}
-          >
-            {animating ? <Check size={16} strokeWidth={3} /> : <Plus size={18} strokeWidth={2.5} />}
-          </button>
-        )}
-
-        {/* Out of stock */}
+        {/* Out of stock overlay */}
         {outOfStock && (
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-            <span className="text-white text-[10px] font-bold bg-black/60 px-2 py-0.5 rounded-full">Indisponible</span>
+            <span className="text-white text-[9px] font-bold bg-black/60 px-2 py-0.5 rounded-full">Indisponible</span>
           </div>
         )}
       </div>
 
-      {/* ── Info ── */}
-      <div className="px-1.5 pt-1.5 pb-2">
-        <h3 className="text-[12px] font-semibold text-gray-900 dark:text-white leading-snug line-clamp-1">
+      {/* ── Info zone ── */}
+      <div className="px-2 pt-1.5 pb-2">
+        {/* Nom — 12px, semibold, 1 ligne tronquée */}
+        <h3 className="text-[12px] font-semibold leading-tight text-[#1A1A1A] dark:text-[#F5F5F5] truncate mb-[3px]">
           {product.name}
         </h3>
-        <div className="flex items-baseline gap-1 mt-0.5">
-          {hasPromo ? (
-            <>
-              <span className="text-[13px] font-bold text-[#DC2626]">
-                {fmtPrice(promoPrice(product.priceCents, product.promoPct!))}
+
+        {/* Badges — mini pills sous le nom */}
+        {(product.origin || product.halalOrg) && (
+          <div className="flex items-center gap-[3px] mb-1">
+            {product.origin && (
+              <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-[5px] py-px rounded-[3px] bg-blue-500/[0.12] dark:bg-blue-500/[0.12] text-blue-500 dark:text-blue-400 shrink-0">
+                {getFlag(product.origin)}<span className="hidden md:inline lg:hidden"> {product.origin}</span>
               </span>
-              <span className="text-[10px] text-gray-400 line-through">
+            )}
+            {product.halalOrg && (
+              <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-[5px] py-px rounded-[3px] bg-emerald-500/[0.12] dark:bg-emerald-500/[0.12] text-emerald-500 dark:text-emerald-400 shrink-0">
+                ☪<span className="hidden md:inline lg:hidden"> {product.halalOrg}</span>
+              </span>
+            )}
+            {product.labels.slice(0, 1).map((l) => (
+              <span
+                key={l.id}
+                className="text-[8px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
+                style={{
+                  backgroundColor: l.color ? `${l.color}1F` : "rgba(251,191,36,0.12)",
+                  color: l.color || "#FBBF24",
+                }}
+              >
+                {l.name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Prix + bouton "+" */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-baseline gap-0.5 min-w-0">
+            {hasPromo ? (
+              <>
+                <span className="text-[13px] font-bold text-[#DC2626]">
+                  {fmtPrice(promoPrice(product.priceCents, product.promoPct!))}
+                </span>
+                <span className="text-[9px] text-gray-400 line-through">
+                  {fmtPrice(product.priceCents)}
+                </span>
+              </>
+            ) : (
+              <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
                 {fmtPrice(product.priceCents)}
               </span>
-            </>
-          ) : (
-            <span className="text-[13px] font-bold text-gray-900 dark:text-white">
-              {fmtPrice(product.priceCents)}
-            </span>
+            )}
+            <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
+          </div>
+
+          {/* Bouton "+" — 26x26 rouge */}
+          {!outOfStock && (
+            <button
+              onClick={handleAdd}
+              className={`w-[26px] h-[26px] rounded-lg flex items-center justify-center
+                transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
+                ${animating
+                  ? "bg-emerald-500 text-white"
+                  : "bg-[#DC2626] text-white"
+                }`}
+            >
+              {animating ? <Check size={13} strokeWidth={3} /> : <Plus size={15} strokeWidth={2.5} />}
+            </button>
           )}
-          <span className="text-[9px] text-gray-400">{unitLabel(product.unit)}</span>
         </div>
       </div>
     </div>

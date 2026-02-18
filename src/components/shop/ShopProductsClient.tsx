@@ -1,13 +1,13 @@
-// src/components/shop/ShopProductsClient.tsx — V2 shop products page
+// src/components/shop/ShopProductsClient.tsx — V2 bis shop products page
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useCart } from "@/lib/hooks/use-cart";
 import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import type { ProductCardData } from "@/components/product/ProductCard";
-import { Button } from "@/components/ui/button";
 import { getProductImage } from "@/lib/product-images";
 
 // ── Types ────────────────────────────────────────
@@ -194,15 +194,18 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
 
   return (
     <>
-      {/* Sticky category pills — compact Uber style */}
-      <div className="sticky top-0 z-20 bg-[#f8f6f3]/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl px-3 py-2">
-        <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+      {/* ── Sticky category pills ── */}
+      <div className="sticky top-0 z-20 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/[0.06]">
+        <div
+          className="flex gap-2 overflow-x-auto px-4 py-2.5"
+          style={{ scrollbarWidth: "none" }}
+        >
           <button
             onClick={() => setActiveCat("Tout")}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
+            className={`shrink-0 px-3 py-1.5 rounded-[20px] text-[12px] font-semibold whitespace-nowrap transition-all ${
               activeCat === "Tout"
-                ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
-                : "bg-white/80 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
+                ? "bg-[#DC2626] text-white border border-[#DC2626]"
+                : "border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400"
             }`}
           >
             Tout
@@ -211,10 +214,10 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
             <button
               key={c.id}
               onClick={() => setActiveCat(c.id)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
+              className={`shrink-0 px-3 py-1.5 rounded-[20px] text-[12px] font-semibold whitespace-nowrap transition-all ${
                 activeCat === c.id
-                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
-                  : "bg-white/80 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
+                  ? "bg-[#DC2626] text-white border border-[#DC2626]"
+                  : "border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400"
               }`}
             >
               {c.emoji ? `${c.emoji} ` : ""}{c.name}
@@ -223,33 +226,52 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
         </div>
       </div>
 
-      {/* Promo section — compact */}
+      {/* ── Promo section ── */}
       {activeCat === "Tout" && promoProducts.length > 0 && (
-        <div className="px-3 pt-1 mb-1">
-          <p className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider mb-1.5">Promos</p>
+        <div className="px-3 pt-2 mb-1">
+          <p className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider mb-1.5">
+            Promos
+          </p>
           <ProductGrid products={promoProducts} onAdd={handleAdd} />
         </div>
       )}
 
-      {/* Product grid */}
+      {/* ── Product grid ── */}
       <ProductGrid products={nonPromoProducts} onAdd={handleAdd} />
 
-      {/* Cart bar */}
+      {/* ── Bottom cart bar — sticky, glassmorphism ── */}
       {cartCount > 0 && (
-        <div className="fixed bottom-0 inset-x-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-t border-[#ece8e3]/80 dark:border-white/[0.06] px-4 py-3 flex items-center justify-between shadow-lg z-50">
-          <div className="min-w-0">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              {cartCount} article{cartCount > 1 ? "s" : ""}
-            </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{fmtPrice(totalCents)}</span>
+        <div
+          className="fixed bottom-0 inset-x-0 z-50 border-t border-gray-200/50 dark:border-white/[0.08]"
+          style={{
+            background: "rgba(20,20,20,0.95)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            padding: "10px 16px",
+          }}
+        >
+          <div className="flex items-center justify-between max-w-5xl mx-auto">
+            {/* Left: badge + "Panier" + total */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-6 h-6 rounded-lg bg-[#DC2626] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                {cartCount}
+              </span>
+              <span className="text-[13px] font-semibold text-white">Panier</span>
+              <span className="text-[13px] font-bold text-[#DC2626]">{fmtPrice(totalCents)}</span>
+            </div>
+
+            {/* Right: "Commander →" button */}
+            <Link
+              href="/panier"
+              className="flex items-center gap-1.5 bg-[#DC2626] hover:bg-[#b91c1c] text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            >
+              Commander <ArrowRight size={14} />
+            </Link>
           </div>
-          <Button variant="default" className="bg-[#DC2626] hover:bg-[#b91c1c]" asChild>
-            <Link href="/panier">Commander</Link>
-          </Button>
         </div>
       )}
 
-      {/* WeightSheet */}
+      {/* ── WeightSheet ── */}
       <WeightSheet
         product={selectedProduct}
         onConfirm={handleWeightConfirm}
