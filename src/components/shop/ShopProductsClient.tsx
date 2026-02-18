@@ -194,16 +194,15 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
 
   return (
     <>
-      {/* Sticky category pills */}
-      <div className="sticky top-0 z-20 bg-[#f8f6f3]/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl px-5 py-3">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2.5 font-display">Catalogue</h2>
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+      {/* Sticky category pills — compact Uber style */}
+      <div className="sticky top-0 z-20 bg-[#f8f6f3]/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl px-3 py-2">
+        <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
           <button
             onClick={() => setActiveCat("Tout")}
-            className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] min-h-[36px] ${
+            className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
               activeCat === "Tout"
-                ? "bg-[#2A2018] dark:bg-white border-[#2A2018] dark:border-white text-white dark:text-[#0a0a0a]"
-                : "bg-white dark:bg-white/[0.05] border-[#e8e4df] dark:border-white/[0.08] text-gray-500 dark:text-gray-400"
+                ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
+                : "bg-white/80 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
             }`}
           >
             Tout
@@ -212,25 +211,22 @@ export function ShopProductsClient({ products, categories, shop }: Props) {
             <button
               key={c.id}
               onClick={() => setActiveCat(c.id)}
-              className={`px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all border shadow-[0_1px_3px_rgba(0,0,0,0.03)] min-h-[36px] ${
+              className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
                 activeCat === c.id
-                  ? "bg-[#2A2018] dark:bg-white border-[#2A2018] dark:border-white text-white dark:text-[#0a0a0a]"
-                  : "bg-white dark:bg-white/[0.05] border-[#e8e4df] dark:border-white/[0.08] text-gray-500 dark:text-gray-400"
+                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
+                  : "bg-white/80 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
               }`}
             >
-              {c.emoji ? `${c.emoji} ` : ""}
-              {c.name}
+              {c.emoji ? `${c.emoji} ` : ""}{c.name}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Promo section — show before main grid */}
+      {/* Promo section — compact */}
       {activeCat === "Tout" && promoProducts.length > 0 && (
-        <div className="px-4 mb-2">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-1.5">
-            <span className="text-base">{"\u{1F525}"}</span> Bons plans
-          </h3>
+        <div className="px-3 pt-1 mb-1">
+          <p className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider mb-1.5">Promos</p>
           <ProductGrid products={promoProducts} onAdd={handleAdd} />
         </div>
       )}

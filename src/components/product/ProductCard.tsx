@@ -1,11 +1,10 @@
-// src/components/product/ProductCard.tsx — V2 enriched product card
+// src/components/product/ProductCard.tsx — Uber Eats style compact card
 "use client";
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
+import { Plus, Check } from "lucide-react";
 import { getProductImage } from "@/lib/product-images";
-import { getFlag, getOriginCountry } from "@/lib/flags";
-import { FlashCountdown } from "@/components/product/FlashCountdown";
 import type { Product as ProductV2, ProductImage as ProductImageType } from "@/types";
 
 // ── Types ────────────────────────────────────────
@@ -41,69 +40,20 @@ function promoPrice(cents: number, pct: number) {
   return Math.round(cents * (1 - pct / 100));
 }
 
-function isFlashActive(promoEnd: string | null, promoType: string | null): boolean {
-  if (promoType !== "FLASH" || !promoEnd) return false;
-  return new Date(promoEnd).getTime() > Date.now();
-}
-
-// ── Image Carousel ──────────────────────────────
-
-const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' fill='%23e5e7eb'%3E%3Crect width='400' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🥩%3C/text%3E%3C/svg%3E";
-
-function ImageCarousel({ images, fallback, alt }: { images: ProductImageType[]; fallback: string; alt: string }) {
-  const [idx, setIdx] = useState(0);
-  const srcs = images.length > 0 ? images.map(i => i.url) : [fallback];
-  const count = srcs.length;
-
-  return (
-    <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
-      <Image
-        src={srcs[idx]}
-        alt={alt}
-        fill
-        sizes="(max-width: 640px) 50vw, 200px"
-        className="object-cover transition-opacity duration-300"
-        quality={75}
-        onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
-      />
-      {count > 1 && (
-        <>
-          {/* Swipe areas */}
-          <button
-            className="absolute inset-y-0 left-0 w-1/3 z-10"
-            onClick={(e) => { e.stopPropagation(); setIdx(i => (i - 1 + count) % count); }}
-            aria-label="Image précédente"
-          />
-          <button
-            className="absolute inset-y-0 right-0 w-1/3 z-10"
-            onClick={(e) => { e.stopPropagation(); setIdx(i => (i + 1) % count); }}
-            aria-label="Image suivante"
-          />
-          {/* Dots */}
-          <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-            {srcs.map((_, i) => (
-              <span
-                key={i}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${i === idx ? "bg-white w-3" : "bg-white/50"}`}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' fill='%231a1a1a'%3E%3Crect width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='%23333'%3E🥩%3C/text%3E%3C/svg%3E";
 
 // ── Main Component ──────────────────────────────
 
 export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) {
   const [animating, setAnimating] = useState(false);
-  const fallbackImg = product.imageUrl || getProductImage(product.category.name, productIndex);
+  const imgSrc = product.images.length > 0
+    ? product.images[0].url
+    : product.imageUrl || getProductImage(product.category.name, productIndex);
   const hasPromo = product.promoPct != null && product.promoPct > 0;
-  const flash = isFlashActive(product.promoEnd, product.promoType);
   const outOfStock = !product.inStock;
 
-  const handleAdd = useCallback(() => {
+  const handleAdd = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     if (outOfStock) return;
     onAdd();
     if (product.unit !== "KG") {
@@ -114,141 +64,75 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
 
   return (
     <div
-      className={`group relative flex flex-col bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-[16px] overflow-hidden
-        transition-all duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.03)]
-        hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-[#ddd5cc] dark:hover:border-white/15
-        ${outOfStock ? "opacity-60" : ""} ${animating ? "scale-[0.97]" : ""}`}
+      className={`group relative bg-white dark:bg-white/[0.03] rounded-2xl overflow-hidden
+        transition-all duration-150 active:scale-[0.97]
+        ${outOfStock ? "opacity-50" : ""}`}
       style={style}
     >
-      {/* ── Image section ── */}
-      <div className="relative">
-        <ImageCarousel images={product.images} fallback={fallbackImg} alt={product.name} />
+      {/* ── Image ── */}
+      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-white/5">
+        <Image
+          src={imgSrc}
+          alt={product.name}
+          fill
+          sizes="(max-width: 640px) 46vw, 180px"
+          className="object-cover"
+          quality={70}
+          onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
+        />
 
-        {/* Promo badge top-left */}
+        {/* Promo badge */}
         {hasPromo && (
-          <div className="absolute top-2 left-2 z-10 flex flex-col gap-0.5">
-            <div className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold text-white shadow-md
-              ${flash ? "bg-gradient-to-r from-red-600 to-orange-500 animate-pulse" : "bg-[#DC2626]"}`}>
-              -{product.promoPct}%
-              {flash && <span className="ml-1 text-[8px] font-bold">FLASH</span>}
-            </div>
-            {flash && product.promoEnd && (
-              <FlashCountdown promoEnd={product.promoEnd} compact />
-            )}
+          <div className={`absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md text-[10px] font-bold text-white
+            ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#DC2626]"}`}>
+            -{product.promoPct}%
           </div>
         )}
 
-        {/* Popular badge top-right */}
-        {product.popular && (
-          <div className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-lg bg-amber-500/90 text-white text-[9px] font-extrabold tracking-wide">
-            POPULAIRE
-          </div>
+        {/* "+" button overlay bottom-right */}
+        {!outOfStock && (
+          <button
+            onClick={handleAdd}
+            className={`absolute bottom-1.5 right-1.5 z-10 w-8 h-8 rounded-full flex items-center justify-center
+              shadow-lg transition-all duration-150 active:scale-90
+              ${animating
+                ? "bg-emerald-500 text-white"
+                : "bg-white dark:bg-white/90 text-gray-900 hover:bg-gray-100"
+              }`}
+          >
+            {animating ? <Check size={16} strokeWidth={3} /> : <Plus size={18} strokeWidth={2.5} />}
+          </button>
         )}
 
-        {/* Out of stock overlay */}
+        {/* Out of stock */}
         {outOfStock && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-            <span className="bg-white/90 dark:bg-black/80 text-gray-900 dark:text-white text-xs font-bold px-3 py-1 rounded-full">
-              Rupture
-            </span>
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+            <span className="text-white text-[10px] font-bold bg-black/60 px-2 py-0.5 rounded-full">Indisponible</span>
           </div>
         )}
       </div>
 
-      {/* ── Info section ── */}
-      <div className="flex-1 flex flex-col p-2 pt-1.5">
-        {/* Category */}
-        <span className="text-[8px] font-bold text-[#DC2626] uppercase tracking-wider mb-0.5">
-          {product.category.emoji ? `${product.category.emoji} ` : ""}{product.category.name}
-        </span>
-
-        {/* Name */}
-        <h3
-          className="text-[13px] font-bold text-gray-900 dark:text-white leading-tight line-clamp-2 font-display"
-        >
+      {/* ── Info ── */}
+      <div className="px-1.5 pt-1.5 pb-2">
+        <h3 className="text-[12px] font-semibold text-gray-900 dark:text-white leading-snug line-clamp-1">
           {product.name}
         </h3>
-
-        {/* Origin & Halal — single condensed line */}
-        {(product.origin || product.halalOrg) && (
-          <div className="flex items-center gap-1.5 mt-1">
-            {product.origin && (
-              <span className="text-[8px] font-semibold text-blue-600 dark:text-blue-400">
-                {getFlag(product.origin)} {getOriginCountry(product.origin)}
+        <div className="flex items-baseline gap-1 mt-0.5">
+          {hasPromo ? (
+            <>
+              <span className="text-[13px] font-bold text-[#DC2626]">
+                {fmtPrice(promoPrice(product.priceCents, product.promoPct!))}
               </span>
-            )}
-            {product.origin && product.halalOrg && (
-              <span className="text-[8px] text-gray-300 dark:text-gray-600">•</span>
-            )}
-            {product.halalOrg && (
-              <span className="text-[8px] font-semibold text-emerald-600 dark:text-emerald-400">
-                ☪ {product.halalOrg}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Labels */}
-        {product.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {product.labels.slice(0, 2).map((label) => (
-              <span
-                key={label.id}
-                className="px-1 py-0 rounded text-[7px] font-bold uppercase tracking-wide"
-                style={{
-                  backgroundColor: label.color ? `${label.color}15` : "#f3f4f6",
-                  color: label.color || "#6b7280",
-                  border: `1px solid ${label.color ? `${label.color}30` : "#e5e7eb"}`,
-                }}
-              >
-                {label.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1 min-h-1" />
-
-        {/* Price row + Add button */}
-        <div className="flex items-end justify-between mt-2">
-          <div>
-            {hasPromo ? (
-              <div className="flex items-baseline gap-1">
-                <span className="text-[15px] font-extrabold text-[#DC2626]">
-                  {fmtPrice(promoPrice(product.priceCents, product.promoPct!))}
-                </span>
-                <span className="text-[10px] text-gray-400 line-through">
-                  {fmtPrice(product.priceCents)}
-                </span>
-              </div>
-            ) : (
-              <span className="text-[15px] font-extrabold text-gray-900 dark:text-white">
+              <span className="text-[10px] text-gray-400 line-through">
                 {fmtPrice(product.priceCents)}
               </span>
-            )}
-            <span className="text-[9px] text-gray-400 font-medium">{unitLabel(product.unit)}</span>
-          </div>
-
-          {/* Add button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-            disabled={outOfStock}
-            className={`min-h-[32px] px-2.5 rounded-xl text-[11px] font-bold transition-all duration-200 active:scale-95
-              ${animating
-                ? "bg-emerald-500 text-white"
-                : outOfStock
-                  ? "bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed"
-                  : "bg-[#DC2626] text-white hover:bg-[#b91c1c] shadow-sm"
-              }`}
-          >
-            {animating
-              ? "\u2713 Ajouté"
-              : product.unit === "KG"
-                ? "Choisir"
-                : "+ Ajouter"
-            }
-          </button>
+            </>
+          ) : (
+            <span className="text-[13px] font-bold text-gray-900 dark:text-white">
+              {fmtPrice(product.priceCents)}
+            </span>
+          )}
+          <span className="text-[9px] text-gray-400">{unitLabel(product.unit)}</span>
         </div>
       </div>
     </div>
