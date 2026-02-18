@@ -821,6 +821,7 @@ model Order {
   @@index([shopId, createdAt])
   @@index([userId])
   @@index([expiresAt, status])
+  @@index([createdAt, status])
   @@map("orders")
 }
 

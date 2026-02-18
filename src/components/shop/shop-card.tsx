@@ -2,7 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, Clock, MapPin, Flame, ChevronRight } from "lucide-react";
+
+const SHOP_PLACEHOLDER = "/img/shops/shop-1.jpg";
 
 interface ShopCardProps {
   slug: string;
@@ -24,11 +27,15 @@ export function ShopCard({
   return (
     <Link href={`/boutique/${slug}`} className="block premium-card group">
       {/* Image */}
-      <div className="relative aspect-[16/10] bg-zinc-100 overflow-hidden">
-        <img
-          src={imageUrl}
+      <div className="relative aspect-[16/10] bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+        <Image
+          src={imageUrl || SHOP_PLACEHOLDER}
           alt={name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          quality={75}
+          onError={(e) => { (e.target as HTMLImageElement).src = SHOP_PLACEHOLDER; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
@@ -60,17 +67,17 @@ export function ShopCard({
 
       {/* Meta bar */}
       <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3 text-[12px] text-zinc-500">
+        <div className="flex items-center gap-3 text-[12px] text-zinc-500 dark:text-zinc-400">
           <span className="flex items-center gap-1"><Clock size={12} />{prepTimeMinutes} min</span>
           {distance && <span className="flex items-center gap-1"><MapPin size={12} />{distance}</span>}
-          <span className="text-zinc-300">•</span>
+          <span className="text-zinc-300 dark:text-zinc-600">•</span>
           <span>{reviewCount} avis</span>
         </div>
         <div className="flex items-center gap-2">
           {tags && tags.map((t) => (
-            <span key={t} className="px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600 text-[10px] font-medium">{t}</span>
+            <span key={t} className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-zinc-400 text-[10px] font-medium">{t}</span>
           ))}
-          <ChevronRight size={16} className="text-zinc-300 group-hover:text-primary transition-colors" />
+          <ChevronRight size={16} className="text-zinc-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
         </div>
       </div>
     </Link>

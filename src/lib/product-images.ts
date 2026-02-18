@@ -1,84 +1,83 @@
 // ═══════════════════════════════════════════════
 // KLIK&GO — Product Image Mapping
-// Photos de viande CRUE uniquement (pas cuisinée)
+// Photos locales uniquement — AUCUNE URL externe
 // ═══════════════════════════════════════════════
 
-// Mapping keyword → image Unsplash (viande crue, w=400 h=300 fit=crop q=75)
+// Mapping keyword → image locale par catégorie
 const DEFAULT_PRODUCT_IMAGES: Record<string, string> = {
   // === BOEUF ===
-  "entrecote": "https://images.unsplash.com/photo-1615937722923-67f6deaf2cc9?w=400&h=300&fit=crop&q=75",
-  "faux-filet": "https://images.unsplash.com/photo-1615937722923-67f6deaf2cc9?w=400&h=300&fit=crop&q=75",
-  "steak": "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop&q=75",
-  "viande hachee": "https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=400&h=300&fit=crop&q=75",
-  "hache": "https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=400&h=300&fit=crop&q=75",
-  "steak hache": "https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=400&h=300&fit=crop&q=75",
-  "brochettes": "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&h=300&fit=crop&q=75",
-  "cote de boeuf": "https://images.unsplash.com/photo-1558030006-450675393462?w=400&h=300&fit=crop&q=75",
-  "roti": "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=400&h=300&fit=crop&q=75",
-  "bourguignon": "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&h=300&fit=crop&q=75",
-  "carpaccio": "https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400&h=300&fit=crop&q=75",
-  "tournedos": "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop&q=75",
-  "rumsteak": "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop&q=75",
+  "entrecote": "/img/products/boeuf-1.jpg",
+  "faux-filet": "/img/products/boeuf-2.jpg",
+  "steak": "/img/products/boeuf-3.jpg",
+  "viande hachee": "/img/products/boeuf-4.jpg",
+  "hache": "/img/products/boeuf-4.jpg",
+  "steak hache": "/img/products/boeuf-4.jpg",
+  "brochettes": "/img/products/grillades-1.jpg",
+  "cote de boeuf": "/img/products/boeuf-5.jpg",
+  "roti": "/img/products/boeuf-2.jpg",
+  "bourguignon": "/img/products/boeuf-3.jpg",
+  "carpaccio": "/img/products/boeuf-1.jpg",
+  "tournedos": "/img/products/boeuf-5.jpg",
+  "rumsteak": "/img/products/boeuf-3.jpg",
 
   // === AGNEAU ===
-  "cotelettes": "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75",
-  "gigot": "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75",
-  "epaule": "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75",
-  "souris": "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75",
-  "collier": "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75",
-  "agneau": "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75",
+  "cotelettes": "/img/products/agneau-1.jpg",
+  "gigot": "/img/products/agneau-2.jpg",
+  "epaule": "/img/products/agneau-3.jpg",
+  "souris": "/img/products/agneau-4.jpg",
+  "collier": "/img/products/agneau-1.jpg",
+  "agneau": "/img/products/agneau-2.jpg",
 
   // === VOLAILLE ===
-  "poulet": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop&q=75",
-  "escalope de poulet": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop&q=75",
-  "emince": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop&q=75",
-  "cuisses": "https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=400&h=300&fit=crop&q=75",
-  "pilons": "https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=400&h=300&fit=crop&q=75",
-  "ailes": "https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=400&h=300&fit=crop&q=75",
-  "poulet entier": "https://images.unsplash.com/photo-1501200291289-c5a76c232e5f?w=400&h=300&fit=crop&q=75",
-  "dinde": "https://images.unsplash.com/photo-1574672280600-4accfa404c11?w=400&h=300&fit=crop&q=75",
-  "escalope de dinde": "https://images.unsplash.com/photo-1574672280600-4accfa404c11?w=400&h=300&fit=crop&q=75",
+  "poulet": "/img/products/volaille-1.jpg",
+  "escalope de poulet": "/img/products/volaille-2.jpg",
+  "emince": "/img/products/volaille-3.jpg",
+  "cuisses": "/img/products/volaille-4.jpg",
+  "pilons": "/img/products/volaille-4.jpg",
+  "ailes": "/img/products/volaille-3.jpg",
+  "poulet entier": "/img/products/volaille-1.jpg",
+  "dinde": "/img/products/volaille-2.jpg",
+  "escalope de dinde": "/img/products/volaille-2.jpg",
 
   // === MERGUEZ / SAUCISSES ===
-  "merguez": "https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400&h=300&fit=crop&q=75",
-  "saucisse": "https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400&h=300&fit=crop&q=75",
-  "chipolata": "https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400&h=300&fit=crop&q=75",
+  "merguez": "/img/products/grillades-2.jpg",
+  "saucisse": "/img/products/grillades-3.jpg",
+  "chipolata": "/img/products/grillades-4.jpg",
 
   // === VEAU ===
-  "escalope de veau": "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=400&h=300&fit=crop&q=75",
-  "blanquette": "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&h=300&fit=crop&q=75",
-  "veau": "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=400&h=300&fit=crop&q=75",
+  "escalope de veau": "/img/products/veau-1.jpg",
+  "blanquette": "/img/products/veau-2.jpg",
+  "veau": "/img/products/veau-1.jpg",
 
   // === PREPARATIONS ===
-  "kefta": "https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=400&h=300&fit=crop&q=75",
-  "boulettes": "https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=400&h=300&fit=crop&q=75",
-  "cordon bleu": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop&q=75",
+  "kefta": "/img/products/preparations-1.jpg",
+  "boulettes": "/img/products/preparations-2.jpg",
+  "cordon bleu": "/img/products/preparations-1.jpg",
 
   // === ABATS ===
-  "foie": "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&h=300&fit=crop&q=75",
-  "tripes": "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&h=300&fit=crop&q=75",
-  "abats": "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&h=300&fit=crop&q=75",
+  "foie": "/img/products/abats-1.jpg",
+  "tripes": "/img/products/abats-1.jpg",
+  "abats": "/img/products/abats-1.jpg",
 };
 
 // Fallback par catégorie
 const CATEGORY_FALLBACKS: Record<string, string> = {
-  "boeuf": "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop&q=75",
-  "agneau": "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75",
-  "volaille": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop&q=75",
-  "veau": "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=400&h=300&fit=crop&q=75",
-  "grillades": "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&h=300&fit=crop&q=75",
-  "preparations": "https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=400&h=300&fit=crop&q=75",
-  "abats": "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=400&h=300&fit=crop&q=75",
+  "boeuf": "/img/products/boeuf-1.jpg",
+  "agneau": "/img/products/agneau-1.jpg",
+  "volaille": "/img/products/volaille-1.jpg",
+  "veau": "/img/products/veau-1.jpg",
+  "grillades": "/img/products/grillades-1.jpg",
+  "preparations": "/img/products/preparations-1.jpg",
+  "abats": "/img/products/abats-1.jpg",
 };
 
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop&q=75";
+const DEFAULT_IMAGE = "/img/products/boeuf-1.jpg";
 
 /**
  * Trouve la meilleure image pour un produit donné.
- * 1. Si le produit a une image uploadée → l'utiliser
- * 2. Chercher par mots-clés dans le nom du produit
- * 3. Fallback par catégorie
- * 4. Fallback ultime
+ * 1. Chercher par mots-clés dans le nom du produit
+ * 2. Fallback par catégorie
+ * 3. Fallback ultime
  */
 export function getProductImage(
   productNameOrCategory: string,
@@ -117,8 +116,13 @@ export function resolveProductImage(product: {
   imageUrl?: string | null;
   category?: string | null;
 }): string {
-  // Si le boucher a uploadé sa propre photo → l'utiliser
-  if (product.imageUrl && !product.imageUrl.startsWith("/img/products/")) {
+  // Si le produit a une image locale assignée → l'utiliser en priorité
+  if (product.imageUrl && product.imageUrl.startsWith("/img/")) {
+    return product.imageUrl;
+  }
+
+  // Si le boucher a uploadé une image custom (ex: /uploads/...)
+  if (product.imageUrl && product.imageUrl.startsWith("/")) {
     return product.imageUrl;
   }
 
@@ -153,7 +157,7 @@ export function resolveProductImage(product: {
   return DEFAULT_IMAGE;
 }
 
-// ── Shop images (inchangé) ──
+// ── Shop images ──
 
 export const SHOP_IMAGES: string[] = [
   "/img/shops/shop-1.jpg",
