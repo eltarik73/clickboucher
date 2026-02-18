@@ -105,6 +105,28 @@ export default async function BoutiquePage({
     }
   } catch { /* ignore — non-critical */ }
 
+  // Check if user is pro at this shop
+  let proStatus: { isPro: boolean; status?: string; companyName?: string } = { isPro: false };
+  try {
+    const { userId: clerkId } = await auth();
+    if (clerkId) {
+      const user = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
+      if (user) {
+        const proAccess = await prisma.proAccess.findUnique({
+          where: { userId_shopId: { userId: user.id, shopId: shop.id } },
+          select: { status: true, companyName: true },
+        });
+        if (proAccess) {
+          proStatus = {
+            isPro: proAccess.status === "APPROVED",
+            status: proAccess.status,
+            companyName: proAccess.companyName,
+          };
+        }
+      }
+    }
+  } catch { /* ignore — non-critical */ }
+
   const effectiveTime =
     shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
   const heroImg = shop.imageUrl || getShopImage(0);
@@ -122,6 +144,7 @@ export default async function BoutiquePage({
     description: p.description,
     imageUrl: p.imageUrl,
     priceCents: p.priceCents,
+    proPriceCents: proStatus.isPro ? p.proPriceCents : null,
     unit: p.unit,
     inStock: p.inStock,
     tags: p.tags,
@@ -279,6 +302,7 @@ export default async function BoutiquePage({
           products={products}
           categories={categories}
           shop={{ id: shop.id, name: shop.name, slug: shop.slug }}
+          proStatus={proStatus}
         />
 
         {/* ═══════════════════════════════════════════ */}

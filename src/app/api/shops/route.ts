@@ -11,6 +11,20 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const params = Object.fromEntries(req.nextUrl.searchParams);
+
+    // ?owned=true — return shops owned by the current user (for boucher)
+    if (params.owned === "true") {
+      const { userId: clerkId } = await auth();
+      if (!clerkId) {
+        return apiError("UNAUTHORIZED", "Authentification requise");
+      }
+      const shops = await prisma.shop.findMany({
+        where: { ownerId: clerkId },
+        select: { id: true, slug: true, name: true, imageUrl: true, city: true },
+      });
+      return apiSuccess(shops);
+    }
+
     const query = shopListQuerySchema.parse(params);
 
     const where: Record<string, unknown> = {};

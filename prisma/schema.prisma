@@ -197,6 +197,7 @@ model User {
   carts           Cart[]
   recurringOrders RecurringOrder[]
   supportTickets  SupportTicket[]
+  proAccesses     ProAccess[]
 
   @@map("users")
 }
@@ -320,6 +321,7 @@ model Shop {
   loyaltyPoints     LoyaltyPoint[]
   referrerReferrals Referral[]       @relation("ReferrerShop")
   referredReferrals Referral[]       @relation("ReferredShop")
+  proAccesses       ProAccess[]
 
   @@index([latitude, longitude])
   @@index([city])
@@ -843,4 +845,35 @@ model OrderItem {
   replacement String?
 
   @@map("order_items")
+}
+
+// ══════════════════════════════════════════
+// PRO ACCESS (per-shop pro status)
+// ══════════════════════════════════════════
+
+model ProAccess {
+  id          String    @id @default(cuid())
+
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+
+  shopId      String    @map("shop_id")
+  shop        Shop      @relation(fields: [shopId], references: [id])
+
+  status      ProStatus @default(PENDING)
+
+  companyName String    @map("company_name")
+  siret       String
+  sector      String    // RESTAURANT, TRAITEUR, COLLECTIVITE, COMMERCE, AUTRE
+  phone       String?
+
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  reviewedAt  DateTime? @map("reviewed_at")
+  reviewedBy  String?   @map("reviewed_by") // clerkId du boucher
+  notes       String?
+
+  @@unique([userId, shopId])
+  @@index([shopId, status])
+  @@index([userId])
+  @@map("pro_accesses")
 }

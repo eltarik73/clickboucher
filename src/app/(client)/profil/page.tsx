@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Loader2,
   Trash2,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,15 @@ import { Switch } from "@/components/ui/switch";
 import { getShopImage } from "@/lib/product-images";
 
 // ── Types ────────────────────────────────────────
+
+interface ProAccessInfo {
+  id: string;
+  shopId: string;
+  shopName: string;
+  shopSlug: string;
+  status: string;
+  companyName: string;
+}
 
 interface FavoriteShop {
   id: string;
@@ -43,6 +53,7 @@ interface UserProfile {
   notifEmail: boolean;
   notifSms: boolean;
   notifWhatsapp: boolean;
+  proAccesses: ProAccessInfo[];
   favoriteShops: FavoriteShop[];
 }
 
@@ -296,6 +307,39 @@ export default function ProfilPage() {
             </div>
           )}
         </section>
+
+        {/* ═══════════════════════════════════════ */}
+        {/* 2B. MES ACCÈS PRO                      */}
+        {/* ═══════════════════════════════════════ */}
+        {profile.proAccesses && profile.proAccesses.length > 0 && (
+          <section className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Building2 size={16} className="text-[#DC2626]" />
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Mes accès Pro</h2>
+            </div>
+            <div className="space-y-2">
+              {profile.proAccesses.map((pa) => (
+                <div key={pa.id} className="flex items-center justify-between p-3 rounded-xl border border-[#ece8e3] dark:border-white/10">
+                  <div className="min-w-0">
+                    <Link href={`/boutique/${pa.shopSlug}`} className="text-sm font-semibold text-gray-900 dark:text-white hover:text-[#DC2626] truncate block">
+                      {pa.shopName}
+                    </Link>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{pa.companyName}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
+                    pa.status === "APPROVED"
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+                      : pa.status === "PENDING"
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
+                      : "bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-300"
+                  }`}>
+                    {pa.status === "APPROVED" ? "✅ Validé" : pa.status === "PENDING" ? "⏳ En attente" : "❌ Refusé"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ═══════════════════════════════════════ */}
         {/* 3. PRÉFÉRENCES DE NOTIFICATION         */}

@@ -284,7 +284,21 @@ export const updateProductStockSchema = z.object({
   proPriceCents: z.number().int().min(0).nullable().optional(),
 });
 
-// -- Pro Request --
+// -- Pro Access (per-shop) --
+
+export const proAccessRequestSchema = z.object({
+  companyName: z.string().min(2).max(200),
+  siret: siretSchema,
+  sector: z.enum(["RESTAURANT", "TRAITEUR", "COLLECTIVITE", "COMMERCE", "AUTRE"]),
+  phone: phoneSchema.optional(),
+});
+
+export const proAccessReviewSchema = z.object({
+  status: z.enum(["APPROVED", "REJECTED"]),
+  notes: z.string().max(500).optional(),
+});
+
+// -- Pro Request (legacy) --
 
 export const proRequestSchema = z.object({
   userId: z.string().cuid(),

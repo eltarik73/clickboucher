@@ -24,6 +24,7 @@ export interface ProductData {
   description: string | null;
   imageUrl: string | null;
   priceCents: number;
+  proPriceCents?: number | null;
   unit: string;
   inStock: boolean;
   tags: string[];
@@ -62,9 +63,10 @@ interface Props {
   products: ProductData[];
   categories: CategoryData[];
   shop: ShopInfo;
+  proStatus?: { isPro: boolean; status?: string; companyName?: string };
 }
 
-export function ShopProductsClient({ products, categories, shop }: Props) {
+export function ShopProductsClient({ products, categories, shop, proStatus }: Props) {
   const [activeCat, setActiveCat] = useState<string>("Tout");
   const [selectedProduct, setSelectedProduct] = useState<WeightSheetProduct | null>(null);
   const { addItem, itemCount, totalCents, state } = useCart();

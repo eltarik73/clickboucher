@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
   Store,
@@ -124,6 +126,31 @@ function Feature({ children }: { children: React.ReactNode }) {
 // MAIN PAGE
 // ─────────────────────────────────────────────────
 export default function EspaceBoucherPage() {
+  const { user, isLoaded, isSignedIn } = useUser();
+  const router = useRouter();
+  const role = user?.publicMetadata?.role as string | undefined;
+
+  // Boucher connected → show dashboard access button
+  if (isLoaded && isSignedIn && (role === "boucher" || role === "admin")) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-5">
+        <div className="bg-[#141414] border border-white/10 rounded-2xl p-8 text-center max-w-sm w-full">
+          <div className="w-14 h-14 bg-[#DC2626]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Store size={28} className="text-[#DC2626]" />
+          </div>
+          <h1 className="text-xl font-bold text-white mb-2">Bienvenue, {user.firstName} !</h1>
+          <p className="text-sm text-gray-400 mb-6">Accédez à votre espace boucher pour gérer votre boucherie.</p>
+          <button
+            onClick={() => router.push("/boucher/dashboard")}
+            className="w-full bg-[#DC2626] text-white rounded-xl py-3 font-semibold hover:bg-[#b91c1c] transition-colors"
+          >
+            Accéder à mon dashboard →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* ══════════════════════════════════════════ */}
@@ -158,7 +185,7 @@ export default function EspaceBoucherPage() {
               </div>
             </Link>
             <Link
-              href="/sign-in"
+              href="/sign-in?redirect_url=/espace-boucher"
               className="text-sm text-gray-400 hover:text-white transition"
             >
               Se connecter
@@ -202,7 +229,7 @@ export default function EspaceBoucherPage() {
               Ajouter ma boucherie
             </a>
             <Link
-              href="/sign-in"
+              href="/sign-in?redirect_url=/espace-boucher"
               className="border border-white/30 text-white rounded-xl py-3 px-8 font-medium hover:bg-white/5 transition-colors"
             >
               Se connecter

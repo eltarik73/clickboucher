@@ -1,7 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// Routes protégées — auth obligatoire (tout rôle connecté)
+const isBoucherRoute = createRouteMatcher(["/boucher(.*)"]);
+const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+const isAdminLoginRoute = createRouteMatcher(["/admin-login"]);
 const isProtectedRoute = createRouteMatcher([
   "/checkout(.*)",
   "/commandes(.*)",
@@ -9,21 +11,14 @@ const isProtectedRoute = createRouteMatcher([
   "/chat(.*)",
 ]);
 
-// Routes boucher — auth + rôle boucher ou admin
-const isBoucherRoute = createRouteMatcher(["/boucher(.*)"]);
-
-// Routes admin — auth + rôle admin uniquement
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
-
 export default clerkMiddleware(async (auth, req) => {
-  const { sessionClaims } = await auth();
-  const role = sessionClaims?.metadata?.role;
+  const { userId, sessionClaims } = await auth();
+  const role = sessionClaims?.metadata?.role as string | undefined;
 
-  // Admin routes: auth + role === "admin"
-  if (isAdminRoute(req)) {
-    if (!sessionClaims) {
-      await auth.protect();
-      return;
+  // Admin routes (except admin-login): webmaster only
+  if (isAdminRoute(req) && !isAdminLoginRoute(req)) {
+    if (!userId) {
+      return NextResponse.redirect(new URL("/admin-login", req.url));
     }
     if (role !== "admin") {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
@@ -31,11 +26,10 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
 
-  // Boucher routes: auth + role === "boucher" ou "admin"
+  // Boucher routes: boucher or admin (webmaster)
   if (isBoucherRoute(req)) {
-    if (!sessionClaims) {
-      await auth.protect();
-      return;
+    if (!userId) {
+      return NextResponse.redirect(new URL("/espace-boucher", req.url));
     }
     if (role !== "boucher" && role !== "admin") {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
@@ -43,20 +37,20 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
 
-  // Protected client routes: auth obligatoire (tout rôle)
+  // Protected client routes: any authenticated user
   if (isProtectedRoute(req)) {
-    await auth.protect();
+    if (!userId) {
+      await auth.protect();
+    }
     return;
   }
 
-  // Tout le reste est public: /decouvrir, /boutique/[id], /panier, /sign-in, /sign-up
+  // Everything else is public
 });
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static files
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 };

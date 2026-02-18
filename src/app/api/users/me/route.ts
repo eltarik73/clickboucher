@@ -44,10 +44,31 @@ export async function GET() {
             city: true,
           },
         },
+        proAccesses: {
+          include: {
+            shop: {
+              select: { id: true, name: true, slug: true },
+            },
+          },
+          orderBy: { requestedAt: "desc" },
+        },
       },
     });
 
-    return apiSuccess(user);
+    // Flatten proAccesses for client
+    const data = {
+      ...user,
+      proAccesses: user?.proAccesses?.map((pa) => ({
+        id: pa.id,
+        shopId: pa.shop.id,
+        shopName: pa.shop.name,
+        shopSlug: pa.shop.slug,
+        status: pa.status,
+        companyName: pa.companyName,
+      })) ?? [],
+    };
+
+    return apiSuccess(data);
   } catch (error) {
     return handleApiError(error);
   }
