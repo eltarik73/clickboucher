@@ -8,7 +8,7 @@ import { useCart } from "@/lib/hooks/use-cart";
 import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import type { ProductCardData } from "@/components/product/ProductCard";
-import { getProductImage } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
 
 // ── Types ────────────────────────────────────────
 
@@ -139,7 +139,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
           id: p.id,
           name: p.name,
           description: p.description || "",
-          imageUrl: p.imageUrl || getProductImage(p.category.name),
+          imageUrl: resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name }),
           category: p.category.name,
           unit: p.unit,
           priceCents: p.priceCents,
@@ -158,7 +158,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
           id: p.id,
           productId: p.id,
           name: p.name,
-          imageUrl: p.imageUrl || getProductImage(p.category.name),
+          imageUrl: resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name }),
           unit: p.unit as "PIECE" | "BARQUETTE",
           priceCents: p.priceCents,
           quantity: 1,

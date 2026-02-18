@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Flame, ArrowLeft, MapPin } from "lucide-react";
 import { FlashCountdown } from "@/components/product/FlashCountdown";
-import { getProductImage } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 
 // ── Types ──
@@ -170,7 +170,7 @@ export function BonsPlansClient({ promos, categories }: Props) {
 function PromoCard({ product }: { product: PromoProduct }) {
   const isFlash = product.promoType === "FLASH" && product.promoEnd;
   const discountedPrice = Math.round(product.priceCents * (1 - product.promoPct / 100));
-  const imgSrc = product.images[0]?.url || product.imageUrl || getProductImage(product.category.name);
+  const imgSrc = product.images[0]?.url || resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
 
   return (
     <Link href={`/boutique/${product.shop.slug}`}>

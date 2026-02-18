@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import prisma from "@/lib/prisma";
-import { getProductImage } from "@/lib/product-images";
 import { getFlag, getOriginCountry } from "@/lib/flags";
 import { BonsPlansClient } from "./BonsPlansClient";
 

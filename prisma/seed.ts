@@ -313,6 +313,7 @@ async function main() {
   await prisma.notification.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
+  await prisma.proAccess.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
   await prisma.shop.deleteMany();

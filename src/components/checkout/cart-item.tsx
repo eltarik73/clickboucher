@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart, CartItem as CartItemType } from "@/lib/hooks/use-cart";
 import { formatPrice, formatWeight } from "@/lib/utils";
-import { getProductImage } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
 
 export function CartItemRow({ item }: { item: CartItemType }) {
   const { updateQty, removeItem } = useCart();
@@ -20,7 +20,7 @@ export function CartItemRow({ item }: { item: CartItemType }) {
     <div className="premium-card p-3">
       <div className="flex gap-3">
         <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-          <img src={item.imageUrl || getProductImage("default")} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+          <img src={resolveProductImage({ name: item.name, imageUrl: item.imageUrl, category: item.category })} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
         </div>
 
         <div className="flex-1 min-w-0">

@@ -4,7 +4,7 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { Plus, Check } from "lucide-react";
-import { getProductImage } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 import type { Product as ProductV2, ProductImage as ProductImageType } from "@/types";
 
@@ -49,7 +49,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
   const [animating, setAnimating] = useState(false);
   const imgSrc = product.images.length > 0
     ? product.images[0].url
-    : product.imageUrl || getProductImage(product.category.name, productIndex);
+    : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
   const hasPromo = product.promoPct != null && product.promoPct > 0;
   const outOfStock = !product.inStock;
   const isEager = productIndex < 4;
