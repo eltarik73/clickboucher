@@ -21,7 +21,7 @@ export default async function AdminLoginPage() {
     console.log("[admin-login] role detected:", role, "| isAdmin:", isAdmin(role));
 
     if (isAdmin(role)) {
-      redirect("/admin");
+      redirect("/admin/dashboard");
     }
 
     // Logged in but not admin → access denied
