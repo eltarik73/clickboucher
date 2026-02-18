@@ -266,10 +266,10 @@ export default function AdminUsersPage() {
             onChange={(e) => setSortBy(e.target.value as SortBy)}
             className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
           >
-            <option value="date">Plus r\u00e9cent</option>
+            <option value="date">Plus récent</option>
             <option value="orders">Plus de commandes</option>
             <option value="spent">Plus gros client</option>
-            <option value="name">Alphab\u00e9tique</option>
+            <option value="name">Alphabétique</option>
           </select>
           <ChevronDown
             size={14}
@@ -282,7 +282,7 @@ export default function AdminUsersPage() {
       {filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
           <p className="text-gray-400 dark:text-gray-500">
-            Aucun utilisateur trouv\u00e9.
+            Aucun utilisateur trouvé.
           </p>
         </div>
       ) : (
@@ -294,10 +294,10 @@ export default function AdminUsersPage() {
                 <thead>
                   <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-white/10">
                     <th className="px-5 py-3 font-medium">Utilisateur</th>
-                    <th className="px-4 py-3 font-medium">R\u00f4le</th>
+                    <th className="px-4 py-3 font-medium">Rôle</th>
                     <th className="px-4 py-3 font-medium">Entreprise</th>
                     <th className="px-4 py-3 font-medium text-right">Commandes</th>
-                    <th className="px-4 py-3 font-medium text-right">Total d\u00e9pens\u00e9</th>
+                    <th className="px-4 py-3 font-medium text-right">Total dépensé</th>
                     <th className="px-4 py-3 font-medium">Inscrit le</th>
                     <th className="px-4 py-3 font-medium text-right">Actions</th>
                   </tr>
@@ -327,13 +327,13 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-4 py-3">{roleBadge(user.role)}</td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
-                        {user.companyName || "\u2014"}
+                        {user.companyName || "—"}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
                         {user.orderCount}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-[#f8f6f3]">
-                        {fmt(user.totalSpent)} \u20ac
+                        {fmt(user.totalSpent)} €
                       </td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
                         {fmtDate(user.createdAt)}
@@ -342,10 +342,10 @@ export default function AdminUsersPage() {
                         <button
                           onClick={() => openRoleDialog(user)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
-                          title="Changer le r\u00f4le"
+                          title="Changer le rôle"
                         >
                           <ShieldCheck size={13} />
-                          R\u00f4le
+                          Rôle
                         </button>
                       </td>
                     </tr>
@@ -394,9 +394,9 @@ export default function AdminUsersPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
-                      {fmt(user.totalSpent)} \u20ac
+                      {fmt(user.totalSpent)} €
                     </p>
-                    <p className="text-[10px] text-gray-400">D\u00e9pens\u00e9</p>
+                    <p className="text-[10px] text-gray-400">Dépensé</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
@@ -411,7 +411,7 @@ export default function AdminUsersPage() {
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
                   >
                     <ShieldCheck size={13} />
-                    Changer le r\u00f4le
+                    Changer le rôle
                   </button>
                 </div>
               </div>
@@ -427,7 +427,7 @@ export default function AdminUsersPage() {
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Changer le r\u00f4le</DialogTitle>
+            <DialogTitle>Changer le rôle</DialogTitle>
             <DialogDescription>
               {roleTarget
                 ? `${roleTarget.firstName} ${roleTarget.lastName} (${roleTarget.email})`
@@ -437,7 +437,7 @@ export default function AdminUsersPage() {
           <div className="p-5 space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                Nouveau r\u00f4le
+                Nouveau rôle
               </label>
               <div className="relative">
                 <select
@@ -460,7 +460,7 @@ export default function AdminUsersPage() {
 
             {newRole === "admin" && (
               <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 text-xs text-red-600 dark:text-red-400">
-                Attention : ce r\u00f4le donne un acc\u00e8s complet \u00e0 l&apos;administration.
+                Attention : ce rôle donne un accès complet à l&apos;administration.
               </div>
             )}
 

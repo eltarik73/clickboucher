@@ -107,7 +107,7 @@ export default async function SuiviPage({
                   <span className="text-gray-400 dark:text-gray-500 ml-1.5">
                     {item.unit === "KG"
                       ? `${item.quantity.toFixed(1)} kg`
-                      : `\u00d7${item.quantity}`}
+                      : `×${item.quantity}`}
                   </span>
                 </div>
                 <span className="font-semibold text-gray-900 dark:text-white shrink-0">

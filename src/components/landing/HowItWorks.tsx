@@ -16,7 +16,7 @@ const STEPS = [
   {
     number: 2,
     title: "Payez en ligne",
-    description: "Paiement s\u00e9curis\u00e9 et rapide",
+    description: "Paiement sécurisé et rapide",
     icon: (
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />

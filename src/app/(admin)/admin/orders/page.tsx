@@ -69,13 +69,13 @@ const STATUS_STYLES: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "En attente",
-  ACCEPTED: "Accept\u00e9e",
-  PREPARING: "En pr\u00e9paration",
-  READY: "Pr\u00eate",
-  PICKED_UP: "R\u00e9cup\u00e9r\u00e9e",
-  COMPLETED: "Termin\u00e9e",
-  DENIED: "Refus\u00e9e",
-  CANCELLED: "Annul\u00e9e",
+  ACCEPTED: "Acceptée",
+  PREPARING: "En préparation",
+  READY: "Prête",
+  PICKED_UP: "Récupérée",
+  COMPLETED: "Terminée",
+  DENIED: "Refusée",
+  CANCELLED: "Annulée",
   PARTIALLY_DENIED: "Partielle",
 };
 
@@ -251,8 +251,8 @@ export default function AdminOrdersPage() {
     { key: "all", label: "Toutes" },
     { key: "PENDING", label: "En attente" },
     { key: "active", label: "En cours" },
-    { key: "done", label: "Termin\u00e9es" },
-    { key: "denied", label: "Refus\u00e9es" },
+    { key: "done", label: "Terminées" },
+    { key: "denied", label: "Refusées" },
   ];
 
   return (
@@ -295,7 +295,7 @@ export default function AdminOrdersPage() {
             </span>
           </div>
           <p className="text-xl font-bold text-gray-900 dark:text-[#f8f6f3]">
-            {fmt(statusTab === "all" ? revenue : filteredRevenue)} \u20ac
+            {fmt(statusTab === "all" ? revenue : filteredRevenue)} €
           </p>
         </div>
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-4 shadow-sm">
@@ -311,7 +311,7 @@ export default function AdminOrdersPage() {
             </span>
           </div>
           <p className="text-xl font-bold text-gray-900 dark:text-[#f8f6f3]">
-            {avgProcessing !== null ? `${avgProcessing} min` : "\u2014"}
+            {avgProcessing !== null ? `${avgProcessing} min` : "—"}
           </p>
         </div>
       </div>
@@ -342,7 +342,7 @@ export default function AdminOrdersPage() {
           />
           <input
             type="text"
-            placeholder="N\u00b0 commande, nom client, email..."
+            placeholder="N° commande, nom client, email..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
@@ -372,7 +372,7 @@ export default function AdminOrdersPage() {
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             className="px-3 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
-            title="Date d\u00e9but"
+            title="Date début"
           />
           <input
             type="date"
@@ -406,7 +406,7 @@ export default function AdminOrdersPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
           <p className="text-gray-400 dark:text-gray-500">
-            Aucune commande trouv\u00e9e.
+            Aucune commande trouvée.
           </p>
         </div>
       ) : (
@@ -459,7 +459,7 @@ export default function AdminOrdersPage() {
                         {order.items.length}
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-[#f8f6f3]">
-                        {fmt(order.totalCents)} \u20ac
+                        {fmt(order.totalCents)} €
                       </td>
                       <td className="px-4 py-3">{statusBadge(order.status)}</td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
@@ -470,7 +470,7 @@ export default function AdminOrdersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right text-xs text-gray-500 dark:text-gray-400">
-                        {processingTime(order) || "\u2014"}
+                        {processingTime(order) || "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -517,7 +517,7 @@ export default function AdminOrdersPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
-                    {fmt(order.totalCents)} \u20ac
+                    {fmt(order.totalCents)} €
                   </span>
                   <span className="text-xs text-gray-400">
                     {fmtDateTime(order.createdAt)}
@@ -531,7 +531,7 @@ export default function AdminOrdersPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Page {page} / {totalPages} ({total} r\u00e9sultats)
+                Page {page} / {totalPages} ({total} résultats)
               </p>
               <div className="flex gap-1">
                 <button
@@ -563,7 +563,7 @@ export default function AdminOrdersPage() {
             </DialogTitle>
             <DialogDescription>
               {detail
-                ? `${detail.user.firstName} ${detail.user.lastName} \u2014 ${detail.shop.name}`
+                ? `${detail.user.firstName} ${detail.user.lastName} — ${detail.shop.name}`
                 : ""}
             </DialogDescription>
           </DialogHeader>
@@ -591,14 +591,14 @@ export default function AdminOrdersPage() {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
                     <span className="text-gray-600 dark:text-gray-300">
-                      Cr\u00e9\u00e9e le {fmtDateTime(detail.createdAt)}
+                      Créée le {fmtDateTime(detail.createdAt)}
                     </span>
                   </div>
                   {detail.estimatedReady && (
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                       <span className="text-gray-600 dark:text-gray-300">
-                        Pr\u00eate estim\u00e9e : {fmtDateTime(detail.estimatedReady)}
+                        Prête estimée : {fmtDateTime(detail.estimatedReady)}
                       </span>
                     </div>
                   )}
@@ -606,7 +606,7 @@ export default function AdminOrdersPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
                       <span className="text-gray-600 dark:text-gray-300">
-                        Pr\u00eate le {fmtDateTime(detail.actualReady)}
+                        Prête le {fmtDateTime(detail.actualReady)}
                       </span>
                     </div>
                   )}
@@ -614,7 +614,7 @@ export default function AdminOrdersPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
                       <span className="text-gray-600 dark:text-gray-300">
-                        R\u00e9cup\u00e9r\u00e9e le {fmtDateTime(detail.pickedUpAt)}
+                        Récupérée le {fmtDateTime(detail.pickedUpAt)}
                       </span>
                     </div>
                   )}
@@ -622,7 +622,7 @@ export default function AdminOrdersPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
                       <span className="text-red-600 dark:text-red-400">
-                        Refus\u00e9e : {detail.denyReason}
+                        Refusée : {detail.denyReason}
                       </span>
                     </div>
                   )}
@@ -656,12 +656,12 @@ export default function AdminOrdersPage() {
                         </span>
                         {item.replacement && (
                           <span className="text-orange-500 dark:text-orange-400 ml-1.5">
-                            \u2192 {item.replacement}
+                            → {item.replacement}
                           </span>
                         )}
                       </div>
                       <span className="font-medium text-gray-700 dark:text-gray-300 ml-2 shrink-0">
-                        {fmt(item.totalCents)} \u20ac
+                        {fmt(item.totalCents)} €
                       </span>
                     </div>
                   ))}
@@ -671,7 +671,7 @@ export default function AdminOrdersPage() {
                     Total
                   </span>
                   <span className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
-                    {fmt(detail.totalCents)} \u20ac
+                    {fmt(detail.totalCents)} €
                   </span>
                 </div>
               </div>

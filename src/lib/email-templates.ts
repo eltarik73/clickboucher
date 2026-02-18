@@ -30,7 +30,7 @@ function layout(content: string): string {
   <tr>
     <td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;text-align:center">
       <p style="margin:0;font-size:12px;color:#9ca3af">Klik&amp;Go &mdash; Click &amp; Collect Boucherie</p>
-      <p style="margin:4px 0 0;font-size:11px;color:#d1d5db">Cet email a \u00e9t\u00e9 envoy\u00e9 automatiquement, merci de ne pas y r\u00e9pondre.</p>
+      <p style="margin:4px 0 0;font-size:11px;color:#d1d5db">Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
     </td>
   </tr>
 </table>
@@ -55,13 +55,13 @@ export function orderAccepted(data: {
 }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Commande accept\u00e9e !</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Commande acceptée !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a \u00e9t\u00e9 accept\u00e9e.
+      Votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a été acceptée.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
-        <p style="margin:0 0 8px;font-size:13px;color:#6b7280">\u23f1 Temps de pr\u00e9paration estim\u00e9</p>
+        <p style="margin:0 0 8px;font-size:13px;color:#6b7280">\u23f1 Temps de préparation estimé</p>
         <p style="margin:0;font-size:24px;font-weight:700;color:#111827">${data.estimatedMinutes || "?"} min</p>
       </td></tr>
     </table>
@@ -72,7 +72,7 @@ export function orderAccepted(data: {
         <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#111827;word-break:break-all">${data.qrCode}</p>
       </td></tr>
     </table>` : ""}
-    <p style="margin:0 0 4px;font-size:13px;color:#9ca3af">Pr\u00e9sentez ce QR code au boucher lors du retrait.</p>
+    <p style="margin:0 0 4px;font-size:13px;color:#9ca3af">Présentez ce QR code au boucher lors du retrait.</p>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
   `);
 }
@@ -84,9 +84,9 @@ export function orderReady(data: {
 }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Votre commande est pr\u00eate !</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Votre commande est prête !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      La commande <strong>${data.orderNumber}</strong> est pr\u00eate \u00e0 retirer chez <strong>${data.shopName}</strong>.
+      La commande <strong>${data.orderNumber}</strong> est prête à retirer chez <strong>${data.shopName}</strong>.
     </p>
     ${data.qrCode ? `
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px;text-align:center">
@@ -95,7 +95,7 @@ export function orderReady(data: {
         <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#065f46;word-break:break-all">${data.qrCode}</p>
       </td></tr>
     </table>` : ""}
-    <p style="margin:0 0 4px;font-size:13px;color:#6b7280">Rendez-vous en boucherie avec votre QR code pour r\u00e9cup\u00e9rer votre commande.</p>
+    <p style="margin:0 0 4px;font-size:13px;color:#6b7280">Rendez-vous en boucherie avec votre QR code pour récupérer votre commande.</p>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
   `);
 }
@@ -107,9 +107,9 @@ export function orderDenied(data: {
 }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Commande refus\u00e9e</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Commande refusée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      D\u00e9sol\u00e9, votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> n\u2019a pas pu \u00eatre accept\u00e9e.
+      Désolé, votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> n'a pas pu être acceptée.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -117,8 +117,8 @@ export function orderDenied(data: {
         <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason || "Non précisée")}</p>
       </td></tr>
     </table>
-    <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande aupr\u00e8s d\u2019une autre boucherie.</p>
-    ${button(`${baseUrl}/decouvrir`, "D\u00e9couvrir les boucheries")}
+    <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande auprès d'une autre boucherie.</p>
+    ${button(`${baseUrl}/decouvrir`, "Découvrir les boucheries")}
   `);
 }
 
@@ -130,10 +130,10 @@ export function orderPending(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udd14 Nouvelle commande !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Vous avez re\u00e7u une nouvelle commande <strong>#${data.orderNumber}</strong> de <strong>${esc(data.customerName || "un client")}</strong>.
+      Vous avez reçu une nouvelle commande <strong>#${data.orderNumber}</strong> de <strong>${esc(data.customerName || "un client")}</strong>.
     </p>
-    <p style="margin:0;font-size:13px;color:#6b7280">Connectez-vous \u00e0 votre espace boucher pour accepter ou refuser cette commande.</p>
-    ${button(`${baseUrl}/boucher/commandes`, "G\u00e9rer les commandes")}
+    <p style="margin:0;font-size:13px;color:#6b7280">Connectez-vous à votre espace boucher pour accepter ou refuser cette commande.</p>
+    ${button(`${baseUrl}/boucher/commandes`, "Gérer les commandes")}
   `);
 }
 
@@ -143,11 +143,11 @@ export function orderPickedUp(data: {
 }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udce6 Commande r\u00e9cup\u00e9r\u00e9e !</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udce6 Commande récupérée !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Merci pour votre achat chez <strong>${data.shopName}</strong> ! Votre commande <strong>${data.orderNumber}</strong> a bien \u00e9t\u00e9 r\u00e9cup\u00e9r\u00e9e.
+      Merci pour votre achat chez <strong>${data.shopName}</strong> ! Votre commande <strong>${data.orderNumber}</strong> a bien été récupérée.
     </p>
-    <p style="margin:0;font-size:13px;color:#6b7280">N\u2019h\u00e9sitez pas \u00e0 laisser un avis pour aider les autres clients.</p>
+    <p style="margin:0;font-size:13px;color:#6b7280">N'hésitez pas à laisser un avis pour aider les autres clients.</p>
     ${button(`${baseUrl}/commandes`, "Laisser un avis")}
   `);
 }
@@ -170,14 +170,14 @@ export function stockIssue(data: {
 export function proValidated(): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf1f Compte Pro valid\u00e9 !</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf1f Compte Pro validé !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      F\u00e9licitations ! Votre compte professionnel Klik&amp;Go a \u00e9t\u00e9 valid\u00e9 avec succ\u00e8s.
+      Félicitations ! Votre compte professionnel Klik&amp;Go a été validé avec succès.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:13px;color:#047857;font-weight:600">Vos avantages Pro</p>
-        <p style="margin:0;font-size:14px;color:#065f46">\u2022 Tarifs professionnels sur tous les produits<br>\u2022 Commandes en gros facilit\u00e9es<br>\u2022 Support prioritaire</p>
+        <p style="margin:0;font-size:14px;color:#065f46">\u2022 Tarifs professionnels sur tous les produits<br>\u2022 Commandes en gros facilitées<br>\u2022 Support prioritaire</p>
       </td></tr>
     </table>
     ${button(`${baseUrl}/decouvrir`, "Commander maintenant")}
@@ -187,12 +187,12 @@ export function proValidated(): string {
 export function proRejected(): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">Demande Pro refus\u00e9e</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">Demande Pro refusée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre demande de compte professionnel n\u2019a pas pu \u00eatre valid\u00e9e pour le moment.
+      Votre demande de compte professionnel n'a pas pu être validée pour le moment.
     </p>
-    <p style="margin:0;font-size:13px;color:#6b7280">Si vous pensez qu\u2019il s\u2019agit d\u2019une erreur, n\u2019h\u00e9sitez pas \u00e0 nous contacter.</p>
-    ${button(`${baseUrl}/decouvrir`, "Retour \u00e0 l\u2019accueil")}
+    <p style="margin:0;font-size:13px;color:#6b7280">Si vous pensez qu'il s'agit d'une erreur, n'hésitez pas à nous contacter.</p>
+    ${button(`${baseUrl}/decouvrir`, "Retour à l'accueil")}
   `);
 }
 
@@ -206,7 +206,7 @@ export function cartAbandoned(data: {
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
       Vous avez <strong>${data.nbItems || "des"} article(s)</strong> en attente chez <strong>${data.shopName || "votre boucherie"}</strong>.
     </p>
-    <p style="margin:0;font-size:13px;color:#6b7280">Finalisez votre commande avant qu\u2019il ne soit trop tard !</p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Finalisez votre commande avant qu'il ne soit trop tard !</p>
     ${button(`${baseUrl}/panier`, "Voir mon panier")}
   `);
 }
@@ -218,15 +218,15 @@ export function accountApproved(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Bienvenue sur Klik&amp;Go !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre boutique <strong>${data.shopName || ""}</strong> est d\u00e9sormais activ\u00e9e sur Klik&amp;Go.
+      Votre boutique <strong>${data.shopName || ""}</strong> est désormais activée sur Klik&amp;Go.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
-        <p style="margin:0 0 4px;font-size:13px;color:#047857;font-weight:600">Prochaines \u00e9tapes</p>
-        <p style="margin:0;font-size:14px;color:#065f46">\u2022 Ajoutez vos produits<br>\u2022 Configurez vos cr\u00e9neaux de retrait<br>\u2022 Commencez \u00e0 recevoir des commandes !</p>
+        <p style="margin:0 0 4px;font-size:13px;color:#047857;font-weight:600">Prochaines étapes</p>
+        <p style="margin:0;font-size:14px;color:#065f46">\u2022 Ajoutez vos produits<br>\u2022 Configurez vos créneaux de retrait<br>\u2022 Commencez à recevoir des commandes !</p>
       </td></tr>
     </table>
-    ${button(`${baseUrl}/boucher/dashboard`, "Acc\u00e9der \u00e0 mon espace")}
+    ${button(`${baseUrl}/boucher/dashboard`, "Accéder à mon espace")}
   `);
 }
 
@@ -236,12 +236,12 @@ export function trialExpiring(data: {
 }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f3 Votre essai se termine bient\u00f4t</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f3 Votre essai se termine bientôt</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      ${data.message ? esc(data.message) : `L\u2019essai gratuit de <strong>${esc(data.shopName || "votre boutique")}</strong> se termine dans 7 jours.`}
+      ${data.message ? esc(data.message) : `L'essai gratuit de <strong>${esc(data.shopName || "votre boutique")}</strong> se termine dans 7 jours.`}
     </p>
-    <p style="margin:0;font-size:13px;color:#6b7280">Passez au paiement pour continuer \u00e0 recevoir des commandes sans interruption.</p>
-    ${button(`${baseUrl}/boucher/dashboard/abonnement`, "G\u00e9rer mon abonnement")}
+    <p style="margin:0;font-size:13px;color:#6b7280">Passez au paiement pour continuer à recevoir des commandes sans interruption.</p>
+    ${button(`${baseUrl}/boucher/dashboard/abonnement`, "Gérer mon abonnement")}
   `);
 }
 
@@ -259,13 +259,13 @@ export function weeklyReport(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcca Rapport hebdomadaire</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Voici le r\u00e9sum\u00e9 de la semaine pour <strong>${data.shopName || "votre boutique"}</strong>.
+      Voici le résumé de la semaine pour <strong>${data.shopName || "votre boutique"}</strong>.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:20px">
       <tr>
         <td style="padding:12px 16px;background:#f9fafb;border-radius:8px 0 0 0;border-bottom:1px solid #f0f0f0">
           <p style="margin:0;font-size:12px;color:#6b7280">Chiffre d'affaires</p>
-          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${rev} \u20ac</p>
+          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${rev} €</p>
         </td>
         <td style="padding:12px 16px;background:#f9fafb;border-radius:0 8px 0 0;border-bottom:1px solid #f0f0f0">
           <p style="margin:0;font-size:12px;color:#6b7280">Commandes</p>
@@ -275,11 +275,11 @@ export function weeklyReport(data: {
       <tr>
         <td style="padding:12px 16px;background:#f9fafb;border-radius:0 0 0 8px">
           <p style="margin:0;font-size:12px;color:#6b7280">Panier moyen</p>
-          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${avg} \u20ac</p>
+          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${avg} €</p>
         </td>
         <td style="padding:12px 16px;background:#f9fafb;border-radius:0 0 8px 0">
           <p style="margin:0;font-size:12px;color:#6b7280">Note moyenne</p>
-          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${data.weeklyRating?.toFixed(1) || "\u2014"}/5</p>
+          <p style="margin:4px 0 0;font-size:20px;font-weight:700;color:#111827">${data.weeklyRating?.toFixed(1) || "—"}/5</p>
         </td>
       </tr>
     </table>
@@ -290,7 +290,7 @@ export function weeklyReport(data: {
         <p style="margin:0;font-size:14px;color:#065f46;font-weight:600">${data.weeklyTopProduct}</p>
       </td></tr>
     </table>` : ""}
-    <p style="margin:0;font-size:13px;color:#6b7280">Consultez vos statistiques d\u00e9taill\u00e9es dans votre espace boucher.</p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Consultez vos statistiques détaillées dans votre espace boucher.</p>
     ${button(`${baseUrl}/boucher/dashboard/statistiques`, "Voir les statistiques")}
   `);
 }
@@ -300,11 +300,11 @@ export function calendarAlert(data: {
 }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcc5 \u00c9v\u00e9nement \u00e0 venir</h1>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">📅 Événement à venir</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
       ${esc(data.message || "Un événement important approche !")}
     </p>
-    <p style="margin:0;font-size:13px;color:#6b7280">Pr\u00e9parez vos produits et vos stocks pour r\u00e9pondre \u00e0 la demande.</p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Préparez vos produits et vos stocks pour répondre à la demande.</p>
     ${button(`${baseUrl}/boucher/dashboard`, "Mon tableau de bord")}
   `);
 }

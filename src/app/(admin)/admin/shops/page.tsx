@@ -396,7 +396,7 @@ export default function AdminShopsPage() {
       {filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
           <p className="text-gray-400 dark:text-gray-500">
-            Aucune boucherie trouv\u00e9e.
+            Aucune boucherie trouvée.
           </p>
         </div>
       ) : (
@@ -409,7 +409,7 @@ export default function AdminShopsPage() {
                   <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-white/10">
                     <th className="px-5 py-3 font-medium">Boucherie</th>
                     <th className="px-4 py-3 font-medium">Ville</th>
-                    <th className="px-4 py-3 font-medium">Propri\u00e9taire</th>
+                    <th className="px-4 py-3 font-medium">Propriétaire</th>
                     <th className="px-4 py-3 font-medium">Statut</th>
                     <th className="px-4 py-3 font-medium text-right">Note</th>
                     <th className="px-4 py-3 font-medium text-right">
@@ -615,7 +615,7 @@ export default function AdminShopsPage() {
             <DialogDescription>
               {editShop
                 ? "Modifiez les informations de la boucherie."
-                : "Remplissez les informations pour cr\u00e9er une nouvelle boucherie."}
+                : "Remplissez les informations pour créer une nouvelle boucherie."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -710,7 +710,7 @@ export default function AdminShopsPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  T\u00e9l\u00e9phone *
+                  Téléphone *
                 </label>
                 <input
                   required
@@ -742,7 +742,7 @@ export default function AdminShopsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                    Propri\u00e9taire (Boucher) *
+                    Propriétaire (Boucher) *
                   </label>
                   <div className="relative">
                     <select
@@ -753,7 +753,7 @@ export default function AdminShopsPage() {
                       }
                       className="w-full appearance-none px-3 pr-8 py-2 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                     >
-                      <option value="">S\u00e9lectionner...</option>
+                      <option value="">Sélectionner...</option>
                       {bouchers.map((b) => (
                         <option key={b.clerkId} value={b.clerkId}>
                           {b.firstName} {b.lastName} ({b.email})
@@ -805,7 +805,7 @@ export default function AdminShopsPage() {
                   ? "Enregistrement..."
                   : editShop
                     ? "Enregistrer"
-                    : "Cr\u00e9er"}
+                    : "Créer"}
               </button>
             </div>
           </form>
@@ -821,8 +821,8 @@ export default function AdminShopsPage() {
           <DialogHeader>
             <DialogTitle>Supprimer la boucherie</DialogTitle>
             <DialogDescription>
-              Cette action est irr\u00e9versible. Toutes les donn\u00e9es
-              (produits, cat\u00e9gories) seront supprim\u00e9es.
+              Cette action est irréversible. Toutes les données
+              (produits, catégories) seront supprimées.
             </DialogDescription>
           </DialogHeader>
           <div className="p-5">

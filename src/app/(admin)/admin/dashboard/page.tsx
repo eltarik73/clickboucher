@@ -101,27 +101,27 @@ export default function AdminDashboardPage() {
   const kpis = [
     {
       label: "Revenus total",
-      value: fmt(stats.totalRevenue) + " \u20ac",
+      value: fmt(stats.totalRevenue) + " €",
       icon: DollarSign,
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50 dark:bg-emerald-500/10",
     },
     {
       label: "Revenus ce mois",
-      value: fmt(stats.revenueThisMonth) + " \u20ac",
+      value: fmt(stats.revenueThisMonth) + " €",
       icon: TrendingUp,
       color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50 dark:bg-emerald-500/10",
     },
     {
       label: "Commission totale",
-      value: fmt(stats.totalCommissionCents) + " \u20ac",
+      value: fmt(stats.totalCommissionCents) + " €",
       icon: CreditCard,
       color: "text-purple-600 dark:text-purple-400",
       bg: "bg-purple-50 dark:bg-purple-500/10",
     },
     {
-      label: "Commandes aujourd\u2019hui",
+      label: "Commandes aujourd'hui",
       value: stats.todayOrders.toString(),
       icon: Package,
       color: "text-blue-600 dark:text-blue-400",

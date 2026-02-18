@@ -31,7 +31,7 @@ type Message = {
 // ── Constants ────────────────────────────────────
 
 const WELCOME_MSG =
-  "Salut ! \uD83D\uDC4B Je suis ton assistant boucherie. Dis-moi ce qu'il te faut \u2014 je m'occupe de tout, m\u00eame de remplir ton panier !";
+  "Salut ! \uD83D\uDC4B Je suis ton assistant boucherie. Dis-moi ce qu'il te faut — je m'occupe de tout, même de remplir ton panier !";
 
 const SUGGESTIONS = [
   "\uD83E\uDD69 BBQ 6 personnes",
@@ -72,13 +72,13 @@ function parseActions(raw: string): { clean: string; actions: ChatAction[] } {
 function isRecapMessage(content: string): boolean {
   const lower = content.toLowerCase();
   return (
-    (lower.includes("total") || lower.includes("r\u00e9cap") || lower.includes("recap")) &&
-    (lower.includes("\u20ac") || lower.includes("eur"))
+    (lower.includes("total") || lower.includes("récap") || lower.includes("recap")) &&
+    (lower.includes("€") || lower.includes("eur"))
   );
 }
 
 function extractRecapInfo(content: string): { total: string | null; prepTime: string | null } {
-  const totalMatch = content.match(/(\d+[.,]\d{2})\s*\u20ac/);
+  const totalMatch = content.match(/(\d+[.,]\d{2})\s*€/);
   const prepMatch = content.match(/~?\s*(\d+)\s*min/);
   return {
     total: totalMatch ? totalMatch[1].replace(",", ",") : null,
@@ -133,7 +133,7 @@ function CartConfirmation({ name }: { name: string }) {
     <div className="flex justify-start">
       <div className="bg-green-50 border border-green-200 rounded-xl p-2.5 text-green-700 text-xs flex items-center gap-2">
         <CheckCircle size={14} className="shrink-0" />
-        <span className="font-medium">{name} ajout\u00e9 au panier</span>
+        <span className="font-medium">{name} ajouté au panier</span>
       </div>
     </div>
   );
@@ -181,8 +181,8 @@ function RecapActions({
 }) {
   const label = [
     "\uD83D\uDCB3 Payer",
-    total ? ` ${total}\u20ac` : "",
-    prepTime ? ` \u00b7 Retrait en ~${prepTime} min` : "",
+    total ? ` ${total}€` : "",
+    prepTime ? ` · Retrait en ~${prepTime} min` : "",
   ].join("");
 
   return (
@@ -335,7 +335,7 @@ export function ChatWidget() {
             {
               role: "assistant",
               content:
-                "Le service est temporairement charg\u00e9. R\u00e9essaie dans quelques secondes \uD83D\uDE4F",
+                "Le service est temporairement chargé. Réessaie dans quelques secondes \uD83D\uDE4F",
             },
           ]);
           setIsLoading(false);
@@ -382,7 +382,7 @@ export function ChatWidget() {
           ...prev,
           {
             role: "assistant",
-            content: `D\u00e9sol\u00e9, une erreur est survenue : ${errorMsg}. R\u00e9essaie dans un instant.`,
+            content: `Désolé, une erreur est survenue : ${errorMsg}. Réessaie dans un instant.`,
           },
         ]);
         setIsLoading(false);
@@ -543,7 +543,7 @@ export function ChatWidget() {
                   sendMessage(input);
                 }
               }}
-              placeholder="Ex: 1kg d'entrec\u00f4te..."
+              placeholder="Ex: 1kg d'entrecôte..."
               className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1a] rounded-full text-sm text-gray-900 dark:text-white outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <button

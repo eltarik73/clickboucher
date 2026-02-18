@@ -78,13 +78,13 @@ function shortDate(d: string) {
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "En attente",
-  ACCEPTED: "Accept\u00e9e",
-  PREPARING: "Pr\u00e9paration",
-  READY: "Pr\u00eate",
-  PICKED_UP: "R\u00e9cup\u00e9r\u00e9e",
-  COMPLETED: "Termin\u00e9e",
-  DENIED: "Refus\u00e9e",
-  CANCELLED: "Annul\u00e9e",
+  ACCEPTED: "Acceptée",
+  PREPARING: "Préparation",
+  READY: "Prête",
+  PICKED_UP: "Récupérée",
+  COMPLETED: "Terminée",
+  DENIED: "Refusée",
+  CANCELLED: "Annulée",
   PARTIALLY_DENIED: "Partielle",
 };
 
@@ -159,21 +159,21 @@ export default function AdminAnalyticsPage() {
         {[
           {
             label: "CA mensuel",
-            value: fmt(data.monthlyRevenue) + " \u20ac",
+            value: fmt(data.monthlyRevenue) + " €",
             icon: DollarSign,
             color: "text-emerald-600 dark:text-emerald-400",
             bg: "bg-emerald-50 dark:bg-emerald-500/10",
           },
           {
             label: "Panier moyen",
-            value: fmtFull(data.avgOrderValue) + " \u20ac",
+            value: fmtFull(data.avgOrderValue) + " €",
             icon: ShoppingCart,
             color: "text-blue-600 dark:text-blue-400",
             bg: "bg-blue-50 dark:bg-blue-500/10",
           },
           {
             label: "Traitement moy.",
-            value: data.avgPrepTime > 0 ? `${data.avgPrepTime} min` : "\u2014",
+            value: data.avgPrepTime > 0 ? `${data.avgPrepTime} min` : "—",
             icon: Clock,
             color: "text-violet-600 dark:text-violet-400",
             bg: "bg-violet-50 dark:bg-violet-500/10",
@@ -217,7 +217,7 @@ export default function AdminAnalyticsPage() {
       {/* Revenue chart */}
       <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
         <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4">
-          Revenus \u2014 30 derniers jours
+          Revenus — 30 derniers jours
         </h2>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
@@ -236,7 +236,7 @@ export default function AdminAnalyticsPage() {
               />
               <YAxis
                 tick={{ fontSize: 10, fill: "#9ca3af" }}
-                tickFormatter={(v: number) => `${v}\u20ac`}
+                tickFormatter={(v: number) => `${v}€`}
               />
               <Tooltip
                 contentStyle={{
@@ -245,7 +245,7 @@ export default function AdminAnalyticsPage() {
                   borderRadius: 8,
                   fontSize: 12,
                 }}
-                formatter={(value) => [`${Number(value).toFixed(2)} \u20ac`, "Revenus"]}
+                formatter={(value) => [`${Number(value).toFixed(2)} €`, "Revenus"]}
               />
               <Area
                 type="monotone"
@@ -294,7 +294,7 @@ export default function AdminAnalyticsPage() {
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10">
             <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
-              R\u00e9partition par statut
+              Répartition par statut
             </h2>
           </div>
           <div className="p-5 space-y-3">
@@ -378,7 +378,7 @@ export default function AdminAnalyticsPage() {
         </div>
         {data.topProducts.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-gray-400">
-            Aucune donn\u00e9e disponible.
+            Aucune donnée disponible.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -390,7 +390,7 @@ export default function AdminAnalyticsPage() {
                   <th className="px-4 py-3 font-medium text-right">
                     Commandes
                   </th>
-                  <th className="px-4 py-3 font-medium">Popularit\u00e9</th>
+                  <th className="px-4 py-3 font-medium">Popularité</th>
                   <th className="px-4 py-3 font-medium text-right">Revenus</th>
                 </tr>
               </thead>
@@ -417,7 +417,7 @@ export default function AdminAnalyticsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-[#f8f6f3]">
-                      {fmtFull(p.revenue)} \u20ac
+                      {fmtFull(p.revenue)} €
                     </td>
                   </tr>
                 ))}
@@ -436,7 +436,7 @@ export default function AdminAnalyticsPage() {
         </div>
         {data.topShops.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-gray-400">
-            Aucune donn\u00e9e disponible.
+            Aucune donnée disponible.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -476,7 +476,7 @@ export default function AdminAnalyticsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-[#f8f6f3]">
-                      {fmtFull(s.revenue)} \u20ac
+                      {fmtFull(s.revenue)} €
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs">

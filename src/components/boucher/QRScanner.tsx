@@ -68,7 +68,7 @@ export function QRScanner({
       const message =
         err instanceof Error
           ? err.message
-          : "Impossible d\u2019acc\u00e9der \u00e0 la cam\u00e9ra";
+          : "Impossible d'accéder à la caméra";
       setResult({ success: false, message });
     } finally {
       setStarting(false);
@@ -122,7 +122,7 @@ export function QRScanner({
       if (!order) {
         setResult({
           success: false,
-          message: "QR code invalide ou commande non pr\u00eate",
+          message: "QR code invalide ou commande non prête",
         });
         return;
       }
@@ -191,7 +191,7 @@ export function QRScanner({
             ) : (
               <Camera size={16} />
             )}
-            {starting ? "D\u00e9marrage..." : "\ud83d\udcf1 Scanner le QR code"}
+            {starting ? "Démarrage..." : "\ud83d\udcf1 Scanner le QR code"}
           </Button>
         </div>
       )}

@@ -68,7 +68,7 @@ function formatTime(dateStr: string) {
 }
 
 function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20ac";
+  return (cents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 function timeSince(dateStr: string) {
