@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const isBoucherRoute = createRouteMatcher(["/boucher(.*)"]);
@@ -11,18 +11,28 @@ const isProtectedRoute = createRouteMatcher([
   "/chat(.*)",
 ]);
 
-// Accept both "admin" and "webmaster" as admin roles
 const ADMIN_ROLES = ["admin", "webmaster"];
 
+/** Fetch role from Clerk publicMetadata (not sessionClaims) */
+async function getUserRole(userId: string): Promise<string | undefined> {
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    return (user.publicMetadata as Record<string, string>)?.role;
+  } catch {
+    return undefined;
+  }
+}
+
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth();
-  const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+  const { userId } = await auth();
 
   // Admin routes (except admin-login): admin/webmaster only
   if (isAdminRoute(req) && !isAdminLoginRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL("/admin-login", req.url));
     }
+    const role = await getUserRole(userId);
     if (!role || !ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
     }
@@ -34,6 +44,7 @@ export default clerkMiddleware(async (auth, req) => {
     if (!userId) {
       return NextResponse.redirect(new URL("/espace-boucher", req.url));
     }
+    const role = await getUserRole(userId);
     if (role !== "boucher" && (!role || !ADMIN_ROLES.includes(role))) {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
     }

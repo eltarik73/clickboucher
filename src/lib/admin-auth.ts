@@ -1,33 +1,34 @@
 // src/lib/admin-auth.ts — Admin authentication helper
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiError } from "@/lib/api/errors";
-import { isAdmin, getRoleFromClaims } from "@/lib/roles";
+import { isAdmin } from "@/lib/roles";
 
 /**
- * Vérifie que l'utilisateur est admin (via Clerk metadata + DB role).
+ * Vérifie que l'utilisateur est admin (via Clerk publicMetadata + DB role).
  * Retourne l'userId ou une réponse 401/403.
  */
 export async function requireAdmin() {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return { error: apiError("UNAUTHORIZED", "Authentification requise") };
   }
 
-  // Check Clerk metadata first (fast) — accepts "admin" or "webmaster"
-  const role = getRoleFromClaims(sessionClaims);
+  // Read role directly from Clerk publicMetadata (not sessionClaims)
+  const user = await currentUser();
+  const role = (user?.publicMetadata as Record<string, string>)?.role;
   if (isAdmin(role)) {
     return { userId };
   }
 
   // Fallback: check DB role
-  const user = await prisma.user.findFirst({
+  const dbUser = await prisma.user.findFirst({
     where: { clerkId: userId, role: "ADMIN" },
     select: { id: true },
   });
 
-  if (!user) {
+  if (!dbUser) {
     return { error: apiError("FORBIDDEN", "Accès réservé aux administrateurs") };
   }
 
