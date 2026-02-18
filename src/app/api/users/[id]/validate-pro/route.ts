@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin, isBoucher } from "@/lib/roles";
 import { sendNotification } from "@/lib/notifications";
 import { z } from "zod";
 
@@ -20,13 +21,13 @@ export async function POST(
   try {
     const { id } = params;
     const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    if (role !== "boucher" && role !== "admin") {
+    if (!isBoucher(role) && !isAdmin(role)) {
       return apiError("FORBIDDEN", "Acces reserve aux bouchers et admins");
     }
 

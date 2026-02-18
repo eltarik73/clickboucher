@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin, isBoucher } from "@/lib/roles";
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
-    if (role !== "boucher" && role !== "admin") {
+    if (!isBoucher(role) && !isAdmin(role)) {
       return apiError("FORBIDDEN", "Accès refusé");
     }
 

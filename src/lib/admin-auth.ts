@@ -2,6 +2,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiError } from "@/lib/api/errors";
+import { isAdmin, getRoleFromClaims } from "@/lib/roles";
 
 /**
  * Vérifie que l'utilisateur est admin (via Clerk metadata + DB role).
@@ -14,9 +15,9 @@ export async function requireAdmin() {
     return { error: apiError("UNAUTHORIZED", "Authentification requise") };
   }
 
-  // Check Clerk metadata first (fast)
-  const role = (sessionClaims?.metadata as Record<string, string>)?.role;
-  if (role === "admin") {
+  // Check Clerk metadata first (fast) — accepts "admin" or "webmaster"
+  const role = getRoleFromClaims(sessionClaims);
+  if (isAdmin(role)) {
     return { userId };
   }
 

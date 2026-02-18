@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin } from "@/lib/roles";
 import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export async function GET(
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
 
-    if (shop.ownerId !== clerkId && role !== "admin") {
+    if (shop.ownerId !== clerkId && !isAdmin(role)) {
       return apiError("FORBIDDEN", "Accès refusé");
     }
 

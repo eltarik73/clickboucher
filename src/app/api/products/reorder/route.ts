@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { reorderProductsSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function PATCH(req: NextRequest) {
   try {
     const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
@@ -21,7 +22,7 @@ export async function PATCH(req: NextRequest) {
     const { shopId, productIds } = reorderProductsSchema.parse(body);
 
     // Verify ownership or admin
-    if (role !== "admin") {
+    if (!isAdmin(role)) {
       const shop = await prisma.shop.findUnique({
         where: { id: shopId },
         select: { ownerId: true },

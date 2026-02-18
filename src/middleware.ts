@@ -11,16 +11,19 @@ const isProtectedRoute = createRouteMatcher([
   "/chat(.*)",
 ]);
 
+// Accept both "admin" and "webmaster" as admin roles
+const ADMIN_ROLES = ["admin", "webmaster"];
+
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
-  const role = sessionClaims?.metadata?.role as string | undefined;
+  const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
-  // Admin routes (except admin-login): webmaster only
+  // Admin routes (except admin-login): admin/webmaster only
   if (isAdminRoute(req) && !isAdminLoginRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL("/admin-login", req.url));
     }
-    if (role !== "admin") {
+    if (!role || !ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
     }
     return;
@@ -31,7 +34,7 @@ export default clerkMiddleware(async (auth, req) => {
     if (!userId) {
       return NextResponse.redirect(new URL("/espace-boucher", req.url));
     }
-    if (role !== "boucher" && role !== "admin") {
+    if (role !== "boucher" && (!role || !ADMIN_ROLES.includes(role))) {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
     }
     return;

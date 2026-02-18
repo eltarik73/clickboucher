@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
 import { apiSuccess, apiPaginated, apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -89,12 +90,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!sessionClaims) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
-    if (role !== "admin") {
+    if (!isAdmin(role)) {
       return apiError("FORBIDDEN", "Réservé aux administrateurs");
     }
 

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin, isBoucher } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    if (role !== "boucher" && role !== "admin") {
+    if (!isBoucher(role) && !isAdmin(role)) {
       return apiError("FORBIDDEN", "Acces reserve aux bouchers et admins");
     }
 

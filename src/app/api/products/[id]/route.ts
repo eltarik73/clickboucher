@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export async function PATCH(
   try {
     const { id } = params;
     const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
@@ -62,7 +63,7 @@ export async function PATCH(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    if (role !== "admin" && product.shop.ownerId !== userId) {
+    if (!isAdmin(role) && product.shop.ownerId !== userId) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 
@@ -144,7 +145,7 @@ export async function DELETE(
   try {
     const { id } = params;
     const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
@@ -162,7 +163,7 @@ export async function DELETE(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    if (role !== "admin" && product.shop.ownerId !== userId) {
+    if (!isAdmin(role) && product.shop.ownerId !== userId) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 

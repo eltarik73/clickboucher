@@ -1,6 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { SignIn } from "@clerk/nextjs";
+import { isAdmin } from "@/lib/roles";
 
 export const metadata = {
   title: "Administration — Klik&Go",
@@ -8,16 +9,22 @@ export const metadata = {
 };
 
 export default async function AdminLoginPage() {
-  const { userId, sessionClaims } = await auth();
-  const role = sessionClaims?.metadata?.role;
+  const { userId } = await auth();
 
-  // Already logged in as admin → go to dashboard
-  if (userId && role === "admin") {
-    redirect("/admin");
-  }
+  if (userId) {
+    // Read role directly from Clerk user (works without session token config)
+    const user = await currentUser();
+    const role = (user?.publicMetadata as Record<string, string>)?.role;
 
-  // Logged in but not admin → access denied
-  if (userId && role !== "admin") {
+    console.log("[admin-login] userId:", userId);
+    console.log("[admin-login] publicMetadata:", user?.publicMetadata);
+    console.log("[admin-login] role detected:", role, "| isAdmin:", isAdmin(role));
+
+    if (isAdmin(role)) {
+      redirect("/admin");
+    }
+
+    // Logged in but not admin → access denied
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center px-5">
         <p className="text-sm text-gray-500 mb-2">Administration</p>
@@ -39,7 +46,7 @@ export default async function AdminLoginPage() {
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center px-5">
       <p className="text-xs text-gray-600 mb-6 tracking-wider uppercase">Administration</p>
       <SignIn
-        fallbackRedirectUrl="/admin"
+        fallbackRedirectUrl="/admin-login"
         appearance={{
           elements: {
             rootBox: "mx-auto",

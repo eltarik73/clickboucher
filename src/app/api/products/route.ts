@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     // Check if user is CLIENT_PRO to include proPriceCents
     const { sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
     const isPro = role === "client_pro";
 
     const data = products.map((p) => {
@@ -95,7 +96,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     const data = createProductSchema.parse(body);
 
     // Verify ownership or admin
-    if (role !== "admin") {
+    if (!isAdmin(role)) {
       const shop = await prisma.shop.findUnique({
         where: { id: data.shopId },
         select: { ownerId: true },

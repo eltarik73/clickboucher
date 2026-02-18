@@ -131,7 +131,7 @@ export default function EspaceBoucherPage() {
   const role = user?.publicMetadata?.role as string | undefined;
 
   // Boucher connected → show dashboard access button
-  if (isLoaded && isSignedIn && (role === "boucher" || role === "admin")) {
+  if (isLoaded && isSignedIn && (role === "boucher" || role === "admin" || role === "webmaster")) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-5">
         <div className="bg-[#141414] border border-white/10 rounded-2xl p-8 text-center max-w-sm w-full">

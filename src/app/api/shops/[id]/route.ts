@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { updateShopSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin } from "@/lib/roles";
 
 // ── GET /api/shops/[id] ────────────────────────
 // Public — shop detail with categories & products
@@ -52,14 +53,14 @@ export async function PATCH(
   try {
     const { id } = params;
     const { userId, sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    // Check ownership or admin
-    if (role !== "admin") {
+    // Check ownership or admin/webmaster
+    if (!isAdmin(role)) {
       const shop = await prisma.shop.findUnique({
         where: { id },
         select: { ownerId: true },
@@ -97,12 +98,12 @@ export async function DELETE(
   try {
     const { id } = params;
     const { sessionClaims } = await auth();
-    const role = sessionClaims?.metadata?.role;
+    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
 
     if (!sessionClaims) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
-    if (role !== "admin") {
+    if (!isAdmin(role)) {
       return apiError("FORBIDDEN", "Réservé aux administrateurs");
     }
 
