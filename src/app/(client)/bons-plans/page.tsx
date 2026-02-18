@@ -1,9 +1,7 @@
 // src/app/(client)/bons-plans/page.tsx — All active promos across all shops
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import prisma from "@/lib/prisma";
-import { getFlag, getOriginCountry } from "@/lib/flags";
 import { BonsPlansClient } from "./BonsPlansClient";
 
 export const metadata = {

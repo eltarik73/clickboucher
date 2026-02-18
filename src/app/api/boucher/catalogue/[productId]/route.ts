@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -9,12 +10,17 @@ export async function PATCH(
   { params }: { params: { productId: string } }
 ) {
   try {
+    const { userId } = await auth();
+    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+
     const body = await req.json();
 
     const product = await prisma.product.findUnique({
       where: { id: params.productId },
+      include: { shop: { select: { ownerId: true } } },
     });
     if (!product) return apiError("NOT_FOUND", "Produit introuvable");
+    if (product.shop.ownerId !== userId) return apiError("FORBIDDEN", "Accès refusé");
 
     const updateData: Record<string, unknown> = {};
     if (body.inStock !== undefined) updateData.inStock = body.inStock;

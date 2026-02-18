@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { updateShopSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -52,12 +52,15 @@ export async function PATCH(
 ) {
   try {
     const { id } = params;
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+    const { userId } = await auth();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+
+    // Read role from publicMetadata (reliable, no JWT template dependency)
+    const user = await currentUser();
+    const role = (user?.publicMetadata as Record<string, string>)?.role;
 
     // Check ownership or admin/webmaster
     if (!isAdmin(role)) {
@@ -97,13 +100,16 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+    const { userId } = await auth();
 
-    if (!sessionClaims) {
+    if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
-    if (!isAdmin(role)) {
+
+    const delUser = await currentUser();
+    const delRole = (delUser?.publicMetadata as Record<string, string>)?.role;
+
+    if (!isAdmin(delRole)) {
       return apiError("FORBIDDEN", "Réservé aux administrateurs");
     }
 

@@ -116,7 +116,7 @@ export default function AdminUsersPage() {
   async function loadUsers() {
     try {
       const res = await fetch("/api/admin/users");
-      if (res.ok) setUsers(await res.json());
+      if (res.ok) { const json = await res.json(); setUsers(json.data || json); }
     } catch {
       /* ignore */
     }
@@ -204,7 +204,7 @@ export default function AdminUsersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="w-8 h-8 border-3 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-[3px] border-[#DC2626] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -234,7 +234,7 @@ export default function AdminUsersPage() {
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
               roleFilter === r.value
                 ? "border-[#DC2626] bg-[#DC2626]/10 text-[#DC2626]"
-                : "border-gray-200 dark:border-[white/10] text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-[white/15]"
+                : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/15"
             }`}
           >
             {r.label}
@@ -257,14 +257,14 @@ export default function AdminUsersPage() {
             placeholder="Rechercher par nom, email, entreprise..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
           />
         </div>
         <div className="relative">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortBy)}
-            className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+            className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
           >
             <option value="date">Plus r\u00e9cent</option>
             <option value="orders">Plus de commandes</option>
@@ -280,7 +280,7 @@ export default function AdminUsersPage() {
 
       {/* Results */}
       {filtered.length === 0 ? (
-        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] p-12 text-center">
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
           <p className="text-gray-400 dark:text-gray-500">
             Aucun utilisateur trouv\u00e9.
           </p>
@@ -288,11 +288,11 @@ export default function AdminUsersPage() {
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-[white/10]">
+                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-white/10">
                     <th className="px-5 py-3 font-medium">Utilisateur</th>
                     <th className="px-4 py-3 font-medium">R\u00f4le</th>
                     <th className="px-4 py-3 font-medium">Entreprise</th>
@@ -302,11 +302,11 @@ export default function AdminUsersPage() {
                     <th className="px-4 py-3 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 dark:divide-[white/10]">
+                <tbody className="divide-y divide-gray-50 dark:divide-white/10">
                   {filtered.map((user) => (
                     <tr
                       key={user.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-[white/10]/30 transition-colors"
+                      className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors"
                     >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
@@ -341,7 +341,7 @@ export default function AdminUsersPage() {
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => openRoleDialog(user)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-[white/10] rounded-lg hover:bg-gray-100 dark:hover:bg-[white/15] transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
                           title="Changer le r\u00f4le"
                         >
                           <ShieldCheck size={13} />
@@ -360,7 +360,7 @@ export default function AdminUsersPage() {
             {filtered.map((user) => (
               <div
                 key={user.id}
-                className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-[white/10] shadow-sm p-4"
+                className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-4"
               >
                 <div className="flex items-start gap-3 mb-3">
                   <div
@@ -405,10 +405,10 @@ export default function AdminUsersPage() {
                     <p className="text-[10px] text-gray-400">Inscrit</p>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-[white/10]">
+                <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-white/10">
                   <button
                     onClick={() => openRoleDialog(user)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-[white/10] rounded-lg hover:bg-gray-100 dark:hover:bg-[white/15] transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
                   >
                     <ShieldCheck size={13} />
                     Changer le r\u00f4le
@@ -443,7 +443,7 @@ export default function AdminUsersPage() {
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full appearance-none px-3 pr-8 py-2.5 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-[white/10] rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                  className="w-full appearance-none px-3 pr-8 py-2.5 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                 >
                   {ROLES.map((r) => (
                     <option key={r.clerkValue} value={r.clerkValue}>

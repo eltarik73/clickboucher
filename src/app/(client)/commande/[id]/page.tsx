@@ -115,7 +115,7 @@ function TimeProgress({ estimatedReady }: { estimatedReady: string }) {
       <p className="text-sm font-semibold text-[#2a2018] dark:text-white text-center mb-2">
         Prete dans environ {minsLeft} min
       </p>
-      <div className="h-2 bg-[#ece8e3] dark:bg-white dark:bg-[#141414]/10 rounded-full overflow-hidden">
+      <div className="h-2 bg-[#ece8e3] dark:bg-white/10 rounded-full overflow-hidden">
         <div
           className="h-full bg-[#DC2626] rounded-full transition-all duration-1000"
           style={{ width: `${pct}%` }}
@@ -651,7 +651,7 @@ export default function CommandePage({
                       placeholder="Un commentaire ? (optionnel)"
                       maxLength={1000}
                       rows={3}
-                      className="mt-3 w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] px-4 py-3 text-sm text-[#2a2018] dark:text-white placeholder:text-[#ccc] dark:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
+                      className="mt-3 w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] px-4 py-3 text-sm text-[#2a2018] dark:text-white placeholder:text-[#ccc] dark:placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                     />
                     <Button
                       onClick={handleRate}

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
-import { apiSuccess, apiPaginated, apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";

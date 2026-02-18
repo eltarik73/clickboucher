@@ -92,7 +92,7 @@ export default function AdminSupportPage() {
       {/* Tickets list */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="w-8 h-8 border-3 border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-[3px] border-[#DC2626] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : tickets.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">

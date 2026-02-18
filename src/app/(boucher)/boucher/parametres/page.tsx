@@ -797,7 +797,7 @@ export default function BoucherParametresPage() {
             <Button
               onClick={saveInfo}
               disabled={infoSaving}
-              className="w-full bg-[#DC2626] hover:bg-[#DC2626] h-11"
+              className="w-full bg-[#DC2626] hover:bg-[#b91c1c] h-11"
             >
               {infoSaving ? (
                 <Loader2 size={16} className="animate-spin" />

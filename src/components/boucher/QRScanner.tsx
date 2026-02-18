@@ -174,7 +174,7 @@ export function QRScanner({
       {/* Start state */}
       {!scanning && !result && !processing && (
         <div className="flex flex-col items-center gap-4 py-6">
-          <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-[white/10] flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center">
             <Camera size={32} className="text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
@@ -184,7 +184,7 @@ export function QRScanner({
           <Button
             onClick={startScanner}
             disabled={starting}
-            className="bg-[#DC2626] hover:bg-[#DC2626] gap-2"
+            className="bg-[#DC2626] hover:bg-[#b91c1c] gap-2"
           >
             {starting ? (
               <Loader2 size={16} className="animate-spin" />
@@ -258,7 +258,7 @@ export function QRScanner({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="flex-1 dark:border-[white/10] dark:text-gray-300 dark:hover:bg-[white/10]"
+              className="flex-1 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/10"
               onClick={() => {
                 setResult(null);
                 setScannedCode(null);
@@ -268,7 +268,7 @@ export function QRScanner({
               Scanner un autre
             </Button>
             <Button
-              className="flex-1 bg-[#DC2626] hover:bg-[#DC2626]"
+              className="flex-1 bg-[#DC2626] hover:bg-[#b91c1c]"
               onClick={onClose}
             >
               Fermer
@@ -281,7 +281,7 @@ export function QRScanner({
       {scanning && (
         <Button
           variant="outline"
-          className="w-full gap-2 dark:border-[white/10] dark:text-gray-300 dark:hover:bg-[white/10]"
+          className="w-full gap-2 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/10"
           onClick={stopScanner}
         >
           <X size={16} /> Arr&ecirc;ter le scanner

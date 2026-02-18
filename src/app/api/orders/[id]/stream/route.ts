@@ -1,4 +1,5 @@
 // GET /api/orders/[id]/stream — SSE for client-side order tracking
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,11 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
+  const { userId } = await auth();
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const { id } = params;
 
   const order = await prisma.order.findUnique({

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MapPin, Clock, Store } from "lucide-react";
+import { Heart, MapPin, Clock } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { getShopImage } from "@/lib/product-images";

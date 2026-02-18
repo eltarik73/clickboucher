@@ -70,7 +70,7 @@ export default function CartSuggestions() {
             >
               <div className="relative h-[90px]">
                 <img
-                  src={product.imageUrl || "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop"}
+                  src={product.imageUrl || "/img/products/boeuf-1.jpg"}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />

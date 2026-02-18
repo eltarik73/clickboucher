@@ -10,11 +10,18 @@ export const dynamic = "force-dynamic";
 // GET — List boucher's tickets
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
+
+    // Look up by shop owner (boucher's tickets are per-shop)
+    const shops = await prisma.shop.findMany({
+      where: { ownerId: clerkId },
+      select: { id: true },
+    });
+    const shopIds = shops.map((s) => s.id);
 
     const tickets = await prisma.supportTicket.findMany({
-      where: { userId },
+      where: { shopId: { in: shopIds } },
       include: {
         shop: { select: { id: true, name: true } },
         _count: { select: { messages: true } },
@@ -37,24 +44,27 @@ const createTicketSchema = z.object({
 // POST — Create a new ticket with initial message + AI auto-response
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const body = await req.json();
     const data = createTicketSchema.parse(body);
 
     // Verify user owns the shop
     const shop = await prisma.shop.findFirst({
-      where: { id: data.shopId, ownerId: userId },
+      where: { id: data.shopId, ownerId: clerkId },
       select: { id: true, name: true },
     });
     if (!shop) return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boutique");
+
+    // Get DB user id for foreign key
+    const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
 
     // Create ticket + initial message in transaction
     const ticket = await prisma.supportTicket.create({
       data: {
         shopId: data.shopId,
-        userId,
+        userId: dbUser?.id || clerkId,
         subject: data.subject,
         messages: {
           create: { role: "user", content: data.message },

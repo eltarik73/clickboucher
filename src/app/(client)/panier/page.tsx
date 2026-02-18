@@ -49,7 +49,7 @@ function CartItemRow({
       {/* Image */}
       <div className="w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0">
         <img
-          src={item.imageUrl || "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop"}
+          src={item.imageUrl || "/img/products/boeuf-1.jpg"}
           alt={item.name}
           width={60}
           height={60}

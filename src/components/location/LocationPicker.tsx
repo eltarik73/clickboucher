@@ -1,7 +1,7 @@
 // src/components/location/LocationPicker.tsx — Location banner with GPS + manual input
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Navigation, Loader2, X, ChevronDown } from "lucide-react";
 import { useGeolocation } from "@/hooks/useGeolocation";
 
@@ -28,9 +28,10 @@ export default function LocationPicker({ onLocationChange }: Props) {
 
   // Notify parent when location changes
   const { latitude, longitude, city } = geo;
-  useState(() => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
     onLocationChange?.(latitude, longitude, city);
-  });
+  }, [latitude, longitude, city]);
 
   // Already have location → compact display
   if (city) {

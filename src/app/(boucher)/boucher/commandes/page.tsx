@@ -681,7 +681,7 @@ export default function BoucherCommandesPage() {
             {/* Scanner button */}
             <Button
               onClick={() => setShowScanner(true)}
-              className="w-full bg-[#DC2626] hover:bg-[#DC2626] gap-2 h-11"
+              className="w-full bg-[#DC2626] hover:bg-[#b91c1c] gap-2 h-11"
             >
               <ScanLine size={18} /> Scanner un QR code
             </Button>
