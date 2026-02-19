@@ -134,6 +134,13 @@ export async function PATCH(
           include: { items: true },
         });
 
+        await sendNotification("ORDER_PREPARING", {
+          userId: order.user.id,
+          orderId,
+          orderNumber: order.orderNumber,
+          shopName: order.shop.name,
+        });
+
         return apiSuccess(updated);
       }
 
@@ -346,6 +353,14 @@ export async function PATCH(
           },
         });
 
+        await sendNotification("ORDER_CANCELLED", {
+          userId: order.user.id,
+          orderId,
+          orderNumber: order.orderNumber,
+          shopName: order.shop.name,
+          denyReason: data.reason || "Annulée par le boucher",
+        });
+
         return apiSuccess(updated);
       }
 
@@ -354,6 +369,14 @@ export async function PATCH(
         const updated = await prisma.order.update({
           where: { id: orderId },
           data: { boucherNote: data.note },
+        });
+
+        await sendNotification("BOUCHER_NOTE", {
+          userId: order.user.id,
+          orderId,
+          orderNumber: order.orderNumber,
+          shopName: order.shop.name,
+          note: data.note,
         });
 
         return apiSuccess(updated);

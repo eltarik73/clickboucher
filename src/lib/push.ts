@@ -32,9 +32,18 @@ export type PushSubscriptionData = {
   };
 };
 
+export type PushPayload = {
+  title: string;
+  body: string;
+  icon?: string;
+  url?: string;
+  tag?: string;
+  actions?: { action: string; title: string }[];
+};
+
 export async function sendPushNotification(
   subscription: PushSubscriptionData,
-  payload: { title: string; body: string; icon?: string; url?: string }
+  payload: PushPayload
 ): Promise<boolean> {
   if (!ensureConfig()) {
     console.log(`🔔 PUSH (stub) → ${payload.title}: ${payload.body}`);

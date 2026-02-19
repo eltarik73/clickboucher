@@ -100,6 +100,17 @@ self.addEventListener("push", function (event) {
       vibrate: [200, 100, 200],
     };
 
+    // Tag for grouping/replacing notifications per order
+    if (payload.tag) {
+      options.tag = payload.tag;
+      options.renotify = true; // Re-alert even if replacing same tag
+    }
+
+    // Action buttons (max 2 on most platforms)
+    if (payload.actions && payload.actions.length > 0) {
+      options.actions = payload.actions.slice(0, 2);
+    }
+
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
     console.error("[SW] Push parse error:", e);
@@ -108,17 +119,35 @@ self.addEventListener("push", function (event) {
 
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  const url = event.notification.data?.url || "/";
+  var url = event.notification.data?.url || "/";
+
+  // Handle action button clicks
+  if (event.action === "track" || event.action === "view" || event.action === "rate") {
+    // All actions navigate to the notification URL (order page)
+    url = event.notification.data?.url || "/commandes";
+  }
 
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then(function (clientList) {
+        // Try to focus an existing tab with this URL
         for (var i = 0; i < clientList.length; i++) {
-          if (clientList[i].url.includes(url) && "focus" in clientList[i]) {
-            return clientList[i].focus();
+          var client = clientList[i];
+          if (client.url.includes(url) && "focus" in client) {
+            return client.focus();
           }
         }
+        // Try to navigate an existing tab
+        for (var j = 0; j < clientList.length; j++) {
+          var client2 = clientList[j];
+          if ("navigate" in client2) {
+            return client2.navigate(url).then(function (c) {
+              return c.focus();
+            });
+          }
+        }
+        // Open a new window
         if (self.clients.openWindow) {
           return self.clients.openWindow(url);
         }

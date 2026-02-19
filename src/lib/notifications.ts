@@ -12,9 +12,13 @@ import * as tpl from "@/lib/email-templates";
 export type NotifEvent =
   | "ORDER_PENDING"
   | "ORDER_ACCEPTED"
+  | "ORDER_PREPARING"
   | "ORDER_DENIED"
   | "ORDER_READY"
   | "ORDER_PICKED_UP"
+  | "ORDER_CANCELLED"
+  | "BOUCHER_NOTE"
+  | "READY_REMINDER"
   | "STOCK_ISSUE"
   | "PRO_VALIDATED"
   | "PRO_REJECTED"
@@ -39,6 +43,7 @@ export type NotifData = {
   nbItems?: number;
   slot?: string;
   message?: string;
+  note?: string;
   // Weekly report data
   weeklyRevenue?: number;
   weeklyOrders?: number;
@@ -68,6 +73,13 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         plainText: `Votre commande chez ${data.shopName} sera prête dans environ ${data.estimatedMinutes} min.`,
       };
 
+    case "ORDER_PREPARING":
+      return {
+        subject: `👨‍🍳 Commande ${data.orderNumber} en préparation`,
+        html: tpl.orderPreparing(data),
+        plainText: `Votre commande chez ${data.shopName} est en cours de préparation !`,
+      };
+
     case "ORDER_DENIED":
       return {
         subject: `❌ Commande ${data.orderNumber} refusée`,
@@ -87,6 +99,27 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         subject: `📦 Commande ${data.orderNumber} récupérée`,
         html: tpl.orderPickedUp(data),
         plainText: `Merci pour votre achat chez ${data.shopName} !`,
+      };
+
+    case "ORDER_CANCELLED":
+      return {
+        subject: `❌ Commande ${data.orderNumber} annulée`,
+        html: tpl.orderCancelled(data),
+        plainText: `Votre commande chez ${data.shopName} a été annulée. ${data.denyReason || ""}`,
+      };
+
+    case "BOUCHER_NOTE":
+      return {
+        subject: `💬 Message du boucher — Commande ${data.orderNumber}`,
+        html: tpl.boucherNote(data),
+        plainText: `${data.shopName} a ajouté un message à votre commande : "${data.note || ""}"`,
+      };
+
+    case "READY_REMINDER":
+      return {
+        subject: `⏰ N'oubliez pas votre commande ${data.orderNumber} !`,
+        html: tpl.readyReminder(data),
+        plainText: `Votre commande est toujours prête chez ${data.shopName}. Passez la récupérer !`,
       };
 
     case "STOCK_ISSUE":
@@ -166,22 +199,131 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
 // ─────────────────────────────────────────────
 function getPushPayload(event: NotifEvent, data: NotifData) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const orderUrl = data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`;
+  const orderTag = data.orderId ? `order-${data.orderId}` : undefined;
 
   switch (event) {
     case "ORDER_PENDING":
-      return { title: "🔔 Nouvelle commande", body: `#${data.orderNumber} de ${data.customerName || "un client"}`, url: `${baseUrl}/boucher/commandes` };
+      return {
+        title: "🔔 Nouvelle commande",
+        body: `#${data.orderNumber} de ${data.customerName || "un client"}`,
+        url: `${baseUrl}/boucher/commandes`,
+        tag: orderTag,
+        actions: [{ action: "view", title: "Voir" }],
+      };
     case "ORDER_ACCEPTED":
-      return { title: "✅ Commande acceptée", body: `Chez ${data.shopName} — ~${data.estimatedMinutes} min`, url: `${baseUrl}/commandes` };
+      return {
+        title: "✅ Commande acceptée",
+        body: `Chez ${data.shopName} — prête dans ~${data.estimatedMinutes} min`,
+        url: orderUrl,
+        tag: orderTag,
+        actions: [{ action: "track", title: "Suivre" }],
+      };
+    case "ORDER_PREPARING":
+      return {
+        title: "👨‍🍳 En préparation",
+        body: `${data.shopName} prépare votre commande`,
+        url: orderUrl,
+        tag: orderTag,
+        actions: [{ action: "track", title: "Suivre" }],
+      };
     case "ORDER_READY":
-      return { title: "🎉 Commande prête !", body: `Chez ${data.shopName} — Récupérez-la !`, url: `${baseUrl}/commandes` };
+      return {
+        title: "🎉 Commande prête !",
+        body: `Rendez-vous chez ${data.shopName} pour récupérer votre commande`,
+        url: orderUrl,
+        tag: orderTag,
+        actions: [{ action: "track", title: "Voir le QR" }],
+      };
+    case "READY_REMINDER":
+      return {
+        title: "⏰ Commande toujours prête",
+        body: `N'oubliez pas de récupérer votre commande chez ${data.shopName}`,
+        url: orderUrl,
+        tag: orderTag ? `${orderTag}-reminder` : undefined,
+        actions: [{ action: "track", title: "Y aller" }],
+      };
     case "ORDER_DENIED":
-      return { title: "❌ Commande refusée", body: data.denyReason || `Chez ${data.shopName}`, url: `${baseUrl}/commandes` };
+      return {
+        title: "❌ Commande refusée",
+        body: data.denyReason || `Chez ${data.shopName}`,
+        url: orderUrl,
+        tag: orderTag,
+      };
+    case "ORDER_CANCELLED":
+      return {
+        title: "❌ Commande annulée",
+        body: data.denyReason || `Annulée par ${data.shopName}`,
+        url: orderUrl,
+        tag: orderTag,
+      };
+    case "ORDER_PICKED_UP":
+      return {
+        title: "📦 Commande récupérée",
+        body: `Merci pour votre achat chez ${data.shopName} !`,
+        url: orderUrl,
+        tag: orderTag,
+        actions: [{ action: "rate", title: "Donner un avis" }],
+      };
+    case "BOUCHER_NOTE":
+      return {
+        title: "💬 Message du boucher",
+        body: data.note || `${data.shopName} a un message pour vous`,
+        url: orderUrl,
+        tag: orderTag ? `${orderTag}-note` : undefined,
+      };
+    case "STOCK_ISSUE":
+      return {
+        title: "⚠️ Rupture partielle",
+        body: `Certains articles indisponibles chez ${data.shopName}`,
+        url: orderUrl,
+        tag: orderTag,
+        actions: [{ action: "view", title: "Voir les options" }],
+      };
     case "CART_ABANDONED":
-      return { title: "🛒 Panier en attente", body: `${data.nbItems} article(s) chez ${data.shopName}`, url: `${baseUrl}/panier` };
+      return {
+        title: "🛒 Panier en attente",
+        body: `${data.nbItems} article(s) chez ${data.shopName}`,
+        url: `${baseUrl}/panier`,
+        tag: "cart-abandoned",
+      };
     case "ACCOUNT_APPROVED":
-      return { title: "🎉 Boutique activée !", body: `${data.shopName} est en ligne`, url: `${baseUrl}/boucher/dashboard` };
+      return {
+        title: "🎉 Boutique activée !",
+        body: `${data.shopName} est en ligne`,
+        url: `${baseUrl}/boucher/dashboard`,
+      };
+    case "WEEKLY_REPORT":
+      return {
+        title: "📊 Rapport hebdomadaire",
+        body: `${data.shopName} — ${data.weeklyOrders || 0} commandes cette semaine`,
+        url: `${baseUrl}/boucher/dashboard/statistiques`,
+        tag: "weekly-report",
+      };
+    case "TRIAL_EXPIRING":
+      return {
+        title: "⏳ Essai bientôt terminé",
+        body: data.message || `L'essai de ${data.shopName} se termine bientôt`,
+        url: `${baseUrl}/boucher/dashboard/abonnement`,
+      };
+    case "RECURRING_REMINDER":
+      return {
+        title: "🔄 Commande récurrente",
+        body: `Confirmez votre commande chez ${data.shopName}`,
+        url: `${baseUrl}/commandes`,
+      };
+    case "CALENDAR_ALERT":
+      return {
+        title: "📅 Événement à venir",
+        body: data.message || "Un événement important approche",
+        url: `${baseUrl}/boucher/dashboard`,
+      };
     default:
-      return { title: "Klik&Go", body: data.message || "Nouvelle notification", url: baseUrl };
+      return {
+        title: "Klik&Go",
+        body: data.message || "Nouvelle notification",
+        url: baseUrl,
+      };
   }
 }
 

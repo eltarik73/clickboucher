@@ -129,7 +129,57 @@ export function startCronJobs() {
   });
 
   // ═══════════════════════════════════════════
-  // 5. Auto-close vacation mode — every hour
+  // 5. Ready reminder — every 5 minutes
+  //    Remind customers who haven't picked up after 30 min
+  // ═══════════════════════════════════════════
+  cron.schedule("*/5 * * * *", async () => {
+    try {
+      const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+      // Find orders READY for 30+ min that haven't been reminded yet
+      const readyOrders = await prisma.order.findMany({
+        where: {
+          status: "READY",
+          actualReady: { not: null, lte: thirtyMinAgo, gte: twoHoursAgo },
+        },
+        select: {
+          id: true,
+          orderNumber: true,
+          userId: true,
+          notifSent: true,
+          shop: { select: { name: true } },
+        },
+      });
+
+      let sentCount = 0;
+      for (const order of readyOrders) {
+        // Check if READY_REMINDER was already sent for this order
+        const existing = Array.isArray(order.notifSent) ? order.notifSent : [];
+        const alreadyReminded = existing.some(
+          (entry) => typeof entry === "object" && entry !== null && (entry as Record<string, unknown>).event === "READY_REMINDER"
+        );
+        if (alreadyReminded) continue;
+
+        await sendNotification("READY_REMINDER", {
+          userId: order.userId,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          shopName: order.shop.name,
+        });
+        sentCount++;
+      }
+
+      if (sentCount > 0) {
+        console.log(`[CRON][ready-reminder] Sent ${sentCount} pickup reminders`);
+      }
+    } catch (error) {
+      console.error("[CRON][ready-reminder] Error:", error);
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  // 6. Auto-close vacation mode — every hour
   // ═══════════════════════════════════════════
   cron.schedule("0 * * * *", async () => {
     try {

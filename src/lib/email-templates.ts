@@ -295,6 +295,79 @@ export function weeklyReport(data: {
   `);
 }
 
+export function orderPreparing(data: {
+  orderNumber?: string;
+  shopName?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udc68\u200d\ud83c\udf73 Commande en préparation</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Votre commande <strong>${data.orderNumber}</strong> est en cours de préparation chez <strong>${data.shopName}</strong>.
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Le boucher prépare vos produits avec soin. Vous serez notifié dès qu'elle sera prête !</p>
+    ${button(`${baseUrl}/commandes`, "Suivre ma commande")}
+  `);
+}
+
+export function orderCancelled(data: {
+  orderNumber?: string;
+  shopName?: string;
+  denyReason?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Commande annulée</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a été annulée.
+    </p>
+    ${data.denyReason ? `
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0 0 4px;font-size:13px;color:#991b1b;font-weight:600">Raison</p>
+        <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason)}</p>
+      </td></tr>
+    </table>` : ""}
+    <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande à tout moment.</p>
+    ${button(`${baseUrl}/decouvrir`, "Découvrir les boucheries")}
+  `);
+}
+
+export function boucherNote(data: {
+  orderNumber?: string;
+  shopName?: string;
+  note?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcac Message du boucher</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      <strong>${data.shopName}</strong> a ajouté un message à votre commande <strong>${data.orderNumber}</strong>.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0;font-size:14px;color:#92400e;font-style:italic">"${esc(data.note || "")}"</p>
+      </td></tr>
+    </table>
+    ${button(`${baseUrl}/commandes`, "Voir ma commande")}
+  `);
+}
+
+export function readyReminder(data: {
+  orderNumber?: string;
+  shopName?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f0 N'oubliez pas votre commande !</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Votre commande <strong>${data.orderNumber}</strong> est toujours prête chez <strong>${data.shopName}</strong>.
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Rendez-vous en boucherie pour récupérer votre commande avant la fermeture.</p>
+    ${button(`${baseUrl}/commandes`, "Voir ma commande")}
+  `);
+}
+
 export function calendarAlert(data: {
   message?: string;
 }): string {
