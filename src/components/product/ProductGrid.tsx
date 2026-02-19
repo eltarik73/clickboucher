@@ -12,6 +12,7 @@ interface Props {
   products: ProductCardData[];
   loading?: boolean;
   onAdd: (product: ProductCardData) => void;
+  onTap?: (product: ProductCardData) => void;
   cartItems?: CartItemInfo[];
   onIncrement?: (productId: string) => void;
   onDecrement?: (productId: string) => void;
@@ -42,7 +43,7 @@ function SkeletonCard() {
   );
 }
 
-export function ProductGrid({ products, loading = false, onAdd, cartItems = [], onIncrement, onDecrement }: Props) {
+export function ProductGrid({ products, loading = false, onAdd, onTap, cartItems = [], onIncrement, onDecrement }: Props) {
   if (loading) {
     return (
       <div className="px-3 pb-24" style={GRID_STYLE}>
@@ -71,6 +72,7 @@ export function ProductGrid({ products, loading = false, onAdd, cartItems = [], 
             product={p}
             productIndex={i}
             onAdd={() => onAdd(p)}
+            onTap={onTap ? () => onTap(p) : undefined}
             cartQty={cartItem?.quantity ?? 0}
             onIncrement={onIncrement ? () => onIncrement(p.id) : undefined}
             onDecrement={onDecrement ? () => onDecrement(p.id) : undefined}

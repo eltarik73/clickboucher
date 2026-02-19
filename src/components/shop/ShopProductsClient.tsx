@@ -9,6 +9,7 @@ import { useCart } from "@/lib/hooks/use-cart";
 import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import type { ProductCardData } from "@/components/product/ProductCard";
+import { ProductSheet } from "@/components/product/ProductSheet";
 import { resolveProductImage } from "@/lib/product-images";
 
 // ── Types ────────────────────────────────────────
@@ -70,6 +71,7 @@ interface Props {
 export function ShopProductsClient({ products, categories, shop, proStatus }: Props) {
   const [activeCat, setActiveCat] = useState<string>("Tout");
   const [selectedProduct, setSelectedProduct] = useState<WeightSheetProduct | null>(null);
+  const [detailProduct, setDetailProduct] = useState<ProductCardData | null>(null);
   const { addItem, updateQty, itemCount, totalCents, state } = useCart();
 
   const shopRef = useMemo(
@@ -263,12 +265,12 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
           <p className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider mb-1.5">
             Promos
           </p>
-          <ProductGrid products={promoProducts} onAdd={handleAdd} cartItems={cartItems} onIncrement={handleIncrement} onDecrement={handleDecrement} />
+          <ProductGrid products={promoProducts} onAdd={handleAdd} onTap={setDetailProduct} cartItems={cartItems} onIncrement={handleIncrement} onDecrement={handleDecrement} />
         </div>
       )}
 
       {/* ── Product grid ── */}
-      <ProductGrid products={nonPromoProducts} onAdd={handleAdd} cartItems={cartItems} onIncrement={handleIncrement} onDecrement={handleDecrement} />
+      <ProductGrid products={nonPromoProducts} onAdd={handleAdd} onTap={setDetailProduct} cartItems={cartItems} onIncrement={handleIncrement} onDecrement={handleDecrement} />
 
       {/* ── Bottom cart bar — sticky, glassmorphism, slide-up entrance ── */}
       {cartCount > 0 && (
@@ -307,6 +309,16 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
         product={selectedProduct}
         onConfirm={handleWeightConfirm}
         onClose={() => setSelectedProduct(null)}
+      />
+
+      {/* ── Product detail bottom sheet ── */}
+      <ProductSheet
+        product={detailProduct}
+        cartQty={detailProduct ? (cartItems.find(i => i.id === detailProduct.id)?.quantity ?? 0) : 0}
+        onAdd={() => { if (detailProduct) handleAdd(detailProduct); }}
+        onIncrement={detailProduct ? () => handleIncrement(detailProduct.id) : undefined}
+        onDecrement={detailProduct ? () => handleDecrement(detailProduct.id) : undefined}
+        onClose={() => setDetailProduct(null)}
       />
     </>
   );

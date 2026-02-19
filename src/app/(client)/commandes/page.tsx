@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, ShoppingBag, RotateCcw } from "lucide-react";
+import { ArrowLeft, ShoppingBag, RotateCcw, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ interface Order {
   status: string;
   totalCents: number;
   createdAt: string;
+  estimatedReady: string | null;
   rating: number | null;
   items: OrderItem[];
   shop: {
@@ -100,6 +101,16 @@ function OrderCard({
             {status.label}
           </span>
         </div>
+
+        {/* Estimated time for active orders */}
+        {["PENDING", "ACCEPTED", "PREPARING", "READY"].includes(order.status) && order.estimatedReady && (
+          <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-[#DC2626]/5 dark:bg-[#DC2626]/10 rounded-lg">
+            <Clock size={12} className="text-[#DC2626] shrink-0" />
+            <span className="text-xs font-semibold text-[#DC2626]">
+              {order.status === "READY" ? "Prête au retrait" : `Prête vers ${new Date(order.estimatedReady).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
+            </span>
+          </div>
+        )}
 
         {/* Info row */}
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">

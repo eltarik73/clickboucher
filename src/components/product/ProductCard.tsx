@@ -24,6 +24,7 @@ interface Props {
   product: ProductCardData;
   productIndex?: number;
   onAdd: () => void;
+  onTap?: () => void;
   cartQty?: number;
   onIncrement?: () => void;
   onDecrement?: () => void;
@@ -48,7 +49,7 @@ const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg
 
 // ── Main Component ──────────────────────────────
 
-export function ProductCard({ product, productIndex = 0, onAdd, cartQty = 0, onIncrement, onDecrement, style }: Props) {
+export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty = 0, onIncrement, onDecrement, style }: Props) {
   const [animating, setAnimating] = useState(false);
   const imgSrc = product.images.length > 0
     ? product.images[0].url
@@ -86,8 +87,10 @@ export function ProductCard({ product, productIndex = 0, onAdd, cartQty = 0, onI
         border border-gray-200 dark:border-white/[0.06]
         transition-transform duration-200 ease-out
         hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)]
-        ${outOfStock ? "opacity-50" : ""}`}
+        ${outOfStock ? "opacity-50" : ""}
+        ${onTap ? "cursor-pointer" : ""}`}
       style={style}
+      onClick={onTap}
     >
       {/* ── Image 4:3 ── */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
