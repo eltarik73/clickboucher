@@ -384,6 +384,12 @@ export default async function DecouvrirPage() {
                 </div>
               ))}
             </div>
+            <Link
+              href="/bons-plans"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-[#DC2626] hover:underline mt-3"
+            >
+              Voir tous les bons plans &rarr;
+            </Link>
           </div>
         )}
 

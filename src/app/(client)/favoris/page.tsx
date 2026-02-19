@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MapPin, Clock } from "lucide-react";
+import { Heart, MapPin, Clock, ArrowLeft } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { getShopImage } from "@/lib/product-images";
@@ -49,13 +49,25 @@ export default function FavorisPage() {
     setShops((prev) => prev.filter((s) => s.id !== shopId));
   };
 
+  const stickyHeader = (
+    <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
+      <div className="max-w-3xl mx-auto flex items-center gap-3">
+        <Link
+          href="/decouvrir"
+          className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
+        >
+          <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
+        </Link>
+        <h1 className="text-lg font-bold text-gray-900 dark:text-white">Mes favoris</h1>
+      </div>
+    </header>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-20">
+        {stickyHeader}
         <div className="max-w-3xl mx-auto px-4 pt-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-display mb-6">
-            Mes favoris
-          </h1>
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-28 bg-gray-100 dark:bg-[#141414] rounded-2xl animate-pulse" />
@@ -69,10 +81,8 @@ export default function FavorisPage() {
   if (!userId) {
     return (
       <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-20">
+        {stickyHeader}
         <div className="max-w-3xl mx-auto px-4 pt-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-display mb-6">
-            Mes favoris
-          </h1>
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Heart size={48} className="text-gray-300 dark:text-gray-600 mb-4" strokeWidth={1.5} />
             <p className="text-gray-500 dark:text-gray-400 mb-4">
@@ -92,10 +102,8 @@ export default function FavorisPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-20">
+      {stickyHeader}
       <div className="max-w-3xl mx-auto px-4 pt-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-display mb-6">
-          Mes favoris
-        </h1>
 
         {shops.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">

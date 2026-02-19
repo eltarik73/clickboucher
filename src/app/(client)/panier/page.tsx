@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, type CartItem } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import CartSuggestions from "@/components/cart/CartSuggestions";
 
 // ── Helpers ──────────────────────────────────────
@@ -125,6 +126,9 @@ export default function PanierPage() {
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<PickupSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Clear cart dialog
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Shop payment config
   const [shopAcceptOnline, setShopAcceptOnline] = useState(false);
@@ -290,7 +294,7 @@ export default function PanierPage() {
       </header>
 
       <main className="max-w-xl mx-auto px-5 mt-6">
-        {/* Shop name */}
+        {/* Shop name + clear */}
         <div className="flex items-center gap-2 mb-4">
           <ShoppingBag size={16} className="text-[#DC2626]" />
           <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -301,6 +305,13 @@ export default function PanierPage() {
               Prix Pro appliques
             </span>
           )}
+          <button
+            onClick={() => setShowClearConfirm(true)}
+            className="ml-auto text-xs text-gray-400 hover:text-[#DC2626] transition-colors flex items-center gap-1"
+          >
+            <X size={12} />
+            Vider
+          </button>
         </div>
 
         {/* ═══════════════════════════════════════════ */}
@@ -564,6 +575,20 @@ export default function PanierPage() {
           )}
         </div>
       </main>
+
+      <ConfirmDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Vider le panier ?"
+        description={`Tous les articles de ${state.shopName || "votre panier"} seront supprimes.`}
+        confirmLabel="Vider le panier"
+        cancelLabel="Annuler"
+        variant="danger"
+        onConfirm={() => {
+          clear();
+          toast.success("Panier vide");
+        }}
+      />
     </div>
   );
 }

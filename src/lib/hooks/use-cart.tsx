@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef } from "react";
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef, useState } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 // ── Types ────────────────────────────────────
 
@@ -46,6 +47,12 @@ export interface CartContextType {
   itemCount: number;
   totalCents: number;
 }
+
+type PendingShopSwitch = {
+  item: CartItem;
+  shop: { id: string; name: string; slug: string };
+  oldShopName: string;
+};
 
 // ── Reducer ──────────────────────────────────
 
@@ -141,6 +148,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, initialState, loadState);
   const syncTimer = useRef<ReturnType<typeof setTimeout>>();
   const initialLoadDone = useRef(false);
+  const [pendingSwitch, setPendingSwitch] = useState<PendingShopSwitch | null>(null);
 
   // Persist to sessionStorage
   useEffect(() => {
@@ -227,12 +235,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback(
     (item: CartItem, shop: { id: string; name: string; slug: string }) => {
+      // Intercept shop switch: ask confirmation before clearing cart
+      if (state.shopId && state.shopId !== shop.id && state.items.length > 0) {
+        setPendingSwitch({ item, shop, oldShopName: state.shopName || "la boutique actuelle" });
+        return;
+      }
       dispatch({
         type: "ADD_ITEM",
         payload: { ...item, shopId: shop.id, shopName: shop.name, shopSlug: shop.slug },
       });
     },
-    []
+    [state.shopId, state.shopName, state.items.length]
   );
 
   const removeItem = useCallback((id: string) => dispatch({ type: "REMOVE_ITEM", payload: { id } }), []);
@@ -261,7 +274,40 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, totalCents]
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <ConfirmDialog
+        open={!!pendingSwitch}
+        onOpenChange={(open) => { if (!open) setPendingSwitch(null); }}
+        title="Changer de boutique ?"
+        description={
+          pendingSwitch
+            ? `Votre panier contient des articles de ${pendingSwitch.oldShopName}. En ajoutant depuis ${pendingSwitch.shop.name}, votre panier actuel sera vide.`
+            : ""
+        }
+        confirmLabel="Vider et ajouter"
+        cancelLabel="Garder mon panier"
+        variant="danger"
+        onConfirm={() => {
+          if (pendingSwitch) {
+            dispatch({ type: "CLEAR" });
+            dispatch({
+              type: "ADD_ITEM",
+              payload: {
+                ...pendingSwitch.item,
+                shopId: pendingSwitch.shop.id,
+                shopName: pendingSwitch.shop.name,
+                shopSlug: pendingSwitch.shop.slug,
+              },
+            });
+            setPendingSwitch(null);
+          }
+        }}
+        onCancel={() => setPendingSwitch(null)}
+      />
+    </CartContext.Provider>
+  );
 }
 
 export function useCart(): CartContextType {
