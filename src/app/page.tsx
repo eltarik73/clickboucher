@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
+import Image from "next/image";
 import { StarRating } from "@/components/ui/StarRating";
 import { getShopImage } from "@/lib/product-images";
 
@@ -243,10 +244,13 @@ export default async function HomePage() {
                   >
                     {/* Image */}
                     <div className="relative h-44 overflow-hidden">
-                      <img
+                      <Image
                         src={imgSrc}
                         alt={shop.name}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        quality={75}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 

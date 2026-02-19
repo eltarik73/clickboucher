@@ -1,26 +1,10 @@
-export const dynamic = "force-dynamic";
+// Boucher layout — "use client" to avoid server DB call on every navigation.
+// Role validation is already handled by middleware (with 5-min cache).
+"use client";
 
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { BoucherNav } from "@/components/layout/BoucherNav";
 
-export default async function BoucherLayout({ children }: { children: React.ReactNode }) {
-  const { userId: clerkId } = await auth();
-
-  if (!clerkId) {
-    redirect("/sign-in");
-  }
-
-  // Check role from DB (not Clerk metadata)
-  const user = await getOrCreateUser(clerkId);
-
-  if (!user || (user.role !== "BOUCHER" && user.role !== "ADMIN")) {
-    // Access denied — redirect silently
-    redirect("/decouvrir");
-  }
-
+export default function BoucherLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <BoucherNav />

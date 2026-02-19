@@ -1,5 +1,6 @@
 // src/app/(client)/bons-plans/page.tsx — All active promos across all shops
-export const dynamic = "force-dynamic";
+// ISR: cached, revalidated every 60s (promos don't change every second)
+export const revalidate = 60;
 
 import prisma from "@/lib/prisma";
 import { BonsPlansClient } from "./BonsPlansClient";
