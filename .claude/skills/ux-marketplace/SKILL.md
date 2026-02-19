@@ -1,5 +1,6 @@
 ---
 name: ux-marketplace
+user_invocable: true
 description: Patterns UX de marketplace et e-commerce inspirés d'Uber Eats, Getir, Deliveroo, Planity, et Amazon. Utiliser pour améliorer l'expérience utilisateur, les conversions, la rétention, et le parcours d'achat.
 ---
 

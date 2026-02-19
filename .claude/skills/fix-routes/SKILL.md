@@ -1,5 +1,6 @@
 ---
 name: fix-routes
+user_invocable: true
 description: Diagnostique et corrige les erreurs de routes, 404, redirections cassées, et problèmes de navigation dans Next.js App Router. Utiliser quand une page affiche 404, une redirection ne fonctionne pas, ou le routing est cassé.
 ---
 

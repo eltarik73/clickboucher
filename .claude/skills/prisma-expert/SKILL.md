@@ -1,5 +1,6 @@
 ---
 name: prisma-expert
+user_invocable: true
 description: Expert Prisma ORM pour Klik&Go. Utiliser pour les schémas, migrations, requêtes, relations, et problèmes de performance avec PostgreSQL. Gère le multi-tenant (shopId scoping), les relations complexes, et l'optimisation des requêtes.
 ---
 

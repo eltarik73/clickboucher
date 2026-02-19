@@ -1,5 +1,6 @@
 ---
 name: clerk-auth
+user_invocable: true
 description: Expert authentification Clerk pour Klik&Go. Utiliser pour les problèmes de login, rôles, redirections, middleware, et metadata. Gère 3 rôles (client, boucher, webmaster) avec routing séparé.
 ---
 

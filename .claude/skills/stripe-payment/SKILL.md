@@ -1,5 +1,6 @@
 ---
 name: stripe-payment
+user_invocable: true
 description: Expert Stripe pour Klik&Go. Utiliser pour le paiement en ligne, Checkout Sessions, webhooks, remboursements, et sécurité PCI. Gère le paiement click & collect avec 2 modes (en ligne et sur place).
 ---
 

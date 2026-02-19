@@ -1,5 +1,6 @@
 ---
 name: audit-global
+user_invocable: true
 description: Audit complet du projet Klik&Go. Lance un diagnostic global de toutes les routes, erreurs de build, problèmes de design, sécurité, et performance. Utiliser avant un déploiement ou quand le projet a beaucoup de bugs.
 ---
 

@@ -1,5 +1,6 @@
 ---
 name: click-and-collect
+user_invocable: true
 description: Expert Click & Collect pour Klik&Go. Patterns UX et techniques pour la commande en ligne avec retrait en boutique. Utiliser quand on travaille sur le parcours commande, le panier, les créneaux de retrait, le suivi commande, et le flux complet client → boucher → retrait.
 ---
 

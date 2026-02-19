@@ -1,5 +1,6 @@
 ---
 name: python-scripts
+user_invocable: true
 description: Création de scripts Python pour Klik&Go. Utiliser pour le traitement d'images, la génération de vidéos marketing, le traitement de données, le scraping, et l'automatisation. Inclut PIL/Pillow pour les images et ffmpeg pour la vidéo.
 ---
 

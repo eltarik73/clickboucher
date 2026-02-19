@@ -1,5 +1,6 @@
 ---
 name: fix-errors
+user_invocable: true
 description: Diagnostique et corrige les erreurs de build, TypeScript, runtime et hydration dans Next.js App Router. Utiliser quand npm run build échoue, quand il y a des erreurs TypeScript, des hydration mismatches, ou des erreurs runtime en console.
 ---
 

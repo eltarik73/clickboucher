@@ -1,5 +1,6 @@
 ---
 name: design-klikgo
+user_invocable: true
 description: Design UI/UX style Uber Eats et click & collect moderne pour Klik&Go. Utiliser quand on crée ou modifie des composants, pages, ou interfaces utilisateur. Applique le design system Klik&Go (bordeaux #DC2626, fond sombre, mobile-first, touch targets 44px+).
 ---
 
