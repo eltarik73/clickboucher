@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, MapPin, Copy, AlertTriangle, RefreshCw, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Copy, AlertTriangle, RefreshCw, Trash2, Loader2, MessageSquare } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ interface OrderData {
   rating: number | null;
   ratingComment: string | null;
   customerNote: string | null;
+  boucherNote: string | null;
   denyReason: string | null;
   requestedTime: string | null;
   createdAt: string;
@@ -86,6 +87,52 @@ function LoadingDots() {
           style={{ animationDelay: `${i * 150}ms` }}
         />
       ))}
+    </div>
+  );
+}
+
+// ── Confetti burst ──────────────────────────────
+
+function ConfettiBurst() {
+  const particles = Array.from({ length: 24 }, (_, i) => {
+    const angle = (i / 24) * 360;
+    const distance = 60 + Math.random() * 80;
+    const x = Math.cos((angle * Math.PI) / 180) * distance;
+    const y = Math.sin((angle * Math.PI) / 180) * distance;
+    const colors = ["#DC2626", "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ec4899"];
+    const color = colors[i % colors.length];
+    const size = 4 + Math.random() * 4;
+    const delay = Math.random() * 0.3;
+    return { x, y, color, size, delay, angle };
+  });
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          className="absolute left-1/2 top-1/3"
+          style={{
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            borderRadius: i % 3 === 0 ? "50%" : i % 3 === 1 ? "0" : "2px",
+            animation: `confetti-burst 1.2s ${p.delay}s ease-out forwards`,
+            transform: `translate(-50%, -50%)`,
+            opacity: 0,
+            ["--tx" as string]: `${p.x}px`,
+            ["--ty" as string]: `${p.y}px`,
+            ["--rot" as string]: `${p.angle + 180}deg`,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes confetti-burst {
+          0% { opacity: 1; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
+          30% { opacity: 1; }
+          100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1) rotate(var(--rot)); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -596,8 +643,9 @@ export default function CommandePage({
 
         {/* ═══ READY ═══ */}
         {order.status === "READY" && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-            <div className="text-6xl mb-3 animate-bounce">🎉</div>
+          <div className="relative text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+            <ConfettiBurst />
+            <div className="text-6xl mb-3 animate-bounce relative z-10">🎉</div>
             <h2 className="text-2xl font-bold text-[#2a2018] dark:text-white">
               Votre commande est prete !
             </h2>
@@ -710,6 +758,21 @@ export default function CommandePage({
             >
               <Link href="/decouvrir">Decouvrir les boucheries</Link>
             </Button>
+          </div>
+        )}
+
+        {/* ═══ BOUCHER NOTE ═══ */}
+        {order.boucherNote && (
+          <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-200/60 dark:border-amber-800/30">
+            <div className="flex items-center gap-2 mb-1.5">
+              <MessageSquare size={14} className="text-amber-600 dark:text-amber-400" />
+              <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                Message du boucher
+              </h3>
+            </div>
+            <p className="text-sm text-amber-700 dark:text-amber-400/80">
+              {order.boucherNote}
+            </p>
           </div>
         )}
 

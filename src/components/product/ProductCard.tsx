@@ -1,9 +1,9 @@
-// src/components/product/ProductCard.tsx — V2 bis ultra-compact 4-col card
+// src/components/product/ProductCard.tsx — V2 bis ultra-compact 4-col card with inline stepper
 "use client";
 
 import { useState, useCallback } from "react";
 import Image from "next/image";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Minus } from "lucide-react";
 import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 import type { Product as ProductV2, ProductImage as ProductImageType } from "@/types";
@@ -24,6 +24,9 @@ interface Props {
   product: ProductCardData;
   productIndex?: number;
   onAdd: () => void;
+  cartQty?: number;
+  onIncrement?: () => void;
+  onDecrement?: () => void;
   style?: React.CSSProperties;
 }
 
@@ -45,7 +48,7 @@ const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg
 
 // ── Main Component ──────────────────────────────
 
-export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) {
+export function ProductCard({ product, productIndex = 0, onAdd, cartQty = 0, onIncrement, onDecrement, style }: Props) {
   const [animating, setAnimating] = useState(false);
   const imgSrc = product.images.length > 0
     ? product.images[0].url
@@ -53,16 +56,28 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
   const hasPromo = product.promoPct != null && product.promoPct > 0;
   const outOfStock = !product.inStock;
   const isEager = productIndex < 4;
+  const isKg = product.unit === "KG";
+  const showStepper = cartQty > 0 && !isKg;
 
   const handleAdd = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (outOfStock) return;
     onAdd();
-    if (product.unit !== "KG") {
+    if (!isKg) {
       setAnimating(true);
       setTimeout(() => setAnimating(false), 600);
     }
-  }, [onAdd, outOfStock, product.unit]);
+  }, [onAdd, outOfStock, isKg]);
+
+  const handleIncrement = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onIncrement) onIncrement();
+  }, [onIncrement]);
+
+  const handleDecrement = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDecrement) onDecrement();
+  }, [onDecrement]);
 
   return (
     <div
@@ -161,19 +176,41 @@ export function ProductCard({ product, productIndex = 0, onAdd, style }: Props) 
             <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
           </div>
 
-          {/* Bouton "+" — 26x26 rouge */}
+          {/* Add / Stepper */}
           {!outOfStock && (
-            <button
-              onClick={handleAdd}
-              className={`w-[26px] h-[26px] rounded-lg flex items-center justify-center
-                transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
-                ${animating
-                  ? "bg-emerald-500 text-white"
-                  : "bg-[#DC2626] text-white"
-                }`}
-            >
-              {animating ? <Check size={13} strokeWidth={3} /> : <Plus size={15} strokeWidth={2.5} />}
-            </button>
+            showStepper ? (
+              /* Inline quantity stepper [-] qty [+] */
+              <div className="flex items-center gap-0 rounded-lg overflow-hidden border border-[#DC2626]/20">
+                <button
+                  onClick={handleDecrement}
+                  className="w-[24px] h-[24px] flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
+                >
+                  <Minus size={12} strokeWidth={2.5} />
+                </button>
+                <span className="w-[22px] text-center text-[11px] font-bold text-gray-900 dark:text-white tabular-nums">
+                  {cartQty}
+                </span>
+                <button
+                  onClick={handleIncrement}
+                  className="w-[24px] h-[24px] flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
+                >
+                  <Plus size={12} strokeWidth={2.5} />
+                </button>
+              </div>
+            ) : (
+              /* Initial "+" button */
+              <button
+                onClick={handleAdd}
+                className={`w-[26px] h-[26px] rounded-lg flex items-center justify-center
+                  transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
+                  ${animating
+                    ? "bg-emerald-500 text-white"
+                    : "bg-[#DC2626] text-white"
+                  }`}
+              >
+                {animating ? <Check size={13} strokeWidth={3} /> : <Plus size={15} strokeWidth={2.5} />}
+              </button>
+            )
           )}
         </div>
       </div>

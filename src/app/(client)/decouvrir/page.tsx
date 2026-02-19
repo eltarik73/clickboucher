@@ -16,6 +16,7 @@ import NearbyShops from "./NearbyShops";
 import CalendarBanner from "@/components/landing/CalendarBanner";
 import { SearchBar } from "@/components/search/SearchBar";
 import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
+import { ReorderCarousel } from "@/components/order/ReorderCarousel";
 
 const SHOP_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' fill='%23e5e7eb'%3E%3Crect width='600' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🏪%3C/text%3E%3C/svg%3E";
 
@@ -364,7 +365,10 @@ export default async function DecouvrirPage() {
           </div>
         )}
 
-        {/* Promos FIRST — horizontal scroll */}
+        {/* Reorder carousel — only for logged-in users with past orders */}
+        <ReorderCarousel />
+
+        {/* Promos — horizontal scroll */}
         {PROMOS.length > 0 && (
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-4">

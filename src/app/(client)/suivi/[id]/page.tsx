@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, MapPin, MessageSquare } from "lucide-react";
 import prisma from "@/lib/prisma";
 import OrderTracker from "@/components/order/OrderTracker";
 import ReorderSection from "@/components/order/ReorderSection";
@@ -128,6 +128,21 @@ export default async function SuiviPage({
             </p>
           )}
         </div>
+
+        {/* Boucher's note — shown when boucher adds a message */}
+        {order.boucherNote && (
+          <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-200/60 dark:border-amber-800/30 p-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <MessageSquare size={14} className="text-amber-600 dark:text-amber-400" />
+              <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                Message du boucher
+              </h3>
+            </div>
+            <p className="text-sm text-amber-700 dark:text-amber-400/80">
+              {order.boucherNote}
+            </p>
+          </div>
+        )}
 
         {/* QR Code section for ready orders */}
         {isReady && order.qrCode && (

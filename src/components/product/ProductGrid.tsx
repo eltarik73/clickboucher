@@ -1,12 +1,20 @@
-// src/components/product/ProductGrid.tsx — responsive auto-fill grid (2/3/4 cols)
+// src/components/product/ProductGrid.tsx — responsive auto-fill grid (2/3/4 cols) with inline stepper
 "use client";
 
 import { ProductCard, type ProductCardData } from "./ProductCard";
+
+interface CartItemInfo {
+  id: string;
+  quantity: number;
+}
 
 interface Props {
   products: ProductCardData[];
   loading?: boolean;
   onAdd: (product: ProductCardData) => void;
+  cartItems?: CartItemInfo[];
+  onIncrement?: (productId: string) => void;
+  onDecrement?: (productId: string) => void;
 }
 
 const GRID_STYLE = {
@@ -34,7 +42,7 @@ function SkeletonCard() {
   );
 }
 
-export function ProductGrid({ products, loading = false, onAdd }: Props) {
+export function ProductGrid({ products, loading = false, onAdd, cartItems = [], onIncrement, onDecrement }: Props) {
   if (loading) {
     return (
       <div className="px-3 pb-24" style={GRID_STYLE}>
@@ -55,14 +63,20 @@ export function ProductGrid({ products, loading = false, onAdd }: Props) {
 
   return (
     <div className="px-3 pb-24" style={GRID_STYLE}>
-      {products.map((p, i) => (
-        <ProductCard
-          key={p.id}
-          product={p}
-          productIndex={i}
-          onAdd={() => onAdd(p)}
-        />
-      ))}
+      {products.map((p, i) => {
+        const cartItem = cartItems.find(ci => ci.id === p.id);
+        return (
+          <ProductCard
+            key={p.id}
+            product={p}
+            productIndex={i}
+            onAdd={() => onAdd(p)}
+            cartQty={cartItem?.quantity ?? 0}
+            onIncrement={onIncrement ? () => onIncrement(p.id) : undefined}
+            onDecrement={onDecrement ? () => onDecrement(p.id) : undefined}
+          />
+        );
+      })}
     </div>
   );
 }

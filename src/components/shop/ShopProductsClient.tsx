@@ -70,7 +70,7 @@ interface Props {
 export function ShopProductsClient({ products, categories, shop, proStatus }: Props) {
   const [activeCat, setActiveCat] = useState<string>("Tout");
   const [selectedProduct, setSelectedProduct] = useState<WeightSheetProduct | null>(null);
-  const { addItem, itemCount, totalCents, state } = useCart();
+  const { addItem, updateQty, itemCount, totalCents, state } = useCart();
 
   const shopRef = useMemo(
     () => ({ id: shop.id, name: shop.name, slug: shop.slug }),
@@ -168,6 +168,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
         shopRef
       );
       toast.success(`${p.name} ajouté au panier`, { icon: <ShoppingBag size={14} />, duration: 1500 });
+      navigator.vibrate?.(50);
     },
     [addItem, shopRef, products]
   );
@@ -192,9 +193,34 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
         shopRef
       );
       toast.success(`${selectedProduct.name} (${weightG}g) ajouté`, { icon: <ShoppingBag size={14} />, duration: 1500 });
+      navigator.vibrate?.(50);
       setSelectedProduct(null);
     },
     [selectedProduct, addItem, shopRef]
+  );
+
+  // Cart items for this shop (for inline stepper)
+  const cartItems = useMemo(
+    () => state.shopId === shop.id
+      ? state.items.map(i => ({ id: i.id, quantity: i.quantity }))
+      : [],
+    [state.shopId, state.items, shop.id]
+  );
+
+  const handleIncrement = useCallback(
+    (productId: string) => {
+      const item = state.items.find(i => i.id === productId);
+      if (item) updateQty(productId, item.quantity + 1);
+    },
+    [state.items, updateQty]
+  );
+
+  const handleDecrement = useCallback(
+    (productId: string) => {
+      const item = state.items.find(i => i.id === productId);
+      if (item) updateQty(productId, item.quantity - 1);
+    },
+    [state.items, updateQty]
   );
 
   return (
@@ -237,17 +263,17 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
           <p className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider mb-1.5">
             Promos
           </p>
-          <ProductGrid products={promoProducts} onAdd={handleAdd} />
+          <ProductGrid products={promoProducts} onAdd={handleAdd} cartItems={cartItems} onIncrement={handleIncrement} onDecrement={handleDecrement} />
         </div>
       )}
 
       {/* ── Product grid ── */}
-      <ProductGrid products={nonPromoProducts} onAdd={handleAdd} />
+      <ProductGrid products={nonPromoProducts} onAdd={handleAdd} cartItems={cartItems} onIncrement={handleIncrement} onDecrement={handleDecrement} />
 
-      {/* ── Bottom cart bar — sticky, glassmorphism ── */}
+      {/* ── Bottom cart bar — sticky, glassmorphism, slide-up entrance ── */}
       {cartCount > 0 && (
         <div
-          className="fixed bottom-0 inset-x-0 z-50 border-t border-gray-200/50 dark:border-white/[0.08]"
+          className="fixed bottom-0 inset-x-0 z-50 border-t border-gray-200/50 dark:border-white/[0.08] animate-[slideUp_0.3s_ease-out]"
           style={{
             background: "rgba(20,20,20,0.95)",
             backdropFilter: "blur(16px)",
