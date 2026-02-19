@@ -33,10 +33,13 @@ import {
 type OrderItem = {
   id: string;
   productId: string;
+  name: string;
   quantity: number;
-  unitPriceCents: number;
+  unit: string;
+  priceCents: number;
+  totalCents: number;
   available: boolean;
-  product: { name: string; unit: string };
+  product?: { name: string; unit: string };
 };
 
 type Order = {
@@ -220,7 +223,7 @@ export default function BoucherCommandesPage() {
         const unavailableNames = currentOrder
           ? currentOrder.items
               .filter((i) => unavailableItems.has(i.productId))
-              .map((i) => i.product.name)
+              .map((i) => i.product?.name || i.name)
           : [];
 
         if (hasAlts) {
@@ -380,10 +383,10 @@ export default function BoucherCommandesPage() {
                       {order.items.map((item) => (
                         <div key={item.id} className="flex items-center justify-between text-sm">
                           <span className="text-gray-700 dark:text-gray-300">
-                            {item.quantity} {item.product.unit === "KG" ? "kg" : item.product.unit === "PIECE" ? "pc" : "barq."} — {item.product.name}
+                            {item.quantity} {(item.product?.unit || item.unit) === "KG" ? "kg" : (item.product?.unit || item.unit) === "PIECE" ? "pc" : "barq."} — {item.product?.name || item.name}
                           </span>
                           <span className="text-gray-400 dark:text-gray-500 text-xs">
-                            {formatPrice(item.unitPriceCents * item.quantity)}
+                            {formatPrice(item.totalCents || item.priceCents * item.quantity)}
                           </span>
                         </div>
                       ))}
@@ -493,7 +496,7 @@ export default function BoucherCommandesPage() {
                                 className="rounded border-orange-300 text-orange-600 focus:ring-orange-500"
                               />
                               <span className={unavailableItems.has(item.productId) ? "line-through text-gray-400" : "text-gray-700 dark:text-gray-300"}>
-                                {item.product.name} ({item.quantity} {item.product.unit === "KG" ? "kg" : item.product.unit === "PIECE" ? "pc" : "barq."})
+                                {item.product?.name || item.name} ({item.quantity} {(item.product?.unit || item.unit) === "KG" ? "kg" : (item.product?.unit || item.unit) === "PIECE" ? "pc" : "barq."})
                               </span>
                             </label>
                           ))}
@@ -613,7 +616,7 @@ export default function BoucherCommandesPage() {
                       <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 space-y-1">
                         {order.items.map((item) => (
                           <div key={item.id} className="text-sm text-gray-700 dark:text-gray-300">
-                            {item.quantity} {item.product.unit === "KG" ? "kg" : item.product.unit === "PIECE" ? "pc" : "barq."} — {item.product.name}
+                            {item.quantity} {(item.product?.unit || item.unit) === "KG" ? "kg" : (item.product?.unit || item.unit) === "PIECE" ? "pc" : "barq."} — {item.product?.name || item.name}
                           </div>
                         ))}
                       </div>
