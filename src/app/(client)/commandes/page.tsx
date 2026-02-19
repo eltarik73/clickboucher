@@ -129,8 +129,8 @@ function OrderCard({
         </div>
       </Link>
 
-      {/* Reorder button for completed orders */}
-      {order.status === "COMPLETED" && (
+      {/* Reorder button for completed/picked-up orders */}
+      {(order.status === "COMPLETED" || order.status === "PICKED_UP") && (
         <div className="border-t border-[#ece8e3] dark:border-white/10 px-4 py-3">
           <button
             onClick={() => onReorder(order)}
@@ -155,6 +155,7 @@ export default function CommandesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [filter, setFilter] = useState<"all" | "active" | "done">("all");
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -303,19 +304,60 @@ export default function CommandesPage() {
     );
   }
 
+  // Filter logic
+  const ACTIVE_STATUSES = ["PENDING", "ACCEPTED", "PREPARING", "READY", "PARTIALLY_DENIED"];
+  const filteredOrders = filter === "all"
+    ? orders
+    : filter === "active"
+      ? orders.filter((o) => ACTIVE_STATUSES.includes(o.status))
+      : orders.filter((o) => !ACTIVE_STATUSES.includes(o.status));
+
+  const activeCount = orders.filter((o) => ACTIVE_STATUSES.includes(o.status)).length;
+
   // ── Orders list ────────────────────────────────
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-8">
       <Header />
       <main className="max-w-xl mx-auto px-5 mt-6">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          {orders.length} commande{orders.length > 1 ? "s" : ""}
-        </p>
+        {/* Filter tabs */}
+        <div className="flex gap-2 mb-4">
+          {([
+            { key: "all" as const, label: "Toutes", count: orders.length },
+            { key: "active" as const, label: "En cours", count: activeCount },
+            { key: "done" as const, label: "Terminees", count: orders.length - activeCount },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                filter === tab.key
+                  ? "bg-[#DC2626] text-white"
+                  : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-white/10"
+              }`}
+            >
+              {tab.label}
+              {tab.count > 0 && (
+                <span className={`ml-1 ${filter === tab.key ? "text-white/70" : "text-gray-400"}`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              {filter === "active" ? "Aucune commande en cours" : filter === "done" ? "Aucune commande terminee" : "Aucune commande"}
+            </p>
+          </div>
+        ) : (
         <div className="flex flex-col gap-3">
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <OrderCard key={order.id} order={order} onReorder={handleReorder} />
           ))}
         </div>
+        )}
       </main>
     </div>
   );

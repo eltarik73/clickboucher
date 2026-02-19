@@ -3,7 +3,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, Clock, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { Search, X, Clock, ArrowRight, Timer } from "lucide-react";
+import { resolveProductImage } from "@/lib/product-images";
 
 interface SearchResult {
   id: string;
@@ -13,6 +15,8 @@ interface SearchResult {
   shopName: string;
   shopSlug: string;
   category?: string;
+  imageUrl?: string;
+  prepTime?: number;
 }
 
 const RECENT_KEY = "klikgo-recent-searches";
@@ -78,6 +82,8 @@ export function SearchBar() {
           shopName: (r.shop as Record<string, string>)?.name || "",
           shopSlug: (r.shop as Record<string, string>)?.slug || "",
           category: (r.category as Record<string, string>)?.name,
+          imageUrl: r.imageUrl as string | undefined,
+          prepTime: r.prepTime as number | undefined,
         })));
       }
     } catch {}
@@ -188,12 +194,28 @@ export function SearchBar() {
                   onClick={() => handleSelect(r)}
                   className="flex items-center gap-3 w-full px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left border-b border-gray-50 dark:border-white/5 last:border-0"
                 >
+                  {/* Product thumbnail */}
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
+                    <Image
+                      src={resolveProductImage({ name: r.name, imageUrl: r.imageUrl || null, category: r.category || "" })}
+                      alt={r.name}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{r.name}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                      {r.shopName}
-                      {r.category && ` · ${r.category}`}
-                    </p>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+                      <span className="truncate">{r.shopName}</span>
+                      {r.category && <><span>·</span><span>{r.category}</span></>}
+                      {r.prepTime && (
+                        <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
+                          <Timer size={10} />
+                          {r.prepTime}min
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
