@@ -39,12 +39,12 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-[#0A0A0A] text-white py-16 sm:py-20">
+    <section id="how-it-works" className="bg-[#0A0A0A] text-white py-8 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <h2 className="text-center text-sm font-semibold text-[#DC2626] uppercase tracking-widest mb-3">
+        <h2 className="text-center text-sm font-semibold text-[#DC2626] uppercase tracking-widest mb-2">
           Simple et rapide
         </h2>
-        <p className="text-center text-2xl sm:text-3xl font-bold mb-12">
+        <p className="text-center text-xl sm:text-3xl font-bold mb-6 sm:mb-12">
           Comment &ccedil;a marche
         </p>
 
@@ -77,12 +77,12 @@ export function HowItWorks() {
         </div>
 
         {/* Mobile: stacked cards */}
-        <div className="md:hidden space-y-4">
+        <div className="md:hidden space-y-2.5">
           {STEPS.map(step => (
-            <div key={step.number} className="flex items-start gap-4 bg-[#151515] rounded-2xl p-5 border border-[#222]">
+            <div key={step.number} className="flex items-start gap-3 bg-[#151515] rounded-xl p-3.5 border border-[#222]">
               {/* Number badge */}
-              <div className="w-10 h-10 rounded-full bg-[#DC2626] flex items-center justify-center shrink-0 shadow-lg shadow-[#DC2626]/30">
-                <span className="text-lg font-bold text-white">{step.number}</span>
+              <div className="w-8 h-8 rounded-full bg-[#DC2626] flex items-center justify-center shrink-0 shadow-lg shadow-[#DC2626]/30">
+                <span className="text-sm font-bold text-white">{step.number}</span>
               </div>
               {/* Content */}
               <div className="flex-1">

@@ -167,7 +167,7 @@ function NearbyButcherCard({
       }`}
     >
       {/* Image */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-36 sm:h-48 overflow-hidden">
         <Image
           src={imgSrc}
           alt={shop.name}

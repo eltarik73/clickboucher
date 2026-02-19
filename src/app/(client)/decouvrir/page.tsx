@@ -45,10 +45,10 @@ function KlikGoLogo({ light = false }: { light?: boolean }) {
 // ─────────────────────────────────────────────────────────────
 function HeroLogo() {
   return (
-    <div className="flex flex-col items-center mb-8">
+    <div className="flex flex-col items-center mb-4 sm:mb-8">
       <div className="relative">
         <div className="absolute inset-0 blur-2xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
-        <svg viewBox="0 0 100 100" className="w-20 h-20 sm:w-24 sm:h-24 relative z-10">
+        <svg viewBox="0 0 100 100" className="w-14 h-14 sm:w-20 sm:h-20 relative z-10">
           <defs>
             <linearGradient id="heroLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#a83320" />
@@ -68,10 +68,10 @@ function HeroLogo() {
           </g>
         </svg>
       </div>
-      <h2 className="mt-4 text-2xl sm:text-3xl font-bold text-white tracking-tight">
+      <h2 className="mt-2 sm:mt-4 text-xl sm:text-2xl font-bold text-white tracking-tight">
         Klik<span className="text-white">&</span>Go
       </h2>
-      <p className="text-xs text-[#666] tracking-wider mt-1">by TkS26</p>
+      <p className="text-[10px] sm:text-xs text-[#666] tracking-wider mt-0.5">by TkS26</p>
     </div>
   );
 }
@@ -113,7 +113,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
       }`}
     >
       {/* Image with permanent gradient overlay */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-36 sm:h-48 overflow-hidden">
         <Image
           src={imgSrc}
           alt={shop.name}
@@ -319,19 +319,19 @@ export default async function DecouvrirPage() {
         </header>
 
         {/* Hero content with CENTERED LOGO */}
-        <div className="relative z-10 max-w-6xl mx-auto px-5 py-16 sm:py-20 text-center">
+        <div className="relative z-10 max-w-6xl mx-auto px-5 py-8 sm:py-16 text-center">
           <HeroLogo />
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.1]">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.1]">
             Marre d&apos;attendre ?<br />
             <span className="text-[#DC2626]">Commandez, recuperez.</span>
           </h1>
-          <p className="mt-5 text-lg text-[#888] max-w-xl mx-auto">
+          <p className="mt-3 sm:mt-5 text-base sm:text-lg text-[#888] max-w-xl mx-auto">
             Zero file. Zero stress. <span className="text-white font-medium">100% frais.</span>
           </p>
           <HeroButtons />
 
           {/* Search bar */}
-          <div className="mt-8 px-2">
+          <div className="mt-5 sm:mt-8 px-2">
             <SearchBar />
           </div>
         </div>
