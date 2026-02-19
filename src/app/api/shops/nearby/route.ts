@@ -45,28 +45,25 @@ export async function GET(req: NextRequest) {
           delivery_radius: number;
           distance: number;
         }>
-      >`SELECT
-          s.id, s.slug, s.name, s.address, s.city, s.image_url,
-          s.latitude, s.longitude,
-          s.prep_time_min, s.busy_mode, s.busy_extra_min,
-          s.status, s.rating, s.rating_count, s.delivery_radius,
-          (6371 * acos(
-            LEAST(1.0, GREATEST(-1.0,
-              cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
-              + sin(radians(${lat})) * sin(radians(s.latitude))
-            ))
-          )) AS distance
-        FROM shops s
-        WHERE s.visible = true
-          AND s.latitude IS NOT NULL
-          AND s.longitude IS NOT NULL
-        HAVING (6371 * acos(
-          LEAST(1.0, GREATEST(-1.0,
-            cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
-            + sin(radians(${lat})) * sin(radians(s.latitude))
-          ))
-        )) <= ${radius}
-        ORDER BY distance ASC`,
+      >`SELECT * FROM (
+          SELECT
+            s.id, s.slug, s.name, s.address, s.city, s.image_url,
+            s.latitude, s.longitude,
+            s.prep_time_min, s.busy_mode, s.busy_extra_min,
+            s.status, s.rating, s.rating_count, s.delivery_radius,
+            (6371 * acos(
+              LEAST(1.0, GREATEST(-1.0,
+                cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
+                + sin(radians(${lat})) * sin(radians(s.latitude))
+              ))
+            )) AS distance
+          FROM shops s
+          WHERE s.visible = true
+            AND s.latitude IS NOT NULL
+            AND s.longitude IS NOT NULL
+        ) sub
+        WHERE sub.distance <= ${radius}
+        ORDER BY sub.distance ASC`,
       // Shops without coordinates (show at end)
       prisma.shop.findMany({
         where: {
