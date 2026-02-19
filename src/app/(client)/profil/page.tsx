@@ -240,7 +240,7 @@ export default function ProfilPage() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-2xl text-stone-400 dark:text-gray-500">
-                  {profile.firstName[0]}
+                  {profile.firstName?.[0] || "?"}
                 </div>
               )}
             </div>

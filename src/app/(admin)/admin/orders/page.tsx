@@ -151,15 +151,14 @@ export default function AdminOrdersPage() {
   // Load shops for filter dropdown
   useEffect(() => {
     fetch("/api/admin/shops")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) =>
-        setShops(
-          (data as { id: string; name: string }[]).map((s) => ({
-            id: s.id,
-            name: s.name,
-          }))
-        )
-      )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!json) return;
+        const list = json.data || json;
+        if (Array.isArray(list)) {
+          setShops(list.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })));
+        }
+      })
       .catch(() => {});
   }, []);
 

@@ -93,41 +93,36 @@ export async function POST(req: NextRequest) {
     });
     if (!user) return apiError("NOT_FOUND", "Utilisateur introuvable");
 
-    // Upsert cart
-    const cart = await prisma.cart.upsert({
-      where: { userId_shopId: { userId: user.id, shopId: data.shopId } },
-      create: {
-        userId: user.id,
-        shopId: data.shopId,
-        items: {
-          create: data.items.map((item) => ({
+    // Upsert cart + replace items in a single transaction
+    const cart = await prisma.$transaction(async (tx) => {
+      const c = await tx.cart.upsert({
+        where: { userId_shopId: { userId: user.id, shopId: data.shopId } },
+        create: {
+          userId: user.id,
+          shopId: data.shopId,
+        },
+        update: {
+          abandonedAt: null,
+          reminderSentAt: null,
+        },
+      });
+
+      await tx.cartItem.deleteMany({ where: { cartId: c.id } });
+
+      if (data.items.length > 0) {
+        await tx.cartItem.createMany({
+          data: data.items.map((item) => ({
+            cartId: c.id,
             productId: item.productId,
             quantity: item.quantity,
             weightGrams: item.weightGrams,
             itemNote: item.itemNote,
           })),
-        },
-      },
-      update: {
-        abandonedAt: null,
-        reminderSentAt: null,
-      },
+        });
+      }
+
+      return c;
     });
-
-    // Clear existing items and recreate
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-
-    if (data.items.length > 0) {
-      await prisma.cartItem.createMany({
-        data: data.items.map((item) => ({
-          cartId: cart.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          weightGrams: item.weightGrams,
-          itemNote: item.itemNote,
-        })),
-      });
-    }
 
     return apiSuccess({ synced: true, cartId: cart.id });
   } catch (error) {
