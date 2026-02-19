@@ -1,63 +1,32 @@
+// /boucher/commandes — MODE CUISINE (v4)
+// Full-screen tablet kitchen interface — dark theme, big buttons, audio alerts
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { QRScanner } from "@/components/boucher/QRScanner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Bell,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Loader2,
   ChefHat,
-  QrCode,
+  CheckCircle,
+  Loader2,
+  Wifi,
+  WifiOff,
+  ArrowLeft,
   ScanLine,
-  Package,
-  Timer,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
+import Link from "next/link";
+import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
+import { soundManager } from "@/lib/notification-sound";
+import AudioUnlockScreen from "@/components/boucher/AudioUnlockScreen";
+import OrderAlertOverlay from "@/components/boucher/OrderAlertOverlay";
+import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
+import ItemUnavailableModal from "@/components/boucher/ItemUnavailableModal";
+import { QRScanner } from "@/components/boucher/QRScanner";
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type OrderItem = {
-  id: string;
-  productId: string;
-  name: string;
-  quantity: number;
-  unit: string;
-  priceCents: number;
-  totalCents: number;
-  available: boolean;
-  product?: { name: string; unit: string };
-};
-
-type Order = {
-  id: string;
-  orderNumber: string;
-  status: string;
-  totalCents: number;
-  isPro: boolean;
-  customerNote: string | null;
-  requestedTime: string | null;
-  estimatedReady: string | null;
-  actualReady: string | null;
-  qrCode: string | null;
-  createdAt: string;
-  items: OrderItem[];
-  user: { firstName: string; lastName: string } | null;
-};
-
 type Tab = "nouvelles" | "en-cours" | "pretes";
 
 // ─────────────────────────────────────────────
@@ -70,792 +39,503 @@ function formatTime(dateStr: string) {
   });
 }
 
-function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " €";
-}
-
-function timeSince(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "< 1 min";
-  if (mins < 60) return `${mins} min`;
-  return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`;
-}
-
-function timeRemaining(dateStr: string) {
-  const diff = new Date(dateStr).getTime() - Date.now();
-  const mins = Math.ceil(diff / 60_000);
-  return mins;
-}
-
 // ─────────────────────────────────────────────
-// Main Page
+// Main Kitchen Page
 // ─────────────────────────────────────────────
-export default function BoucherCommandesPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+export default function KitchenModePage() {
+  // Audio unlock state
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+
+  // Shop info
+  const [shopName, setShopName] = useState("");
   const [shopPrepTime, setShopPrepTime] = useState(15);
+  const [shopStatus, setShopStatus] = useState("OPEN");
+
+  // Alert overlay
+  const [alertOrder, setAlertOrder] = useState<KitchenOrder | null>(null);
+
+  // Active tab (mobile) — desktop uses 3-column layout
   const [activeTab, setActiveTab] = useState<Tab>("nouvelles");
-  const [loading, setLoading] = useState(true);
-  const prevPendingIds = useRef<Set<string>>(new Set());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // ── Actions state ──
-  const [acceptingId, setAcceptingId] = useState<string | null>(null);
-  const [acceptMinutes, setAcceptMinutes] = useState(15);
-  const [denyingId, setDenyingId] = useState<string | null>(null);
-  const [denyReason, setDenyReason] = useState("");
-  const [stockIssueId, setStockIssueId] = useState<string | null>(null);
-  const [unavailableItems, setUnavailableItems] = useState<Set<string>>(new Set());
-  const [actionLoading, setActionLoading] = useState(false);
+  // Modals
+  const [stockIssueOrder, setStockIssueOrder] = useState<KitchenOrder | null>(null);
   const [showScanner, setShowScanner] = useState(false);
-  const [stockIssueResult, setStockIssueResult] = useState<{
-    orderId: string;
-    alternatives: Record<string, { id: string; name: string; priceCents: number; unit: string }[]>;
-    unavailableNames: string[];
-  } | null>(null);
 
-  // ── Init audio ──
+  // Sound muted
+  const [muted, setMuted] = useState(false);
+  const mutedRef = useRef(false);
+  mutedRef.current = muted;
+
+  // Connected indicator
+  const [connected, setConnected] = useState(true);
+  const lastFetchRef = useRef(Date.now());
+
+  // ── Polling with 5s interval ──
+  const {
+    orders,
+    loading,
+    pendingOrders,
+    inProgressOrders,
+    readyOrders,
+    pendingCount,
+    inProgressCount,
+    readyCount,
+    refetch,
+  } = useOrderPolling({
+    intervalMs: 5000,
+    onNewOrder: (order) => {
+      // Show alert overlay
+      setAlertOrder(order);
+      // Switch to "nouvelles" tab
+      setActiveTab("nouvelles");
+      // Play sound + vibrate (if not muted)
+      if (!mutedRef.current) {
+        soundManager.playNewOrderAlert();
+        soundManager.vibrate();
+      }
+    },
+    onStatusChange: () => {
+      // Refresh shop status on any change
+      fetchShopInfo();
+    },
+  });
+
+  // Track connection status
   useEffect(() => {
-    audioRef.current = new Audio("/notification.wav");
-  }, []);
-
-  // ── Fetch orders ──
-  const fetchOrders = useCallback(async (isPolling = false) => {
-    try {
-      const [ordersRes, shopRes] = await Promise.all([
-        fetch("/api/orders"),
-        !isPolling ? fetch("/api/shops/my-shop") : Promise.resolve(null),
-      ]);
-
-      if (ordersRes.ok) {
-        const json = await ordersRes.json();
-        const fetched: Order[] = json.data || [];
-        setOrders(fetched);
-
-        // Check for new PENDING orders → play notification
-        const currentPendingIds = new Set(
-          fetched.filter((o) => o.status === "PENDING").map((o) => o.id)
-        );
-        if (isPolling && prevPendingIds.current.size > 0) {
-          const hasNew = [...currentPendingIds].some(
-            (id) => !prevPendingIds.current.has(id)
-          );
-          if (hasNew) {
-            audioRef.current?.play().catch(() => {});
-          }
-        }
-        prevPendingIds.current = currentPendingIds;
-      }
-
-      if (shopRes && shopRes.ok) {
-        const shopJson = await shopRes.json();
-        setShopPrepTime(shopJson.data?.prepTimeMin || 15);
-        setAcceptMinutes(shopJson.data?.prepTimeMin || 15);
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
+    if (!loading) {
+      lastFetchRef.current = Date.now();
+      setConnected(true);
     }
-  }, []);
+    const checker = setInterval(() => {
+      const stale = Date.now() - lastFetchRef.current > 15_000;
+      setConnected(!stale);
+    }, 5000);
+    return () => clearInterval(checker);
+  }, [loading]);
 
-  useEffect(() => {
-    fetchOrders(false);
-    const interval = setInterval(() => fetchOrders(true), 10_000);
-    return () => clearInterval(interval);
-  }, [fetchOrders]);
-
-  // ── Actions ──
-  async function handleAccept(orderId: string) {
-    setActionLoading(true);
+  // ── Fetch shop info (once + on status change) ──
+  const fetchShopInfo = useCallback(async () => {
     try {
-      const res = await fetch(`/api/orders/${orderId}/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estimatedMinutes: acceptMinutes }),
-      });
-      if (res.ok) {
-        setAcceptingId(null);
-        await fetchOrders(true);
-      }
-    } catch {
-      // silent
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleDeny(orderId: string) {
-    if (!denyReason.trim()) return;
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/orders/${orderId}/deny`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: denyReason }),
-      });
-      if (res.ok) {
-        setDenyingId(null);
-        setDenyReason("");
-        await fetchOrders(true);
-      }
-    } catch {
-      // silent
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handleStockIssue(orderId: string) {
-    if (unavailableItems.size === 0) return;
-    setActionLoading(true);
-    try {
-      const currentOrder = orders.find((o) => o.id === orderId);
-      const res = await fetch(`/api/orders/${orderId}/stock-issue`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ unavailableItems: [...unavailableItems] }),
-      });
+      const res = await fetch("/api/boucher/shop/status");
       if (res.ok) {
         const json = await res.json();
-        const alts = json.data?.alternatives || {};
-        const hasAlts = Object.values(alts).some((a: unknown) => Array.isArray(a) && a.length > 0);
-        const unavailableNames = currentOrder
-          ? currentOrder.items
-              .filter((i) => unavailableItems.has(i.productId))
-              .map((i) => i.product?.name || i.name)
-          : [];
-
-        if (hasAlts) {
-          setStockIssueResult({ orderId, alternatives: alts, unavailableNames });
-        }
-
-        setStockIssueId(null);
-        setUnavailableItems(new Set());
-        await fetchOrders(true);
+        setShopName(json.data?.name || "");
+        setShopPrepTime(json.data?.prepTimeMin || 15);
+        setShopStatus(json.data?.status || "OPEN");
       }
     } catch {
       // silent
-    } finally {
-      setActionLoading(false);
     }
-  }
+  }, []);
 
-  async function handlePreparing(orderId: string, addMinutes?: number) {
-    setActionLoading(true);
+  useEffect(() => {
+    fetchShopInfo();
+  }, [fetchShopInfo]);
+
+  // ── Handle order action (unified API) ──
+  async function handleAction(orderId: string, action: string, data?: Record<string, unknown>) {
     try {
-      await fetch(`/api/orders/${orderId}/preparing`, {
-        method: "POST",
+      const res = await fetch(`/api/boucher/orders/${orderId}/action`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ addMinutes: addMinutes || 0 }),
+        body: JSON.stringify({ action, ...data }),
       });
-      await fetchOrders(true);
+      if (res.ok) {
+        await refetch();
+      }
     } catch {
       // silent
-    } finally {
-      setActionLoading(false);
     }
   }
 
-  async function handleReady(orderId: string) {
-    setActionLoading(true);
+  // ── Handle stock issue ──
+  async function handleStockIssue(orderId: string, itemIds: string[]) {
     try {
-      await fetch(`/api/orders/${orderId}/ready`, {
-        method: "POST",
-      });
-      await fetchOrders(true);
-    } catch {
-      // silent
-    } finally {
-      setActionLoading(false);
-    }
-  }
-
-  async function handlePickedUp(orderId: string, qrCode: string | null) {
-    setActionLoading(true);
-    try {
-      await fetch(`/api/orders/${orderId}/picked-up`, {
-        method: "POST",
+      const res = await fetch(`/api/boucher/orders/${orderId}/action`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qrCode: qrCode || "" }),
+        body: JSON.stringify({ action: "item_unavailable", itemIds }),
       });
-      await fetchOrders(true);
+      if (res.ok) {
+        await refetch();
+      }
     } catch {
       // silent
-    } finally {
-      setActionLoading(false);
     }
   }
 
-  // ── Filter orders by tab ──
-  const pendingOrders = orders.filter((o) => o.status === "PENDING");
-  const inProgressOrders = orders.filter(
-    (o) => o.status === "ACCEPTED" || o.status === "PREPARING"
-  );
-  const readyOrders = orders.filter((o) => o.status === "READY");
+  // ── Audio unlock screen ──
+  if (!audioUnlocked) {
+    return <AudioUnlockScreen onUnlocked={() => setAudioUnlocked(true)} />;
+  }
 
-  const tabs: { key: Tab; label: string; count: number; icon: typeof Bell }[] = [
-    { key: "nouvelles", label: "Nouvelles", count: pendingOrders.length, icon: Bell },
-    { key: "en-cours", label: "En cours", count: inProgressOrders.length, icon: Clock },
-    { key: "pretes", label: "Prêtes", count: readyOrders.length, icon: CheckCircle },
-  ];
-
-  if (loading) {
+  // ── Loading state ──
+  if (loading && orders.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#DC2626]" />
+      <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-10 h-10 animate-spin text-[#DC2626] mx-auto" />
+          <p className="text-gray-500 text-sm">Chargement des commandes...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <div className="max-w-3xl mx-auto px-4 py-5 space-y-4">
+  // Tab data
+  const tabs: { key: Tab; label: string; count: number; icon: typeof Bell }[] = [
+    { key: "nouvelles", label: "Nouvelles", count: pendingCount, icon: Bell },
+    { key: "en-cours", label: "En cours", count: inProgressCount, icon: ChefHat },
+    { key: "pretes", label: "Pretes", count: readyCount, icon: CheckCircle },
+  ];
 
-        {/* ── Tabs ── */}
-        <div className="flex gap-1 bg-white dark:bg-[#141414] rounded-xl p-1 shadow-sm">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                  isActive
-                    ? "bg-[#DC2626] text-white shadow-sm"
-                    : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                }`}
-              >
-                <Icon size={16} />
-                <span>{tab.label}</span>
-                {tab.count > 0 && (
-                  <span
-                    className={`min-w-[20px] h-5 flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
-                      isActive
-                        ? "bg-white/20 text-white"
-                        : "bg-[#DC2626] text-white"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+  // Get orders for active tab (mobile)
+  const activeOrders =
+    activeTab === "nouvelles"
+      ? pendingOrders
+      : activeTab === "en-cours"
+      ? inProgressOrders
+      : readyOrders;
+
+  return (
+    <>
+      {/* ── Alert overlay (new order) ── */}
+      <OrderAlertOverlay
+        order={alertOrder}
+        onDismiss={() => setAlertOrder(null)}
+      />
+
+      {/* ── Stock issue modal ── */}
+      {stockIssueOrder && (
+        <ItemUnavailableModal
+          order={stockIssueOrder}
+          onClose={() => setStockIssueOrder(null)}
+          onConfirm={handleStockIssue}
+        />
+      )}
+
+      {/* ── QR Scanner modal ── */}
+      {showScanner && (
+        <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-[#1a1a1a] rounded-2xl max-w-md w-full p-5 space-y-4">
+            <h3 className="text-white font-bold text-base">Scanner QR de retrait</h3>
+            <QRScanner
+              onClose={() => setShowScanner(false)}
+              onScanned={() => {
+                setShowScanner(false);
+                refetch();
+              }}
+            />
+            <button
+              onClick={() => setShowScanner(false)}
+              className="w-full py-2.5 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════ */}
+      {/* ── KITCHEN INTERFACE ── */}
+      {/* ══════════════════════════════════════════ */}
+      <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col">
+        {/* ── Top bar ── */}
+        <header className="shrink-0 bg-[#111] border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/boucher/dashboard"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm"
+            >
+              <ArrowLeft size={16} />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+            <div className="w-px h-5 bg-white/10" />
+            <div>
+              <h1 className="text-sm font-bold text-white leading-none">
+                Mode Cuisine
+              </h1>
+              {shopName && (
+                <p className="text-[10px] text-gray-500 mt-0.5">{shopName}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Shop status indicator */}
+            <span
+              className={`text-[10px] font-bold px-2 py-1 rounded-md ${
+                shopStatus === "OPEN"
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : shopStatus === "BUSY"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-red-500/20 text-red-400"
+              }`}
+            >
+              {shopStatus === "OPEN" ? "En ligne" : shopStatus === "BUSY" ? "Occupe" : shopStatus}
+            </span>
+
+            {/* Time */}
+            <span className="text-xs text-gray-500 font-mono hidden sm:block">
+              {formatTime(new Date().toISOString())}
+            </span>
+
+            {/* Sound toggle */}
+            <button
+              onClick={() => setMuted(!muted)}
+              className={`p-2 rounded-lg transition-colors ${
+                muted
+                  ? "bg-red-500/20 text-red-400"
+                  : "bg-white/5 text-gray-400 hover:text-white"
+              }`}
+              title={muted ? "Son desactive" : "Son active"}
+            >
+              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+
+            {/* QR Scanner */}
+            <button
+              onClick={() => setShowScanner(true)}
+              className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              title="Scanner QR"
+            >
+              <ScanLine size={16} />
+            </button>
+
+            {/* Connection status */}
+            <div className="flex items-center gap-1">
+              {connected ? (
+                <Wifi size={14} className="text-emerald-400" />
+              ) : (
+                <WifiOff size={14} className="text-red-400 animate-pulse" />
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* ── Mobile tabs (md-) ── */}
+        <div className="md:hidden shrink-0 bg-[#111] border-b border-white/5 px-2 py-1.5">
+          <div className="flex gap-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                    isActive
+                      ? "bg-[#DC2626] text-white"
+                      : "text-gray-500 hover:bg-white/5"
+                  }`}
+                >
+                  <Icon size={15} />
+                  <span>{tab.label}</span>
+                  {tab.count > 0 && (
+                    <span
+                      className={`min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : tab.key === "nouvelles"
+                          ? "bg-[#DC2626] text-white"
+                          : "bg-white/10 text-gray-400"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* ── NOUVELLES ── */}
-        {activeTab === "nouvelles" && (
-          <div className="space-y-3">
-            {pendingOrders.length === 0 ? (
-              <EmptyTab icon={<Bell className="w-10 h-10 text-gray-300 dark:text-gray-600" />} message="Aucune nouvelle commande" />
-            ) : (
-              pendingOrders.map((order) => (
-                <Card key={order.id} className="bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden">
-                  <div className="h-1 bg-amber-400" />
-                  <CardContent className="p-4 space-y-3">
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
-                            {order.orderNumber}
-                          </span>
-                          {order.isPro && (
-                            <Badge variant="pro" className="text-[10px]">PRO</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                          {order.user ? `${order.user.firstName} ${order.user.lastName}` : "Client"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
-                          {formatPrice(order.totalCents)}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">{formatTime(order.createdAt)}</p>
-                      </div>
-                    </div>
+        {/* ══════════════════════════════════════════ */}
+        {/* ── DESKTOP: 3-column layout ── */}
+        {/* ══════════════════════════════════════════ */}
+        <div className="flex-1 overflow-hidden hidden md:flex">
+          {/* Column 1: Nouvelles */}
+          <KitchenColumn
+            title="Nouvelles"
+            count={pendingCount}
+            icon={<Bell size={16} />}
+            color="amber"
+            orders={pendingOrders}
+            shopName={shopName}
+            shopPrepTime={shopPrepTime}
+            onAction={handleAction}
+            onStockIssue={setStockIssueOrder}
+            emptyMessage="Aucune nouvelle commande"
+            emptyIcon={<Bell size={32} className="text-gray-700" />}
+          />
 
-                    {/* Items */}
-                    <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 space-y-1">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {item.quantity} {(item.product?.unit || item.unit) === "KG" ? "kg" : (item.product?.unit || item.unit) === "PIECE" ? "pc" : "barq."} — {item.product?.name || item.name}
-                          </span>
-                          <span className="text-gray-400 dark:text-gray-500 text-xs">
-                            {formatPrice(item.totalCents || item.priceCents * item.quantity)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+          {/* Divider */}
+          <div className="w-px bg-white/5 shrink-0" />
 
-                    {/* Customer note */}
-                    {order.customerNote && (
-                      <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg px-3 py-2 text-sm text-blue-700 dark:text-blue-300">
-                        <span className="font-medium">Note : </span>{order.customerNote}
-                      </div>
-                    )}
+          {/* Column 2: En cours */}
+          <KitchenColumn
+            title="En cours"
+            count={inProgressCount}
+            icon={<ChefHat size={16} />}
+            color="blue"
+            orders={inProgressOrders}
+            shopName={shopName}
+            shopPrepTime={shopPrepTime}
+            onAction={handleAction}
+            onStockIssue={setStockIssueOrder}
+            emptyMessage="Aucune commande en cours"
+            emptyIcon={<ChefHat size={32} className="text-gray-700" />}
+          />
 
-                    {/* Requested time */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      <Clock size={13} />
-                      {order.requestedTime
-                        ? `Retrait souhaité : ${formatTime(order.requestedTime)}`
-                        : "ASAP"}
-                    </div>
+          {/* Divider */}
+          <div className="w-px bg-white/5 shrink-0" />
 
-                    {/* ── Accept form ── */}
-                    {acceptingId === order.id ? (
-                      <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">
-                          Prêt dans combien de minutes ?
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            value={acceptMinutes}
-                            onChange={(e) => setAcceptMinutes(Number(e.target.value))}
-                            className="w-24 h-9"
-                            min={1}
-                            max={480}
-                          />
-                          <span className="text-sm text-gray-500 dark:text-gray-400">min</span>
-                          <div className="flex-1" />
-                          <Button
-                            size="sm"
-                            onClick={() => handleAccept(order.id)}
-                            disabled={actionLoading}
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            {actionLoading ? <Loader2 size={14} className="animate-spin" /> : "Confirmer"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setAcceptingId(null)}
-                          >
-                            Annuler
-                          </Button>
-                        </div>
-                      </div>
-                    ) : denyingId === order.id ? (
-                      /* ── Deny form ── */
-                      <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                          Raison du refus
-                        </p>
-                        <textarea
-                          value={denyReason}
-                          onChange={(e) => setDenyReason(e.target.value)}
-                          placeholder="Ex: Rupture de stock, fermeture exceptionnelle..."
-                          className="w-full rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-[#0a0a0a] px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-300 dark:text-white"
-                          rows={2}
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDeny(order.id)}
-                            disabled={actionLoading || !denyReason.trim()}
-                          >
-                            {actionLoading ? <Loader2 size={14} className="animate-spin" /> : "Confirmer le refus"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => { setDenyingId(null); setDenyReason(""); }}
-                          >
-                            Annuler
-                          </Button>
-                        </div>
-                      </div>
-                    ) : stockIssueId === order.id ? (
-                      /* ── Stock issue form ── */
-                      <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-3 space-y-2">
-                        <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
-                          Cochez les articles en rupture
-                        </p>
-                        <div className="space-y-1.5">
-                          {order.items.map((item) => (
-                            <label
-                              key={item.id}
-                              className="flex items-center gap-2 text-sm cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={unavailableItems.has(item.productId)}
-                                onChange={(e) => {
-                                  const next = new Set(unavailableItems);
-                                  if (e.target.checked) next.add(item.productId);
-                                  else next.delete(item.productId);
-                                  setUnavailableItems(next);
-                                }}
-                                className="rounded border-orange-300 text-orange-600 focus:ring-orange-500"
-                              />
-                              <span className={unavailableItems.has(item.productId) ? "line-through text-gray-400" : "text-gray-700 dark:text-gray-300"}>
-                                {item.product?.name || item.name} ({item.quantity} {(item.product?.unit || item.unit) === "KG" ? "kg" : (item.product?.unit || item.unit) === "PIECE" ? "pc" : "barq."})
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            className="bg-orange-600 hover:bg-orange-700"
-                            onClick={() => handleStockIssue(order.id)}
-                            disabled={actionLoading || unavailableItems.size === 0}
-                          >
-                            {actionLoading ? <Loader2 size={14} className="animate-spin" /> : "Signaler rupture"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => { setStockIssueId(null); setUnavailableItems(new Set()); }}
-                          >
-                            Annuler
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      /* ── Action buttons ── */
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-1"
-                          onClick={() => { setAcceptingId(order.id); setAcceptMinutes(shopPrepTime); setDenyingId(null); setStockIssueId(null); }}
-                        >
-                          <CheckCircle size={14} /> Accepter
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="flex-1 gap-1"
-                          onClick={() => { setDenyingId(order.id); setAcceptingId(null); setStockIssueId(null); }}
-                        >
-                          <XCircle size={14} /> Refuser
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
-                          onClick={() => { setStockIssueId(order.id); setAcceptingId(null); setDenyingId(null); setUnavailableItems(new Set()); }}
-                        >
-                          <AlertTriangle size={14} /> Rupture
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* ── EN COURS ── */}
-        {activeTab === "en-cours" && (
-          <div className="space-y-3">
-            {inProgressOrders.length === 0 ? (
-              <EmptyTab icon={<Clock className="w-10 h-10 text-gray-300 dark:text-gray-600" />} message="Aucune commande en cours" />
-            ) : (
-              inProgressOrders.map((order) => {
-                const remaining = order.estimatedReady
-                  ? timeRemaining(order.estimatedReady)
-                  : null;
-                const isOverdue = remaining !== null && remaining < 0;
-
-                return (
-                  <Card key={order.id} className="bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden">
-                    <div className={`h-1 ${isOverdue ? "bg-red-500" : "bg-blue-400"}`} />
-                    <CardContent className="p-4 space-y-3">
-                      {/* Header with timer */}
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
-                              {order.orderNumber}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={`text-[10px] font-semibold border ${
-                                order.status === "PREPARING"
-                                  ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-800 dark:text-indigo-300"
-                                  : "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300"
-                              }`}
-                            >
-                              {order.status === "PREPARING" ? "En prépa" : "Acceptée"}
-                            </Badge>
-                            {order.isPro && (
-                              <Badge variant="pro" className="text-[10px]">PRO</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                            {order.user ? `${order.user.firstName} ${order.user.lastName}` : "Client"}
-                          </p>
-                        </div>
-                        {/* Timer */}
-                        {remaining !== null && (
-                          <div className={`text-right px-3 py-1.5 rounded-lg ${
-                            isOverdue ? "bg-red-100 dark:bg-red-950/40" : "bg-blue-50 dark:bg-blue-950/30"
-                          }`}>
-                            <p className={`text-lg font-bold font-mono ${
-                              isOverdue ? "text-red-600" : "text-blue-700 dark:text-blue-300"
-                            }`}>
-                              {isOverdue ? `+${Math.abs(remaining)}` : remaining} min
-                            </p>
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                              {isOverdue ? "en retard" : "restantes"}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Items */}
-                      <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 space-y-1">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="text-sm text-gray-700 dark:text-gray-300">
-                            {item.quantity} {(item.product?.unit || item.unit) === "KG" ? "kg" : (item.product?.unit || item.unit) === "PIECE" ? "pc" : "barq."} — {item.product?.name || item.name}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Total */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
-                        <span className="font-bold text-gray-900 dark:text-white">{formatPrice(order.totalCents)}</span>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        {order.status === "ACCEPTED" && (
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 gap-1"
-                            onClick={() => handlePreparing(order.id)}
-                            disabled={actionLoading}
-                          >
-                            <ChefHat size={14} /> En préparation
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-1"
-                          onClick={() => handleReady(order.id)}
-                          disabled={actionLoading}
-                        >
-                          <CheckCircle size={14} /> Prête !
-                        </Button>
-                      </div>
-
-                      {/* +5 / +10 min buttons */}
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
-                          onClick={() => handlePreparing(order.id, 5)}
-                          disabled={actionLoading}
-                        >
-                          <Timer size={13} /> +5 min
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 gap-1 text-xs border-gray-200 dark:border-white/10 dark:text-gray-300 dark:hover:bg-white/5"
-                          onClick={() => handlePreparing(order.id, 10)}
-                          disabled={actionLoading}
-                        >
-                          <Timer size={13} /> +10 min
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* ── PRÊTES ── */}
-        {activeTab === "pretes" && (
-          <div className="space-y-3">
-            {/* Scanner button */}
-            <Button
-              onClick={() => setShowScanner(true)}
-              className="w-full bg-[#DC2626] hover:bg-[#b91c1c] gap-2 h-11"
-            >
-              <ScanLine size={18} /> Scanner un QR code
-            </Button>
-
-            {readyOrders.length === 0 ? (
-              <EmptyTab icon={<CheckCircle className="w-10 h-10 text-gray-300 dark:text-gray-600" />} message="Aucune commande prête" />
-            ) : (
-              readyOrders.map((order) => {
-                const waitTime = order.actualReady
-                  ? timeSince(order.actualReady)
-                  : null;
-
-                return (
-                  <Card key={order.id} className="bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden">
-                    <div className="h-1 bg-emerald-400" />
-                    <CardContent className="p-4 space-y-3">
-                      {/* Header */}
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-white">
-                              {order.orderNumber}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] font-semibold border bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
-                            >
-                              Prête
-                            </Badge>
-                            {order.isPro && (
-                              <Badge variant="pro" className="text-[10px]">PRO</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                            {order.user ? `${order.user.firstName} ${order.user.lastName}` : "Client"}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-900 dark:text-white">{formatPrice(order.totalCents)}</p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {order.items.length} article{order.items.length > 1 ? "s" : ""}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Waiting indicator */}
-                      <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
-                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                        <span className="text-sm text-amber-800 dark:text-amber-300">
-                          En attente du client
-                        </span>
-                        {waitTime && (
-                          <span className="text-xs text-amber-600 dark:text-amber-400 ml-auto">
-                            depuis {waitTime}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* QR Code display */}
-                      {order.qrCode && (
-                        <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 text-center">
-                          <div className="flex items-center justify-center gap-2 mb-1">
-                            <QrCode size={16} className="text-gray-500 dark:text-gray-400" />
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Code QR de retrait</span>
-                          </div>
-                          <p className="font-mono text-sm font-semibold text-gray-700 dark:text-gray-300 break-all">
-                            {order.qrCode.slice(0, 8)}...{order.qrCode.slice(-4)}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-1"
-                          onClick={() => handlePickedUp(order.id, order.qrCode)}
-                          disabled={actionLoading}
-                        >
-                          <Package size={14} /> Récupérée
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {/* ── Stock Issue Result Dialog ── */}
-        <Dialog open={!!stockIssueResult} onOpenChange={() => setStockIssueResult(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle size={18} className="text-orange-500" />
-                Rupture signalee
-              </DialogTitle>
-              <DialogDescription>
-                Le client a ete notifie et peut choisir des alternatives.
-              </DialogDescription>
-            </DialogHeader>
-            {stockIssueResult && (
-              <div className="space-y-3 px-1">
-                <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-3">
-                  <p className="text-sm font-medium text-orange-800 dark:text-orange-300 mb-1">
-                    Articles en rupture :
-                  </p>
-                  <ul className="text-sm text-orange-700 dark:text-orange-400 space-y-0.5">
-                    {stockIssueResult.unavailableNames.map((name, i) => (
-                      <li key={i}>• {name}</li>
-                    ))}
-                  </ul>
-                </div>
-                {Object.values(stockIssueResult.alternatives).some((a) => a.length > 0) && (
-                  <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3">
-                    <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-1">
-                      Alternatives proposees au client :
-                    </p>
-                    {Object.entries(stockIssueResult.alternatives).map(([, alts]) =>
-                      alts.map((alt) => (
-                        <p key={alt.id} className="text-sm text-emerald-700 dark:text-emerald-400">
-                          • {alt.name} — {(alt.priceCents / 100).toFixed(2).replace(".", ",")} €/{alt.unit === "KG" ? "kg" : alt.unit === "PIECE" ? "pc" : "barq."}
-                        </p>
-                      ))
-                    )}
-                  </div>
-                )}
-                <Button
-                  className="w-full bg-[#DC2626] hover:bg-[#b91c1c]"
-                  onClick={() => setStockIssueResult(null)}
+          {/* Column 3: Pretes */}
+          <KitchenColumn
+            title="Pretes"
+            count={readyCount}
+            icon={<CheckCircle size={16} />}
+            color="emerald"
+            orders={readyOrders}
+            shopName={shopName}
+            shopPrepTime={shopPrepTime}
+            onAction={handleAction}
+            onStockIssue={setStockIssueOrder}
+            emptyMessage="Aucune commande prete"
+            emptyIcon={<CheckCircle size={32} className="text-gray-700" />}
+            extra={
+              readyCount > 0 ? (
+                <button
+                  onClick={() => setShowScanner(true)}
+                  className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold py-3 rounded-xl transition-all mb-3"
                 >
-                  Compris
-                </Button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+                  <ScanLine size={16} /> Scanner QR
+                </button>
+              ) : null
+            }
+          />
+        </div>
 
-        {/* ── QR Scanner Dialog ── */}
-        <Dialog open={showScanner} onOpenChange={setShowScanner}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Scanner QR</DialogTitle>
-              <DialogDescription>
-                Scannez le QR code du client pour valider le retrait
-              </DialogDescription>
-            </DialogHeader>
-            <div className="p-5 pt-0">
-              <QRScanner
-                onClose={() => setShowScanner(false)}
-                onScanned={() => fetchOrders(true)}
-              />
+        {/* ══════════════════════════════════════════ */}
+        {/* ── MOBILE: Single column (tabs) ── */}
+        {/* ══════════════════════════════════════════ */}
+        <div className="flex-1 overflow-y-auto md:hidden p-3 space-y-3">
+          {/* Scanner button for ready tab */}
+          {activeTab === "pretes" && readyCount > 0 && (
+            <button
+              onClick={() => setShowScanner(true)}
+              className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] text-white font-bold py-3 rounded-xl transition-all"
+            >
+              <ScanLine size={16} /> Scanner QR
+            </button>
+          )}
+
+          {activeOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              {activeTab === "nouvelles" && <Bell size={40} className="text-gray-700" />}
+              {activeTab === "en-cours" && <ChefHat size={40} className="text-gray-700" />}
+              {activeTab === "pretes" && <CheckCircle size={40} className="text-gray-700" />}
+              <p className="text-gray-600 text-sm">
+                {activeTab === "nouvelles" && "Aucune nouvelle commande"}
+                {activeTab === "en-cours" && "Aucune commande en cours"}
+                {activeTab === "pretes" && "Aucune commande prete"}
+              </p>
             </div>
-          </DialogContent>
-        </Dialog>
+          ) : (
+            activeOrders.map((order) => (
+              <KitchenOrderCard
+                key={order.id}
+                order={order}
+                shopName={shopName}
+                shopPrepTime={shopPrepTime}
+                onAction={handleAction}
+                onStockIssue={setStockIssueOrder}
+              />
+            ))
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
 // ─────────────────────────────────────────────
-// Empty state
+// Desktop column component
 // ─────────────────────────────────────────────
-function EmptyTab({ icon, message }: { icon: React.ReactNode; message: string }) {
+function KitchenColumn({
+  title,
+  count,
+  icon,
+  color,
+  orders,
+  shopName,
+  shopPrepTime,
+  onAction,
+  onStockIssue,
+  emptyMessage,
+  emptyIcon,
+  extra,
+}: {
+  title: string;
+  count: number;
+  icon: React.ReactNode;
+  color: "amber" | "blue" | "emerald";
+  orders: KitchenOrder[];
+  shopName: string;
+  shopPrepTime: number;
+  onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
+  onStockIssue: (order: KitchenOrder) => void;
+  emptyMessage: string;
+  emptyIcon: React.ReactNode;
+  extra?: React.ReactNode;
+}) {
+  const colorMap = {
+    amber: "text-amber-400 bg-amber-500/20",
+    blue: "text-blue-400 bg-blue-500/20",
+    emerald: "text-emerald-400 bg-emerald-500/20",
+  };
+
   return (
-    <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
-      <CardContent className="py-12 flex flex-col items-center gap-2">
-        {icon}
-        <p className="text-sm text-gray-400 dark:text-gray-500">{message}</p>
-      </CardContent>
-    </Card>
+    <div className="flex-1 flex flex-col min-w-0">
+      {/* Column header */}
+      <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
+        <div className={`${colorMap[color]} p-1.5 rounded-lg`}>{icon}</div>
+        <h2 className="text-sm font-bold text-white">{title}</h2>
+        {count > 0 && (
+          <span
+            className={`min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 ${
+              color === "amber"
+                ? "bg-amber-500 text-white"
+                : color === "blue"
+                ? "bg-blue-500 text-white"
+                : "bg-emerald-500 text-white"
+            }`}
+          >
+            {count}
+          </span>
+        )}
+      </div>
+
+      {/* Column content */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {extra}
+        {orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            {emptyIcon}
+            <p className="text-gray-600 text-sm">{emptyMessage}</p>
+          </div>
+        ) : (
+          orders.map((order) => (
+            <KitchenOrderCard
+              key={order.id}
+              order={order}
+              shopName={shopName}
+              shopPrepTime={shopPrepTime}
+              onAction={onAction}
+              onStockIssue={onStockIssue}
+            />
+          ))
+        )}
+      </div>
+    </div>
   );
 }
