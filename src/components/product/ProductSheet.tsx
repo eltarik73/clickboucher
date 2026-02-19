@@ -93,12 +93,12 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
 
         <div className="overflow-y-auto max-h-[calc(85vh-80px)] px-5 pb-6">
           {/* Image */}
-          <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100 dark:bg-white/5 mt-2 mb-4">
+          <div className="relative w-full max-h-[200px] aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 mt-2 mb-4">
             <Image
               src={imgSrc}
               alt={product.name}
               fill
-              sizes="100vw"
+              sizes="(max-width: 768px) 100vw, 500px"
               className="object-cover"
               quality={80}
               onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
