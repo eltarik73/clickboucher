@@ -3,7 +3,8 @@
 
 import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShoppingBag } from "lucide-react";
+import { toast } from "sonner";
 import { useCart } from "@/lib/hooks/use-cart";
 import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
 import { ProductGrid } from "@/components/product/ProductGrid";
@@ -166,6 +167,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
         },
         shopRef
       );
+      toast.success(`${p.name} ajouté au panier`, { icon: <ShoppingBag size={14} />, duration: 1500 });
     },
     [addItem, shopRef, products]
   );
@@ -189,6 +191,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus }: Pr
         },
         shopRef
       );
+      toast.success(`${selectedProduct.name} (${weightG}g) ajouté`, { icon: <ShoppingBag size={14} />, duration: 1500 });
       setSelectedProduct(null);
     },
     [selectedProduct, addItem, shopRef]

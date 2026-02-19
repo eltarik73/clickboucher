@@ -1,4 +1,4 @@
-// src/components/order/OrderTracker.tsx — 5-step animated order tracker with SSE real-time updates
+// src/components/order/OrderTracker.tsx — Premium order tracker with horizontal progress, live countdown, SSE
 "use client";
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
@@ -9,11 +9,11 @@ type OrderStatus =
   | "COMPLETED" | "DENIED" | "CANCELLED" | "PARTIALLY_DENIED" | "AUTO_CANCELLED";
 
 const STEPS = [
-  { key: "PENDING",   label: "Commande recue",   Icon: ClipboardList },
-  { key: "ACCEPTED",  label: "Acceptee",          Icon: CheckCircle },
-  { key: "PREPARING", label: "En preparation",    Icon: ChefHat },
-  { key: "READY",     label: "Prete !",           Icon: Package },
-  { key: "PICKED_UP", label: "Recuperee",         Icon: ShoppingBag },
+  { key: "PENDING",   label: "Envoyée",        shortLabel: "Envoyée",   Icon: ClipboardList },
+  { key: "ACCEPTED",  label: "Acceptée",        shortLabel: "Acceptée",  Icon: CheckCircle },
+  { key: "PREPARING", label: "En préparation",  shortLabel: "Prépa.",    Icon: ChefHat },
+  { key: "READY",     label: "Prête !",         shortLabel: "Prête !",   Icon: Package },
+  { key: "PICKED_UP", label: "Récupérée",       shortLabel: "Récup.",    Icon: ShoppingBag },
 ] as const;
 
 const STEP_INDEX: Record<string, number> = {
@@ -35,12 +35,38 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function timeRemaining(iso: string): string {
-  const diff = new Date(iso).getTime() - Date.now();
-  if (diff <= 0) return "Imminent";
-  const min = Math.ceil(diff / 60_000);
-  return min > 60 ? `${Math.floor(min / 60)}h${String(min % 60).padStart(2, "0")}` : `${min} min`;
+// ── Live Countdown Hook ──────────────────────────
+function useCountdown(targetIso: string | null | undefined) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!targetIso) { setRemaining(null); return; }
+
+    const update = () => {
+      const diff = new Date(targetIso).getTime() - Date.now();
+      setRemaining(Math.max(0, diff));
+    };
+    update();
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [targetIso]);
+
+  if (remaining === null) return null;
+  if (remaining <= 0) return "Imminent";
+
+  const totalSec = Math.ceil(remaining / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+
+  if (min >= 60) {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return `${h}h${String(m).padStart(2, "0")}`;
+  }
+  return min > 0 ? `${min}:${String(sec).padStart(2, "0")}` : `${sec}s`;
 }
+
+// ── Main Component ───────────────────────────────
 
 export default function OrderTracker({ orderId, status: initialStatus, estimatedReady: initEstimated, actualReady, denyReason: initDenyReason, shopName, enableSSE = true }: Props) {
   const [status, setStatus] = useState<OrderStatus>(initialStatus);
@@ -49,6 +75,8 @@ export default function OrderTracker({ orderId, status: initialStatus, estimated
   const [connected, setConnected] = useState(false);
   const prevStatus = useRef(initialStatus);
   const readySoundPlayed = useRef(false);
+
+  const countdown = useCountdown(actualReady || estimatedReady);
 
   const playSound = useCallback((src: string) => {
     try {
@@ -65,165 +93,236 @@ export default function OrderTracker({ orderId, status: initialStatus, estimated
     const terminal = ["COMPLETED", "PICKED_UP", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
     if (terminal.includes(initialStatus)) return;
 
-    const es = new EventSource(`/api/orders/${orderId}/stream`);
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
+    let es: EventSource;
 
-    es.onopen = () => setConnected(true);
-    es.onerror = () => setConnected(false);
+    function connect() {
+      es = new EventSource(`/api/orders/${orderId}/stream`);
 
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      es.onopen = () => setConnected(true);
+      es.onerror = () => {
+        setConnected(false);
+        es.close();
+        // Auto-reconnect after 3s
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
 
-        if (data.type === "CONNECTED") {
-          setConnected(true);
-        }
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
 
-        if (data.type === "STATUS_CHANGED") {
-          setStatus(data.status);
-          if (data.estimatedReady) setEstimatedReady(data.estimatedReady);
-          if (data.denyReason) setDenyReason(data.denyReason);
+          if (data.type === "CONNECTED") setConnected(true);
 
-          // Sound + notification on READY
-          if (data.status === "READY" && !readySoundPlayed.current) {
-            playSound("/sounds/order-ready.wav");
-            readySoundPlayed.current = true;
-            navigator.vibrate?.([200, 100, 200]);
+          if (data.type === "STATUS_CHANGED") {
+            setStatus(data.status);
+            if (data.estimatedReady) setEstimatedReady(data.estimatedReady);
+            if (data.denyReason) setDenyReason(data.denyReason);
 
-            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-              new Notification("Commande prete !", {
-                body: shopName ? `Chez ${shopName}` : "Votre commande est prete au retrait",
-              });
+            if (data.status === "READY" && !readySoundPlayed.current) {
+              playSound("/sounds/order-ready.wav");
+              readySoundPlayed.current = true;
+              navigator.vibrate?.([200, 100, 200]);
+              if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                new Notification("Commande prête !", {
+                  body: shopName ? `Chez ${shopName}` : "Votre commande est prête au retrait",
+                });
+              }
             }
+            if (data.status === "ACCEPTED" && prevStatus.current === "PENDING") {
+              playSound("/sounds/notification.mp3");
+            }
+            if (["DENIED", "CANCELLED", "AUTO_CANCELLED"].includes(data.status)) {
+              playSound("/sounds/alert.wav");
+            }
+            prevStatus.current = data.status;
           }
+        } catch {}
+      };
+    }
 
-          if (data.status === "ACCEPTED" && prevStatus.current === "PENDING") {
-            playSound("/sounds/notification.mp3");
-          }
+    connect();
 
-          if (data.status === "DENIED" || data.status === "CANCELLED" || data.status === "AUTO_CANCELLED") {
-            playSound("/sounds/alert.wav");
-          }
-
-          prevStatus.current = data.status;
-        }
-      } catch {}
-    };
-
-    // Request notification permission
     if (typeof Notification !== "undefined" && Notification.permission === "default") {
       Notification.requestPermission();
     }
 
-    return () => es.close();
+    return () => {
+      es?.close();
+      clearTimeout(reconnectTimeout);
+    };
   }, [orderId, initialStatus, enableSSE, playSound, shopName]);
 
   const currentStep = STEP_INDEX[status] ?? -1;
   const isCancelled = ["DENIED", "CANCELLED", "AUTO_CANCELLED"].includes(status);
+  const progressPct = Math.min(100, (currentStep / (STEPS.length - 1)) * 100);
 
-  const estimatedDisplay = useMemo(() => {
-    if (actualReady) return `Prete a ${formatTime(actualReady)}`;
-    if (estimatedReady) return `Estimee ~${timeRemaining(estimatedReady)}`;
+  const timeLabel = useMemo(() => {
+    if (actualReady) return `Prête à ${formatTime(actualReady)}`;
+    if (estimatedReady) return `Estimée vers ${formatTime(estimatedReady)}`;
     return null;
   }, [estimatedReady, actualReady]);
 
+  // ── Cancelled state ──
   if (isCancelled) {
     return (
-      <div className="rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-6">
+      <div className="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-6">
         <div className="flex items-center gap-3 mb-2">
-          <X className="w-6 h-6 text-red-600" />
-          <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">
-            {status === "DENIED" ? "Commande refusee" : status === "AUTO_CANCELLED" ? "Commande expiree" : "Commande annulee"}
-          </h3>
+          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
+            <X className="w-5 h-5 text-red-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-red-700 dark:text-red-400">
+              {status === "DENIED" ? "Commande refusée" : status === "AUTO_CANCELLED" ? "Commande expirée" : "Commande annulée"}
+            </h3>
+            {denyReason && (
+              <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">{denyReason}</p>
+            )}
+          </div>
         </div>
-        {denyReason && (
-          <p className="text-sm text-red-600 dark:text-red-400 ml-9">{denyReason}</p>
-        )}
       </div>
     );
   }
 
+  // ── Active order ──
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] p-6">
-      {/* Connection indicator + time estimate */}
-      <div className="flex items-center justify-between mb-6">
-        {estimatedDisplay && currentStep < 4 ? (
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <Clock className="w-4 h-4" />
-            <span>{estimatedDisplay}</span>
-          </div>
-        ) : (
-          <div />
-        )}
+    <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] overflow-hidden">
+      {/* Top: countdown + connection status */}
+      <div className="px-5 pt-5 pb-3">
+        <div className="flex items-center justify-between mb-1">
+          {/* Countdown */}
+          {countdown && currentStep < 4 ? (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-[#DC2626]/10 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-[#DC2626]" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-gray-900 dark:text-white tabular-nums tracking-tight">
+                  {countdown}
+                </p>
+                {timeLabel && (
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500">{timeLabel}</p>
+                )}
+              </div>
+            </div>
+          ) : currentStep >= 4 ? (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-emerald-600" />
+              </div>
+              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Terminée</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center animate-pulse">
+                <Clock className="w-4 h-4 text-amber-600" />
+              </div>
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">En attente...</p>
+            </div>
+          )}
 
-        {enableSSE && orderId && (
-          <span className={`inline-flex items-center gap-1 text-[10px] ${connected ? "text-emerald-500" : "text-gray-400"}`}>
-            {connected ? <Wifi size={10} /> : <WifiOff size={10} />}
-            {connected ? "En direct" : "Reconnexion..."}
-          </span>
-        )}
+          {/* SSE indicator */}
+          {enableSSE && orderId && (
+            <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full ${
+              connected
+                ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                : "bg-gray-50 dark:bg-white/5 text-gray-400"
+            }`}>
+              {connected ? <Wifi size={9} /> : <WifiOff size={9} />}
+              {connected ? "Direct" : "..."}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Horizontal progress bar */}
+      <div className="px-5 pb-2">
+        <div className="h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-1000 ease-out"
+            style={{
+              width: `${progressPct}%`,
+              background: currentStep >= 3
+                ? "linear-gradient(90deg, #10b981, #059669)"
+                : "linear-gradient(90deg, #DC2626, #ef4444)",
+            }}
+          />
+        </div>
       </div>
 
       {/* Ready banner */}
       {status === "READY" && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 mb-6 text-center animate-pulse">
-          <Bell className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-          <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
-            Votre commande est prete !
-          </p>
-          <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-1">
-            Rendez-vous en boutique pour la retirer
+        <div className="mx-5 mb-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <Bell className="w-5 h-5 text-emerald-600 animate-bounce" />
+            <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">
+              Votre commande est prête !
+            </p>
+          </div>
+          <p className="text-xs text-emerald-600 dark:text-emerald-500">
+            Rendez-vous chez {shopName || "le boucher"} pour la retirer
           </p>
         </div>
       )}
 
-      {/* Steps */}
-      <div className="relative">
-        {STEPS.map((step, i) => {
-          const isComplete = i < currentStep;
-          const isCurrent = i === currentStep;
-          const isPending = i > currentStep;
+      {/* Horizontal steps */}
+      <div className="px-5 pb-5 pt-2">
+        <div className="flex items-center justify-between">
+          {STEPS.map((step, i) => {
+            const isComplete = i < currentStep;
+            const isCurrent = i === currentStep;
+            const isPending = i > currentStep;
 
-          return (
-            <div key={step.key} className="flex items-start gap-4 relative">
-              {/* Vertical line */}
-              {i < STEPS.length - 1 && (
+            return (
+              <div key={step.key} className="flex flex-col items-center flex-1 relative">
+                {/* Connector line (between steps) */}
+                {i > 0 && (
+                  <div
+                    className={`absolute top-[15px] right-1/2 w-full h-0.5 -z-0 transition-colors duration-700 ${
+                      isComplete || isCurrent ? "bg-[#DC2626]" : "bg-gray-200 dark:bg-white/10"
+                    }`}
+                    style={{ transform: "translateX(-50%)" }}
+                  />
+                )}
+
+                {/* Step circle */}
                 <div
-                  className={`absolute left-[19px] top-[40px] w-0.5 h-[calc(100%-16px)] transition-colors duration-500 ${
-                    isComplete ? "bg-green-500" : "bg-gray-200 dark:bg-white/10"
-                  }`}
-                />
-              )}
-
-              {/* Icon circle */}
-              <div
-                className={`relative z-10 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
-                  isComplete
-                    ? "bg-green-500 text-white"
-                    : isCurrent
-                    ? "bg-red-600 text-white ring-4 ring-red-100 dark:ring-red-900/30 animate-pulse"
-                    : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-600"
-                }`}
-              >
-                <step.Icon className="w-5 h-5" />
-              </div>
-
-              {/* Label */}
-              <div className={`pb-8 pt-2 ${isPending ? "opacity-40" : ""}`}>
-                <p
-                  className={`text-sm font-medium transition-all duration-300 ${
-                    isCurrent
-                      ? "text-red-600 dark:text-red-500 font-bold"
-                      : isComplete
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-gray-500 dark:text-gray-400"
+                  className={`relative z-10 w-[30px] h-[30px] rounded-full flex items-center justify-center transition-all duration-500 ${
+                    isComplete
+                      ? "bg-green-500 text-white scale-100"
+                      : isCurrent
+                      ? "bg-[#DC2626] text-white scale-110 shadow-lg shadow-[#DC2626]/30"
+                      : "bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 scale-90"
                   }`}
                 >
-                  {step.label}
+                  {isComplete ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <step.Icon className="w-3.5 h-3.5" />
+                  )}
+                  {/* Pulse ring on current step */}
+                  {isCurrent && (
+                    <span className="absolute inset-0 rounded-full border-2 border-[#DC2626] animate-ping opacity-30" />
+                  )}
+                </div>
+
+                {/* Label */}
+                <p
+                  className={`mt-1.5 text-[10px] text-center leading-tight transition-all duration-300 ${
+                    isCurrent
+                      ? "text-[#DC2626] font-bold"
+                      : isComplete
+                      ? "text-green-600 dark:text-green-400 font-medium"
+                      : isPending
+                      ? "text-gray-300 dark:text-gray-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {step.shortLabel}
                 </p>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

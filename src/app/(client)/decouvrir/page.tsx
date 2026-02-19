@@ -14,6 +14,8 @@ import { StarRating } from "@/components/ui/StarRating";
 import { getShopImage } from "@/lib/product-images";
 import NearbyShops from "./NearbyShops";
 import CalendarBanner from "@/components/landing/CalendarBanner";
+import { SearchBar } from "@/components/search/SearchBar";
+import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
 
 const SHOP_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' fill='%23e5e7eb'%3E%3Crect width='600' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🏪%3C/text%3E%3C/svg%3E";
 
@@ -326,6 +328,11 @@ export default async function DecouvrirPage() {
             Zero file. Zero stress. <span className="text-white font-medium">100% frais.</span>
           </p>
           <HeroButtons />
+
+          {/* Search bar */}
+          <div className="mt-8 px-2">
+            <SearchBar />
+          </div>
         </div>
       </section>
 
@@ -344,6 +351,11 @@ export default async function DecouvrirPage() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* BUTCHERS SECTION */}
       {/* ═══════════════════════════════════════════════════════════ */}
+      {/* Active order banner */}
+      <div className="max-w-6xl mx-auto pt-6">
+        <ActiveOrderBanner />
+      </div>
+
       <section id="butchers" className="max-w-6xl mx-auto px-5 py-14">
         {/* DB error warning */}
         {dbError && (
