@@ -2,8 +2,14 @@
 // PATCH /api/boucher/subscription — Upgrade plan / change billing cycle
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+
+const patchSubscriptionSchema = z.object({
+  plan: z.enum(["STARTER", "PRO", "PREMIUM"]),
+  billingCycle: z.enum(["monthly", "yearly"]).optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -62,15 +68,12 @@ export async function PATCH(req: NextRequest) {
     });
     if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
 
-    const { plan, billingCycle } = await req.json();
-
-    if (!["STARTER", "PRO", "PREMIUM"].includes(plan)) {
-      return apiError("VALIDATION_ERROR", "Plan invalide");
+    const body = await req.json();
+    const parsed = patchSubscriptionSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", parsed.error.errors[0]?.message || "Données invalides");
     }
-
-    if (billingCycle && !["monthly", "yearly"].includes(billingCycle)) {
-      return apiError("VALIDATION_ERROR", "Cycle de facturation invalide");
-    }
+    const { plan, billingCycle } = parsed.data;
 
     const sub = await prisma.subscription.upsert({
       where: { shopId: shop.id },

@@ -1,9 +1,19 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
+
+const patchCatalogueSchema = z.object({
+  inStock: z.boolean().optional(),
+  stockQty: z.number().int().min(0).optional(),
+  priceCents: z.number().int().min(0).optional(),
+  proPriceCents: z.number().int().min(0).nullable().optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: "Au moins un champ requis",
+});
 
 export async function PATCH(
   req: NextRequest,
@@ -14,6 +24,10 @@ export async function PATCH(
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const body = await req.json();
+    const parsed = patchCatalogueSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", parsed.error.errors[0]?.message || "Données invalides");
+    }
 
     const product = await prisma.product.findUnique({
       where: { id: params.productId },
@@ -22,15 +36,9 @@ export async function PATCH(
     if (!product) return apiError("NOT_FOUND", "Produit introuvable");
     if (product.shop.ownerId !== userId) return apiError("FORBIDDEN", "Accès refusé");
 
-    const updateData: Record<string, unknown> = {};
-    if (body.inStock !== undefined) updateData.inStock = body.inStock;
-    if (body.stockQty !== undefined) updateData.stockQty = body.stockQty;
-    if (body.priceCents !== undefined) updateData.priceCents = body.priceCents;
-    if (body.proPriceCents !== undefined) updateData.proPriceCents = body.proPriceCents;
-
     const updated = await prisma.product.update({
       where: { id: params.productId },
-      data: updateData,
+      data: parsed.data,
     });
 
     return apiSuccess(updated);

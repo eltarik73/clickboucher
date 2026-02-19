@@ -73,27 +73,27 @@ function CartItemRow({
       <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={() => onUpdateQty(item.quantity - 1)}
-          className="w-8 h-8 rounded-full border border-gray-100 dark:border-white/10 bg-white dark:bg-[#1a1a1a] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+          className="w-11 h-11 rounded-full border border-gray-100 dark:border-white/10 bg-white dark:bg-[#1a1a1a] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
         >
-          <Minus size={14} />
+          <Minus size={16} />
         </button>
         <span className="text-sm font-bold text-gray-900 dark:text-white min-w-[20px] text-center">
           {item.quantity}
         </span>
         <button
           onClick={() => onUpdateQty(item.quantity + 1)}
-          className="w-8 h-8 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#DC2626] transition-colors"
+          className="w-11 h-11 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#DC2626] transition-colors"
         >
-          <Plus size={14} />
+          <Plus size={16} />
         </button>
       </div>
 
       {/* Delete */}
       <button
         onClick={onRemove}
-        className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors shrink-0"
+        className="p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors shrink-0"
       >
-        <Trash2 size={16} />
+        <Trash2 size={18} />
       </button>
     </div>
   );
@@ -426,9 +426,9 @@ export default function PanierPage() {
                     <div className="flex items-center justify-between">
                       <button
                         onClick={() => navigateDate(-1)}
-                        className="w-8 h-8 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
+                        className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
                       >
-                        <ChevronLeft size={14} />
+                        <ChevronLeft size={16} />
                       </button>
                       <span className="text-sm font-semibold text-gray-900 dark:text-white">
                         {new Date(selectedDate + "T12:00:00").toLocaleDateString("fr-FR", {
@@ -439,9 +439,9 @@ export default function PanierPage() {
                       </span>
                       <button
                         onClick={() => navigateDate(1)}
-                        className="w-8 h-8 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
+                        className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
                       >
-                        <ChevronRight size={14} />
+                        <ChevronRight size={16} />
                       </button>
                     </div>
 

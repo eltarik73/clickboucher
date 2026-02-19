@@ -1,11 +1,20 @@
 // POST /api/push/subscribe — Store push subscription for authenticated user
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getVapidPublicKey } from "@/lib/push";
+
+const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -29,17 +38,17 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-
-    if (!body.endpoint || !body.keys?.p256dh || !body.keys?.auth) {
-      return apiError("VALIDATION_ERROR", "Subscription invalide");
+    const parsed = pushSubscriptionSchema.safeParse(body);
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Subscription invalide : endpoint et keys (p256dh, auth) requis");
     }
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
         pushSubscription: {
-          endpoint: body.endpoint,
-          keys: { p256dh: body.keys.p256dh, auth: body.keys.auth },
+          endpoint: parsed.data.endpoint,
+          keys: { p256dh: parsed.data.keys.p256dh, auth: parsed.data.keys.auth },
         },
         notifPush: true,
       },
