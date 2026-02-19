@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 const isBoucherRoute = createRouteMatcher(["/boucher(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 const isAdminLoginRoute = createRouteMatcher(["/admin-login"]);
+const isWebmasterRoute = createRouteMatcher(["/webmaster(.*)"]);
 const isProtectedRoute = createRouteMatcher([
   "/checkout(.*)",
   "/commandes(.*)",
@@ -45,6 +46,18 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Admin routes (except admin-login): admin/webmaster only
   if (isAdminRoute(req) && !isAdminLoginRoute(req)) {
+    if (!userId) {
+      return NextResponse.redirect(new URL("/admin-login", req.url));
+    }
+    const role = await getUserRole(userId);
+    if (!role || !ADMIN_ROLES.includes(role)) {
+      return NextResponse.redirect(new URL("/decouvrir", req.url));
+    }
+    return;
+  }
+
+  // Webmaster routes: admin/webmaster only (same as admin routes)
+  if (isWebmasterRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL("/admin-login", req.url));
     }
