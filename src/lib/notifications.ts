@@ -157,6 +157,13 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         plainText: `Votre boutique ${data.shopName} est activée sur Klik&Go. Connectez-vous pour commencer.`,
       };
 
+    case "SCHEDULED_REMINDER":
+      return {
+        subject: `📅 Rappel — Commande ${data.orderNumber} dans ${data.slot || "peu de temps"}`,
+        html: tpl.readyReminder(data),
+        plainText: `Rappel : votre commande chez ${data.shopName} est prévue pour ${data.slot || "bientôt"}. Préparez-vous !`,
+      };
+
     case "RECURRING_REMINDER":
       return {
         subject: `🔄 Commande récurrente à confirmer`,
@@ -306,6 +313,13 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
         body: data.message || `L'essai de ${data.shopName} se termine bientôt`,
         url: `${baseUrl}/boucher/dashboard/abonnement`,
       };
+    case "SCHEDULED_REMINDER":
+      return {
+        title: "📅 Commande bientôt",
+        body: `N'oubliez pas votre commande chez ${data.shopName} prévue pour ${data.slot || "bientôt"}`,
+        url: orderUrl,
+        tag: orderTag,
+      };
     case "RECURRING_REMINDER":
       return {
         title: "🔄 Commande récurrente",
@@ -359,39 +373,6 @@ async function checkNotifRateLimit(userId: string, event: string): Promise<boole
   } catch {
     return true; // Allow on error
   }
-}
-
-// ─────────────────────────────────────────────
-// Resolve recipient internal user ID
-// ─────────────────────────────────────────────
-async function resolveRecipientId(event: NotifEvent, data: NotifData): Promise<string | null> {
-  if (event === "ORDER_PENDING" && data.shopId) {
-    const shop = await prisma.shop.findUnique({
-      where: { id: data.shopId },
-      select: { ownerId: true },
-    });
-    if (shop?.ownerId) {
-      const owner = await prisma.user.findUnique({
-        where: { clerkId: shop.ownerId },
-        select: { id: true },
-      });
-      return owner?.id ?? null;
-    }
-    return null;
-  }
-  if (data.userId) {
-    const byClerk = await prisma.user.findUnique({
-      where: { clerkId: data.userId },
-      select: { id: true },
-    });
-    if (byClerk) return byClerk.id;
-    const byId = await prisma.user.findUnique({
-      where: { id: data.userId },
-      select: { id: true },
-    });
-    return byId?.id ?? null;
-  }
-  return null;
 }
 
 // ─────────────────────────────────────────────
@@ -535,12 +516,11 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
       }
     }
 
-    // Create in-app notification in DB
-    const recipientId = await resolveRecipientId(event, data);
-    if (recipientId) {
+    // Create in-app notification in DB (reuse resolved user to avoid redundant DB queries)
+    try {
       await prisma.notification.create({
         data: {
-          userId: recipientId,
+          userId: user.id,
           type: event,
           message: plainText,
           orderId: data.orderId ?? null,
@@ -548,6 +528,8 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
           delivered: channels.length > 0,
         },
       });
+    } catch (e) {
+      console.error("[notifications][db] Error creating notification:", (e as Error).message);
     }
 
     return { sent: channels.length > 0, channels };

@@ -102,53 +102,27 @@ export function QRScanner({
     setScannedCode(qrCode);
 
     try {
-      // Try to find the order with this QR code
-      const ordersRes = await fetch("/api/orders");
-      if (!ordersRes.ok) {
-        setResult({
-          success: false,
-          message: "Erreur lors de la recherche de la commande",
-        });
-        return;
-      }
-
-      const ordersJson = await ordersRes.json();
-      const orders = ordersJson.data || [];
-      const order = orders.find(
-        (o: { qrCode: string | null; status: string }) =>
-          o.qrCode === qrCode && o.status === "READY"
-      );
-
-      if (!order) {
-        setResult({
-          success: false,
-          message: "QR code invalide ou commande non prête",
-        });
-        return;
-      }
-
-      // Mark as picked up
-      const res = await fetch(`/api/orders/${order.id}/picked-up`, {
+      // Direct server-side QR lookup + pickup confirmation
+      const res = await fetch("/api/boucher/orders/pickup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qrCode }),
       });
 
-      if (res.ok) {
+      const json = await res.json();
+
+      if (res.ok && json.success) {
         setResult({
           success: true,
-          orderNumber: order.orderNumber,
-          clientName: order.user
-            ? `${order.user.firstName} ${order.user.lastName}`
-            : "Client",
-          itemCount: order.items?.length || 0,
+          orderNumber: json.data.orderNumber,
+          clientName: json.data.clientName || "Client",
+          itemCount: json.data.itemCount || 0,
         });
         onScanned();
       } else {
-        const json = await res.json();
         setResult({
           success: false,
-          message: json.error?.message || "Erreur lors de la validation",
+          message: json.error?.message || "QR code invalide ou commande non prete",
         });
       }
     } catch {

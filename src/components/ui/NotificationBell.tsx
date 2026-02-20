@@ -6,14 +6,22 @@ import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifica
 import Link from "next/link";
 
 const TYPE_LABELS: Record<string, { icon: string; color: string }> = {
-  ORDER_PENDING:   { icon: "🔔", color: "text-amber-600" },
-  ORDER_ACCEPTED:  { icon: "✅", color: "text-emerald-600" },
-  ORDER_DENIED:    { icon: "❌", color: "text-red-600" },
-  ORDER_READY:     { icon: "🎉", color: "text-emerald-600" },
-  ORDER_PICKED_UP: { icon: "📦", color: "text-blue-600" },
-  STOCK_ISSUE:     { icon: "⚠️", color: "text-amber-600" },
-  PRO_VALIDATED:   { icon: "🌟", color: "text-emerald-600" },
-  PRO_REJECTED:    { icon: "😞", color: "text-red-600" },
+  ORDER_PENDING:      { icon: "🔔", color: "text-amber-600" },
+  ORDER_ACCEPTED:     { icon: "✅", color: "text-emerald-600" },
+  ORDER_PREPARING:    { icon: "🔪", color: "text-orange-600" },
+  ORDER_DENIED:       { icon: "❌", color: "text-red-600" },
+  ORDER_READY:        { icon: "🎉", color: "text-emerald-600" },
+  ORDER_PICKED_UP:    { icon: "📦", color: "text-blue-600" },
+  ORDER_CANCELLED:    { icon: "🚫", color: "text-red-600" },
+  BOUCHER_NOTE:       { icon: "💬", color: "text-amber-600" },
+  READY_REMINDER:     { icon: "⏰", color: "text-amber-600" },
+  STOCK_ISSUE:        { icon: "⚠️", color: "text-amber-600" },
+  PRO_VALIDATED:      { icon: "🌟", color: "text-emerald-600" },
+  PRO_REJECTED:       { icon: "😞", color: "text-red-600" },
+  ACCOUNT_APPROVED:   { icon: "🎉", color: "text-emerald-600" },
+  WEEKLY_REPORT:      { icon: "📊", color: "text-blue-600" },
+  TRIAL_EXPIRING:     { icon: "⏳", color: "text-amber-600" },
+  CART_ABANDONED:     { icon: "🛒", color: "text-amber-600" },
 };
 
 function timeAgo(dateStr: string): string {
