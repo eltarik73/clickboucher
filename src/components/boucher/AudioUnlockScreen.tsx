@@ -4,7 +4,8 @@
 import { useState } from "react";
 import { Volume2, Loader2 } from "lucide-react";
 import { soundManager } from "@/lib/notification-sound";
-import { playMarimbaSong } from "@/lib/sounds";
+import { playSelectedSound } from "@/lib/sounds";
+import SoundSelector from "@/components/boucher/SoundSelector";
 
 type Props = {
   onUnlocked: () => void;
@@ -17,8 +18,8 @@ export default function AudioUnlockScreen({ onUnlocked }: Props) {
     setUnlocking(true);
     // Unlock iOS AudioContext first (user gesture required)
     await soundManager.unlock();
-    // Play Marimba Song as confirmation
-    playMarimbaSong();
+    // Play the selected sound as confirmation
+    playSelectedSound();
     // Mark as unlocked for this session
     sessionStorage.setItem("audioUnlocked", "true");
     onUnlocked();
@@ -30,10 +31,15 @@ export default function AudioUnlockScreen({ onUnlocked }: Props) {
       <div className="text-7xl">🪘</div>
 
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-white">Activer les alertes Marimba Song</h1>
+        <h1 className="text-2xl font-bold text-white">Alertes sonores</h1>
         <p className="text-gray-400 text-sm max-w-xs">
-          Vous recevrez une melodie marimba a chaque nouvelle commande
+          Choisissez votre melodie puis activez le son pour recevoir les alertes
         </p>
+      </div>
+
+      {/* Sound selector */}
+      <div className="w-full max-w-sm">
+        <SoundSelector />
       </div>
 
       {/* Big unlock button */}
