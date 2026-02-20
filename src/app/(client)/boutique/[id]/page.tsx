@@ -7,7 +7,6 @@ import Image from "next/image";
 import { getShopImage } from "@/lib/product-images";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -122,39 +121,8 @@ export default async function BoutiquePage({
 
   if (!shop) notFound();
 
-  // Check favorites & pro status (parallel queries)
-  let isFavorite = false;
-  let proStatus: { isPro: boolean; status?: string; companyName?: string } = { isPro: false };
-  try {
-    const { userId: clerkId } = await auth();
-    if (clerkId) {
-      const user = await prisma.user.findUnique({
-        where: { clerkId },
-        select: { id: true },
-      });
-      if (user) {
-        // Parallel: favorites + proAccess
-        const [favResult, proAccess] = await Promise.all([
-          prisma.user.findUnique({
-            where: { clerkId },
-            select: { favoriteShops: { where: { id: shop.id }, select: { id: true } } },
-          }),
-          prisma.proAccess.findUnique({
-            where: { userId_shopId: { userId: user.id, shopId: shop.id } },
-            select: { status: true, companyName: true },
-          }),
-        ]);
-        isFavorite = (favResult?.favoriteShops.length ?? 0) > 0;
-        if (proAccess) {
-          proStatus = {
-            isPro: proAccess.status === "APPROVED",
-            status: proAccess.status,
-            companyName: proAccess.companyName,
-          };
-        }
-      }
-    }
-  } catch { /* ignore — non-critical */ }
+  // Favorites & proStatus are handled client-side (FavoriteButton + ShopProductsClient)
+  // Removing server-side auth() allows this page to be ISR-cached (revalidate: 30s)
 
   const effectiveTime =
     shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
@@ -173,7 +141,7 @@ export default async function BoutiquePage({
     description: p.description,
     imageUrl: p.imageUrl,
     priceCents: p.priceCents,
-    proPriceCents: proStatus.isPro ? p.proPriceCents : null,
+    proPriceCents: null, // Pro pricing resolved client-side
     unit: p.unit,
     inStock: p.inStock,
     tags: p.tags,
@@ -250,7 +218,7 @@ export default async function BoutiquePage({
               <ArrowLeft size={17} className="text-[#333]" />
             </Link>
             <div className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-              <FavoriteButton shopId={shop.id} initialFavorite={isFavorite} size={18} />
+              <FavoriteButton shopId={shop.id} size={18} />
             </div>
           </div>
 
@@ -332,7 +300,7 @@ export default async function BoutiquePage({
           products={products}
           categories={categories}
           shop={{ id: shop.id, name: shop.name, slug: shop.slug }}
-          proStatus={proStatus}
+          proStatus={{ isPro: false }}
         />
 
         {/* ═══════════════════════════════════════════ */}
