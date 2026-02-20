@@ -872,10 +872,20 @@ export default function BoucherParametresPage() {
                       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=fr`,
                       { headers: { "User-Agent": "KlikGo/1.0" } }
                     );
+                    if (!res.ok) {
+                      toast.error("Service de geocodage indisponible. Reessayez.");
+                      setGeoLoading(false);
+                      return;
+                    }
                     const results = await res.json();
                     if (results.length > 0) {
                       const lat = parseFloat(results[0].lat);
                       const lng = parseFloat(results[0].lon);
+                      if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                        toast.error("Coordonnees invalides retournees par le service.");
+                        setGeoLoading(false);
+                        return;
+                      }
                       setGeoLat(lat);
                       setGeoLng(lng);
                       // Save to DB

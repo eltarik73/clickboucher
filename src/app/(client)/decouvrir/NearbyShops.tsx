@@ -60,8 +60,10 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
       const raw = localStorage.getItem("klikgo-geo");
       if (raw) {
         const cached = JSON.parse(raw);
-        if (cached.lat && cached.lng && Date.now() - cached.ts < 86400000) {
-          fetchNearby(cached.lat, cached.lng);
+        const lat = Number(cached.lat);
+        const lng = Number(cached.lng);
+        if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0 && Date.now() - cached.ts < 86400000) {
+          fetchNearby(lat, lng);
         }
       }
     } catch {}
@@ -203,7 +205,7 @@ function NearbyButcherCard({
         {/* Top-right: favorite + distance or city */}
         <div className="absolute top-3 right-3 flex items-center gap-2">
           <FavoriteButton shopId={shop.id} initialFavorite={isFavorite} size={22} />
-          {shop.distance !== null ? (
+          {shop.distance !== null && isFinite(shop.distance) ? (
             <span className="flex items-center gap-1 px-2.5 py-1 bg-white/90 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white text-xs font-semibold rounded-lg">
               <MapPin className="w-3 h-3 text-red-600" />
               {shop.distance} km

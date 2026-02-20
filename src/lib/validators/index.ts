@@ -53,6 +53,10 @@ export const createShopSchema = z.object({
   commissionPct: z.number().min(0).max(100).optional(),
 });
 
+// Coordinate must be a finite number (rejects NaN, Infinity)
+const safeLatitude = z.number().min(-90).max(90).refine((v) => isFinite(v), "Latitude invalide");
+const safeLongitude = z.number().min(-180).max(180).refine((v) => isFinite(v), "Longitude invalide");
+
 export const updateShopSchema = z.object({
   name: z.string().min(2).max(200).optional(),
   address: z.string().min(5).optional(),
@@ -62,8 +66,8 @@ export const updateShopSchema = z.object({
   description: z.string().max(1000).nullable().optional(),
   openingHours: z.record(z.object({ open: z.string(), close: z.string() })).optional(),
   commissionPct: z.number().min(0).max(100).optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
+  latitude: safeLatitude.optional(),
+  longitude: safeLongitude.optional(),
   deliveryRadius: z.number().min(1).max(100).optional(),
   pickupSlots: z.object({
     intervalMin: z.number().int().min(5).max(120),

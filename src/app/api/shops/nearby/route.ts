@@ -7,8 +7,8 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 
 const nearbyQuerySchema = z.object({
-  lat: z.coerce.number().min(-90).max(90),
-  lng: z.coerce.number().min(-180).max(180),
+  lat: z.coerce.number().min(-90).max(90).refine((v) => isFinite(v), "Latitude invalide"),
+  lng: z.coerce.number().min(-180).max(180).refine((v) => isFinite(v), "Longitude invalide"),
   radius: z.coerce.number().min(1).max(100).default(15),
 });
 
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
       status: s.status,
       rating: s.rating,
       ratingCount: s.rating_count,
-      distance: Math.round(Number(s.distance) * 10) / 10,
+      distance: isNaN(Number(s.distance)) ? null : Math.round(Number(s.distance) * 10) / 10,
     }));
 
     const withoutCoordsNormalized = shopsWithoutCoords.map((s) => ({

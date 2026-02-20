@@ -20,9 +20,12 @@ function loadCached(): GeoState | null {
     const cached = JSON.parse(raw);
     // Cache valid for 24h
     if (Date.now() - cached.ts > 86400000) return null;
+    const lat = Number(cached.lat);
+    const lng = Number(cached.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
     return {
-      latitude: cached.lat,
-      longitude: cached.lng,
+      latitude: lat,
+      longitude: lng,
       city: cached.city,
       loading: false,
       error: null,
@@ -33,6 +36,7 @@ function loadCached(): GeoState | null {
 }
 
 function saveCache(lat: number, lng: number, city: string | null) {
+  if (!isFinite(lat) || !isFinite(lng)) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ lat, lng, city, ts: Date.now() }));
   } catch {}
@@ -121,27 +125,33 @@ export function useGeolocation() {
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&countrycodes=fr&accept-language=fr`,
         { headers: { "User-Agent": "KlikGo/1.0" } }
       );
-      if (res.ok) {
-        const results = await res.json();
-        if (results.length > 0) {
-          const lat = parseFloat(results[0].lat);
-          const lng = parseFloat(results[0].lon);
-          const resolvedCity = results[0].display_name?.split(",")[0] || city;
-          saveCache(lat, lng, resolvedCity);
-          setState({ latitude: lat, longitude: lng, city: resolvedCity, loading: false, error: null });
-
-          fetch("/api/users/me/location", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ latitude: lat, longitude: lng, city: resolvedCity }),
-          }).catch(() => {});
+      if (!res.ok) {
+        setState((s) => ({ ...s, loading: false, error: "Service de geocodage indisponible" }));
+        return;
+      }
+      const results = await res.json();
+      if (results.length > 0) {
+        const lat = parseFloat(results[0].lat);
+        const lng = parseFloat(results[0].lon);
+        if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+          setState((s) => ({ ...s, loading: false, error: "Coordonnees invalides" }));
           return;
         }
+        const resolvedCity = results[0].display_name?.split(",")[0] || city;
+        saveCache(lat, lng, resolvedCity);
+        setState({ latitude: lat, longitude: lng, city: resolvedCity, loading: false, error: null });
+
+        fetch("/api/users/me/location", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latitude: lat, longitude: lng, city: resolvedCity }),
+        }).catch(() => {});
+        return;
       }
-      // Fallback: just set city without coords
-      setState({ latitude: null, longitude: null, city, loading: false, error: null });
+      // City not found — set error, do NOT set city without coords
+      setState((s) => ({ ...s, loading: false, error: "Ville introuvable" }));
     } catch {
-      setState({ latitude: null, longitude: null, city, loading: false, error: null });
+      setState((s) => ({ ...s, loading: false, error: "Erreur lors du geocodage" }));
     }
   }, []);
 

@@ -8,8 +8,8 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 
 const locationSchema = z.object({
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  latitude: z.number().min(-90).max(90).refine((v) => isFinite(v), "Latitude invalide"),
+  longitude: z.number().min(-180).max(180).refine((v) => isFinite(v), "Longitude invalide"),
   city: z.string().max(200).nullable().optional(),
 });
 
