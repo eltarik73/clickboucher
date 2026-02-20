@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
 import { soundManager } from "@/lib/notification-sound";
+import { startOrderAlert, stopOrderAlert } from "@/lib/sounds";
 import AudioUnlockScreen from "@/components/boucher/AudioUnlockScreen";
 import OrderAlertOverlay from "@/components/boucher/OrderAlertOverlay";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
@@ -76,8 +77,13 @@ const STATUS_BADGE: Record<string, { label: string; color: string; icon: typeof 
 // Main Kitchen Page
 // ─────────────────────────────────────────────
 export default function KitchenModePage() {
-  // Audio unlock state
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  // Audio unlock state (persisted per session)
+  const [audioUnlocked, setAudioUnlocked] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("audioUnlocked") === "true";
+    }
+    return false;
+  });
 
   // Shop info
   const [shopName, setShopName] = useState("");
@@ -125,10 +131,9 @@ export default function KitchenModePage() {
       setAlertOrder(order);
       // Switch to "nouvelles" tab
       setActiveTab("nouvelles");
-      // Play sound + vibrate (if not muted)
+      // Play Marimba Song alert (loops until action, if not muted)
       if (!mutedRef.current) {
-        soundManager.playNewOrderAlert();
-        soundManager.vibrate();
+        startOrderAlert();
       }
     },
     onStatusChange: () => {
@@ -169,6 +174,18 @@ export default function KitchenModePage() {
     fetchShopInfo();
   }, [fetchShopInfo]);
 
+  // ── Stop alert when no more pending orders ──
+  useEffect(() => {
+    if (pendingCount === 0) {
+      stopOrderAlert();
+    }
+  }, [pendingCount]);
+
+  // ── Cleanup alert on unmount ──
+  useEffect(() => {
+    return () => stopOrderAlert();
+  }, []);
+
   // ── Handle order action (unified API) ──
   async function handleAction(orderId: string, action: string, data?: Record<string, unknown>) {
     try {
@@ -178,6 +195,10 @@ export default function KitchenModePage() {
         body: JSON.stringify({ action, ...data }),
       });
       if (res.ok) {
+        // Stop marimba on accept/deny actions
+        if (["accept", "deny", "cancel"].includes(action)) {
+          stopOrderAlert();
+        }
         await refetch();
         const actionLabels: Record<string, string> = {
           accept: "Commande acceptee",
