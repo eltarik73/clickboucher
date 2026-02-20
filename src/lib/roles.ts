@@ -8,7 +8,7 @@ export function isAdmin(role: string | undefined | null): boolean {
 }
 
 export function isBoucher(role: string | undefined | null): boolean {
-  return role === "boucher";
+  return role === "boucher" || isAdmin(role);
 }
 
 /**

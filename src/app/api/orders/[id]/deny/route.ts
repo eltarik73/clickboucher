@@ -32,6 +32,11 @@ export async function POST(
     if (order.shop.ownerId !== userId) {
       return apiError("FORBIDDEN", "Cette commande n'appartient pas à votre boucherie");
     }
+    // Idempotency: if already denied, return current state
+    if (order.status === "DENIED") {
+      const existing = await prisma.order.findUnique({ where: { id } });
+      return apiSuccess(existing);
+    }
     if (order.status !== "PENDING") {
       return apiError("VALIDATION_ERROR", `Impossible de refuser une commande en statut ${order.status}`);
     }

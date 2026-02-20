@@ -31,6 +31,11 @@ export async function POST(
     if (order.shop.ownerId !== userId) {
       return apiError("FORBIDDEN", "Cette commande n'appartient pas à votre boucherie");
     }
+    // Idempotency: if already ready or beyond, return current state
+    if (order.status === "READY" || order.status === "PICKED_UP") {
+      const existing = await prisma.order.findUnique({ where: { id } });
+      return apiSuccess(existing);
+    }
     if (order.status !== "ACCEPTED" && order.status !== "PREPARING") {
       return apiError("VALIDATION_ERROR", `Impossible de marquer prêt une commande en statut ${order.status}`);
     }

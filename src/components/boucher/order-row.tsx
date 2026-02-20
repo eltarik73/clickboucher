@@ -125,7 +125,12 @@ export function OrderRow({ order, onStatusChange, onSelect }: OrderRowProps) {
             </Button>
           )}
           {order.status === "STOCK_ISSUE" && (
-            <Button variant="destructive" size="sm" className="h-7 text-xs gap-1">
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              onClick={() => onSelect(order.id)}
+            >
               <AlertTriangle size={11} />
               Résoudre
             </Button>
