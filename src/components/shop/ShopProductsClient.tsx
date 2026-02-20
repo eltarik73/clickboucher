@@ -68,7 +68,7 @@ interface Props {
   proStatus?: { isPro: boolean; status?: string; companyName?: string };
 }
 
-export function ShopProductsClient({ products, categories, shop, proStatus }: Props) {
+export function ShopProductsClient({ products, categories, shop, proStatus: _proStatus }: Props) {
   const [activeCat, setActiveCat] = useState<string>("Tout");
   const [selectedProduct, setSelectedProduct] = useState<WeightSheetProduct | null>(null);
   const [detailProduct, setDetailProduct] = useState<ProductCardData | null>(null);

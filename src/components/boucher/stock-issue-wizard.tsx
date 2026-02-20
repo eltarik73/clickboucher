@@ -22,7 +22,7 @@ interface StockIssueWizardProps {
   onClose: () => void;
 }
 
-export function StockIssueWizard({ orderId, orderNumber, items, onResolve, onClose }: StockIssueWizardProps) {
+export function StockIssueWizard({ orderId: _orderId, orderNumber, items, onResolve, onClose }: StockIssueWizardProps) {
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [replacementNames, setReplacementNames] = useState<Record<string, string>>({});
 

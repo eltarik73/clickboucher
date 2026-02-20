@@ -393,10 +393,6 @@ export function ChatWidget() {
     }
   }
 
-  // Check if last bot message is a recap
-  const lastBotMsg = [...messages].reverse().find((m) => m.role === "assistant");
-  const isRecap = lastBotMsg ? isRecapMessage(lastBotMsg.content) : false;
-
   return (
     <>
       {/* ═══ CHAT PANEL ═══ */}

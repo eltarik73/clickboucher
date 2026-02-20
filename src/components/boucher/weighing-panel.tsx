@@ -30,7 +30,7 @@ interface WeighingPanelProps {
   onCancel: () => void;
 }
 
-export function WeighingPanel({ orderId, orderNumber, items, onSubmit, onCancel }: WeighingPanelProps) {
+export function WeighingPanel({ orderId: _orderId, orderNumber, items, onSubmit, onCancel }: WeighingPanelProps) {
   const [weights, setWeights] = useState<Record<string, number>>(
     Object.fromEntries(items.map((i) => [i.id, i.requestedWeight]))
   );

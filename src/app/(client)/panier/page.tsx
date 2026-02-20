@@ -119,7 +119,6 @@ export default function PanierPage() {
   const { state, updateQty, removeItem, clear, itemCount, totalCents } = useCart();
 
   const [timeMode, setTimeMode] = useState<"asap" | "slot">("asap");
-  const [, /* scheduledTime */ setScheduledTime] = useState("");
   const [customerNote, setCustomerNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"ON_PICKUP" | "ONLINE">("ON_PICKUP");

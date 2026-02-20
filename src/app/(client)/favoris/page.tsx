@@ -45,10 +45,6 @@ export default function FavorisPage() {
     else setLoading(false);
   }, [userId, fetchFavorites]);
 
-  const handleRemove = (shopId: string) => {
-    setShops((prev) => prev.filter((s) => s.id !== shopId));
-  };
-
   const stickyHeader = (
     <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
       <div className="max-w-3xl mx-auto flex items-center gap-3">
