@@ -14,8 +14,10 @@ import {
   Plus,
   Trash2,
   Star,
+  AlertTriangle,
 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
+import { useNotify } from "@/components/ui/NotificationToast";
 
 // ─────────────────────────────────────────────
 // Types
@@ -70,6 +72,7 @@ interface Props {
   product?: EditProduct | null;
   onClose: () => void;
   onSaved: () => void;
+  onDeleted?: () => void;
 }
 
 // ─────────────────────────────────────────────
@@ -124,12 +127,15 @@ function fmtPrice(cents: number) {
 // ─────────────────────────────────────────────
 // Form Component
 // ─────────────────────────────────────────────
-export function ProductForm({ shopId, categories, product, onClose, onSaved }: Props) {
+export function ProductForm({ shopId, categories, product, onClose, onSaved, onDeleted }: Props) {
   const isEdit = !!product;
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { notify } = useNotify();
 
   // Step 1 — Produit
   const [name, setName] = useState(product?.name || "");
@@ -335,6 +341,28 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved }: P
       setApiError("Erreur de connexion");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // ── Delete product ──
+  async function handleDelete() {
+    if (!product) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/products/${product.id}`, { method: "DELETE" });
+      if (res.ok) {
+        notify("success", "Produit supprime avec succes");
+        onClose();
+        onDeleted?.();
+      } else {
+        const json = await res.json().catch(() => null);
+        notify("error", json?.error?.message || "Erreur lors de la suppression");
+      }
+    } catch {
+      notify("error", "Erreur de connexion au serveur");
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   }
 
@@ -957,42 +985,99 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved }: P
         </div>
 
         {/* ── Footer navigation ── */}
-        <div className="sticky bottom-0 bg-white dark:bg-[#141414] border-t border-[#ece8e3] dark:border-white/10 px-5 py-3 flex items-center gap-2">
-          {step > 0 && (
+        <div className="sticky bottom-0 bg-white dark:bg-[#141414] border-t border-[#ece8e3] dark:border-white/10 px-5 py-3 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            {step > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(step - 1)}
+                className="h-11 px-4 gap-1 border-[#ece8e3] dark:border-white/10"
+              >
+                <ChevronLeft size={16} /> Retour
+              </Button>
+            )}
+            <div className="flex-1" />
+            {step < STEPS.length - 1 ? (
+              <Button
+                type="button"
+                onClick={() => setStep(step + 1)}
+                disabled={!isStepValid(step)}
+                className="h-11 px-6 gap-1 bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-40"
+              >
+                Suivant <ChevronRight size={16} />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting || !isStepValid(0) || !isStepValid(1)}
+                className="h-11 px-6 gap-1.5 bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-40"
+              >
+                {submitting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>Enregistrer</>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Delete button (edit mode only) */}
+          {isEdit && (
             <Button
               type="button"
               variant="outline"
-              onClick={() => setStep(step - 1)}
-              className="h-11 px-4 gap-1 border-[#ece8e3] dark:border-white/10"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="h-10 w-full gap-1.5 border-red-200 dark:border-red-800/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-300 dark:hover:border-red-700"
             >
-              <ChevronLeft size={16} /> Retour
-            </Button>
-          )}
-          <div className="flex-1" />
-          {step < STEPS.length - 1 ? (
-            <Button
-              type="button"
-              onClick={() => setStep(step + 1)}
-              disabled={!isStepValid(step)}
-              className="h-11 px-6 gap-1 bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-40"
-            >
-              Suivant <ChevronRight size={16} />
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={submitting || !isStepValid(0) || !isStepValid(1)}
-              className="h-11 px-6 gap-1.5 bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-40"
-            >
-              {submitting ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <>Enregistrer</>
-              )}
+              <Trash2 size={14} /> Supprimer ce produit
             </Button>
           )}
         </div>
+
+        {/* ── Delete confirmation dialog ── */}
+        {showDeleteConfirm && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 rounded-t-2xl sm:rounded-2xl" onClick={() => setShowDeleteConfirm(false)} />
+            <div className="relative bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 mx-6 max-w-sm w-full shadow-2xl space-y-4">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Supprimer le produit</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Etes-vous sur de vouloir supprimer ce produit ? Cette action est irreversible.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                  className="flex-1 h-11 border-[#ece8e3] dark:border-white/10"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white gap-1.5"
+                >
+                  {deleting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> Supprimer
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

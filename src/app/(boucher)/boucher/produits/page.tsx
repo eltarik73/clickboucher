@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { getFlag, getOriginCountry } from "@/lib/flags";
 import { ProductForm, type EditProduct } from "./ProductForm";
+import { useNotify } from "@/components/ui/NotificationToast";
 
 // ─────────────────────────────────────────────
 // Types
@@ -134,6 +135,9 @@ export default function BoucherProduitsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<EditProduct | null>(null);
 
+  // Notifications
+  const { notify } = useNotify();
+
   // Drag & drop
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
@@ -183,11 +187,13 @@ export default function BoucherProduitsPage() {
         setProducts((prev) =>
           prev.map((p) => (p.id === product.id ? { ...p, inStock: !newInStock } : p))
         );
+        notify("error", "Erreur lors du changement de stock");
       }
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, inStock: !newInStock } : p))
       );
+      notify("error", "Erreur de connexion au serveur");
     }
   }
 
@@ -218,9 +224,11 @@ export default function BoucherProduitsPage() {
           )
         );
       } else {
+        notify("error", "Erreur lors de la mise en pause");
         fetchData();
       }
     } catch {
+      notify("error", "Erreur de connexion au serveur");
       fetchData();
     }
   }
@@ -530,6 +538,7 @@ export default function BoucherProduitsPage() {
             product={editProduct}
             onClose={() => { setShowForm(false); setEditProduct(null); }}
             onSaved={() => { setShowForm(false); setEditProduct(null); fetchData(); }}
+            onDeleted={() => { setShowForm(false); setEditProduct(null); fetchData(); }}
           />
         )}
       </div>
