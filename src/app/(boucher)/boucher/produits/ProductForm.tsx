@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -855,7 +856,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                           <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
                         </div>
                       ) : (
-                        <img src={img.url} alt={img.alt} width={120} height={120} loading="lazy" className="w-full h-full object-cover" />
+                        <Image src={img.url} alt={img.alt} width={120} height={120} className="w-full h-full object-cover" />
                       )}
 
                       {/* Primary badge */}

@@ -1,6 +1,7 @@
 // src/components/cart/CartItem.tsx
 "use client";
 
+import Image from "next/image";
 import type { CartItem as CartItemType } from "@/lib/hooks/useCart";
 
 interface Props {
@@ -18,7 +19,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
       {/* Image */}
       <div className="w-14 h-14 rounded-xl bg-[#F5F3F0] overflow-hidden shrink-0">
         {item.imageUrl ? (
-          <img src={item.imageUrl} alt={item.name} width={56} height={56} loading="lazy" className="w-full h-full object-cover" />
+          <Image src={item.imageUrl} alt={item.name} width={56} height={56} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🥩</div>
         )}

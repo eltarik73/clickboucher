@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { type ReactNode } from "react";
+import Image from "next/image";
 
 // ─── Badge ───────────────────────────────────
 type BadgeVariant = "default" | "halal" | "open" | "closed" | "express" | "promo" | "status";
@@ -139,7 +140,7 @@ export function Avatar({
       style={{ width: size, height: size }}
     >
       {src ? (
-        <img src={src} alt={name} loading="lazy" className="w-full h-full object-cover" />
+        <Image src={src} alt={name} width={size} height={size} className="w-full h-full object-cover" />
       ) : (
         <span
           className="text-stone-400 font-bold"

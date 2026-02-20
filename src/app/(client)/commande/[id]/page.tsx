@@ -3,7 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Copy, AlertTriangle, RefreshCw, Trash2, Loader2, MessageSquare } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import dynamic from "next/dynamic";
+
+const QRCodeSVG = dynamic(
+  () => import("qrcode.react").then(m => m.QRCodeSVG),
+  { ssr: false, loading: () => <div className="w-[180px] h-[180px] animate-pulse bg-gray-100 dark:bg-white/5 rounded-2xl" /> }
+);
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";

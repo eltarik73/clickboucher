@@ -41,7 +41,26 @@ async function getUserRole(userId: string): Promise<string | undefined> {
   }
 }
 
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/decouvrir",
+  "/boutique/(.*)",
+  "/espace-boucher",
+  "/bons-plans",
+  "/inscription-boucher",
+  "/inscription-pro",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/suivi/(.*)",
+  "/validation/(.*)",
+]);
+
 export default clerkMiddleware(async (auth, req) => {
+  // Skip auth() call on known public routes for faster response
+  if (isPublicRoute(req)) {
+    return;
+  }
+
   const { userId } = await auth();
 
   // Admin routes (except admin-login): admin/webmaster only

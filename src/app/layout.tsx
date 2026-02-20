@@ -3,9 +3,13 @@ import { DM_Sans, Plus_Jakarta_Sans, Cormorant_Garamond } from "next/font/google
 import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
-import { CartProviderWrapper } from "@/components/providers/CartProviderWrapper";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { SplashScreen } from "@/components/SplashScreen";
+import dynamic from "next/dynamic";
+
+const SplashScreen = dynamic(
+  () => import("@/components/SplashScreen").then(m => m.SplashScreen),
+  { ssr: false }
+);
 import { NotificationProvider } from "@/components/ui/NotificationToast";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
@@ -79,12 +83,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>
-              <CartProviderWrapper>
-                <ServiceWorkerRegistration />
-                <OfflineBanner />
-                <SplashScreen>{children}</SplashScreen>
-                <InstallPrompt />
-              </CartProviderWrapper>
+              <ServiceWorkerRegistration />
+              <OfflineBanner />
+              <SplashScreen>{children}</SplashScreen>
+              <InstallPrompt />
             </NotificationProvider>
           </ThemeProvider>
         </body>
