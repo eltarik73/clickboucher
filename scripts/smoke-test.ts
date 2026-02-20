@@ -60,9 +60,9 @@ async function main() {
     { path: "/sign-in", label: "Connexion" },
     { path: "/sign-up", label: "Inscription" },
     { path: "/panier", label: "Panier" },
-    { path: "/commandes", label: "Commandes client" },
+    { path: "/commandes", label: "Commandes client (auth)" },
     { path: "/favoris", label: "Favoris" },
-    { path: "/profil", label: "Profil" },
+    { path: "/profil", label: "Profil (auth)" },
     { path: "/bons-plans", label: "Bons plans" },
     { path: "/espace-boucher", label: "Espace boucher" },
     { path: "/boucher/dashboard", label: "Dashboard boucher" },
@@ -73,10 +73,15 @@ async function main() {
     { path: "/boucher/support", label: "Support boucher" },
   ];
 
+  // Routes that require Clerk auth — accept 401/404 as valid (Clerk blocks without session)
+  const authPages = ["/commandes", "/profil", "/checkout"];
+
   console.log("📄 PAGES\n");
   const pageResults: TestResult[] = [];
   for (const page of pages) {
-    const result = await testUrl(page.path);
+    const isAuthPage = authPages.some((p) => page.path.startsWith(p));
+    const expected = isAuthPage ? [200, 302, 307, 308, 401, 404] : [200, 302, 307, 308];
+    const result = await testUrl(page.path, "GET", expected);
     pageResults.push(result);
 
     const icon = result.ok ? "✅" : "❌";
