@@ -612,6 +612,8 @@ function ProductRow({
           <img
             src={imgSrc}
             alt={product.name}
+            width={52}
+            height={52}
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
           />

@@ -9,8 +9,11 @@ export const dynamic = "force-dynamic";
 // Called by node-cron on Railway, or manually via GET
 export async function GET(req: NextRequest) {
   try {
-    const secret = req.headers.get("x-cron-secret") || req.nextUrl.searchParams.get("secret");
-    if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+    if (!process.env.CRON_SECRET) {
+      return apiError("INTERNAL_ERROR", "CRON_SECRET not configured");
+    }
+    const secret = req.headers.get("x-cron-secret");
+    if (secret !== process.env.CRON_SECRET) {
       return apiError("UNAUTHORIZED", "Invalid cron secret");
     }
 

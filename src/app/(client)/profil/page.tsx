@@ -237,6 +237,7 @@ export default function ProfilPage() {
                   alt="Avatar"
                   width={64}
                   height={64}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -452,6 +453,7 @@ export default function ProfilPage() {
                       alt={shop.name}
                       width={40}
                       height={40}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   </div>

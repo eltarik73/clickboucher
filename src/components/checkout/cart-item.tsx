@@ -20,7 +20,7 @@ export function CartItemRow({ item }: { item: CartItemType }) {
     <div className="premium-card p-3">
       <div className="flex gap-3">
         <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-          <img src={resolveProductImage({ name: item.name, imageUrl: item.imageUrl, category: item.category })} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+          <img src={resolveProductImage({ name: item.name, imageUrl: item.imageUrl, category: item.category })} alt={item.name} width={64} height={64} loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
         </div>
 
         <div className="flex-1 min-w-0">

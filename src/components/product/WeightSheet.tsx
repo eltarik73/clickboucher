@@ -72,7 +72,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
         <SheetHeader>
           <div className="flex items-start gap-3">
             <div className="w-16 h-16 rounded-[12px] overflow-hidden shrink-0">
-              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+              <img src={product.imageUrl} alt={product.name} width={64} height={64} loading="lazy" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-[9px] font-bold text-[#DC2626] uppercase tracking-wider">{product.category}</span>

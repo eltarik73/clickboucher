@@ -54,6 +54,7 @@ function CartItemRow({
           alt={item.name}
           width={60}
           height={60}
+          loading="lazy"
           className="w-full h-full object-cover"
         />
       </div>

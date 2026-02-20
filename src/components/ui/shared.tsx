@@ -139,7 +139,7 @@ export function Avatar({
       style={{ width: size, height: size }}
     >
       {src ? (
-        <img src={src} alt={name} className="w-full h-full object-cover" />
+        <img src={src} alt={name} loading="lazy" className="w-full h-full object-cover" />
       ) : (
         <span
           className="text-stone-400 font-bold"

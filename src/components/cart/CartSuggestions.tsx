@@ -72,6 +72,9 @@ export default function CartSuggestions() {
                 <img
                   src={product.imageUrl || "/img/products/boeuf-1.jpg"}
                   alt={product.name}
+                  width={140}
+                  height={90}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
                 {product.promoPct && (
