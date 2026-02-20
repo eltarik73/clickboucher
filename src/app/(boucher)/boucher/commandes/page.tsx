@@ -23,6 +23,7 @@ import OrderAlertOverlay from "@/components/boucher/OrderAlertOverlay";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
 import ItemUnavailableModal from "@/components/boucher/ItemUnavailableModal";
 import { QRScanner } from "@/components/boucher/QRScanner";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────
 // Types
@@ -142,9 +143,25 @@ export default function KitchenModePage() {
       });
       if (res.ok) {
         await refetch();
+        const actionLabels: Record<string, string> = {
+          accept: "Commande acceptee",
+          deny: "Commande refusee",
+          start_preparing: "Preparation lancee",
+          mark_ready: "Commande prete !",
+          confirm_pickup: "Retrait confirme",
+          manual_pickup: "Retrait confirme",
+          add_time: "Temps ajoute",
+          item_unavailable: "Rupture signalee",
+          cancel: "Commande annulee",
+        };
+        toast.success(actionLabels[action] || "Action effectuee");
+      } else {
+        const json = await res.json().catch(() => null);
+        const msg = json?.error?.message || "Erreur lors de l'action";
+        toast.error(msg);
       }
     } catch {
-      // silent
+      toast.error("Erreur de connexion au serveur");
     }
   }
 
@@ -158,9 +175,13 @@ export default function KitchenModePage() {
       });
       if (res.ok) {
         await refetch();
+        toast.success("Rupture signalee");
+      } else {
+        const json = await res.json().catch(() => null);
+        toast.error(json?.error?.message || "Erreur lors du signalement");
       }
     } catch {
-      // silent
+      toast.error("Erreur de connexion au serveur");
     }
   }
 

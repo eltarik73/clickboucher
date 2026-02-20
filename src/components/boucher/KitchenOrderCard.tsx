@@ -364,7 +364,14 @@ export default function KitchenOrderCard({
         {order.status === "READY" && (
           <div className="space-y-2">
             <button
-              onClick={() => doAction("confirm_pickup", { qrCode: order.qrCode || "" })}
+              onClick={() => {
+                if (!order.qrCode) {
+                  // No QR code — do a manual pickup without QR validation
+                  doAction("manual_pickup");
+                  return;
+                }
+                doAction("confirm_pickup", { qrCode: order.qrCode });
+              }}
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition-all text-base disabled:opacity-50"
             >

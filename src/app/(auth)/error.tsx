@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 
-export default function GlobalError({
+export default function AuthError({
   error,
   reset,
 }: {
@@ -11,7 +11,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[GlobalError]", error);
+    console.error("[AuthError]", error);
   }, [error]);
 
   return (
@@ -21,11 +21,11 @@ export default function GlobalError({
           <AlertCircle className="w-8 h-8 text-[#DC2626]" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Oups, une erreur est survenue
+          Erreur d&apos;authentification
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-          Ne vous inqui&eacute;tez pas, vos donn&eacute;es sont en
-          s&eacute;curit&eacute;. Essayez de recharger la page.
+          Un probl&egrave;me est survenu lors de l&apos;authentification.
+          Veuillez r&eacute;essayer.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 mt-8 justify-center">
           <button

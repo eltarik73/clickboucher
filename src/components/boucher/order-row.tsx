@@ -30,7 +30,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   WEIGHT_REVIEW: { label: "Attente client", color: "text-red-700", bg: "bg-red-50 dark:bg-red-950/30 border-red-200" },
   STOCK_ISSUE: { label: "Rupture", color: "text-red-700", bg: "bg-red-50 dark:bg-red-950/30 border-red-200" },
   READY: { label: "Prête", color: "text-emerald-700", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200" },
-  COLLECTED: { label: "Retirée", color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-900/30 border-gray-200" },
+  PICKED_UP: { label: "Retirée", color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-900/30 border-gray-200" },
   CANCELLED: { label: "Annulée", color: "text-gray-400", bg: "bg-gray-50 dark:bg-gray-900/30 border-gray-200" },
 };
 
@@ -38,7 +38,7 @@ const NEXT_ACTION: Record<string, { label: string; status: string; variant: "def
   PENDING: { label: "Accepter", status: "ACCEPTED", variant: "default" },
   ACCEPTED: { label: "Préparer", status: "PREPARING", variant: "default" },
   PREPARING: { label: "Pesée", status: "WEIGHING", variant: "default" },
-  READY: { label: "Retirée", status: "COLLECTED", variant: "default" },
+  READY: { label: "Retirée", status: "PICKED_UP", variant: "default" },
 };
 
 interface OrderRowProps {

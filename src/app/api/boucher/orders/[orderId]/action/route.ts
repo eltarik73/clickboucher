@@ -339,6 +339,28 @@ export async function PATCH(
         return apiSuccess(updated);
       }
 
+      // ── MANUAL PICKUP (boucher-side, no QR needed) ──
+      case "manual_pickup": {
+        if (order.status !== "READY") {
+          return apiError("VALIDATION_ERROR", `La commande n'est pas prête (statut: ${order.status})`);
+        }
+
+        const manualNow = new Date();
+        const manualUpdated = await prisma.order.update({
+          where: { id: orderId },
+          data: { status: "PICKED_UP", pickedUpAt: manualNow },
+        });
+
+        await sendNotification("ORDER_PICKED_UP", {
+          userId: order.user.id,
+          orderId,
+          orderNumber: order.orderNumber,
+          shopName: order.shop.name,
+        });
+
+        return apiSuccess(manualUpdated);
+      }
+
       // ── CANCEL (by boucher) ─────────────────────
       case "cancel": {
         if (!canTransition(order.status, "CANCELLED")) {

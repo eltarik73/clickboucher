@@ -207,6 +207,7 @@ export const boucherActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("adjust_weight"), items: z.array(z.object({ orderItemId: z.string().min(1), actualWeightGrams: z.number().int().min(1) })).min(1) }),
   z.object({ action: z.literal("adjust_price"), items: z.array(z.object({ orderItemId: z.string().min(1), newPriceCents: z.number().int().min(0) })).min(1) }),
   z.object({ action: z.literal("confirm_pickup"), qrCode: z.string().uuid() }),
+  z.object({ action: z.literal("manual_pickup") }),
   z.object({ action: z.literal("cancel"), reason: z.string().max(500).optional() }),
   z.object({ action: z.literal("add_note"), note: z.string().min(1).max(500) }),
 ]);

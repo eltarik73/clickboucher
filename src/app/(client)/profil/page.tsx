@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import {
   ArrowLeft,
   User as UserIcon,
@@ -69,6 +69,7 @@ const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
 
 export default function ProfilPage() {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const clerk = useClerk();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -256,13 +257,14 @@ export default function ProfilPage() {
             </div>
           </div>
 
-          <a
-            href="/user-profile"
+          <button
+            type="button"
+            onClick={() => clerk.openUserProfile()}
             className="flex items-center justify-center gap-2 mt-4 w-full py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border border-[#ece8e3] dark:border-white/10 text-sm font-medium text-gray-900 dark:text-white transition-colors"
           >
             Modifier sur Clerk
             <ExternalLink size={14} className="text-gray-500 dark:text-gray-400" />
-          </a>
+          </button>
         </section>
 
         {/* ═══════════════════════════════════════ */}

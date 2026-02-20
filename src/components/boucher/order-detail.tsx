@@ -177,7 +177,7 @@ export function OrderDetail({ order, onBack, onStatusChange, onStartWeighing, on
           </div>
         )}
         {order.status === "READY" && (
-          <Button variant="success" className="w-full" onClick={() => onStatusChange("COLLECTED")}>
+          <Button variant="success" className="w-full" onClick={() => onStatusChange("PICKED_UP")}>
             <Package size={16} className="mr-1" /> Marquer comme retirée
           </Button>
         )}

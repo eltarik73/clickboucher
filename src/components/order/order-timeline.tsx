@@ -19,7 +19,7 @@ const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = 
   WEIGHT_REVIEW: { icon: <AlertTriangle size={14} />, color: "bg-red-500" },
   STOCK_ISSUE: { icon: <AlertTriangle size={14} />, color: "bg-red-500" },
   READY: { icon: <Package size={14} />, color: "bg-green-600" },
-  COLLECTED: { icon: <Check size={14} />, color: "bg-green-700" },
+  PICKED_UP: { icon: <Check size={14} />, color: "bg-green-700" },
   CANCELLED: { icon: <X size={14} />, color: "bg-gray-500" },
 };
 
