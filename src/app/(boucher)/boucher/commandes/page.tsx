@@ -26,11 +26,26 @@ import Link from "next/link";
 import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
 import { soundManager } from "@/lib/notification-sound";
 import { startOrderAlert, stopOrderAlert } from "@/lib/sounds";
-import AudioUnlockScreen from "@/components/boucher/AudioUnlockScreen";
-import OrderAlertOverlay from "@/components/boucher/OrderAlertOverlay";
+import dynamic from "next/dynamic";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
-import ItemUnavailableModal from "@/components/boucher/ItemUnavailableModal";
-import { QRScanner } from "@/components/boucher/QRScanner";
+
+// Lazy-load: conditionally displayed (modals, overlays, scanner)
+const AudioUnlockScreen = dynamic(
+  () => import("@/components/boucher/AudioUnlockScreen"),
+  { ssr: false }
+);
+const OrderAlertOverlay = dynamic(
+  () => import("@/components/boucher/OrderAlertOverlay"),
+  { ssr: false }
+);
+const ItemUnavailableModal = dynamic(
+  () => import("@/components/boucher/ItemUnavailableModal"),
+  { ssr: false }
+);
+const QRScanner = dynamic(
+  () => import("@/components/boucher/QRScanner").then((m) => m.QRScanner),
+  { ssr: false }
+);
 import { toast } from "sonner";
 
 // ─────────────────────────────────────────────

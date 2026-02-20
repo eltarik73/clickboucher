@@ -3,6 +3,7 @@ const nextConfig = {
   output: "standalone",
   experimental: {
     instrumentationHook: true,
+    optimizePackageImports: ["lucide-react"],
   },
   images: {
     formats: ["image/webp", "image/avif"],

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -31,7 +30,8 @@ export function QRScanner({
   const [result, setResult] = useState<ScanResult | null>(null);
   const [processing, setProcessing] = useState(false);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scannerRef = useRef<any>(null);
   const containerRef = useRef<string>(
     "qr-reader-" + Math.random().toString(36).slice(2)
   );
@@ -53,6 +53,7 @@ export function QRScanner({
     setScannedCode(null);
 
     try {
+      const { Html5Qrcode } = await import("html5-qrcode");
       const scanner = new Html5Qrcode(containerRef.current);
       scannerRef.current = scanner;
 
@@ -88,7 +89,8 @@ export function QRScanner({
     setScanning(false);
   }
 
-  async function handleScan(qrCode: string, scanner: Html5Qrcode) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function handleScan(qrCode: string, scanner: any) {
     // Stop scanning immediately
     try {
       await scanner.stop();
