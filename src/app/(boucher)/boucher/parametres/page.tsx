@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import {
   Loader2,
   AlertCircle,
-  Check,
   Store,
   Zap,
   Pause,
@@ -62,19 +62,23 @@ const DAYS = [
 ];
 
 // ─────────────────────────────────────────────
-// Saved toast
+// Helpers
 // ─────────────────────────────────────────────
-function useSavedToast() {
-  const [visible, setVisible] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+function normalizePhone(phone: string): string | undefined {
+  if (!phone) return undefined;
+  const trimmed = phone.trim().replace(/\s/g, "");
+  if (trimmed.startsWith("+33")) return trimmed;
+  if (/^0[1-9][0-9]{8}$/.test(trimmed)) return "+33" + trimmed.slice(1);
+  return trimmed;
+}
 
-  function show() {
-    setVisible(true);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setVisible(false), 2000);
+async function extractError(res: Response): Promise<string> {
+  try {
+    const json = await res.json();
+    return json.error?.message || "Erreur serveur";
+  } catch {
+    return `Erreur ${res.status}`;
   }
-
-  return { visible, show };
 }
 
 // ─────────────────────────────────────────────
@@ -84,7 +88,6 @@ export default function BoucherParametresPage() {
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const toast = useSavedToast();
 
   // Info form state
   const [infoName, setInfoName] = useState("");
@@ -149,8 +152,14 @@ export default function BoucherParametresPage() {
           rewardPct: loyaltyPct,
         }),
       });
-      if (res.ok) toast.show();
-    } catch {} finally {
+      if (res.ok) {
+        toast.success("Programme fidelite sauvegarde");
+      } else {
+        toast.error(await extractError(res));
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
       setLoyaltySaving(false);
     }
   };
@@ -208,10 +217,12 @@ export default function BoucherParametresPage() {
       if (res.ok) {
         const json = await res.json();
         setShop((prev) => (prev ? { ...prev, ...data, ...json.data } : prev));
-        toast.show();
+        toast.success("Sauvegarde");
+      } else {
+        toast.error(await extractError(res));
       }
     } catch {
-      // silent
+      toast.error("Erreur de connexion");
     }
   }
 
@@ -220,6 +231,7 @@ export default function BoucherParametresPage() {
     if (!shop) return;
     setInfoSaving(true);
     try {
+      const phone = normalizePhone(infoPhone);
       const res = await fetch(`/api/shops/${shop.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -227,17 +239,19 @@ export default function BoucherParametresPage() {
           name: infoName,
           address: infoAddress,
           city: infoCity,
-          phone: infoPhone || undefined,
+          phone,
           openingHours: hours,
         }),
       });
       if (res.ok) {
         const json = await res.json();
         setShop((prev) => (prev ? { ...prev, ...json.data } : prev));
-        toast.show();
+        toast.success("Informations sauvegardees");
+      } else {
+        toast.error(await extractError(res));
       }
     } catch {
-      // silent
+      toast.error("Erreur de connexion");
     } finally {
       setInfoSaving(false);
     }
@@ -269,8 +283,14 @@ export default function BoucherParametresPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pickupSlots: pickupConfig }),
       });
-      if (res.ok) toast.show();
-    } catch {} finally {
+      if (res.ok) {
+        toast.success("Creneaux sauvegardes");
+      } else {
+        toast.error(await extractError(res));
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
       setPickupSaving(false);
     }
   }
@@ -284,8 +304,14 @@ export default function BoucherParametresPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ acceptOnline, acceptOnPickup }),
       });
-      if (res.ok) toast.show();
-    } catch {} finally {
+      if (res.ok) {
+        toast.success("Paiement sauvegarde");
+      } else {
+        toast.error(await extractError(res));
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
       setPaymentSaving(false);
     }
   }
@@ -849,14 +875,22 @@ export default function BoucherParametresPage() {
                       setGeoLat(lat);
                       setGeoLng(lng);
                       // Save to DB
-                      await fetch(`/api/shops/${shop.id}`, {
+                      const saveRes = await fetch(`/api/shops/${shop.id}`, {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ latitude: lat, longitude: lng }),
                       });
-                      toast.show();
+                      if (saveRes.ok) {
+                        toast.success("Position enregistree");
+                      } else {
+                        toast.error(await extractError(saveRes));
+                      }
+                    } else {
+                      toast.error("Adresse introuvable. Verifiez l'adresse et la ville.");
                     }
-                  } catch {} finally {
+                  } catch {
+                    toast.error("Erreur lors du geocodage");
+                  } finally {
                     setGeoLoading(false);
                   }
                 }}
@@ -887,20 +921,26 @@ export default function BoucherParametresPage() {
                 value={geoRadius}
                 onChange={(e) => setGeoRadius(Number(e.target.value))}
                 onMouseUp={async () => {
-                  await fetch(`/api/shops/${shop.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ deliveryRadius: geoRadius }),
-                  });
-                  toast.show();
+                  try {
+                    const res = await fetch(`/api/shops/${shop.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ deliveryRadius: geoRadius }),
+                    });
+                    if (res.ok) toast.success("Rayon sauvegarde");
+                    else toast.error(await extractError(res));
+                  } catch { toast.error("Erreur de connexion"); }
                 }}
                 onTouchEnd={async () => {
-                  await fetch(`/api/shops/${shop.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ deliveryRadius: geoRadius }),
-                  });
-                  toast.show();
+                  try {
+                    const res = await fetch(`/api/shops/${shop.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ deliveryRadius: geoRadius }),
+                    });
+                    if (res.ok) toast.success("Rayon sauvegarde");
+                    else toast.error(await extractError(res));
+                  } catch { toast.error("Erreur de connexion"); }
                 }}
                 className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-600"
               />
@@ -913,15 +953,6 @@ export default function BoucherParametresPage() {
         </SettingCard>
       </div>
 
-      {/* ── Saved toast ── */}
-      {toast.visible && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-[#f8f6f3] text-white dark:text-gray-900 text-sm font-medium rounded-full shadow-lg">
-            <Check size={14} className="text-emerald-400 dark:text-emerald-600" />
-            Sauvegardé ✓
-          </div>
-        </div>
-      )}
     </div>
   );
 }

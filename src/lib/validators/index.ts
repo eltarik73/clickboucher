@@ -6,7 +6,7 @@ import { z } from "zod";
 
 export const phoneSchema = z
   .string()
-  .regex(/^\+33[0-9]{9}$/, "Numero au format +33XXXXXXXXX");
+  .regex(/^(\+33[0-9]{9}|0[1-9][0-9]{8})$/, "Numero invalide (ex: 0612345678 ou +33612345678)");
 
 export const siretSchema = z
   .string()
