@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import {
   ShopProductsClient,
@@ -18,9 +19,9 @@ import {
 import { ReviewList } from "@/components/shop/ReviewList";
 import { LoyaltyBadge } from "@/components/shop/LoyaltyBadge";
 
-// ── Cached shop query (shared between generateMetadata & page) ──
+// ── Cached shop query with Redis (shared between generateMetadata & page) ──
 
-const getShop = cache(async (slug: string) => {
+async function fetchShopFromDB(slug: string) {
   return prisma.shop.findUnique({
     where: { slug },
     include: {
@@ -36,6 +37,35 @@ const getShop = cache(async (slug: string) => {
       },
     },
   });
+}
+
+type ShopWithProducts = NonNullable<Awaited<ReturnType<typeof fetchShopFromDB>>>;
+
+const getShop = cache(async (slug: string): Promise<ShopWithProducts | null> => {
+  // Try Redis cache first (TTL 60s)
+  const cacheKey = `shop:${slug}`;
+  try {
+    const cached = await redis.get<string>(cacheKey);
+    if (cached) {
+      const parsed = (typeof cached === "string" ? JSON.parse(cached) : cached) as ShopWithProducts;
+      // Restore Date objects
+      if (parsed?.products) {
+        for (const p of parsed.products) {
+          if (p.promoEnd) p.promoEnd = new Date(p.promoEnd);
+        }
+      }
+      return parsed;
+    }
+  } catch {}
+
+  const shop = await fetchShopFromDB(slug);
+
+  // Cache for 60 seconds
+  if (shop) {
+    try { await redis.set(cacheKey, JSON.stringify(shop), { ex: 60 }); } catch {}
+  }
+
+  return shop;
 });
 
 // ── Dynamic metadata for SEO ────────────────────
@@ -92,7 +122,7 @@ export default async function BoutiquePage({
 
   if (!shop) notFound();
 
-  // Check favorites & pro status (single auth call)
+  // Check favorites & pro status (parallel queries)
   let isFavorite = false;
   let proStatus: { isPro: boolean; status?: string; companyName?: string } = { isPro: false };
   try {
@@ -100,17 +130,21 @@ export default async function BoutiquePage({
     if (clerkId) {
       const user = await prisma.user.findUnique({
         where: { clerkId },
-        select: {
-          id: true,
-          favoriteShops: { where: { id: shop.id }, select: { id: true } },
-        },
+        select: { id: true },
       });
-      isFavorite = (user?.favoriteShops.length ?? 0) > 0;
       if (user) {
-        const proAccess = await prisma.proAccess.findUnique({
-          where: { userId_shopId: { userId: user.id, shopId: shop.id } },
-          select: { status: true, companyName: true },
-        });
+        // Parallel: favorites + proAccess
+        const [favResult, proAccess] = await Promise.all([
+          prisma.user.findUnique({
+            where: { clerkId },
+            select: { favoriteShops: { where: { id: shop.id }, select: { id: true } } },
+          }),
+          prisma.proAccess.findUnique({
+            where: { userId_shopId: { userId: user.id, shopId: shop.id } },
+            select: { status: true, companyName: true },
+          }),
+        ]);
+        isFavorite = (favResult?.favoriteShops.length ?? 0) > 0;
         if (proAccess) {
           proStatus = {
             isPro: proAccess.status === "APPROVED",
