@@ -20,7 +20,7 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {showLocation ? (
-            <button type="button" className="flex items-center gap-2 tap-scale">
+            <button type="button" aria-label="Lieu de retrait" className="flex items-center gap-2 tap-scale">
               <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-zinc-100 dark:bg-white/10">
                 <MapPin size={15} className="text-primary" strokeWidth={2.5} />
               </div>
@@ -45,7 +45,7 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
         <div className="flex items-center gap-1.5">
           <NotificationBell />
           {showCart && (
-            <Link href="/panier" className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 transition-colors tap-scale">
+            <Link href="/panier" aria-label="Panier" className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 transition-colors tap-scale">
               <ShoppingBag size={16} strokeWidth={2} className="text-zinc-700 dark:text-white" />
               {cartCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center px-1 animate-scale-in">
@@ -54,7 +54,7 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
               )}
             </Link>
           )}
-          <button type="button" className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 transition-colors tap-scale">
+          <button type="button" aria-label="Mon profil" className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 transition-colors tap-scale">
             <User size={16} strokeWidth={2} className="text-zinc-700 dark:text-white" />
           </button>
         </div>

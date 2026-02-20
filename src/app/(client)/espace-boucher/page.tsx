@@ -6,15 +6,10 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import {
   Store,
-  ShoppingBag,
-  Star,
   Check,
   ChevronDown,
   ChevronUp,
-  MessageSquare,
   Zap,
-  BarChart3,
-  Headphones,
   Settings,
   Users,
   ArrowLeft,

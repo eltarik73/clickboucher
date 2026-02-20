@@ -186,6 +186,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               <div className="flex items-center gap-0 rounded-lg overflow-hidden border border-[#DC2626]/20">
                 <button
                   onClick={handleDecrement}
+                  aria-label="Diminuer la quantité"
                   className="w-[24px] h-[24px] flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
                 >
                   <Minus size={12} strokeWidth={2.5} />
@@ -195,6 +196,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                 </span>
                 <button
                   onClick={handleIncrement}
+                  aria-label="Augmenter la quantité"
                   className="w-[24px] h-[24px] flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
                 >
                   <Plus size={12} strokeWidth={2.5} />
@@ -204,6 +206,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               /* Initial "+" button */
               <button
                 onClick={handleAdd}
+                aria-label="Ajouter au panier"
                 className={`w-[26px] h-[26px] rounded-lg flex items-center justify-center
                   transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
                   ${animating

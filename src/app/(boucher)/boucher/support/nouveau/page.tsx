@@ -12,7 +12,7 @@ type Shop = {
 
 export default function NewTicketPage() {
   const router = useRouter();
-  const [shops, setShops] = useState<Shop[]>([]);
+  const [, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 

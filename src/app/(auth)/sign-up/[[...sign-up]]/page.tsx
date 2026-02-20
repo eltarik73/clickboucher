@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { SignUp } from "@clerk/nextjs";
+
+export const metadata: Metadata = {
+  title: "Inscription | Klik&Go",
+  description:
+    "Créez votre compte Klik&Go pour commander facilement chez votre boucher halal à Chambéry.",
+};
 
 export default function SignUpPage() {
   return (

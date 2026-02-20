@@ -210,6 +210,7 @@ export default async function BoutiquePage({
           <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
             <Link
               href="/decouvrir"
+              aria-label="Retour aux boucheries"
               className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
             >
               <ArrowLeft size={17} className="text-[#333]" />

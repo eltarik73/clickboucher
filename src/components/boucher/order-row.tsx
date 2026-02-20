@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Clock, User, Briefcase, Phone, ChevronRight, Scale, AlertTriangle, Package } from "lucide-react";
+import { Clock, User, Briefcase, Scale, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice, formatRelativeTime } from "@/lib/utils";

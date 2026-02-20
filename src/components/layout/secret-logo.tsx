@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export function SecretTapLogo() {
   const router = useRouter();
-  const [count, setCount] = useState(0);
+  const [, setCount] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTap = useCallback(() => {

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Send, X, ShoppingCart, CheckCircle } from "lucide-react";
+import { Send, X, CheckCircle } from "lucide-react";
 import { useCart } from "@/lib/hooks/use-cart";
 
 // ── Types ────────────────────────────────────────
@@ -396,7 +396,6 @@ export function ChatWidget() {
   // Check if last bot message is a recap
   const lastBotMsg = [...messages].reverse().find((m) => m.role === "assistant");
   const isRecap = lastBotMsg ? isRecapMessage(lastBotMsg.content) : false;
-  const recapInfo = lastBotMsg && isRecap ? extractRecapInfo(lastBotMsg.content) : null;
 
   return (
     <>

@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowLeft, Scale, Check, X, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +30,7 @@ const MOCK_REVIEW = {
   adjustment: 384,
 };
 
-export default function ValidationPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
+export default function ValidationPage(_props: { params: { id: string } }) {
   const [isLoading, setIsLoading] = useState(false);
   const [decision, setDecision] = useState<"accepted" | "rejected" | null>(null);
 

@@ -226,6 +226,7 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
             <button
               onClick={sendMessage}
               disabled={sending || !message.trim()}
+              aria-label="Envoyer le message"
               className="px-4 py-3 bg-[#DC2626] text-white rounded-xl hover:bg-[#b91c1c] disabled:opacity-50 transition-colors"
             >
               <Send size={18} />

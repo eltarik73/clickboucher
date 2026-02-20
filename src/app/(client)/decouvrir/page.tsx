@@ -1,7 +1,7 @@
 export const revalidate = 60; // ISR — rebuild every 60s
 
+import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { HowItWorks } from "@/components/landing/HowItWorks";
@@ -9,16 +9,21 @@ import { HeroButtons } from "./HeroButtons";
 import { CartBadge } from "./CartBadge";
 import { AuthButton } from "./AuthButton";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { FavoriteButton } from "@/components/ui/FavoriteButton";
-import { StarRating } from "@/components/ui/StarRating";
-import { getShopImage } from "@/lib/product-images";
 import NearbyShops from "./NearbyShops";
 import CalendarBanner from "@/components/landing/CalendarBanner";
 import { SearchBar } from "@/components/search/SearchBar";
 import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
 import { ReorderCarousel } from "@/components/order/ReorderCarousel";
 
-const SHOP_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' fill='%23e5e7eb'%3E%3Crect width='600' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🏪%3C/text%3E%3C/svg%3E";
+export const metadata: Metadata = {
+  title: "Découvrir les boucheries | Klik&Go",
+  description:
+    "Parcourez les boucheries halal de Chambéry, consultez les avis et commandez en click & collect. Retrait rapide avec QR code.",
+  openGraph: {
+    title: "Découvrir les boucheries | Klik&Go",
+    description: "Parcourez les boucheries halal de Chambéry et commandez en ligne.",
+  },
+};
 
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header)
@@ -77,7 +82,7 @@ function HeroLogo() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// BUTCHER CARD - Premium design
+// Shop type used by the page and NearbyShops
 // ─────────────────────────────────────────────────────────────
 type ShopData = {
   id: string;
@@ -93,105 +98,6 @@ type ShopData = {
   rating: number;
   ratingCount: number;
 };
-
-function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: number; isFavorite: boolean }) {
-  const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-  const imgSrc = shop.imageUrl || getShopImage(index);
-
-  const prepBadgeClasses =
-    effectiveTime <= 15
-      ? "bg-emerald-500/90 text-white"
-      : effectiveTime <= 30
-        ? "bg-amber-500/90 text-white"
-        : "bg-red-500/90 text-white";
-
-  return (
-    <Link
-      href={`/boutique/${shop.slug}`}
-      className={`group bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
-        (shop.status === "CLOSED" || shop.status === "VACATION" || shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "opacity-60" : ""
-      }`}
-    >
-      {/* Image with permanent gradient overlay */}
-      <div className="relative h-36 sm:h-48 overflow-hidden">
-        <Image
-          src={imgSrc}
-          alt={shop.name}
-          fill
-          sizes="(max-width: 640px) 100vw, 50vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          quality={75}
-          onError={(e) => { (e.target as HTMLImageElement).src = SHOP_PLACEHOLDER; }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-
-        {/* Top-left badges */}
-        <div className="absolute top-3 left-3 flex items-center gap-2">
-          {(shop.status === "OPEN" || shop.status === "BUSY") ? (
-            <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${prepBadgeClasses}`}>
-              {effectiveTime <= 15 && (
-                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              )}
-              {effectiveTime} min
-            </span>
-          ) : (
-            <span className="px-2.5 py-1 bg-gray-600/90 text-white text-xs font-semibold rounded-lg">
-              Fermé
-            </span>
-          )}
-          {shop.status === "BUSY" && (
-            <span className="px-2 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-lg">
-              Occupé
-            </span>
-          )}
-          {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
-            <span className="px-2 py-1 bg-red-500/90 text-white text-xs font-semibold rounded-lg">
-              Pause
-            </span>
-          )}
-        </div>
-
-        {/* Top-right: favorite + city */}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
-          <FavoriteButton shopId={shop.id} initialFavorite={isFavorite} size={22} />
-          <span className="px-2.5 py-1 bg-white/90 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white text-xs font-semibold rounded-lg">
-            {shop.city}
-          </span>
-        </div>
-
-        {/* Hover CTA */}
-        {(shop.status === "OPEN" || shop.status === "BUSY") && (
-          <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="block w-full py-2.5 bg-white dark:bg-white/[0.08] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm backdrop-blur-xl">
-              Voir la boutique
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Card body */}
-      <div className="p-4">
-        <h3
-          className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#DC2626] dark:group-hover:text-[#DC2626] transition-colors font-display"
-        >
-          {shop.name}
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {shop.address}, {shop.city}
-        </p>
-        <div className="flex items-center gap-3 mt-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg">
-            <StarRating value={Math.round(shop.rating)} size="sm" />
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              {shop.rating.toFixed(1)}
-            </span>
-            <span className="text-xs text-gray-400">({shop.ratingCount})</span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────
 // PROMOS (hardcoded for now)

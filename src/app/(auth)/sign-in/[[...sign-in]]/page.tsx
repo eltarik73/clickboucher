@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { SignIn } from "@clerk/nextjs";
+
+export const metadata: Metadata = {
+  title: "Connexion | Klik&Go",
+  description:
+    "Connectez-vous à votre compte Klik&Go pour commander chez votre boucher halal et suivre vos commandes.",
+};
 
 export default function SignInPage() {
   return (

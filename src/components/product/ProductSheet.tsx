@@ -206,6 +206,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
               <div className="flex items-center gap-0 rounded-xl overflow-hidden border border-[#DC2626]/20 flex-1">
                 <button
                   onClick={onDecrement}
+                  aria-label="Diminuer la quantité"
                   className="flex-1 py-3 flex items-center justify-center bg-[#DC2626]/5 text-[#DC2626] hover:bg-[#DC2626]/10 active:scale-95 transition-all"
                 >
                   <Minus size={18} />
@@ -215,6 +216,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                 </span>
                 <button
                   onClick={onIncrement}
+                  aria-label="Augmenter la quantité"
                   className="flex-1 py-3 flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-95 transition-all"
                 >
                   <Plus size={18} />

@@ -12,7 +12,6 @@ import {
   DollarSign,
   MessageSquare,
   Check,
-  X,
   Ban,
   Play,
   Crown,

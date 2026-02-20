@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
 import { ArrowLeft, MapPin, Copy, AlertTriangle, RefreshCw, Trash2, Loader2, MessageSquare } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -148,7 +146,6 @@ function TimeProgress({ estimatedReady }: { estimatedReady: string }) {
     const update = () => {
       const now = Date.now();
       const remaining = Math.max(0, target - now);
-      const total = Math.max(1, target - (target - 30 * 60_000)); // assume 30min window
       setMinsLeft(Math.ceil(remaining / 60_000));
       setPct(Math.min(100, Math.max(0, (remaining / (30 * 60_000)) * 100)));
     };
@@ -236,9 +233,6 @@ export default function CommandePage({
 }: {
   params: { id: string };
 }) {
-  const router = useRouter();
-  const { isSignedIn } = useUser();
-
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

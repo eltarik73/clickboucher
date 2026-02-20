@@ -92,12 +92,14 @@ export default function ParrainagePage() {
               </div>
               <button
                 onClick={handleCopy}
+                aria-label="Copier le code"
                 className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
               >
                 {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
               </button>
               <button
                 onClick={handleShare}
+                aria-label="Partager le code"
                 className="w-10 h-10 rounded-xl bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#b91c1c] transition-colors"
               >
                 <Share2 size={18} />

@@ -1,7 +1,7 @@
 // src/app/(boucher)/boucher/produits/ProductForm.tsx — 4-step product form
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

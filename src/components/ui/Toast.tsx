@@ -1,7 +1,7 @@
 // src/components/ui/Toast.tsx
 "use client";
 
-import { useState, useEffect, createContext, useContext, useCallback } from "react";
+import { useState, createContext, useContext, useCallback } from "react";
 
 // Simple toast context (separate from cart)
 interface ToastContextType {
@@ -45,7 +45,7 @@ function Toast({ message, onDismiss }: { message: string | null; onDismiss: () =
           <polyline points="20 6 9 17 4 12" />
         </svg>
         <span className="text-[13px] font-medium">{message}</span>
-        <button type="button" onClick={onDismiss} className="ml-1 p-0.5 rounded hover:bg-white/10 transition-colors">
+        <button type="button" onClick={onDismiss} aria-label="Fermer la notification" className="ml-1 p-0.5 rounded hover:bg-white/10 transition-colors">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, User, Briefcase, Phone, CreditCard, Clock, Scale, Package } from "lucide-react";
+import { ArrowLeft, User, Briefcase, Phone, CreditCard, Scale, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { OrderTimeline } from "@/components/order/order-timeline";
