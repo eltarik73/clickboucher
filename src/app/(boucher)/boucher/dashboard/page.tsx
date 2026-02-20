@@ -281,7 +281,9 @@ export default function BoucherDashboardPage() {
   // ── Stats calculations ──
   const today = new Date().toISOString().slice(0, 10);
   const todayOrders = orders.filter((o) => o.createdAt.slice(0, 10) === today);
-  const completedToday = todayOrders.filter((o) => o.status === "COMPLETED");
+  const completedToday = todayOrders.filter(
+    (o) => o.status === "COMPLETED" || o.status === "PICKED_UP"
+  );
   const caToday = completedToday.reduce((sum, o) => sum + o.totalCents, 0) / 100;
   const pendingOrders = orders.filter((o) => o.status === "PENDING");
   const pendingCount = pendingOrders.length;
