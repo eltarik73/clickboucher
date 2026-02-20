@@ -22,6 +22,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
   COMPLETED:        { label: "Terminee",       color: "text-green-700",   bg: "bg-green-50" },
   DENIED:           { label: "Refusee",        color: "text-red-700",     bg: "bg-red-50" },
   CANCELLED:        { label: "Annulee",        color: "text-gray-500",    bg: "bg-gray-50" },
+  AUTO_CANCELLED:   { label: "Expiree",        color: "text-gray-500",    bg: "bg-gray-50" },
   PARTIALLY_DENIED: { label: "Partielle",      color: "text-orange-700",  bg: "bg-orange-50" },
 };
 

@@ -73,7 +73,7 @@ function unitLabel(unit: string) {
   return "barq.";
 }
 
-const TERMINAL = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED"];
+const TERMINAL = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
 
 // ── Dots animation ───────────────────────────────
 
@@ -758,6 +758,34 @@ export default function CommandePage({
             >
               <Link href="/decouvrir">Decouvrir les boucheries</Link>
             </Button>
+          </div>
+        )}
+
+        {/* ═══ AUTO_CANCELLED ═══ */}
+        {order.status === "AUTO_CANCELLED" && (
+          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-amber-200 dark:border-amber-800/30">
+            <div className="text-5xl mb-3">⏰</div>
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
+              Commande expiree
+            </h2>
+            <p className="text-sm text-[#999] dark:text-gray-400 mt-2">
+              Le boucher n&apos;a pas pu confirmer votre commande a temps.
+              Vous pouvez reessayer ou choisir une autre boucherie.
+            </p>
+            <div className="flex flex-col gap-2 mt-5">
+              <Button
+                className="bg-[#DC2626] hover:bg-[#b91c1c]"
+                asChild
+              >
+                <Link href={`/boutique/${order.shop.slug}`}>Recommander</Link>
+              </Button>
+              <Button
+                variant="outline"
+                asChild
+              >
+                <Link href="/decouvrir">Autres boucheries</Link>
+              </Button>
+            </div>
           </div>
         )}
 

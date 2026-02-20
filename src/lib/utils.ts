@@ -18,8 +18,8 @@ export const THEME = {
   redBg: "#FEF2F2",
 } as const;
 
-export function formatPrice(price: number): string {
-  return price.toFixed(2).replace(".", ",") + " €";
+export function formatPrice(cents: number): string {
+  return (cents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
 export function formatShortTime(mins: number): string {

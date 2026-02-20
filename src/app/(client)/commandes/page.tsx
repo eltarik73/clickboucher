@@ -58,14 +58,16 @@ function fmtDate(iso: string) {
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  PENDING:    { label: "En attente",      color: "bg-amber-100 text-amber-800 border-amber-200" },
-  ACCEPTED:   { label: "Acceptée",        color: "bg-blue-100 text-blue-800 border-blue-200" },
-  PREPARING:  { label: "En préparation",  color: "bg-orange-100 text-orange-800 border-orange-200" },
-  READY:      { label: "Prête !",         color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
-  PICKED_UP:  { label: "Récupérée",       color: "bg-stone-100 text-stone-600 border-stone-200" },
-  COMPLETED:  { label: "Terminée",        color: "bg-stone-100 text-stone-600 border-stone-200" },
-  DENIED:     { label: "Refusée",         color: "bg-red-100 text-red-800 border-red-200" },
-  CANCELLED:  { label: "Annulée",         color: "bg-stone-100 text-stone-500 border-stone-200" },
+  PENDING:          { label: "En attente",      color: "bg-amber-100 text-amber-800 border-amber-200" },
+  ACCEPTED:         { label: "Acceptée",        color: "bg-blue-100 text-blue-800 border-blue-200" },
+  PREPARING:        { label: "En préparation",  color: "bg-orange-100 text-orange-800 border-orange-200" },
+  READY:            { label: "Prête !",         color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  PICKED_UP:        { label: "Récupérée",       color: "bg-stone-100 text-stone-600 border-stone-200" },
+  COMPLETED:        { label: "Terminée",        color: "bg-stone-100 text-stone-600 border-stone-200" },
+  DENIED:           { label: "Refusée",         color: "bg-red-100 text-red-800 border-red-200" },
+  CANCELLED:        { label: "Annulée",         color: "bg-stone-100 text-stone-500 border-stone-200" },
+  AUTO_CANCELLED:   { label: "Expirée",         color: "bg-stone-100 text-stone-500 border-stone-200" },
+  PARTIALLY_DENIED: { label: "Partielle",       color: "bg-orange-100 text-orange-800 border-orange-200" },
 };
 
 // ── Order Card ───────────────────────────────────
