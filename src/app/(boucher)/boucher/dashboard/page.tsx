@@ -374,7 +374,7 @@ export default function BoucherDashboardPage() {
                 <span className="text-xs text-gray-500 dark:text-gray-400">En attente</span>
               </div>
               <p className={`text-2xl font-bold ${pendingCount > 0 ? "text-red-600" : "text-gray-900 dark:text-white"}`}>
-                {ssePendingCount || pendingCount}
+                {ssePendingCount ?? pendingCount}
               </p>
             </CardContent>
           </Card>

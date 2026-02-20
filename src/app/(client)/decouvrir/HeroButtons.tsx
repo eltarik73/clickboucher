@@ -9,7 +9,7 @@ export function HeroButtons() {
     <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
       <button
         onClick={() => scrollTo("butchers")}
-        className="px-8 py-4 bg-[#DC2626] hover:bg-[#DC2626] text-white text-base font-semibold rounded-2xl transition-all shadow-lg shadow-[#DC2626]/20 active:scale-[0.98]"
+        className="px-8 py-4 bg-[#DC2626] hover:bg-[#b91c1c] text-white text-base font-semibold rounded-2xl transition-all shadow-lg shadow-[#DC2626]/20 active:scale-[0.98]"
       >
         Voir les boucheries
       </button>

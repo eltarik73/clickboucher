@@ -134,7 +134,7 @@ function OrderCard({
         <div className="border-t border-[#ece8e3] dark:border-white/10 px-4 py-3">
           <button
             onClick={() => onReorder(order)}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#DC2626]/5 hover:bg-[#DC2626]/10 text-[#DC2626] text-sm font-semibold transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#DC2626]/5 hover:bg-[#b91c1c]/10 text-[#DC2626] text-sm font-semibold transition-colors"
           >
             <RotateCcw size={14} />
             Recommander
@@ -236,7 +236,7 @@ export default function CommandesPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Connectez-vous pour voir vos commandes.
             </p>
-            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
               <Link href="/sign-in?redirect_url=/commandes">Se connecter</Link>
             </Button>
           </div>
@@ -260,7 +260,7 @@ export default function CommandesPage() {
               Impossible de charger vos commandes.
             </p>
             <Button
-              className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]"
+              className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]"
               size="lg"
               onClick={() => window.location.reload()}
             >

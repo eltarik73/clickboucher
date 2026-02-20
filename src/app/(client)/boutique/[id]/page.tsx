@@ -92,25 +92,20 @@ export default async function BoutiquePage({
 
   if (!shop) notFound();
 
-  // Check if user has this shop as favorite
+  // Check favorites & pro status (single auth call)
   let isFavorite = false;
+  let proStatus: { isPro: boolean; status?: string; companyName?: string } = { isPro: false };
   try {
     const { userId: clerkId } = await auth();
     if (clerkId) {
       const user = await prisma.user.findUnique({
         where: { clerkId },
-        select: { favoriteShops: { where: { id: shop.id }, select: { id: true } } },
+        select: {
+          id: true,
+          favoriteShops: { where: { id: shop.id }, select: { id: true } },
+        },
       });
       isFavorite = (user?.favoriteShops.length ?? 0) > 0;
-    }
-  } catch { /* ignore — non-critical */ }
-
-  // Check if user is pro at this shop
-  let proStatus: { isPro: boolean; status?: string; companyName?: string } = { isPro: false };
-  try {
-    const { userId: clerkId } = await auth();
-    if (clerkId) {
-      const user = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
       if (user) {
         const proAccess = await prisma.proAccess.findUnique({
           where: { userId_shopId: { userId: user.id, shopId: shop.id } },

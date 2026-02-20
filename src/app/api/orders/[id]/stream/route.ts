@@ -16,17 +16,29 @@ export async function GET(
 
   const { id } = params;
 
+  // Get the DB user to verify ownership
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true },
+  });
+
   const order = await prisma.order.findUnique({
     where: { id },
-    select: { id: true, status: true },
+    select: { id: true, status: true, userId: true },
   });
 
   if (!order) {
     return new Response("Order not found", { status: 404 });
   }
 
+  // Verify the user owns this order
+  if (order.userId !== dbUser?.id) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
   const encoder = new TextEncoder();
   let lastStatus = order.status;
+  let interval: ReturnType<typeof setInterval> | null = null;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -35,7 +47,7 @@ export async function GET(
         encoder.encode(`data: ${JSON.stringify({ type: "CONNECTED", orderId: id, status: lastStatus })}\n\n`)
       );
 
-      const interval = setInterval(async () => {
+      interval = setInterval(async () => {
         try {
           const current = await prisma.order.findUnique({
             where: { id },
@@ -50,8 +62,8 @@ export async function GET(
           });
 
           if (!current) {
-            clearInterval(interval);
-            controller.close();
+            if (interval) clearInterval(interval);
+            try { controller.close(); } catch { /* already closed */ }
             return;
           }
 
@@ -75,8 +87,8 @@ export async function GET(
             // Close stream if order is terminal
             const terminal = ["COMPLETED", "PICKED_UP", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
             if (terminal.includes(current.status)) {
-              clearInterval(interval);
-              controller.close();
+              if (interval) clearInterval(interval);
+              try { controller.close(); } catch { /* already closed */ }
               return;
             }
           }
@@ -88,10 +100,14 @@ export async function GET(
             )
           );
         } catch {
-          clearInterval(interval);
-          controller.close();
+          if (interval) clearInterval(interval);
+          try { controller.close(); } catch { /* already closed */ }
         }
       }, 5000);
+    },
+    cancel() {
+      // Called when client disconnects — prevents interval leak
+      if (interval) clearInterval(interval);
     },
   });
 

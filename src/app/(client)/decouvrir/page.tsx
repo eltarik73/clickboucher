@@ -109,7 +109,7 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
     <Link
       href={`/boutique/${shop.slug}`}
       className={`group bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
-        (shop.status === "CLOSED" || shop.status === "VACATION") ? "opacity-60" : ""
+        (shop.status === "CLOSED" || shop.status === "VACATION" || shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "opacity-60" : ""
       }`}
     >
       {/* Image with permanent gradient overlay */}
@@ -136,12 +136,12 @@ function ButcherCard({ shop, index, isFavorite }: { shop: ShopData; index: numbe
             </span>
           ) : (
             <span className="px-2.5 py-1 bg-gray-600/90 text-white text-xs font-semibold rounded-lg">
-              Ferme
+              Fermé
             </span>
           )}
           {shop.status === "BUSY" && (
             <span className="px-2 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-lg">
-              Occupe
+              Occupé
             </span>
           )}
           {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (

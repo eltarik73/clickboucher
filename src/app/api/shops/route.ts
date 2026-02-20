@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     const query = shopListQuerySchema.parse(params);
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { visible: true };
 
     if (query.city) {
       where.city = { contains: query.city, mode: "insensitive" };

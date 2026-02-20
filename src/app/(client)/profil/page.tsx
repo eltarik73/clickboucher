@@ -176,7 +176,7 @@ export default function ProfilPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               Connectez-vous pour accéder à votre profil.
             </p>
-            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
               <Link href="/sign-in?redirect_url=/profil">Se connecter</Link>
             </Button>
           </div>
@@ -198,7 +198,7 @@ export default function ProfilPage() {
               Impossible de charger votre profil.
             </p>
             <Button
-              className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]"
+              className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]"
               size="lg"
               onClick={() => window.location.reload()}
             >
@@ -401,7 +401,7 @@ export default function ProfilPage() {
             <Button
               onClick={handleSavePrefs}
               disabled={saving}
-              className="w-full bg-[#DC2626] hover:bg-[#DC2626] disabled:opacity-50"
+              className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50"
             >
               {saving ? "Enregistrement..." : "Enregistrer les préférences"}
             </Button>

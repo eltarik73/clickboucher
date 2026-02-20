@@ -433,7 +433,7 @@ export default function CommandePage({
       <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex flex-col items-center justify-center px-5">
         <p className="text-lg font-bold text-[#2a2018] dark:text-white mb-2">Erreur</p>
         <p className="text-sm text-[#999] dark:text-gray-400 mb-6">{error || "Commande introuvable"}</p>
-        <Button className="bg-[#DC2626] hover:bg-[#DC2626]" asChild>
+        <Button className="bg-[#DC2626] hover:bg-[#b91c1c]" asChild>
           <Link href="/commandes">Mes commandes</Link>
         </Button>
       </div>
@@ -667,7 +667,7 @@ export default function CommandePage({
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 mt-5 px-6 py-3 bg-[#DC2626] text-white text-sm font-semibold rounded-xl hover:bg-[#DC2626] transition-colors"
+              className="inline-flex items-center gap-2 mt-5 px-6 py-3 bg-[#DC2626] text-white text-sm font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors"
             >
               <MapPin size={16} />
               Ouvrir dans Maps
@@ -704,7 +704,7 @@ export default function CommandePage({
                     <Button
                       onClick={handleRate}
                       disabled={ratingSubmitting}
-                      className="mt-3 w-full bg-[#DC2626] hover:bg-[#DC2626]"
+                      className="mt-3 w-full bg-[#DC2626] hover:bg-[#b91c1c]"
                     >
                       {ratingSubmitting ? "Envoi..." : "Envoyer mon avis"}
                     </Button>
@@ -734,7 +734,7 @@ export default function CommandePage({
               </div>
             )}
             <Button
-              className="mt-5 bg-[#DC2626] hover:bg-[#DC2626]"
+              className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]"
               asChild
             >
               <Link href={`/boutique/${order.shop.slug}`}>Recommander</Link>
@@ -753,7 +753,7 @@ export default function CommandePage({
               Cette commande a ete annulee.
             </p>
             <Button
-              className="mt-5 bg-[#DC2626] hover:bg-[#DC2626]"
+              className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]"
               asChild
             >
               <Link href="/decouvrir">Decouvrir les boucheries</Link>

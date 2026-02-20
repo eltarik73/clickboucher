@@ -70,7 +70,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const client = new Anthropic();
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: "AI non configuree (ANTHROPIC_API_KEY manquante)" }, { status: 503 });
+    }
+
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",

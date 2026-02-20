@@ -124,7 +124,7 @@ export default function InscriptionProPage() {
             <p className="text-sm text-[#999] dark:text-gray-400 mt-2">
               Connectez-vous pour demander un compte professionnel.
             </p>
-            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
               <Link href="/sign-in?redirect_url=/inscription-pro">Se connecter</Link>
             </Button>
           </div>
@@ -150,7 +150,7 @@ export default function InscriptionProPage() {
               Votre demande de compte professionnel est en attente de validation.
               Vous recevrez une notification dès approbation.
             </p>
-            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
               <Link href="/decouvrir">Retour à l&apos;accueil</Link>
             </Button>
           </div>
@@ -176,7 +176,7 @@ export default function InscriptionProPage() {
               Votre boucherie va valider votre compte professionnel.
               Vous recevrez une notification dès validation.
             </p>
-            <Button className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]" size="lg" asChild>
+            <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
               <Link href="/decouvrir">Retour à l&apos;accueil</Link>
             </Button>
           </div>
@@ -338,7 +338,7 @@ export default function InscriptionProPage() {
         <Button
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}
-          className="w-full bg-[#DC2626] hover:bg-[#DC2626] disabled:opacity-50"
+          className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50"
           size="lg"
         >
           {submitting ? (

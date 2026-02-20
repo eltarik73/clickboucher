@@ -68,7 +68,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
   }, [fetchNearby]);
 
   const handleLocationChange = (lat: number | null, lng: number | null) => {
-    if (lat && lng) {
+    if (lat !== null && lng !== null) {
       fetchNearby(lat, lng);
     } else {
       setShops(initialShops);

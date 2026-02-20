@@ -297,7 +297,7 @@ export default function BoucherProduitsPage() {
   const totalCount = products.length;
   const inStockCount = products.filter((p) => p.inStock && p.snoozeType === "NONE").length;
   const snoozedCount = products.filter((p) => p.snoozeType !== "NONE").length;
-  const outCount = totalCount - inStockCount - snoozedCount;
+  const outCount = products.filter((p) => !p.inStock && p.snoozeType === "NONE").length;
   const promoCount = products.filter(
     (p) => p.promoPct && p.promoPct > 0 && (!p.promoEnd || new Date(p.promoEnd) > new Date())
   ).length;

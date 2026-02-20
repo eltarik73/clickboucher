@@ -78,25 +78,25 @@ interface Props {
 const STEPS = ["Produit", "Prix", "Qualite", "Photos"];
 
 const ORIGINS = [
-  { label: "France", flag: "france" },
-  { label: "Espagne", flag: "espagne" },
-  { label: "Irlande", flag: "irlande" },
-  { label: "Belgique", flag: "belgique" },
-  { label: "Allemagne", flag: "allemagne" },
-  { label: "Italie", flag: "italie" },
-  { label: "Pologne", flag: "pologne" },
-  { label: "UK", flag: "uk" },
-  { label: "Pays-Bas", flag: "pays-bas" },
-  { label: "Argentine", flag: "argentine" },
-  { label: "Bresil", flag: "bresil" },
-  { label: "Australie", flag: "australie" },
+  { label: "France", value: "FRANCE", flag: "france" },
+  { label: "Espagne", value: "ESPAGNE", flag: "espagne" },
+  { label: "Irlande", value: "IRLANDE", flag: "irlande" },
+  { label: "Belgique", value: "BELGIQUE", flag: "belgique" },
+  { label: "Allemagne", value: "ALLEMAGNE", flag: "allemagne" },
+  { label: "Italie", value: "ITALIE", flag: "italie" },
+  { label: "Pologne", value: "POLOGNE", flag: "pologne" },
+  { label: "UK", value: "UK", flag: "uk" },
+  { label: "Pays-Bas", value: "EU", flag: "pays-bas" },
+  { label: "Argentine", value: "AUTRE", flag: "argentine" },
+  { label: "Bresil", value: "BRESIL", flag: "bresil" },
+  { label: "Australie", value: "AUTRE", flag: "australie" },
 ];
 
 const HALAL_ORGS = ["AVS", "Mosquee de Paris", "ARGML", "Achahada", "Autre"];
 const FRESHNESS_OPTIONS = [
-  { label: "Frais", emoji: "\u{1F969}" },
-  { label: "Surgele", emoji: "\u{1F9CA}" },
-  { label: "Sous vide", emoji: "\u{1F4E6}" },
+  { label: "Frais", value: "FRAIS", emoji: "\u{1F969}" },
+  { label: "Surgele", value: "SURGELE", emoji: "\u{1F9CA}" },
+  { label: "Sous vide", value: "SOUS_VIDE", emoji: "\u{1F4E6}" },
 ];
 const SUGGESTED_LABELS = [
   "Label Rouge", "Bio", "Fait maison", "Race a viande",
@@ -154,7 +154,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved }: P
   // Step 3 — Qualite
   const [origin, setOrigin] = useState(product?.origin || "");
   const [halalOrg, setHalalOrg] = useState(product?.halalOrg || "");
-  const [freshness, setFreshness] = useState(product?.freshness || "Frais");
+  const [freshness, setFreshness] = useState(product?.freshness || "FRAIS");
   const [race, setRace] = useState(product?.race || "");
   const [labels, setLabels] = useState<LabelItem[]>(
     product?.labels.map((l) => ({ name: l.name, color: l.color })) || []
@@ -287,7 +287,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved }: P
       customerNote: customerNote.trim() || null,
       tags: [],
       promoPct: promoEnabled ? promoPct : null,
-      promoType: promoEnabled && isFlash ? "FLASH" : promoEnabled ? "STANDARD" : null,
+      promoType: promoEnabled && isFlash ? "FLASH" : promoEnabled ? "PERCENTAGE" : null,
       promoEnd: promoEnabled && isFlash
         ? new Date(Date.now() + flashHours * 3600_000).toISOString()
         : null,
@@ -662,9 +662,9 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved }: P
                     <button
                       key={o.label}
                       type="button"
-                      onClick={() => setOrigin(origin === o.label ? "" : o.label)}
+                      onClick={() => setOrigin(origin === o.value ? "" : o.value)}
                       className={`flex items-center gap-1.5 p-2.5 rounded-xl border transition-all min-h-[44px] ${
-                        origin === o.label
+                        origin === o.value
                           ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300"
                           : "bg-white dark:bg-[#0a0a0a] border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
                       }`}
@@ -715,9 +715,9 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved }: P
                     <button
                       key={opt.label}
                       type="button"
-                      onClick={() => setFreshness(opt.label)}
+                      onClick={() => setFreshness(opt.value)}
                       className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all min-h-[60px] ${
-                        freshness === opt.label
+                        freshness === opt.value
                           ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300"
                           : "bg-white dark:bg-[#0a0a0a] border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
                       }`}

@@ -27,6 +27,8 @@ export async function GET() {
   let lastPendingIds: string[] = [];
   let lastStatus = shop.status;
 
+  let interval: ReturnType<typeof setInterval> | null = null;
+
   const stream = new ReadableStream({
     async start(controller) {
       // Send initial connection event
@@ -34,7 +36,7 @@ export async function GET() {
         encoder.encode(`data: ${JSON.stringify({ type: "CONNECTED", shopId })}\n\n`)
       );
 
-      const interval = setInterval(async () => {
+      interval = setInterval(async () => {
         try {
           // Fetch current state
           const [pendingOrders, currentShop] = await Promise.all([
@@ -111,15 +113,14 @@ export async function GET() {
             data: { lastSeenAt: new Date() },
           });
         } catch {
-          clearInterval(interval);
-          controller.close();
+          if (interval) clearInterval(interval);
+          try { controller.close(); } catch { /* already closed */ }
         }
       }, 3000); // Poll every 3s like Uber Eats internal
-
-      // Cleanup on close
-      const cleanup = () => clearInterval(interval);
-      // AbortSignal doesn't apply here but interval is cleaned on error
-      void cleanup;
+    },
+    cancel() {
+      // Called when client disconnects — prevents interval leak
+      if (interval) clearInterval(interval);
     },
   });
 

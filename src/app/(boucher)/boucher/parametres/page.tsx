@@ -65,9 +65,9 @@ const DAYS = [
 // Helpers
 // ─────────────────────────────────────────────
 function normalizePhone(phone: string): string | undefined {
-  if (!phone) return undefined;
+  if (!phone || !phone.trim()) return undefined;
   const trimmed = phone.trim().replace(/\s/g, "");
-  if (trimmed.startsWith("+33")) return trimmed;
+  if (trimmed.startsWith("+33") && trimmed.length === 12) return trimmed;
   if (/^0[1-9][0-9]{8}$/.test(trimmed)) return "+33" + trimmed.slice(1);
   return trimmed;
 }
@@ -135,7 +135,9 @@ export default function BoucherParametresPage() {
           setLoyaltyPct(json.data.rewardPct);
         }
       }
-    } catch {} finally {
+    } catch {
+      console.warn("[parametres] Failed to fetch loyalty config");
+    } finally {
       setLoyaltyLoading(false);
     }
   }, []);
@@ -284,6 +286,7 @@ export default function BoucherParametresPage() {
         body: JSON.stringify({ pickupSlots: pickupConfig }),
       });
       if (res.ok) {
+        setShop((prev) => (prev ? { ...prev, pickupSlots: pickupConfig } : prev));
         toast.success("Creneaux sauvegardes");
       } else {
         toast.error(await extractError(res));
@@ -305,6 +308,7 @@ export default function BoucherParametresPage() {
         body: JSON.stringify({ acceptOnline, acceptOnPickup }),
       });
       if (res.ok) {
+        setShop((prev) => (prev ? { ...prev, acceptOnline, acceptOnPickup } : prev));
         toast.success("Paiement sauvegarde");
       } else {
         toast.error(await extractError(res));
@@ -376,7 +380,7 @@ export default function BoucherParametresPage() {
                       const val = Number(e.target.value);
                       setShop((prev) => (prev ? { ...prev, busyExtraMin: val } : prev));
                     }}
-                    onBlur={() => patchStatus({ busyExtraMin: shop.busyExtraMin })}
+                    onBlur={(e) => patchStatus({ busyExtraMin: Number(e.target.value) })}
                     className="w-20 h-9"
                     min={0}
                     max={60}
@@ -592,7 +596,7 @@ export default function BoucherParametresPage() {
                     const val = Number(e.target.value);
                     setShop((prev) => (prev ? { ...prev, prepTimeMin: val } : prev));
                   }}
-                  onBlur={() => patchStatus({ prepTimeMin: shop.prepTimeMin })}
+                  onBlur={(e) => patchStatus({ prepTimeMin: Number(e.target.value) })}
                   className="w-24 h-9"
                   min={5}
                   max={120}
@@ -645,7 +649,7 @@ export default function BoucherParametresPage() {
                     const val = Number(e.target.value);
                     setShop((prev) => (prev ? { ...prev, maxOrdersPerHour: val } : prev));
                   }}
-                  onBlur={() => patchStatus({ maxOrdersPerHour: shop.maxOrdersPerHour })}
+                  onBlur={(e) => patchStatus({ maxOrdersPerHour: Number(e.target.value) })}
                   className="w-24 h-9"
                   min={1}
                   max={100}
@@ -920,18 +924,7 @@ export default function BoucherParametresPage() {
                 step={1}
                 value={geoRadius}
                 onChange={(e) => setGeoRadius(Number(e.target.value))}
-                onMouseUp={async () => {
-                  try {
-                    const res = await fetch(`/api/shops/${shop.id}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ deliveryRadius: geoRadius }),
-                    });
-                    if (res.ok) toast.success("Rayon sauvegarde");
-                    else toast.error(await extractError(res));
-                  } catch { toast.error("Erreur de connexion"); }
-                }}
-                onTouchEnd={async () => {
+                onPointerUp={async () => {
                   try {
                     const res = await fetch(`/api/shops/${shop.id}`, {
                       method: "PATCH",

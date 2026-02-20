@@ -82,7 +82,7 @@ function CartItemRow({
         </span>
         <button
           onClick={() => onUpdateQty(item.quantity + 1)}
-          className="w-11 h-11 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#DC2626] transition-colors"
+          className="w-11 h-11 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#b91c1c] transition-colors"
         >
           <Plus size={16} />
         </button>
@@ -261,7 +261,7 @@ export default function PanierPage() {
             Ajoutez des produits depuis une boucherie pour commencer.
           </p>
           <Button
-            className="mt-6 bg-[#DC2626] hover:bg-[#DC2626]"
+            className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]"
             size="lg"
             asChild
           >
@@ -363,7 +363,7 @@ export default function PanierPage() {
                 Connectez-vous pour passer votre commande
               </p>
               <Button
-                className="bg-[#DC2626] hover:bg-[#DC2626] w-full"
+                className="bg-[#DC2626] hover:bg-[#b91c1c] w-full"
                 size="lg"
                 asChild
               >
