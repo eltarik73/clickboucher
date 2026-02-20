@@ -15,6 +15,8 @@ export type KitchenOrder = {
   estimatedReady: string | null;
   actualReady: string | null;
   qrCode: string | null;
+  pickupSlotStart: string | null;
+  pickupSlotEnd: string | null;
   createdAt: string;
   updatedAt: string;
   items: {
@@ -127,6 +129,27 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     (o) => o.status === "ACCEPTED" || o.status === "PREPARING"
   );
 
+  // History: terminal statuses from the last 3 days
+  const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+  const TERMINAL_STATUSES = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED", "PARTIALLY_DENIED"];
+  const historyOrders = orders
+    .filter(
+      (o) =>
+        TERMINAL_STATUSES.includes(o.status) &&
+        new Date(o.updatedAt).getTime() >= threeDaysAgo
+    )
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  // Scheduled: orders with pickupSlotStart in the future
+  const scheduledOrders = orders
+    .filter(
+      (o) =>
+        o.pickupSlotStart &&
+        new Date(o.pickupSlotStart).getTime() > Date.now() &&
+        !TERMINAL_STATUSES.includes(o.status)
+    )
+    .sort((a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime());
+
   return {
     orders,
     loading,
@@ -138,9 +161,13 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     preparingOrders,
     readyOrders,
     inProgressOrders,
+    historyOrders,
+    scheduledOrders,
     // Counts
     pendingCount: pendingOrders.length,
     inProgressCount: inProgressOrders.length,
     readyCount: readyOrders.length,
+    historyCount: historyOrders.length,
+    scheduledCount: scheduledOrders.length,
   };
 }

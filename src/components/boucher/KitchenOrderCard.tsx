@@ -211,7 +211,7 @@ export default function KitchenOrderCard({
                 <button
                   key={m}
                   onClick={() => setAcceptMinutes(m)}
-                  className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                  className={`px-3 min-h-[44px] py-2 rounded-lg text-sm font-bold transition-all ${
                     acceptMinutes === m
                       ? "bg-emerald-600 text-white"
                       : "bg-white/5 text-gray-400 hover:bg-white/10"
@@ -303,20 +303,20 @@ export default function KitchenOrderCard({
               <button
                 onClick={() => doAction("add_time", { addMinutes: 5 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-xs font-medium transition-all"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
               >
                 <Timer size={13} /> +5 min
               </button>
               <button
                 onClick={() => doAction("add_time", { addMinutes: 10 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-xs font-medium transition-all"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
               >
                 <Timer size={13} /> +10 min
               </button>
               <button
                 onClick={() => printOrderTicket(order, shopName)}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-xs font-medium transition-all"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
               >
                 <Printer size={13} /> Ticket
               </button>
@@ -339,20 +339,20 @@ export default function KitchenOrderCard({
               <button
                 onClick={() => doAction("add_time", { addMinutes: 5 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-xs font-medium transition-all"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
               >
                 <Timer size={13} /> +5 min
               </button>
               <button
                 onClick={() => doAction("add_time", { addMinutes: 10 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-xs font-medium transition-all"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
               >
                 <Timer size={13} /> +10 min
               </button>
               <button
                 onClick={() => printOrderTicket(order, shopName)}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-xs font-medium transition-all"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
               >
                 <Printer size={13} /> Ticket
               </button>
@@ -380,7 +380,7 @@ export default function KitchenOrderCard({
             </button>
             <button
               onClick={() => printOrderTicket(order, shopName)}
-              className="w-full flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 py-2 rounded-xl text-xs font-medium transition-all"
+              className="w-full flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
             >
               <Printer size={13} /> Imprimer le ticket
             </button>

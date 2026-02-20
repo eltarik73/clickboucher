@@ -1,5 +1,6 @@
-// /boucher/commandes — MODE CUISINE (v4)
+// /boucher/commandes — MODE CUISINE (v5)
 // Full-screen tablet kitchen interface — dark theme, big buttons, audio alerts
+// 5 tabs: Nouvelles, En cours, Pretes, Historique, Programmees
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -14,6 +15,12 @@ import {
   ScanLine,
   Volume2,
   VolumeX,
+  ScrollText,
+  CalendarClock,
+  Package,
+  XCircle,
+  Ban,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
@@ -28,7 +35,7 @@ import { toast } from "sonner";
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type Tab = "nouvelles" | "en-cours" | "pretes";
+type Tab = "nouvelles" | "en-cours" | "pretes" | "historique" | "programmees";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -39,6 +46,31 @@ function formatTime(dateStr: string) {
     minute: "2-digit",
   });
 }
+
+function formatPrice(cents: number) {
+  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ─────────────────────────────────────────────
+// Status badge for history
+// ─────────────────────────────────────────────
+const STATUS_BADGE: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
+  PICKED_UP: { label: "Recuperee", color: "bg-emerald-500/20 text-emerald-400", icon: Package },
+  COMPLETED: { label: "Terminee", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
+  DENIED: { label: "Refusee", color: "bg-red-500/20 text-red-400", icon: XCircle },
+  CANCELLED: { label: "Annulee", color: "bg-red-500/20 text-red-400", icon: Ban },
+  AUTO_CANCELLED: { label: "Expiree", color: "bg-gray-500/20 text-gray-400", icon: Ban },
+  PARTIALLY_DENIED: { label: "Partielle", color: "bg-orange-500/20 text-orange-400", icon: XCircle },
+};
 
 // ─────────────────────────────────────────────
 // Main Kitchen Page
@@ -55,7 +87,7 @@ export default function KitchenModePage() {
   // Alert overlay
   const [alertOrder, setAlertOrder] = useState<KitchenOrder | null>(null);
 
-  // Active tab (mobile) — desktop uses 3-column layout
+  // Active tab (mobile) — desktop uses multi-column layout
   const [activeTab, setActiveTab] = useState<Tab>("nouvelles");
 
   // Modals
@@ -78,9 +110,13 @@ export default function KitchenModePage() {
     pendingOrders,
     inProgressOrders,
     readyOrders,
+    historyOrders,
+    scheduledOrders,
     pendingCount,
     inProgressCount,
     readyCount,
+    historyCount,
+    scheduledCount,
     refetch,
   } = useOrderPolling({
     intervalMs: 5000,
@@ -207,6 +243,8 @@ export default function KitchenModePage() {
     { key: "nouvelles", label: "Nouvelles", count: pendingCount, icon: Bell },
     { key: "en-cours", label: "En cours", count: inProgressCount, icon: ChefHat },
     { key: "pretes", label: "Pretes", count: readyCount, icon: CheckCircle },
+    { key: "historique", label: "Historique", count: historyCount, icon: ScrollText },
+    { key: "programmees", label: "Programmees", count: scheduledCount, icon: CalendarClock },
   ];
 
   // Get orders for active tab (mobile)
@@ -215,7 +253,11 @@ export default function KitchenModePage() {
       ? pendingOrders
       : activeTab === "en-cours"
       ? inProgressOrders
-      : readyOrders;
+      : activeTab === "pretes"
+      ? readyOrders
+      : activeTab === "historique"
+      ? historyOrders
+      : scheduledOrders;
 
   return (
     <>
@@ -248,7 +290,7 @@ export default function KitchenModePage() {
             />
             <button
               onClick={() => setShowScanner(false)}
-              className="w-full py-2.5 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all text-sm"
+              className="w-full min-h-[44px] py-2.5 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all text-sm"
             >
               Fermer
             </button>
@@ -265,9 +307,9 @@ export default function KitchenModePage() {
           <div className="flex items-center gap-3">
             <Link
               href="/boucher/dashboard"
-              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm min-h-[44px] min-w-[44px] justify-center"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={18} />
               <span className="hidden sm:inline">Dashboard</span>
             </Link>
             <div className="w-px h-5 bg-white/10" />
@@ -303,31 +345,31 @@ export default function KitchenModePage() {
             {/* Sound toggle */}
             <button
               onClick={() => setMuted(!muted)}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg transition-colors ${
                 muted
                   ? "bg-red-500/20 text-red-400"
                   : "bg-white/5 text-gray-400 hover:text-white"
               }`}
               title={muted ? "Son desactive" : "Son active"}
             >
-              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
 
             {/* QR Scanner */}
             <button
               onClick={() => setShowScanner(true)}
-              className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Scanner QR"
             >
-              <ScanLine size={16} />
+              <ScanLine size={18} />
             </button>
 
             {/* Connection status */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 min-h-[44px] min-w-[44px] justify-center">
               {connected ? (
-                <Wifi size={14} className="text-emerald-400" />
+                <Wifi size={16} className="text-emerald-400" />
               ) : (
-                <WifiOff size={14} className="text-red-400 animate-pulse" />
+                <WifiOff size={16} className="text-red-400 animate-pulse" />
               )}
             </div>
           </div>
@@ -335,7 +377,7 @@ export default function KitchenModePage() {
 
         {/* ── Mobile tabs (md-) ── */}
         <div className="md:hidden shrink-0 bg-[#111] border-b border-white/5 px-2 py-1.5">
-          <div className="flex gap-1">
+          <div className="flex gap-1 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
@@ -343,14 +385,14 @@ export default function KitchenModePage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  className={`flex-shrink-0 flex-1 flex items-center justify-center gap-1 min-h-[44px] px-2 rounded-lg text-xs font-semibold transition-all ${
                     isActive
                       ? "bg-[#DC2626] text-white"
                       : "text-gray-500 hover:bg-white/5"
                   }`}
                 >
-                  <Icon size={15} />
-                  <span>{tab.label}</span>
+                  <Icon size={14} />
+                  <span className="truncate">{tab.label}</span>
                   {tab.count > 0 && (
                     <span
                       className={`min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
@@ -371,7 +413,7 @@ export default function KitchenModePage() {
         </div>
 
         {/* ══════════════════════════════════════════ */}
-        {/* ── DESKTOP: 3-column layout ── */}
+        {/* ── DESKTOP: Multi-column layout ── */}
         {/* ══════════════════════════════════════════ */}
         <div className="flex-1 overflow-hidden hidden md:flex">
           {/* Column 1: Nouvelles */}
@@ -427,12 +469,42 @@ export default function KitchenModePage() {
               readyCount > 0 ? (
                 <button
                   onClick={() => setShowScanner(true)}
-                  className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold py-3 rounded-xl transition-all mb-3"
+                  className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold min-h-[44px] py-3 rounded-xl transition-all mb-3"
                 >
                   <ScanLine size={16} /> Scanner QR
                 </button>
               ) : null
             }
+          />
+
+          {/* Divider */}
+          <div className="w-px bg-white/5 shrink-0" />
+
+          {/* Column 4: Historique */}
+          <HistoryColumn
+            title="Historique"
+            count={historyCount}
+            icon={<ScrollText size={16} />}
+            orders={historyOrders}
+            emptyMessage="Aucune commande recente"
+            emptyIcon={<ScrollText size={32} className="text-gray-700" />}
+          />
+
+          {/* Divider */}
+          <div className="w-px bg-white/5 shrink-0" />
+
+          {/* Column 5: Programmees */}
+          <ScheduledColumn
+            title="Programmees"
+            count={scheduledCount}
+            icon={<CalendarClock size={16} />}
+            orders={scheduledOrders}
+            shopName={shopName}
+            shopPrepTime={shopPrepTime}
+            onAction={handleAction}
+            onStockIssue={setStockIssueOrder}
+            emptyMessage="Aucune commande programmee"
+            emptyIcon={<CalendarClock size={32} className="text-gray-700" />}
           />
         </div>
 
@@ -444,13 +516,44 @@ export default function KitchenModePage() {
           {activeTab === "pretes" && readyCount > 0 && (
             <button
               onClick={() => setShowScanner(true)}
-              className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] text-white font-bold py-3 rounded-xl transition-all"
+              className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] text-white font-bold min-h-[44px] py-3 rounded-xl transition-all"
             >
               <ScanLine size={16} /> Scanner QR
             </button>
           )}
 
-          {activeOrders.length === 0 ? (
+          {/* History tab — special read-only cards */}
+          {activeTab === "historique" ? (
+            historyOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <ScrollText size={40} className="text-gray-700" />
+                <p className="text-gray-600 text-sm">Aucune commande recente</p>
+                <p className="text-gray-700 text-xs">3 derniers jours</p>
+              </div>
+            ) : (
+              historyOrders.map((order) => (
+                <HistoryCard key={order.id} order={order} />
+              ))
+            )
+          ) : activeTab === "programmees" ? (
+            scheduledOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <CalendarClock size={40} className="text-gray-700" />
+                <p className="text-gray-600 text-sm">Aucune commande programmee</p>
+              </div>
+            ) : (
+              scheduledOrders.map((order) => (
+                <KitchenOrderCard
+                  key={order.id}
+                  order={order}
+                  shopName={shopName}
+                  shopPrepTime={shopPrepTime}
+                  onAction={handleAction}
+                  onStockIssue={setStockIssueOrder}
+                />
+              ))
+            )
+          ) : activeOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               {activeTab === "nouvelles" && <Bell size={40} className="text-gray-700" />}
               {activeTab === "en-cours" && <ChefHat size={40} className="text-gray-700" />}
@@ -480,7 +583,7 @@ export default function KitchenModePage() {
 }
 
 // ─────────────────────────────────────────────
-// Desktop column component
+// Desktop column component (active orders)
 // ─────────────────────────────────────────────
 function KitchenColumn({
   title,
@@ -556,6 +659,166 @@ function KitchenColumn({
             />
           ))
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Desktop History column (read-only cards)
+// ─────────────────────────────────────────────
+function HistoryColumn({
+  title,
+  count,
+  icon,
+  orders,
+  emptyMessage,
+  emptyIcon,
+}: {
+  title: string;
+  count: number;
+  icon: React.ReactNode;
+  orders: KitchenOrder[];
+  emptyMessage: string;
+  emptyIcon: React.ReactNode;
+}) {
+  return (
+    <div className="flex-1 flex flex-col min-w-0">
+      {/* Column header */}
+      <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
+        <div className="text-gray-400 bg-white/5 p-1.5 rounded-lg">{icon}</div>
+        <h2 className="text-sm font-bold text-white">{title}</h2>
+        {count > 0 && (
+          <span className="min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 bg-white/10 text-gray-400">
+            {count}
+          </span>
+        )}
+        <span className="text-[10px] text-gray-600 ml-auto">3 jours</span>
+      </div>
+
+      {/* Column content */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            {emptyIcon}
+            <p className="text-gray-600 text-sm">{emptyMessage}</p>
+          </div>
+        ) : (
+          orders.map((order) => (
+            <HistoryCard key={order.id} order={order} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Desktop Scheduled column (active order cards)
+// ─────────────────────────────────────────────
+function ScheduledColumn({
+  title,
+  count,
+  icon,
+  orders,
+  shopName,
+  shopPrepTime,
+  onAction,
+  onStockIssue,
+  emptyMessage,
+  emptyIcon,
+}: {
+  title: string;
+  count: number;
+  icon: React.ReactNode;
+  orders: KitchenOrder[];
+  shopName: string;
+  shopPrepTime: number;
+  onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
+  onStockIssue: (order: KitchenOrder) => void;
+  emptyMessage: string;
+  emptyIcon: React.ReactNode;
+}) {
+  return (
+    <div className="flex-1 flex flex-col min-w-0">
+      {/* Column header */}
+      <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
+        <div className="text-purple-400 bg-purple-500/20 p-1.5 rounded-lg">{icon}</div>
+        <h2 className="text-sm font-bold text-white">{title}</h2>
+        {count > 0 && (
+          <span className="min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 bg-purple-500 text-white">
+            {count}
+          </span>
+        )}
+      </div>
+
+      {/* Column content */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            {emptyIcon}
+            <p className="text-gray-600 text-sm">{emptyMessage}</p>
+          </div>
+        ) : (
+          orders.map((order) => (
+            <KitchenOrderCard
+              key={order.id}
+              order={order}
+              shopName={shopName}
+              shopPrepTime={shopPrepTime}
+              onAction={onAction}
+              onStockIssue={onStockIssue}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// History card (read-only, compact)
+// ─────────────────────────────────────────────
+function HistoryCard({ order }: { order: KitchenOrder }) {
+  const badge = STATUS_BADGE[order.status] || {
+    label: order.status,
+    color: "bg-gray-500/20 text-gray-400",
+    icon: Clock,
+  };
+  const BadgeIcon = badge.icon;
+
+  const clientName = order.user
+    ? `${order.user.firstName} ${order.user.lastName}`
+    : "Client";
+
+  const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
+
+  return (
+    <div className="bg-[#1a1a1a] rounded-xl border border-white/5 overflow-hidden">
+      {/* Header row */}
+      <div className="px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono font-bold text-sm text-white">
+            #{order.orderNumber}
+          </span>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${badge.color}`}>
+            <BadgeIcon size={10} />
+            {badge.label}
+          </span>
+        </div>
+        <span className="text-sm font-bold text-white shrink-0 ml-2">
+          {formatPrice(order.totalCents)}
+        </span>
+      </div>
+
+      {/* Details row */}
+      <div className="px-4 pb-3 flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center gap-3">
+          <span>{clientName}</span>
+          <span className="text-gray-700">|</span>
+          <span>{itemCount} article{itemCount > 1 ? "s" : ""}</span>
+        </div>
+        <span className="text-gray-600">{formatDate(order.updatedAt)}</span>
       </div>
     </div>
   );
