@@ -75,7 +75,10 @@ export default function AdminTicketDetailPage({ params }: { params: { ticketId: 
   if (!ticket) {
     return (
       <div className="text-center py-32">
-        <p className="text-gray-500">Ticket introuvable</p>
+        <p className="text-gray-500 dark:text-gray-400">Ticket introuvable</p>
+        <Link href="/admin/support" className="text-[#DC2626] text-sm mt-2 inline-block">
+          ← Retour au support
+        </Link>
       </div>
     );
   }

@@ -157,7 +157,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
   if (!shop) {
     return (
       <div className="text-center py-32">
-        <p className="text-gray-500">Boutique introuvable</p>
+        <p className="text-gray-500 dark:text-gray-400">Boutique introuvable</p>
         <Link href="/admin/shops" className="text-[#DC2626] text-sm mt-2 inline-block">
           ← Retour aux boucheries
         </Link>

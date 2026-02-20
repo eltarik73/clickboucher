@@ -31,6 +31,12 @@
   --font-display-stack: var(--font-display, "Plus Jakarta Sans"), sans-serif;
   --font-body-stack: var(--font-body, "DM Sans"), sans-serif;
 
+  /* Recharts chart theming */
+  --tooltip-bg: #fff;
+  --tooltip-border: #e5e7eb;
+  --tooltip-text: #111;
+  --grid-stroke: #e5e7eb;
+
   /* shadcn/ui variables — light */
   --background: 30 25% 97%;
   --foreground: 24 20% 14%;
@@ -58,6 +64,11 @@
 }
 
 .dark {
+  --tooltip-bg: #1a1a1a;
+  --tooltip-border: rgba(255, 255, 255, 0.1);
+  --tooltip-text: #f8f6f3;
+  --grid-stroke: rgba(255, 255, 255, 0.08);
+
   --background: 0 0% 4%;
   --foreground: 0 0% 98%;
   --card: 0 0% 8%;

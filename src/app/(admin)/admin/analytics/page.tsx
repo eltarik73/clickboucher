@@ -228,7 +228,7 @@ export default function AdminAnalyticsPage() {
                   <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-stroke, #e5e7eb)" />
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 10, fill: "#9ca3af" }}
@@ -240,10 +240,11 @@ export default function AdminAnalyticsPage() {
               />
               <Tooltip
                 contentStyle={{
-                  background: "#fff",
-                  border: "1px solid #e5e7eb",
+                  background: "var(--tooltip-bg, #fff)",
+                  border: "1px solid var(--tooltip-border, #e5e7eb)",
                   borderRadius: 8,
                   fontSize: 12,
+                  color: "var(--tooltip-text, #111)",
                 }}
                 formatter={(value) => [`${Number(value).toFixed(2)} €`, "Revenus"]}
               />
@@ -267,7 +268,7 @@ export default function AdminAnalyticsPage() {
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-stroke, #e5e7eb)" />
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 10, fill: "#9ca3af" }}
@@ -276,10 +277,11 @@ export default function AdminAnalyticsPage() {
               <YAxis tick={{ fontSize: 10, fill: "#9ca3af" }} />
               <Tooltip
                 contentStyle={{
-                  background: "#fff",
-                  border: "1px solid #e5e7eb",
+                  background: "var(--tooltip-bg, #fff)",
+                  border: "1px solid var(--tooltip-border, #e5e7eb)",
                   borderRadius: 8,
                   fontSize: 12,
+                  color: "var(--tooltip-text, #111)",
                 }}
                 formatter={(value) => [String(value), "Commandes"]}
               />
@@ -377,7 +379,7 @@ export default function AdminAnalyticsPage() {
           </h2>
         </div>
         {data.topProducts.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-400">
+          <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
             Aucune donnée disponible.
           </div>
         ) : (
@@ -435,7 +437,7 @@ export default function AdminAnalyticsPage() {
           </h2>
         </div>
         {data.topShops.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-400">
+          <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
             Aucune donnée disponible.
           </div>
         ) : (

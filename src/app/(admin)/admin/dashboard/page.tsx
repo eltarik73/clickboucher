@@ -449,14 +449,14 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick stats footer */}
-      <div className="flex items-center justify-between bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm px-5 py-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm px-5 py-4">
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <span>Total commandes :</span>
           <span className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
             {stats.totalOrders}
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             <span>Note moyenne :</span>
             <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
