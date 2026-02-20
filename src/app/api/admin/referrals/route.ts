@@ -12,6 +12,7 @@ export async function GET() {
 
     const referrals = await prisma.referral.findMany({
       orderBy: { createdAt: "desc" },
+      take: 200,
     });
 
     // Enrich with shop names

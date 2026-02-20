@@ -34,6 +34,7 @@ export async function GET() {
         createdAt: true,
         estimatedReady: true,
       },
+      take: 500,
     });
 
     // ── 4. Compute stats ──

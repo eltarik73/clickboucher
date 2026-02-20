@@ -33,6 +33,7 @@ export async function GET(req: NextRequest) {
       where,
       include: { category: true, images: true, labels: true },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      take: 500,
     });
 
     return apiSuccess(products);

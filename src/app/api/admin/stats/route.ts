@@ -94,15 +94,16 @@ export async function GET() {
         _avg: { rating: true },
       }),
 
-      // Top 5 shops by completed orders
+      // Top 5 shops by completed orders (count only, no order data loaded)
       prisma.shop.findMany({
         select: {
           id: true,
           name: true,
           rating: true,
-          orders: {
-            where: { status: { in: ["COMPLETED", "PICKED_UP"] } },
-            select: { totalCents: true },
+          _count: {
+            select: {
+              orders: { where: { status: { in: ["COMPLETED", "PICKED_UP"] } } },
+            },
           },
         },
         orderBy: { orders: { _count: "desc" } },
@@ -147,15 +148,30 @@ export async function GET() {
       prisma.order.findMany({
         where: { createdAt: { gte: days7[0] } },
         select: { createdAt: true, totalCents: true, status: true },
+        take: 3000,
       }),
     ]);
+
+    // Get revenue per shop for top shops
+    const topShopIds = topShopsRaw.map((s) => s.id);
+    const shopRevenues = await prisma.order.groupBy({
+      by: ["shopId"],
+      where: {
+        shopId: { in: topShopIds },
+        status: { in: ["COMPLETED", "PICKED_UP"] },
+      },
+      _sum: { totalCents: true },
+    });
+    const revenueMap = new Map(
+      shopRevenues.map((r) => [r.shopId, r._sum.totalCents || 0])
+    );
 
     const topShops = topShopsRaw.map((s) => ({
       id: s.id,
       name: s.name,
       rating: s.rating,
-      orderCount: s.orders.length,
-      revenue: s.orders.reduce((sum, o) => sum + o.totalCents, 0),
+      orderCount: s._count.orders,
+      revenue: revenueMap.get(s.id) || 0,
     }));
 
     // Build shopsByPlan map

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -76,10 +77,24 @@ export async function GET(req: NextRequest) {
       where.name = { contains: query.search, mode: "insensitive" };
     }
 
+    // ── Cache lookup for unfiltered product lists ──
+    const hasFilters = query.categoryId || query.inStock || query.featured || query.tag || query.search;
+    const productsCacheKey = !hasFilters && query.shopId ? `products:shop:${query.shopId}` : null;
+
+    if (productsCacheKey) {
+      try {
+        const cached = await redis.get<unknown>(productsCacheKey);
+        if (cached) return apiSuccess(cached);
+      } catch {
+        // Redis down — continue without cache
+      }
+    }
+
     const products = await prisma.product.findMany({
       where,
       select: PRODUCT_SELECT,
       orderBy: [{ displayOrder: "asc" }, { category: { order: "asc" } }, { name: "asc" }],
+      take: 200,
     });
 
     // Check if user is CLIENT_PRO to include proPriceCents
@@ -92,6 +107,15 @@ export async function GET(req: NextRequest) {
       const { proPriceCents, ...rest } = p;
       return rest;
     });
+
+    // ── Cache store (TTL 60s) ──
+    if (productsCacheKey) {
+      try {
+        await redis.set(productsCacheKey, data, { ex: 60 });
+      } catch {
+        // Redis down — continue without cache
+      }
+    }
 
     return apiSuccess(data);
   } catch (error) {

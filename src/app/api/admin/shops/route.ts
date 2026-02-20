@@ -18,6 +18,7 @@ export async function GET() {
         _count: { select: { products: true, orders: true, reviews: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: 200,
     });
 
     // Fetch boucher users for owner names

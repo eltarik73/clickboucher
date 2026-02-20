@@ -45,15 +45,21 @@ export async function GET(
       orderBy: { requestedAt: "desc" },
     });
 
-    // For each request, count orders at this shop
-    const enrichedRequests = await Promise.all(
-      proRequests.map(async (request) => {
-        const orderCount = await prisma.order.count({
-          where: { userId: request.user.id, shopId },
-        });
-        return { ...request, orderCount };
-      })
+    // Batch: count orders per user in a single groupBy query
+    const userIds = proRequests.map((r) => r.user.id);
+    const orderCounts = await prisma.order.groupBy({
+      by: ["userId"],
+      where: { userId: { in: userIds }, shopId },
+      _count: { _all: true },
+    });
+    const orderCountMap = new Map(
+      orderCounts.map((oc) => [oc.userId, oc._count._all])
     );
+
+    const enrichedRequests = proRequests.map((request) => ({
+      ...request,
+      orderCount: orderCountMap.get(request.user.id) || 0,
+    }));
 
     // Sort: PENDING first, then APPROVED, then REJECTED
     const statusOrder: Record<string, number> = { PENDING: 0, APPROVED: 1, REJECTED: 2 };

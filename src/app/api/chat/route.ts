@@ -152,24 +152,22 @@ export async function POST(req: NextRequest) {
     let matchedProducts: MatchedProduct[] = [];
 
     try {
-      // Search products by keywords
-      const productSearches = keywords.length > 0
-        ? keywords.map((kw) =>
-            prisma.product.findMany({
-              where: {
-                inStock: true,
-                OR: [
-                  { name: { contains: kw, mode: "insensitive" as const } },
-                  { category: { name: { contains: kw, mode: "insensitive" as const } } },
-                ],
-              },
-              select: PRODUCT_SELECT,
-              take: 5,
-            })
-          )
-        : [];
+      // Combine all keyword searches into a single OR query
+      const productSearch = keywords.length > 0
+        ? prisma.product.findMany({
+            where: {
+              inStock: true,
+              OR: keywords.flatMap((kw) => [
+                { name: { contains: kw, mode: "insensitive" as const } },
+                { category: { name: { contains: kw, mode: "insensitive" as const } } },
+              ]),
+            },
+            select: PRODUCT_SELECT,
+            take: 15,
+          })
+        : Promise.resolve([] as MatchedProduct[]);
 
-      const [shopsResult, ...productResults] = await Promise.all([
+      const [shopsResult, productResults] = await Promise.all([
         prisma.shop.findMany({
           where: { status: { in: ["OPEN", "BUSY"] } },
           select: {
@@ -177,24 +175,13 @@ export async function POST(req: NextRequest) {
             prepTimeMin: true, busyMode: true, busyExtraMin: true, rating: true,
           },
           orderBy: { rating: "desc" },
+          take: 30,
         }),
-        ...productSearches,
+        productSearch,
       ]);
 
       shops = shopsResult;
-
-      // Dedupe products by id, limit to 15
-      const seen = new Set<string>();
-      for (const results of productResults) {
-        for (const p of results) {
-          if (!seen.has(p.id)) {
-            seen.add(p.id);
-            matchedProducts.push(p);
-          }
-          if (matchedProducts.length >= 15) break;
-        }
-        if (matchedProducts.length >= 15) break;
-      }
+      matchedProducts = productResults;
 
       // Fallback: if no keyword matches, load popular products
       if (matchedProducts.length === 0) {

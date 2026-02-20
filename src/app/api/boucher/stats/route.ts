@@ -127,6 +127,7 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        take: 5000,
       }),
       prisma.order.count({
         where: {

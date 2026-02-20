@@ -29,6 +29,7 @@ export async function GET() {
         _count: { select: { messages: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: 50,
     });
 
     return apiSuccess(tickets);

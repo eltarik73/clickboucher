@@ -52,6 +52,7 @@ export async function GET() {
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
     });
 
     return apiSuccess(users);

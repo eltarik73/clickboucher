@@ -1,6 +1,7 @@
 // src/app/api/shops/nearby/route.ts — Shops by proximity (Haversine)
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
@@ -23,9 +24,22 @@ export async function GET(req: NextRequest) {
 
     const { lat, lng, radius } = parseResult.data;
 
+    // ── Cache lookup (round coords to ~1km precision for cache hits) ──
+    const cacheKey = `nearby:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    try {
+      const cached = await redis.get<unknown>(cacheKey);
+      if (cached) return apiSuccess(cached);
+    } catch {
+      // Redis down — continue without cache
+    }
+
+    // Pre-compute bounding box (1 degree lat ~ 111km, lng varies with latitude)
+    const deltaLat = radius / 111.0;
+    const deltaLng = radius / (111.0 * Math.cos((lat * Math.PI) / 180));
+
     // Run both queries in parallel
     const [shops, shopsWithoutCoords] = await Promise.all([
-      // Haversine query for shops WITH coordinates
+      // Haversine query for shops WITH coordinates (bounding box pre-filter)
       prisma.$queryRaw<
         Array<{
           id: string;
@@ -61,6 +75,8 @@ export async function GET(req: NextRequest) {
           WHERE s.visible = true
             AND s.latitude IS NOT NULL
             AND s.longitude IS NOT NULL
+            AND s.latitude BETWEEN ${lat - deltaLat} AND ${lat + deltaLat}
+            AND s.longitude BETWEEN ${lng - deltaLng} AND ${lng + deltaLng}
         ) sub
         WHERE sub.distance <= ${radius}
         ORDER BY sub.distance ASC`,
@@ -105,7 +121,16 @@ export async function GET(req: NextRequest) {
       distance: null as number | null,
     }));
 
-    return apiSuccess([...nearbyNormalized, ...withoutCoordsNormalized]);
+    const allShops = [...nearbyNormalized, ...withoutCoordsNormalized];
+
+    // ── Cache store (TTL 60s) ──
+    try {
+      await redis.set(cacheKey, allShops, { ex: 60 });
+    } catch {
+      // Redis down — continue without cache
+    }
+
+    return apiSuccess(allShops);
   } catch (error) {
     return handleApiError(error, "shops/nearby");
   }

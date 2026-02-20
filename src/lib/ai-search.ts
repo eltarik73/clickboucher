@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 
 // ── Synonym map ─────────────────────────────────
 const SYNONYMS: Record<string, string[]> = {
@@ -38,20 +39,22 @@ function expandTokens(query: string): string[] {
     const originalTokens = query.toLowerCase().split(/\s+/).filter((t) => t.length >= 2);
     for (const orig of originalTokens) {
       if (SYNONYMS[orig]) {
-        for (const syn of SYNONYMS[orig]) {
+        // Limit to first 2 synonyms to reduce OR conditions
+        for (const syn of SYNONYMS[orig].slice(0, 2)) {
           expanded.add(syn);
         }
       }
     }
     // Check normalized token too
     if (SYNONYMS[token]) {
-      for (const syn of SYNONYMS[token]) {
+      for (const syn of SYNONYMS[token].slice(0, 2)) {
         expanded.add(syn);
       }
     }
   }
 
-  return Array.from(expanded);
+  // Hard cap: max 6 tokens total to avoid excessive OR conditions
+  return Array.from(expanded).slice(0, 6);
 }
 
 export async function searchProducts(
@@ -62,10 +65,18 @@ export async function searchProducts(
   const tokens = expandTokens(query);
   if (tokens.length === 0) return [];
 
-  // Build OR conditions for each token across name, description, tags
+  // ── Cache lookup ──
+  const cacheKey = `search:${tokens.sort().join(",")}:${shopId || "all"}:${limit}`;
+  try {
+    const cached = await redis.get<unknown[]>(cacheKey);
+    if (cached) return cached;
+  } catch {
+    // Redis down — continue without cache
+  }
+
+  // Build OR conditions for each token across name + tags (description removed for perf)
   const orConditions = tokens.flatMap((token) => [
     { name: { contains: token, mode: "insensitive" as const } },
-    { description: { contains: token, mode: "insensitive" as const } },
     { tags: { has: token } },
   ]);
 
@@ -120,7 +131,7 @@ export async function searchProducts(
 
   scored.sort((a, b) => b._score - a._score);
 
-  return scored.slice(0, limit).map(({ _score, ...product }) => ({
+  const results = scored.slice(0, limit).map(({ _score, ...product }) => ({
     ...product,
     price: (product.priceCents / 100).toFixed(2),
     proPrice: product.proPriceCents
@@ -131,4 +142,13 @@ export async function searchProducts(
       : product.shop.prepTimeMin,
     link: `/boutique/${product.shop.slug}`,
   }));
+
+  // ── Cache store (TTL 120s) ──
+  try {
+    await redis.set(cacheKey, results, { ex: 120 });
+  } catch {
+    // Redis down — continue without cache
+  }
+
+  return results;
 }

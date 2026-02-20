@@ -47,6 +47,7 @@ export async function GET() {
     const recurring = await prisma.recurringOrder.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
+      take: 50,
     });
 
     // Enrich with shop names

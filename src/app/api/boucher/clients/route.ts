@@ -27,92 +27,68 @@ export async function GET(_req: NextRequest) {
       return apiError("NOT_FOUND", "Aucune boucherie trouvée");
     }
 
-    // Get all orders for this shop, grouped by user
-    const orders = await prisma.order.findMany({
+    // 1. Aggregate orders by userId in DB (count, sum, max date)
+    const aggregated = await prisma.order.groupBy({
+      by: ["userId"],
       where: { shopId: shop.id },
-      select: {
-        userId: true,
-        totalCents: true,
-        createdAt: true,
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-      },
+      _count: { _all: true },
+      _sum: { totalCents: true },
+      _max: { createdAt: true },
+      orderBy: { _count: { userId: "desc" } },
+      take: 50,
     });
 
-    // Aggregate by user
-    const clientsMap = new Map<
-      string,
-      {
-        userId: string;
-        firstName: string | null;
-        lastName: string | null;
-        email: string;
-        orderCount: number;
-        totalSpent: number;
-        lastOrderDate: Date;
-      }
-    >();
-
-    for (const order of orders) {
-      const existing = clientsMap.get(order.userId);
-      if (existing) {
-        existing.orderCount += 1;
-        existing.totalSpent += order.totalCents;
-        if (order.createdAt > existing.lastOrderDate) {
-          existing.lastOrderDate = order.createdAt;
-        }
-      } else {
-        clientsMap.set(order.userId, {
-          userId: order.user.id,
-          firstName: order.user.firstName,
-          lastName: order.user.lastName,
-          email: order.user.email,
-          orderCount: 1,
-          totalSpent: order.totalCents,
-          lastOrderDate: order.createdAt,
-        });
-      }
+    if (aggregated.length === 0) {
+      return apiSuccess([]);
     }
 
-    // Check ProAccess for each client
-    const clientIds = Array.from(clientsMap.keys());
-    const proAccesses = await prisma.proAccess.findMany({
-      where: {
-        userId: { in: clientIds },
-        shopId: shop.id,
-      },
-      select: {
-        userId: true,
-        status: true,
-        companyName: true,
-      },
-    });
+    const clientIds = aggregated.map((a) => a.userId);
 
-    const proAccessMap = new Map(
-      proAccesses.map((pa) => [pa.userId, pa])
-    );
+    // 2. Fetch user info + proAccess in parallel
+    const [users, proAccesses] = await Promise.all([
+      prisma.user.findMany({
+        where: { id: { in: clientIds } },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      }),
+      prisma.proAccess.findMany({
+        where: {
+          userId: { in: clientIds },
+          shopId: shop.id,
+        },
+        select: {
+          userId: true,
+          status: true,
+          companyName: true,
+        },
+      }),
+    ]);
 
-    // Build final list — flatten proAccess fields
-    const clients = Array.from(clientsMap.values()).map((client) => {
-      const proAccess = proAccessMap.get(client.userId);
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const proAccessMap = new Map(proAccesses.map((pa) => [pa.userId, pa]));
+
+    // 3. Assemble final list (already sorted by orderCount desc from groupBy)
+    const clients = aggregated.map((agg) => {
+      const user = userMap.get(agg.userId);
+      const proAccess = proAccessMap.get(agg.userId);
       return {
-        ...client,
+        userId: agg.userId,
+        firstName: user?.firstName ?? null,
+        lastName: user?.lastName ?? null,
+        email: user?.email ?? "",
+        orderCount: agg._count._all,
+        totalSpent: agg._sum.totalCents || 0,
+        lastOrderDate: agg._max.createdAt,
         proStatus: proAccess?.status ?? null,
         companyName: proAccess?.companyName ?? null,
       };
     });
 
-    // Sort by orderCount desc, take 50
-    clients.sort((a, b) => b.orderCount - a.orderCount);
-    const paginated = clients.slice(0, 50);
-
-    return apiSuccess(paginated);
+    return apiSuccess(clients);
   } catch (error) {
     return handleApiError(error, "boucher-clients");
   }
