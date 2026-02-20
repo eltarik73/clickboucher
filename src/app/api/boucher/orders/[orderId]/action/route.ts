@@ -388,6 +388,11 @@ export async function PATCH(
 
       // ── ADD NOTE ────────────────────────────────
       case "add_note": {
+        const terminalStatuses = ["COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
+        if (terminalStatuses.includes(order.status)) {
+          return apiError("VALIDATION_ERROR", `Impossible d'ajouter une note (statut: ${order.status})`);
+        }
+
         const updated = await prisma.order.update({
           where: { id: orderId },
           data: { boucherNote: data.note },

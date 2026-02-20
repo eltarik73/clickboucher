@@ -56,6 +56,8 @@ export async function GET(
               estimatedReady: true,
               actualReady: true,
               pickedUpAt: true,
+              pickupSlotStart: true,
+              pickupSlotEnd: true,
               denyReason: true,
               boucherNote: true,
             },
@@ -77,6 +79,8 @@ export async function GET(
                   estimatedReady: current.estimatedReady,
                   actualReady: current.actualReady,
                   pickedUpAt: current.pickedUpAt,
+                  pickupSlotStart: current.pickupSlotStart,
+                  pickupSlotEnd: current.pickupSlotEnd,
                   denyReason: current.denyReason,
                   boucherNote: current.boucherNote,
                 })}\n\n`

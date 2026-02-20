@@ -49,6 +49,8 @@ export async function GET() {
                 createdAt: true,
                 expiresAt: true,
                 customerNote: true,
+                pickupSlotStart: true,
+                pickupSlotEnd: true,
                 items: {
                   select: { name: true, quantity: true, unit: true, priceCents: true },
                 },
