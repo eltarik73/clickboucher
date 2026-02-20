@@ -27,6 +27,8 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        rating: true,
+        ratingCount: true,
         status: true,
         busyMode: true,
         busyExtraMin: true,

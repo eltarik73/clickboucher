@@ -29,8 +29,10 @@ export default function OnboardingChecklist() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/boucher/onboarding");
+      if (!res.ok) { setLoading(false); return; }
       const json = await res.json();
       const d = json.data || json;
+      if (!d?.steps || !Array.isArray(d.steps)) { setLoading(false); return; }
       setData(d);
 
       // Auto-visibility when >= 80%
