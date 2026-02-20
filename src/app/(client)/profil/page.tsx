@@ -60,9 +60,9 @@ interface UserProfile {
 // ── Helpers ──────────────────────────────────────
 
 const ROLE_CONFIG: Record<string, { label: string; color: string }> = {
-  CLIENT:             { label: "Particulier",              color: "bg-stone-100 text-stone-700 border-stone-200" },
-  CLIENT_PRO_PENDING: { label: "Pro en attente de validation", color: "bg-amber-100 text-amber-800 border-amber-200" },
-  CLIENT_PRO:         { label: "Professionnel",            color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  CLIENT:             { label: "Particulier",              color: "bg-stone-100 text-stone-700 border-stone-200 dark:bg-stone-900/30 dark:text-stone-300 dark:border-stone-700" },
+  CLIENT_PRO_PENDING: { label: "Pro en attente de validation", color: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800" },
+  CLIENT_PRO:         { label: "Professionnel",            color: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800" },
 };
 
 // ── Main Page ────────────────────────────────────

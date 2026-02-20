@@ -64,16 +64,16 @@ type Order = {
 // Status helpers
 // ─────────────────────────────────────────────
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING:          { label: "En attente",  color: "text-amber-700",   bg: "bg-amber-50 border-amber-200" },
-  ACCEPTED:         { label: "Acceptee",    color: "text-blue-700",    bg: "bg-blue-50 border-blue-200" },
-  PREPARING:        { label: "En prepa",    color: "text-indigo-700",  bg: "bg-indigo-50 border-indigo-200" },
-  READY:            { label: "Prete",       color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-  PICKED_UP:        { label: "Retiree",     color: "text-gray-600",    bg: "bg-gray-50 border-gray-200" },
-  COMPLETED:        { label: "Terminee",    color: "text-green-700",   bg: "bg-green-50 border-green-200" },
-  DENIED:           { label: "Refusee",     color: "text-red-700",     bg: "bg-red-50 border-red-200" },
-  CANCELLED:        { label: "Annulee",     color: "text-gray-500",    bg: "bg-gray-50 border-gray-200" },
-  AUTO_CANCELLED:   { label: "Expiree",     color: "text-gray-500",    bg: "bg-gray-50 border-gray-200" },
-  PARTIALLY_DENIED: { label: "Partielle",   color: "text-orange-700",  bg: "bg-orange-50 border-orange-200" },
+  PENDING:          { label: "En attente",  color: "text-amber-700 dark:text-amber-300",   bg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800" },
+  ACCEPTED:         { label: "Acceptee",    color: "text-blue-700 dark:text-blue-300",    bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800" },
+  PREPARING:        { label: "En prepa",    color: "text-indigo-700 dark:text-indigo-300",  bg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800" },
+  READY:            { label: "Prete",       color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800" },
+  PICKED_UP:        { label: "Retiree",     color: "text-gray-600 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
+  COMPLETED:        { label: "Terminee",    color: "text-green-700 dark:text-green-300",   bg: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800" },
+  DENIED:           { label: "Refusee",     color: "text-red-700 dark:text-red-300",     bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800" },
+  CANCELLED:        { label: "Annulee",     color: "text-gray-500 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
+  AUTO_CANCELLED:   { label: "Expiree",     color: "text-gray-500 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
+  PARTIALLY_DENIED: { label: "Partielle",   color: "text-orange-700 dark:text-orange-300",  bg: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800" },
 };
 
 function formatTime(dateStr: string) {
@@ -116,15 +116,15 @@ function StatusBar({
 
   return (
     <div className={`${config.bg} rounded-xl px-4 py-3 ${shop.status === "AUTO_PAUSED" ? "animate-pulse" : ""}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {config.icon}
-          <span className={`text-sm font-semibold ${config.text}`}>{config.label}</span>
+          <span className={`text-sm font-semibold ${config.text} truncate`}>{config.label}</span>
           {shop.pauseReason && isPausedState && (
-            <span className="text-xs text-white/70">({shop.pauseReason})</span>
+            <span className="text-xs text-white/70 truncate">({shop.pauseReason})</span>
           )}
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {isPausedState && (
             <Button
               size="sm"
@@ -320,11 +320,11 @@ export default function BoucherDashboardPage() {
           </div>
           <div className="flex items-center gap-1.5">
             {connected ? (
-              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-600 border-emerald-200 gap-1">
+              <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 gap-1">
                 <Wifi size={10} /> En ligne
               </Badge>
             ) : (
-              <Badge variant="outline" className="text-[10px] bg-red-50 text-red-600 border-red-200 gap-1">
+              <Badge variant="outline" className="text-[10px] bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 gap-1">
                 <WifiOff size={10} /> Hors ligne
               </Badge>
             )}
@@ -344,8 +344,8 @@ export default function BoucherDashboardPage() {
           <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">CA du jour</span>
               </div>
@@ -358,8 +358,8 @@ export default function BoucherDashboardPage() {
           <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Package className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <Package className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Commandes</span>
               </div>
@@ -370,8 +370,8 @@ export default function BoucherDashboardPage() {
           <Card className={`border-0 shadow-sm ${pendingCount > 0 ? "bg-red-50 dark:bg-red-950/20" : "bg-white dark:bg-[#141414]"}`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pendingCount > 0 ? "bg-red-200" : "bg-amber-100"}`}>
-                  <Clock className={`w-4 h-4 ${pendingCount > 0 ? "text-red-600" : "text-amber-600"}`} />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${pendingCount > 0 ? "bg-red-200 dark:bg-red-900/30" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+                  <Clock className={`w-4 h-4 ${pendingCount > 0 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`} />
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">En attente</span>
               </div>
@@ -384,8 +384,8 @@ export default function BoucherDashboardPage() {
           <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <Star className="w-4 h-4 text-amber-600" />
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <Star className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <span className="text-xs text-gray-500 dark:text-gray-400">Note</span>
               </div>

@@ -73,6 +73,7 @@ function CartItemRow({
       <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={() => onUpdateQty(item.quantity - 1)}
+          aria-label="Diminuer la quantité"
           className="w-11 h-11 rounded-full border border-gray-100 dark:border-white/10 bg-white dark:bg-[#1a1a1a] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
         >
           <Minus size={16} />
@@ -82,6 +83,7 @@ function CartItemRow({
         </span>
         <button
           onClick={() => onUpdateQty(item.quantity + 1)}
+          aria-label="Augmenter la quantité"
           className="w-11 h-11 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#b91c1c] transition-colors"
         >
           <Plus size={16} />
@@ -91,6 +93,7 @@ function CartItemRow({
       {/* Delete */}
       <button
         onClick={onRemove}
+        aria-label="Supprimer du panier"
         className="p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors shrink-0"
       >
         <Trash2 size={18} />
@@ -116,7 +119,7 @@ export default function PanierPage() {
   const { state, updateQty, removeItem, clear, itemCount, totalCents } = useCart();
 
   const [timeMode, setTimeMode] = useState<"asap" | "slot">("asap");
-  const [scheduledTime, setScheduledTime] = useState("");
+  const [, /* scheduledTime */ setScheduledTime] = useState("");
   const [customerNote, setCustomerNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"ON_PICKUP" | "ONLINE">("ON_PICKUP");
@@ -301,7 +304,7 @@ export default function PanierPage() {
             {state.shopName}
           </span>
           {isPro && (
-            <span className="ml-auto text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
+            <span className="ml-auto text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-2 py-1 rounded-full">
               Prix Pro appliques
             </span>
           )}

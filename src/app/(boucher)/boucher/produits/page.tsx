@@ -1,14 +1,13 @@
 // src/app/(boucher)/boucher/produits/page.tsx — V2 Product Management Dashboard
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus,
-  Loader2,
   AlertCircle,
   X,
   Package,
@@ -369,7 +368,7 @@ export default function BoucherProduitsPage() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-white">{totalCount}</p>
               <p className="text-[9px] text-gray-400 font-medium">Produits</p>

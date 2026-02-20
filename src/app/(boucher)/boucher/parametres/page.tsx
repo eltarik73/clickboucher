@@ -441,7 +441,7 @@ export default function BoucherParametresPage() {
                   onChange={(e) =>
                     setPickupConfig((prev) => ({ ...prev, intervalMin: Number(e.target.value) }))
                   }
-                  className="w-full h-9 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] px-3 text-sm"
+                  className="w-full h-9 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 text-sm"
                 >
                   <option value={15}>15 min</option>
                   <option value={30}>30 min</option>
@@ -472,8 +472,8 @@ export default function BoucherParametresPage() {
               {DAYS.map((day) => {
                 const slot = pickupConfig.slots[day.key] || { start: "08:00", end: "19:00" };
                 return (
-                  <div key={day.key} className="flex items-center gap-2">
-                    <span className="w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">
+                  <div key={day.key} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <span className="w-20 sm:w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">
                       {day.label}
                     </span>
                     <Input
@@ -488,9 +488,9 @@ export default function BoucherParametresPage() {
                           },
                         }))
                       }
-                      className="h-9 w-28"
+                      className="h-9 w-24 sm:w-28"
                     />
-                    <span className="text-xs text-gray-400">à</span>
+                    <span className="text-xs text-gray-400">a</span>
                     <Input
                       type="time"
                       value={slot.end}
@@ -503,7 +503,7 @@ export default function BoucherParametresPage() {
                           },
                         }))
                       }
-                      className="h-9 w-28"
+                      className="h-9 w-24 sm:w-28"
                     />
                   </div>
                 );
@@ -762,7 +762,7 @@ export default function BoucherParametresPage() {
             </div>
 
             {/* Address & City */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Adresse</label>
                 <Input value={infoAddress} onChange={(e) => setInfoAddress(e.target.value)} />
@@ -792,8 +792,8 @@ export default function BoucherParametresPage() {
                 {DAYS.map((day) => {
                   const h = hours[day.key] || { open: "08:00", close: "19:00" };
                   return (
-                    <div key={day.key} className="flex items-center gap-2">
-                      <span className="w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">{day.label}</span>
+                    <div key={day.key} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                      <span className="w-20 sm:w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">{day.label}</span>
                       <Input
                         type="time"
                         value={h.open}
@@ -803,9 +803,9 @@ export default function BoucherParametresPage() {
                             [day.key]: { ...prev[day.key], open: e.target.value },
                           }))
                         }
-                        className="h-9 w-28"
+                        className="h-9 w-24 sm:w-28"
                       />
-                      <span className="text-xs text-gray-400 dark:text-gray-500">à</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">a</span>
                       <Input
                         type="time"
                         value={h.close}
@@ -815,7 +815,7 @@ export default function BoucherParametresPage() {
                             [day.key]: { ...prev[day.key], close: e.target.value },
                           }))
                         }
-                        className="h-9 w-28"
+                        className="h-9 w-24 sm:w-28"
                       />
                     </div>
                   );
