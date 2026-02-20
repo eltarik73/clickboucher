@@ -1,7 +1,9 @@
 // GET + POST /api/support/tickets — Boucher: list own tickets + create new ticket
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
+import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
@@ -55,16 +57,17 @@ export async function POST(req: NextRequest) {
       where: { id: data.shopId, ownerId: clerkId },
       select: { id: true, name: true },
     });
-    if (!shop) return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boutique");
+    if (!shop) return apiError("FORBIDDEN", "Vous n'etes pas proprietaire de cette boutique");
 
-    // Get DB user id for foreign key
-    const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
+    // Get or create DB user (ensures valid foreign key)
+    const dbUser = await getOrCreateUser(clerkId);
+    if (!dbUser) return apiError("NOT_FOUND", "Utilisateur introuvable");
 
     // Create ticket + initial message in transaction
     const ticket = await prisma.supportTicket.create({
       data: {
         shopId: data.shopId,
-        userId: dbUser?.id || clerkId,
+        userId: dbUser.id,
         subject: data.subject,
         messages: {
           create: { role: "user", content: data.message },
@@ -75,8 +78,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Read cookie header while still in request context for internal fetch
+    const headersList = headers();
+    const cookieHeader = headersList.get("cookie") || "";
+
     // Trigger AI auto-response asynchronously (don't await)
-    triggerAIResponse(ticket.id, data.message, shop.name).catch(() => {});
+    triggerAIResponse(ticket.id, data.message, shop.name, cookieHeader).catch(() => {});
 
     return apiSuccess(ticket, 201);
   } catch (error) {
@@ -84,7 +91,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function triggerAIResponse(ticketId: string, userMessage: string, shopName: string) {
+async function triggerAIResponse(
+  ticketId: string,
+  userMessage: string,
+  shopName: string,
+  cookieHeader: string
+) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL
       || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null)
@@ -92,7 +104,10 @@ async function triggerAIResponse(ticketId: string, userMessage: string, shopName
 
     await fetch(`${baseUrl}/api/support/ai-respond`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Cookie": cookieHeader,
+      },
       body: JSON.stringify({ ticketId, userMessage, shopName }),
     });
   } catch {
