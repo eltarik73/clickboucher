@@ -44,9 +44,18 @@ interface OrderShop {
   imageUrl: string | null;
 }
 
+interface OrderUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  customerNumber: string | null;
+}
+
 interface OrderData {
   id: string;
   orderNumber: string;
+  dailyNumber: number | null;
+  displayNumber: string | null;
   status: string;
   totalCents: number;
   estimatedReady: string | null;
@@ -59,9 +68,11 @@ interface OrderData {
   boucherNote: string | null;
   denyReason: string | null;
   requestedTime: string | null;
+  paymentMethod: string | null;
   createdAt: string;
   items: OrderItem[];
   shop: OrderShop;
+  user: OrderUser;
 }
 
 // ── Helpers ──────────────────────────────────────
@@ -457,12 +468,25 @@ export default function CommandePage({
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-[#2a2018] dark:text-white">
-              Commande {order.orderNumber}
+              Commande {order.displayNumber || order.orderNumber}
             </h1>
             <p className="text-[11px] text-[#999] dark:text-gray-400">{order.shop.name}</p>
           </div>
         </div>
       </header>
+
+      {/* ── Ticket hero zone ── */}
+      <div className="max-w-xl mx-auto px-5 mt-6 text-center">
+        <p className="text-[56px] font-black text-[#DC2626] leading-none tracking-tight">
+          {order.displayNumber || `#${order.orderNumber.split("-").pop()}`}
+        </p>
+        <p className="text-[22px] font-bold text-[#2a2018] dark:text-white mt-1">
+          {order.user?.firstName || ""}
+        </p>
+        <p className="text-xs text-[#999] dark:text-gray-400 mt-1">
+          {order.shop.name} — {new Date(order.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+        </p>
+      </div>
 
       <main className="max-w-xl mx-auto px-5 mt-6">
         {/* ═══ PENDING ═══ */}
