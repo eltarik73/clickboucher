@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 export type KitchenOrder = {
   id: string;
   orderNumber: string;
+  dailyNumber?: number | null;
+  displayNumber?: string | null;
   status: string;
   totalCents: number;
   isPro: boolean;
@@ -15,6 +17,7 @@ export type KitchenOrder = {
   estimatedReady: string | null;
   actualReady: string | null;
   qrCode: string | null;
+  paymentMethod?: string;
   pickupSlotStart: string | null;
   pickupSlotEnd: string | null;
   createdAt: string;
@@ -30,9 +33,9 @@ export type KitchenOrder = {
     weightGrams: number | null;
     itemNote: string | null;
     available: boolean;
-    product?: { name: string; unit: string };
+    product?: { name: string; unit: string; vatRate?: number | null };
   }[];
-  user: { firstName: string; lastName: string } | null;
+  user: { firstName: string; lastName: string; customerNumber?: string | null } | null;
   shop?: { id: string; name: string; slug: string; imageUrl: string | null };
 };
 

@@ -8,6 +8,7 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
 import { canTransition } from "@/lib/order-state-machine";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
+import { sendOrderReceiptEmail } from "@/lib/emails/order-receipt";
 import type { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +33,11 @@ export async function PATCH(
           select: {
             id: true, ownerId: true, name: true, prepTimeMin: true,
             busyMode: true, busyExtraMin: true,
+            address: true, city: true, siret: true, fullAddress: true,
+            vatRate: true,
           },
         },
-        user: { select: { id: true, firstName: true, lastName: true, clerkId: true } },
+        user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true, customerNumber: true } },
       },
     });
 
@@ -336,6 +339,9 @@ export async function PATCH(
           shopName: order.shop.name,
         });
 
+        // Send receipt email (fire-and-forget)
+        sendReceiptForOrder(order, now).catch(() => {});
+
         return apiSuccess(updated);
       }
 
@@ -357,6 +363,9 @@ export async function PATCH(
           orderNumber: order.orderNumber,
           shopName: order.shop.name,
         });
+
+        // Send receipt email (fire-and-forget)
+        sendReceiptForOrder(order, manualNow).catch(() => {});
 
         return apiSuccess(manualUpdated);
       }
@@ -414,5 +423,38 @@ export async function PATCH(
     }
   } catch (error) {
     return handleApiError(error, "boucher/orders/action");
+  }
+}
+
+// ── Receipt email helper ─────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendReceiptForOrder(order: any, pickedUpAt: Date) {
+  try {
+    await sendOrderReceiptEmail(order.user.email, {
+      orderId: order.id,
+      displayNumber: order.displayNumber || `#${order.orderNumber}`,
+      customerFirstName: order.user.firstName,
+      customerLastName: order.user.lastName,
+      customerNumber: order.user.customerNumber || null,
+      items: order.items.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        totalCents: item.totalCents,
+        weightGrams: item.weightGrams,
+        vatRate: item.product?.vatRate ?? order.shop.vatRate ?? 5.5,
+      })),
+      totalCents: order.totalCents,
+      shopName: order.shop.name,
+      shopAddress: order.shop.address,
+      shopCity: order.shop.city,
+      shopSiret: order.shop.siret,
+      shopFullAddress: order.shop.fullAddress,
+      paymentMethod: order.paymentMethod,
+      createdAt: order.createdAt,
+      pickedUpAt,
+    });
+  } catch (e) {
+    console.error("[receipt-email] Failed:", e);
   }
 }

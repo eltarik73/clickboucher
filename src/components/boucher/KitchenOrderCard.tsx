@@ -1,4 +1,5 @@
 // KitchenOrderCard — Dark theme order card for kitchen mode
+// Shows #047 · Prénom in big text (28px), status-based action buttons
 "use client";
 
 import { useState } from "react";
@@ -71,8 +72,16 @@ export default function KitchenOrderCard({
   const [denyReason, setDenyReason] = useState("");
 
   const clientName = order.user
-    ? `${order.user.firstName} ${order.user.lastName}`
+    ? `${order.user.firstName} ${order.user.lastName.charAt(0)}.`
     : "Client";
+
+  const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
+  const customerNum = order.user?.customerNumber;
+
+  // 30-min ready reminder
+  const readySince = order.actualReady ? Date.now() - new Date(order.actualReady).getTime() : 0;
+  const readyOver30 = order.status === "READY" && readySince > 30 * 60 * 1000;
+  const waitMinutes = Math.round(readySince / 60_000);
 
   async function doAction(action: string, data?: Record<string, unknown>) {
     setLoading(true);
@@ -88,14 +97,17 @@ export default function KitchenOrderCard({
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-xl border-t-4 ${STATUS_COLORS[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden`}
+      className={`bg-[#1a1a1a] rounded-xl border-t-4 ${STATUS_COLORS[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""}`}
     >
-      {/* ── Header ── */}
+      {/* ── Header: #047 · Prénom ── */}
       <div className="px-4 pt-3 pb-2 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-mono font-bold text-base text-white">
-              #{order.orderNumber}
+            <span className="font-black text-[28px] leading-none text-white tracking-tight">
+              {ticketNumber}
+            </span>
+            <span className="text-[20px] font-bold text-gray-300 leading-none">
+              {clientName}
             </span>
             {order.isPro && (
               <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-md">
@@ -103,28 +115,34 @@ export default function KitchenOrderCard({
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-400 mt-0.5">{clientName}</p>
+          {customerNum && (
+            <p className="text-[13px] text-gray-500 mt-0.5">Client {customerNum}</p>
+          )}
         </div>
         <div className="text-right flex flex-col items-end gap-1">
-          <span className="text-lg font-bold text-white">
-            {formatPrice(order.totalCents)}
+          <span className="text-sm text-gray-500">
+            <Clock size={11} className="inline mr-1" />
+            {formatTime(order.createdAt)}
           </span>
           {order.status === "PENDING" && (
-            <span className="text-xs text-gray-500">
-              <Clock size={11} className="inline mr-1" />
+            <span className="text-xs text-gray-600">
               {timeSince(order.createdAt)}
             </span>
           )}
           {(order.status === "ACCEPTED" || order.status === "PREPARING") && (
             <PrepTimer estimatedReady={order.estimatedReady} size="sm" />
           )}
-          {order.status === "READY" && order.actualReady && (
-            <span className="text-xs text-amber-400">
-              Attente : {timeSince(order.actualReady)}
-            </span>
-          )}
         </div>
       </div>
+
+      {/* ── 30min reminder badge ── */}
+      {readyOver30 && (
+        <div className="mx-4 mb-2 px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg text-center">
+          <span className="text-xs font-bold text-amber-400">
+            ⏰ En attente depuis {waitMinutes} min
+          </span>
+        </div>
+      )}
 
       {/* ── Items list ── */}
       <div className="px-4 pb-2">
@@ -148,12 +166,18 @@ export default function KitchenOrderCard({
         </div>
       </div>
 
+      {/* ── Total ── */}
+      <div className="px-4 pb-2 flex justify-between items-center">
+        <span className="text-sm text-gray-500">Total</span>
+        <span className="text-lg font-bold text-white">{formatPrice(order.totalCents)}</span>
+      </div>
+
       {/* ── Customer note ── */}
       {order.customerNote && (
         <div className="px-4 pb-2">
           <div className="bg-blue-500/10 rounded-lg px-3 py-2 flex items-start gap-2">
             <MessageSquare size={14} className="text-blue-400 shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-300">{order.customerNote}</p>
+            <p className="text-sm text-blue-300">💬 &quot;{order.customerNote}&quot;</p>
           </div>
         </div>
       )}
@@ -163,7 +187,7 @@ export default function KitchenOrderCard({
         <div className="px-4 pb-2">
           <p className="text-xs text-gray-500">
             <Clock size={11} className="inline mr-1" />
-            Retrait souhaite : {formatTime(order.requestedTime)}
+            Retrait souhaité : {formatTime(order.requestedTime)}
           </p>
         </div>
       )}
@@ -175,28 +199,29 @@ export default function KitchenOrderCard({
 
         {/* ── PENDING: Accept / Deny / Stock issue ── */}
         {order.status === "PENDING" && !showAcceptForm && !showDenyForm && (
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => { setShowAcceptForm(true); setAcceptMinutes(shopPrepTime); }}
-              disabled={loading}
-              className="col-span-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
-            >
-              <CheckCircle size={16} /> Accepter
-            </button>
-            <button
-              onClick={() => setShowDenyForm(true)}
-              disabled={loading}
-              className="col-span-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
-            >
-              <XCircle size={16} /> Refuser
-            </button>
-            <button
-              onClick={() => onStockIssue(order)}
-              disabled={loading}
-              className="col-span-1 flex items-center justify-center gap-1.5 bg-orange-600/20 hover:bg-orange-600/30 active:scale-95 text-orange-400 font-bold py-3 rounded-xl transition-all text-sm border border-orange-600/30 disabled:opacity-50"
-            >
-              <AlertTriangle size={16} /> Rupture
-            </button>
+          <div className="space-y-2">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => printOrderTicket(order, shopName)}
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[44px] py-2 rounded-xl text-xs font-medium transition-all"
+              >
+                <Printer size={13} /> Ticket
+              </button>
+              <button
+                onClick={() => setShowDenyForm(true)}
+                disabled={loading}
+                className="flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
+              >
+                <XCircle size={16} /> Refuser
+              </button>
+              <button
+                onClick={() => { setShowAcceptForm(true); setAcceptMinutes(shopPrepTime); }}
+                disabled={loading}
+                className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
+              >
+                <CheckCircle size={16} /> Accepter
+              </button>
+            </div>
           </div>
         )}
 
@@ -204,7 +229,7 @@ export default function KitchenOrderCard({
         {order.status === "PENDING" && showAcceptForm && (
           <div className="bg-emerald-500/10 rounded-xl p-4 space-y-3 border border-emerald-500/20">
             <p className="text-sm font-medium text-emerald-300">
-              Pret dans combien de minutes ?
+              Prêt dans combien de minutes ?
             </p>
             <div className="flex items-center gap-2">
               {[10, 15, 20, 30, 45].map((m) => (
@@ -289,14 +314,14 @@ export default function KitchenOrderCard({
                 className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <ChefHat size={16} />}
-                En preparation
+                En préparation
               </button>
               <button
                 onClick={() => doAction("mark_ready")}
                 disabled={loading}
                 className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
               >
-                <CheckCircle size={16} /> Prete !
+                <CheckCircle size={16} /> Prête !
               </button>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -333,7 +358,7 @@ export default function KitchenOrderCard({
               className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition-all text-base disabled:opacity-50"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
-              Commande prete !
+              Commande prête !
             </button>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -360,23 +385,22 @@ export default function KitchenOrderCard({
           </div>
         )}
 
-        {/* ── READY: Confirm pickup ── */}
+        {/* ── READY: Remis au client ── */}
         {order.status === "READY" && (
           <div className="space-y-2">
             <button
               onClick={() => {
                 if (!order.qrCode) {
-                  // No QR code — do a manual pickup without QR validation
                   doAction("manual_pickup");
                   return;
                 }
                 doAction("confirm_pickup", { qrCode: order.qrCode });
               }}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition-all text-base disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition-all text-base disabled:opacity-50"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Package size={18} />}
-              Recuperee par le client
+              🤝 Remis au client
             </button>
             <button
               onClick={() => printOrderTicket(order, shopName)}

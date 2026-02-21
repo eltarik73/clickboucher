@@ -824,9 +824,10 @@ function HistoryCard({ order }: { order: KitchenOrder }) {
   const BadgeIcon = badge.icon;
 
   const clientName = order.user
-    ? `${order.user.firstName} ${order.user.lastName}`
+    ? `${order.user.firstName} ${order.user.lastName.charAt(0)}.`
     : "Client";
 
+  const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
   const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
@@ -834,9 +835,10 @@ function HistoryCard({ order }: { order: KitchenOrder }) {
       {/* Header row */}
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-mono font-bold text-sm text-white">
-            #{order.orderNumber}
+          <span className="font-bold text-base text-white">
+            {ticketNumber}
           </span>
+          <span className="text-sm text-gray-400">{clientName}</span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${badge.color}`}>
             <BadgeIcon size={10} />
             {badge.label}
@@ -850,8 +852,6 @@ function HistoryCard({ order }: { order: KitchenOrder }) {
       {/* Details row */}
       <div className="px-4 pb-3 flex items-center justify-between text-xs text-gray-500">
         <div className="flex items-center gap-3">
-          <span>{clientName}</span>
-          <span className="text-gray-700">|</span>
           <span>{itemCount} article{itemCount > 1 ? "s" : ""}</span>
         </div>
         <span className="text-gray-600">{formatDate(order.updatedAt)}</span>

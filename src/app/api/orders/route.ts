@@ -10,6 +10,8 @@ import { getShopStatus } from "@/lib/shop-status";
 import { setBusyMode } from "@/lib/shop-status";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
+import { getNextDailyNumber, ensureCustomerNumber } from "@/lib/services/numbering.service";
+import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
 
 export const dynamic = "force-dynamic";
 
@@ -62,9 +64,9 @@ export async function GET(req: NextRequest) {
     const orders = await prisma.order.findMany({
       where,
       include: {
-        items: { include: { product: { select: { name: true, unit: true } } } },
-        shop: { select: { id: true, name: true, slug: true, imageUrl: true } },
-        user: { select: { firstName: true, lastName: true } },
+        items: { include: { product: { select: { name: true, unit: true, vatRate: true } } } },
+        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true } },
+        user: { select: { firstName: true, lastName: true, customerNumber: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 50,
@@ -124,10 +126,12 @@ export async function POST(req: NextRequest) {
     const shop = await prisma.shop.findUnique({
       where: { id: data.shopId },
       select: {
-        id: true, status: true, autoAccept: true, acceptTimeoutMin: true,
+        id: true, name: true, address: true, city: true, phone: true,
+        status: true, autoAccept: true, acceptTimeoutMin: true,
         busyMode: true, busyExtraMin: true, prepTimeMin: true,
         maxOrdersPerSlot: true, maxOrdersPerHour: true, autoBusyThreshold: true,
         minOrderCents: true, commissionPct: true, commissionEnabled: true,
+        vatRate: true,
       },
     });
     if (!shop) {
@@ -252,6 +256,10 @@ export async function POST(req: NextRequest) {
       : 1;
     const orderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
 
+    // ── Ticket numbering ──
+    const { dailyNumber, displayNumber } = await getNextDailyNumber(data.shopId);
+    const customerNumber = await ensureCustomerNumber(user.id, data.shopId);
+
     // Auto-cancel timer (Uber Eats style)
     const expiresAt = new Date(Date.now() + shop.acceptTimeoutMin * 60 * 1000);
     const initialStatus = shop.autoAccept ? "ACCEPTED" : "PENDING";
@@ -274,6 +282,8 @@ export async function POST(req: NextRequest) {
     const order = await prisma.order.create({
       data: {
         orderNumber,
+        dailyNumber,
+        displayNumber,
         userId: user.id,
         isPro,
         shopId: data.shopId,
@@ -304,6 +314,25 @@ export async function POST(req: NextRequest) {
       orderNumber: order.orderNumber,
       customerName: user.firstName,
     });
+
+    // Send confirmation email (fire-and-forget)
+    sendOrderConfirmationEmail(user.email, {
+      orderId: order.id,
+      displayNumber,
+      customerFirstName: user.firstName,
+      items: orderItems.map((oi) => ({
+        name: oi.name,
+        quantity: oi.quantity,
+        unit: oi.unit,
+        totalCents: oi.totalCents,
+        weightGrams: oi.weightGrams,
+      })),
+      totalCents,
+      shopName: shop.name,
+      shopAddress: shop.address,
+      shopCity: shop.city,
+      prepTimeMin: prepMinutes,
+    }).catch(() => {});
 
     // Auto-busy if threshold reached (Uber Eats style)
     const activeOrders = await prisma.order.count({

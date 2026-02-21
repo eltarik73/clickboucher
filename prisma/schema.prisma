@@ -183,6 +183,8 @@ model User {
 
   pushSubscription Json? @map("push_subscription")
 
+  customerNumber String? @unique @map("customer_number")
+
   referralCode String? @unique @map("referral_code")
   referredBy   String? @map("referred_by")
 
@@ -300,6 +302,12 @@ model Shop {
   shopReferralCode String? @unique @map("shop_referral_code")
   referredByShop   String? @map("referred_by_shop")
 
+  // ── Settings ──
+  vatRate       Float   @default(5.5) @map("vat_rate")
+  qrCodeEnabled Boolean @default(false) @map("qr_code_enabled")
+  siret         String?
+  fullAddress   String? @map("full_address")
+
   // ── Dernière activité (Uber Eats vérifie si tablette connectée) ──
   lastSeenAt DateTime? @map("last_seen_at")
 
@@ -322,6 +330,8 @@ model Shop {
   referrerReferrals Referral[]       @relation("ReferrerShop")
   referredReferrals Referral[]       @relation("ReferredShop")
   proAccesses       ProAccess[]
+  dailyCounters     DailyCounter[]
+  customerCounter   CustomerCounter?
 
   @@index([latitude, longitude])
   @@index([city])
@@ -381,8 +391,9 @@ model Product {
   description String?
   imageUrl    String? @map("image_url")
 
-  priceCents    Int  @map("price_cents")
-  proPriceCents Int? @map("pro_price_cents")
+  priceCents    Int    @map("price_cents")
+  proPriceCents Int?   @map("pro_price_cents")
+  vatRate       Float? @map("vat_rate")
 
   unit     Unit
   inStock  Boolean @default(true) @map("in_stock")
@@ -766,6 +777,9 @@ model Order {
   id          String @id @default(cuid())
   orderNumber String @unique @map("order_number")
 
+  dailyNumber   Int?    @map("daily_number")
+  displayNumber String? @map("display_number")
+
   userId String  @map("user_id")
   user   User    @relation(fields: [userId], references: [id])
   isPro  Boolean @default(false) @map("is_pro")
@@ -877,4 +891,34 @@ model ProAccess {
   @@index([shopId, status])
   @@index([userId])
   @@map("pro_accesses")
+}
+
+// ══════════════════════════════════════════
+// DAILY COUNTER (ticket numbering reset daily)
+// ══════════════════════════════════════════
+
+model DailyCounter {
+  id         String   @id @default(cuid())
+  shopId     String   @map("shop_id")
+  date       DateTime @db.Date
+  lastNumber Int      @default(0) @map("last_number")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, date])
+  @@map("daily_counters")
+}
+
+// ══════════════════════════════════════════
+// CUSTOMER COUNTER (per-shop customer numbering)
+// ══════════════════════════════════════════
+
+model CustomerCounter {
+  id         String @id @default(cuid())
+  shopId     String @unique @map("shop_id")
+  lastNumber Int    @default(0) @map("last_number")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("customer_counters")
 }
