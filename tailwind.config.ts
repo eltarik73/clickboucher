@@ -58,7 +58,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-body)", "'DM Sans'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["var(--font-display)", "'Plus Jakarta Sans'", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "'Outfit'", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)", "'Cormorant Garamond'", "Georgia", "serif"],
       },
       fontSize: {

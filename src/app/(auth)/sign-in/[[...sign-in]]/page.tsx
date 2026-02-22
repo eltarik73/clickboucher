@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SignIn } from "@clerk/nextjs";
+import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 export const metadata: Metadata = {
   title: "Connexion | Klik&Go",
@@ -11,10 +12,10 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-stone-50 grid place-items-center">
       <div className="w-full max-w-[420px] px-5">
-        <div className="text-center mb-7">
-          <span className="text-3xl">🥩</span>
-          <h1 className="font-display text-xl font-extrabold text-[#DC2626] mt-2">
-            ClickBoucher
+        <div className="text-center mb-7 flex flex-col items-center">
+          <KlikLogo size={56} />
+          <h1 className="mt-3">
+            <KlikWordmark size="xl" />
           </h1>
           <p className="text-sm text-stone-500 mt-1.5">
             Connecte-toi pour commander et suivre tes commandes.

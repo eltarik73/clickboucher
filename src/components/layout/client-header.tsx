@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/ui/NotificationBell";
+import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 interface ClientHeaderProps {
   title?: string;
@@ -35,10 +36,9 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
         </div>
 
         {showLocation && (
-          <Link href="/decouvrir" className="absolute left-1/2 -translate-x-1/2">
-            <span className="text-base font-extrabold tracking-tight">
-              <span className="text-primary">Click</span><span className="text-zinc-900 dark:text-white">Boucher</span>
-            </span>
+          <Link href="/decouvrir" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+            <KlikLogo size={24} />
+            <KlikWordmark size="sm" />
           </Link>
         )}
 

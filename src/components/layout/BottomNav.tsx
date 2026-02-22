@@ -14,8 +14,8 @@ type NavItem =
 function getNavItems(): NavItem[] {
   return [
     { key: "accueil",   label: "Accueil",   href: "/decouvrir",  icon: Home },
-    { key: "ia",        label: "IA",         icon: MessageCircle, action: () => window.dispatchEvent(new CustomEvent("klikgo:open-chat")) },
     { key: "favoris",   label: "Favoris",    href: "/favoris",    icon: Heart },
+    // IA button is rendered separately as elevated center button
     { key: "panier",    label: "Panier",     href: "/panier",     icon: ShoppingCart, badge: "cart" as const },
     { key: "commandes", label: "Commandes",  href: "/commandes",  icon: ClipboardList, badge: "notif" as const },
   ];
@@ -30,13 +30,35 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-t border-gray-100/80 dark:border-white/[0.06] px-2 pb-safe-bottom z-50">
-      <div className="flex items-center justify-around">
-        {navItems.map((item) => {
+      <div className="flex items-center justify-around relative">
+        {navItems.slice(0, 2).map((item) => {
           const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;
           const Icon = item.icon;
+          return (
+            <Link key={item.key} href={item.href!} className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"}`}>
+              <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
+              <span className={`text-[10px] leading-none ${isActive ? "font-bold" : "font-medium"}`}>{item.label}</span>
+            </Link>
+          );
+        })}
 
-          const inner = (
-            <>
+        {/* Elevated center IA button */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("klikgo:open-chat"))}
+          className="flex flex-col items-center -mt-7"
+        >
+          <div className="w-[52px] h-[52px] rounded-full bg-[#DC2626] flex items-center justify-center shadow-lg shadow-[#DC2626]/40 ring-4 ring-white dark:ring-black">
+            <span className="absolute inset-0 rounded-full bg-[#DC2626] animate-ping opacity-15" style={{ width: 52, height: 52 }} />
+            <MessageCircle size={24} className="text-white relative z-10" fill="white" strokeWidth={0} />
+          </div>
+          <span className="text-[10px] leading-none font-medium text-[#DC2626] mt-1">IA</span>
+        </button>
+
+        {navItems.slice(2).map((item) => {
+          const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;
+          const Icon = item.icon;
+          return (
+            <Link key={item.key} href={item.href!} className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"}`}>
               <div className="relative">
                 <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
                 {item.badge === "cart" && itemCount > 0 && (
@@ -50,23 +72,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] leading-none ${isActive ? "font-bold" : "font-medium"}`}>
-                {item.label}
-              </span>
-            </>
-          );
-
-          const cls = `flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-            isActive ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
-          }`;
-
-          return item.action ? (
-            <button key={item.key} onClick={item.action} className={cls}>
-              {inner}
-            </button>
-          ) : (
-            <Link key={item.key} href={item.href} className={cls}>
-              {inner}
+              <span className={`text-[10px] leading-none ${isActive ? "font-bold" : "font-medium"}`}>{item.label}</span>
             </Link>
           );
         })}

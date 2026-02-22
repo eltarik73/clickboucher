@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Search, X, Clock, ArrowRight, Timer } from "lucide-react";
+import { Search, X, Clock, ArrowRight, Timer, Mic } from "lucide-react";
 import { resolveProductImage } from "@/lib/product-images";
 
 interface SearchResult {
@@ -137,17 +137,27 @@ export function SearchBar() {
             onChange={(e) => handleChange(e.target.value)}
             onFocus={() => setOpen(true)}
             placeholder="Rechercher un produit, une viande..."
-            className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white dark:bg-[#141414] border border-gray-200/80 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-all shadow-sm"
+            className="w-full pl-10 pr-20 py-3 rounded-2xl bg-white dark:bg-[#141414] border border-gray-200/80 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-all shadow-sm"
           />
-          {query && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {query && (
+              <button
+                type="button"
+                onClick={() => { setQuery(""); setResults([]); inputRef.current?.focus(); }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+              >
+                <X size={16} />
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => { setQuery(""); setResults([]); inputRef.current?.focus(); }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              onClick={() => inputRef.current?.focus()}
+              className="w-8 h-8 rounded-full bg-[#DC2626] flex items-center justify-center hover:bg-[#b91c1c] transition-colors"
+              aria-label="Recherche vocale"
             >
-              <X size={16} />
+              <Mic size={14} className="text-white" />
             </button>
-          )}
+          </div>
         </div>
       </form>
 

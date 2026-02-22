@@ -11,6 +11,7 @@ import {
   Settings,
   Headphones,
 } from "lucide-react";
+import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 const NAV_ITEMS = [
   { key: "dashboard",  label: "Dashboard",   href: "/boucher/dashboard",  icon: LayoutDashboard },
@@ -50,12 +51,10 @@ export function BoucherNav() {
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-[#141414] border-r border-gray-200 dark:border-white/10 flex-col z-40">
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-100 dark:border-white/10">
-          <Link href="/boucher/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#DC2626] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">K</span>
-            </div>
+          <Link href="/boucher/dashboard" className="flex items-center gap-2.5">
+            <KlikLogo size={32} />
             <div>
-              <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">Klik&Go</p>
+              <KlikWordmark size="sm" />
               <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Espace boucher</p>
             </div>
           </Link>

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 export function SecretTapLogo() {
   const router = useRouter();
@@ -17,7 +18,6 @@ export function SecretTapLogo() {
 
       if (next >= 5) {
         setCount(0);
-        // Navigate to webmaster login
         router.push("/webmaster");
       }
 
@@ -30,10 +30,8 @@ export function SecretTapLogo() {
       onClick={handleTap}
       className="flex items-center gap-2 bg-transparent border-none cursor-pointer p-0 select-none"
     >
-      <span className="text-[22px]">🥩</span>
-      <span className="font-display text-[19px] font-extrabold text-[#DC2626] tracking-tight">
-        ClickBoucher
-      </span>
+      <KlikLogo size={28} />
+      <KlikWordmark size="sm" />
     </button>
   );
 }

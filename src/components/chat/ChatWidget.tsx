@@ -397,11 +397,11 @@ export function ChatWidget() {
     <>
       {/* ═══ CHAT PANEL ═══ */}
       <div
-        className={`fixed bottom-24 right-4 z-50 flex flex-col bg-white dark:bg-[#141414] rounded-[20px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-20 right-4 left-4 sm:left-auto z-50 flex flex-col bg-white dark:bg-[#141414] rounded-[20px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden transition-all duration-300 origin-bottom ${
           open
             ? "scale-100 opacity-100 pointer-events-auto"
             : "scale-90 opacity-0 pointer-events-none"
-        } w-[calc(100vw-32px)] sm:w-[360px] h-[70vh] sm:h-[480px]`}
+        } sm:w-[360px] h-[70vh] sm:h-[480px]`}
       >
         {/* Header */}
         <div className="shrink-0 bg-[#DC2626] px-5 py-4 flex items-center gap-3">
@@ -553,19 +553,7 @@ export function ChatWidget() {
         </div>
       </div>
 
-      {/* ═══ FLOATING BUBBLE ═══ */}
-      <button
-        onClick={() => setOpen((prev) => !prev)}
-        className={`fixed bottom-6 right-6 z-50 w-[60px] h-[60px] rounded-full bg-[#DC2626] flex items-center justify-center shadow-[0_6px_24px_rgba(220,38,38,0.4)] hover:scale-[1.08] transition-transform duration-200 ${
-          open ? "scale-0 opacity-0" : "scale-100 opacity-100"
-        }`}
-        aria-label="Ouvrir le chat"
-      >
-        <span className="absolute inset-0 rounded-full bg-[#DC2626] animate-ping opacity-20" />
-        <div className="relative z-10">
-          <ButcherIcon size={32} />
-        </div>
-      </button>
+      {/* Floating bubble hidden — IA button is now in BottomNav */}
 
       {/* Button animation styles */}
       <style jsx global>{`

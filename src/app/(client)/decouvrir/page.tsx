@@ -14,6 +14,7 @@ import CalendarBanner from "@/components/landing/CalendarBanner";
 import { SearchBar } from "@/components/search/SearchBar";
 import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
 import { ReorderCarousel } from "@/components/order/ReorderCarousel";
+import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 export const metadata: Metadata = {
   title: "Découvrir les boucheries | Klik&Go",
@@ -26,21 +27,13 @@ export const metadata: Metadata = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// LOGO COMPONENT (Header)
+// LOGO COMPONENT (Header) — uses shared KlikLogo
 // ─────────────────────────────────────────────────────────────
 function KlikGoLogo({ light = false }: { light?: boolean }) {
-  const textColor = light ? "text-white" : "text-[#1A1A1A] dark:text-white";
-
   return (
     <div className="flex items-center gap-2.5">
-      <div className="w-10 h-10 bg-[#DC2626] rounded-xl flex items-center justify-center shadow-lg shadow-[#DC2626]/20">
-        <span className="text-white font-bold text-lg">K</span>
-      </div>
-      <div className="flex items-baseline gap-0">
-        <span className={`text-xl font-bold ${textColor} tracking-tight`}>Klik</span>
-        <span className={`text-xl font-bold ${textColor}`}>&</span>
-        <span className={`text-xl font-bold ${textColor} tracking-tight`}>Go</span>
-      </div>
+      <KlikLogo size={40} className="shadow-lg shadow-[#DC2626]/20" />
+      <KlikWordmark size="lg" className={light ? "[&>span]:!text-white" : ""} />
     </div>
   );
 }
@@ -53,28 +46,10 @@ function HeroLogo() {
     <div className="flex flex-col items-center mb-4 sm:mb-8">
       <div className="relative">
         <div className="absolute inset-0 blur-2xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
-        <svg viewBox="0 0 100 100" className="w-14 h-14 sm:w-20 sm:h-20 relative z-10">
-          <defs>
-            <linearGradient id="heroLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#a83320" />
-              <stop offset="50%" stopColor="#DC2626" />
-              <stop offset="100%" stopColor="#DC2626" />
-            </linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="46" fill="url(#heroLogoGradient)" />
-          <path
-            d="M35 25 L35 75 L45 75 L45 55 L60 75 L73 75 L55 52 L72 25 L59 25 L45 47 L45 25 Z"
-            fill="white"
-          />
-          <g className="animate-pulse">
-            <line x1="75" y1="35" x2="88" y2="35" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.9" />
-            <line x1="78" y1="45" x2="93" y2="45" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" />
-            <line x1="75" y1="55" x2="86" y2="55" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
-          </g>
-        </svg>
+        <KlikLogo size={80} className="w-14 h-14 sm:w-20 sm:h-20 relative z-10" />
       </div>
       <h2 className="mt-2 sm:mt-4 text-xl sm:text-2xl font-bold text-white tracking-tight">
-        Klik<span className="text-white">&</span>Go
+        Klik<span className="text-[#DC2626] font-black">&amp;</span>Go
       </h2>
       <p className="text-[10px] sm:text-xs text-[#666] tracking-wider mt-0.5">by TkS26</p>
     </div>

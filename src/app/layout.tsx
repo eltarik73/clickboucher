@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Plus_Jakarta_Sans, Cormorant_Garamond } from "next/font/google";
+import { DM_Sans, Outfit, Cormorant_Garamond } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
@@ -23,9 +23,9 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
+const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-display",
   display: "swap",
 });
@@ -79,7 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider localization={frFR}>
       <html lang="fr" className="dark" suppressHydrationWarning>
-        <body className={`${dmSans.variable} ${plusJakarta.variable} ${cormorant.variable} bg-[#f8f6f3] text-gray-900 dark:bg-[#0a0a0a] dark:text-white antialiased transition-colors duration-300`}>
+        <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased transition-colors duration-300`}>
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>
