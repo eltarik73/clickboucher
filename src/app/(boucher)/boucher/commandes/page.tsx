@@ -124,6 +124,9 @@ export default function KitchenModePage() {
   const [connected, setConnected] = useState(true);
   const lastFetchRef = useRef(Date.now());
 
+  // Track seen order IDs (orders the boucher has already clicked VOIR on)
+  const seenOrderIdsRef = useRef<Set<string>>(new Set());
+
   // ── Polling with 5s interval ──
   const {
     orders,
@@ -142,6 +145,8 @@ export default function KitchenModePage() {
   } = useOrderPolling({
     intervalMs: 5000,
     onNewOrder: (order) => {
+      // Skip sound for already-seen orders
+      if (seenOrderIdsRef.current.has(order.id)) return;
       // Show alert overlay
       setAlertOrder(order);
       // Switch to "nouvelles" tab
@@ -199,6 +204,14 @@ export default function KitchenModePage() {
   // ── Cleanup alert on unmount ──
   useEffect(() => {
     return () => stopOrderAlert();
+  }, []);
+
+  // ── Handle VOIR click: stop sound + mark as seen ──
+  const handleViewOrder = useCallback((orderId: string) => {
+    seenOrderIdsRef.current.add(orderId);
+    stopOrderAlert();
+    // Dismiss alert overlay if it's showing for this order
+    setAlertOrder((prev) => (prev?.id === orderId ? null : prev));
   }, []);
 
   // ── Handle order action (unified API) ──
@@ -300,7 +313,10 @@ export default function KitchenModePage() {
       {/* ── Alert overlay (new order) ── */}
       <OrderAlertOverlay
         order={alertOrder}
-        onDismiss={() => setAlertOrder(null)}
+        onDismiss={() => {
+          stopOrderAlert();
+          setAlertOrder(null);
+        }}
       />
 
       {/* ── Stock issue modal ── */}
@@ -463,6 +479,7 @@ export default function KitchenModePage() {
             shopPrepTime={shopPrepTime}
             onAction={handleAction}
             onStockIssue={setStockIssueOrder}
+            onView={handleViewOrder}
             emptyMessage="Aucune nouvelle commande"
             emptyIcon={<Bell size={32} className="text-gray-700" />}
           />
@@ -481,6 +498,7 @@ export default function KitchenModePage() {
             shopPrepTime={shopPrepTime}
             onAction={handleAction}
             onStockIssue={setStockIssueOrder}
+            onView={handleViewOrder}
             emptyMessage="Aucune commande en cours"
             emptyIcon={<ChefHat size={32} className="text-gray-700" />}
           />
@@ -499,6 +517,7 @@ export default function KitchenModePage() {
             shopPrepTime={shopPrepTime}
             onAction={handleAction}
             onStockIssue={setStockIssueOrder}
+            onView={handleViewOrder}
             emptyMessage="Aucune commande prete"
             emptyIcon={<CheckCircle size={32} className="text-gray-700" />}
             extra={
@@ -539,6 +558,7 @@ export default function KitchenModePage() {
             shopPrepTime={shopPrepTime}
             onAction={handleAction}
             onStockIssue={setStockIssueOrder}
+            onView={handleViewOrder}
             emptyMessage="Aucune commande programmee"
             emptyIcon={<CalendarClock size={32} className="text-gray-700" />}
           />
@@ -586,6 +606,7 @@ export default function KitchenModePage() {
                   shopPrepTime={shopPrepTime}
                   onAction={handleAction}
                   onStockIssue={setStockIssueOrder}
+                  onView={handleViewOrder}
                 />
               ))
             )
@@ -609,6 +630,7 @@ export default function KitchenModePage() {
                 shopPrepTime={shopPrepTime}
                 onAction={handleAction}
                 onStockIssue={setStockIssueOrder}
+                onView={handleViewOrder}
               />
             ))
           )}
@@ -631,6 +653,7 @@ function KitchenColumn({
   shopPrepTime,
   onAction,
   onStockIssue,
+  onView,
   emptyMessage,
   emptyIcon,
   extra,
@@ -644,6 +667,7 @@ function KitchenColumn({
   shopPrepTime: number;
   onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
   onStockIssue: (order: KitchenOrder) => void;
+  onView?: (orderId: string) => void;
   emptyMessage: string;
   emptyIcon: React.ReactNode;
   extra?: React.ReactNode;
@@ -692,6 +716,7 @@ function KitchenColumn({
               shopPrepTime={shopPrepTime}
               onAction={onAction}
               onStockIssue={onStockIssue}
+              onView={onView}
             />
           ))
         )}
@@ -761,6 +786,7 @@ function ScheduledColumn({
   shopPrepTime,
   onAction,
   onStockIssue,
+  onView,
   emptyMessage,
   emptyIcon,
 }: {
@@ -772,6 +798,7 @@ function ScheduledColumn({
   shopPrepTime: number;
   onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
   onStockIssue: (order: KitchenOrder) => void;
+  onView?: (orderId: string) => void;
   emptyMessage: string;
   emptyIcon: React.ReactNode;
 }) {
@@ -804,6 +831,7 @@ function ScheduledColumn({
               shopPrepTime={shopPrepTime}
               onAction={onAction}
               onStockIssue={onStockIssue}
+              onView={onView}
             />
           ))
         )}
