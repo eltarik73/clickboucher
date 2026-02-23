@@ -12,6 +12,7 @@ const QRCodeSVG = dynamic(
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
+import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
 
 // ── Types ────────────────────────────────────────
 
@@ -73,6 +74,16 @@ interface OrderData {
   items: OrderItem[];
   shop: OrderShop;
   user: OrderUser;
+  priceAdjustment?: {
+    id: string;
+    originalTotal: number;
+    newTotal: number;
+    reason: string | null;
+    adjustmentType: string;
+    status: string;
+    autoApproveAt: string | null;
+    createdAt: string;
+  } | null;
 }
 
 // ── Helpers ──────────────────────────────────────
@@ -638,29 +649,39 @@ export default function CommandePage({
 
         {/* ═══ ACCEPTED ═══ */}
         {order.status === "ACCEPTED" && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-            <div className="text-5xl mb-3">✅</div>
-            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
-              Commande acceptee !
-            </h2>
-            {order.estimatedReady && (
-              <TimeProgress estimatedReady={order.estimatedReady} />
+          <div className="space-y-4">
+            {order.priceAdjustment && (
+              <PriceAdjustmentBanner orderId={order.id} adjustment={order.priceAdjustment} onUpdate={fetchOrder} />
             )}
-            {order.qrCode && <QRSection qrCode={order.qrCode} size={180} />}
+            <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+              <div className="text-5xl mb-3">✅</div>
+              <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
+                Commande acceptee !
+              </h2>
+              {order.estimatedReady && (
+                <TimeProgress estimatedReady={order.estimatedReady} />
+              )}
+              {order.qrCode && <QRSection qrCode={order.qrCode} size={180} />}
+            </div>
           </div>
         )}
 
         {/* ═══ PREPARING ═══ */}
         {order.status === "PREPARING" && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-            <div className="text-5xl mb-3">🔪</div>
-            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
-              En preparation...
-            </h2>
-            {order.estimatedReady && (
-              <TimeProgress estimatedReady={order.estimatedReady} />
+          <div className="space-y-4">
+            {order.priceAdjustment && (
+              <PriceAdjustmentBanner orderId={order.id} adjustment={order.priceAdjustment} onUpdate={fetchOrder} />
             )}
-            {order.qrCode && <QRSection qrCode={order.qrCode} size={180} />}
+            <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+              <div className="text-5xl mb-3">🔪</div>
+              <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
+                En preparation...
+              </h2>
+              {order.estimatedReady && (
+                <TimeProgress estimatedReady={order.estimatedReady} />
+              )}
+              {order.qrCode && <QRSection qrCode={order.qrCode} size={180} />}
+            </div>
           </div>
         )}
 
