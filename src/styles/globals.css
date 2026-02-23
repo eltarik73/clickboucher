@@ -159,6 +159,56 @@ body {
   }
 }
 
+/* ─── Halal watermark patch ──────────────── */
+/* Covers logo watermarks on images sourced from laboucherie-halal.com */
+.halal-logo-patch::before,
+.halal-logo-patch::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: white;
+}
+.halal-logo-patch::before {
+  left: 0;
+  width: 55px;
+  height: 45px;
+}
+.halal-logo-patch::after {
+  right: 0;
+  width: 65px;
+  height: 40px;
+}
+.dark .halal-logo-patch::before,
+.dark .halal-logo-patch::after {
+  background: #141414;
+}
+/* Smaller variant for 64px thumbnails */
+.halal-logo-patch-sm::before,
+.halal-logo-patch-sm::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: white;
+}
+.halal-logo-patch-sm::before {
+  left: 0;
+  width: 22px;
+  height: 18px;
+}
+.halal-logo-patch-sm::after {
+  right: 0;
+  width: 26px;
+  height: 16px;
+}
+.dark .halal-logo-patch-sm::before,
+.dark .halal-logo-patch-sm::after {
+  background: #141414;
+}
+
 /* ─── Utility classes ───────────────────────── */
 @layer utilities {
   .animate-fade-up {
