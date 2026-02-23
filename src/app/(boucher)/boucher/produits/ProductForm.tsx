@@ -63,6 +63,9 @@ export type EditProduct = {
   minWeightG: number;
   weightStepG: number;
   popular: boolean;
+  isActive: boolean;
+  unitLabel: string | null;
+  sliceOptions: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
 };
@@ -142,9 +145,11 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [categoryId, setCategoryId] = useState(product?.categoryId || "");
-  const [unit, setUnit] = useState<"KG" | "PIECE" | "BARQUETTE">(
-    (product?.unit as "KG" | "PIECE" | "BARQUETTE") || "KG"
+  const [unit, setUnit] = useState<"KG" | "PIECE" | "BARQUETTE" | "TRANCHE">(
+    (product?.unit as "KG" | "PIECE" | "BARQUETTE" | "TRANCHE") || "KG"
   );
+  const [unitLabel, setUnitLabel] = useState(product?.unitLabel || "");
+  const [isActive, setIsActive] = useState(product?.isActive !== false);
 
   // Step 2 — Prix
   const [priceCents, setPriceCents] = useState(product ? (product.priceCents / 100).toFixed(2) : "");
@@ -157,6 +162,14 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [flashHours, setFlashHours] = useState(3);
   const [minWeightG, setMinWeightG] = useState(product?.minWeightG || 200);
   const [weightStepG, setWeightStepG] = useState(product?.weightStepG || 50);
+
+  // Slice options (TRANCHE)
+  const [defaultSlices, setDefaultSlices] = useState(product?.sliceOptions?.defaultSlices ?? 6);
+  const [minSlices, setMinSlices] = useState(product?.sliceOptions?.minSlices ?? 2);
+  const [maxSlices, setMaxSlices] = useState(product?.sliceOptions?.maxSlices ?? 20);
+  const [thicknesses, setThicknesses] = useState<string[]>(
+    product?.sliceOptions?.thicknesses ?? ["chiffonnade", "fine", "normale", "epaisse"]
+  );
 
   // Step 3 — Qualite
   const [origin, setOrigin] = useState(product?.origin || "");
@@ -300,9 +313,18 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
         : null,
     };
 
-    if (unit === "KG") {
+    body.isActive = isActive;
+    body.unitLabel = unitLabel.trim() || null;
+
+    if (unit === "KG" || unit === "TRANCHE") {
       body.minWeightG = minWeightG;
       body.weightStepG = weightStepG;
+    }
+
+    if (unit === "TRANCHE") {
+      body.sliceOptions = { defaultSlices, minSlices, maxSlices, thicknesses };
+    } else {
+      body.sliceOptions = null;
     }
 
     // Images (only server-uploaded ones)
@@ -493,11 +515,12 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
                   Mode de vente *
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {([
                     { value: "KG", label: "Au poids", emoji: "\u2696\uFE0F" },
                     { value: "PIECE", label: "A l'unite", emoji: "\u{1F522}" },
                     { value: "BARQUETTE", label: "Barquette", emoji: "\u{1F4E6}" },
+                    { value: "TRANCHE", label: "A la tranche", emoji: "\u{1F52A}" },
                   ] as const).map((opt) => (
                     <button
                       key={opt.value}
@@ -523,7 +546,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
             <div className="space-y-5">
               <div>
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Prix principal * {unit === "KG" ? "(au kg)" : unit === "PIECE" ? "(la piece)" : "(la barquette)"}
+                  Prix principal * {unit === "KG" ? "(au kg)" : unit === "PIECE" ? "(la piece)" : unit === "TRANCHE" ? "(au kg)" : "(la barquette)"}
                 </label>
                 <div className="relative">
                   <Input
@@ -629,8 +652,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                 )}
               </div>
 
-              {/* Weight config (only for KG) */}
-              {unit === "KG" && (
+              {/* Weight config (for KG and TRANCHE) */}
+              {(unit === "KG" || unit === "TRANCHE") && (
                 <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 space-y-3">
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Configuration poids</span>
 
@@ -675,6 +698,90 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   </div>
                 </div>
               )}
+
+              {/* Slice options (only for TRANCHE) */}
+              {unit === "TRANCHE" && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 rounded-xl p-4 space-y-3">
+                  <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">Options tranches</span>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Par defaut</p>
+                      <Input
+                        type="number"
+                        value={defaultSlices}
+                        onChange={(e) => setDefaultSlices(Number(e.target.value))}
+                        min={1} max={50} className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Min</p>
+                      <Input
+                        type="number"
+                        value={minSlices}
+                        onChange={(e) => setMinSlices(Number(e.target.value))}
+                        min={1} max={50} className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Max</p>
+                      <Input
+                        type="number"
+                        value={maxSlices}
+                        onChange={(e) => setMaxSlices(Number(e.target.value))}
+                        min={1} max={50} className="h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Epaisseurs disponibles</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(["chiffonnade", "fine", "normale", "epaisse"] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() =>
+                            setThicknesses((prev) =>
+                              prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+                            )
+                          }
+                          className={`px-3 py-2 rounded-lg text-xs font-bold min-h-[36px] transition-all capitalize ${
+                            thicknesses.includes(t)
+                              ? "bg-amber-600 text-white"
+                              : "bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* isActive toggle */}
+              <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Visible par les clients</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    Desactive = le produit n&apos;apparait pas dans la boutique
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsActive(!isActive)}
+                  className={`w-12 h-6 rounded-full transition-all relative ${
+                    isActive ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all ${
+                      isActive ? "left-[26px]" : "left-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           )}
 
@@ -948,7 +1055,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   <div className="flex justify-between">
                     <span className="text-gray-500 dark:text-gray-400">Vente</span>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {unit === "KG" ? "Au poids" : unit === "PIECE" ? "A l'unite" : "Barquette"}
+                      {unit === "KG" ? "Au poids" : unit === "PIECE" ? "A l'unite" : unit === "TRANCHE" ? "A la tranche" : "Barquette"}
                     </span>
                   </div>
                   {origin && (

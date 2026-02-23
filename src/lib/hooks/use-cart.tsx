@@ -12,11 +12,14 @@ export interface CartItem {
   offerId?: string;
   name: string;
   imageUrl: string;
-  unit: "KG" | "PIECE" | "BARQUETTE";
+  unit: "KG" | "PIECE" | "BARQUETTE" | "TRANCHE";
   priceCents: number;
   quantity: number;
   weightGrams?: number;
-// Added for CartItem.tsx compatibility
+  // TRANCHE-specific
+  sliceCount?: number;
+  thickness?: string;
+  // Added for CartItem.tsx compatibility
   category?: string;
   quantiteG?: number;
   prixAuKg?: number;
@@ -261,7 +264,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const totalCents = useMemo(
     () =>
       state.items.reduce((sum, item) => {
-        if (item.unit === "KG" && item.weightGrams) {
+        if ((item.unit === "KG" || item.unit === "TRANCHE") && item.weightGrams) {
           return sum + Math.round((item.weightGrams / 1000) * item.priceCents) * item.quantity;
         }
         return sum + item.priceCents * item.quantity;

@@ -38,7 +38,7 @@ function fmtPrice(cents: number) {
 }
 
 function unitLabel(unit: string) {
-  return unit === "KG" ? "/kg" : unit === "PIECE" ? "/pce" : "/barq.";
+  return unit === "KG" ? "/kg" : unit === "PIECE" ? "/pce" : unit === "TRANCHE" ? "/kg" : "/barq.";
 }
 
 function promoPrice(cents: number, pct: number) {
@@ -57,18 +57,18 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
   const hasPromo = product.promoPct != null && product.promoPct > 0;
   const outOfStock = !product.inStock;
   const isEager = productIndex < 4;
-  const isKg = product.unit === "KG";
-  const showStepper = cartQty > 0 && !isKg;
+  const isSheetUnit = product.unit === "KG" || product.unit === "TRANCHE";
+  const showStepper = cartQty > 0 && !isSheetUnit;
 
   const handleAdd = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (outOfStock) return;
     onAdd();
-    if (!isKg) {
+    if (!isSheetUnit) {
       setAnimating(true);
       setTimeout(() => setAnimating(false), 600);
     }
-  }, [onAdd, outOfStock, isKg]);
+  }, [onAdd, outOfStock, isSheetUnit]);
 
   const handleIncrement = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -132,8 +132,13 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
         </h3>
 
         {/* Badges — mini pills sous le nom */}
-        {(product.origin || product.halalOrg) && (
+        {(product.origin || product.halalOrg || product.unit === "TRANCHE") && (
           <div className="flex items-center gap-[3px] mb-1">
+            {product.unit === "TRANCHE" && (
+              <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-[5px] py-px rounded-[3px] bg-amber-500/[0.12] dark:bg-amber-500/[0.12] text-amber-600 dark:text-amber-400 shrink-0">
+                A la tranche
+              </span>
+            )}
             {product.origin && (
               <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-[5px] py-px rounded-[3px] bg-blue-500/[0.12] dark:bg-blue-500/[0.12] text-blue-500 dark:text-blue-400 shrink-0">
                 {getFlag(product.origin)}<span className="hidden md:inline lg:hidden"> {product.origin}</span>

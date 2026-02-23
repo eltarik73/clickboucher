@@ -72,6 +72,9 @@ type Product = {
   snoozedAt: string | null;
   snoozeEndsAt: string | null;
   snoozeReason: string | null;
+  isActive: boolean;
+  unitLabel: string | null;
+  sliceOptions: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
   category: Category;
   images: ProductImage[];
   labels: ProductLabel[];
@@ -89,7 +92,10 @@ const UNIT_LABELS: Record<string, string> = {
   KG: "/kg",
   PIECE: "/pce",
   BARQUETTE: "/barq.",
+  TRANCHE: "/kg",
 };
+
+type StockFilter = "all" | "inStock" | "outOfStock" | "inactive";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -129,6 +135,7 @@ export default function BoucherProduitsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<SortMode>("custom");
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
   // Form
   const [showForm, setShowForm] = useState(false);
@@ -191,6 +198,32 @@ export default function BoucherProduitsPage() {
     } catch {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, inStock: !newInStock } : p))
+      );
+      notify("error", "Erreur de connexion au serveur");
+    }
+  }
+
+  // ── Toggle active (optimistic) ──
+  async function toggleActive(product: Product) {
+    const newActive = !product.isActive;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, isActive: newActive } : p))
+    );
+    try {
+      const res = await fetch(`/api/products/${product.id}/active`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: newActive }),
+      });
+      if (!res.ok) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, isActive: !newActive } : p))
+        );
+        notify("error", "Erreur lors du changement de visibilité");
+      }
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === product.id ? { ...p, isActive: !newActive } : p))
       );
       notify("error", "Erreur de connexion au serveur");
     }
@@ -274,6 +307,9 @@ export default function BoucherProduitsPage() {
   // ── Filter & sort ──
   const filtered = products.filter((p) => {
     if (selectedCategory && p.categoryId !== selectedCategory) return false;
+    if (stockFilter === "inStock" && (!p.inStock || !p.isActive)) return false;
+    if (stockFilter === "outOfStock" && (p.inStock || !p.isActive)) return false;
+    if (stockFilter === "inactive" && p.isActive !== false) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (
@@ -305,6 +341,7 @@ export default function BoucherProduitsPage() {
   const inStockCount = products.filter((p) => p.inStock && p.snoozeType === "NONE").length;
   const snoozedCount = products.filter((p) => p.snoozeType !== "NONE").length;
   const outCount = products.filter((p) => !p.inStock && p.snoozeType === "NONE").length;
+  const inactiveCount = products.filter((p) => p.isActive === false).length;
   const promoCount = products.filter(
     (p) => p.promoPct && p.promoPct > 0 && (!p.promoEnd || new Date(p.promoEnd) > new Date())
   ).length;
@@ -450,6 +487,32 @@ export default function BoucherProduitsPage() {
         </div>
 
         {/* ══════════════════════════════════════ */}
+        {/* STOCK FILTER PILLS                     */}
+        {/* ══════════════════════════════════════ */}
+        <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {([
+            { key: "all" as StockFilter, label: "Tous", count: totalCount },
+            { key: "inStock" as StockFilter, label: "En stock", count: inStockCount },
+            { key: "outOfStock" as StockFilter, label: "Rupture", count: outCount },
+            { key: "inactive" as StockFilter, label: "Inactifs", count: inactiveCount },
+          ]).map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStockFilter(f.key)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-[10px] font-semibold transition-all whitespace-nowrap ${
+                stockFilter === f.key
+                  ? f.key === "inactive"
+                    ? "bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900"
+                    : "bg-[#DC2626] text-white"
+                  : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-[#ece8e3] dark:border-white/10"
+              }`}
+            >
+              {f.label} ({f.count})
+            </button>
+          ))}
+        </div>
+
+        {/* ══════════════════════════════════════ */}
         {/* CATEGORY PILLS                         */}
         {/* ══════════════════════════════════════ */}
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
@@ -520,6 +583,7 @@ export default function BoucherProduitsPage() {
                 <ProductRow
                   product={product}
                   onToggleStock={() => toggleStock(product)}
+                  onToggleActive={() => toggleActive(product)}
                   onSnooze={(type) => snoozeProduct(product, type)}
                   onEdit={() => { setEditProduct(product as unknown as EditProduct); setShowForm(true); }}
                   isDraggable={isDraggable}
@@ -551,12 +615,14 @@ export default function BoucherProduitsPage() {
 function ProductRow({
   product,
   onToggleStock,
+  onToggleActive,
   onSnooze,
   onEdit,
   isDraggable,
 }: {
   product: Product;
   onToggleStock: () => void;
+  onToggleActive: () => void;
   onSnooze: (type: string) => void;
   onEdit: () => void;
   isDraggable: boolean;
@@ -595,6 +661,7 @@ function ProductRow({
   return (
     <div
       className={`flex items-center gap-2.5 p-3 bg-white dark:bg-[#141414] rounded-[14px] border border-[#ece8e3] dark:border-white/10 transition-all ${
+        product.isActive === false ? "opacity-50 bg-gray-50/50 dark:bg-gray-950/10 border-gray-300 dark:border-gray-700" :
         isSnoozed ? "opacity-60 bg-orange-50/50 dark:bg-orange-950/10 border-orange-200 dark:border-orange-800/30" :
         outOfStock ? "opacity-60 bg-red-50/50 dark:bg-red-950/10" : ""
       }`}
@@ -669,8 +736,13 @@ function ProductRow({
             </span>
           )}
           <span className="text-[10px] text-gray-400 dark:text-gray-500">
-            {product.unit === "KG" ? "Poids" : product.unit === "PIECE" ? "Piece" : "Barquette"}
+            {product.unit === "KG" ? "Poids" : product.unit === "PIECE" ? "Piece" : product.unit === "TRANCHE" ? "Tranche" : "Barquette"}
           </span>
+          {product.isActive === false && (
+            <span className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[8px] font-bold rounded">
+              Masqué
+            </span>
+          )}
         </div>
 
         {/* Labels + halal */}
@@ -745,6 +817,20 @@ function ProductRow({
             </span>
           </>
         )}
+
+        {/* Active toggle */}
+        <button
+          onClick={onToggleActive}
+          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-colors text-[8px] font-semibold ${
+            product.isActive !== false
+              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+          }`}
+          title={product.isActive !== false ? "Masquer le produit" : "Rendre visible"}
+        >
+          <Eye size={9} />
+          {product.isActive !== false ? "Visible" : "Masqué"}
+        </button>
 
         {/* Snooze dropdown (Deliveroo style) */}
         {showSnoozeMenu && (

@@ -7,6 +7,7 @@ import { ArrowRight, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/hooks/use-cart";
 import { WeightSheet, type WeightSheetProduct } from "@/components/product/WeightSheet";
+import { TrancheSheet, type TrancheSheetProduct, type ThicknessKey } from "@/components/product/TrancheSheet";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import type { ProductCardData } from "@/components/product/ProductCard";
 import { ProductSheet } from "@/components/product/ProductSheet";
@@ -42,6 +43,7 @@ export interface ProductData {
   minWeightG: number;
   weightStepG: number;
   maxWeightG: number;
+  sliceOptions?: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
   category: CategoryData;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
@@ -71,6 +73,7 @@ interface Props {
 export function ShopProductsClient({ products, categories, shop, proStatus: _proStatus }: Props) {
   const [activeCat, setActiveCat] = useState<string>("Tout");
   const [selectedProduct, setSelectedProduct] = useState<WeightSheetProduct | null>(null);
+  const [selectedTrancheProduct, setSelectedTrancheProduct] = useState<TrancheSheetProduct | null>(null);
   const [detailProduct, setDetailProduct] = useState<ProductCardData | null>(null);
   const { addItem, updateQty, itemCount, totalCents, state } = useCart();
 
@@ -96,7 +99,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       description: p.description,
       imageUrl: p.imageUrl,
       priceCents: p.priceCents,
-      unit: p.unit as "KG" | "PIECE" | "BARQUETTE",
+      unit: p.unit as "KG" | "PIECE" | "BARQUETTE" | "TRANCHE",
       inStock: p.inStock,
       tags: p.tags,
       origin: p.origin,
@@ -156,6 +159,23 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
         });
         return;
       }
+      if (p.unit === "TRANCHE") {
+        const original = products.find(prod => prod.id === p.id);
+        setSelectedTrancheProduct({
+          id: p.id,
+          name: p.name,
+          description: p.description || "",
+          imageUrl: resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name }),
+          category: p.category.name,
+          priceCents: p.priceCents,
+          origin: p.origin,
+          halalOrg: p.halalOrg,
+          race: p.race,
+          freshness: p.freshness,
+          sliceOptions: (original?.sliceOptions as TrancheSheetProduct["sliceOptions"]) ?? null,
+        });
+        return;
+      }
       addItem(
         {
           id: p.id,
@@ -199,6 +219,33 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       setSelectedProduct(null);
     },
     [selectedProduct, addItem, shopRef]
+  );
+
+  const handleTrancheConfirm = useCallback(
+    (sliceCount: number, thickness: ThicknessKey, estimatedWeightG: number) => {
+      if (!selectedTrancheProduct) return;
+      addItem(
+        {
+          id: `${selectedTrancheProduct.id}-${thickness}-${sliceCount}`,
+          productId: selectedTrancheProduct.id,
+          name: selectedTrancheProduct.name,
+          imageUrl: selectedTrancheProduct.imageUrl,
+          unit: "TRANCHE",
+          priceCents: selectedTrancheProduct.priceCents,
+          quantity: 1,
+          weightGrams: estimatedWeightG,
+          sliceCount,
+          thickness,
+          category: selectedTrancheProduct.category,
+          prixAuKg: selectedTrancheProduct.priceCents / 100,
+        },
+        shopRef
+      );
+      toast.success(`${selectedTrancheProduct.name} (${sliceCount} tranches) ajouté`, { icon: <ShoppingBag size={14} />, duration: 1500 });
+      navigator.vibrate?.(50);
+      setSelectedTrancheProduct(null);
+    },
+    [selectedTrancheProduct, addItem, shopRef]
   );
 
   // Cart items for this shop (for inline stepper)
@@ -309,6 +356,13 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
         product={selectedProduct}
         onConfirm={handleWeightConfirm}
         onClose={() => setSelectedProduct(null)}
+      />
+
+      {/* ── TrancheSheet ── */}
+      <TrancheSheet
+        product={selectedTrancheProduct}
+        onConfirm={handleTrancheConfirm}
+        onClose={() => setSelectedTrancheProduct(null)}
       />
 
       {/* ── Product detail bottom sheet ── */}

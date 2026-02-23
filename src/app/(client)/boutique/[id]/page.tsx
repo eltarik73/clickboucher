@@ -26,7 +26,7 @@ async function fetchShopFromDB(slug: string) {
     include: {
       categories: { orderBy: { order: "asc" } },
       products: {
-        where: { inStock: true },
+        where: { isActive: true },
         include: {
           category: true,
           images: { orderBy: { order: "asc" } },
@@ -157,6 +157,7 @@ export default async function BoutiquePage({
     minWeightG: p.minWeightG,
     weightStepG: p.weightStepG,
     maxWeightG: p.maxWeightG,
+    sliceOptions: p.sliceOptions as ProductData["sliceOptions"] ?? null,
     category: {
       id: p.category.id,
       name: p.category.name,

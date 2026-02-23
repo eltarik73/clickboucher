@@ -69,6 +69,7 @@ enum Unit {
   KG
   PIECE
   BARQUETTE
+  TRANCHE
 }
 
 enum Origin {
@@ -445,6 +446,11 @@ model Product {
   snoozeEndsAt DateTime?  @map("snooze_ends_at")
   snoozeReason String?    @map("snooze_reason")
 
+  // ── VENTE & VISIBILITÉ ──
+  isActive     Boolean  @default(true) @map("is_active")
+  unitLabel    String?  @map("unit_label")
+  sliceOptions Json?    @map("slice_options")
+
   shopId String @map("shop_id")
   shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
@@ -461,6 +467,7 @@ model Product {
 
   @@index([shopId, displayOrder])
   @@index([shopId, categoryId])
+  @@index([shopId, isActive, inStock])
   @@index([shopId, inStock, snoozeType])
   @@index([inStock, promoPct])
   @@map("products")

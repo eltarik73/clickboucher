@@ -31,7 +31,7 @@ export type Product = {
   imageUrl: string | null;
   priceCents: number;
   proPriceCents?: number | null;
-  unit: "KG" | "PIECE" | "BARQUETTE";
+  unit: "KG" | "PIECE" | "BARQUETTE" | "TRANCHE";
   inStock: boolean;
   stockQty: number | null;
   minWeightG: number;

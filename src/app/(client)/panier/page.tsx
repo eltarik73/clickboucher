@@ -18,13 +18,25 @@ function fmtPrice(cents: number) {
 }
 
 function itemTotal(item: CartItem) {
-  if (item.unit === "KG" && item.weightGrams) {
+  if ((item.unit === "KG" || item.unit === "TRANCHE") && item.weightGrams) {
     return Math.round((item.weightGrams / 1000) * item.priceCents) * item.quantity;
   }
   return item.priceCents * item.quantity;
 }
 
+const THICKNESS_LABELS: Record<string, string> = {
+  chiffonnade: "chiffonnade",
+  fine: "fine",
+  normale: "normale",
+  epaisse: "epaisse",
+};
+
 function qtyLabel(item: CartItem) {
+  if (item.unit === "TRANCHE" && item.sliceCount && item.thickness) {
+    const g = item.weightGrams ?? 0;
+    const weight = g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${g} g`;
+    return `${item.sliceCount} tranches (${THICKNESS_LABELS[item.thickness] || item.thickness}) — ~${weight}`;
+  }
   if (item.unit === "KG" && item.weightGrams) {
     const g = item.weightGrams;
     const weight = g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${g} g`;
@@ -198,7 +210,7 @@ export default function PanierPage() {
         shopId: state.shopId,
         items: state.items.map((i) => ({
           productId: i.productId || i.id,
-          quantity: i.unit === "KG" && i.weightGrams
+          quantity: (i.unit === "KG" || i.unit === "TRANCHE") && i.weightGrams
             ? (i.weightGrams / 1000) * i.quantity
             : i.quantity,
         })),
