@@ -40,7 +40,7 @@ export async function POST(
 
     // Notify boucher
     try {
-      await sendNotification("PRICE_ADJUSTMENT_REJECTED" as never, {
+      await sendNotification("PRICE_ADJUSTMENT_REJECTED", {
         shopId: order.shop.id,
         orderId,
         orderNumber: order.orderNumber,

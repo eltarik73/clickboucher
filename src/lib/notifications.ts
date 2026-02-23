@@ -28,7 +28,12 @@ export type NotifEvent =
   | "RECURRING_REMINDER"
   | "TRIAL_EXPIRING"
   | "CALENDAR_ALERT"
-  | "WEEKLY_REPORT";
+  | "WEEKLY_REPORT"
+  | "PRICE_ADJUSTMENT_PENDING"
+  | "PRICE_ADJUSTMENT_AUTO_APPROVED"
+  | "PRICE_ADJUSTMENT_ACCEPTED"
+  | "PRICE_ADJUSTMENT_REJECTED"
+  | "PRICE_ADJUSTMENT_AUTO_VALIDATED";
 
 export type NotifData = {
   userId?: string;
@@ -44,6 +49,9 @@ export type NotifData = {
   slot?: string;
   message?: string;
   note?: string;
+  // Price adjustment data
+  originalTotal?: number;
+  newTotal?: number;
   // Weekly report data
   weeklyRevenue?: number;
   weeklyOrders?: number;
@@ -192,6 +200,41 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         plainText: `Rapport hebdo ${data.shopName}: ${((data.weeklyRevenue || 0) / 100).toFixed(2)}€ CA, ${data.weeklyOrders || 0} commandes.`,
       };
 
+    case "PRICE_ADJUSTMENT_PENDING":
+      return {
+        subject: `💰 Ajustement de prix — Commande ${data.orderNumber}`,
+        html: tpl.priceAdjustmentPending(data),
+        plainText: `Le boucher ${data.shopName} propose un ajustement de prix pour votre commande ${data.orderNumber}. Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€. Vous avez 5 min pour accepter ou refuser.`,
+      };
+
+    case "PRICE_ADJUSTMENT_AUTO_APPROVED":
+      return {
+        subject: `✅ Prix ajusté — Commande ${data.orderNumber}`,
+        html: tpl.priceAdjustmentAutoApproved(data),
+        plainText: `Le prix de votre commande ${data.orderNumber} a été ajusté à la baisse : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
+      };
+
+    case "PRICE_ADJUSTMENT_ACCEPTED":
+      return {
+        subject: `✅ Ajustement accepté — Commande ${data.orderNumber}`,
+        html: tpl.priceAdjustmentAccepted(data),
+        plainText: `Le client a accepté l'ajustement de prix pour la commande ${data.orderNumber}. Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
+      };
+
+    case "PRICE_ADJUSTMENT_REJECTED":
+      return {
+        subject: `❌ Ajustement refusé — Commande ${data.orderNumber}`,
+        html: tpl.priceAdjustmentRejected(data),
+        plainText: `Le client a refusé l'ajustement de prix pour la commande ${data.orderNumber}.`,
+      };
+
+    case "PRICE_ADJUSTMENT_AUTO_VALIDATED":
+      return {
+        subject: `✅ Ajustement validé automatiquement — Commande ${data.orderNumber}`,
+        html: tpl.priceAdjustmentAutoValidated(data),
+        plainText: `L'ajustement de prix pour la commande ${data.orderNumber} a été validé automatiquement (délai expiré). Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
+      };
+
     default:
       return {
         subject: `Notification Klik&Go`,
@@ -332,6 +375,42 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
         body: data.message || "Un événement important approche",
         url: `${baseUrl}/boucher/dashboard`,
       };
+    case "PRICE_ADJUSTMENT_PENDING":
+      return {
+        title: "💰 Ajustement de prix",
+        body: `${data.shopName} propose un ajustement pour votre commande`,
+        url: orderUrl,
+        tag: orderTag,
+        actions: [{ action: "view", title: "Voir" }],
+      };
+    case "PRICE_ADJUSTMENT_AUTO_APPROVED":
+      return {
+        title: "✅ Prix ajusté",
+        body: `Bonne nouvelle ! Le prix a baissé chez ${data.shopName}`,
+        url: orderUrl,
+        tag: orderTag,
+      };
+    case "PRICE_ADJUSTMENT_ACCEPTED":
+      return {
+        title: "✅ Ajustement accepté",
+        body: `Le client a accepté l'ajustement pour #${data.orderNumber}`,
+        url: `${baseUrl}/boucher/commandes`,
+        tag: orderTag,
+      };
+    case "PRICE_ADJUSTMENT_REJECTED":
+      return {
+        title: "❌ Ajustement refusé",
+        body: `Le client a refusé l'ajustement pour #${data.orderNumber}`,
+        url: `${baseUrl}/boucher/commandes`,
+        tag: orderTag,
+      };
+    case "PRICE_ADJUSTMENT_AUTO_VALIDATED":
+      return {
+        title: "✅ Ajustement validé",
+        body: `L'ajustement de prix a été validé automatiquement`,
+        url: orderUrl,
+        tag: orderTag,
+      };
     default:
       return {
         title: "Klik&Go",
@@ -390,7 +469,9 @@ type UserPrefs = {
 };
 
 async function resolveUser(event: NotifEvent, data: NotifData): Promise<UserPrefs | null> {
-  if (event === "ORDER_PENDING" && data.shopId) {
+  // Events targeted at boucher (by shopId)
+  const boucherEvents: NotifEvent[] = ["ORDER_PENDING", "PRICE_ADJUSTMENT_ACCEPTED", "PRICE_ADJUSTMENT_REJECTED"];
+  if (boucherEvents.includes(event) && data.shopId) {
     const shop = await prisma.shop.findUnique({
       where: { id: data.shopId },
       select: { ownerId: true },

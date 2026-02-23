@@ -65,7 +65,7 @@ export async function POST(
 
     // Notify boucher
     try {
-      await sendNotification("PRICE_ADJUSTMENT_ACCEPTED" as never, {
+      await sendNotification("PRICE_ADJUSTMENT_ACCEPTED", {
         shopId: order.shop.id,
         orderId,
         orderNumber: order.orderNumber,

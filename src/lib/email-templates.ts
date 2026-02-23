@@ -368,6 +368,111 @@ export function readyReminder(data: {
   `);
 }
 
+// ─────────────────────────────────────────────
+// Price Adjustment Templates
+// ─────────────────────────────────────────────
+
+export function priceAdjustmentPending(data: {
+  orderNumber?: string;
+  shopName?: string;
+  originalTotal?: number;
+  newTotal?: number;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const oldPrice = ((data.originalTotal || 0) / 100).toFixed(2);
+  const newPrice = ((data.newTotal || 0) / 100).toFixed(2);
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcb0 Ajustement de prix</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      <strong>${data.shopName}</strong> propose un ajustement pour votre commande <strong>${data.orderNumber}</strong>.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0 0 8px;font-size:13px;color:#92400e">Ancien prix : <span style="text-decoration:line-through">${oldPrice} \u20AC</span></p>
+        <p style="margin:0;font-size:20px;font-weight:700;color:#111827">Nouveau prix : ${newPrice} \u20AC</p>
+      </td></tr>
+    </table>
+    <p style="margin:0 0 4px;font-size:13px;color:#9ca3af">Vous avez 5 minutes pour accepter ou refuser. Pass\u00E9 ce d\u00E9lai, l'ajustement sera valid\u00E9 automatiquement.</p>
+    ${button(`${baseUrl}/commandes`, "Voir ma commande")}
+  `);
+}
+
+export function priceAdjustmentAutoApproved(data: {
+  orderNumber?: string;
+  shopName?: string;
+  originalTotal?: number;
+  newTotal?: number;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const oldPrice = ((data.originalTotal || 0) / 100).toFixed(2);
+  const newPrice = ((data.newTotal || 0) / 100).toFixed(2);
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Prix ajust\u00E9 \u00E0 la baisse</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Le prix de votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a \u00E9t\u00E9 r\u00E9duit.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0 0 8px;font-size:13px;color:#047857">Ancien prix : ${oldPrice} \u20AC</p>
+        <p style="margin:0;font-size:20px;font-weight:700;color:#065f46">Nouveau prix : ${newPrice} \u20AC</p>
+      </td></tr>
+    </table>
+    ${button(`${baseUrl}/commandes`, "Voir ma commande")}
+  `);
+}
+
+export function priceAdjustmentAccepted(data: {
+  orderNumber?: string;
+  shopName?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Ajustement accept\u00E9</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Le client a accept\u00E9 l'ajustement de prix pour la commande <strong>#${data.orderNumber}</strong>.
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez continuer la pr\u00E9paration.</p>
+    ${button(`${baseUrl}/boucher/commandes`, "Mode cuisine")}
+  `);
+}
+
+export function priceAdjustmentRejected(data: {
+  orderNumber?: string;
+  shopName?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Ajustement refus\u00E9</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Le client a refus\u00E9 l'ajustement de prix pour la commande <strong>#${data.orderNumber}</strong>.
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Le prix initial est maintenu. Vous pouvez continuer avec la commande originale.</p>
+    ${button(`${baseUrl}/boucher/commandes`, "Mode cuisine")}
+  `);
+}
+
+export function priceAdjustmentAutoValidated(data: {
+  orderNumber?: string;
+  shopName?: string;
+  originalTotal?: number;
+  newTotal?: number;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const newPrice = ((data.newTotal || 0) / 100).toFixed(2);
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Ajustement valid\u00E9 automatiquement</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      L'ajustement de prix pour votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a \u00E9t\u00E9 valid\u00E9 automatiquement (d\u00E9lai expir\u00E9).
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0;font-size:20px;font-weight:700;color:#111827">Nouveau total : ${newPrice} \u20AC</p>
+      </td></tr>
+    </table>
+    ${button(`${baseUrl}/commandes`, "Voir ma commande")}
+  `);
+}
+
 export function calendarAlert(data: {
   message?: string;
 }): string {

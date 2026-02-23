@@ -163,14 +163,14 @@ export async function PATCH(
       }
 
       try {
-        await sendNotification("PRICE_ADJUSTMENT_AUTO_APPROVED" as never, {
+        await sendNotification("PRICE_ADJUSTMENT_AUTO_APPROVED", {
           userId: order.user.id,
           orderId,
           orderNumber: order.orderNumber,
           shopName: order.shop.name,
           originalTotal,
           newTotal,
-        } as never);
+        });
       } catch { /* non-blocking */ }
 
       return apiSuccess({ adjustment, autoApproved: true });
@@ -193,14 +193,14 @@ export async function PATCH(
       });
 
       try {
-        await sendNotification("PRICE_ADJUSTMENT_PENDING" as never, {
+        await sendNotification("PRICE_ADJUSTMENT_PENDING", {
           userId: order.user.id,
           orderId,
           orderNumber: order.orderNumber,
           shopName: order.shop.name,
           originalTotal,
           newTotal,
-        } as never);
+        });
       } catch { /* non-blocking */ }
 
       return apiSuccess({ adjustment, autoApproved: false });

@@ -63,7 +63,7 @@ export async function autoApproveExpiredAdjustment(orderId: string) {
       },
     });
     if (order) {
-      await sendNotification("PRICE_ADJUSTMENT_AUTO_VALIDATED" as never, {
+      await sendNotification("PRICE_ADJUSTMENT_AUTO_VALIDATED", {
         userId: order.userId,
         orderId,
         orderNumber: order.orderNumber,
