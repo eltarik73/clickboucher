@@ -21,11 +21,15 @@ import {
   XCircle,
   Ban,
   Clock,
+  Monitor,
+  MonitorOff,
 } from "lucide-react";
 import Link from "next/link";
 import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
 import { soundManager } from "@/lib/notification-sound";
 import { startOrderAlert, stopOrderAlert } from "@/lib/sounds";
+import { useWakeLock } from "@/hooks/use-wake-lock";
+import { useKitchenNotifications } from "@/hooks/use-kitchen-notifications";
 import dynamic from "next/dynamic";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
 
@@ -124,8 +128,14 @@ export default function KitchenModePage() {
   const [connected, setConnected] = useState(true);
   const lastFetchRef = useRef(Date.now());
 
+  // Wake Lock — keep screen on in kitchen mode
+  const { active: wakeLockActive, supported: wakeLockSupported } = useWakeLock();
+
   // Track seen order IDs (orders the boucher has already clicked VOIR on)
   const seenOrderIdsRef = useRef<Set<string>>(new Set());
+
+  // Ref for browser notification function (set after useKitchenNotifications)
+  const sendNotificationRef = useRef<((order: KitchenOrder) => void) | null>(null);
 
   // ── Polling with 5s interval ──
   const {
@@ -155,12 +165,18 @@ export default function KitchenModePage() {
       if (!mutedRef.current) {
         startOrderAlert();
       }
+      // Send browser notification (if tab is in background)
+      sendNotificationRef.current?.(order);
     },
     onStatusChange: () => {
       // Refresh shop status on any change
       fetchShopInfo();
     },
   });
+
+  // Kitchen notifications — title blink, favicon badge, browser notifications
+  const { sendOrderNotification } = useKitchenNotifications(pendingCount);
+  sendNotificationRef.current = sendOrderNotification;
 
   // Track connection status
   useEffect(() => {
@@ -416,6 +432,24 @@ export default function KitchenModePage() {
               <ScanLine size={18} />
             </button>
 
+            {/* Wake Lock indicator */}
+            <div
+              className="flex items-center gap-1 min-h-[44px] min-w-[44px] justify-center"
+              title={
+                !wakeLockSupported
+                  ? "Wake Lock non supporte — desactivez la mise en veille manuellement"
+                  : wakeLockActive
+                  ? "Ecran maintenu allume"
+                  : "Ecran peut se mettre en veille"
+              }
+            >
+              {wakeLockActive ? (
+                <Monitor size={16} className="text-emerald-400" />
+              ) : (
+                <MonitorOff size={16} className="text-gray-600" />
+              )}
+            </div>
+
             {/* Connection status */}
             <div className="flex items-center gap-1 min-h-[44px] min-w-[44px] justify-center">
               {connected ? (
@@ -426,6 +460,15 @@ export default function KitchenModePage() {
             </div>
           </div>
         </header>
+
+        {/* ── Wake Lock not supported warning ── */}
+        {!wakeLockSupported && (
+          <div className="shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-center">
+            <p className="text-[11px] text-amber-400">
+              Desactivez la mise en veille dans les parametres de votre tablette
+            </p>
+          </div>
+        )}
 
         {/* ── Mobile tabs (md-) ── */}
         <div className="md:hidden shrink-0 bg-[#111] border-b border-white/5 px-2 py-1.5">
