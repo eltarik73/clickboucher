@@ -350,7 +350,19 @@ async function main() {
     prisma.user.create({ data: { clerkId: "clerk_pro_002", email: "eric@cantine.fr", phone: "+33622000002", firstName: "Éric", lastName: "Cantine", role: Role.CLIENT_PRO_PENDING, proStatus: ProStatus.PENDING, siret: "78912345600056", companyName: "Cantine Scolaire Chambéry", sector: "Restauration collective" } }),
   ]);
 
-  console.log(`   ✅ ${boucherUsers.length + clients.length + pros.length} users created`);
+  // Admin user
+  const admin = await prisma.user.create({
+    data: {
+      clerkId: "clerk_admin_001",
+      email: "admin@klikgo.fr",
+      phone: "+33600000001",
+      firstName: "Admin",
+      lastName: "Klik&Go",
+      role: Role.ADMIN,
+    },
+  });
+
+  console.log(`   ✅ ${boucherUsers.length + clients.length + pros.length + 1} users created (incl. 1 admin)`);
 
   // ═══════════════════════════════════════════
   // 2. SHOPS + CATEGORIES + PRODUCTS

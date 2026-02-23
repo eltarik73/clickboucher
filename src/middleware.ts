@@ -41,6 +41,8 @@ async function getUserRole(userId: string): Promise<string | undefined> {
   }
 }
 
+const isOnboardingRoute = createRouteMatcher(["/onboarding"]);
+
 const isPublicRoute = createRouteMatcher([
   "/",
   "/decouvrir",
@@ -62,6 +64,24 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   const { userId } = await auth();
+
+  // Onboarding route: require auth but allow access (no role check)
+  if (isOnboardingRoute(req)) {
+    if (!userId) {
+      return NextResponse.redirect(new URL("/sign-in", req.url));
+    }
+    // If user already has a role in Clerk metadata, skip onboarding
+    const role = await getUserRole(userId);
+    if (role === "boucher") {
+      return NextResponse.redirect(new URL("/boucher/commandes", req.url));
+    }
+    if (role && ADMIN_ROLES.includes(role)) {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+    // role === "client" or no role → allow onboarding page
+    // We check DB in the page itself to decide if onboarding is needed
+    return;
+  }
 
   // Admin routes (except admin-login): admin/webmaster only
   if (isAdminRoute(req) && !isAdminLoginRoute(req)) {

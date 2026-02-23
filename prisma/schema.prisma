@@ -824,7 +824,8 @@ model Order {
   source      String  @default("app")
   isRecurring Boolean @default(false) @map("is_recurring")
 
-  items OrderItem[]
+  items  OrderItem[]
+  events OrderEvent[]
 
   notifSent Json? @map("notif_sent")
 
@@ -833,6 +834,7 @@ model Order {
 
   @@index([shopId, status])
   @@index([shopId, createdAt])
+  @@index([shopId, updatedAt])
   @@index([userId])
   @@index([expiresAt, status])
   @@index([createdAt, status])
@@ -859,7 +861,27 @@ model OrderItem {
   available   Boolean @default(true)
   replacement String?
 
+  @@index([orderId])
   @@map("order_items")
+}
+
+// ══════════════════════════════════════════
+// ORDER EVENT — Audit trail for order actions
+// ══════════════════════════════════════════
+
+model OrderEvent {
+  id          String   @id @default(cuid())
+  orderId     String   @map("order_id")
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shopId      String   @map("shop_id")
+  type        String
+  actorId     String   @map("actor_id")
+  payloadJson Json?    @map("payload_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([shopId, createdAt])
+  @@index([orderId])
+  @@map("order_events")
 }
 
 // ══════════════════════════════════════════
