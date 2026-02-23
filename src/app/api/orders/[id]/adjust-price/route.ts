@@ -36,7 +36,7 @@ export async function PATCH(
       where: { id: orderId },
       include: {
         items: { include: { product: { select: { unit: true } } } },
-        shop: { select: { id: true, ownerId: true, name: true } },
+        shop: { select: { id: true, ownerId: true, name: true, priceAdjustmentThreshold: true } },
         user: { select: { id: true } },
         priceAdjustment: true,
       },
@@ -106,7 +106,13 @@ export async function PATCH(
       return apiError("VALIDATION_ERROR", "Donnees d'ajustement manquantes");
     }
 
-    // ── Enforce max +10% ──
+    // ── Compute difference vs shop threshold ──
+    const shopThreshold = order.shop.priceAdjustmentThreshold ?? 10;
+    const differencePercent = originalTotal > 0
+      ? ((newTotal - originalTotal) / originalTotal) * 100
+      : 0;
+
+    // Hard cap: never exceed MAX_INCREASE_PCT (safety net)
     const maxAllowed = Math.round(originalTotal * (1 + MAX_INCREASE_PCT / 100));
     if (newTotal > maxAllowed) {
       return apiError("VALIDATION_ERROR",
@@ -119,9 +125,30 @@ export async function PATCH(
       await prisma.priceAdjustment.delete({ where: { id: order.priceAdjustment.id } });
     }
 
-    const isCheaper = newTotal <= originalTotal;
+    // Helper: apply item-level changes
+    const applyItemChanges = async () => {
+      if (!data.items) return;
+      for (const adj of data.items) {
+        const snap = itemsSnapshot.find((s) => (s as { orderItemId: string }).orderItemId === adj.orderItemId);
+        if (!snap) continue;
+        const updateData: Record<string, unknown> = {};
+        if (data.adjustmentType === "WEIGHT" && adj.newQuantity !== undefined) {
+          updateData.quantity = adj.newQuantity;
+          updateData.totalCents = (snap as { newTotalCents: number }).newTotalCents;
+        } else if (data.adjustmentType === "PRICE" && adj.newPriceCents !== undefined) {
+          updateData.priceCents = adj.newPriceCents;
+          updateData.totalCents = (snap as { newTotalCents: number }).newTotalCents;
+        }
+        if (Object.keys(updateData).length > 0) {
+          await prisma.orderItem.update({ where: { id: adj.orderItemId }, data: updateData });
+        }
+      }
+    };
 
-    if (isCheaper) {
+    // ── Decision: cheaper OR within threshold → auto-approve ──
+    const withinThreshold = newTotal <= originalTotal || differencePercent <= shopThreshold;
+
+    if (withinThreshold) {
       // AUTO_APPROVED — apply immediately
       const [adjustment] = await prisma.$transaction([
         prisma.priceAdjustment.create({
@@ -143,24 +170,7 @@ export async function PATCH(
         }),
       ]);
 
-      // Update individual items
-      if (data.items) {
-        for (const adj of data.items) {
-          const snap = itemsSnapshot.find((s) => (s as { orderItemId: string }).orderItemId === adj.orderItemId);
-          if (!snap) continue;
-          const updateData: Record<string, unknown> = {};
-          if (data.adjustmentType === "WEIGHT" && adj.newQuantity !== undefined) {
-            updateData.quantity = adj.newQuantity;
-            updateData.totalCents = (snap as { newTotalCents: number }).newTotalCents;
-          } else if (data.adjustmentType === "PRICE" && adj.newPriceCents !== undefined) {
-            updateData.priceCents = adj.newPriceCents;
-            updateData.totalCents = (snap as { newTotalCents: number }).newTotalCents;
-          }
-          if (Object.keys(updateData).length > 0) {
-            await prisma.orderItem.update({ where: { id: adj.orderItemId }, data: updateData });
-          }
-        }
-      }
+      await applyItemChanges();
 
       try {
         await sendNotification("PRICE_ADJUSTMENT_AUTO_APPROVED", {
@@ -175,7 +185,7 @@ export async function PATCH(
 
       return apiSuccess({ adjustment, autoApproved: true });
     } else {
-      // PENDING — needs client validation, 5 min timer
+      // Above threshold → PENDING, needs client validation, 5 min timer
       const autoApproveAt = new Date(Date.now() + 5 * 60 * 1000);
 
       const adjustment = await prisma.priceAdjustment.create({

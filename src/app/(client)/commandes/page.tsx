@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, ShoppingBag, RotateCcw, Clock } from "lucide-react";
+import { ArrowLeft, ShoppingBag, RotateCcw, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,14 @@ interface OrderItem {
   totalCents: number;
 }
 
+interface PriceAdjustment {
+  id: string;
+  originalTotal: number;
+  newTotal: number;
+  status: string;
+  autoApproveAt: string | null;
+}
+
 interface Order {
   id: string;
   orderNumber: string;
@@ -31,6 +39,7 @@ interface Order {
   estimatedReady: string | null;
   rating: number | null;
   items: OrderItem[];
+  priceAdjustment: PriceAdjustment | null;
   shop: {
     id: string;
     name: string;
@@ -112,6 +121,21 @@ function OrderCard({
               {order.status === "READY" ? "Prête au retrait" : `Prête vers ${new Date(order.estimatedReady).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`}
             </span>
           </div>
+        )}
+
+        {/* Price adjustment badges */}
+        {order.priceAdjustment?.status === "PENDING" && (
+          <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-amber-500/10 dark:bg-amber-500/15 rounded-lg border border-amber-500/20">
+            <AlertTriangle size={12} className="text-amber-500 shrink-0" />
+            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+              Ajustement +{fmtPrice(order.priceAdjustment.newTotal - order.priceAdjustment.originalTotal)} — Cliquez pour valider
+            </span>
+          </div>
+        )}
+        {order.priceAdjustment?.status === "AUTO_APPROVED" && (
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">
+            Prix ajuste (variation de poids)
+          </p>
         )}
 
         {/* Info row */}

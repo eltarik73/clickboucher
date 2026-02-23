@@ -322,6 +322,9 @@ model Shop {
   siret         String?
   fullAddress   String? @map("full_address")
 
+  // ── Prix ajustement seuil (%) ──
+  priceAdjustmentThreshold Int @default(10) @map("price_adjustment_threshold")
+
   // ── Dernière activité (Uber Eats vérifie si tablette connectée) ──
   lastSeenAt DateTime? @map("last_seen_at")
 

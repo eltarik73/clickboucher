@@ -19,6 +19,7 @@ import {
   MapPin,
   CreditCard,
   CalendarClock,
+  DollarSign,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
@@ -49,6 +50,7 @@ type Shop = {
   pickupSlots: PickupSlotsConfig | null;
   acceptOnline: boolean;
   acceptOnPickup: boolean;
+  priceAdjustmentThreshold: number;
 };
 
 const DAYS = [
@@ -656,6 +658,60 @@ export default function BoucherParametresPage() {
                 />
                 <span className="text-sm text-gray-500 dark:text-gray-400">/ heure</span>
               </div>
+            </div>
+          </div>
+        </SettingCard>
+
+        {/* ── 6b. SEUIL AJUSTEMENT PRIX ── */}
+        <SettingCard
+          icon={<DollarSign size={18} className="text-amber-600" />}
+          title="Seuil d'ajustement automatique"
+          accent="border-l-amber-500"
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              En dessous de ce seuil, l&apos;ajustement de prix est appliqué automatiquement. Au dessus, le client doit confirmer (5 min pour répondre).
+            </p>
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                Seuil : <span className="font-bold text-amber-600">{shop.priceAdjustmentThreshold ?? 10}%</span>
+              </label>
+              <input
+                type="range"
+                min={5}
+                max={20}
+                step={1}
+                value={shop.priceAdjustmentThreshold ?? 10}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setShop((prev) => (prev ? { ...prev, priceAdjustmentThreshold: val } : prev));
+                }}
+                onPointerUp={async () => {
+                  try {
+                    const res = await fetch(`/api/shops/${shop.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ priceAdjustmentThreshold: shop.priceAdjustmentThreshold }),
+                    });
+                    if (res.ok) toast.success("Seuil sauvegardé");
+                    else toast.error(await extractError(res));
+                  } catch { toast.error("Erreur de connexion"); }
+                }}
+                className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-amber-600"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>5%</span>
+                <span>10%</span>
+                <span>15%</span>
+                <span>20%</span>
+              </div>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/30 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Exemple : pour une commande de 25,00 €, un ajustement jusqu&apos;à{" "}
+                <span className="font-bold">{(25 * (shop.priceAdjustmentThreshold ?? 10) / 100).toFixed(2)} €</span>{" "}
+                sera appliqué automatiquement.
+              </p>
             </div>
           </div>
         </SettingCard>

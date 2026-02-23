@@ -17,6 +17,7 @@ export async function GET() {
       select: {
         id: true, status: true, busyMode: true, busyExtraMin: true,
         paused: true, prepTimeMin: true, autoAccept: true, maxOrdersPerHour: true,
+        priceAdjustmentThreshold: true,
       },
     });
     if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
@@ -58,6 +59,7 @@ export async function PATCH(req: NextRequest) {
       prepTimeMin: updated.prepTimeMin,
       autoAccept: updated.autoAccept,
       maxOrdersPerHour: updated.maxOrdersPerHour,
+      priceAdjustmentThreshold: updated.priceAdjustmentThreshold,
       effectivePrepTime: updated.prepTimeMin + (updated.busyMode ? updated.busyExtraMin : 0),
     });
   } catch (error) {

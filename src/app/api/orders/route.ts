@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         items: { include: { product: { select: { name: true, unit: true, vatRate: true } } } },
-        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true } },
+        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true, priceAdjustmentThreshold: true } },
         user: { select: { firstName: true, lastName: true, customerNumber: true } },
         priceAdjustment: true,
       },
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         items: { include: { product: { select: { name: true, unit: true, vatRate: true } } } },
-        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true } },
+        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true, priceAdjustmentThreshold: true } },
         user: { select: { firstName: true, lastName: true, customerNumber: true } },
         priceAdjustment: true,
       },

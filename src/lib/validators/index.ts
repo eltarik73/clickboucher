@@ -76,6 +76,7 @@ export const updateShopSchema = z.object({
   }).optional(),
   acceptOnline: z.boolean().optional(),
   acceptOnPickup: z.boolean().optional(),
+  priceAdjustmentThreshold: z.number().int().min(0).max(50).optional(),
 });
 
 export const updateShopStatusSchema = z.object({
@@ -278,6 +279,7 @@ export const updateServiceSchema = z.object({
   status: z.enum(["OPEN","BUSY","PAUSED","AUTO_PAUSED","CLOSED","VACATION"]).optional(),
   autoAccept: z.boolean().optional(),
   maxOrdersPerHour: z.number().int().min(1).max(100).optional(),
+  priceAdjustmentThreshold: z.number().int().min(0).max(50).optional(),
 });
 
 // -- Boucher Catalogue Update --

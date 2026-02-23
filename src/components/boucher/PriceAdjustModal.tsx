@@ -47,8 +47,18 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     return map;
   });
 
+  // String-based input states (allows free editing without reformatting)
+  const [priceInputs, setPriceInputs] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const item of order.items) {
+      map[item.id] = (item.priceCents / 100).toFixed(2);
+    }
+    return map;
+  });
+
   // Manual tab: new total in cents
   const [manualTotal, setManualTotal] = useState(order.totalCents);
+  const [manualInput, setManualInput] = useState((order.totalCents / 100).toFixed(2));
 
   // ── Calculate new total based on active tab ──
   const originalTotal = order.totalCents;
@@ -73,6 +83,9 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
   const maxAllowed = Math.round(originalTotal * 1.1);
   const overMax = newTotal > maxAllowed;
   const hasChanges = newTotal !== originalTotal;
+  // Threshold logic: within threshold = auto, above = needs client validation
+  const shopThreshold = (order as KitchenOrder & { shop?: { priceAdjustmentThreshold?: number } }).shop?.priceAdjustmentThreshold ?? 10;
+  const withinThreshold = diff <= 0 || diffPct <= shopThreshold;
 
   async function handleSubmit() {
     setLoading(true);
@@ -216,8 +229,16 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                       type="number"
                       step="0.01"
                       min={0}
-                      value={((prices[item.id] ?? item.priceCents) / 100).toFixed(2)}
-                      onChange={(e) => setPrices({ ...prices, [item.id]: Math.round(parseFloat(e.target.value || "0") * 100) })}
+                      value={priceInputs[item.id] ?? (item.priceCents / 100).toFixed(2)}
+                      onChange={(e) => {
+                        setPriceInputs({ ...priceInputs, [item.id]: e.target.value });
+                        setPrices({ ...prices, [item.id]: Math.round(parseFloat(e.target.value || "0") * 100) });
+                      }}
+                      onBlur={(e) => {
+                        const cents = Math.round(parseFloat(e.target.value || "0") * 100);
+                        setPriceInputs({ ...priceInputs, [item.id]: (cents / 100).toFixed(2) });
+                        setPrices({ ...prices, [item.id]: cents });
+                      }}
                       className="w-24 bg-[#0a0a0a] border border-white/10 rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-500/40"
                     />
                     <span className="text-xs text-gray-500">EUR</span>
@@ -236,8 +257,16 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                   type="number"
                   step="0.01"
                   min={0}
-                  value={(manualTotal / 100).toFixed(2)}
-                  onChange={(e) => setManualTotal(Math.round(parseFloat(e.target.value || "0") * 100))}
+                  value={manualInput}
+                  onChange={(e) => {
+                    setManualInput(e.target.value);
+                    setManualTotal(Math.round(parseFloat(e.target.value || "0") * 100));
+                  }}
+                  onBlur={() => {
+                    const cents = Math.round(parseFloat(manualInput || "0") * 100);
+                    setManualInput((cents / 100).toFixed(2));
+                    setManualTotal(cents);
+                  }}
                   className="w-40 bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white text-xl text-center font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/40"
                 />
                 <span className="text-lg text-gray-400 font-bold">EUR</span>
@@ -286,10 +315,18 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
             </div>
           )}
 
-          {diff > 0 && !overMax && (
+          {diff > 0 && !overMax && !withinThreshold && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
               <p className="text-xs text-amber-400">
-                Le client aura 5 min pour valider cette augmentation
+                Au-dessus du seuil ({shopThreshold}%) — le client aura 5 min pour valider
+              </p>
+            </div>
+          )}
+
+          {diff > 0 && !overMax && withinThreshold && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 mb-3">
+              <p className="text-xs text-emerald-400">
+                Dans le seuil ({shopThreshold}%) — sera applique automatiquement
               </p>
             </div>
           )}

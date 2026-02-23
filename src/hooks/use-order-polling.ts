@@ -36,7 +36,7 @@ export type KitchenOrder = {
     product?: { name: string; unit: string; vatRate?: number | null };
   }[];
   user: { firstName: string; lastName: string; customerNumber?: string | null } | null;
-  shop?: { id: string; name: string; slug: string; imageUrl: string | null };
+  shop?: { id: string; name: string; slug: string; imageUrl: string | null; priceAdjustmentThreshold?: number };
   priceAdjustment?: {
     id: string;
     originalTotal: number;
