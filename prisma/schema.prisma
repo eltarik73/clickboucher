@@ -51,6 +51,20 @@ enum OrderStatus {
   AUTO_CANCELLED
 }
 
+enum AdjustmentType {
+  WEIGHT
+  PRICE
+  MANUAL
+}
+
+enum AdjustmentStatus {
+  PENDING
+  AUTO_APPROVED
+  APPROVED
+  REJECTED
+  AUTO_VALIDATED
+}
+
 enum Unit {
   KG
   PIECE
@@ -824,8 +838,9 @@ model Order {
   source      String  @default("app")
   isRecurring Boolean @default(false) @map("is_recurring")
 
-  items  OrderItem[]
-  events OrderEvent[]
+  items           OrderItem[]
+  events          OrderEvent[]
+  priceAdjustment PriceAdjustment?
 
   notifSent Json? @map("notif_sent")
 
@@ -882,6 +897,30 @@ model OrderEvent {
   @@index([shopId, createdAt])
   @@index([orderId])
   @@map("order_events")
+}
+
+// ══════════════════════════════════════════
+// PRICE ADJUSTMENT — Boucher adjusts price before marking ready
+// ══════════════════════════════════════════
+
+model PriceAdjustment {
+  id             String           @id @default(cuid())
+  orderId        String           @unique @map("order_id")
+  order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shopId         String           @map("shop_id")
+  originalTotal  Int              @map("original_total")
+  newTotal       Int              @map("new_total")
+  reason         String?
+  adjustmentType AdjustmentType   @map("adjustment_type")
+  status         AdjustmentStatus @default(PENDING)
+  itemsSnapshot  Json?            @map("items_snapshot")
+  autoApproveAt  DateTime?        @map("auto_approve_at")
+  respondedAt    DateTime?        @map("responded_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@index([shopId, status])
+  @@map("price_adjustments")
 }
 
 // ══════════════════════════════════════════
