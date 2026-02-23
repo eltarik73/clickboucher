@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export function SplashScreen({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [showSplash, setShowSplash] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
+    // Skip splash on onboarding, sign-in, sign-up pages
+    if (
+      pathname === "/onboarding" ||
+      pathname.startsWith("/sign-in") ||
+      pathname.startsWith("/sign-up")
+    ) return;
     if (sessionStorage.getItem("splash-seen") === "true") return;
     setShowSplash(true);
 

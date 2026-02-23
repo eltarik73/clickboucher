@@ -22,7 +22,7 @@ export default function SignInPage() {
           </p>
         </div>
         <SignIn
-          fallbackRedirectUrl="/decouvrir"
+          fallbackRedirectUrl="/onboarding"
           appearance={{
             elements: {
               rootBox: "w-full",

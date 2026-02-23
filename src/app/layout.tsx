@@ -78,7 +78,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider localization={frFR}>
-      <html lang="fr" className="dark" suppressHydrationWarning>
+      <html lang="fr" suppressHydrationWarning>
         <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased transition-colors duration-300`}>
           <ThemeProvider>
             <Toaster position="top-center" richColors />

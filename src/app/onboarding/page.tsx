@@ -1,7 +1,7 @@
 // src/app/onboarding/page.tsx — Role selection for first-time users
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { ShoppingCart, UtensilsCrossed, Loader2 } from "lucide-react";
@@ -10,8 +10,8 @@ import { toast } from "sonner";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { userId } = useAuth();
-  const [step, setStep] = useState<"choice" | "boucher-form">("choice");
+  const { userId, isLoaded } = useAuth();
+  const [step, setStep] = useState<"loading" | "choice" | "boucher-form">("loading");
   const [loading, setLoading] = useState(false);
 
   // Boucher form state
@@ -19,6 +19,42 @@ export default function OnboardingPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [phone, setPhone] = useState("");
+
+  // Check if user already has a role — redirect if already onboarded
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!userId) {
+      router.replace("/sign-in");
+      return;
+    }
+
+    // Check if user already exists in DB
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((data) => {
+        if (data?.user?.role) {
+          // Already onboarded — redirect by role
+          const role = data.user.role;
+          if (role === "BOUCHER") {
+            router.replace("/boucher/commandes");
+          } else if (role === "ADMIN") {
+            router.replace("/admin");
+          } else {
+            router.replace("/decouvrir");
+          }
+        } else {
+          // New user — show choice
+          setStep("choice");
+        }
+      })
+      .catch(() => {
+        // API error or user not found — show choice
+        setStep("choice");
+      });
+  }, [isLoaded, userId, router]);
 
   async function chooseClient() {
     if (!userId) return;
@@ -71,9 +107,18 @@ export default function OnboardingPage() {
     }
   }
 
+  // Loading state while checking auth/DB
+  if (step === "loading") {
+    return (
+      <div className="min-h-screen min-h-dvh bg-white dark:bg-black flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin text-[#DC2626]" />
+      </div>
+    );
+  }
+
   if (step === "boucher-form") {
     return (
-      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
+      <div className="min-h-screen min-h-dvh bg-white dark:bg-black flex items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
           <div className="flex flex-col items-center mb-8">
             <KlikLogo size={48} />
@@ -93,8 +138,9 @@ export default function OnboardingPage() {
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
                 placeholder="Ex: Boucherie El Fathe"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
+                autoComplete="organization"
               />
             </div>
             <div>
@@ -106,8 +152,9 @@ export default function OnboardingPage() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Ex: 533 Faubourg Montmélian"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
+                autoComplete="street-address"
               />
             </div>
             <div>
@@ -119,8 +166,9 @@ export default function OnboardingPage() {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Ex: Chambéry"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
+                autoComplete="address-level2"
               />
             </div>
             <div>
@@ -132,8 +180,9 @@ export default function OnboardingPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Ex: 04 79 85 XX XX"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
+                autoComplete="tel"
               />
             </div>
 
@@ -160,13 +209,13 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center p-4">
+    <div className="min-h-screen min-h-dvh bg-white dark:bg-black flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-10">
           <KlikLogo size={64} />
           <KlikWordmark size="xl" className="mt-3" />
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mt-6">
-            Bienvenue sur Klik&Go !
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mt-6 text-center">
+            Bienvenue sur Klik&amp;Go !
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Qui êtes-vous ?
@@ -178,13 +227,13 @@ export default function OnboardingPage() {
           <button
             onClick={chooseClient}
             disabled={loading}
-            className="w-full p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] hover:border-[#DC2626]/50 hover:shadow-lg hover:shadow-[#DC2626]/5 transition-all text-left group disabled:opacity-50"
+            className="w-full p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] hover:border-[#DC2626]/50 hover:shadow-lg hover:shadow-[#DC2626]/5 transition-all text-left group disabled:opacity-50 active:scale-[0.98]"
           >
-            <div className="flex items-start gap-4">
+            <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-[#DC2626]/10 flex items-center justify-center shrink-0 group-hover:bg-[#DC2626]/20 transition-colors">
                 <ShoppingCart size={24} className="text-[#DC2626]" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-base font-bold text-gray-900 dark:text-white">
                   {loading ? "Inscription..." : "Je suis client"}
                 </p>
@@ -199,13 +248,13 @@ export default function OnboardingPage() {
           <button
             onClick={() => setStep("boucher-form")}
             disabled={loading}
-            className="w-full p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] hover:border-[#DC2626]/50 hover:shadow-lg hover:shadow-[#DC2626]/5 transition-all text-left group disabled:opacity-50"
+            className="w-full p-5 sm:p-6 rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] hover:border-[#DC2626]/50 hover:shadow-lg hover:shadow-[#DC2626]/5 transition-all text-left group disabled:opacity-50 active:scale-[0.98]"
           >
-            <div className="flex items-start gap-4">
+            <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-[#DC2626]/10 flex items-center justify-center shrink-0 group-hover:bg-[#DC2626]/20 transition-colors">
                 <UtensilsCrossed size={24} className="text-[#DC2626]" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-base font-bold text-gray-900 dark:text-white">
                   Je suis boucher
                 </p>
