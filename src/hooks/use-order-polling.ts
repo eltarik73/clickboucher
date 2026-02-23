@@ -37,6 +37,18 @@ export type KitchenOrder = {
   }[];
   user: { firstName: string; lastName: string; customerNumber?: string | null } | null;
   shop?: { id: string; name: string; slug: string; imageUrl: string | null };
+  priceAdjustment?: {
+    id: string;
+    originalTotal: number;
+    newTotal: number;
+    reason: string | null;
+    adjustmentType: string;
+    status: string;
+    itemsSnapshot: unknown;
+    autoApproveAt: string | null;
+    respondedAt: string | null;
+    createdAt: string;
+  } | null;
 };
 
 type UseOrderPollingOptions = {

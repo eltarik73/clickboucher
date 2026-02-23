@@ -46,6 +46,10 @@ const ItemUnavailableModal = dynamic(
   () => import("@/components/boucher/ItemUnavailableModal"),
   { ssr: false }
 );
+const PriceAdjustModal = dynamic(
+  () => import("@/components/boucher/PriceAdjustModal"),
+  { ssr: false }
+);
 const QRScanner = dynamic(
   () => import("@/components/boucher/QRScanner").then((m) => m.QRScanner),
   { ssr: false }
@@ -117,6 +121,7 @@ export default function KitchenModePage() {
 
   // Modals
   const [stockIssueOrder, setStockIssueOrder] = useState<KitchenOrder | null>(null);
+  const [adjustPriceOrder, setAdjustPriceOrder] = useState<KitchenOrder | null>(null);
   const [showScanner, setShowScanner] = useState(false);
 
   // Sound muted
@@ -286,6 +291,31 @@ export default function KitchenModePage() {
     }
   }
 
+  // ── Handle price adjustment ──
+  async function handleAdjustPrice(orderId: string, data: Record<string, unknown>) {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/adjust-price`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        await refetch();
+        if (json.data?.autoApproved) {
+          toast.success("Prix ajuste automatiquement (baisse)");
+        } else {
+          toast.success("Ajustement envoye — en attente du client (5 min)");
+        }
+      } else {
+        const json = await res.json().catch(() => null);
+        toast.error(json?.error?.message || "Erreur lors de l'ajustement");
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    }
+  }
+
   // ── Audio unlock screen ──
   if (!audioUnlocked) {
     return <AudioUnlockScreen onUnlocked={() => setAudioUnlocked(true)} />;
@@ -341,6 +371,15 @@ export default function KitchenModePage() {
           order={stockIssueOrder}
           onClose={() => setStockIssueOrder(null)}
           onConfirm={handleStockIssue}
+        />
+      )}
+
+      {/* ── Price adjust modal ── */}
+      {adjustPriceOrder && (
+        <PriceAdjustModal
+          order={adjustPriceOrder}
+          onClose={() => setAdjustPriceOrder(null)}
+          onConfirm={handleAdjustPrice}
         />
       )}
 
@@ -542,6 +581,7 @@ export default function KitchenModePage() {
             onAction={handleAction}
             onStockIssue={setStockIssueOrder}
             onView={handleViewOrder}
+            onAdjustPrice={setAdjustPriceOrder}
             emptyMessage="Aucune commande en cours"
             emptyIcon={<ChefHat size={32} className="text-gray-700" />}
           />
@@ -602,6 +642,7 @@ export default function KitchenModePage() {
             onAction={handleAction}
             onStockIssue={setStockIssueOrder}
             onView={handleViewOrder}
+            onAdjustPrice={setAdjustPriceOrder}
             emptyMessage="Aucune commande programmee"
             emptyIcon={<CalendarClock size={32} className="text-gray-700" />}
           />
@@ -650,6 +691,7 @@ export default function KitchenModePage() {
                   onAction={handleAction}
                   onStockIssue={setStockIssueOrder}
                   onView={handleViewOrder}
+                  onAdjustPrice={setAdjustPriceOrder}
                 />
               ))
             )
@@ -674,6 +716,7 @@ export default function KitchenModePage() {
                 onAction={handleAction}
                 onStockIssue={setStockIssueOrder}
                 onView={handleViewOrder}
+                onAdjustPrice={setAdjustPriceOrder}
               />
             ))
           )}
@@ -697,6 +740,7 @@ function KitchenColumn({
   onAction,
   onStockIssue,
   onView,
+  onAdjustPrice,
   emptyMessage,
   emptyIcon,
   extra,
@@ -711,6 +755,7 @@ function KitchenColumn({
   onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
   onStockIssue: (order: KitchenOrder) => void;
   onView?: (orderId: string) => void;
+  onAdjustPrice?: (order: KitchenOrder) => void;
   emptyMessage: string;
   emptyIcon: React.ReactNode;
   extra?: React.ReactNode;
@@ -760,6 +805,7 @@ function KitchenColumn({
               onAction={onAction}
               onStockIssue={onStockIssue}
               onView={onView}
+              onAdjustPrice={onAdjustPrice}
             />
           ))
         )}
@@ -830,6 +876,7 @@ function ScheduledColumn({
   onAction,
   onStockIssue,
   onView,
+  onAdjustPrice,
   emptyMessage,
   emptyIcon,
 }: {
@@ -842,6 +889,7 @@ function ScheduledColumn({
   onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
   onStockIssue: (order: KitchenOrder) => void;
   onView?: (orderId: string) => void;
+  onAdjustPrice?: (order: KitchenOrder) => void;
   emptyMessage: string;
   emptyIcon: React.ReactNode;
 }) {
@@ -875,6 +923,7 @@ function ScheduledColumn({
               onAction={onAction}
               onStockIssue={onStockIssue}
               onView={onView}
+              onAdjustPrice={onAdjustPrice}
             />
           ))
         )}

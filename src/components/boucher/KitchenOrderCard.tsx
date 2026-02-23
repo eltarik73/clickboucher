@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Clock,
   Eye,
+  DollarSign,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
 import { printOrderTicket } from "./OrderTicket";
@@ -27,6 +28,7 @@ type Props = {
   onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
   onStockIssue: (order: KitchenOrder) => void;
   onView?: (orderId: string) => void;
+  onAdjustPrice?: (order: KitchenOrder) => void;
 };
 
 function formatPrice(cents: number) {
@@ -67,6 +69,7 @@ export default function KitchenOrderCard({
   onAction,
   onStockIssue,
   onView,
+  onAdjustPrice,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -216,6 +219,42 @@ export default function KitchenOrderCard({
         </div>
       </div>
 
+      {/* ── Price adjustment badge ── */}
+      {order.priceAdjustment?.status === "PENDING" && (
+        <div className="mx-4 mb-2 px-3 py-2 bg-amber-500/15 border border-amber-500/30 rounded-lg">
+          <p className="text-xs font-bold text-amber-400 text-center">
+            Ajustement en attente de validation client
+          </p>
+          <p className="text-[11px] text-amber-400/70 text-center mt-0.5">
+            {formatPrice(order.priceAdjustment.originalTotal)} → {formatPrice(order.priceAdjustment.newTotal)}
+          </p>
+        </div>
+      )}
+
+      {order.priceAdjustment?.status === "AUTO_APPROVED" && (
+        <div className="mx-4 mb-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+          <p className="text-[11px] text-emerald-400 text-center">
+            Prix ajuste automatiquement ({formatPrice(order.priceAdjustment.newTotal)})
+          </p>
+        </div>
+      )}
+
+      {order.priceAdjustment?.status === "APPROVED" && (
+        <div className="mx-4 mb-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+          <p className="text-[11px] text-emerald-400 text-center">
+            Ajustement accepte par le client ({formatPrice(order.priceAdjustment.newTotal)})
+          </p>
+        </div>
+      )}
+
+      {order.priceAdjustment?.status === "REJECTED" && (
+        <div className="mx-4 mb-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p className="text-[11px] text-red-400 text-center">
+            Ajustement refuse par le client
+          </p>
+        </div>
+      )}
+
       {/* ── Total ── */}
       <div className="px-4 pb-2 flex justify-between items-center">
         <span className="text-sm text-gray-500">Total</span>
@@ -354,13 +393,21 @@ export default function KitchenOrderCard({
           </div>
         )}
 
-        {/* ── ACCEPTED: Start preparing / Mark ready ── */}
+        {/* ── ACCEPTED: Start preparing / Mark ready / Adjust price ── */}
         {order.status === "ACCEPTED" && (
           <div className="space-y-2">
+            {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
+              <button
+                onClick={() => onAdjustPrice(order)}
+                className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm"
+              >
+                <DollarSign size={16} /> Ajuster le prix
+              </button>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => doAction("start_preparing")}
-                disabled={loading}
+                disabled={loading || order.priceAdjustment?.status === "PENDING"}
                 className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <ChefHat size={16} />}
@@ -368,7 +415,7 @@ export default function KitchenOrderCard({
               </button>
               <button
                 onClick={() => doAction("mark_ready")}
-                disabled={loading}
+                disabled={loading || order.priceAdjustment?.status === "PENDING"}
                 className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm disabled:opacity-50"
               >
                 <CheckCircle size={16} /> Prête !
@@ -399,12 +446,20 @@ export default function KitchenOrderCard({
           </div>
         )}
 
-        {/* ── PREPARING: Mark ready / Add time ── */}
+        {/* ── PREPARING: Mark ready / Add time / Adjust price ── */}
         {order.status === "PREPARING" && (
           <div className="space-y-2">
+            {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
+              <button
+                onClick={() => onAdjustPrice(order)}
+                className="w-full flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-sm"
+              >
+                <DollarSign size={16} /> Ajuster le prix
+              </button>
+            )}
             <button
               onClick={() => doAction("mark_ready")}
-              disabled={loading}
+              disabled={loading || order.priceAdjustment?.status === "PENDING"}
               className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl transition-all text-base disabled:opacity-50"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
