@@ -6,6 +6,7 @@ import { createOrderSchema, orderListQuerySchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError, formatZodError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { autoApproveExpiredAdjustment } from "@/lib/price-adjustment";
 import { getShopStatus } from "@/lib/shop-status";
 import { setBusyMode } from "@/lib/shop-status";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
@@ -67,12 +68,38 @@ export async function GET(req: NextRequest) {
         items: { include: { product: { select: { name: true, unit: true, vatRate: true } } } },
         shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true } },
         user: { select: { firstName: true, lastName: true, customerNumber: true } },
+        priceAdjustment: true,
       },
       orderBy: { createdAt: "desc" },
       take: 50,
     });
 
-    return apiSuccess(orders);
+    // Auto-approve expired price adjustments
+    let needsRefresh = false;
+    for (const order of orders) {
+      const adj = (order as Record<string, unknown>).priceAdjustment as { status?: string; autoApproveAt?: Date } | null;
+      if (adj?.status === "PENDING" && adj.autoApproveAt && new Date() >= new Date(adj.autoApproveAt)) {
+        await autoApproveExpiredAdjustment(order.id);
+        needsRefresh = true;
+      }
+    }
+
+    if (!needsRefresh) return apiSuccess(orders);
+
+    // Re-fetch only if something changed
+    const finalOrders = await prisma.order.findMany({
+      where,
+      include: {
+        items: { include: { product: { select: { name: true, unit: true, vatRate: true } } } },
+        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true } },
+        user: { select: { firstName: true, lastName: true, customerNumber: true } },
+        priceAdjustment: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+
+    return apiSuccess(finalOrders);
   } catch (error) {
     return handleApiError(error);
   }

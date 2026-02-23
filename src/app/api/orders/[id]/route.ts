@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { autoApproveExpiredAdjustment } from "@/lib/price-adjustment";
 
 // ── GET /api/orders/[id] ───────────────────────
 // Authenticated — order detail (client owner, boucher owner, or admin)
@@ -29,11 +30,29 @@ export async function GET(
         items: { include: { product: true } },
         shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, phone: true, ownerId: true } },
         user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true, customerNumber: true } },
+        priceAdjustment: true,
       },
     });
 
     if (!order) {
       return apiError("NOT_FOUND", "Commande introuvable");
+    }
+
+    // Auto-approve expired price adjustment if any
+    if (order.priceAdjustment?.status === "PENDING" && order.priceAdjustment.autoApproveAt && new Date() >= new Date(order.priceAdjustment.autoApproveAt)) {
+      await autoApproveExpiredAdjustment(id);
+      const refreshed = await prisma.order.findUnique({
+        where: { id },
+        include: {
+          items: { include: { product: true } },
+          shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, phone: true, ownerId: true } },
+          user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true, customerNumber: true } },
+          priceAdjustment: true,
+        },
+      });
+      if (refreshed) {
+        Object.assign(order, refreshed);
+      }
     }
 
     // Permission check using DB role
