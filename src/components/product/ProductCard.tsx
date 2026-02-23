@@ -93,7 +93,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
       onClick={onTap}
     >
       {/* ── Image 4:3 ── */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
+      <div className="product-img-wrap relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
         <Image
           src={imgSrc}
           alt={product.name}

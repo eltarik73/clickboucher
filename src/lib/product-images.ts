@@ -67,6 +67,8 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   "volaille": "/img/products/volaille-1.jpg",
   "veau": "/img/products/veau-1.jpg",
   "grillades": "/img/products/grillades-1.jpg",
+  "saucisses": "/img/products/merguez.jpg",
+  "charcuterie": "/img/products/pastrami-boeuf.jpg",
   "preparations": "/img/products/preparations-1.jpg",
   "abats": "/img/products/abats-1.jpg",
 };

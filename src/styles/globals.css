@@ -253,3 +253,36 @@ body {
 .animate-ring {
   animation: ring 1.5s ease-in-out infinite;
 }
+
+/* ─── Product image logo masking ─────────── */
+/* Hide watermark logos in bottom corners of product photos */
+.product-img-wrap {
+  position: relative;
+}
+.product-img-wrap::before,
+.product-img-wrap::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: #f3f4f6; /* matches bg-gray-100 */
+}
+.dark .product-img-wrap::before,
+.dark .product-img-wrap::after {
+  background: rgba(255, 255, 255, 0.05); /* matches dark:bg-white/5 */
+}
+/* Bottom-left: Halal logo */
+.product-img-wrap::before {
+  left: 0;
+  width: 60px;
+  height: 50px;
+  border-radius: 0 8px 0 0;
+}
+/* Bottom-right: Boucherie logo */
+.product-img-wrap::after {
+  right: 0;
+  width: 70px;
+  height: 45px;
+  border-radius: 8px 0 0 0;
+}
