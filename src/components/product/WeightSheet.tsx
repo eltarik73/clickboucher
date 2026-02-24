@@ -94,18 +94,12 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
         {/* Card */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`relative w-[340px] max-w-[calc(100vw-32px)] overflow-hidden transition-all duration-300 ease-out ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
-          style={{
-            background: "#FAF8F5",
-            borderRadius: "20px",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
-          }}
+          className={`relative w-[340px] max-w-[calc(100vw-32px)] overflow-hidden transition-all duration-300 ease-out bg-[#FAF8F5] dark:bg-[#1a1a1a] rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
         >
           {/* ── Close button ── */}
           <button
             onClick={handleClose}
-            className="absolute top-3 right-3.5 z-10 text-sm cursor-pointer"
-            style={{ color: "#C4B5A3" }}
+            className="absolute top-3 right-3.5 z-10 text-sm cursor-pointer text-[#C4B5A3] dark:text-neutral-500"
             aria-label="Fermer"
           >
             ✕
@@ -137,16 +131,10 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
 
             {/* Name + category */}
             <div className="flex-1 min-w-0">
-              <h2
-                className="text-[15px] font-extrabold leading-tight truncate"
-                style={{ color: "#1C1512", fontFamily: "Georgia, serif" }}
-              >
+              <h2 className="text-[15px] font-extrabold leading-tight truncate text-[#1C1512] dark:text-white font-serif">
                 {product.name}
               </h2>
-              <p
-                className="mt-0.5 uppercase truncate"
-                style={{ fontSize: "10px", color: "#C9A96E", letterSpacing: "1.5px", fontFamily: "Georgia, serif" }}
-              >
+              <p className="mt-0.5 uppercase truncate text-[10px] text-[#C9A96E] tracking-[1.5px] font-serif">
                 {product.category}
               </p>
             </div>
@@ -156,7 +144,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
               <span className="text-[22px] font-black text-[#DC2626] block leading-none">
                 {prixAuKg.toFixed(2).replace(".", ",")} €
               </span>
-              <span className="text-[11px]" style={{ color: "#A08060" }}>/kg</span>
+              <span className="text-[11px] text-[#A08060] dark:text-neutral-500">/kg</span>
             </div>
           </div>
 
@@ -164,23 +152,23 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
           {(product.origin || product.halalOrg || product.freshness) && (
             <div className="flex gap-1 px-3.5 mt-2 flex-wrap">
               {product.origin && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#EFF6FF] dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-400 border border-[#DBEAFE] dark:border-blue-800">
                   {getFlag(product.origin)} {product.origin}
                 </span>
               )}
               {product.halalOrg && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FEF2F2] dark:bg-red-950/40 text-[#DC2626] dark:text-red-400 border border-[#FECACA] dark:border-red-800">
                   ☪ Halal {product.halalOrg}
                 </span>
               )}
               {product.race && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FFFBEB] text-[#92400E] border border-[#FEF3C7]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FFFBEB] dark:bg-amber-950/40 text-[#92400E] dark:text-amber-400 border border-[#FEF3C7] dark:border-amber-800">
                   🐄 {product.race}
                 </span>
               )}
-              {product.freshness && product.freshness !== "STANDARD" && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
-                  {product.freshness === "EXTRA_FRESH" ? "❄ Extra frais" : product.freshness === "FROZEN" ? "❄ Surgelé" : product.freshness === "FRAIS" ? "❄ Frais" : product.freshness}
+              {product.freshness && product.freshness !== "FRAIS" && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#F0FDF4] dark:bg-green-950/40 text-[#16A34A] dark:text-green-400 border border-[#BBF7D0] dark:border-green-800">
+                  {product.freshness === "SURGELE" ? "❄ Surgele" : product.freshness === "SOUS_VIDE" ? "🫙 Sous vide" : product.freshness}
                 </span>
               )}
             </div>
@@ -193,10 +181,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
 
           {/* Weight tolerance note */}
           <div className="px-3.5 mt-1">
-            <span
-              className="inline-block px-2 py-1 rounded-md text-[10px] font-medium"
-              style={{ background: "#FFFBEB", color: "#92400E" }}
-            >
+            <span className="inline-block px-2 py-1 rounded-md text-[10px] font-medium bg-[#FFFBEB] dark:bg-amber-950/30 text-[#92400E] dark:text-amber-400">
               ⚖️ ±10% — ajustement au poids réel
             </span>
           </div>
@@ -205,8 +190,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
           <div className="px-3.5 pb-3.5 pt-2.5 mt-1">
             <button
               onClick={() => onConfirm(qty)}
-              className="w-full h-10 rounded-[10px] flex items-center justify-center gap-2 text-white text-sm font-extrabold active:scale-[0.97] transition-transform"
-              style={{ background: "#DC2626", boxShadow: "0 4px 12px rgba(220,38,38,0.2)" }}
+              className="w-full h-10 rounded-[10px] flex items-center justify-center gap-2 text-white text-sm font-extrabold active:scale-[0.97] transition-transform bg-[#DC2626] shadow-[0_4px_12px_rgba(220,38,38,0.2)]"
             >
               Ajouter
               <span className="bg-white/20 px-2 py-0.5 rounded-md text-[13px] font-black">

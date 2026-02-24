@@ -37,7 +37,7 @@ export function QuantitySelector({ rule, initialG, onChange, compact = false }: 
             className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200
               ${activePreset === p
                 ? "bg-[#DC2626] text-white shadow-sm"
-                : "bg-[#F5F3F0] text-[#6B6560] hover:bg-[#EBE8E4]"
+                : "bg-[#F5F3F0] dark:bg-white/10 text-[#6B6560] dark:text-neutral-400 hover:bg-[#EBE8E4] dark:hover:bg-white/15"
               }`}>
             {formatWeight(p)}
           </button>
@@ -47,27 +47,28 @@ export function QuantitySelector({ rule, initialG, onChange, compact = false }: 
       {/* Stepper */}
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => update(qty - rule.pasG)} disabled={qty <= rule.minG}
-          className="w-8 h-8 rounded-lg bg-[#F5F3F0] flex items-center justify-center text-sm font-bold text-[#6B6560] hover:bg-[#EBE8E4] disabled:opacity-25 transition-all active:scale-90">
+          className="w-8 h-8 rounded-lg bg-[#F5F3F0] dark:bg-white/10 flex items-center justify-center text-sm font-bold text-[#6B6560] dark:text-neutral-400 hover:bg-[#EBE8E4] dark:hover:bg-white/15 disabled:opacity-25 transition-all active:scale-90">
           −
         </button>
         <div className="flex-1 relative">
           <input ref={inputRef} type="number" value={qty} onChange={e => {const v=parseInt(e.target.value);if(!isNaN(v))update(v);}}
             min={rule.minG} max={rule.maxG} step={rule.pasG}
-            className="w-full text-center text-sm font-semibold py-1.5 border border-[#E8E5E1] rounded-lg
+            className="w-full text-center text-sm font-semibold py-1.5 border border-[#E8E5E1] dark:border-white/15 rounded-lg
+              bg-transparent dark:text-white
               focus:outline-none focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all
               [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#9C9590] pointer-events-none">g</span>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-[#9C9590] dark:text-neutral-500 pointer-events-none">g</span>
         </div>
         <button type="button" onClick={() => update(qty + rule.pasG)} disabled={qty >= rule.maxG}
-          className="w-8 h-8 rounded-lg bg-[#F5F3F0] flex items-center justify-center text-sm font-bold text-[#6B6560] hover:bg-[#EBE8E4] disabled:opacity-25 transition-all active:scale-90">
+          className="w-8 h-8 rounded-lg bg-[#F5F3F0] dark:bg-white/10 flex items-center justify-center text-sm font-bold text-[#6B6560] dark:text-neutral-400 hover:bg-[#EBE8E4] dark:hover:bg-white/15 disabled:opacity-25 transition-all active:scale-90">
           +
         </button>
       </div>
 
       {/* Estimation */}
-      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#FEF8F0] border border-[#F5E6D0]">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#FEF8F0] dark:bg-amber-950/30 border border-[#F5E6D0] dark:border-amber-800/50">
         <span className="text-xs shrink-0">💡</span>
-        <p className="text-[11px] text-[#B45309] leading-snug">{estText}</p>
+        <p className="text-[11px] text-[#B45309] dark:text-amber-400 leading-snug">{estText}</p>
       </div>
     </div>
   );
