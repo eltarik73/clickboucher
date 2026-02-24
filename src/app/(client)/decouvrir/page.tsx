@@ -15,6 +15,7 @@ import { SearchBar } from "@/components/search/SearchBar";
 import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
 import { ReorderCarousel } from "@/components/order/ReorderCarousel";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
+import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
 
 export const metadata: Metadata = {
   title: "Découvrir les boucheries | Klik&Go",
@@ -25,18 +26,6 @@ export const metadata: Metadata = {
     description: "Parcourez les boucheries halal de Chambéry et commandez en ligne.",
   },
 };
-
-// ─────────────────────────────────────────────────────────────
-// LOGO COMPONENT (Header) — uses shared KlikLogo
-// ─────────────────────────────────────────────────────────────
-function KlikGoLogo() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <KlikLogo size={40} className="shadow-lg shadow-[#DC2626]/20" />
-      <KlikWordmark size="lg" />
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────
 // HERO LOGO (Centered, with glow)

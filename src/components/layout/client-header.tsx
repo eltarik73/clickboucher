@@ -6,6 +6,7 @@ import { MapPin, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
+import { SecretTapLogo } from "@/components/layout/SecretTapLogo";
 
 interface ClientHeaderProps {
   title?: string;
@@ -36,10 +37,14 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
         </div>
 
         {showLocation && (
-          <Link href="/decouvrir" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-            <KlikLogo size={24} />
-            <KlikWordmark size="sm" />
-          </Link>
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+            <SecretTapLogo>
+              <span className="flex items-center gap-1.5">
+                <KlikLogo size={24} />
+                <KlikWordmark size="sm" />
+              </span>
+            </SecretTapLogo>
+          </div>
         )}
 
         <div className="flex items-center gap-1.5">
