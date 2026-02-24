@@ -79,6 +79,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
     minG: effectiveMin,
     pasG: effectiveStep,
     maxG: effectiveMax,
+    presetsG: rule.presetsG.filter((p) => p >= effectiveMin && p <= effectiveMax),
   };
 
   const prixAuKg = product.priceCents / 100;
