@@ -2,28 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { KlikLogo } from "@/components/ui/KlikLogo";
 
 export function SplashScreen({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [showSplash, setShowSplash] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Skip splash on onboarding, sign-in, sign-up pages
     if (
       pathname === "/onboarding" ||
       pathname.startsWith("/sign-in") ||
       pathname.startsWith("/sign-up")
     ) return;
     if (sessionStorage.getItem("splash-seen") === "true") return;
+
+    // Detect system dark mode
+    setIsDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
+
     setShowSplash(true);
 
-    // 5.2s → start fade-out, 6.0s → hide
-    const fadeTimer = setTimeout(() => setFadeOut(true), 5200);
+    // 4.2s → start fade-out, 5.0s → hide
+    const fadeTimer = setTimeout(() => setFadeOut(true), 4200);
     const hideTimer = setTimeout(() => {
       setShowSplash(false);
       sessionStorage.setItem("splash-seen", "true");
-    }, 6000);
+    }, 5000);
 
     return () => {
       clearTimeout(fadeTimer);
@@ -31,213 +36,150 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // "lik&Go" split into individual characters for letter-by-letter reveal
-  const letters = [
-    { ch: "l", color: "white" },
-    { ch: "i", color: "white" },
-    { ch: "k", color: "white" },
-    { ch: "&", color: "#DC2626" },
-    { ch: "G", color: "#DC2626" },
-    { ch: "o", color: "#DC2626" },
-  ];
-
-  // Tagline split into words for word-by-word reveal
-  const taglineWords = ["Commandez", "·", "Récupérez", "·", "Savourez"];
-
   return (
     <>
       {showSplash && (
         <div
-          className={`fixed inset-0 z-[9999] bg-[#0a0a0a] flex flex-col items-center justify-center transition-opacity duration-700 ${
+          className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-700 ${
             fadeOut ? "opacity-0" : "opacity-100"
-          }`}
+          } ${isDark ? "splash-dark" : "splash-light"}`}
         >
-          {/* Logo row */}
-          <div className="splash-shake flex items-baseline select-none">
-            {/* K — slides in 0→0.6s */}
-            <span className="splash-k text-8xl font-black text-[#DC2626] leading-none">
-              K
-            </span>
-            {/* Letters — stagger 80ms starting at 0.8s */}
-            {letters.map((l, i) => (
-              <span
-                key={i}
-                className="splash-letter text-4xl font-bold leading-none"
-                style={{
-                  color: l.color,
-                  animationDelay: `${800 + i * 80}ms`,
-                }}
-              >
-                {l.ch}
-              </span>
-            ))}
+          {/* Glow background for dark mode */}
+          {isDark && (
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#DC2626]/15 rounded-full blur-[120px]" />
+            </div>
+          )}
+
+          {/* Logo with shadow */}
+          <div className="relative z-10 splash-logo-entrance">
+            {isDark ? (
+              <div className="relative">
+                <div className="absolute inset-0 blur-2xl opacity-50 bg-[#DC2626] rounded-full scale-150" />
+                <KlikLogo size={80} className="relative z-10 drop-shadow-2xl" />
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="absolute inset-0 blur-xl opacity-25 bg-[#DC2626] rounded-full scale-125" />
+                <KlikLogo size={80} className="relative z-10" />
+              </div>
+            )}
           </div>
 
-          {/* Red separator line — 1.5s→2.2s */}
-          <div className="splash-separator mt-4 w-20 h-[2px] bg-[#DC2626] origin-left" />
+          {/* Text: Klik&Go */}
+          <div className="relative z-10 mt-5 splash-text-entrance flex items-baseline select-none">
+            <span className={`text-5xl font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+              Klik
+            </span>
+            <span className="text-5xl font-black tracking-tight text-[#DC2626]">
+              &amp;
+            </span>
+            <span className={`text-5xl font-black tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>
+              Go
+            </span>
+          </div>
 
-          {/* Tagline word-by-word — stagger 300ms starting at 2.2s */}
-          <p className="mt-4 flex items-center gap-1.5">
-            {taglineWords.map((word, i) => (
+          {/* by TkS26 */}
+          <p className="relative z-10 mt-2 splash-tagline text-xs tracking-widest text-gray-400">
+            by TkS26
+          </p>
+
+          {/* Tagline */}
+          <p className="relative z-10 mt-4 splash-tagline-delayed flex items-center gap-1.5">
+            {["Commandez", "·", "Récupérez", "·", "Savourez"].map((word, i) => (
               <span
                 key={i}
-                className="splash-word text-xs text-white/30 tracking-widest uppercase"
-                style={{
-                  animationDelay: `${2200 + i * 200}ms`,
-                }}
+                className={`splash-word text-xs tracking-widest uppercase ${
+                  isDark ? "text-white/30" : "text-gray-400"
+                }`}
+                style={{ animationDelay: `${1800 + i * 150}ms` }}
               >
                 {word}
               </span>
             ))}
           </p>
 
-          {/* Speed lines — stagger at 3.2s */}
-          <div className="flex items-center gap-2 mt-5">
-            <div
-              className="splash-line w-8 h-[2px] bg-[#DC2626]/60 rounded-full"
-              style={{ animationDelay: "3200ms" }}
-            />
-            <div
-              className="splash-line w-12 h-[2px] bg-[#DC2626]/40 rounded-full"
-              style={{ animationDelay: "3500ms" }}
-            />
-            <div
-              className="splash-line w-6 h-[2px] bg-[#DC2626]/20 rounded-full"
-              style={{ animationDelay: "3800ms" }}
-            />
+          {/* Bouncing red arrow */}
+          <div className="relative z-10 mt-6 splash-arrow">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#DC2626]">
+              <path d="M12 4v16m0 0l-6-6m6 6l6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
 
-          {/* Loading text — 4.2s→5.2s */}
-          <div className="splash-loading mt-6 flex items-center gap-1">
-            <span className="text-[11px] text-white/20 tracking-wider">
-              Chargement
-            </span>
-            <span className="splash-dot text-[11px] text-white/20">...</span>
-          </div>
-
-          {/* Progress bar — 0→100% in 5.5s */}
-          <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white/5">
+          {/* Progress bar */}
+          <div className={`absolute bottom-0 left-0 w-full h-[2px] ${isDark ? "bg-white/5" : "bg-gray-200"}`}>
             <div className="splash-bar h-full bg-[#DC2626]" />
           </div>
 
           <style jsx>{`
-            /* ── K slide in: 0s → 0.6s ── */
-            @keyframes slideIn {
-              from {
-                transform: translateX(-100vw);
-                opacity: 0;
-              }
-              to {
-                transform: translateX(0);
-                opacity: 1;
-              }
+            .splash-light {
+              background: #ffffff;
             }
-            .splash-k {
+            .splash-dark {
+              background: #0a0a0a;
+            }
+
+            /* Logo entrance */
+            @keyframes logoIn {
+              from { opacity: 0; transform: scale(0.5); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+            .splash-logo-entrance {
               opacity: 0;
-              animation: slideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+              animation: logoIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
             }
 
-            /* ── Screen shake: 0.6s → 0.8s ── */
-            @keyframes shake {
-              0%, 100% { transform: translateX(0); }
-              15%  { transform: translateX(-6px); }
-              30%  { transform: translateX(5px); }
-              45%  { transform: translateX(-4px); }
-              60%  { transform: translateX(3px); }
-              75%  { transform: translateX(-2px); }
-              90%  { transform: translateX(1px); }
+            /* Text entrance */
+            @keyframes textIn {
+              from { opacity: 0; transform: translateY(15px); }
+              to   { opacity: 1; transform: translateY(0); }
             }
-            .splash-shake {
-              animation: shake 0.2s ease 0.6s both;
-            }
-
-            /* ── Letters fade in one-by-one: 0.8s, stagger 80ms ── */
-            @keyframes letterIn {
-              from {
-                opacity: 0;
-                transform: translateX(-8px);
-              }
-              to {
-                opacity: 1;
-                transform: translateX(0);
-              }
-            }
-            .splash-letter {
+            .splash-text-entrance {
               opacity: 0;
-              animation: letterIn 0.15s ease both;
-              /* animationDelay set inline */
+              animation: textIn 0.5s ease 0.7s both;
             }
 
-            /* ── Separator line: 1.5s → 2.2s ── */
-            @keyframes growLine {
-              from { transform: scaleX(0); }
-              to   { transform: scaleX(1); }
+            /* Tagline */
+            .splash-tagline {
+              opacity: 0;
+              animation: textIn 0.4s ease 1.1s both;
             }
-            .splash-separator {
-              transform: scaleX(0);
-              animation: growLine 0.7s cubic-bezier(0.22, 1, 0.36, 1) 1.5s both;
+            .splash-tagline-delayed {
+              opacity: 0;
+              animation: textIn 0.4s ease 1.5s both;
             }
 
-            /* ── Tagline words: 2.2s, stagger 200ms ── */
+            /* Words stagger */
             @keyframes wordIn {
-              from {
-                opacity: 0;
-                transform: translateY(8px);
-              }
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
+              from { opacity: 0; transform: translateY(6px); }
+              to   { opacity: 1; transform: translateY(0); }
             }
             .splash-word {
               opacity: 0;
-              animation: wordIn 0.35s ease both;
-              /* animationDelay set inline */
+              animation: wordIn 0.3s ease both;
             }
 
-            /* ── Speed lines: 3.2s, stagger 300ms ── */
-            @keyframes lineSlide {
-              from {
-                opacity: 0;
-                transform: translateX(-20px);
-              }
-              to {
-                opacity: 1;
-                transform: translateX(0);
-              }
+            /* Bouncing arrow */
+            @keyframes bounceArrow {
+              0%, 100% { transform: translateY(0); }
+              50%      { transform: translateY(8px); }
             }
-            .splash-line {
-              opacity: 0;
-              animation: lineSlide 0.4s ease both;
-              /* animationDelay set inline */
-            }
-
-            /* ── Loading text: 4.2s ── */
-            @keyframes loadingIn {
+            @keyframes arrowIn {
               from { opacity: 0; }
               to   { opacity: 1; }
             }
-            .splash-loading {
+            .splash-arrow {
               opacity: 0;
-              animation: loadingIn 0.4s ease 4.2s both;
+              animation: arrowIn 0.3s ease 2.5s both, bounceArrow 1.2s ease-in-out 2.5s infinite;
             }
 
-            /* ── Pulsing dots ── */
-            @keyframes pulse {
-              0%, 100% { opacity: 0.2; }
-              50%      { opacity: 0.6; }
-            }
-            .splash-dot {
-              animation: pulse 0.8s ease-in-out 4.4s infinite;
-            }
-
-            /* ── Progress bar: 0→100% in 5.5s ── */
+            /* Progress bar: 0→100% in 5s */
             @keyframes fillBar {
               from { width: 0%; }
               to   { width: 100%; }
             }
             .splash-bar {
-              animation: fillBar 5.5s linear both;
+              animation: fillBar 5s linear both;
             }
           `}</style>
         </div>

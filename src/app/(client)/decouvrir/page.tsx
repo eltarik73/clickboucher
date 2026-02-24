@@ -45,13 +45,13 @@ function HeroLogo() {
   return (
     <div className="flex flex-col items-center mb-4 sm:mb-8">
       <div className="relative">
-        <div className="absolute inset-0 blur-2xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
-        <KlikLogo size={80} className="w-14 h-14 sm:w-20 sm:h-20 relative z-10" />
+        <div className="absolute inset-0 blur-3xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
+        <KlikLogo size={100} className="w-20 h-20 sm:w-[100px] sm:h-[100px] relative z-10 drop-shadow-2xl" />
       </div>
-      <h2 className="mt-2 sm:mt-4 text-xl sm:text-2xl font-bold text-white tracking-tight">
-        Klik<span className="text-[#DC2626] font-black">&amp;</span>Go
+      <h2 className="mt-3 sm:mt-5 text-4xl sm:text-5xl font-black text-white tracking-tight">
+        Klik<span className="text-[#DC2626]">&amp;</span>Go
       </h2>
-      <p className="text-[10px] sm:text-xs text-[#666] tracking-wider mt-0.5">by TkS26</p>
+      <p className="text-[10px] sm:text-xs text-[#666] tracking-wider mt-1">by TkS26</p>
     </div>
   );
 }
