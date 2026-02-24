@@ -29,11 +29,11 @@ export const metadata: Metadata = {
 // ─────────────────────────────────────────────────────────────
 // LOGO COMPONENT (Header) — uses shared KlikLogo
 // ─────────────────────────────────────────────────────────────
-function KlikGoLogo({ light = false }: { light?: boolean }) {
+function KlikGoLogo() {
   return (
     <div className="flex items-center gap-2.5">
       <KlikLogo size={40} className="shadow-lg shadow-[#DC2626]/20" />
-      <KlikWordmark size="lg" className={light ? "[&>span]:!text-white" : ""} />
+      <KlikWordmark size="lg" />
     </div>
   );
 }
@@ -48,7 +48,7 @@ function HeroLogo() {
         <div className="absolute inset-0 blur-3xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
         <KlikLogo size={100} className="w-20 h-20 sm:w-[100px] sm:h-[100px] relative z-10 drop-shadow-2xl" />
       </div>
-      <h2 className="mt-3 sm:mt-5 text-4xl sm:text-5xl font-black text-white tracking-tight">
+      <h2 className="mt-3 sm:mt-5 text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
         Klik<span className="text-[#DC2626]">&amp;</span>Go
       </h2>
       <p className="text-[10px] sm:text-xs text-[#666] tracking-wider mt-1">by TkS26</p>
@@ -171,20 +171,20 @@ export default async function DecouvrirPage() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER - DARK */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <section className="relative bg-[#0A0A0A]">
+      <section className="relative bg-white dark:bg-[#0A0A0A]">
         {/* Grid pattern */}
         <div
-          className="absolute inset-0 opacity-[0.03]"
+          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.03]"
           style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, #999 1px, transparent 0)",
             backgroundSize: "32px 32px",
           }}
         />
 
         {/* Header */}
-        <header className="relative z-10 border-b border-white/5">
+        <header className="relative z-10 border-b border-gray-100 dark:border-white/5">
           <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
-            <KlikGoLogo light />
+            <KlikGoLogo />
             <div className="flex items-center gap-3">
               <Link
                 href="/espace-boucher"
@@ -202,12 +202,12 @@ export default async function DecouvrirPage() {
         {/* Hero content with CENTERED LOGO */}
         <div className="relative z-10 max-w-6xl mx-auto px-5 py-8 sm:py-16 text-center">
           <HeroLogo />
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.1]">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
             Marre d&apos;attendre ?<br />
             <span className="text-[#DC2626]">Commandez, recuperez.</span>
           </h1>
-          <p className="mt-3 sm:mt-5 text-base sm:text-lg text-[#888] max-w-xl mx-auto">
-            Zero file. Zero stress. <span className="text-white font-medium">100% frais.</span>
+          <p className="mt-3 sm:mt-5 text-base sm:text-lg text-gray-500 dark:text-[#888] max-w-xl mx-auto">
+            Zero file. Zero stress. <span className="text-gray-900 dark:text-white font-medium">100% frais.</span>
           </p>
           <HeroButtons />
 
