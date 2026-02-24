@@ -190,6 +190,9 @@ export async function POST(req: NextRequest) {
         promoPct: data.promoPct,
         promoEnd: data.promoEnd ? new Date(data.promoEnd) : null,
         promoType: data.promoType,
+        isActive: data.isActive ?? true,
+        unitLabel: data.unitLabel,
+        sliceOptions: data.sliceOptions ?? undefined,
         ...(data.images?.length && {
           images: {
             create: data.images.map((img) => ({
