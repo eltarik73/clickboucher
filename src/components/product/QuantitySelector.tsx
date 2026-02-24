@@ -15,15 +15,26 @@ interface Props {
 export function QuantitySelector({ rule, initialG, onChange, compact = false }: Props) {
   const def = initialG ?? rule.presetsG[1] ?? rule.presetsG[0] ?? rule.minG;
   const [qty, setQty] = useState(def);
+  const [inputValue, setInputValue] = useState(String(def));
   const [activePreset, setActivePreset] = useState<number | null>(rule.presetsG.includes(def) ? def : null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const update = useCallback((v: number) => {
     const c = Math.max(rule.minG, Math.min(rule.maxG, v));
     setQty(c);
+    setInputValue(String(c));
     onChange(c);
     setActivePreset(rule.presetsG.includes(c) ? c : null);
   }, [rule, onChange]);
+
+  const commitInput = useCallback(() => {
+    const v = parseInt(inputValue);
+    if (!isNaN(v) && v > 0) {
+      update(v);
+    } else {
+      setInputValue(String(qty));
+    }
+  }, [inputValue, qty, update]);
 
   const est = computeEstimation(qty, rule.category);
   const estText = formatEstimation(est);
@@ -51,8 +62,11 @@ export function QuantitySelector({ rule, initialG, onChange, compact = false }: 
           −
         </button>
         <div className="flex-1 relative">
-          <input ref={inputRef} type="number" value={qty} onChange={e => {const v=parseInt(e.target.value);if(!isNaN(v))update(v);}}
-            min={rule.minG} max={rule.maxG} step={rule.pasG}
+          <input ref={inputRef} type="text" inputMode="numeric" pattern="[0-9]*"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value.replace(/[^0-9]/g, ""))}
+            onBlur={commitInput}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); commitInput(); inputRef.current?.blur(); } }}
             className="w-full text-center text-sm font-semibold py-1.5 border border-[#E8E5E1] dark:border-white/15 rounded-lg
               bg-transparent dark:text-white
               focus:outline-none focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all
