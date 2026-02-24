@@ -1,19 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { SHOPS } from "@/lib/seed/data";
-import { Avatar, Badge } from "@/components/ui/shared";
+import { Badge } from "@/components/ui/badge";
 
-type ShopAdmin = (typeof SHOPS)[number] & { featured: boolean; visible: boolean };
+type ShopAdmin = {
+  id: string;
+  name: string;
+  city: string;
+  halal: boolean;
+  imageUrl: string;
+  featured: boolean;
+  visible: boolean;
+};
+
+const DEMO_SHOPS: ShopAdmin[] = [
+  { id: "1", name: "Boucherie Savoie Halal", city: "Chambéry", halal: true, imageUrl: "/img/shops/savoie-halal.jpg", featured: true, visible: true },
+  { id: "2", name: "Boucherie du Marché", city: "Annecy", halal: false, imageUrl: "/img/shops/marche.jpg", featured: false, visible: true },
+  { id: "3", name: "Boucherie Tarik", city: "Grenoble", halal: true, imageUrl: "/img/shops/tarik.jpg", featured: false, visible: true },
+  { id: "4", name: "La Bonne Viande", city: "Lyon", halal: false, imageUrl: "/img/shops/bonne-viande.jpg", featured: false, visible: true },
+];
+
+function ShopAvatar({ src, name, size = 44 }: { src?: string; name: string; size?: number }) {
+  return (
+    <div
+      className="rounded-[14px] overflow-hidden bg-stone-100 dark:bg-white/10 grid place-items-center flex-shrink-0"
+      style={{ width: size, height: size }}
+    >
+      {src ? (
+        <img src={src} alt={name} className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-stone-400 font-bold" style={{ fontSize: size * 0.3 }}>
+          {name?.slice(0, 2).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function WebmasterBoutiquesPage() {
-  const [shops, setShops] = useState<ShopAdmin[]>(
-    SHOPS.map((s) => ({
-      ...s,
-      featured: s.id === "cb_savoie_halal_1",
-      visible: true,
-    }))
-  );
+  const [shops, setShops] = useState<ShopAdmin[]>(DEMO_SHOPS);
 
   const toggle = (id: string, field: "featured" | "visible") => {
     setShops(shops.map((s) => (s.id === id ? { ...s, [field]: !s[field] } : s)));
@@ -30,14 +55,14 @@ export default function WebmasterBoutiquesPage() {
           style={{ animationDelay: `${i * 70}ms` } as React.CSSProperties}
         >
           <div className="flex gap-3.5 items-center">
-            <Avatar src={s.imageUrl} name={s.name} size={44} />
+            <ShopAvatar src={s.imageUrl} name={s.name} size={44} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
                   {s.name}
                 </p>
                 {s.featured && (
-                  <Badge variant="express" className="text-[10px]">
+                  <Badge variant="warning" className="text-[10px]">
                     Mise en avant
                   </Badge>
                 )}

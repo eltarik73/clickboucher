@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/shared";
+import { Badge } from "@/components/ui/badge";
 
 type ProRequest = {
   id: string;
@@ -50,7 +50,7 @@ export default function WebmasterDemandesPage() {
                       <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
                         {r.name}
                       </p>
-                      <Badge variant="express">En attente</Badge>
+                      <Badge variant="warning">En attente</Badge>
                     </div>
                     <p className="text-[11px] text-stone-500 dark:text-gray-400 mt-1">
                       {r.contact} &middot; {r.type} &middot; {r.date}
@@ -81,7 +81,7 @@ export default function WebmasterDemandesPage() {
       {resolved.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Trait&eacute;es ({resolved.length})
+            Traitées ({resolved.length})
           </h3>
           <div className="flex flex-col gap-2.5">
             {resolved.map((r, i) => (
@@ -96,8 +96,8 @@ export default function WebmasterDemandesPage() {
                       <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
                         {r.name}
                       </p>
-                      <Badge variant={r.status === "approved" ? "open" : "closed"}>
-                        {r.status === "approved" ? "Approuv\u00e9" : "Refus\u00e9"}
+                      <Badge variant={r.status === "approved" ? "success" : "destructive"}>
+                        {r.status === "approved" ? "Approuvé" : "Refusé"}
                       </Badge>
                     </div>
                     <p className="text-[11px] text-stone-500 dark:text-gray-400 mt-1">

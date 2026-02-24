@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { BackBtn, Badge } from "@/components/ui/shared";
+import { Badge } from "@/components/ui/badge";
 
 const TABS = [
   { key: "boutiques", label: "Boutiques", icon: "🏪", href: "/webmaster/boutiques" },
@@ -18,7 +18,12 @@ export default function WebmasterLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-gradient-to-r from-stone-950 to-stone-900 text-white px-5 py-3.5 flex items-center gap-3.5">
-        <BackBtn onClick={() => router.push("/decouvrir")} light />
+        <button
+          onClick={() => router.push("/decouvrir")}
+          className="w-10 h-10 rounded-[10px] grid place-items-center text-lg transition-all border border-white/20 bg-white/10 text-white hover:bg-white/20"
+        >
+          ←
+        </button>
         <div className="flex-1 min-w-0">
           <p className="font-display text-base font-bold truncate">Klik&amp;Go Admin</p>
           <p className="text-[11px] opacity-50">Panneau webmaster</p>
