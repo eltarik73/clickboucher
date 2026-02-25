@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Flame, ArrowLeft, MapPin } from "lucide-react";
 import { FlashCountdown } from "@/components/product/FlashCountdown";
-import { resolveProductImage } from "@/lib/product-images";
+import { resolveProductImage, hasWatermark } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 
 // ── Types ──
@@ -178,7 +178,7 @@ function PromoCard({ product }: { product: PromoProduct }) {
         isFlash ? "ring-1 ring-orange-300/50 dark:ring-orange-700/50" : ""
       }`}>
         {/* Image */}
-        <div className="relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0 halal-logo-patch-sm">
+        <div className={`relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0${hasWatermark(imgSrc) ? ' halal-logo-patch-sm' : ''}`}>
           <Image src={imgSrc} alt={product.name} fill sizes="64px" className="object-cover" quality={70} />
           <div className={`absolute top-0 left-0 px-1.5 py-0.5 text-white text-[9px] font-extrabold rounded-br-lg ${
             isFlash ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#DC2626]"
