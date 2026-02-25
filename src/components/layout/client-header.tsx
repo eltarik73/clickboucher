@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MapPin, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/ui/NotificationBell";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 import { SecretTapLogo } from "@/components/layout/SecretTapLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
@@ -39,6 +40,7 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
         </div>
 
         <div className="flex items-center gap-1.5">
+          <ThemeToggle />
           <NotificationBell />
           {showCart && (
             <Link href="/panier" aria-label="Panier" className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 transition-colors tap-scale">

@@ -57,8 +57,8 @@ const config: Config = {
         sm: "calc(var(--radius) - 8px)",
       },
       fontFamily: {
-        sans: ["var(--font-body)", "'DM Sans'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["var(--font-display)", "'Outfit'", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "'Outfit'", "system-ui", "-apple-system", "sans-serif"],
+        display: ["var(--font-body)", "'Outfit'", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)", "'Cormorant Garamond'", "Georgia", "serif"],
       },
       fontSize: {

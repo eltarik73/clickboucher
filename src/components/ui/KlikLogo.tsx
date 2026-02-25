@@ -27,10 +27,10 @@ export function KlikLogo({ size = 40, className = "" }: { size?: number; classNa
         d="M35 25 L35 75 L45 75 L45 55 L60 75 L73 75 L55 52 L72 25 L59 25 L45 47 L45 25 Z"
         fill="white"
       />
-      {/* 3 traits de vitesse */}
-      <line x1="75" y1="35" x2="88" y2="35" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
-      <line x1="78" y1="45" x2="93" y2="45" stroke="white" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
-      <line x1="75" y1="55" x2="86" y2="55" stroke="white" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
+      {/* 3 traits de vitesse (rect dégradés) */}
+      <rect x="76" y="33" width="14" height="3.5" rx="1.75" fill="white" opacity="0.7" />
+      <rect x="79" y="43" width="16" height="3" rx="1.5" fill="white" opacity="0.5" />
+      <rect x="76" y="53" width="12" height="2.5" rx="1.25" fill="white" opacity="0.3" />
     </svg>
   );
 }
@@ -53,9 +53,9 @@ export function KlikWordmark({
   };
 
   return (
-    <span className={`font-bold tracking-tight ${sizeClasses[size]} ${className}`}>
+    <span className={`font-extrabold tracking-tight ${sizeClasses[size]} ${className}`} style={{ fontWeight: 800 }}>
       <span className="text-gray-900 dark:text-white">Klik</span>
-      <span className="text-[#DC2626] font-black">&amp;</span>
+      <span className="text-[#DC2626] not-italic" style={{ fontWeight: 900 }}>&amp;</span>
       <span className="text-gray-900 dark:text-white">Go</span>
     </span>
   );
