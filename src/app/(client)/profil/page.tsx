@@ -143,16 +143,17 @@ export default function ProfilPage() {
       const data = await res.json();
       if (data.success) {
         toast.success("Compte supprimé. Vous allez être déconnecté.");
+        // Keep deleting=true to prevent double-click, then sign out
         setTimeout(() => clerk.signOut({ redirectUrl: "/decouvrir" }), 1500);
+        return; // Don't reset state on success
       } else {
         toast.error(data.error?.message || "Erreur lors de la suppression");
       }
     } catch {
       toast.error("Erreur réseau");
-    } finally {
-      setDeleting(false);
-      setShowDeleteConfirm(false);
     }
+    setDeleting(false);
+    setShowDeleteConfirm(false);
   };
 
   const handleRemoveFavorite = async (shopId: string) => {

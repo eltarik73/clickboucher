@@ -77,6 +77,17 @@ export async function GET(req: NextRequest) {
       "Note client",
     ];
 
+    const STATUS_FR: Record<string, string> = {
+      PENDING: "En attente",
+      ACCEPTED: "Acceptee",
+      PREPARING: "En preparation",
+      READY: "Prete",
+      COMPLETED: "Terminee",
+      PICKED_UP: "Recuperee",
+      CANCELLED: "Annulee",
+      DENIED: "Refusee",
+    };
+
     const rows = orders.map((order) => {
       const date = new Date(order.createdAt);
       const dateStr = date.toLocaleDateString("fr-FR");
@@ -87,7 +98,7 @@ export async function GET(req: NextRequest) {
       const articles = order.items
         .map((i) => `${i.quantity}x ${i.product?.name || i.name}`)
         .join(", ");
-      const total = (order.totalCents / 100).toFixed(2);
+      const total = (order.totalCents / 100).toFixed(2).replace(".", ",");
       const payment = order.paymentMethod === "ONLINE" ? "En ligne" : "Sur place";
 
       return [
@@ -98,7 +109,7 @@ export async function GET(req: NextRequest) {
         order.user?.phone || "",
         order.user?.email || "",
         order.shop?.name || "",
-        order.status,
+        STATUS_FR[order.status] || order.status,
         articles,
         total,
         payment,

@@ -37,7 +37,7 @@ function formatPrice(cents: number) {
 }
 
 function formatUnit(unit: string) {
-  return unit === "KG" ? "kg" : unit === "PIECE" ? "pc" : "barq.";
+  return unit === "KG" ? "kg" : unit === "PIECE" ? "pc" : unit === "TRANCHE" ? "tr." : "barq.";
 }
 
 function formatTime(dateStr: string) {
@@ -410,7 +410,7 @@ export default function KitchenOrderCard({
             <div className="flex gap-2">
               <button
                 onClick={() => doAction("deny", { reason: denyReason })}
-                disabled={loading}
+                disabled={loading || !denyReason.trim()}
                 className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}

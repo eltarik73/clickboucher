@@ -144,31 +144,30 @@ export async function DELETE() {
       );
     }
 
-    // Soft delete: anonymize data + set deletedAt
+    // Soft delete: anonymize data + disconnect favorites in a single transaction
     const deletedSuffix = `_deleted_${Date.now()}`;
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        deletedAt: new Date(),
-        firstName: "Compte",
-        lastName: "Supprimé",
-        email: `deleted${deletedSuffix}@klikandgo.app`,
-        phone: null,
-        companyName: null,
-        siret: null,
-        notifSms: false,
-        notifWhatsapp: false,
-        notifPush: false,
-        pushSubscription: Prisma.JsonNull,
-        referralCode: null,
-      },
-    });
-
-    // Disconnect favorites
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { favoriteShops: { set: [] } },
-    });
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          deletedAt: new Date(),
+          clerkId: `deleted${deletedSuffix}`,
+          firstName: "Compte",
+          lastName: "Supprime",
+          email: `deleted${deletedSuffix}@klikandgo.app`,
+          phone: null,
+          companyName: null,
+          siret: null,
+          sector: null,
+          notifSms: false,
+          notifWhatsapp: false,
+          notifPush: false,
+          pushSubscription: Prisma.JsonNull,
+          referralCode: null,
+          favoriteShops: { set: [] },
+        },
+      }),
+    ]);
 
     return apiSuccess({ deleted: true });
   } catch (error) {

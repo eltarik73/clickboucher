@@ -1,16 +1,23 @@
+import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
 import { requireAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const adminCheck = await requireAdmin();
     if (adminCheck.error) return adminCheck.error;
 
+    // Optional role filter
+    const roleFilter = req.nextUrl.searchParams.get("role");
+    const where: Prisma.UserWhereInput = roleFilter ? { role: roleFilter as Prisma.EnumRoleFilter } : {};
+
     // 1. Fetch users with order count (no order data loaded)
     const users = await prisma.user.findMany({
+      where,
       select: {
         id: true,
         clerkId: true,

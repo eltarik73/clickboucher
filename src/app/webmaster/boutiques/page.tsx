@@ -48,20 +48,30 @@ export default function WebmasterBoutiquesPage() {
   }, []);
 
   async function toggleField(id: string, field: "featured" | "visible") {
-    const shop = shops.find((s) => s.id === id);
-    if (!shop) return;
-    const newVal = !shop[field];
-    // Optimistic
-    setShops(shops.map((s) => (s.id === id ? { ...s, [field]: newVal } : s)));
+    setShops((prev) => {
+      const shop = prev.find((s) => s.id === id);
+      if (!shop) return prev;
+      return prev.map((s) => (s.id === id ? { ...s, [field]: !s[field] } : s));
+    });
     try {
-      await fetch(`/api/admin/shops/${id}`, {
+      const shop = shops.find((s) => s.id === id);
+      const newVal = shop ? !shop[field] : true;
+      const res = await fetch(`/api/admin/shops/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: newVal }),
       });
+      if (!res.ok) {
+        // Revert on HTTP error
+        setShops((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: !newVal } : s)));
+      }
     } catch {
-      // Revert
-      setShops(shops.map((s) => (s.id === id ? { ...s, [field]: !newVal } : s)));
+      // Revert on network error
+      setShops((prev) => {
+        const shop = prev.find((s) => s.id === id);
+        if (!shop) return prev;
+        return prev.map((s) => (s.id === id ? { ...s, [field]: !s[field] } : s));
+      });
     }
   }
 

@@ -22,6 +22,7 @@ import {
   Download,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { toast } from "sonner";
 
 // Lazy-load recharts (identical pattern to admin/analytics)
 const LineChart = dynamic(
@@ -209,19 +210,44 @@ export default function StatistiquesPage() {
   // ── Export CSV ──
   async function exportCSV() {
     try {
-      const res = await fetch(`/api/orders/export?format=csv`);
-      if (!res.ok) return;
+      // Build date range based on selected period
+      const now = new Date();
+      let from: string | undefined;
+      if (period === "week") {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 7);
+        from = d.toISOString().slice(0, 10);
+      } else if (period === "month") {
+        const d = new Date(now);
+        d.setMonth(d.getMonth() - 1);
+        from = d.toISOString().slice(0, 10);
+      } else if (period === "year") {
+        const d = new Date(now);
+        d.setFullYear(d.getFullYear() - 1);
+        from = d.toISOString().slice(0, 10);
+      }
+      const to = now.toISOString().slice(0, 10);
+      const params = new URLSearchParams({ format: "csv" });
+      if (from) params.set("from", from);
+      params.set("to", to);
+
+      const res = await fetch(`/api/orders/export?${params.toString()}`);
+      if (!res.ok) {
+        toast.error("Erreur lors de l'export");
+        return;
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `commandes-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `commandes-${to}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Delay revokeObjectURL for Safari compatibility
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
-      // silent
+      toast.error("Erreur lors de l'export");
     }
   }
 

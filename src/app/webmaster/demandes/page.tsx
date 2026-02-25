@@ -47,16 +47,21 @@ export default function WebmasterDemandesPage() {
       prev.map((r) => (r.id === userId ? { ...r, status: action } : r))
     );
     try {
-      await fetch(`/api/admin/users/${userId}`, {
+      const res = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          role: action === "APPROVED" ? "CLIENT_PRO" : "CLIENT",
-          proStatus: action,
+          role: action === "APPROVED" ? "client_pro" : "client",
         }),
       });
+      if (!res.ok) {
+        // Revert on HTTP error
+        setRequests((prev) =>
+          prev.map((r) => (r.id === userId ? { ...r, status: "PENDING" } : r))
+        );
+      }
     } catch {
-      // Revert
+      // Revert on network error
       setRequests((prev) =>
         prev.map((r) => (r.id === userId ? { ...r, status: "PENDING" } : r))
       );

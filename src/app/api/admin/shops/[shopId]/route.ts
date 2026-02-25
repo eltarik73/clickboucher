@@ -1,8 +1,9 @@
-// GET /api/admin/shops/[shopId] — Admin shop detail
+// GET + PATCH /api/admin/shops/[shopId] — Admin shop detail & toggle
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
@@ -75,5 +76,43 @@ export async function GET(
     });
   } catch (error) {
     return handleApiError(error, "admin/shops/[shopId]");
+  }
+}
+
+// ── PATCH /api/admin/shops/[shopId] — Toggle featured/visible ──
+
+const patchShopSchema = z.object({
+  featured: z.boolean().optional(),
+  visible: z.boolean().optional(),
+});
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { shopId: string } }
+) {
+  try {
+    const admin = await requireAdmin();
+    if (admin.error) return admin.error;
+
+    const { shopId } = params;
+    const body = await req.json();
+    const data = patchShopSchema.parse(body);
+
+    if (data.featured === undefined && data.visible === undefined) {
+      return apiError("VALIDATION_ERROR", "Aucun champ a modifier");
+    }
+
+    const updated = await prisma.shop.update({
+      where: { id: shopId },
+      data: {
+        ...(data.featured !== undefined && { featured: data.featured }),
+        ...(data.visible !== undefined && { visible: data.visible }),
+      },
+      select: { id: true, featured: true, visible: true },
+    });
+
+    return apiSuccess(updated);
+  } catch (error) {
+    return handleApiError(error, "admin/shops/[shopId]/patch");
   }
 }

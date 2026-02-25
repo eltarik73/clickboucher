@@ -33,6 +33,17 @@ export async function PATCH(req: NextRequest) {
       if (shop.ownerId !== userId) return apiError("FORBIDDEN", "Non autorise");
     }
 
+    // Validate all categories belong to this shop
+    const categories = await prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, shopId: true },
+    });
+    const allBelongToShop = categories.length === categoryIds.length &&
+      categories.every((c) => c.shopId === shopId);
+    if (!allBelongToShop) {
+      return apiError("FORBIDDEN", "Certaines categories n'appartiennent pas a cette boucherie");
+    }
+
     // Batch update order
     await prisma.$transaction(
       categoryIds.map((id, index) =>

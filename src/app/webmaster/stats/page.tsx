@@ -7,9 +7,9 @@ type AdminStats = {
   totalRevenue: number;
   totalOrders: number;
   totalShops: number;
-  totalClients: number;
-  totalCommission: number;
-  weekOrders: { date: string; count: number }[];
+  totalUsers: number;
+  totalCommissionCents: number;
+  ordersLast7Days: { date: string; orders: number }[];
 };
 
 function centsToEuro(c: number) {
@@ -42,16 +42,16 @@ export default function WebmasterStatsPage() {
     return <p className="text-center text-gray-400 py-12">Impossible de charger les statistiques</p>;
   }
 
-  const weekData = stats.weekOrders || [];
-  const maxVal = Math.max(...weekData.map((d) => d.count), 1);
-  const totalWeek = weekData.reduce((s, d) => s + d.count, 0);
+  const weekData = stats.ordersLast7Days || [];
+  const maxVal = Math.max(...weekData.map((d) => d.orders), 1);
+  const totalWeek = weekData.reduce((s, d) => s + d.orders, 0);
 
   const SUMMARY = [
     { label: "CA total", value: centsToEuro(stats.totalRevenue), color: "text-[#DC2626]" },
     { label: "Commandes", value: String(stats.totalOrders), color: "text-blue-600 dark:text-blue-400" },
     { label: "Boucheries", value: String(stats.totalShops), color: "text-emerald-600 dark:text-emerald-400" },
-    { label: "Clients", value: String(stats.totalClients), color: "text-purple-600 dark:text-purple-400" },
-    { label: "Commission", value: centsToEuro(stats.totalCommission), color: "text-amber-600 dark:text-amber-400" },
+    { label: "Clients", value: String(stats.totalUsers), color: "text-purple-600 dark:text-purple-400" },
+    { label: "Commission", value: centsToEuro(stats.totalCommissionCents), color: "text-amber-600 dark:text-amber-400" },
     { label: "Sem. en cours", value: String(totalWeek), color: "text-gray-900 dark:text-white" },
   ];
 
@@ -79,18 +79,18 @@ export default function WebmasterStatsPage() {
           <div className="mt-5 flex items-end gap-2 h-[150px]">
             {weekData.map((d, i) => {
               const dayLabel = new Date(d.date).toLocaleDateString("fr-FR", { weekday: "short" });
-              const isMax = d.count === maxVal;
+              const isMax = d.orders === maxVal;
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
                   <span className="text-[10px] font-semibold text-stone-500 dark:text-gray-400">
-                    {d.count}
+                    {d.orders}
                   </span>
                   <div
                     className={`w-full rounded-t-lg animate-fade-up ${
                       isMax ? "bg-[#DC2626]" : "bg-stone-200 dark:bg-white/10"
                     }`}
                     style={{
-                      height: `${Math.max((d.count / maxVal) * 110, 4)}px`,
+                      height: `${Math.max((d.orders / maxVal) * 110, 4)}px`,
                       animationDelay: `${i * 70}ms`,
                     } as React.CSSProperties}
                   />

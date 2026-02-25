@@ -9,7 +9,7 @@ import { z } from "zod";
 const createEventSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(500).optional(),
-  date: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format de date invalide (YYYY-MM-DD)"),
   type: z.enum(["fermeture", "promo", "evenement", "fete"]),
   emoji: z.string().max(10).optional(),
 });
@@ -18,7 +18,7 @@ const updateEventSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(500).optional(),
-  date: z.string().min(1).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format de date invalide (YYYY-MM-DD)").optional(),
   type: z.enum(["fermeture", "promo", "evenement", "fete"]).optional(),
   emoji: z.string().max(10).optional(),
   active: z.boolean().optional(),
@@ -95,13 +95,14 @@ export async function DELETE(req: NextRequest) {
     });
     if (!event) return apiError("NOT_FOUND", "Evenement introuvable");
 
-    // Verify ownership
-    if (event.shopId) {
-      const shop = await prisma.shop.findFirst({
-        where: { id: event.shopId, ownerId: userId },
-      });
-      if (!shop) return apiError("FORBIDDEN", "Non autorise");
+    // Verify ownership — always require shopId and ownership check
+    if (!event.shopId) {
+      return apiError("FORBIDDEN", "Non autorise");
     }
+    const shop = await prisma.shop.findFirst({
+      where: { id: event.shopId, ownerId: userId },
+    });
+    if (!shop) return apiError("FORBIDDEN", "Non autorise");
 
     await prisma.calendarEvent.delete({ where: { id } });
     return apiSuccess({ deleted: true });

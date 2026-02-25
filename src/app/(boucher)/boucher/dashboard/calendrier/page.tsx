@@ -174,9 +174,11 @@ export default function CalendrierPage() {
     } catch { /* ignore */ }
   }
 
+  // Merge events, deduplicating boucher's custom events that appear in both dbEvents and myEvents
+  const myEventIds = new Set(myEvents.map((e) => e.id));
   const allEvents = [
     ...RELIGIOUS_EVENTS,
-    ...dbEvents,
+    ...dbEvents.filter((e) => !myEventIds.has(e.id)),
     ...myEvents.map((e) => ({
       ...e,
       emoji: e.emoji || "📅",

@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         freshness: original.freshness,
         customerNote: original.customerNote,
         unitLabel: original.unitLabel,
+        vatRate: original.vatRate,
         sliceOptions: original.sliceOptions as object | undefined,
         isActive: false, // Start inactive
         labels: original.labels.length > 0
