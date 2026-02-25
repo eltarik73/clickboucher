@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { resolveProductImage, hasWatermark } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 import type { ProductCardData } from "./ProductCard";
 
@@ -103,7 +103,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
           {/* ── Header row: emoji/img + name + price ── */}
           <div className="flex items-center gap-3 px-3.5 pt-3.5">
             {/* Emoji / Image square */}
-            <div className={`relative w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden${hasWatermark(imgSrc) ? ' halal-logo-patch-sm' : ''}`}>
+            <div className="relative w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden">
               {hasImage ? (
                 <img
                   src={imgSrc}

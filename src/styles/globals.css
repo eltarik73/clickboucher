@@ -159,61 +159,6 @@ body {
   }
 }
 
-/* ─── Halal watermark patch ──────────────── */
-/* Gradient fade to hide watermarks — no visible hard edges */
-.halal-logo-patch::before,
-.halal-logo-patch::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  z-index: 5;
-  pointer-events: none;
-}
-.halal-logo-patch::before {
-  left: 0;
-  width: 75px;
-  height: 50px;
-  background: radial-gradient(ellipse at bottom left, #ffffff 35%, transparent 70%);
-}
-.halal-logo-patch::after {
-  right: 0;
-  width: 75px;
-  height: 40px;
-  background: radial-gradient(ellipse at bottom right, #ffffff 35%, transparent 70%);
-}
-.dark .halal-logo-patch::before {
-  background: radial-gradient(ellipse at bottom left, #141414 35%, transparent 70%);
-}
-.dark .halal-logo-patch::after {
-  background: radial-gradient(ellipse at bottom right, #141414 35%, transparent 70%);
-}
-/* Smaller variant for 64px thumbnails */
-.halal-logo-patch-sm::before,
-.halal-logo-patch-sm::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  z-index: 5;
-  pointer-events: none;
-}
-.halal-logo-patch-sm::before {
-  left: 0;
-  width: 28px;
-  height: 20px;
-  background: radial-gradient(ellipse at bottom left, #ffffff 35%, transparent 70%);
-}
-.halal-logo-patch-sm::after {
-  right: 0;
-  width: 28px;
-  height: 16px;
-  background: radial-gradient(ellipse at bottom right, #ffffff 35%, transparent 70%);
-}
-.dark .halal-logo-patch-sm::before {
-  background: radial-gradient(ellipse at bottom left, #141414 35%, transparent 70%);
-}
-.dark .halal-logo-patch-sm::after {
-  background: radial-gradient(ellipse at bottom right, #141414 35%, transparent 70%);
-}
 
 /* ─── Utility classes ───────────────────────── */
 @layer utilities {

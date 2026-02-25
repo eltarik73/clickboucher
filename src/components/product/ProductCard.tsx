@@ -4,7 +4,7 @@
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { Plus, Check, Minus } from "lucide-react";
-import { resolveProductImage, hasWatermark } from "@/lib/product-images";
+import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 import type { Product as ProductV2, ProductImage as ProductImageType } from "@/types";
 
@@ -93,7 +93,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
       onClick={onTap}
     >
       {/* ── Image 4:3 ── */}
-      <div className={`relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5${hasWatermark(imgSrc) ? ' halal-logo-patch' : ''}`}>
+      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
         <Image
           src={imgSrc}
           alt={product.name}
