@@ -103,7 +103,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
           {/* ── Header row: emoji/img + name + price ── */}
           <div className="flex items-center gap-3 px-3.5 pt-3.5">
             {/* Emoji / Image square */}
-            <div className="relative w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden">
+            <div className={`relative w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden${product.imageUrl?.includes('laboucherie-halal.com') ? ' halal-logo-patch-sm' : ''}`}>
               {hasImage ? (
                 <img
                   src={imgSrc}

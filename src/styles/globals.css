@@ -168,17 +168,19 @@ body {
   bottom: 0;
   z-index: 5;
   pointer-events: none;
-  background: white;
+  background: #f5f5f5;
 }
 .halal-logo-patch::before {
   left: 0;
-  width: 55px;
-  height: 45px;
+  width: 50px;
+  height: 28px;
+  border-top-right-radius: 4px;
 }
 .halal-logo-patch::after {
   right: 0;
-  width: 65px;
-  height: 40px;
+  width: 50px;
+  height: 28px;
+  border-top-left-radius: 4px;
 }
 .dark .halal-logo-patch::before,
 .dark .halal-logo-patch::after {
@@ -192,17 +194,19 @@ body {
   bottom: 0;
   z-index: 5;
   pointer-events: none;
-  background: white;
+  background: #f5f5f5;
 }
 .halal-logo-patch-sm::before {
   left: 0;
-  width: 22px;
-  height: 18px;
+  width: 20px;
+  height: 14px;
+  border-top-right-radius: 2px;
 }
 .halal-logo-patch-sm::after {
   right: 0;
-  width: 26px;
-  height: 16px;
+  width: 20px;
+  height: 14px;
+  border-top-left-radius: 2px;
 }
 .dark .halal-logo-patch-sm::before,
 .dark .halal-logo-patch-sm::after {
