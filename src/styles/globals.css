@@ -160,7 +160,7 @@ body {
 }
 
 /* ─── Halal watermark patch ──────────────── */
-/* Covers logo watermarks on images sourced from laboucherie-halal.com */
+/* Gradient fade to hide watermarks — no visible hard edges */
 .halal-logo-patch::before,
 .halal-logo-patch::after {
   content: '';
@@ -168,23 +168,24 @@ body {
   bottom: 0;
   z-index: 5;
   pointer-events: none;
-  background: #ffffff;
 }
 .halal-logo-patch::before {
   left: 0;
-  width: 50px;
-  height: 28px;
-  border-top-right-radius: 4px;
+  width: 75px;
+  height: 50px;
+  background: radial-gradient(ellipse at bottom left, #ffffff 35%, transparent 70%);
 }
 .halal-logo-patch::after {
   right: 0;
-  width: 50px;
-  height: 28px;
-  border-top-left-radius: 4px;
+  width: 75px;
+  height: 40px;
+  background: radial-gradient(ellipse at bottom right, #ffffff 35%, transparent 70%);
 }
-.dark .halal-logo-patch::before,
+.dark .halal-logo-patch::before {
+  background: radial-gradient(ellipse at bottom left, #141414 35%, transparent 70%);
+}
 .dark .halal-logo-patch::after {
-  background: #141414;
+  background: radial-gradient(ellipse at bottom right, #141414 35%, transparent 70%);
 }
 /* Smaller variant for 64px thumbnails */
 .halal-logo-patch-sm::before,
@@ -194,23 +195,24 @@ body {
   bottom: 0;
   z-index: 5;
   pointer-events: none;
-  background: #ffffff;
 }
 .halal-logo-patch-sm::before {
   left: 0;
-  width: 20px;
-  height: 14px;
-  border-top-right-radius: 2px;
+  width: 28px;
+  height: 20px;
+  background: radial-gradient(ellipse at bottom left, #ffffff 35%, transparent 70%);
 }
 .halal-logo-patch-sm::after {
   right: 0;
-  width: 20px;
-  height: 14px;
-  border-top-left-radius: 2px;
+  width: 28px;
+  height: 16px;
+  background: radial-gradient(ellipse at bottom right, #ffffff 35%, transparent 70%);
 }
-.dark .halal-logo-patch-sm::before,
+.dark .halal-logo-patch-sm::before {
+  background: radial-gradient(ellipse at bottom left, #141414 35%, transparent 70%);
+}
 .dark .halal-logo-patch-sm::after {
-  background: #141414;
+  background: radial-gradient(ellipse at bottom right, #141414 35%, transparent 70%);
 }
 
 /* ─── Utility classes ───────────────────────── */
