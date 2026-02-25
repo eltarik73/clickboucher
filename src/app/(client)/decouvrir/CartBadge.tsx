@@ -25,17 +25,18 @@ export function CartBadge() {
   return (
     <Link
       href="/panier"
-      className="relative p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
+      className="relative p-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl transition-colors"
     >
       <svg
         width="20"
         height="20"
         viewBox="0 0 24 24"
         fill="none"
-        stroke="white"
+        stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        className="text-gray-700 dark:text-white"
       >
         <circle cx="9" cy="21" r="1" />
         <circle cx="20" cy="21" r="1" />

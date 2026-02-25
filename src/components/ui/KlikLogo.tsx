@@ -10,7 +10,7 @@ export function KlikLogo({ size = 40, className = "" }: { size?: number; classNa
       viewBox="0 0 100 100"
       width={size}
       height={size}
-      className={className}
+      className={`rounded-full ${className}`}
       aria-label="Klik&Go"
     >
       <defs>

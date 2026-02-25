@@ -465,7 +465,7 @@ export default function EspaceBoucherPage() {
           </p>
           <div className="mt-8 pt-8 border-t border-white/10">
             <p className="text-sm text-gray-500">
-              &copy; 2026 Klik&Go by TkS26
+              &copy; 2026 Klik&amp;Go
             </p>
           </div>
         </div>

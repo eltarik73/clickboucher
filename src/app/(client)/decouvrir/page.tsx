@@ -176,7 +176,7 @@ export default async function DecouvrirPage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/espace-boucher"
-                className="hidden sm:inline text-sm text-gray-500 hover:text-[#DC2626] transition"
+                className="hidden sm:inline text-sm text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition"
               >
                 Vous etes boucher ?
               </Link>
@@ -276,7 +276,7 @@ export default async function DecouvrirPage() {
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />
-            <p className="text-sm text-gray-400 dark:text-gray-500">2026 Klik&Go — Propulse par TkS26</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">&copy; 2026 Klik&amp;Go</p>
           </div>
         </div>
       </footer>

@@ -79,11 +79,6 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
             </span>
           </div>
 
-          {/* by TkS26 */}
-          <p className="relative z-10 mt-2 splash-tagline text-xs tracking-widest text-gray-400">
-            by TkS26
-          </p>
-
           {/* Tagline */}
           <p className="relative z-10 mt-4 splash-tagline-delayed flex items-center gap-1.5">
             {["Commandez", "·", "Récupérez", "·", "Savourez"].map((word, i) => (

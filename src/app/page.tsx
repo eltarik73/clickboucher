@@ -85,7 +85,6 @@ function HeroLogo() {
       <h2 className="mt-4 text-2xl sm:text-3xl font-bold text-white tracking-tight">
         Klik<span className="text-white">&amp;</span>Go
       </h2>
-      <p className="text-xs text-[#666] tracking-wider mt-1">by TkS26</p>
     </div>
   );
 }
@@ -344,7 +343,7 @@ export default async function HomePage() {
 
             {/* Copyright */}
             <p className="text-xs text-[#555]">
-              &copy; 2026 Klik&amp;Go &mdash; Propuls&eacute; par TkS26
+              &copy; 2026 Klik&amp;Go
             </p>
           </div>
         </div>
