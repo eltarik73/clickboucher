@@ -1,26 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 
 type ShopAdmin = {
   id: string;
   name: string;
   city: string;
-  halal: boolean;
-  imageUrl: string;
-  featured: boolean;
+  imageUrl: string | null;
+  status: string;
   visible: boolean;
+  featured: boolean;
+  rating: number;
+  _count?: { orders: number; products: number };
 };
 
-const DEMO_SHOPS: ShopAdmin[] = [
-  { id: "1", name: "Boucherie Savoie Halal", city: "Chambéry", halal: true, imageUrl: "/img/shops/savoie-halal.jpg", featured: true, visible: true },
-  { id: "2", name: "Boucherie du Marché", city: "Annecy", halal: false, imageUrl: "/img/shops/marche.jpg", featured: false, visible: true },
-  { id: "3", name: "Boucherie Tarik", city: "Grenoble", halal: true, imageUrl: "/img/shops/tarik.jpg", featured: false, visible: true },
-  { id: "4", name: "La Bonne Viande", city: "Lyon", halal: false, imageUrl: "/img/shops/bonne-viande.jpg", featured: false, visible: true },
-];
-
-function ShopAvatar({ src, name, size = 44 }: { src?: string; name: string; size?: number }) {
+function ShopAvatar({ src, name, size = 44 }: { src?: string | null; name: string; size?: number }) {
   return (
     <div
       className="rounded-[14px] overflow-hidden bg-stone-100 dark:bg-white/10 grid place-items-center flex-shrink-0"
@@ -38,14 +34,48 @@ function ShopAvatar({ src, name, size = 44 }: { src?: string; name: string; size
 }
 
 export default function WebmasterBoutiquesPage() {
-  const [shops, setShops] = useState<ShopAdmin[]>(DEMO_SHOPS);
+  const [shops, setShops] = useState<ShopAdmin[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggle = (id: string, field: "featured" | "visible") => {
-    setShops(shops.map((s) => (s.id === id ? { ...s, [field]: !s[field] } : s)));
-  };
+  useEffect(() => {
+    fetch("/api/admin/shops")
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        if (json?.data) setShops(json.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function toggleField(id: string, field: "featured" | "visible") {
+    const shop = shops.find((s) => s.id === id);
+    if (!shop) return;
+    const newVal = !shop[field];
+    // Optimistic
+    setShops(shops.map((s) => (s.id === id ? { ...s, [field]: newVal } : s)));
+    try {
+      await fetch(`/api/admin/shops/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: newVal }),
+      });
+    } catch {
+      // Revert
+      setShops(shops.map((s) => (s.id === id ? { ...s, [field]: !newVal } : s)));
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-[#DC2626]" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2.5">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{shops.length} boucherie{shops.length > 1 ? "s" : ""}</p>
       {shops.map((s, i) => (
         <div
           key={s.id}
@@ -66,14 +96,25 @@ export default function WebmasterBoutiquesPage() {
                     Mise en avant
                   </Badge>
                 )}
+                <Badge
+                  variant="outline"
+                  className={`text-[9px] ${
+                    s.status === "OPEN" ? "text-emerald-600 border-emerald-200" :
+                    s.status === "BUSY" ? "text-amber-600 border-amber-200" :
+                    "text-red-500 border-red-200"
+                  }`}
+                >
+                  {s.status}
+                </Badge>
               </div>
               <p className="text-[11px] text-stone-500 dark:text-gray-400 mt-0.5">
-                {s.city} {s.halal ? "- Halal" : ""}
+                {s.city} {s.rating > 0 ? `\u2605 ${s.rating.toFixed(1)}` : ""}
+                {s._count ? ` \u00B7 ${s._count.products} produits \u00B7 ${s._count.orders} commandes` : ""}
               </p>
             </div>
             <div className="flex gap-1.5 flex-shrink-0">
               <button
-                onClick={() => toggle(s.id, "featured")}
+                onClick={() => toggleField(s.id, "featured")}
                 className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all flex items-center justify-center ${
                   s.featured
                     ? "bg-[#DC2626] text-white"
@@ -84,7 +125,7 @@ export default function WebmasterBoutiquesPage() {
                 {s.featured ? "\u2605" : "\u2606"}
               </button>
               <button
-                onClick={() => toggle(s.id, "visible")}
+                onClick={() => toggleField(s.id, "visible")}
                 className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all flex items-center justify-center ${
                   s.visible
                     ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"
@@ -98,6 +139,9 @@ export default function WebmasterBoutiquesPage() {
           </div>
         </div>
       ))}
+      {shops.length === 0 && (
+        <p className="text-center text-sm text-gray-400 py-12">Aucune boucherie</p>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Bell, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Bell, Sparkles, ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 
 // ── Religious calendar events (Hijri dates converted to Gregorian approximations) ──
 const RELIGIOUS_EVENTS = [
@@ -90,21 +90,101 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
+type CustomEvent = {
+  id: string;
+  name: string;
+  description?: string | null;
+  date: string;
+  type: string;
+  emoji?: string | null;
+  shopId?: string | null;
+};
+
+const EVENT_TYPES = [
+  { value: "fermeture", label: "Fermeture", emoji: "🔒" },
+  { value: "promo", label: "Promo spéciale", emoji: "🏷️" },
+  { value: "evenement", label: "Événement", emoji: "📅" },
+  { value: "fete", label: "Fête / Célébration", emoji: "🎉" },
+];
+
 export default function CalendrierPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [dbEvents, setDbEvents] = useState<typeof RELIGIOUS_EVENTS>([]);
+  const [myEvents, setMyEvents] = useState<CustomEvent[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formDate, setFormDate] = useState("");
+  const [formType, setFormType] = useState("fermeture");
+  const [formDesc, setFormDesc] = useState("");
+  const [formSaving, setFormSaving] = useState(false);
 
   useEffect(() => {
-    // Load any custom events from DB
+    // Load global events
     fetch("/api/calendar-events")
       .then((r) => r.ok ? r.json() : null)
       .then((json) => {
         if (json?.data) setDbEvents(json.data);
       })
       .catch(() => {});
+    // Load my custom events
+    fetch("/api/boucher/calendar")
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        if (json?.data) setMyEvents(json.data);
+      })
+      .catch(() => {});
   }, []);
 
-  const allEvents = [...RELIGIOUS_EVENTS, ...dbEvents];
+  async function addCustomEvent() {
+    if (!formName.trim() || !formDate) return;
+    setFormSaving(true);
+    try {
+      const evtType = EVENT_TYPES.find((t) => t.value === formType);
+      const res = await fetch("/api/boucher/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formName.trim(),
+          date: formDate,
+          type: formType,
+          emoji: evtType?.emoji,
+          description: formDesc.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setMyEvents((prev) => [...prev, json.data]);
+        setFormName(""); setFormDate(""); setFormDesc("");
+        setShowForm(false);
+      }
+    } catch { /* ignore */ }
+    finally { setFormSaving(false); }
+  }
+
+  async function deleteCustomEvent(id: string) {
+    try {
+      const res = await fetch("/api/boucher/calendar", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setMyEvents((prev) => prev.filter((e) => e.id !== id));
+      }
+    } catch { /* ignore */ }
+  }
+
+  const allEvents = [
+    ...RELIGIOUS_EVENTS,
+    ...dbEvents,
+    ...myEvents.map((e) => ({
+      ...e,
+      emoji: e.emoji || "📅",
+      alertDaysBefore: 7,
+      suggestedProducts: [] as string[],
+      isCustom: true,
+    })),
+  ];
   const filtered = allEvents
     .filter((e) => new Date(e.date).getFullYear() === year)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -123,14 +203,66 @@ export default function CalendrierPage() {
           >
             <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
           </Link>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Calendrier religieux</h1>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Calendrier</h1>
             <p className="text-xs text-gray-500 dark:text-gray-400">Anticipez la demande</p>
           </div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#DC2626] hover:bg-[#b91c1c] text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            {showForm ? <X size={14} /> : <Plus size={14} />}
+            {showForm ? "Fermer" : "Ajouter"}
+          </button>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-5 py-6 space-y-6">
+        {/* ── Add event form ── */}
+        {showForm && (
+          <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-5 space-y-3">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Nouvel evenement</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Nom (ex: Fermeture Aïd)"
+                className="col-span-2 w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                maxLength={200}
+              />
+              <input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 text-sm"
+              />
+              <select
+                value={formType}
+                onChange={(e) => setFormType(e.target.value)}
+                className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 text-sm"
+              >
+                {EVENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                ))}
+              </select>
+            </div>
+            <input
+              value={formDesc}
+              onChange={(e) => setFormDesc(e.target.value)}
+              placeholder="Description (optionnel)"
+              className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+              maxLength={500}
+            />
+            <button
+              onClick={addCustomEvent}
+              disabled={formSaving || !formName.trim() || !formDate}
+              className="w-full h-10 bg-[#DC2626] hover:bg-[#b91c1c] text-white font-semibold rounded-xl text-sm disabled:opacity-50 transition-colors"
+            >
+              {formSaving ? "Enregistrement..." : "Ajouter au calendrier"}
+            </button>
+          </div>
+        )}
+
         {/* Upcoming alerts */}
         {upcoming.length > 0 && (
           <div className="space-y-3">
@@ -202,11 +334,22 @@ export default function CalendrierPage() {
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{event.description}</p>
                     </div>
                   </div>
-                  {!isPast && (
-                    <span className={`text-xs font-bold px-2 py-1 rounded-lg ${days <= 7 ? "bg-red-100 text-red-700" : days <= 21 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"}`}>
-                      J-{days}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!isPast && (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${days <= 7 ? "bg-red-100 text-red-700" : days <= 21 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"}`}>
+                        J-{days}
+                      </span>
+                    )}
+                    {"isCustom" in event && event.isCustom && (
+                      <button
+                        onClick={() => deleteCustomEvent(event.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Suggested products */}

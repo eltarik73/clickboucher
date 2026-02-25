@@ -16,6 +16,7 @@ import {
   Clock,
   Eye,
   DollarSign,
+  Phone,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
 import { printOrderTicket } from "./OrderTicket";
@@ -172,9 +173,16 @@ export default function KitchenOrderCard({
               </span>
             )}
           </div>
-          {customerNum && (
-            <p className="text-[13px] text-gray-500 mt-0.5">Client {customerNum}</p>
-          )}
+          <div className="flex items-center gap-3 mt-0.5">
+            {customerNum && (
+              <span className="text-[13px] text-gray-500">Client {customerNum}</span>
+            )}
+            {order.user?.phone && (
+              <a href={`tel:${order.user.phone}`} className="flex items-center gap-1 text-[13px] text-blue-400 hover:text-blue-300 transition-colors">
+                <Phone size={11} /> {order.user.phone}
+              </a>
+            )}
+          </div>
         </div>
         <div className="text-right flex flex-col items-end gap-1">
           <span className="text-sm text-gray-500">
@@ -370,11 +378,32 @@ export default function KitchenOrderCard({
         {/* ── Deny form ── */}
         {order.status === "PENDING" && showDenyForm && (
           <div className="bg-red-500/10 rounded-xl p-4 space-y-3 border border-red-500/20">
-            <p className="text-sm font-medium text-red-300">Raison du refus (optionnel)</p>
+            <p className="text-sm font-medium text-red-300">Raison du refus</p>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "Rupture de stock",
+                "Fermeture exceptionnelle",
+                "Commande trop importante",
+                "Hors zone de retrait",
+                "Problème technique",
+              ].map((reason) => (
+                <button
+                  key={reason}
+                  onClick={() => setDenyReason(reason)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    denyReason === reason
+                      ? "bg-red-600 text-white"
+                      : "bg-white/5 text-gray-400 hover:bg-white/10"
+                  }`}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
             <textarea
               value={denyReason}
               onChange={(e) => setDenyReason(e.target.value)}
-              placeholder="Ex: Fermeture exceptionnelle, rupture totale..."
+              placeholder="Ou saisissez une raison personnalisee..."
               className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/40 placeholder-gray-600"
               rows={2}
             />

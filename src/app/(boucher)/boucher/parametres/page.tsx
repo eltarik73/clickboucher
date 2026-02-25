@@ -37,6 +37,11 @@ type Shop = {
   address: string;
   city: string;
   phone: string;
+  email: string | null;
+  description: string | null;
+  welcomeMessage: string | null;
+  closedMessage: string | null;
+  minOrderCents: number | null;
   status: string;
   busyMode: boolean;
   busyExtraMin: number;
@@ -96,6 +101,11 @@ export default function BoucherParametresPage() {
   const [infoAddress, setInfoAddress] = useState("");
   const [infoCity, setInfoCity] = useState("");
   const [infoPhone, setInfoPhone] = useState("");
+  const [infoEmail, setInfoEmail] = useState("");
+  const [infoDescription, setInfoDescription] = useState("");
+  const [infoWelcome, setInfoWelcome] = useState("");
+  const [infoClosed, setInfoClosed] = useState("");
+  const [infoMinOrder, setInfoMinOrder] = useState(0);
   const [hours, setHours] = useState<Record<string, { open: string; close: string }>>({});
   const [infoSaving, setInfoSaving] = useState(false);
 
@@ -182,6 +192,11 @@ export default function BoucherParametresPage() {
       setInfoAddress(data.address);
       setInfoCity(data.city);
       setInfoPhone(data.phone || "");
+      setInfoEmail(data.email || "");
+      setInfoDescription(data.description || "");
+      setInfoWelcome(data.welcomeMessage || "");
+      setInfoClosed(data.closedMessage || "");
+      setInfoMinOrder(data.minOrderCents ? data.minOrderCents / 100 : 0);
       setHours(
         data.openingHours ||
           DAYS.reduce(
@@ -244,6 +259,11 @@ export default function BoucherParametresPage() {
           address: infoAddress,
           city: infoCity,
           phone,
+          email: infoEmail.trim() || null,
+          description: infoDescription.trim() || null,
+          welcomeMessage: infoWelcome.trim() || null,
+          closedMessage: infoClosed.trim() || null,
+          minOrderCents: Math.round(infoMinOrder * 100),
           openingHours: hours,
         }),
       });
@@ -829,14 +849,87 @@ export default function BoucherParametresPage() {
               </div>
             </div>
 
-            {/* Phone */}
+            {/* Phone & Email */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Téléphone</label>
+                <Input
+                  value={infoPhone}
+                  onChange={(e) => setInfoPhone(e.target.value)}
+                  placeholder="+33612345678"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Email</label>
+                <Input
+                  type="email"
+                  value={infoEmail}
+                  onChange={(e) => setInfoEmail(e.target.value)}
+                  placeholder="contact@maboucherie.fr"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Téléphone</label>
-              <Input
-                value={infoPhone}
-                onChange={(e) => setInfoPhone(e.target.value)}
-                placeholder="+33612345678"
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Description</label>
+              <textarea
+                value={infoDescription}
+                onChange={(e) => setInfoDescription(e.target.value)}
+                placeholder="Boucherie artisanale halal, viandes de qualite..."
+                maxLength={1000}
+                rows={3}
+                className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
               />
+              <p className="text-xs text-gray-400 mt-0.5">{infoDescription.length}/1000</p>
+            </div>
+
+            {/* Welcome message */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Message de bienvenue
+              </label>
+              <Input
+                value={infoWelcome}
+                onChange={(e) => setInfoWelcome(e.target.value)}
+                placeholder="Bienvenue ! Commandez en ligne et retirez en boutique."
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-400 mt-0.5">Affiché sur votre page boutique</p>
+            </div>
+
+            {/* Closed message */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Message de fermeture
+              </label>
+              <Input
+                value={infoClosed}
+                onChange={(e) => setInfoClosed(e.target.value)}
+                placeholder="Nous sommes actuellement fermés. Revenez bientot !"
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-400 mt-0.5">Affiché quand la boutique est fermée</p>
+            </div>
+
+            {/* Min order */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Commande minimum
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={infoMinOrder}
+                  onChange={(e) => setInfoMinOrder(Number(e.target.value))}
+                  className="w-28"
+                  min={0}
+                  max={1000}
+                  step={0.5}
+                />
+                <span className="text-sm text-gray-500 dark:text-gray-400">&euro;</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">0 = pas de minimum</p>
             </div>
 
             {/* Opening hours */}

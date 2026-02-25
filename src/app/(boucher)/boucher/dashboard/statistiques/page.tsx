@@ -19,6 +19,7 @@ import {
   AlertCircle,
   CheckCircle,
   Percent,
+  Download,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
@@ -205,6 +206,25 @@ export default function StatistiquesPage() {
     }
   }, [stats?.plan, fetchAutoPromos]);
 
+  // ── Export CSV ──
+  async function exportCSV() {
+    try {
+      const res = await fetch(`/api/orders/export?format=csv`);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `commandes-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent
+    }
+  }
+
   // Derived
   const plan = stats?.plan || "STARTER";
   const hasAdvanced = plan === "PRO" || plan === "PREMIUM";
@@ -257,6 +277,13 @@ export default function StatistiquesPage() {
           <div className="flex-1">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Statistiques</h1>
           </div>
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-[#DC2626] hover:border-[#DC2626]/30 transition-colors"
+            title="Exporter les commandes en CSV"
+          >
+            <Download size={13} /> CSV
+          </button>
           <Badge
             variant="outline"
             className={`text-[10px] font-semibold uppercase ${

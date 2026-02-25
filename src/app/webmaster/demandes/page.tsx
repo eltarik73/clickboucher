@@ -1,33 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 
 type ProRequest = {
   id: string;
-  name: string;
-  contact: string;
-  type: string;
-  status: "pending" | "approved" | "denied";
-  date: string;
+  companyName: string;
+  siret: string;
+  sector: string;
+  status: string;
+  createdAt: string;
+  user: { firstName: string; lastName: string; email: string } | null;
 };
 
-const INITIAL_REQUESTS: ProRequest[] = [
-  { id: "pr1", name: "Restaurant Le Savoyard", contact: "Pierre D.", type: "Restaurant", status: "pending", date: "04/02/2026" },
-  { id: "pr2", name: "Traiteur Alpes Events", contact: "Sarah K.", type: "Traiteur", status: "approved", date: "02/02/2026" },
-];
-
 export default function WebmasterDemandesPage() {
-  const [requests, setRequests] = useState<ProRequest[]>(INITIAL_REQUESTS);
+  const [requests, setRequests] = useState<ProRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const updateStatus = (id: string, status: "approved" | "denied") => {
+  useEffect(() => {
+    // Fetch users with PRO_PENDING status
+    fetch("/api/admin/users?role=CLIENT_PRO_PENDING")
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        if (json?.data) {
+          // Map users to pro request format
+          const mapped = json.data.map((u: Record<string, unknown>) => ({
+            id: u.id as string,
+            companyName: (u.companyName as string) || "Entreprise",
+            siret: (u.siret as string) || "",
+            sector: (u.sector as string) || "Autre",
+            status: (u.proStatus as string) || "PENDING",
+            createdAt: u.createdAt as string,
+            user: { firstName: u.firstName as string, lastName: u.lastName as string, email: u.email as string },
+          }));
+          setRequests(mapped);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function updateStatus(userId: string, action: "APPROVED" | "REJECTED") {
+    // Optimistic
     setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status } : r))
+      prev.map((r) => (r.id === userId ? { ...r, status: action } : r))
     );
-  };
+    try {
+      await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: action === "APPROVED" ? "CLIENT_PRO" : "CLIENT",
+          proStatus: action,
+        }),
+      });
+    } catch {
+      // Revert
+      setRequests((prev) =>
+        prev.map((r) => (r.id === userId ? { ...r, status: "PENDING" } : r))
+      );
+    }
+  }
 
-  const pending = requests.filter((r) => r.status === "pending");
-  const resolved = requests.filter((r) => r.status !== "pending");
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-[#DC2626]" />
+      </div>
+    );
+  }
+
+  const pending = requests.filter((r) => r.status === "PENDING");
+  const resolved = requests.filter((r) => r.status !== "PENDING");
 
   return (
     <div className="flex flex-col gap-4">
@@ -48,23 +93,24 @@ export default function WebmasterDemandesPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
-                        {r.name}
+                        {r.companyName}
                       </p>
                       <Badge variant="warning">En attente</Badge>
                     </div>
                     <p className="text-[11px] text-stone-500 dark:text-gray-400 mt-1">
-                      {r.contact} &middot; {r.type} &middot; {r.date}
+                      {r.user ? `${r.user.firstName} ${r.user.lastName}` : "?"} &middot; {r.sector}
+                      {r.siret ? ` \u00B7 SIRET ${r.siret}` : ""}
                     </p>
                   </div>
                   <div className="flex gap-1.5 flex-shrink-0">
                     <button
-                      onClick={() => updateStatus(r.id, "approved")}
+                      onClick={() => updateStatus(r.id, "APPROVED")}
                       className="px-4 py-2 text-[13px] font-semibold rounded-[14px] bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/15 transition-all"
                     >
                       Approuver
                     </button>
                     <button
-                      onClick={() => updateStatus(r.id, "denied")}
+                      onClick={() => updateStatus(r.id, "REJECTED")}
                       className="px-4 py-2 text-[13px] font-semibold rounded-[14px] bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/15 transition-all"
                     >
                       Refuser
@@ -81,7 +127,7 @@ export default function WebmasterDemandesPage() {
       {resolved.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            Traitées ({resolved.length})
+            Traitees ({resolved.length})
           </h3>
           <div className="flex flex-col gap-2.5">
             {resolved.map((r, i) => (
@@ -94,14 +140,14 @@ export default function WebmasterDemandesPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3]">
-                        {r.name}
+                        {r.companyName}
                       </p>
-                      <Badge variant={r.status === "approved" ? "success" : "destructive"}>
-                        {r.status === "approved" ? "Approuvé" : "Refusé"}
+                      <Badge variant={r.status === "APPROVED" ? "success" : "destructive"}>
+                        {r.status === "APPROVED" ? "Approuve" : "Refuse"}
                       </Badge>
                     </div>
                     <p className="text-[11px] text-stone-500 dark:text-gray-400 mt-1">
-                      {r.contact} &middot; {r.type} &middot; {r.date}
+                      {r.user ? `${r.user.firstName} ${r.user.lastName}` : "?"} &middot; {r.sector}
                     </p>
                   </div>
                 </div>
@@ -113,9 +159,9 @@ export default function WebmasterDemandesPage() {
 
       {requests.length === 0 && (
         <div className="text-center py-16 animate-fade-in">
-          <p className="text-5xl">📩</p>
+          <p className="text-5xl">&#128233;</p>
           <p className="text-base font-semibold text-gray-900 dark:text-[#f8f6f3] mt-4">
-            Aucune demande
+            Aucune demande PRO
           </p>
           <p className="text-sm text-stone-500 dark:text-gray-400 mt-2">
             Les demandes PRO apparaitront ici.

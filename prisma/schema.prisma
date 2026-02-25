@@ -203,6 +203,8 @@ model User {
   referralCode String? @unique @map("referral_code")
   referredBy   String? @map("referred_by")
 
+  deletedAt DateTime? @map("deleted_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -230,8 +232,11 @@ model Shop {
   address     String
   city        String
   phone       String
+  email       String?
   imageUrl    String? @map("image_url")
+  bannerUrl   String? @map("banner_url")
   description String?
+  welcomeMessage String? @map("welcome_message")
 
   ownerPhotoUrl String? @map("owner_photo_url")
   ownerName     String? @map("owner_name")
@@ -350,6 +355,7 @@ model Shop {
   proAccesses       ProAccess[]
   dailyCounters     DailyCounter[]
   customerCounter   CustomerCounter?
+  calendarEvents    CalendarEvent[]
 
   @@index([latitude, longitude])
   @@index([city])
@@ -683,13 +689,18 @@ model CalendarEvent {
   description       String?
   date              DateTime
   type              String
+  emoji             String?
   alertDaysBefore   Int      @default(7) @map("alert_days_before")
   suggestedProducts Json?    @map("suggested_products")
   active            Boolean  @default(true)
 
+  shopId String? @map("shop_id")
+  shop   Shop?   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([date])
+  @@index([shopId])
   @@map("calendar_events")
 }
 

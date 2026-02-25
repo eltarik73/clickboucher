@@ -1,25 +1,60 @@
 "use client";
 
-const WEEK_DATA = [
-  { day: "Lun", value: 12 },
-  { day: "Mar", value: 8 },
-  { day: "Mer", value: 15 },
-  { day: "Jeu", value: 22 },
-  { day: "Ven", value: 18 },
-  { day: "Sam", value: 25 },
-  { day: "Dim", value: 14 },
-];
+import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
-const MAX = Math.max(...WEEK_DATA.map((d) => d.value));
-const TOTAL = WEEK_DATA.reduce((s, d) => s + d.value, 0);
+type AdminStats = {
+  totalRevenue: number;
+  totalOrders: number;
+  totalShops: number;
+  totalClients: number;
+  totalCommission: number;
+  weekOrders: { date: string; count: number }[];
+};
 
-const SUMMARY = [
-  { label: "Total semaine", value: String(TOTAL), color: "text-[#DC2626]" },
-  { label: "Moy. / jour", value: (TOTAL / 7).toFixed(1), color: "text-blue-600 dark:text-blue-400" },
-  { label: "Pic", value: `${MAX} (Sam)`, color: "text-emerald-600 dark:text-emerald-400" },
-];
+function centsToEuro(c: number) {
+  return (c / 100).toFixed(2).replace(".", ",") + " \u20AC";
+}
 
 export default function WebmasterStatsPage() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/stats")
+      .then((r) => r.ok ? r.json() : null)
+      .then((json) => {
+        if (json?.data) setStats(json.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-[#DC2626]" />
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return <p className="text-center text-gray-400 py-12">Impossible de charger les statistiques</p>;
+  }
+
+  const weekData = stats.weekOrders || [];
+  const maxVal = Math.max(...weekData.map((d) => d.count), 1);
+  const totalWeek = weekData.reduce((s, d) => s + d.count, 0);
+
+  const SUMMARY = [
+    { label: "CA total", value: centsToEuro(stats.totalRevenue), color: "text-[#DC2626]" },
+    { label: "Commandes", value: String(stats.totalOrders), color: "text-blue-600 dark:text-blue-400" },
+    { label: "Boucheries", value: String(stats.totalShops), color: "text-emerald-600 dark:text-emerald-400" },
+    { label: "Clients", value: String(stats.totalClients), color: "text-purple-600 dark:text-purple-400" },
+    { label: "Commission", value: centsToEuro(stats.totalCommission), color: "text-amber-600 dark:text-amber-400" },
+    { label: "Sem. en cours", value: String(totalWeek), color: "text-gray-900 dark:text-white" },
+  ];
+
   return (
     <div className="flex flex-col gap-4 animate-fade-up">
       {/* Summary cards */}
@@ -29,45 +64,43 @@ export default function WebmasterStatsPage() {
             key={s.label}
             className="bg-white dark:bg-[#141414] rounded-xl border border-stone-200 dark:border-white/10 shadow-sm p-4 text-center"
           >
-            <p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p>
+            <p className={`text-lg font-extrabold ${s.color}`}>{s.value}</p>
             <p className="text-[11px] text-stone-500 dark:text-gray-400 mt-1">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Bar chart */}
-      <div className="bg-white dark:bg-[#141414] rounded-[20px] border border-stone-200 dark:border-white/10 shadow-sm p-6">
-        <h3 className="font-display text-lg font-bold text-gray-900 dark:text-[#f8f6f3]">
-          Commandes cette semaine
-        </h3>
-        <div className="mt-5 flex items-end gap-2 h-[150px]">
-          {WEEK_DATA.map((d, i) => {
-            const isHighlight = i === 5; // Saturday
-            return (
-              <div
-                key={i}
-                className="flex-1 flex flex-col items-center gap-1.5"
-              >
-                <span className="text-[10px] font-semibold text-stone-500 dark:text-gray-400">
-                  {d.value}
-                </span>
-                <div
-                  className={`w-full rounded-t-lg animate-fade-up ${
-                    isHighlight
-                      ? "bg-[#DC2626]"
-                      : "bg-stone-200 dark:bg-white/10"
-                  }`}
-                  style={{
-                    height: `${(d.value / MAX) * 110}px`,
-                    animationDelay: `${i * 70}ms`,
-                  } as React.CSSProperties}
-                />
-                <span className="text-[9px] text-stone-400 dark:text-gray-500">{d.day}</span>
-              </div>
-            );
-          })}
+      {weekData.length > 0 && (
+        <div className="bg-white dark:bg-[#141414] rounded-[20px] border border-stone-200 dark:border-white/10 shadow-sm p-6">
+          <h3 className="font-display text-lg font-bold text-gray-900 dark:text-[#f8f6f3]">
+            Commandes cette semaine
+          </h3>
+          <div className="mt-5 flex items-end gap-2 h-[150px]">
+            {weekData.map((d, i) => {
+              const dayLabel = new Date(d.date).toLocaleDateString("fr-FR", { weekday: "short" });
+              const isMax = d.count === maxVal;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-stone-500 dark:text-gray-400">
+                    {d.count}
+                  </span>
+                  <div
+                    className={`w-full rounded-t-lg animate-fade-up ${
+                      isMax ? "bg-[#DC2626]" : "bg-stone-200 dark:bg-white/10"
+                    }`}
+                    style={{
+                      height: `${Math.max((d.count / maxVal) * 110, 4)}px`,
+                      animationDelay: `${i * 70}ms`,
+                    } as React.CSSProperties}
+                  />
+                  <span className="text-[9px] text-stone-400 dark:text-gray-500 capitalize">{dayLabel}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
@@ -109,6 +110,67 @@ export async function PATCH(req: NextRequest) {
     });
 
     return apiSuccess(updated);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+// ── DELETE /api/users/me ─────────────────────────
+// Soft-delete: anonymize personal data + set deletedAt
+export async function DELETE() {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return apiError("UNAUTHORIZED", "Authentification requise");
+    }
+
+    const user = await getOrCreateUser(userId);
+    if (!user) {
+      return apiError("NOT_FOUND", "Utilisateur introuvable");
+    }
+
+    // Check no active orders
+    const activeOrders = await prisma.order.count({
+      where: {
+        userId: user.id,
+        status: { in: ["PENDING", "ACCEPTED", "PREPARING", "READY"] },
+      },
+    });
+
+    if (activeOrders > 0) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Impossible de supprimer votre compte tant que vous avez des commandes en cours"
+      );
+    }
+
+    // Soft delete: anonymize data + set deletedAt
+    const deletedSuffix = `_deleted_${Date.now()}`;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        deletedAt: new Date(),
+        firstName: "Compte",
+        lastName: "Supprimé",
+        email: `deleted${deletedSuffix}@klikandgo.app`,
+        phone: null,
+        companyName: null,
+        siret: null,
+        notifSms: false,
+        notifWhatsapp: false,
+        notifPush: false,
+        pushSubscription: Prisma.JsonNull,
+        referralCode: null,
+      },
+    });
+
+    // Disconnect favorites
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { favoriteShops: { set: [] } },
+    });
+
+    return apiSuccess({ deleted: true });
   } catch (error) {
     return handleApiError(error);
   }

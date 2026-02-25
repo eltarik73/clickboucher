@@ -17,6 +17,10 @@ import {
   ChevronDown,
   Timer,
   Eye,
+  Copy,
+  Pencil,
+  Trash2,
+  FolderOpen,
 } from "lucide-react";
 import { getFlag, getOriginCountry } from "@/lib/flags";
 import { ProductForm, type EditProduct } from "./ProductForm";
@@ -304,6 +308,93 @@ export default function BoucherProduitsPage() {
     }
   }
 
+  // ── Duplicate product ──
+  async function duplicateProduct(product: Product) {
+    try {
+      const res = await fetch("/api/products/duplicate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+      if (res.ok) {
+        notify("success", `"${product.name}" duplique`);
+        fetchData();
+      } else {
+        notify("error", "Erreur lors de la duplication");
+      }
+    } catch {
+      notify("error", "Erreur de connexion");
+    }
+  }
+
+  // ── Category CRUD ──
+  const [showCatManager, setShowCatManager] = useState(false);
+  const [catName, setCatName] = useState("");
+  const [catEmoji, setCatEmoji] = useState("");
+  const [editCatId, setEditCatId] = useState<string | null>(null);
+  const [catSaving, setCatSaving] = useState(false);
+
+  async function saveCategory() {
+    if (!shop || !catName.trim()) return;
+    setCatSaving(true);
+    try {
+      if (editCatId) {
+        // Update
+        const res = await fetch("/api/categories", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editCatId, name: catName.trim(), emoji: catEmoji.trim() || null }),
+        });
+        if (res.ok) {
+          notify("success", "Categorie modifiee");
+          setCatName(""); setCatEmoji(""); setEditCatId(null);
+          fetchData();
+        } else {
+          const json = await res.json();
+          notify("error", json.error?.message || "Erreur");
+        }
+      } else {
+        // Create
+        const res = await fetch("/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shopId: shop.id, name: catName.trim(), emoji: catEmoji.trim() || null }),
+        });
+        if (res.ok) {
+          notify("success", "Categorie creee");
+          setCatName(""); setCatEmoji("");
+          fetchData();
+        } else {
+          const json = await res.json();
+          notify("error", json.error?.message || "Erreur");
+        }
+      }
+    } catch {
+      notify("error", "Erreur de connexion");
+    } finally {
+      setCatSaving(false);
+    }
+  }
+
+  async function deleteCategory(catId: string) {
+    try {
+      const res = await fetch("/api/categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: catId }),
+      });
+      if (res.ok) {
+        notify("success", "Categorie supprimee");
+        fetchData();
+      } else {
+        const json = await res.json();
+        notify("error", json.error?.message || "Erreur");
+      }
+    } catch {
+      notify("error", "Erreur de connexion");
+    }
+  }
+
   // ── Filter & sort ──
   const filtered = products.filter((p) => {
     if (selectedCategory && p.categoryId !== selectedCategory) return false;
@@ -513,36 +604,133 @@ export default function BoucherProduitsPage() {
         </div>
 
         {/* ══════════════════════════════════════ */}
-        {/* CATEGORY PILLS                         */}
+        {/* CATEGORY PILLS + MANAGE                */}
         {/* ══════════════════════════════════════ */}
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 flex-1" style={{ scrollbarWidth: "none" }}>
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                !selectedCategory
+                  ? "bg-[#2A2018] dark:bg-white text-white dark:text-[#0a0a0a]"
+                  : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-[#ece8e3] dark:border-white/10"
+              }`}
+            >
+              Tous ({totalCount})
+            </button>
+            {categories.map((cat) => {
+              const count = products.filter((p) => p.categoryId === cat.id).length;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+                  className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
+                    selectedCategory === cat.id
+                      ? "bg-[#2A2018] dark:bg-white text-white dark:text-[#0a0a0a]"
+                      : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-[#ece8e3] dark:border-white/10"
+                  }`}
+                >
+                  {cat.emoji ? `${cat.emoji} ` : ""}{cat.name} ({count})
+                </button>
+              );
+            })}
+          </div>
           <button
-            onClick={() => setSelectedCategory(null)}
-            className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-              !selectedCategory
-                ? "bg-[#2A2018] dark:bg-white text-white dark:text-[#0a0a0a]"
-                : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-[#ece8e3] dark:border-white/10"
-            }`}
+            onClick={() => setShowCatManager(!showCatManager)}
+            className="shrink-0 p-1.5 rounded-lg bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors"
+            title="Gérer les catégories"
           >
-            Tous ({totalCount})
+            <FolderOpen size={14} />
           </button>
-          {categories.map((cat) => {
-            const count = products.filter((p) => p.categoryId === cat.id).length;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
-                  selectedCategory === cat.id
-                    ? "bg-[#2A2018] dark:bg-white text-white dark:text-[#0a0a0a]"
-                    : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-[#ece8e3] dark:border-white/10"
-                }`}
-              >
-                {cat.emoji ? `${cat.emoji} ` : ""}{cat.name} ({count})
-              </button>
-            );
-          })}
         </div>
+
+        {/* ── Category manager panel ── */}
+        {showCatManager && (
+          <Card className="bg-white dark:bg-[#141414] border-[#ece8e3] dark:border-white/10 rounded-[14px]">
+            <CardContent className="p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                <FolderOpen size={14} /> Gérer les catégories
+              </h3>
+
+              {/* Add / Edit form */}
+              <div className="flex gap-2">
+                <Input
+                  value={catEmoji}
+                  onChange={(e) => setCatEmoji(e.target.value)}
+                  placeholder="🥩"
+                  className="w-14 h-9 text-center"
+                  maxLength={4}
+                />
+                <Input
+                  value={catName}
+                  onChange={(e) => setCatName(e.target.value)}
+                  placeholder="Nom de la catégorie"
+                  className="flex-1 h-9"
+                  maxLength={100}
+                  onKeyDown={(e) => e.key === "Enter" && saveCategory()}
+                />
+                <Button
+                  onClick={saveCategory}
+                  disabled={catSaving || !catName.trim()}
+                  size="sm"
+                  className="h-9 bg-[#DC2626] hover:bg-[#b91c1c]"
+                >
+                  {editCatId ? "Modifier" : "Ajouter"}
+                </Button>
+                {editCatId && (
+                  <Button
+                    onClick={() => { setEditCatId(null); setCatName(""); setCatEmoji(""); }}
+                    variant="ghost"
+                    size="sm"
+                    className="h-9"
+                  >
+                    <X size={14} />
+                  </Button>
+                )}
+              </div>
+
+              {/* Category list */}
+              <div className="space-y-1">
+                {categories.map((cat) => {
+                  const count = products.filter((p) => p.categoryId === cat.id).length;
+                  return (
+                    <div
+                      key={cat.id}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5"
+                    >
+                      <span className="text-sm">{cat.emoji || "📁"}</span>
+                      <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {cat.name}
+                      </span>
+                      <span className="text-xs text-gray-400">{count} produit{count > 1 ? "s" : ""}</span>
+                      <button
+                        onClick={() => { setEditCatId(cat.id); setCatName(cat.name); setCatEmoji(cat.emoji || ""); }}
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-blue-600 transition-colors"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (count > 0) {
+                            notify("error", `${count} produit(s) dans cette categorie`);
+                            return;
+                          }
+                          deleteCategory(cat.id);
+                        }}
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+                {categories.length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-2">Aucune categorie</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* ══════════════════════════════════════ */}
         {/* PRODUCT LIST                           */}
@@ -586,6 +774,7 @@ export default function BoucherProduitsPage() {
                   onToggleActive={() => toggleActive(product)}
                   onSnooze={(type) => snoozeProduct(product, type)}
                   onEdit={() => { setEditProduct(product as unknown as EditProduct); setShowForm(true); }}
+                  onDuplicate={() => duplicateProduct(product)}
                   isDraggable={isDraggable}
                 />
               </div>
@@ -618,6 +807,7 @@ function ProductRow({
   onToggleActive,
   onSnooze,
   onEdit,
+  onDuplicate,
   isDraggable,
 }: {
   product: Product;
@@ -625,6 +815,7 @@ function ProductRow({
   onToggleActive: () => void;
   onSnooze: (type: string) => void;
   onEdit: () => void;
+  onDuplicate: () => void;
   isDraggable: boolean;
 }) {
   const [showSnoozeMenu, setShowSnoozeMenu] = useState(false);
@@ -818,19 +1009,28 @@ function ProductRow({
           </>
         )}
 
-        {/* Active toggle */}
-        <button
-          onClick={onToggleActive}
-          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-colors text-[8px] font-semibold ${
-            product.isActive !== false
-              ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
-          }`}
-          title={product.isActive !== false ? "Masquer le produit" : "Rendre visible"}
-        >
-          <Eye size={9} />
-          {product.isActive !== false ? "Visible" : "Masqué"}
-        </button>
+        {/* Active toggle + Duplicate */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggleActive}
+            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-colors text-[8px] font-semibold ${
+              product.isActive !== false
+                ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
+            title={product.isActive !== false ? "Masquer le produit" : "Rendre visible"}
+          >
+            <Eye size={9} />
+            {product.isActive !== false ? "Visible" : "Masqué"}
+          </button>
+          <button
+            onClick={onDuplicate}
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-colors text-[8px] font-semibold bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-900/10"
+            title="Dupliquer ce produit"
+          >
+            <Copy size={9} />
+          </button>
+        </div>
 
         {/* Snooze dropdown (Deliveroo style) */}
         {showSnoozeMenu && (

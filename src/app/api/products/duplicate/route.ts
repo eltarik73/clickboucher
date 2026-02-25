@@ -1,0 +1,99 @@
+export const dynamic = "force-dynamic";
+
+import { NextRequest } from "next/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import prisma from "@/lib/prisma";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isAdmin } from "@/lib/roles";
+import { z } from "zod";
+
+const duplicateSchema = z.object({
+  productId: z.string().min(1),
+});
+
+// ── POST /api/products/duplicate ──
+export async function POST(req: NextRequest) {
+  try {
+    const { userId } = await auth();
+    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+
+    const body = await req.json();
+    const { productId } = duplicateSchema.parse(body);
+
+    // Fetch original product with labels
+    const original = await prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        shop: { select: { ownerId: true } },
+        labels: true,
+        images: true,
+      },
+    });
+    if (!original) return apiError("NOT_FOUND", "Produit introuvable");
+
+    // Verify ownership
+    const user = await currentUser();
+    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    if (!isAdmin(role) && original.shop.ownerId !== userId) {
+      return apiError("FORBIDDEN", "Non autorise");
+    }
+
+    // Create duplicate
+    const duplicate = await prisma.product.create({
+      data: {
+        name: `${original.name} (copie)`,
+        description: original.description,
+        imageUrl: original.imageUrl,
+        priceCents: original.priceCents,
+        proPriceCents: original.proPriceCents,
+        unit: original.unit,
+        inStock: false, // Start out of stock
+        stockQty: original.stockQty,
+        minWeightG: original.minWeightG,
+        weightStepG: original.weightStepG,
+        maxWeightG: original.maxWeightG,
+        displayOrder: original.displayOrder + 1,
+        featured: false,
+        popular: false,
+        categoryId: original.categoryId,
+        shopId: original.shopId,
+        tags: original.tags,
+        origin: original.origin,
+        halalOrg: original.halalOrg,
+        race: original.race,
+        freshness: original.freshness,
+        customerNote: original.customerNote,
+        unitLabel: original.unitLabel,
+        sliceOptions: original.sliceOptions as object | undefined,
+        isActive: false, // Start inactive
+        labels: original.labels.length > 0
+          ? {
+              create: original.labels.map((l) => ({
+                name: l.name,
+                color: l.color,
+              })),
+            }
+          : undefined,
+        images: original.images.length > 0
+          ? {
+              create: original.images.map((img) => ({
+                url: img.url,
+                alt: img.alt,
+                order: img.order,
+                isPrimary: img.isPrimary,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        category: true,
+        labels: true,
+        images: true,
+      },
+    });
+
+    return apiSuccess(duplicate);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
