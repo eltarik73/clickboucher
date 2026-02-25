@@ -34,13 +34,12 @@ function HeroLogo() {
   return (
     <div className="flex flex-col items-center mb-4 sm:mb-8">
       <div className="relative">
-        <div className="absolute inset-0 blur-3xl opacity-40 bg-[#DC2626] rounded-full scale-150" />
-        <KlikLogo size={100} className="w-20 h-20 sm:w-[100px] sm:h-[100px] relative z-10 drop-shadow-2xl" />
+        <div className="absolute inset-0 blur-3xl opacity-20 dark:opacity-40 bg-[#DC2626] rounded-full scale-150" />
+        <KlikLogo size={100} className="w-20 h-20 sm:w-[100px] sm:h-[100px] relative z-10" />
       </div>
       <h2 className="mt-3 sm:mt-5 text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
         Klik<span className="text-[#DC2626]">&amp;</span>Go
       </h2>
-      <p className="text-[10px] sm:text-xs text-[#666] tracking-wider mt-1">by TkS26</p>
     </div>
   );
 }
@@ -193,7 +192,7 @@ export default async function DecouvrirPage() {
           <HeroLogo />
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
             Marre d&apos;attendre ?<br />
-            <span className="text-[#DC2626]">Commandez, recuperez.</span>
+            <span className="text-[#DC2626]">Commandez. Récupérez. Savourez.</span>
           </h1>
           <p className="mt-3 sm:mt-5 text-base sm:text-lg text-gray-500 dark:text-[#888] max-w-xl mx-auto">
             Zero file. Zero stress. <span className="text-gray-900 dark:text-white font-medium">100% frais.</span>

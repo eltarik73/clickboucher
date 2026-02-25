@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 import { SecretTapLogo } from "@/components/layout/SecretTapLogo";
+import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
 
 interface ClientHeaderProps {
   title?: string;
@@ -20,7 +21,8 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
   return (
     <header className={cn("sticky top-0 z-40 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-zinc-100 dark:border-white/10", className)}>
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-3 min-w-0">
+          <KlikGoLogo logoSize={28} wordmarkSize="sm" />
           {showLocation ? (
             <button type="button" aria-label="Lieu de retrait" className="flex items-center gap-2 tap-scale">
               <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-zinc-100 dark:bg-white/10">
@@ -32,20 +34,9 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
               </div>
             </button>
           ) : (
-            <h1 className="text-base font-bold truncate dark:text-white">{title}</h1>
+            <h1 className="text-base font-bold truncate text-gray-900 dark:text-white">{title}</h1>
           )}
         </div>
-
-        {showLocation && (
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-            <SecretTapLogo>
-              <span className="flex items-center gap-1.5">
-                <KlikLogo size={24} />
-                <KlikWordmark size="sm" />
-              </span>
-            </SecretTapLogo>
-          </div>
-        )}
 
         <div className="flex items-center gap-1.5">
           <NotificationBell />
