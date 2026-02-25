@@ -94,6 +94,10 @@ export default function KitchenOrderCard({
     setLoading(true);
     try {
       await onAction(order.id, action, data);
+      // Auto-print 2 tickets (CUISINE + CLIENT) on accept
+      if (action === "accept") {
+        printOrderTicket(order, shopName, 2);
+      }
       setShowAcceptForm(false);
       setShowDenyForm(false);
       setDenyReason("");

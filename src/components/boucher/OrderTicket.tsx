@@ -1,5 +1,6 @@
 // OrderTicket — Professional thermal receipt (302px / 80mm)
 // Opens in a new window with auto-print and @media print isolation
+// Supports multiple copies (CUISINE / CLIENT) with page-break
 "use client";
 
 import type { KitchenOrder } from "@/hooks/use-order-polling";
@@ -9,7 +10,7 @@ function formatPrice(cents: number) {
 }
 
 function formatUnit(unit: string) {
-  return unit === "KG" ? "kg" : unit === "PIECE" ? "pc" : "barq.";
+  return unit === "KG" ? "kg" : unit === "PIECE" ? "pc" : unit === "TRANCHE" ? "tr." : "barq.";
 }
 
 function formatTime(dateStr: string) {
@@ -34,8 +35,26 @@ function dotLeaderLine(left: string, right: string, maxChars = 38): string {
   return left + dots + right;
 }
 
-/** Open a printable thermal ticket in a new window */
-export function printOrderTicket(order: KitchenOrder, shopName?: string) {
+/** Inline SVG logo for the ticket (same as KlikLogo.tsx) */
+const LOGO_SVG = `<svg viewBox="0 0 100 100" width="48" height="48" style="display:block;margin:0 auto;">
+  <defs>
+    <linearGradient id="tktGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a83320"/>
+      <stop offset="50%" stop-color="#DC2626"/>
+      <stop offset="100%" stop-color="#DC2626"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="46" fill="url(#tktGrad)"/>
+  <path d="M35 25 L35 75 L45 75 L45 55 L60 75 L73 75 L55 52 L72 25 L59 25 L45 47 L45 25 Z" fill="white"/>
+  <rect x="76" y="33" width="14" height="3.5" rx="1.75" fill="white" opacity="0.7"/>
+  <rect x="79" y="43" width="16" height="3" rx="1.5" fill="white" opacity="0.5"/>
+  <rect x="76" y="53" width="12" height="2.5" rx="1.25" fill="white" opacity="0.3"/>
+</svg>`;
+
+const COPY_LABELS = ["CUISINE", "CLIENT"];
+
+/** Build the HTML for a single ticket copy */
+function buildTicketHtml(order: KitchenOrder, shopName: string, copyLabel?: string): string {
   const clientName = order.user
     ? `${order.user.firstName} ${order.user.lastName}`
     : "Client";
@@ -43,7 +62,6 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
   const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
 
-  // Build items HTML with dot leaders
   const itemsHtml = order.items
     .map((item) => {
       const qty = `${item.quantity} ${formatUnit(item.product?.unit || item.unit)}`;
@@ -54,7 +72,6 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
     })
     .join("");
 
-  // Payment method
   const paymentLabel =
     order.paymentMethod === "ONLINE"
       ? "Paye en ligne"
@@ -62,13 +79,93 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
       ? "Carte bancaire"
       : "Paiement sur place";
 
-  // QR code section (simple text-based, the actual QR is client-side)
   const qrSection = order.qrCode
     ? `<div class="qr-section">
         <div class="qr-label">QR Code de retrait</div>
         <div class="qr-code">${escapeHtml(order.qrCode)}</div>
       </div>`
     : "";
+
+  const copyBadge = copyLabel
+    ? `<div class="copy-badge">${escapeHtml(copyLabel)}</div>`
+    : "";
+
+  return `
+  <div class="ticket">
+    ${copyBadge}
+
+    <!-- Header with logo -->
+    <div class="header">
+      ${LOGO_SVG}
+      <div class="brand-name">Klik&amp;Go</div>
+      <div class="shop-name">${escapeHtml(shopName || "Klik&Go")}</div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Big ticket number + client name -->
+    <div class="hero">
+      <div class="ticket-number">${escapeHtml(ticketNumber)}</div>
+      <div class="client-name">${escapeHtml(clientName)}${order.isPro ? ' <span class="pro-badge">PRO</span>' : ""}</div>
+      <div class="order-meta">
+        ${formatTime(order.createdAt)} &middot; ${formatDate(order.createdAt)}
+      </div>
+    </div>
+
+    <hr class="divider-double">
+
+    <!-- Items -->
+    ${itemsHtml}
+
+    <hr class="divider-double">
+
+    <!-- Total -->
+    <div class="total-section">
+      <div class="total-items">${itemCount} article${itemCount > 1 ? "s" : ""}</div>
+      <div class="total-price">TOTAL ${formatPrice(order.totalCents)}</div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Payment -->
+    <div class="payment">${escapeHtml(paymentLabel)}</div>
+
+    ${order.customerNote ? `
+    <div class="note-section">
+      <div class="note-label">Note client</div>
+      <div>${escapeHtml(order.customerNote)}</div>
+    </div>` : ""}
+
+    ${order.requestedTime ? `
+    <div class="info-line">
+      Retrait : <strong>${formatTime(order.requestedTime)}</strong>
+    </div>` : ""}
+
+    ${qrSection}
+
+    <hr class="divider">
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="thanks">Merci pour votre commande !</div>
+      <div class="tagline">Zero file, zero stress, 100% frais</div>
+      <div class="date">Klik&amp;Go &mdash; ${formatDate(new Date().toISOString())}</div>
+    </div>
+  </div>`;
+}
+
+/** Open a printable thermal ticket in a new window.
+ *  copies: number of ticket copies (default 1). 2 = CUISINE + CLIENT. */
+export function printOrderTicket(order: KitchenOrder, shopName?: string, copies = 1) {
+  const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
+  const shop = shopName || "Klik&Go";
+
+  let ticketsHtml = "";
+  for (let i = 0; i < copies; i++) {
+    const label = copies > 1 ? COPY_LABELS[i] || `COPIE ${i + 1}` : undefined;
+    const pageBreak = i < copies - 1 ? ' style="page-break-after: always;"' : "";
+    ticketsHtml += `<div${pageBreak}>${buildTicketHtml(order, shop, label)}</div>`;
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -84,30 +181,69 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
       line-height: 1.4;
       width: 302px;
       margin: 0 auto;
-      padding: 12px 8px;
+      padding: 0;
       color: #000;
       background: #fff;
+    }
+
+    .ticket {
+      padding: 12px 8px;
+      position: relative;
+    }
+
+    /* ── Copy badge ── */
+    .copy-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #000;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: bold;
+      letter-spacing: 1px;
     }
 
     /* ── Header ── */
     .header {
       text-align: center;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
-    .logo-text {
-      font-size: 22px;
+    .brand-name {
+      font-size: 16px;
       font-weight: bold;
-      letter-spacing: 2px;
+      letter-spacing: 1px;
+      margin-top: 4px;
     }
     .shop-name {
       font-size: 14px;
       font-weight: bold;
       margin-top: 2px;
+      color: #333;
     }
-    .subtitle {
-      font-size: 10px;
-      color: #666;
+
+    /* ── Hero: Big ticket number + client name ── */
+    .hero {
+      text-align: center;
+      padding: 8px 0;
+    }
+    .ticket-number {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      line-height: 1.1;
+    }
+    .client-name {
+      font-size: 22px;
+      font-weight: bold;
       margin-top: 2px;
+      line-height: 1.2;
+    }
+    .order-meta {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
     }
 
     /* ── Dividers ── */
@@ -120,19 +256,6 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
       border: none;
       border-top: 2px solid #000;
       margin: 6px 0;
-    }
-
-    /* ── Order info ── */
-    .order-info {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      font-weight: bold;
-    }
-    .order-meta {
-      font-size: 11px;
-      color: #333;
-      margin-top: 2px;
     }
 
     /* ── Items ── */
@@ -168,25 +291,16 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
       margin: 4px 0;
     }
 
-    /* ── Client ── */
-    .client-section {
-      font-size: 11px;
-    }
-    .client-section .label {
-      color: #666;
-    }
-    .client-section .value {
-      font-weight: bold;
-    }
+    /* ── Pro badge ── */
     .pro-badge {
       display: inline-block;
       background: #DC2626;
       color: white;
       padding: 1px 6px;
       border-radius: 3px;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: bold;
-      margin-left: 4px;
+      vertical-align: middle;
     }
 
     /* ── Note ── */
@@ -202,6 +316,12 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
       font-size: 10px;
       text-transform: uppercase;
       color: #666;
+    }
+
+    /* ── Info line ── */
+    .info-line {
+      font-size: 11px;
+      margin: 4px 0;
     }
 
     /* ── QR ── */
@@ -247,16 +367,16 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
 
     /* ── Print ── */
     @media print {
-      body { width: 100%; padding: 0 4px; }
+      body { width: 100%; padding: 0; }
       .no-print { display: none !important; }
     }
 
     /* ── Screen print button ── */
     .print-btn {
       display: block;
-      width: 100%;
+      width: 280px;
+      margin: 12px auto;
       padding: 10px;
-      margin-top: 12px;
       background: #DC2626;
       color: white;
       border: none;
@@ -270,79 +390,14 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string) {
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <div class="header">
-    <div class="logo-text">KLIK&amp;GO</div>
-    <div class="shop-name">${escapeHtml(shopName || "Klik&Go")}</div>
-    <div class="subtitle">Ticket de commande</div>
-  </div>
-
-  <hr class="divider-double">
-
-  <!-- Order info -->
-  <div class="order-info">
-    <span>${escapeHtml(ticketNumber)}</span>
-    <span>${formatTime(order.createdAt)}</span>
-  </div>
-  <div class="order-meta">
-    ${formatDate(order.createdAt)}
-  </div>
-
-  <hr class="divider">
-
-  <!-- Items -->
-  ${itemsHtml}
-
-  <hr class="divider-double">
-
-  <!-- Total -->
-  <div class="total-section">
-    <div class="total-items">${itemCount} article${itemCount > 1 ? "s" : ""}</div>
-    <div class="total-price">TOTAL ${formatPrice(order.totalCents)}</div>
-  </div>
-
-  <hr class="divider">
-
-  <!-- Payment -->
-  <div class="payment">${escapeHtml(paymentLabel)}</div>
-
-  <!-- Client -->
-  <div class="client-section">
-    <span class="label">Client :</span>
-    <span class="value">${escapeHtml(clientName)}</span>
-    ${order.isPro ? '<span class="pro-badge">PRO</span>' : ""}
-  </div>
-
-  ${order.customerNote ? `
-  <div class="note-section">
-    <div class="note-label">Note client</div>
-    <div>${escapeHtml(order.customerNote)}</div>
-  </div>` : ""}
-
-  ${order.requestedTime ? `
-  <div class="client-section" style="margin-top:4px">
-    <span class="label">Retrait :</span>
-    <span class="value">${formatTime(order.requestedTime)}</span>
-  </div>` : ""}
-
-  ${qrSection}
-
-  <hr class="divider">
-
-  <!-- Footer -->
-  <div class="footer">
-    <div class="thanks">Merci pour votre commande !</div>
-    <div class="tagline">Zero file, zero stress, 100% frais</div>
-    <div class="date">Klik&amp;Go &mdash; ${formatDate(new Date().toISOString())}</div>
-  </div>
+  ${ticketsHtml}
 
   <!-- Print button (screen only) -->
   <button class="print-btn no-print" onclick="window.print()">
-    Imprimer le ticket
+    Imprimer ${copies > 1 ? `les ${copies} tickets` : "le ticket"}
   </button>
 
   <script>
-    // Auto-print on load
     window.onload = function() {
       setTimeout(function() { window.print(); }, 300);
     };
