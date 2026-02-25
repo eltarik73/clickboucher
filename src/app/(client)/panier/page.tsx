@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useCart, type CartItem } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OrderCountdown } from "@/components/checkout/OrderCountdown";
 import CartSuggestions from "@/components/cart/CartSuggestions";
 
 // ── Helpers ──────────────────────────────────────
@@ -133,7 +134,6 @@ export default function PanierPage() {
 
   const [timeMode, setTimeMode] = useState<"asap" | "slot">("asap");
   const [customerNote, setCustomerNote] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"ON_PICKUP" | "ONLINE">("ON_PICKUP");
 
   // Pickup slots
@@ -141,6 +141,10 @@ export default function PanierPage() {
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<PickupSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Countdown overlay
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownOrderData, setCountdownOrderData] = useState<Record<string, unknown> | null>(null);
 
   // Clear cart dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -196,58 +200,34 @@ export default function PanierPage() {
     setSelectedSlot(null);
   }
 
-  const handleOrder = async () => {
+  const handleOrder = () => {
     if (!state.shopId || state.items.length === 0) return;
 
-    setSubmitting(true);
-    try {
-      const requestedTime =
-        timeMode === "slot" && selectedSlot
-          ? `${selectedDate}T${selectedSlot.start}:00`
-          : "asap";
+    const requestedTime =
+      timeMode === "slot" && selectedSlot
+        ? `${selectedDate}T${selectedSlot.start}:00`
+        : "asap";
 
-      const orderBody: Record<string, unknown> = {
-        shopId: state.shopId,
-        items: state.items.map((i) => ({
-          productId: i.productId || i.id,
-          quantity: (i.unit === "KG" || i.unit === "TRANCHE") && i.weightGrams
-            ? (i.weightGrams / 1000) * i.quantity
-            : i.quantity,
-        })),
-        requestedTime,
-        customerNote: customerNote.trim() || undefined,
-        paymentMethod,
-      };
+    const orderBody: Record<string, unknown> = {
+      shopId: state.shopId,
+      items: state.items.map((i) => ({
+        productId: i.productId || i.id,
+        quantity: (i.unit === "KG" || i.unit === "TRANCHE") && i.weightGrams
+          ? (i.weightGrams / 1000) * i.quantity
+          : i.quantity,
+      })),
+      requestedTime,
+      customerNote: customerNote.trim() || undefined,
+      paymentMethod,
+    };
 
-      if (timeMode === "slot" && selectedSlot) {
-        orderBody.pickupSlotStart = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
-        orderBody.pickupSlotEnd = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
-      }
-      // Debug removed for production
-
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderBody),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        clear();
-        toast.success(`Commande ${data.data.orderNumber} confirmee !`);
-        router.push(`/suivi/${data.data.id}`);
-      } else {
-        const errMsg = data.error?.message || "Erreur lors de la commande";
-        const details = data.error?.details;
-        const detailStr = details ? " — " + Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(", ") : "";
-        toast.error(errMsg + detailStr);
-      }
-    } catch {
-      toast.error("Erreur reseau, reessayez");
-    } finally {
-      setSubmitting(false);
+    if (timeMode === "slot" && selectedSlot) {
+      orderBody.pickupSlotStart = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
+      orderBody.pickupSlotEnd = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
     }
+
+    setCountdownOrderData(orderBody);
+    setShowCountdown(true);
   };
 
   // ── Empty cart ──────────────────────────────────
@@ -576,13 +556,11 @@ export default function PanierPage() {
               {/* Submit */}
               <Button
                 onClick={handleOrder}
-                disabled={submitting || (timeMode === "slot" && !selectedSlot)}
+                disabled={showCountdown || (timeMode === "slot" && !selectedSlot)}
                 className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50"
                 size="lg"
               >
-                {submitting
-                  ? "Envoi en cours..."
-                  : paymentMethod === "ONLINE"
+                {paymentMethod === "ONLINE"
                   ? `Payer ${fmtPrice(totalCents)} et commander`
                   : "Confirmer ma commande"}
               </Button>
@@ -604,6 +582,36 @@ export default function PanierPage() {
           toast.success("Panier vide");
         }}
       />
+
+      {/* ── Countdown overlay ── */}
+      {showCountdown && countdownOrderData && (
+        <OrderCountdown
+          orderData={countdownOrderData}
+          itemCount={itemCount}
+          totalCents={totalCents}
+          shopName={state.shopName}
+          pickupLabel={
+            timeMode === "slot" && selectedSlot
+              ? `Retrait : ${selectedDate === new Date().toISOString().slice(0, 10) ? "Aujourd'hui" : selectedDate} ${selectedSlot.start}-${selectedSlot.end}`
+              : "Retrait : Des que possible"
+          }
+          onCancel={() => {
+            setShowCountdown(false);
+            setCountdownOrderData(null);
+            toast("Commande annulee", { icon: "ℹ️" });
+          }}
+          onSuccess={(order) => {
+            clear();
+            toast.success(`Commande ${order.orderNumber} confirmee !`);
+            router.push(`/suivi/${order.id}`);
+          }}
+          onError={() => {
+            setShowCountdown(false);
+            setCountdownOrderData(null);
+          }}
+          duration={5}
+        />
+      )}
     </div>
   );
 }
