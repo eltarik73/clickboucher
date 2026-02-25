@@ -431,18 +431,37 @@ export default function KitchenModePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Shop status indicator */}
-            <span
-              className={`text-[10px] font-bold px-2 py-1 rounded-md ${
+            {/* Shop status toggle (busy/pause) */}
+            <button
+              onClick={async () => {
+                try {
+                  const action = shopStatus === "OPEN" ? "busy" : shopStatus === "BUSY" ? "pause" : "resume";
+                  const body: Record<string, unknown> = { action };
+                  if (action === "busy") body.extraMinutes = 15;
+                  if (action === "pause") body.reason = "Pause manuelle";
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                  });
+                  if (res.ok) {
+                    fetchShopInfo();
+                    const labels: Record<string, string> = { busy: "Mode occupe active", pause: "Boutique en pause", resume: "Boutique en ligne" };
+                    toast.success(labels[action] || "Statut mis a jour");
+                  }
+                } catch { toast.error("Erreur de mise a jour du statut"); }
+              }}
+              className={`text-[10px] font-bold px-2.5 py-1.5 rounded-md min-h-[32px] transition-colors ${
                 shopStatus === "OPEN"
-                  ? "bg-emerald-500/20 text-emerald-400"
+                  ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
                   : shopStatus === "BUSY"
-                  ? "bg-amber-500/20 text-amber-400"
-                  : "bg-red-500/20 text-red-400"
+                  ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                  : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
               }`}
+              title={shopStatus === "OPEN" ? "Passer en occupe" : shopStatus === "BUSY" ? "Mettre en pause" : "Remettre en ligne"}
             >
-              {shopStatus === "OPEN" ? "En ligne" : shopStatus === "BUSY" ? "Occupe" : shopStatus}
-            </span>
+              {shopStatus === "OPEN" ? "En ligne" : shopStatus === "BUSY" ? "Occupe" : shopStatus === "PAUSED" ? "En pause" : shopStatus}
+            </button>
 
             {/* Time */}
             <span className="text-xs text-gray-500 font-mono hidden sm:block">
