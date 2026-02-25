@@ -68,7 +68,7 @@ export default function CartSuggestions() {
               key={product.id}
               className="shrink-0 w-[140px] bg-white dark:bg-[#141414] rounded-xl border border-[#ece8e3] dark:border-white/10 overflow-hidden shadow-sm"
             >
-              <div className={`relative h-[90px]${product.imageUrl?.includes('laboucherie-halal.com') ? ' halal-logo-patch' : ''}`}>
+              <div className="relative h-[90px] halal-logo-patch">
                 <img
                   src={product.imageUrl || "/img/products/boeuf-1.jpg"}
                   alt={product.name}
