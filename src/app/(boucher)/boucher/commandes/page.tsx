@@ -1,6 +1,7 @@
-// /boucher/commandes — MODE CUISINE (v5)
+// /boucher/commandes — MODE CUISINE (v6)
 // Full-screen tablet kitchen interface — dark theme, big buttons, audio alerts
-// 5 tabs: Nouvelles, En cours, Pretes, Historique, Programmees
+// 3 columns: Nouvelles (25%) | En cours (45%) | Pretes (30%)
+// Bottom bar: Historique + Programmees → Sheet drawers
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -59,7 +60,7 @@ import { toast } from "sonner";
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type Tab = "nouvelles" | "en-cours" | "pretes" | "historique" | "programmees";
+type Tab = "nouvelles" | "en-cours" | "pretes";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -123,6 +124,10 @@ export default function KitchenModePage() {
   const [stockIssueOrder, setStockIssueOrder] = useState<KitchenOrder | null>(null);
   const [adjustPriceOrder, setAdjustPriceOrder] = useState<KitchenOrder | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+
+  // Bottom bar drawers
+  const [showHistory, setShowHistory] = useState(false);
+  const [showScheduled, setShowScheduled] = useState(false);
 
   // Sound muted
   const [muted, setMuted] = useState(false);
@@ -333,13 +338,11 @@ export default function KitchenModePage() {
     );
   }
 
-  // Tab data
-  const tabs: { key: Tab; label: string; count: number; icon: typeof Bell }[] = [
-    { key: "nouvelles", label: "Nouvelles", count: pendingCount, icon: Bell },
-    { key: "en-cours", label: "En cours", count: inProgressCount, icon: ChefHat },
-    { key: "pretes", label: "Pretes", count: readyCount, icon: CheckCircle },
-    { key: "historique", label: "Historique", count: historyCount, icon: ScrollText },
-    { key: "programmees", label: "Programmees", count: scheduledCount, icon: CalendarClock },
+  // Tab data (3 main tabs only — Historique/Programmées in bottom bar drawers)
+  const tabs: { key: Tab; label: string; count: number; icon: typeof Bell; color: string }[] = [
+    { key: "nouvelles", label: "Nouvelles", count: pendingCount, icon: Bell, color: "amber" },
+    { key: "en-cours", label: "En cours", count: inProgressCount, icon: ChefHat, color: "blue" },
+    { key: "pretes", label: "Pretes", count: readyCount, icon: CheckCircle, color: "emerald" },
   ];
 
   // Get orders for active tab (mobile)
@@ -348,11 +351,7 @@ export default function KitchenModePage() {
       ? pendingOrders
       : activeTab === "en-cours"
       ? inProgressOrders
-      : activeTab === "pretes"
-      ? readyOrders
-      : activeTab === "historique"
-      ? historyOrders
-      : scheduledOrders;
+      : readyOrders;
 
   return (
     <>
@@ -566,111 +565,113 @@ export default function KitchenModePage() {
         </div>
 
         {/* ══════════════════════════════════════════ */}
-        {/* ── DESKTOP: Multi-column layout ── */}
+        {/* ── DESKTOP: 3-column layout (25%/45%/30%) ── */}
         {/* ══════════════════════════════════════════ */}
-        <div className="flex-1 overflow-hidden hidden md:flex">
-          {/* Column 1: Nouvelles */}
-          <KitchenColumn
-            title="Nouvelles"
-            count={pendingCount}
-            icon={<Bell size={16} />}
-            color="amber"
-            orders={pendingOrders}
-            shopName={shopName}
-            shopPrepTime={shopPrepTime}
-            onAction={handleAction}
-            onStockIssue={setStockIssueOrder}
-            onView={handleViewOrder}
-            emptyMessage="Aucune nouvelle commande"
-            emptyIcon={<Bell size={32} className="text-gray-700" />}
-          />
+        <div className="flex-1 overflow-hidden hidden md:flex pb-14">
+          {/* Column 1: Nouvelles (25%) */}
+          <div className="w-1/4 shrink-0">
+            <KitchenColumn
+              title="Nouvelles"
+              count={pendingCount}
+              icon={<Bell size={16} />}
+              color="amber"
+              orders={pendingOrders}
+              shopName={shopName}
+              shopPrepTime={shopPrepTime}
+              onAction={handleAction}
+              onStockIssue={setStockIssueOrder}
+              onView={handleViewOrder}
+              emptyMessage="Aucune nouvelle commande"
+              emptyIcon={<Bell size={32} className="text-gray-700" />}
+            />
+          </div>
 
           {/* Divider */}
           <div className="w-px bg-white/5 shrink-0" />
 
-          {/* Column 2: En cours */}
-          <KitchenColumn
-            title="En cours"
-            count={inProgressCount}
-            icon={<ChefHat size={16} />}
-            color="blue"
-            orders={inProgressOrders}
-            shopName={shopName}
-            shopPrepTime={shopPrepTime}
-            onAction={handleAction}
-            onStockIssue={setStockIssueOrder}
-            onView={handleViewOrder}
-            onAdjustPrice={setAdjustPriceOrder}
-            emptyMessage="Aucune commande en cours"
-            emptyIcon={<ChefHat size={32} className="text-gray-700" />}
-          />
+          {/* Column 2: En cours (45% — flex-1) */}
+          <div className="flex-1 min-w-0">
+            <KitchenColumn
+              title="En cours"
+              count={inProgressCount}
+              icon={<ChefHat size={16} />}
+              color="blue"
+              orders={inProgressOrders}
+              shopName={shopName}
+              shopPrepTime={shopPrepTime}
+              onAction={handleAction}
+              onStockIssue={setStockIssueOrder}
+              onView={handleViewOrder}
+              onAdjustPrice={setAdjustPriceOrder}
+              emptyMessage="Aucune commande en cours"
+              emptyIcon={<ChefHat size={32} className="text-gray-700" />}
+            />
+          </div>
 
           {/* Divider */}
           <div className="w-px bg-white/5 shrink-0" />
 
-          {/* Column 3: Pretes */}
-          <KitchenColumn
-            title="Pretes"
-            count={readyCount}
-            icon={<CheckCircle size={16} />}
-            color="emerald"
-            orders={readyOrders}
-            shopName={shopName}
-            shopPrepTime={shopPrepTime}
-            onAction={handleAction}
-            onStockIssue={setStockIssueOrder}
-            onView={handleViewOrder}
-            emptyMessage="Aucune commande prete"
-            emptyIcon={<CheckCircle size={32} className="text-gray-700" />}
-            extra={
-              readyCount > 0 ? (
-                <button
-                  onClick={() => setShowScanner(true)}
-                  className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold min-h-[44px] py-3 rounded-xl transition-all mb-3"
-                >
-                  <ScanLine size={16} /> Scanner QR
-                </button>
-              ) : null
-            }
-          />
+          {/* Column 3: Pretes (30%) */}
+          <div className="w-[30%] shrink-0">
+            <KitchenColumn
+              title="Pretes"
+              count={readyCount}
+              icon={<CheckCircle size={16} />}
+              color="emerald"
+              orders={readyOrders}
+              shopName={shopName}
+              shopPrepTime={shopPrepTime}
+              onAction={handleAction}
+              onStockIssue={setStockIssueOrder}
+              onView={handleViewOrder}
+              emptyMessage="Aucune commande prete"
+              emptyIcon={<CheckCircle size={32} className="text-gray-700" />}
+              extra={
+                readyCount > 0 ? (
+                  <button
+                    onClick={() => setShowScanner(true)}
+                    className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold min-h-[44px] py-3 rounded-xl transition-all mb-3"
+                  >
+                    <ScanLine size={16} /> Scanner QR
+                  </button>
+                ) : null
+              }
+            />
+          </div>
+        </div>
 
-          {/* Divider */}
-          <div className="w-px bg-white/5 shrink-0" />
-
-          {/* Column 4: Historique */}
-          <HistoryColumn
-            title="Historique"
-            count={historyCount}
-            icon={<ScrollText size={16} />}
-            orders={historyOrders}
-            emptyMessage="Aucune commande recente"
-            emptyIcon={<ScrollText size={32} className="text-gray-700" />}
-          />
-
-          {/* Divider */}
-          <div className="w-px bg-white/5 shrink-0" />
-
-          {/* Column 5: Programmees */}
-          <ScheduledColumn
-            title="Programmees"
-            count={scheduledCount}
-            icon={<CalendarClock size={16} />}
-            orders={scheduledOrders}
-            shopName={shopName}
-            shopPrepTime={shopPrepTime}
-            onAction={handleAction}
-            onStockIssue={setStockIssueOrder}
-            onView={handleViewOrder}
-            onAdjustPrice={setAdjustPriceOrder}
-            emptyMessage="Aucune commande programmee"
-            emptyIcon={<CalendarClock size={32} className="text-gray-700" />}
-          />
+        {/* ── Desktop bottom bar (Historique + Programmées) ── */}
+        <div className="hidden md:flex fixed bottom-0 inset-x-0 h-14 bg-zinc-900 border-t border-zinc-800 items-center justify-center gap-4 px-6 z-40">
+          <button
+            onClick={() => setShowHistory(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors text-sm font-medium"
+          >
+            <ScrollText size={16} />
+            Historique
+            {historyCount > 0 && (
+              <span className="min-w-[20px] h-5 flex items-center justify-center bg-white/10 text-gray-300 text-[10px] font-bold rounded-full px-1.5">
+                {historyCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setShowScheduled(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors text-sm font-medium"
+          >
+            <CalendarClock size={16} />
+            Programmees
+            {scheduledCount > 0 && (
+              <span className="min-w-[20px] h-5 flex items-center justify-center bg-purple-500/30 text-purple-300 text-[10px] font-bold rounded-full px-1.5">
+                {scheduledCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* ══════════════════════════════════════════ */}
-        {/* ── MOBILE: Single column (tabs) ── */}
+        {/* ── MOBILE: Single column (3 tabs) ── */}
         {/* ══════════════════════════════════════════ */}
-        <div className="flex-1 overflow-y-auto md:hidden p-3 space-y-3">
+        <div className="flex-1 overflow-y-auto md:hidden p-3 pb-20 space-y-3">
           {/* Scanner button for ready tab */}
           {activeTab === "pretes" && readyCount > 0 && (
             <button
@@ -681,40 +682,7 @@ export default function KitchenModePage() {
             </button>
           )}
 
-          {/* History tab — special read-only cards */}
-          {activeTab === "historique" ? (
-            historyOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <ScrollText size={40} className="text-gray-700" />
-                <p className="text-gray-600 text-sm">Aucune commande recente</p>
-                <p className="text-gray-700 text-xs">3 derniers jours</p>
-              </div>
-            ) : (
-              historyOrders.map((order) => (
-                <HistoryCard key={order.id} order={order} />
-              ))
-            )
-          ) : activeTab === "programmees" ? (
-            scheduledOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <CalendarClock size={40} className="text-gray-700" />
-                <p className="text-gray-600 text-sm">Aucune commande programmee</p>
-              </div>
-            ) : (
-              scheduledOrders.map((order) => (
-                <KitchenOrderCard
-                  key={order.id}
-                  order={order}
-                  shopName={shopName}
-                  shopPrepTime={shopPrepTime}
-                  onAction={handleAction}
-                  onStockIssue={setStockIssueOrder}
-                  onView={handleViewOrder}
-                  onAdjustPrice={setAdjustPriceOrder}
-                />
-              ))
-            )
-          ) : activeOrders.length === 0 ? (
+          {activeOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               {activeTab === "nouvelles" && <Bell size={40} className="text-gray-700" />}
               {activeTab === "en-cours" && <ChefHat size={40} className="text-gray-700" />}
@@ -740,7 +708,131 @@ export default function KitchenModePage() {
             ))
           )}
         </div>
+
+        {/* ── Mobile bottom bar (Historique + Programmées) ── */}
+        <div className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-zinc-900 border-t border-zinc-800 flex items-center justify-center gap-3 px-4 z-40">
+          <button
+            onClick={() => setShowHistory(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
+          >
+            <ScrollText size={14} />
+            Historique
+            {historyCount > 0 && (
+              <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-white/10 text-gray-300 text-[9px] font-bold rounded-full px-1">
+                {historyCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setShowScheduled(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
+          >
+            <CalendarClock size={14} />
+            Programmees
+            {scheduledCount > 0 && (
+              <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-purple-500/30 text-purple-300 text-[9px] font-bold rounded-full px-1">
+                {scheduledCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* ══════════════════════════════════════════ */}
+      {/* ── HISTORY DRAWER (slide-up) ── */}
+      {/* ══════════════════════════════════════════ */}
+      {showHistory && (
+        <div className="fixed inset-0 z-[70]" onClick={() => setShowHistory(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="absolute bottom-0 inset-x-0 h-[70vh] bg-[#111] border-t border-white/10 rounded-t-2xl flex flex-col animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle + Header */}
+            <div className="shrink-0 pt-3 pb-2 px-5">
+              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ScrollText size={16} className="text-gray-400" />
+                  <h3 className="text-base font-bold text-white">Historique</h3>
+                  <span className="text-xs text-gray-500">3 derniers jours</span>
+                </div>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="text-gray-500 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
+              {historyOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <ScrollText size={32} className="text-gray-700" />
+                  <p className="text-gray-600 text-sm">Aucune commande recente</p>
+                </div>
+              ) : (
+                historyOrders.map((order) => (
+                  <HistoryCard key={order.id} order={order} />
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════ */}
+      {/* ── SCHEDULED DRAWER (slide-up) ── */}
+      {/* ══════════════════════════════════════════ */}
+      {showScheduled && (
+        <div className="fixed inset-0 z-[70]" onClick={() => setShowScheduled(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="absolute bottom-0 inset-x-0 h-[70vh] bg-[#111] border-t border-white/10 rounded-t-2xl flex flex-col animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle + Header */}
+            <div className="shrink-0 pt-3 pb-2 px-5">
+              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarClock size={16} className="text-purple-400" />
+                  <h3 className="text-base font-bold text-white">Programmees</h3>
+                </div>
+                <button
+                  onClick={() => setShowScheduled(false)}
+                  className="text-gray-500 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
+              {scheduledOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <CalendarClock size={32} className="text-gray-700" />
+                  <p className="text-gray-600 text-sm">Aucune commande programmee</p>
+                </div>
+              ) : (
+                scheduledOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.id}
+                    order={order}
+                    shopName={shopName}
+                    shopPrepTime={shopPrepTime}
+                    onAction={handleAction}
+                    onStockIssue={setStockIssueOrder}
+                    onView={handleViewOrder}
+                    onAdjustPrice={setAdjustPriceOrder}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -786,7 +878,7 @@ function KitchenColumn({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex flex-col h-full min-w-0">
       {/* Column header */}
       <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
         <div className={`${colorMap[color]} p-1.5 rounded-lg`}>{icon}</div>
@@ -809,124 +901,6 @@ function KitchenColumn({
       {/* Column content */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {extra}
-        {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            {emptyIcon}
-            <p className="text-gray-600 text-sm">{emptyMessage}</p>
-          </div>
-        ) : (
-          orders.map((order) => (
-            <KitchenOrderCard
-              key={order.id}
-              order={order}
-              shopName={shopName}
-              shopPrepTime={shopPrepTime}
-              onAction={onAction}
-              onStockIssue={onStockIssue}
-              onView={onView}
-              onAdjustPrice={onAdjustPrice}
-            />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Desktop History column (read-only cards)
-// ─────────────────────────────────────────────
-function HistoryColumn({
-  title,
-  count,
-  icon,
-  orders,
-  emptyMessage,
-  emptyIcon,
-}: {
-  title: string;
-  count: number;
-  icon: React.ReactNode;
-  orders: KitchenOrder[];
-  emptyMessage: string;
-  emptyIcon: React.ReactNode;
-}) {
-  return (
-    <div className="flex-1 flex flex-col min-w-0">
-      {/* Column header */}
-      <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
-        <div className="text-gray-400 bg-white/5 p-1.5 rounded-lg">{icon}</div>
-        <h2 className="text-sm font-bold text-white">{title}</h2>
-        {count > 0 && (
-          <span className="min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 bg-white/10 text-gray-400">
-            {count}
-          </span>
-        )}
-        <span className="text-[10px] text-gray-600 ml-auto">3 jours</span>
-      </div>
-
-      {/* Column content */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            {emptyIcon}
-            <p className="text-gray-600 text-sm">{emptyMessage}</p>
-          </div>
-        ) : (
-          orders.map((order) => (
-            <HistoryCard key={order.id} order={order} />
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Desktop Scheduled column (active order cards)
-// ─────────────────────────────────────────────
-function ScheduledColumn({
-  title,
-  count,
-  icon,
-  orders,
-  shopName,
-  shopPrepTime,
-  onAction,
-  onStockIssue,
-  onView,
-  onAdjustPrice,
-  emptyMessage,
-  emptyIcon,
-}: {
-  title: string;
-  count: number;
-  icon: React.ReactNode;
-  orders: KitchenOrder[];
-  shopName: string;
-  shopPrepTime: number;
-  onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
-  onStockIssue: (order: KitchenOrder) => void;
-  onView?: (orderId: string) => void;
-  onAdjustPrice?: (order: KitchenOrder) => void;
-  emptyMessage: string;
-  emptyIcon: React.ReactNode;
-}) {
-  return (
-    <div className="flex-1 flex flex-col min-w-0">
-      {/* Column header */}
-      <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
-        <div className="text-purple-400 bg-purple-500/20 p-1.5 rounded-lg">{icon}</div>
-        <h2 className="text-sm font-bold text-white">{title}</h2>
-        {count > 0 && (
-          <span className="min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 bg-purple-500 text-white">
-            {count}
-          </span>
-        )}
-      </div>
-
-      {/* Column content */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             {emptyIcon}
