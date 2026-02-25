@@ -1,12 +1,11 @@
 // Script to remove halal/boucherie watermarks from product images
-// Uses sharp to paint white over the watermark areas
+// Uses stacked blurred SVG ellipses for seamless blending
 import sharp from "sharp";
-import { readFileSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { join } from "path";
 
 const IMG_DIR = "public/img/products";
 
-// All images with watermarks (300x300, white bg, halal badge bottom-left, BOUCHERIE bottom-right)
 const WATERMARKED = [
   "bavette-aloyau.jpg", "entrecote-boeuf.jpg", "faux-filet.jpg",
   "steak-hache.jpg", "viande-hachee.jpg", "brochettes-boeuf-marine.jpg",
@@ -29,42 +28,41 @@ const WATERMARKED = [
   "pastrami-boeuf.jpg", "bacon-dinde.jpg", "rosette.jpg", "mortadelle.jpg",
 ];
 
-// White rectangles to paint over watermark areas (on 300x300 images)
-// Bottom-left: Halal badge (~65x65 in corner)
-// Bottom-right: BOUCHERIE logo (~85x40 in corner)
-const patches = [
-  // Bottom-left halal badge (full corner)
-  { left: 0, top: 215, width: 80, height: 85 },
-  // Bottom-right boucherie logo + truck icon
-  { left: 195, top: 230, width: 105, height: 70 },
-];
+// 5 stacked blurred ellipses per watermark: wide/faint → tight/opaque
+const svg = Buffer.from(`<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="b1" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="28"/></filter>
+    <filter id="b2" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="b3" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="b4" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
 
-async function removeWatermark(filename) {
-  const filepath = join(IMG_DIR, filename);
+  <!-- Bottom-left halal badge -->
+  <ellipse cx="22" cy="272" rx="68" ry="55" fill="white" filter="url(#b1)"/>
+  <ellipse cx="22" cy="273" rx="55" ry="44" fill="white" filter="url(#b2)"/>
+  <ellipse cx="22" cy="274" rx="44" ry="36" fill="white" filter="url(#b3)"/>
+  <ellipse cx="22" cy="276" rx="35" ry="28" fill="white" filter="url(#b4)"/>
+  <ellipse cx="22" cy="278" rx="28" ry="22" fill="white"/>
 
-  // Create white rectangles as overlays
-  const overlays = patches.map(p => ({
-    input: Buffer.from(
-      `<svg width="${p.width}" height="${p.height}"><rect width="${p.width}" height="${p.height}" fill="white"/></svg>`
-    ),
-    top: p.top,
-    left: p.left,
-  }));
-
-  const result = await sharp(filepath)
-    .composite(overlays)
-    .jpeg({ quality: 90 })
-    .toBuffer();
-
-  writeFileSync(filepath, result);
-  console.log(`✓ ${filename}`);
-}
+  <!-- Bottom-right BOUCHERIE -->
+  <ellipse cx="262" cy="272" rx="68" ry="50" fill="white" filter="url(#b1)"/>
+  <ellipse cx="264" cy="273" rx="55" ry="40" fill="white" filter="url(#b2)"/>
+  <ellipse cx="266" cy="274" rx="44" ry="32" fill="white" filter="url(#b3)"/>
+  <ellipse cx="268" cy="276" rx="35" ry="26" fill="white" filter="url(#b4)"/>
+  <ellipse cx="270" cy="278" rx="28" ry="20" fill="white"/>
+</svg>`);
 
 console.log(`Processing ${WATERMARKED.length} images...`);
 
 for (const file of WATERMARKED) {
   try {
-    await removeWatermark(file);
+    const filepath = join(IMG_DIR, file);
+    const buf = await sharp(filepath)
+      .composite([{ input: svg, top: 0, left: 0 }])
+      .jpeg({ quality: 92 })
+      .toBuffer();
+    writeFileSync(filepath, buf);
+    console.log(`✓ ${file}`);
   } catch (err) {
     console.error(`✗ ${file}: ${err.message}`);
   }
