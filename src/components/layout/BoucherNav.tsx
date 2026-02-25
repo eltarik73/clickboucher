@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   Headphones,
+  ChefHat,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
@@ -60,8 +61,24 @@ export function BoucherNav() {
           </Link>
         </div>
 
+        {/* CTA Mode Cuisine */}
+        <div className="px-3 pt-4 pb-2">
+          <Link
+            href="/boucher/commandes"
+            className="flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] text-white font-bold py-3 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-[#DC2626]/25"
+          >
+            <ChefHat size={18} />
+            Mode Cuisine
+            {pendingCount > 0 && (
+              <span className="min-w-[20px] h-5 flex items-center justify-center bg-white/20 text-white text-[10px] font-bold rounded-full px-1.5 animate-pulse">
+                {pendingCount}
+              </span>
+            )}
+          </Link>
+        </div>
+
         {/* Nav items */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-2 space-y-1">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
