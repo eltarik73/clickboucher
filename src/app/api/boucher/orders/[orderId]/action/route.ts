@@ -13,6 +13,29 @@ import type { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
+/** Log an OrderEvent for audit trail */
+async function logOrderEvent(
+  orderId: string,
+  shopId: string,
+  type: string,
+  actorId: string,
+  payload?: Record<string, unknown>
+) {
+  try {
+    await prisma.orderEvent.create({
+      data: {
+        orderId,
+        shopId,
+        type,
+        actorId,
+        ...(payload ? { payloadJson: payload as unknown as import("@prisma/client").Prisma.InputJsonValue } : {}),
+      },
+    });
+  } catch (e) {
+    console.error("[order-event] Failed to log:", type, e);
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { orderId: string } }
@@ -54,6 +77,10 @@ export async function PATCH(
     switch (data.action) {
       // ── ACCEPT ──────────────────────────────────
       case "accept": {
+        // Idempotent: already accepted → return current state
+        if (order.status === "ACCEPTED" || order.status === "PREPARING" || order.status === "READY") {
+          return apiSuccess({ ...order, _idempotent: true });
+        }
         if (!canTransition(order.status, "ACCEPTED")) {
           return apiError("VALIDATION_ERROR", `Impossible d'accepter (statut: ${order.status})`);
         }
@@ -82,6 +109,8 @@ export async function PATCH(
           include: { items: true },
         });
 
+        await logOrderEvent(orderId, order.shop.id, "ACCEPTED", userId, { estimatedMinutes, qrCode });
+
         await sendNotification("ORDER_ACCEPTED", {
           userId: order.user.id,
           orderId,
@@ -96,6 +125,7 @@ export async function PATCH(
 
       // ── DENY ────────────────────────────────────
       case "deny": {
+        if (order.status === "DENIED") return apiSuccess({ ...order, _idempotent: true });
         if (!canTransition(order.status, "DENIED")) {
           return apiError("VALIDATION_ERROR", `Impossible de refuser (statut: ${order.status})`);
         }
@@ -104,6 +134,8 @@ export async function PATCH(
           where: { id: orderId },
           data: { status: "DENIED", denyReason: data.reason },
         });
+
+        await logOrderEvent(orderId, order.shop.id, "DENIED", userId, { reason: data.reason });
 
         await sendNotification("ORDER_DENIED", {
           userId: order.user.id,
@@ -118,6 +150,7 @@ export async function PATCH(
 
       // ── START PREPARING ─────────────────────────
       case "start_preparing": {
+        if (order.status === "PREPARING") return apiSuccess({ ...order, _idempotent: true });
         if (!canTransition(order.status, "PREPARING")) {
           return apiError("VALIDATION_ERROR", `Impossible de démarrer la préparation (statut: ${order.status})`);
         }
@@ -136,6 +169,8 @@ export async function PATCH(
           data: updateData,
           include: { items: true },
         });
+
+        await logOrderEvent(orderId, order.shop.id, "PREPARING", userId, { addMinutes: data.addMinutes });
 
         await sendNotification("ORDER_PREPARING", {
           userId: order.user.id,
@@ -161,11 +196,14 @@ export async function PATCH(
           data: { estimatedReady: newEstimated },
         });
 
+        await logOrderEvent(orderId, order.shop.id, "ADD_TIME", userId, { addMinutes: data.addMinutes });
+
         return apiSuccess(updated);
       }
 
       // ── MARK READY ──────────────────────────────
       case "mark_ready": {
+        if (order.status === "READY") return apiSuccess({ ...order, _idempotent: true });
         if (!canTransition(order.status, "READY")) {
           return apiError("VALIDATION_ERROR", `Impossible de marquer prêt (statut: ${order.status})`);
         }
@@ -174,6 +212,8 @@ export async function PATCH(
           where: { id: orderId },
           data: { status: "READY", actualReady: new Date() },
         });
+
+        await logOrderEvent(orderId, order.shop.id, "READY", userId);
 
         await sendNotification("ORDER_READY", {
           userId: order.user.id,
@@ -245,6 +285,11 @@ export async function PATCH(
           include: { items: { include: { product: true } } },
         });
 
+        await logOrderEvent(orderId, order.shop.id, "ITEM_UNAVAILABLE", userId, {
+          itemIds: data.itemIds,
+          resultStatus: allUnavailable ? "DENIED" : "PARTIALLY_DENIED",
+        });
+
         await sendNotification("STOCK_ISSUE", {
           userId: order.user.id,
           orderId,
@@ -284,6 +329,11 @@ export async function PATCH(
           include: { items: true },
         });
 
+        await logOrderEvent(orderId, order.shop.id, "ADJUST_WEIGHT", userId, {
+          items: data.items,
+          totalDiff,
+        });
+
         return apiSuccess(updated);
       }
 
@@ -313,11 +363,19 @@ export async function PATCH(
           include: { items: true },
         });
 
+        await logOrderEvent(orderId, order.shop.id, "ADJUST_PRICE", userId, {
+          items: data.items,
+          totalDiff,
+        });
+
         return apiSuccess(updated);
       }
 
       // ── CONFIRM PICKUP (QR scan) ────────────────
       case "confirm_pickup": {
+        if (order.status === "PICKED_UP" || order.status === "COMPLETED") {
+          return apiSuccess({ ...order, _idempotent: true });
+        }
         if (order.status !== "READY") {
           return apiError("VALIDATION_ERROR", `La commande n'est pas prête (statut: ${order.status})`);
         }
@@ -332,6 +390,8 @@ export async function PATCH(
           data: { status: "PICKED_UP", pickedUpAt: now, qrScannedAt: now },
         });
 
+        await logOrderEvent(orderId, order.shop.id, "PICKED_UP", userId, { method: "qr" });
+
         await sendNotification("ORDER_PICKED_UP", {
           userId: order.user.id,
           orderId,
@@ -339,7 +399,6 @@ export async function PATCH(
           shopName: order.shop.name,
         });
 
-        // Send receipt email (fire-and-forget)
         sendReceiptForOrder(order, now).catch(() => {});
 
         return apiSuccess(updated);
@@ -347,6 +406,9 @@ export async function PATCH(
 
       // ── MANUAL PICKUP (boucher-side, no QR needed) ──
       case "manual_pickup": {
+        if (order.status === "PICKED_UP" || order.status === "COMPLETED") {
+          return apiSuccess({ ...order, _idempotent: true });
+        }
         if (order.status !== "READY") {
           return apiError("VALIDATION_ERROR", `La commande n'est pas prête (statut: ${order.status})`);
         }
@@ -357,6 +419,8 @@ export async function PATCH(
           data: { status: "PICKED_UP", pickedUpAt: manualNow },
         });
 
+        await logOrderEvent(orderId, order.shop.id, "PICKED_UP", userId, { method: "manual" });
+
         await sendNotification("ORDER_PICKED_UP", {
           userId: order.user.id,
           orderId,
@@ -364,7 +428,6 @@ export async function PATCH(
           shopName: order.shop.name,
         });
 
-        // Send receipt email (fire-and-forget)
         sendReceiptForOrder(order, manualNow).catch(() => {});
 
         return apiSuccess(manualUpdated);
@@ -372,6 +435,7 @@ export async function PATCH(
 
       // ── CANCEL (by boucher) ─────────────────────
       case "cancel": {
+        if (order.status === "CANCELLED") return apiSuccess({ ...order, _idempotent: true });
         if (!canTransition(order.status, "CANCELLED")) {
           return apiError("VALIDATION_ERROR", `Impossible d'annuler (statut: ${order.status})`);
         }
@@ -383,6 +447,8 @@ export async function PATCH(
             denyReason: data.reason || "Annulée par le boucher",
           },
         });
+
+        await logOrderEvent(orderId, order.shop.id, "CANCELLED", userId, { reason: data.reason });
 
         await sendNotification("ORDER_CANCELLED", {
           userId: order.user.id,
@@ -406,6 +472,8 @@ export async function PATCH(
           where: { id: orderId },
           data: { boucherNote: data.note },
         });
+
+        await logOrderEvent(orderId, order.shop.id, "ADD_NOTE", userId, { note: data.note });
 
         await sendNotification("BOUCHER_NOTE", {
           userId: order.user.id,
