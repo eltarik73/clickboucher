@@ -1,7 +1,7 @@
 // src/app/api/boucher/orders/pickup/route.ts — QR-code-based pickup confirmation
 // Looks up order by qrCode server-side (no need to fetch all orders client-side)
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
@@ -17,7 +17,7 @@ const pickupByQrSchema = z.object({
 // Boucher scans QR code -> finds order -> marks as PICKED_UP
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }

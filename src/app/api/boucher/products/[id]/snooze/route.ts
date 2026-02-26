@@ -1,6 +1,6 @@
 // src/app/api/boucher/products/[id]/snooze/route.ts — Deliveroo-style snooze
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { snoozeProduct } from "@/lib/product-snooze";
@@ -20,7 +20,7 @@ export async function PATCH(
 ) {
   try {
     const { id: productId } = params;
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     // Verify ownership

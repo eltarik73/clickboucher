@@ -1,12 +1,12 @@
 // src/app/api/boucher/orders/stream/route.ts — SSE real-time stream (Uber Eats WebSocket replacement)
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const { userId } = await auth();
+  const userId = await getServerUserId();
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
   }

@@ -1,7 +1,7 @@
 // GET  /api/boucher/subscription — Get current subscription info
 // PATCH /api/boucher/subscription — Upgrade plan / change billing cycle
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({
@@ -59,7 +59,7 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({

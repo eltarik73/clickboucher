@@ -1,7 +1,7 @@
 // GET /api/boucher/onboarding — Return onboarding progression
 // PATCH /api/boucher/onboarding — Mark step or complete
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -18,7 +18,7 @@ type Step = {
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({
@@ -113,7 +113,7 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const body = await req.json();

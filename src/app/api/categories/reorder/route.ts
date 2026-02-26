@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -15,7 +16,7 @@ const reorderSchema = z.object({
 // ── PATCH /api/categories/reorder ──
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const body = await req.json();

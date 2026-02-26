@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,14 +8,12 @@ export const dynamic = "force-dynamic";
 // Returns the shop owned by the authenticated boucher
 export async function GET() {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return apiError("UNAUTHORIZED", "Authentification requise");
-    }
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
+      where: { id: shopId },
       include: {
         categories: { orderBy: { order: "asc" } },
         _count: { select: { products: true, orders: true } },

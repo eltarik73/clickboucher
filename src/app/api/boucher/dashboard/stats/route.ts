@@ -1,5 +1,5 @@
 // GET /api/boucher/dashboard/stats — Lightweight today-only stats for the boucher dashboard
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     // ── 1. Auth ──
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({

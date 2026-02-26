@@ -1,6 +1,6 @@
 // src/app/api/boucher/shop/status/route.ts — Boucher shop status management
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import {
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 // ── GET — Current shop status + details ──
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({
@@ -107,7 +107,7 @@ const actionSchema = z.discriminatedUnion("action", [
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({

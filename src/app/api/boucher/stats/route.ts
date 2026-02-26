@@ -1,7 +1,7 @@
 // GET /api/boucher/stats?period=week|month|year — Boucher dashboard statistics
 // Feature-gated by subscription plan: STARTER=basic, PRO=advanced charts, PREMIUM=off-peak
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -69,7 +69,7 @@ function generateMonthKeys(start: Date, end: Date): string[] {
 export async function GET(req: NextRequest) {
   try {
     // ── 1. Auth ──
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({

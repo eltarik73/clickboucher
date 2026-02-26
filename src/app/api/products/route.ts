@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
@@ -130,8 +131,7 @@ export async function GET(req: NextRequest) {
 // Boucher (owner) or Admin — create a product
 export async function POST(req: NextRequest) {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+    const userId = await getServerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
@@ -141,6 +141,8 @@ export async function POST(req: NextRequest) {
     const data = createProductSchema.parse(body);
 
     // Verify ownership or admin
+    const user = await currentUser();
+    const role = (user?.publicMetadata as Record<string, string>)?.role;
     if (!isAdmin(role)) {
       const shop = await prisma.shop.findUnique({
         where: { id: data.shopId },
