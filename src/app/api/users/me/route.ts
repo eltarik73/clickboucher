@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,8 @@ const updateMeSchema = z.object({
 // Returns the authenticated user's profile with favorite shops
 export async function GET() {
   try {
-    const { userId } = await auth();
+    // @security: test-only — uses getServerUserId() for test mode bypass
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
@@ -79,7 +81,8 @@ export async function GET() {
 // Update notification preferences + phone
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    // @security: test-only — uses getServerUserId() for test mode bypass
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
@@ -119,7 +122,8 @@ export async function PATCH(req: NextRequest) {
 // Soft-delete: anonymize personal data + set deletedAt
 export async function DELETE() {
   try {
-    const { userId } = await auth();
+    // @security: test-only — uses getServerUserId() for test mode bypass
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }

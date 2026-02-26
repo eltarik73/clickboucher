@@ -3,6 +3,8 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiError } from "@/lib/api/errors";
 import { isBoucher } from "@/lib/roles";
+import { isTestMode, type TestRole } from "@/lib/auth/test-auth";
+import { getTestRole } from "@/lib/auth/server-auth";
 
 // ── In-memory boucher cache (5 min TTL) ──────────────
 const boucherCache = new Map<string, { shopId: string; userId: string; ts: number }>();
@@ -16,6 +18,23 @@ export async function getAuthenticatedBoucher(): Promise<
   | { userId: string; shopId: string; error?: undefined }
   | { error: Response; userId?: undefined; shopId?: undefined }
 > {
+  // @security: test-only — Bypass Clerk en mode test
+  if (isTestMode()) {
+    const testRole = getTestRole();
+    if (testRole === "BOUCHER" || testRole === "ADMIN") {
+      // Find the first shop in DB for test boucher
+      const firstShop = await prisma.shop.findFirst({
+        select: { id: true, ownerId: true },
+        orderBy: { createdAt: "asc" },
+      });
+      if (!firstShop) {
+        return { error: apiError("NOT_FOUND", "Aucune boutique trouvée (test mode)") };
+      }
+      return { userId: firstShop.ownerId, shopId: firstShop.id };
+    }
+    return { error: apiError("FORBIDDEN", "Accès réservé aux bouchers (test mode: rôle = " + testRole + ")") };
+  }
+
   const { userId: clerkId } = await auth();
 
   if (!clerkId) {

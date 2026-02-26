@@ -3,6 +3,8 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
+import { isTestMode, TEST_USERS, type TestRole } from "@/lib/auth/test-auth";
+import { getTestRole } from "@/lib/auth/server-auth";
 
 // ── In-memory admin role cache (5 min TTL) ──────────────
 // Avoids calling currentUser() (HTTP ~100-300ms) on every admin API request
@@ -14,6 +16,15 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  * Résultat mis en cache 5 min pour éviter les appels HTTP Clerk répétés.
  */
 export async function requireAdmin() {
+  // @security: test-only — Bypass Clerk en mode test
+  if (isTestMode()) {
+    const testRole = getTestRole();
+    if (testRole === "ADMIN") {
+      return { userId: TEST_USERS.ADMIN.clerkId };
+    }
+    return { error: apiError("FORBIDDEN", "Accès réservé aux administrateurs (test mode: rôle actuel = " + testRole + ")") };
+  }
+
   const { userId } = await auth();
 
   if (!userId) {

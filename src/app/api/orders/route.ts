@@ -13,6 +13,7 @@ import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { getNextDailyNumber, ensureCustomerNumber } from "@/lib/services/numbering.service";
 import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
+import { getServerUserId } from "@/lib/auth/server-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ export const dynamic = "force-dynamic";
 // Role-based: client sees own orders, boucher sees shop orders, admin sees all
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    // @security: test-only — uses getServerUserId() for test mode bypass
+    const userId = await getServerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
@@ -109,7 +111,8 @@ export async function GET(req: NextRequest) {
 // Client — create a new order (Uber Eats style with throttling + auto-cancel)
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    // @security: test-only — uses getServerUserId() for test mode bypass
+    const userId = await getServerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");

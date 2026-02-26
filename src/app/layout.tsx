@@ -14,6 +14,7 @@ import { NotificationProvider } from "@/components/ui/NotificationToast";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import OfflineBanner from "@/components/pwa/OfflineBanner";
+import { TestRoleSwitcher } from "@/components/test/TestRoleSwitcher";
 import "@/styles/globals.css";
 
 const outfit = Outfit({
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <OfflineBanner />
               <SplashScreen>{children}</SplashScreen>
               <InstallPrompt />
+              <TestRoleSwitcher />
             </NotificationProvider>
           </ThemeProvider>
         </body>

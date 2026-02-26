@@ -80,23 +80,33 @@ export function BottomNav() {
         })}
 
         {/* Profile / Sign-in tab */}
-        <SignedIn>
+        {/* @security: test-only — En mode test, afficher un avatar mock */}
+        {process.env.NEXT_PUBLIC_TEST_MODE === "true" ? (
           <div className="relative z-10 flex flex-col items-center gap-0.5 py-2 px-3">
-            <UserButton afterSignOutUrl="/decouvrir" />
-            <span className="text-[10px] leading-none font-medium text-gray-400 dark:text-gray-500">Profil</span>
+            <div className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white text-[10px] font-bold">T</div>
+            <span className="text-[10px] leading-none font-medium text-gray-400 dark:text-gray-500">Test</span>
           </div>
-        </SignedIn>
-        <SignedOut>
-          <Link
-            href="/sign-in"
-            className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-              pathname === "/sign-in" ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
-            }`}
-          >
-            <LogIn size={22} strokeWidth={1.8} />
-            <span className="text-[10px] leading-none font-medium">Connexion</span>
-          </Link>
-        </SignedOut>
+        ) : (
+          <>
+            <SignedIn>
+              <div className="relative z-10 flex flex-col items-center gap-0.5 py-2 px-3">
+                <UserButton afterSignOutUrl="/decouvrir" />
+                <span className="text-[10px] leading-none font-medium text-gray-400 dark:text-gray-500">Profil</span>
+              </div>
+            </SignedIn>
+            <SignedOut>
+              <Link
+                href="/sign-in"
+                className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
+                  pathname === "/sign-in" ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
+                }`}
+              >
+                <LogIn size={22} strokeWidth={1.8} />
+                <span className="text-[10px] leading-none font-medium">Connexion</span>
+              </Link>
+            </SignedOut>
+          </>
+        )}
       </div>
     </nav>
   );

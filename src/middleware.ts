@@ -1,5 +1,14 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+
+// @security: test-only — Bypass complet Clerk en mode test
+function isTestModeMiddleware() {
+  return process.env.NEXT_PUBLIC_TEST_MODE === "true";
+}
+
+function handleTestMode(req: NextRequest) {
+  return NextResponse.next();
+}
 
 const isBoucherRoute = createRouteMatcher(["/boucher(.*)"]);
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
@@ -58,6 +67,10 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  // @security: test-only — Bypass complet en mode test
+  if (isTestModeMiddleware()) {
+    return handleTestMode(req);
+  }
   // Skip auth() call on known public routes for faster response
   if (isPublicRoute(req)) {
     return;

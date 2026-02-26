@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 // ── GET — Load persistent cart ──
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const cart = await prisma.cart.findFirst({
@@ -80,7 +81,7 @@ const syncCartSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const body = await req.json();
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
 // ── DELETE — Clear cart ──
 export async function DELETE() {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const user = await prisma.user.findUnique({

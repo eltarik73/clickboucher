@@ -2,12 +2,14 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    // @security: test-only — uses getServerUserId() for test mode bypass
+    const userId = await getServerUserId();
     if (!userId) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
