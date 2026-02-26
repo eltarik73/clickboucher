@@ -44,3 +44,4 @@ __MACOSX/
 # uploads (keep structure, ignore uploaded files)
 /uploads/products/*
 !/uploads/products/.gitkeep
+.vercel
