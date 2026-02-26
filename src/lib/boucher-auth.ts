@@ -68,8 +68,9 @@ export async function getAuthenticatedBoucher(): Promise<
     return { error: apiError("FORBIDDEN", "Accès réservé aux bouchers") };
   }
 
+  // Search by user.id OR clerkId (seed stores clerkId as ownerId)
   const shop = await prisma.shop.findFirst({
-    where: { ownerId: dbUser.id },
+    where: { OR: [{ ownerId: dbUser.id }, { ownerId: clerkId }] },
     select: { id: true },
   });
 
