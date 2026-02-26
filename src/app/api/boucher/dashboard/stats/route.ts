@@ -1,21 +1,16 @@
 // GET /api/boucher/dashboard/stats — Lightweight today-only stats for the boucher dashboard
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     // ── 1. Auth ──
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     // ── 2. Date range: start of today ──
     const now = new Date();
@@ -24,7 +19,7 @@ export async function GET() {
     // ── 3. Fetch today's orders ──
     const todayOrders = await prisma.order.findMany({
       where: {
-        shopId: shop.id,
+        shopId,
         createdAt: { gte: todayStart },
       },
       select: {

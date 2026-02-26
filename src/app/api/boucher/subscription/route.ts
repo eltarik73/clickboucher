@@ -1,7 +1,7 @@
 // GET  /api/boucher/subscription — Get current subscription info
 // PATCH /api/boucher/subscription — Upgrade plan / change billing cycle
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -15,17 +15,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const sub = await prisma.subscription.findUnique({
-      where: { shopId: shop.id },
+      where: { shopId },
     });
 
     if (!sub) {
@@ -59,14 +54,9 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const body = await req.json();
     const parsed = patchSubscriptionSchema.safeParse(body);
@@ -76,9 +66,9 @@ export async function PATCH(req: NextRequest) {
     const { plan, billingCycle } = parsed.data;
 
     const sub = await prisma.subscription.upsert({
-      where: { shopId: shop.id },
+      where: { shopId },
       create: {
-        shopId: shop.id,
+        shopId,
         plan,
         status: "ACTIVE",
         billingCycle: billingCycle || "monthly",

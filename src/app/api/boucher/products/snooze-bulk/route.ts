@@ -1,6 +1,6 @@
 // src/app/api/boucher/products/snooze-bulk/route.ts — Deliveroo bulk snooze
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { snoozeProduct } from "@/lib/product-snooze";
@@ -16,22 +16,16 @@ const bulkSchema = z.object({
 
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    // Get boucher's shop
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const body = await req.json();
     const data = bulkSchema.parse(body);
 
     // Verify all products belong to this shop
     const products = await prisma.product.findMany({
-      where: { id: { in: data.productIds }, shopId: shop.id },
+      where: { id: { in: data.productIds }, shopId },
       select: { id: true },
     });
     if (products.length !== data.productIds.length) {

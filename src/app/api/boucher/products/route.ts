@@ -1,29 +1,24 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, handleApiError } from "@/lib/api/errors";
 
 // ── GET /api/boucher/products ────────────────
 // Boucher (owner) — list products for their shop
 export async function GET(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Aucune boutique trouvée");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const url = new URL(req.url);
     const categoryId = url.searchParams.get("categoryId") || undefined;
     const inStock = url.searchParams.get("inStock");
     const search = url.searchParams.get("search") || undefined;
 
-    const where: Record<string, unknown> = { shopId: shop.id };
+    const where: Record<string, unknown> = { shopId };
     if (categoryId) where.categoryId = categoryId;
     if (inStock === "true") where.inStock = true;
     if (inStock === "false") where.inStock = false;

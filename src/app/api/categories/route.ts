@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -47,15 +48,22 @@ export async function GET(req: NextRequest) {
 // ── POST /api/categories ──
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { userId } = authResult;
 
     const body = await req.json();
     const data = createCategorySchema.parse(body);
 
-    // Verify ownership
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    // Verify ownership (admin bypass)
+    let role: string | undefined;
+    if (isTestActivated()) {
+      const testRole = getTestRole();
+      role = testRole === "ADMIN" ? "admin" : undefined;
+    } else {
+      const user = await currentUser();
+      role = (user?.publicMetadata as Record<string, string>)?.role;
+    }
     if (!isAdmin(role)) {
       const shop = await prisma.shop.findUnique({
         where: { id: data.shopId },
@@ -89,8 +97,9 @@ export async function POST(req: NextRequest) {
 // ── PATCH /api/categories ──
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { userId } = authResult;
 
     const body = await req.json();
     const data = updateCategorySchema.parse(body);
@@ -102,8 +111,14 @@ export async function PATCH(req: NextRequest) {
     });
     if (!category) return apiError("NOT_FOUND", "Categorie introuvable");
 
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    let role: string | undefined;
+    if (isTestActivated()) {
+      const testRole = getTestRole();
+      role = testRole === "ADMIN" ? "admin" : undefined;
+    } else {
+      const user = await currentUser();
+      role = (user?.publicMetadata as Record<string, string>)?.role;
+    }
     if (!isAdmin(role) && category.shop.ownerId !== userId) {
       return apiError("FORBIDDEN", "Non autorise");
     }
@@ -126,8 +141,9 @@ export async function PATCH(req: NextRequest) {
 // ── DELETE /api/categories ──
 export async function DELETE(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { userId } = authResult;
 
     const body = await req.json();
     const data = deleteCategorySchema.parse(body);
@@ -141,8 +157,14 @@ export async function DELETE(req: NextRequest) {
     });
     if (!category) return apiError("NOT_FOUND", "Categorie introuvable");
 
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    let role: string | undefined;
+    if (isTestActivated()) {
+      const testRole = getTestRole();
+      role = testRole === "ADMIN" ? "admin" : undefined;
+    } else {
+      const user = await currentUser();
+      role = (user?.publicMetadata as Record<string, string>)?.role;
+    }
     if (!isAdmin(role) && category.shop.ownerId !== userId) {
       return apiError("FORBIDDEN", "Non autorise");
     }

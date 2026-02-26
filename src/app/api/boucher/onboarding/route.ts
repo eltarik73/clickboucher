@@ -1,7 +1,7 @@
 // GET /api/boucher/onboarding — Return onboarding progression
 // PATCH /api/boucher/onboarding — Mark step or complete
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -18,11 +18,12 @@ type Step = {
 
 export async function GET() {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
       include: { _count: { select: { products: true } } },
     });
 
@@ -113,21 +114,16 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const body = await req.json();
     const { complete, setVisible } = body;
 
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Aucune boutique trouvée");
-
     if (setVisible) {
       await prisma.shop.update({
-        where: { id: shop.id },
+        where: { id: shopId },
         data: { visible: true },
       });
       return apiSuccess({ visible: true });
@@ -135,7 +131,7 @@ export async function PATCH(req: NextRequest) {
 
     if (complete) {
       await prisma.shop.update({
-        where: { id: shop.id },
+        where: { id: shopId },
         data: { onboardingCompleted: true },
       });
     }

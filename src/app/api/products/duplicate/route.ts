@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -15,8 +16,9 @@ const duplicateSchema = z.object({
 // ── POST /api/products/duplicate ──
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { userId } = authResult;
 
     const body = await req.json();
     const { productId } = duplicateSchema.parse(body);
@@ -33,8 +35,14 @@ export async function POST(req: NextRequest) {
     if (!original) return apiError("NOT_FOUND", "Produit introuvable");
 
     // Verify ownership
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    let role: string | undefined;
+    if (isTestActivated()) {
+      const testRole = getTestRole();
+      role = testRole === "ADMIN" ? "admin" : undefined;
+    } else {
+      const user = await currentUser();
+      role = (user?.publicMetadata as Record<string, string>)?.role;
+    }
     if (!isAdmin(role) && original.shop.ownerId !== userId) {
       return apiError("FORBIDDEN", "Non autorise");
     }

@@ -1,26 +1,24 @@
 // src/app/api/boucher/orders/stream/route.ts — SSE real-time stream (Uber Eats WebSocket replacement)
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const userId = await getServerUserId();
-  if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const authResult = await getAuthenticatedBoucher();
+  if (authResult.error) return authResult.error;
+  const { shopId } = authResult;
 
-  // Get boucher's shop
-  const shop = await prisma.shop.findFirst({
-    where: { ownerId: userId },
-    select: { id: true, status: true },
+  // Get shop status for change detection
+  const shop = await prisma.shop.findUnique({
+    where: { id: shopId },
+    select: { status: true },
   });
   if (!shop) {
     return new Response("Shop not found", { status: 404 });
   }
 
-  const shopId = shop.id;
   const encoder = new TextEncoder();
 
   // Track last known state for change detection

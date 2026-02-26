@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -16,15 +17,22 @@ const reorderSchema = z.object({
 // ── PATCH /api/categories/reorder ──
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { userId } = authResult;
 
     const body = await req.json();
     const { shopId, categoryIds } = reorderSchema.parse(body);
 
     // Verify ownership
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    let role: string | undefined;
+    if (isTestActivated()) {
+      const testRole = getTestRole();
+      role = testRole === "ADMIN" ? "admin" : undefined;
+    } else {
+      const user = await currentUser();
+      role = (user?.publicMetadata as Record<string, string>)?.role;
+    }
     if (!isAdmin(role)) {
       const shop = await prisma.shop.findUnique({
         where: { id: shopId },

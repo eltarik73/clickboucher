@@ -1,7 +1,7 @@
 // GET  /api/boucher/stats/auto-promos — Get auto off-peak promo config
 // PATCH /api/boucher/stats/auto-promos — Toggle auto off-peak promos (PREMIUM only)
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -9,17 +9,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const sub = await prisma.subscription.findUnique({
-      where: { shopId: shop.id },
+      where: { shopId },
     });
 
     if (sub?.plan !== "PREMIUM") {
@@ -29,7 +24,7 @@ export async function GET() {
     // Check if auto-promos is enabled via shop metadata
     // We use a PlanFeature record to store this setting
     const feature = await prisma.planFeature.findUnique({
-      where: { plan_featureKey: { plan: "PREMIUM", featureKey: `auto_promos_${shop.id}` } },
+      where: { plan_featureKey: { plan: "PREMIUM", featureKey: `auto_promos_${shopId}` } },
     });
 
     return apiSuccess({
@@ -43,17 +38,12 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const sub = await prisma.subscription.findUnique({
-      where: { shopId: shop.id },
+      where: { shopId },
     });
 
     if (sub?.plan !== "PREMIUM") {
@@ -63,10 +53,10 @@ export async function PATCH(req: NextRequest) {
     const { enabled } = await req.json();
 
     await prisma.planFeature.upsert({
-      where: { plan_featureKey: { plan: "PREMIUM", featureKey: `auto_promos_${shop.id}` } },
+      where: { plan_featureKey: { plan: "PREMIUM", featureKey: `auto_promos_${shopId}` } },
       create: {
         plan: "PREMIUM",
-        featureKey: `auto_promos_${shop.id}`,
+        featureKey: `auto_promos_${shopId}`,
         featureName: "Promos heures creuses",
         enabled: !!enabled,
       },

@@ -1,6 +1,6 @@
 // src/app/api/boucher/shop/status/route.ts — Boucher shop status management
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import {
@@ -19,11 +19,12 @@ export const dynamic = "force-dynamic";
 // ── GET — Current shop status + details ──
 export async function GET() {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
       select: {
         id: true,
         name: true,
@@ -107,21 +108,16 @@ const actionSchema = z.discriminatedUnion("action", [
 
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
-
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const body = await req.json();
     const data = actionSchema.parse(body);
 
     switch (data.action) {
       case "pause":
-        await pauseShop(shop.id, {
+        await pauseShop(shopId, {
           reason: data.reason,
           durationMin: data.durationMin,
           triggeredBy: "boucher",
@@ -129,22 +125,22 @@ export async function PATCH(req: NextRequest) {
         break;
 
       case "resume":
-        await resumeShop(shop.id, "boucher");
+        await resumeShop(shopId, "boucher");
         break;
 
       case "busy":
-        await setBusyMode(shop.id, {
+        await setBusyMode(shopId, {
           extraMin: data.extraMin,
           durationMin: data.durationMin,
         });
         break;
 
       case "end_busy":
-        await endBusyMode(shop.id);
+        await endBusyMode(shopId);
         break;
 
       case "vacation":
-        await setVacationMode(shop.id, {
+        await setVacationMode(shopId, {
           start: new Date(data.start),
           end: new Date(data.end),
           message: data.message,
@@ -152,7 +148,7 @@ export async function PATCH(req: NextRequest) {
         break;
 
       case "end_vacation":
-        await endVacationMode(shop.id);
+        await endVacationMode(shopId);
         break;
 
       case "update_settings": {
@@ -162,7 +158,7 @@ export async function PATCH(req: NextRequest) {
           if (value !== undefined) updateData[key] = value;
         }
         if (Object.keys(updateData).length > 0) {
-          await prisma.shop.update({ where: { id: shop.id }, data: updateData });
+          await prisma.shop.update({ where: { id: shopId }, data: updateData });
         }
         break;
       }
@@ -170,7 +166,7 @@ export async function PATCH(req: NextRequest) {
 
     // Return fresh status
     const updated = await prisma.shop.findUnique({
-      where: { id: shop.id },
+      where: { id: shopId },
       select: {
         id: true, status: true, busyMode: true, busyExtraMin: true,
         busyModeEndsAt: true, paused: true, pauseEndsAt: true, pauseReason: true,

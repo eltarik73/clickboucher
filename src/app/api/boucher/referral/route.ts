@@ -1,5 +1,5 @@
 // GET /api/boucher/referral — Get referral code and referrals for current boucher
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -7,11 +7,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
-    const shop = await prisma.shop.findFirst({
-      where: { ownerId: userId },
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
       select: { id: true, shopReferralCode: true, slug: true, name: true },
     });
 
