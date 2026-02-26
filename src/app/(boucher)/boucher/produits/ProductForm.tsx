@@ -16,6 +16,7 @@ import {
   Trash2,
   Star,
   AlertTriangle,
+  Package,
 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
 import { useNotify } from "@/components/ui/NotificationToast";
@@ -139,6 +140,10 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [apiError, setApiError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showCatalogImport, setShowCatalogImport] = useState(false);
+  const [catalogProducts, setCatalogProducts] = useState<{ id: string; name: string; description: string | null; imageUrl: string | null; suggestedPrice: number | null; unit: string; origin: string | null; tags: string[]; category: { name: string; emoji: string | null } }[]>([]);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const { notify } = useNotify();
 
   // Step 1 — Produit
@@ -192,6 +197,35 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   );
   const [customerNote, setCustomerNote] = useState(product?.customerNote || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Import from reference catalog ──
+  async function openCatalogImport() {
+    setShowCatalogImport(true);
+    setCatalogLoading(true);
+    try {
+      const res = await fetch("/api/webmaster/catalog/reference?perPage=100");
+      if (res.ok) {
+        const json = await res.json();
+        setCatalogProducts(json.data || []);
+      }
+    } catch { /* silent */ }
+    setCatalogLoading(false);
+  }
+
+  function importFromCatalog(ref: typeof catalogProducts[number]) {
+    setName(ref.name);
+    setDescription(ref.description || "");
+    if (ref.unit) setUnit(ref.unit as "KG" | "PIECE" | "BARQUETTE" | "TRANCHE");
+    if (ref.origin) setOrigin(ref.origin);
+    if (ref.suggestedPrice) setPriceCents((ref.suggestedPrice / 100).toFixed(2));
+    if (ref.imageUrl) setImages([{ url: ref.imageUrl, alt: ref.name, isPrimary: true, order: 0 }]);
+    setShowCatalogImport(false);
+    notify("success", `"${ref.name}" importe du catalogue`);
+  }
+
+  const filteredCatalog = catalogProducts.filter((p) =>
+    !catalogSearch || p.name.toLowerCase().includes(catalogSearch.toLowerCase())
+  );
 
   // ── Validation per step ──
   function isStepValid(s: number): boolean {
@@ -463,6 +497,17 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
           {/* ═══ STEP 0: Produit ═══ */}
           {step === 0 && (
             <div className="space-y-5">
+              {/* Import from catalog */}
+              {!isEdit && (
+                <button
+                  type="button"
+                  onClick={openCatalogImport}
+                  className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-[#DC2626]/30 rounded-xl text-sm font-medium text-[#DC2626] hover:bg-[#DC2626]/5 transition-colors"
+                >
+                  <Package size={16} />
+                  Importer depuis le catalogue
+                </button>
+              )}
               <div>
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
                   Nom du produit *
@@ -1187,6 +1232,64 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
           </div>
         )}
       </div>
+
+      {/* ── Catalog Import Dialog ── */}
+      {showCatalogImport && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-gray-900 dark:text-white">Catalogue de reference</h3>
+                <button onClick={() => setShowCatalogImport(false)} className="w-7 h-7 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center">
+                  <X size={14} className="text-gray-500" />
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="Rechercher..."
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+              {catalogLoading ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Loader2 size={20} className="animate-spin mx-auto" />
+                </div>
+              ) : filteredCatalog.length === 0 ? (
+                <p className="text-center py-8 text-sm text-gray-400">Aucun produit trouve</p>
+              ) : (
+                filteredCatalog.map((ref) => (
+                  <button
+                    key={ref.id}
+                    onClick={() => importFromCatalog(ref)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 text-left transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/10 overflow-hidden flex-shrink-0">
+                      {ref.imageUrl ? (
+                        <img src={ref.imageUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <Package size={16} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{ref.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {ref.category.emoji} {ref.category.name}
+                        {ref.suggestedPrice ? ` • ${(ref.suggestedPrice / 100).toFixed(2)} €` : ""}
+                      </p>
+                    </div>
+                    <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

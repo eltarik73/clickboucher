@@ -11,6 +11,7 @@ import {
   Settings,
   Headphones,
   ChefHat,
+  BarChart3,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { key: "commandes",  label: "Commandes",   href: "/boucher/commandes",  icon: ClipboardList, badge: true },
   { key: "produits",   label: "Produits",    href: "/boucher/produits",   icon: Package },
   { key: "clients",    label: "Clients",     href: "/boucher/clients",    icon: Users },
+  { key: "performance",label: "Performance", href: "/boucher/performance",icon: BarChart3 },
   { key: "support",    label: "Support",     href: "/boucher/support",    icon: Headphones },
   { key: "parametres", label: "Paramètres",  href: "/boucher/parametres", icon: Settings },
 ] as const;

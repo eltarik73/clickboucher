@@ -294,6 +294,9 @@ async function main() {
 
   // ── Clean ────────────────────────────────
   console.log("🗑  Cleaning existing data...");
+  await prisma.shopAlert.deleteMany();
+  await prisma.referenceProduct.deleteMany();
+  await prisma.globalCategory.deleteMany();
   await prisma.referral.deleteMany();
   await prisma.suggestRule.deleteMany();
   await prisma.calendarEvent.deleteMany();
@@ -657,6 +660,75 @@ async function main() {
     });
   }
   console.log(`   ⚙️  Platform Configs: ${defaultConfigs.length}`);
+
+  // ═══════════════════════════════════════════
+  // REFERENCE CATALOG (Global)
+  // ═══════════════════════════════════════════
+  console.log("📚 Seeding reference catalog...");
+
+  const REF_CATEGORIES = [
+    { name: "Bœuf", emoji: "🥩", order: 1 },
+    { name: "Agneau", emoji: "🐑", order: 2 },
+    { name: "Volaille", emoji: "🐔", order: 3 },
+    { name: "Veau", emoji: "🫕", order: 4 },
+    { name: "Grillades & BBQ", emoji: "🔥", order: 5 },
+    { name: "Préparations", emoji: "🧆", order: 6 },
+    { name: "Abats & Divers", emoji: "🥘", order: 7 },
+  ];
+
+  const globalCats: Record<string, string> = {};
+  for (const cat of REF_CATEGORIES) {
+    const created = await prisma.globalCategory.create({ data: cat });
+    globalCats[cat.name] = created.id;
+  }
+
+  const REF_PRODUCTS = [
+    { category: "Bœuf", name: "Steak de bœuf", suggestedPrice: 1190, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/boeuf-1.jpg" },
+    { category: "Bœuf", name: "Viande hachée de bœuf", suggestedPrice: 1090, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/boeuf-2.jpg" },
+    { category: "Bœuf", name: "Entrecôte de bœuf", suggestedPrice: 1990, unit: "KG" as const, tags: ["Halal", "Premium"], imageUrl: "/img/products/boeuf-3.jpg" },
+    { category: "Bœuf", name: "Faux-filet de bœuf", suggestedPrice: 2190, unit: "KG" as const, tags: ["Halal", "Premium"], imageUrl: "/img/products/boeuf-4.jpg" },
+    { category: "Bœuf", name: "Côte de bœuf", suggestedPrice: 2290, unit: "KG" as const, tags: ["Halal", "Premium"], imageUrl: "/img/products/boeuf-5.jpg" },
+    { category: "Bœuf", name: "Bourguignon de bœuf", suggestedPrice: 1290, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/boeuf-1.jpg" },
+    { category: "Bœuf", name: "Rumsteak", suggestedPrice: 1690, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/boeuf-2.jpg" },
+    { category: "Bœuf", name: "Rôti de bœuf", suggestedPrice: 1890, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/boeuf-3.jpg" },
+    { category: "Bœuf", name: "Steak haché (x4)", suggestedPrice: 550, unit: "BARQUETTE" as const, tags: ["Halal"], imageUrl: "/img/products/boeuf-4.jpg" },
+    { category: "Agneau", name: "Gigot d'agneau entier", suggestedPrice: 1890, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/agneau-1.jpg" },
+    { category: "Agneau", name: "Épaule d'agneau", suggestedPrice: 1590, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/agneau-2.jpg" },
+    { category: "Agneau", name: "Côtelettes d'agneau", suggestedPrice: 1990, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/agneau-3.jpg" },
+    { category: "Agneau", name: "Souris d'agneau", suggestedPrice: 1790, unit: "KG" as const, tags: ["Halal", "Premium"], imageUrl: "/img/products/agneau-4.jpg" },
+    { category: "Agneau", name: "Collier d'agneau", suggestedPrice: 1390, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/agneau-1.jpg" },
+    { category: "Volaille", name: "Poulet entier", suggestedPrice: 790, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/volaille-1.jpg" },
+    { category: "Volaille", name: "Cuisses de poulet", suggestedPrice: 690, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/volaille-2.jpg" },
+    { category: "Volaille", name: "Escalope de poulet", suggestedPrice: 1290, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/volaille-3.jpg" },
+    { category: "Volaille", name: "Escalope de dinde", suggestedPrice: 1150, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/volaille-4.jpg" },
+    { category: "Volaille", name: "Pilons de poulet", suggestedPrice: 590, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/volaille-1.jpg" },
+    { category: "Veau", name: "Escalope de veau", suggestedPrice: 2690, unit: "KG" as const, tags: ["Halal", "Premium"], imageUrl: "/img/products/veau-1.jpg" },
+    { category: "Veau", name: "Blanquette de veau", suggestedPrice: 1690, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/veau-2.jpg" },
+    { category: "Veau", name: "Côte de veau", suggestedPrice: 2290, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/veau-1.jpg" },
+    { category: "Grillades & BBQ", name: "Merguez bœuf/agneau", suggestedPrice: 1090, unit: "KG" as const, tags: ["Halal", "Maison"], imageUrl: "/img/products/grillades-1.jpg" },
+    { category: "Grillades & BBQ", name: "Brochettes de bœuf", suggestedPrice: 1690, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/grillades-2.jpg" },
+    { category: "Grillades & BBQ", name: "Brochettes de poulet", suggestedPrice: 1390, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/grillades-3.jpg" },
+    { category: "Grillades & BBQ", name: "Kefta de bœuf", suggestedPrice: 1290, unit: "KG" as const, tags: ["Halal", "Maison"], imageUrl: "/img/products/grillades-4.jpg" },
+    { category: "Préparations", name: "Cordon bleu de poulet (x4)", suggestedPrice: 690, unit: "BARQUETTE" as const, tags: ["Halal"], imageUrl: "/img/products/preparations-1.jpg" },
+    { category: "Préparations", name: "Boulettes de bœuf kefta", suggestedPrice: 1190, unit: "KG" as const, tags: ["Halal", "Maison"], imageUrl: "/img/products/preparations-2.jpg" },
+    { category: "Abats & Divers", name: "Foie de bœuf", suggestedPrice: 990, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/abats-1.jpg" },
+    { category: "Abats & Divers", name: "Tripes de bœuf", suggestedPrice: 890, unit: "KG" as const, tags: ["Halal"], imageUrl: "/img/products/abats-1.jpg" },
+  ];
+
+  for (const ref of REF_PRODUCTS) {
+    await prisma.referenceProduct.create({
+      data: {
+        name: ref.name,
+        suggestedPrice: ref.suggestedPrice,
+        unit: ref.unit,
+        categoryId: globalCats[ref.category],
+        origin: "FRANCE",
+        tags: ref.tags,
+        imageUrl: ref.imageUrl,
+      },
+    });
+  }
+  console.log(`   📚 Reference catalog: ${REF_CATEGORIES.length} categories, ${REF_PRODUCTS.length} products`);
 
   console.log("═══════════════════════════════════════════\n");
 }

@@ -257,6 +257,9 @@ export async function POST(req: NextRequest) {
         totalCents: itemTotal,
         weightGrams,
         itemNote: item.itemNote ?? null,
+        sliceCount: item.sliceCount ?? null,
+        sliceThickness: item.sliceThickness ?? null,
+        estimatedPriceCents: itemTotal,
       };
     });
 

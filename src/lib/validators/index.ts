@@ -208,6 +208,8 @@ const cartItemSchema = z.object({
   quantity: z.number().min(0.01).max(100),
   weightGrams: z.number().int().min(1).optional(),
   itemNote: z.string().max(300).optional(),
+  sliceCount: z.number().int().min(1).optional(),
+  sliceThickness: z.string().max(50).optional(),
 });
 
 export const createOrderSchema = z.object({
@@ -440,4 +442,49 @@ export const wmSuspendShopSchema = z.object({
 export const wmValidateSubscriptionSchema = z.object({
   plan: z.enum(["STARTER","PRO","PREMIUM"]),
   note: z.string().max(500).optional(),
+});
+
+// ══════════════════════════════════════════
+// REFERENCE CATALOG schemas
+// ══════════════════════════════════════════
+
+export const createGlobalCategorySchema = z.object({
+  name: z.string().min(1).max(100),
+  emoji: z.string().max(10).optional(),
+  order: z.number().int().min(0).default(0),
+});
+
+export const createReferenceProductSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  imageUrl: z.string().optional(),
+  suggestedPrice: z.number().int().min(0).optional(),
+  unit: z.enum(["KG", "PIECE", "BARQUETTE", "TRANCHE"]),
+  categoryId: z.string().cuid(),
+  origin: z.enum(["FRANCE","EU","ESPAGNE","IRLANDE","BELGIQUE","ALLEMAGNE","NOUVELLE_ZELANDE","BRESIL","POLOGNE","ITALIE","UK","AUTRE"]).optional(),
+  pricePerKg: z.number().int().min(0).optional(),
+  sliceWeights: z.array(z.number().int().min(1)).optional(),
+  tags: z.array(z.string().max(50)).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const updateReferenceProductSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).nullable().optional(),
+  imageUrl: z.string().nullable().optional(),
+  suggestedPrice: z.number().int().min(0).nullable().optional(),
+  unit: z.enum(["KG", "PIECE", "BARQUETTE", "TRANCHE"]).optional(),
+  categoryId: z.string().cuid().optional(),
+  origin: z.enum(["FRANCE","EU","ESPAGNE","IRLANDE","BELGIQUE","ALLEMAGNE","NOUVELLE_ZELANDE","BRESIL","POLOGNE","ITALIE","UK","AUTRE"]).nullable().optional(),
+  pricePerKg: z.number().int().min(0).nullable().optional(),
+  sliceWeights: z.array(z.number().int().min(1)).nullable().optional(),
+  tags: z.array(z.string().max(50)).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const referenceCatalogQuerySchema = z.object({
+  categoryId: z.string().cuid().optional(),
+  search: z.string().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce.number().int().min(1).max(100).default(50),
 });

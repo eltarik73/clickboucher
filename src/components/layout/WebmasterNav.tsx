@@ -28,6 +28,8 @@ const NAV_ITEMS = [
   { key: "boutiques",  label: "Boutiques",     href: "/webmaster/boutiques",    icon: Store },
   { key: "commandes",  label: "Commandes",     href: "/webmaster/commandes",    icon: ClipboardList, badge: true },
   { key: "catalogue",  label: "Catalogue",     href: "/webmaster/catalogue",    icon: Package },
+  { key: "reference",  label: "Réf. Catalogue", href: "/webmaster/catalogue/reference", icon: Package },
+  { key: "perf",       label: "Performance",   href: "/webmaster/performance",  icon: BarChart3 },
   { key: "capacite",   label: "Capacité",      href: "/webmaster/capacite",     icon: Clock },
   { key: "facturation",label: "Facturation",   href: "/webmaster/facturation",  icon: Coins },
   { key: "demandes",   label: "Demandes PRO",  href: "/webmaster/demandes",     icon: UserCheck },

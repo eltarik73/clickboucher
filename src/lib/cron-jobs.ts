@@ -582,5 +582,17 @@ export function startCronJobs() {
     }
   });
 
+  // ═══════════════════════════════════════════
+  // 13. Daily performance metrics refresh — 3 AM
+  // ═══════════════════════════════════════════
+  cron.schedule("0 3 * * *", async () => {
+    try {
+      const { refreshAllShopMetrics } = await import("@/lib/services/performance");
+      await refreshAllShopMetrics();
+    } catch (error) {
+      console.error("[CRON][performance-refresh] Error:", error);
+    }
+  });
+
   console.log("[CRON] All cron jobs scheduled successfully");
 }
