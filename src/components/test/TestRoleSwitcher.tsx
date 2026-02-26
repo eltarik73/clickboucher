@@ -1,8 +1,10 @@
 "use client";
 // @security: test-only — Barre flottante de switch de rôle pour le mode test
+// N'apparaît QUE si le test mode a été activé via le secret URL
 
 import { useTestAuth } from "@/hooks/useTestAuth";
 import type { TestRole } from "@/lib/auth/test-auth";
+import { X } from "lucide-react";
 
 const ROLE_CONFIG: Record<TestRole, { label: string; color: string }> = {
   CLIENT: { label: "Client", color: "bg-blue-500" },
@@ -17,7 +19,10 @@ export function TestRoleSwitcher() {
 }
 
 function TestRoleSwitcherInner() {
-  const { role, switchRole } = useTestAuth();
+  const { activated, role, switchRole, deactivate } = useTestAuth();
+
+  // Don't render anything if test mode hasn't been activated via secret
+  if (!activated) return null;
 
   return (
     <div className="fixed bottom-4 left-4 z-[9999] flex items-center gap-2 rounded-full bg-black/90 px-4 py-2 shadow-2xl border border-yellow-400">
@@ -37,6 +42,13 @@ function TestRoleSwitcherInner() {
           </button>
         )
       )}
+      <button
+        onClick={deactivate}
+        className="ml-1 p-1 rounded-full text-gray-400 hover:text-white hover:bg-red-600 transition-all"
+        title="Quitter le mode test"
+      >
+        <X size={14} />
+      </button>
     </div>
   );
 }

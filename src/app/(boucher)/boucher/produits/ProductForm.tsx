@@ -252,8 +252,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
 
   function removeImage(idx: number) {
     const img = images[idx];
-    // Delete from server if it's a real URL
-    if (img.url.startsWith("/api/uploads/")) {
+    // Delete from server if it's uploaded (blob or legacy)
+    if (img.url.startsWith("/api/uploads/") || img.url.includes(".public.blob.vercel-storage.com")) {
       fetch("/api/uploads/product-image", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -327,8 +327,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
       body.sliceOptions = null;
     }
 
-    // Images (only server-uploaded ones)
-    const uploadedImages = images.filter((i) => !i.uploading && i.url.startsWith("/api/"));
+    // Images (server-uploaded: blob URLs or legacy /api/ URLs)
+    const uploadedImages = images.filter((i) => !i.uploading && (i.url.startsWith("/api/") || i.url.startsWith("https://")));
     if (uploadedImages.length > 0) {
       body.images = uploadedImages.map((img, i) => ({
         url: img.url,

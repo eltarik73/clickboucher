@@ -6,40 +6,39 @@ import { useTestAuth } from "@/hooks/useTestAuth";
 
 /**
  * Wrapper autour de useUser() de Clerk.
- * En mode test, retourne un mock user basé sur le rôle sélectionné.
- * En production, délègue à Clerk normalement.
+ * En mode test (activé via secret), retourne un mock user basé sur le rôle sélectionné.
+ * En production ou si non-activé, délègue à Clerk normalement.
  */
 export function useCurrentUser() {
-  // @security: test-only
-  if (process.env.NEXT_PUBLIC_TEST_MODE === "true") {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { user, role } = useTestAuth();
+  // @security: test-only — must always call hooks unconditionally
+  const testAuth = useTestAuth();
+  const clerkAuth = useUser();
+
+  if (process.env.NEXT_PUBLIC_TEST_MODE === "true" && testAuth.activated) {
     return {
       isLoaded: true,
       isSignedIn: true,
       user: {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailAddresses: [{ emailAddress: user.email }],
-        publicMetadata: { role: user.role.toLowerCase() },
+        id: testAuth.user.id,
+        firstName: testAuth.user.firstName,
+        lastName: testAuth.user.lastName,
+        emailAddresses: [{ emailAddress: testAuth.user.email }],
+        publicMetadata: { role: testAuth.user.role.toLowerCase() },
         imageUrl: null,
       },
-      role: role,
-      clerkId: user.clerkId,
+      role: testAuth.role,
+      clerkId: testAuth.user.clerkId,
     };
   }
 
   // Mode normal : Clerk
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { isLoaded, isSignedIn, user } = useUser();
-  const role = ((user?.publicMetadata?.role as string) || "client").toUpperCase();
+  const role = ((clerkAuth.user?.publicMetadata?.role as string) || "client").toUpperCase();
 
   return {
-    isLoaded,
-    isSignedIn: isSignedIn || false,
-    user: user as typeof user | null,
+    isLoaded: clerkAuth.isLoaded,
+    isSignedIn: clerkAuth.isSignedIn || false,
+    user: clerkAuth.user as typeof clerkAuth.user | null,
     role,
-    clerkId: user?.id || null,
+    clerkId: clerkAuth.user?.id || null,
   };
 }

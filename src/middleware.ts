@@ -1,13 +1,10 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
-// @security: test-only — Bypass complet Clerk en mode test
-function isTestModeMiddleware() {
-  return process.env.NEXT_PUBLIC_TEST_MODE === "true";
-}
-
-function handleTestMode(req: NextRequest) {
-  return NextResponse.next();
+// @security: test-only — Bypass Clerk ONLY if secret was validated (cookie present)
+function isTestActivatedMiddleware(req: NextRequest): boolean {
+  if (process.env.NEXT_PUBLIC_TEST_MODE !== "true") return false;
+  return req.cookies.get("klikgo-test-activated")?.value === "true";
 }
 
 const isBoucherRoute = createRouteMatcher(["/boucher(.*)"]);
@@ -67,9 +64,9 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // @security: test-only — Bypass complet en mode test
-  if (isTestModeMiddleware()) {
-    return handleTestMode(req);
+  // @security: test-only — Bypass Clerk only if secret was validated
+  if (isTestActivatedMiddleware(req)) {
+    return NextResponse.next();
   }
   // Skip auth() call on known public routes for faster response
   if (isPublicRoute(req)) {

@@ -159,14 +159,12 @@ export function resolveProductImage(product: {
   imageUrl?: string | null;
   category?: string | null;
 }): string {
-  // Si le produit a une image locale assignée → l'utiliser en priorité
-  if (product.imageUrl && product.imageUrl.startsWith("/img/")) {
-    return product.imageUrl;
-  }
-
-  // Si le boucher a uploadé une image custom (ex: /uploads/...)
-  if (product.imageUrl && product.imageUrl.startsWith("/")) {
-    return product.imageUrl;
+  // Si le produit a une image assignée → l'utiliser en priorité
+  if (product.imageUrl) {
+    // Blob URL (https://...), local image (/img/...), or legacy upload (/api/uploads/...)
+    if (product.imageUrl.startsWith("https://") || product.imageUrl.startsWith("/")) {
+      return product.imageUrl;
+    }
   }
 
   // Chercher par nom du produit

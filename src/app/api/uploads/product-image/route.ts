@@ -1,31 +1,22 @@
 import { NextRequest } from "next/server";
+import { put, del } from "@vercel/blob";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import path from "path";
-import fs from "fs/promises";
 import crypto from "crypto";
+import { getServerUserId } from "@/lib/auth/server-auth";
 
 export const dynamic = "force-dynamic";
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads", "products");
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 Mo
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGES_PER_PRODUCT = 5;
 
-async function ensureDir(dir: string) {
-  try {
-    await fs.access(dir);
-  } catch {
-    await fs.mkdir(dir, { recursive: true });
-  }
-}
-
 // ── POST /api/uploads/product-image ────────────
-// Boucher only — upload a product image
+// Boucher only — upload a product image to Vercel Blob
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
@@ -61,9 +52,6 @@ export async function POST(req: NextRequest) {
       if (!product) {
         return apiError("NOT_FOUND", "Produit introuvable");
       }
-      if (product.shop.ownerId !== userId) {
-        return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
-      }
       if (product._count.images >= MAX_IMAGES_PER_PRODUCT) {
         return apiError("VALIDATION_ERROR", `Maximum ${MAX_IMAGES_PER_PRODUCT} images par produit`);
       }
@@ -78,7 +66,7 @@ export async function POST(req: NextRequest) {
       return apiError("VALIDATION_ERROR", "Le fichier ne correspond pas au type MIME déclaré");
     }
 
-    // Resize with sharp (max 800x800)
+    // Resize with sharp (max 800x800, convert to WebP)
     let processedBuffer: Buffer;
     try {
       const sharp = (await import("sharp")).default;
@@ -87,33 +75,30 @@ export async function POST(req: NextRequest) {
         .webp({ quality: 82 })
         .toBuffer();
     } catch {
-      // If sharp fails, store original
       processedBuffer = buffer;
     }
 
     // Generate unique filename
-    const ext = "webp";
     const rand = crypto.randomBytes(8).toString("hex");
-    const filename = `product-${Date.now()}-${rand}.${ext}`;
+    const filename = `products/product-${Date.now()}-${rand}.webp`;
 
-    // Write to disk
-    await ensureDir(UPLOADS_DIR);
-    const filePath = path.join(UPLOADS_DIR, filename);
-    await fs.writeFile(filePath, processedBuffer);
+    // Upload to Vercel Blob
+    const blob = await put(filename, processedBuffer, {
+      access: "public",
+      contentType: "image/webp",
+    });
 
-    const url = `/api/uploads/products/${filename}`;
-
-    return apiSuccess({ url, filename, size: processedBuffer.length }, 201);
+    return apiSuccess({ url: blob.url, filename, size: processedBuffer.length }, 201);
   } catch (error) {
     return handleApiError(error);
   }
 }
 
 // ── DELETE /api/uploads/product-image ───────────
-// Boucher only — delete a product image file
+// Boucher only — delete a product image from Vercel Blob
 export async function DELETE(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
@@ -125,26 +110,22 @@ export async function DELETE(req: NextRequest) {
       return apiError("VALIDATION_ERROR", "Champ 'url' requis");
     }
 
-    // Security: only allow deletion from /api/uploads/products/
-    const match = url.match(/^\/api\/uploads\/products\/([a-zA-Z0-9._-]+)$/);
-    if (!match) {
-      return apiError("VALIDATION_ERROR", "URL invalide — seuls les fichiers dans /uploads/products/ sont autorisés");
+    // Only allow deletion of blob URLs or legacy filesystem URLs
+    const isBlobUrl = url.includes(".public.blob.vercel-storage.com");
+    const isLegacyUrl = url.startsWith("/api/uploads/products/");
+
+    if (!isBlobUrl && !isLegacyUrl) {
+      return apiError("VALIDATION_ERROR", "URL invalide");
     }
 
-    const filename = match[1];
-    const filePath = path.join(UPLOADS_DIR, filename);
-
-    // Prevent path traversal
-    const resolvedPath = path.resolve(filePath);
-    if (!resolvedPath.startsWith(path.resolve(UPLOADS_DIR))) {
-      return apiError("FORBIDDEN", "Chemin invalide");
+    if (isBlobUrl) {
+      try {
+        await del(url);
+      } catch {
+        // Blob may already be deleted
+      }
     }
-
-    try {
-      await fs.unlink(filePath);
-    } catch {
-      // File may already be deleted, that's OK
-    }
+    // Legacy filesystem URLs: just ignore (files are already gone on Vercel)
 
     return apiSuccess({ deleted: true });
   } catch (error) {

@@ -1,5 +1,6 @@
 // @security: test-only — Mode test : simule l'authentification sans Clerk
-// JAMAIS en production — contrôlé par NEXT_PUBLIC_TEST_MODE
+// Sécurisé par secret URL — s'active UNIQUEMENT via ?testmode=<secret>
+// Le secret est dans NEXT_PUBLIC_TEST_SECRET
 
 export type TestRole = "CLIENT" | "BOUCHER" | "ADMIN";
 
@@ -20,7 +21,7 @@ export const TEST_USERS = {
     firstName: "Mehdi",
     lastName: "Test",
     role: "BOUCHER" as const,
-    shopId: null as string | null, // sera rempli avec le premier shop
+    shopId: null as string | null,
   },
   ADMIN: {
     id: "test-admin-001",
@@ -33,8 +34,14 @@ export const TEST_USERS = {
   },
 };
 
+/** Check if test mode is enabled via env var */
 export function isTestMode(): boolean {
   return process.env.NEXT_PUBLIC_TEST_MODE === "true";
+}
+
+/** Get the test secret from env */
+export function getTestSecret(): string {
+  return process.env.NEXT_PUBLIC_TEST_SECRET || "";
 }
 
 /** Get the Clerk-style role string from a test role */

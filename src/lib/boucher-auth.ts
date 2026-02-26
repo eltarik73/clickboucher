@@ -3,8 +3,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiError } from "@/lib/api/errors";
 import { isBoucher } from "@/lib/roles";
-import { isTestMode, type TestRole } from "@/lib/auth/test-auth";
-import { getTestRole } from "@/lib/auth/server-auth";
+import { getTestRole, isTestActivated } from "@/lib/auth/server-auth";
 
 // ── In-memory boucher cache (5 min TTL) ──────────────
 const boucherCache = new Map<string, { shopId: string; userId: string; ts: number }>();
@@ -18,8 +17,8 @@ export async function getAuthenticatedBoucher(): Promise<
   | { userId: string; shopId: string; error?: undefined }
   | { error: Response; userId?: undefined; shopId?: undefined }
 > {
-  // @security: test-only — Bypass Clerk en mode test
-  if (isTestMode()) {
+  // @security: test-only — Bypass Clerk only if secret was validated
+  if (isTestActivated()) {
     const testRole = getTestRole();
     if (testRole === "BOUCHER" || testRole === "ADMIN") {
       // Find the first shop in DB for test boucher
