@@ -615,6 +615,49 @@ async function main() {
   console.log(`   📅 Calendar:      4 events`);
   console.log(`   🤝 Suggest Rules: 2`);
   console.log(`   🤝 Referrals:     1`);
+
+  // ── Feature Flags (idempotent upsert) ──
+  console.log("\n🚩 Seeding feature flags...");
+  const defaultFlags = [
+    { key: "webmaster_dashboard", description: "Enable webmaster admin dashboard", enabled: true },
+    { key: "online_payment", description: "Enable Stripe online payments", enabled: false },
+    { key: "pro_accounts", description: "Enable B2B pro account requests", enabled: true },
+    { key: "recurring_orders", description: "Enable recurring order scheduling", enabled: false },
+    { key: "ai_support", description: "Enable AI-powered support chat", enabled: true },
+    { key: "qr_pickup", description: "Enable QR code pickup verification", enabled: true },
+    { key: "loyalty_program", description: "Enable loyalty points program", enabled: true },
+    { key: "flash_promos", description: "Enable flash promo campaigns", enabled: true },
+    { key: "weight_adjustment", description: "Enable boucher weight/price adjustment", enabled: true },
+    { key: "push_notifications", description: "Enable web push notifications", enabled: true },
+    { key: "commission_billing", description: "Enable commission calculation on orders", enabled: false },
+    { key: "auto_cancel", description: "Enable auto-cancel for unaccepted orders", enabled: true },
+  ];
+  for (const flag of defaultFlags) {
+    await prisma.featureFlag.upsert({
+      where: { key: flag.key },
+      update: {},
+      create: flag,
+    });
+  }
+  console.log(`   🚩 Feature Flags: ${defaultFlags.length}`);
+
+  // ── Platform Config ──
+  const defaultConfigs = [
+    { key: "platform_name", value: "Klik&Go" },
+    { key: "default_commission_pct", value: "5" },
+    { key: "trial_days", value: "30" },
+    { key: "max_order_value_cents", value: "50000" },
+    { key: "support_email", value: "support@klikandgo.app" },
+  ];
+  for (const cfg of defaultConfigs) {
+    await prisma.platformConfig.upsert({
+      where: { key: cfg.key },
+      update: {},
+      create: cfg,
+    });
+  }
+  console.log(`   ⚙️  Platform Configs: ${defaultConfigs.length}`);
+
   console.log("═══════════════════════════════════════════\n");
 }
 

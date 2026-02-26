@@ -383,3 +383,61 @@ export const stockActionSchema = z.object({
   replacementProductId: z.string().cuid().optional(),
   replacementName: z.string().max(200).optional(),
 });
+
+// ══════════════════════════════════════════
+// WEBMASTER schemas
+// ══════════════════════════════════════════
+
+export const wmShopListQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  status: z.enum(["OPEN","BUSY","PAUSED","AUTO_PAUSED","CLOSED","VACATION"]).optional(),
+  subStatus: z.enum(["TRIAL","PENDING","ACTIVE","SUSPENDED","CANCELLED","EXPIRED"]).optional(),
+  city: z.string().optional(),
+  sortBy: z.enum(["name","createdAt","rating","orders"]).default("createdAt"),
+  sortDir: z.enum(["asc","desc"]).default("desc"),
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const wmOrderListQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  shopId: z.string().optional(),
+  status: z.enum(["PENDING","ACCEPTED","PREPARING","READY","PICKED_UP","COMPLETED","DENIED","CANCELLED","PARTIALLY_DENIED","AUTO_CANCELLED"]).optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  sortBy: z.enum(["createdAt","totalCents","status"]).default("createdAt"),
+  sortDir: z.enum(["asc","desc"]).default("desc"),
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export const wmAuditLogQuerySchema = z.object({
+  actorId: z.string().optional(),
+  action: z.string().optional(),
+  target: z.string().optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  perPage: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const wmToggleFeatureFlagSchema = z.object({
+  enabled: z.boolean(),
+});
+
+export const wmUpdateShopSchema = z.object({
+  visible: z.boolean().optional(),
+  featured: z.boolean().optional(),
+  commissionPct: z.number().min(0).max(100).optional(),
+  commissionEnabled: z.boolean().optional(),
+  suspendReason: z.string().max(500).optional(),
+});
+
+export const wmSuspendShopSchema = z.object({
+  reason: z.string().min(1).max(500),
+});
+
+export const wmValidateSubscriptionSchema = z.object({
+  plan: z.enum(["STARTER","PRO","PREMIUM"]),
+  note: z.string().max(500).optional(),
+});

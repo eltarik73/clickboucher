@@ -60,6 +60,13 @@ export function formatWeight(grams: number): string {
   return `${grams} g`;
 }
 
+// Parse pagination from URL searchParams
+export function parsePagination(params: URLSearchParams, defaults = { page: 1, perPage: 20 }) {
+  const page = Math.max(1, parseInt(params.get("page") || String(defaults.page), 10) || defaults.page);
+  const perPage = Math.min(100, Math.max(1, parseInt(params.get("perPage") || String(defaults.perPage), 10) || defaults.perPage));
+  return { page, perPage, skip: (page - 1) * perPage };
+}
+
 // Format relative time
 export function formatRelativeTime(date: Date | string): string {
   const now = new Date();

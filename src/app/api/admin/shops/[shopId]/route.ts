@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { writeAuditLog } from "@/lib/audit-log";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -109,6 +110,18 @@ export async function PATCH(
         ...(data.visible !== undefined && { visible: data.visible }),
       },
       select: { id: true, featured: true, visible: true },
+    });
+
+    const changes: Record<string, boolean> = {};
+    if (data.featured !== undefined) changes.featured = data.featured;
+    if (data.visible !== undefined) changes.visible = data.visible;
+
+    await writeAuditLog({
+      actorId: admin.userId,
+      action: "shop.toggle",
+      target: "Shop",
+      targetId: shopId,
+      details: changes,
     });
 
     return apiSuccess(updated);

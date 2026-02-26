@@ -59,3 +59,23 @@ function evictOldEntries() {
     for (let i = 0; i < 50; i++) adminCache.delete(oldest[i][0]);
   }
 }
+
+/**
+ * Verify that a shop exists and optionally belongs to a specific owner.
+ * Used by admin/webmaster endpoints that operate on a specific shop.
+ */
+export async function assertShopAccess(shopId: string, ownerId?: string) {
+  const where: Record<string, string> = { id: shopId };
+  if (ownerId) where.ownerId = ownerId;
+
+  const shop = await prisma.shop.findFirst({
+    where,
+    select: { id: true, name: true, ownerId: true },
+  });
+
+  if (!shop) {
+    return { error: apiError("NOT_FOUND", "Boutique introuvable") };
+  }
+
+  return { shop };
+}

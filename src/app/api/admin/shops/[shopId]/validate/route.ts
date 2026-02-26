@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
+import { writeAuditLog } from "@/lib/audit-log";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -141,6 +142,14 @@ export async function PATCH(
         });
       }
 
+      await writeAuditLog({
+        actorId: admin.userId,
+        action: "shop.validate",
+        target: "Shop",
+        targetId: shopId,
+        details: { plan: data.plan, trialDays: data.trialDays },
+      });
+
       return apiSuccess({ approved: true, plan: data.plan, trialEndsAt });
     } else {
       // Reject: make invisible
@@ -156,6 +165,14 @@ export async function PATCH(
           update: { status: "CANCELLED", adminNote: data.adminNote },
         });
       }
+
+      await writeAuditLog({
+        actorId: admin.userId,
+        action: "shop.reject",
+        target: "Shop",
+        targetId: shopId,
+        details: { adminNote: data.adminNote },
+      });
 
       return apiSuccess({ approved: false });
     }

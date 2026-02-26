@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { writeAuditLog } from "@/lib/audit-log";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,14 @@ export async function PATCH(
         plan: data.plan,
         adminNote: data.adminNote ?? sub.adminNote,
       },
+    });
+
+    await writeAuditLog({
+      actorId: admin.userId,
+      action: "shop.plan_change",
+      target: "Shop",
+      targetId: shopId,
+      details: { from: sub.plan, to: data.plan },
     });
 
     return apiSuccess(updated);

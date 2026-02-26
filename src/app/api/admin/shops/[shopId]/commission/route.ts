@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { writeAuditLog } from "@/lib/audit-log";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,14 @@ export async function PATCH(
         commissionEnabled: data.commissionEnabled ?? true,
       },
       select: { id: true, name: true, commissionPct: true, commissionEnabled: true },
+    });
+
+    await writeAuditLog({
+      actorId: admin.userId,
+      action: "shop.commission_change",
+      target: "Shop",
+      targetId: shopId,
+      details: { commissionPct: data.commissionPct, enabled: data.commissionEnabled },
     });
 
     return apiSuccess(updated);

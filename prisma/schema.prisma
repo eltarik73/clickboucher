@@ -332,6 +332,20 @@ model Shop {
   // ── Prix ajustement seuil (%) ──
   priceAdjustmentThreshold Int @default(10) @map("price_adjustment_threshold")
 
+  // ── Infos légales ──
+  legalName String? @map("legal_name")
+
+  // ── Validation / Suspension (webmaster) ──
+  validatedAt   DateTime? @map("validated_at")
+  suspendedAt   DateTime? @map("suspended_at")
+  suspendReason String?   @map("suspend_reason")
+
+  // ── Cached metrics (webmaster dashboard) ──
+  cachedAcceptanceRate  Float?    @map("cached_acceptance_rate")
+  cachedAvgPrepMinutes  Float?    @map("cached_avg_prep_minutes")
+  cachedCancelRate      Float?    @map("cached_cancel_rate")
+  metricsUpdatedAt      DateTime? @map("metrics_updated_at")
+
   // ── Dernière activité (Uber Eats vérifie si tablette connectée) ──
   lastSeenAt DateTime? @map("last_seen_at")
 
@@ -357,6 +371,7 @@ model Shop {
   dailyCounters     DailyCounter[]
   customerCounter   CustomerCounter?
   calendarEvents    CalendarEvent[]
+  apiKeys           ApiKey[]
 
   @@index([latitude, longitude])
   @@index([city])
@@ -834,7 +849,12 @@ model Order {
   pickupSlotEnd   DateTime? @map("pickup_slot_end")
 
   totalCents      Int @map("total_cents")
+  vatAmountCents  Int @default(0) @map("vat_amount_cents")
   commissionCents Int @default(0) @map("commission_cents")
+
+  // ── Remboursement ──
+  refundedAt      DateTime? @map("refunded_at")
+  refundAmountCents Int?    @map("refund_amount_cents")
 
   paymentMethod   PaymentMethod @default(ON_PICKUP) @map("payment_method")
   paidAt          DateTime?     @map("paid_at")
@@ -897,6 +917,12 @@ model OrderItem {
   itemNote    String? @map("item_note")
   available   Boolean @default(true)
   replacement String?
+
+  // ── Ajustement poids/prix (boucher) ──
+  actualWeightGrams Int?      @map("actual_weight_grams")
+  actualPriceCents  Int?      @map("actual_price_cents")
+  adjustedByUserId  String?   @map("adjusted_by_user_id")
+  adjustedAt        DateTime? @map("adjusted_at")
 
   @@index([orderId])
   @@map("order_items")
@@ -1004,4 +1030,81 @@ model CustomerCounter {
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@map("customer_counters")
+}
+
+// ══════════════════════════════════════════
+// FEATURE FLAG — Platform-level toggles
+// ══════════════════════════════════════════
+
+model FeatureFlag {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  description String?
+  enabled     Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("feature_flags")
+}
+
+// ══════════════════════════════════════════
+// PLATFORM CONFIG — Key-value platform settings
+// ══════════════════════════════════════════
+
+model PlatformConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_configs")
+}
+
+// ══════════════════════════════════════════
+// AUDIT LOG — Global admin audit trail
+// ══════════════════════════════════════════
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String   @map("actor_id")
+  action    String
+  target    String?
+  targetId  String?  @map("target_id")
+  details   Json?
+  ip        String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([action])
+  @@index([target, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ── API Keys for external integrations ──
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  keyHash     String    @unique @map("key_hash")
+  keyPrefix   String    @map("key_prefix") // first 8 chars for display (klik_xxxx)
+  scopes      Json      @default("[]") // JSON array of allowed scopes
+  rateLimit   Int       @default(60) @map("rate_limit") // requests per minute
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  usageCount  Int       @default(0) @map("usage_count")
+
+  shopId String? @map("shop_id")
+  shop   Shop?   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdBy String  @map("created_by") // admin clerk id
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([shopId])
+  @@index([isActive])
+  @@map("api_keys")
 }
