@@ -91,6 +91,21 @@ export default function KitchenOrderCard({
   const readyOver30 = order.status === "READY" && readySince > 30 * 60 * 1000;
   const waitMinutes = Math.round(readySince / 60_000);
 
+  // Late detection: estimated ready passed for ACCEPTED/PREPARING
+  const isLate = (order.status === "ACCEPTED" || order.status === "PREPARING")
+    && order.estimatedReady
+    && new Date(order.estimatedReady).getTime() < Date.now();
+  const lateMinutes = isLate && order.estimatedReady
+    ? Math.round((Date.now() - new Date(order.estimatedReady).getTime()) / 60_000)
+    : 0;
+
+  // Pickup time display
+  const pickupTime = order.pickupSlotStart
+    ? formatTime(order.pickupSlotStart)
+    : order.requestedTime
+      ? formatTime(order.requestedTime)
+      : null;
+
   async function doAction(action: string, data?: Record<string, unknown>) {
     setLoading(true);
     try {
@@ -137,7 +152,12 @@ export default function KitchenOrderCard({
               <span className="text-sm text-gray-500">
                 {order.items.length} article{order.items.length > 1 ? "s" : ""}
               </span>
-              <span className="text-sm font-bold text-white">{formatPrice(order.totalCents)}</span>
+              <span className="text-base font-bold text-white">{formatPrice(order.totalCents)}</span>
+              {pickupTime && (
+                <span className="text-sm font-bold text-amber-400">
+                  <Clock size={12} className="inline mr-0.5" />{pickupTime}
+                </span>
+              )}
               <span className="text-xs text-gray-600">{timeSince(order.createdAt)}</span>
             </div>
           </div>
@@ -155,16 +175,26 @@ export default function KitchenOrderCard({
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-xl border-t-4 ${STATUS_COLORS[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""}`}
+      className={`bg-[#1a1a1a] rounded-xl border-t-4 ${STATUS_COLORS[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
     >
+      {/* ── Late badge ── */}
+      {isLate && (
+        <div className="mx-4 mt-3 mb-1 px-3 py-2 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center gap-2">
+          <Timer size={14} className="text-red-400" />
+          <span className="text-sm font-bold text-red-400">
+            EN RETARD de {lateMinutes} min
+          </span>
+        </div>
+      )}
+
       {/* ── Header: #047 · Prénom ── */}
       <div className="px-4 pt-3 pb-2 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-black text-[28px] leading-none text-white tracking-tight">
+            <span className="font-black text-[32px] leading-none text-white tracking-tight">
               {ticketNumber}
             </span>
-            <span className="text-[20px] font-bold text-gray-300 leading-none">
+            <span className="text-[22px] font-bold text-gray-300 leading-none">
               {clientName}
             </span>
             {order.isPro && (
@@ -173,7 +203,12 @@ export default function KitchenOrderCard({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-0.5">
+          <div className="flex items-center gap-3 mt-1">
+            {pickupTime && (
+              <span className="text-base font-bold text-amber-400">
+                <Clock size={13} className="inline mr-0.5" /> Retrait {pickupTime}
+              </span>
+            )}
             {customerNum && (
               <span className="text-[13px] text-gray-500">Client {customerNum}</span>
             )}
@@ -211,17 +246,17 @@ export default function KitchenOrderCard({
 
       {/* ── Items list ── */}
       <div className="px-4 pb-2">
-        <div className="bg-white/5 rounded-lg p-3 space-y-1.5">
+        <div className="bg-white/5 rounded-lg p-3 space-y-2">
           {order.items.map((item) => (
             <div
               key={item.id}
-              className={`flex items-center justify-between text-sm ${!item.available ? "opacity-40 line-through" : ""}`}
+              className={`flex items-center justify-between text-base ${!item.available ? "opacity-40 line-through" : ""}`}
             >
               <span className="text-gray-300">
-                <span className="text-white font-medium">
+                <span className="text-white font-bold text-lg">
                   {item.quantity}
                 </span>{" "}
-                {formatUnit(item.product?.unit || item.unit)} — {item.product?.name || item.name}
+                {formatUnit(item.product?.unit || item.unit)} — <span className="font-medium text-white">{item.product?.name || item.name}</span>
                 {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") && item.sliceCount && (
                   <span className="ml-1 text-amber-400 text-xs">
                     ({item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""})
@@ -291,8 +326,8 @@ export default function KitchenOrderCard({
         </div>
       )}
 
-      {/* ── Requested time ── */}
-      {order.requestedTime && (
+      {/* ── Requested time (only if not already shown in header pickup) ── */}
+      {order.requestedTime && !pickupTime && (
         <div className="px-4 pb-2">
           <p className="text-xs text-gray-500">
             <Clock size={11} className="inline mr-1" />
