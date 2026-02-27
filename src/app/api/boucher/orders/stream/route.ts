@@ -1,6 +1,7 @@
 // src/app/api/boucher/orders/stream/route.ts — SSE real-time stream (Uber Eats WebSocket replacement)
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -107,16 +108,13 @@ export async function GET() {
             )
           );
 
-          // Update lastSeenAt
-          await prisma.shop.update({
-            where: { id: shopId },
-            data: { lastSeenAt: new Date() },
-          });
+          // Update lastSeenAt via Redis (avoid DB write every poll)
+          redis.set(`shop:lastSeen:${shopId}`, Date.now().toString(), { ex: 300 }).catch(() => {});
         } catch {
           if (interval) clearInterval(interval);
           try { controller.close(); } catch { /* already closed */ }
         }
-      }, 3000); // Poll every 3s like Uber Eats internal
+      }, 5000); // Poll every 5s (reduced from 3s to lower DB load)
     },
     cancel() {
       // Called when client disconnects — prevents interval leak

@@ -5,7 +5,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
 import { z } from "zod";
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       include: { _count: { select: { products: true } } },
     });
 
-    return apiSuccess(categories);
+    return apiCached(categories, 300);
   } catch (error) {
     return handleApiError(error);
   }

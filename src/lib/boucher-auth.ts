@@ -1,17 +1,21 @@
 // src/lib/boucher-auth.ts — Boucher authentication helper
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 import { apiError } from "@/lib/api/errors";
 import { isBoucher } from "@/lib/roles";
 import { getTestRole, isTestActivated } from "@/lib/auth/server-auth";
 
-// ── In-memory boucher cache (5 min TTL) ──────────────
-const boucherCache = new Map<string, { shopId: string; userId: string; ts: number }>();
-const CACHE_TTL = 5 * 60 * 1000;
+const REDIS_TTL = 300; // 5 min
+
+// ── In-memory fallback cache (if Redis unavailable) ──
+const memCache = new Map<string, { shopId: string; userId: string; ts: number }>();
+const MEM_TTL = 5 * 60 * 1000;
 
 /**
  * Vérifie que l'utilisateur est un boucher authentifié avec une boutique.
  * Retourne { userId, shopId } ou { error: Response }.
+ * Uses Redis cache (survives cold starts) with in-memory fallback.
  */
 export async function getAuthenticatedBoucher(): Promise<
   | { userId: string; shopId: string; error?: undefined }
@@ -21,7 +25,6 @@ export async function getAuthenticatedBoucher(): Promise<
   if (isTestActivated()) {
     const testRole = getTestRole();
     if (testRole === "BOUCHER" || testRole === "ADMIN") {
-      // Find the first shop in DB for test boucher
       const firstShop = await prisma.shop.findFirst({
         select: { id: true, ownerId: true },
         orderBy: { createdAt: "asc" },
@@ -29,7 +32,6 @@ export async function getAuthenticatedBoucher(): Promise<
       if (!firstShop) {
         return { error: apiError("NOT_FOUND", "Aucune boutique trouvée (test mode)") };
       }
-      // Resolve ownerId to DB user.id (ownerId may be clerkId or DB id)
       const ownerUser = await prisma.user.findFirst({
         where: { OR: [{ id: firstShop.ownerId }, { clerkId: firstShop.ownerId }] },
         select: { id: true },
@@ -45,21 +47,20 @@ export async function getAuthenticatedBoucher(): Promise<
     return { error: apiError("UNAUTHORIZED", "Authentification requise") };
   }
 
-  // Check cache
-  const cached = boucherCache.get(clerkId);
-  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+  // 1. Check Redis cache (survives cold starts)
+  const cacheKey = `boucher:auth:${clerkId}`;
+  const cached = await redis.get<{ shopId: string; userId: string }>(cacheKey);
+  if (cached && cached.shopId && cached.userId) {
     return { userId: cached.userId, shopId: cached.shopId };
   }
 
-  // Check Clerk metadata
-  const user = await currentUser();
-  const role = (user?.publicMetadata as Record<string, string>)?.role;
-
-  if (!isBoucher(role)) {
-    return { error: apiError("FORBIDDEN", "Accès réservé aux bouchers") };
+  // 2. Fallback: check in-memory cache
+  const memCached = memCache.get(clerkId);
+  if (memCached && Date.now() - memCached.ts < MEM_TTL) {
+    return { userId: memCached.userId, shopId: memCached.shopId };
   }
 
-  // Find shop owned by this user
+  // 3. DB lookup — parallel: user + shop
   const dbUser = await prisma.user.findUnique({
     where: { clerkId },
     select: { id: true, role: true },
@@ -69,11 +70,10 @@ export async function getAuthenticatedBoucher(): Promise<
     return { error: apiError("NOT_FOUND", "Utilisateur introuvable") };
   }
 
-  if (dbUser.role !== "BOUCHER" && dbUser.role !== "ADMIN") {
+  if (!isBoucher(dbUser.role) && dbUser.role !== "ADMIN") {
     return { error: apiError("FORBIDDEN", "Accès réservé aux bouchers") };
   }
 
-  // Search by user.id OR clerkId (seed stores clerkId as ownerId)
   const shop = await prisma.shop.findFirst({
     where: { OR: [{ ownerId: dbUser.id }, { ownerId: clerkId }] },
     select: { id: true },
@@ -83,14 +83,16 @@ export async function getAuthenticatedBoucher(): Promise<
     return { error: apiError("NOT_FOUND", "Aucune boutique trouvée") };
   }
 
-  // Cache the result
-  boucherCache.set(clerkId, { shopId: shop.id, userId: dbUser.id, ts: Date.now() });
+  // Cache in Redis + memory
+  const result = { shopId: shop.id, userId: dbUser.id };
+  redis.set(cacheKey, result, { ex: REDIS_TTL }).catch(() => {});
+  memCache.set(clerkId, { ...result, ts: Date.now() });
 
-  // Evict old entries
-  if (boucherCache.size > 200) {
-    const oldest = [...boucherCache.entries()].sort((a, b) => a[1].ts - b[1].ts);
-    for (let i = 0; i < 50; i++) boucherCache.delete(oldest[i][0]);
+  // Evict old memory entries
+  if (memCache.size > 200) {
+    const oldest = [...memCache.entries()].sort((a, b) => a[1].ts - b[1].ts);
+    for (let i = 0; i < 50; i++) memCache.delete(oldest[i][0]);
   }
 
-  return { userId: dbUser.id, shopId: shop.id };
+  return result;
 }

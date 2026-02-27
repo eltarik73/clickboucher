@@ -93,32 +93,34 @@ export async function GET(req: NextRequest) {
       take: 50,
     });
 
-    // Auto-approve expired price adjustments
-    let needsRefresh = false;
-    for (const order of orders) {
-      const adj = (order as Record<string, unknown>).priceAdjustment as { status?: string; autoApproveAt?: Date } | null;
-      if (adj?.status === "PENDING" && adj.autoApproveAt && new Date() >= new Date(adj.autoApproveAt)) {
-        await autoApproveExpiredAdjustment(order.id);
-        needsRefresh = true;
-      }
+    // Auto-approve expired price adjustments (batch instead of N+1)
+    const expiredAdjustmentOrderIds = orders
+      .filter((order) => {
+        const adj = (order as Record<string, unknown>).priceAdjustment as { status?: string; autoApproveAt?: Date } | null;
+        return adj?.status === "PENDING" && adj.autoApproveAt && new Date() >= new Date(adj.autoApproveAt);
+      })
+      .map((o) => o.id);
+
+    if (expiredAdjustmentOrderIds.length > 0) {
+      // Process all expired adjustments in parallel
+      await Promise.all(expiredAdjustmentOrderIds.map((id) => autoApproveExpiredAdjustment(id)));
+
+      // Re-fetch only the modified orders and merge
+      const refreshed = await prisma.order.findMany({
+        where: { id: { in: expiredAdjustmentOrderIds } },
+        include: {
+          items: { include: { product: { select: { name: true, unit: true, vatRate: true } } } },
+          shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true, priceAdjustmentThreshold: true } },
+          user: { select: { firstName: true, lastName: true, customerNumber: true, phone: true } },
+          priceAdjustment: true,
+        },
+      });
+      const refreshedMap = new Map(refreshed.map((o) => [o.id, o]));
+      const mergedOrders = orders.map((o) => refreshedMap.get(o.id) || o);
+      return apiSuccess(mergedOrders);
     }
 
-    if (!needsRefresh) return apiSuccess(orders);
-
-    // Re-fetch only if something changed
-    const finalOrders = await prisma.order.findMany({
-      where,
-      include: {
-        items: { include: { product: { select: { name: true, unit: true, vatRate: true } } } },
-        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, siret: true, fullAddress: true, vatRate: true, priceAdjustmentThreshold: true } },
-        user: { select: { firstName: true, lastName: true, customerNumber: true, phone: true } },
-        priceAdjustment: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
-
-    return apiSuccess(finalOrders);
+    return apiSuccess(orders);
   } catch (error) {
     return handleApiError(error);
   }
@@ -161,31 +163,59 @@ export async function POST(req: NextRequest) {
     }
     const data = parseResult.data;
 
-    // Get internal user (auto-create if webhook hasn't fired)
-    const user = await getOrCreateUser(userId);
+    // ── Phase 1: Parallel fetch — user + shop + products ──
+    const productIds = data.items.map((i) => i.productId);
+    const [user, shop, products] = await Promise.all([
+      getOrCreateUser(userId),
+      prisma.shop.findUnique({
+        where: { id: data.shopId },
+        select: {
+          id: true, name: true, address: true, city: true, phone: true,
+          status: true, autoAccept: true, acceptTimeoutMin: true,
+          busyMode: true, busyExtraMin: true, prepTimeMin: true,
+          maxOrdersPerSlot: true, maxOrdersPerHour: true, autoBusyThreshold: true,
+          minOrderCents: true, commissionPct: true, commissionEnabled: true,
+          vatRate: true,
+        },
+      }),
+      prisma.product.findMany({
+        where: { id: { in: productIds }, shopId: data.shopId },
+      }),
+    ]);
+
     if (!user) {
       return apiError("NOT_FOUND", "Utilisateur introuvable");
     }
-
-    const isPro = user.role === "CLIENT_PRO";
-
-    // ── Check shop status via Redis-cached getShopStatus ──
-    const shop = await prisma.shop.findUnique({
-      where: { id: data.shopId },
-      select: {
-        id: true, name: true, address: true, city: true, phone: true,
-        status: true, autoAccept: true, acceptTimeoutMin: true,
-        busyMode: true, busyExtraMin: true, prepTimeMin: true,
-        maxOrdersPerSlot: true, maxOrdersPerHour: true, autoBusyThreshold: true,
-        minOrderCents: true, commissionPct: true, commissionEnabled: true,
-        vatRate: true,
-      },
-    });
     if (!shop) {
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
 
-    const currentStatus = await getShopStatus(shop.id);
+    const isPro = user.role === "CLIENT_PRO";
+
+    // ── Phase 2: Parallel checks — shop status + throttling + slot ──
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const slotCheck = data.pickupSlotStart
+      ? prisma.order.count({
+          where: {
+            shopId: shop.id,
+            pickupSlotStart: new Date(data.pickupSlotStart),
+            status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
+          },
+        })
+      : Promise.resolve(0);
+
+    const [currentStatus, ordersLastHour, ordersInSlot] = await Promise.all([
+      getShopStatus(shop.id),
+      prisma.order.count({
+        where: {
+          shopId: shop.id,
+          createdAt: { gte: oneHourAgo },
+          status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
+        },
+      }),
+      slotCheck,
+    ]);
+
     if (currentStatus !== "OPEN" && currentStatus !== "BUSY") {
       const messages: Record<string, string> = {
         PAUSED: "La boucherie a temporairement mis les commandes en pause",
@@ -196,39 +226,15 @@ export async function POST(req: NextRequest) {
       return apiError("SERVICE_DISABLED", messages[currentStatus] || "Boutique indisponible");
     }
 
-    // ── Order throttling (Uber Eats style) ──
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const ordersLastHour = await prisma.order.count({
-      where: {
-        shopId: shop.id,
-        createdAt: { gte: oneHourAgo },
-        status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
-      },
-    });
     if (ordersLastHour >= shop.maxOrdersPerHour) {
       return apiError("CAPACITY_EXCEEDED", "La boutique est temporairement surchargée");
     }
 
-    // Check max orders per slot (if pickup slot specified)
-    if (data.pickupSlotStart) {
-      const ordersInSlot = await prisma.order.count({
-        where: {
-          shopId: shop.id,
-          pickupSlotStart: new Date(data.pickupSlotStart),
-          status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
-        },
-      });
-      if (ordersInSlot >= shop.maxOrdersPerSlot) {
-        return apiError("CAPACITY_EXCEEDED", "Ce créneau est complet");
-      }
+    if (data.pickupSlotStart && ordersInSlot >= shop.maxOrdersPerSlot) {
+      return apiError("CAPACITY_EXCEEDED", "Ce créneau est complet");
     }
 
-    // Fetch products and verify stock + snooze
-    const productIds = data.items.map((i) => i.productId);
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds }, shopId: data.shopId },
-    });
-
+    // Verify stock + snooze
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     for (const item of data.items) {
@@ -293,36 +299,37 @@ export async function POST(req: NextRequest) {
       ? Math.round(totalCents * (shop.commissionPct / 100))
       : 0;
 
-    // Generate orderNumber: KG-YYYY-XXXXX
+    // ── Phase 3: Parallel — orderNumber + ticket numbering + prep time ──
     const year = new Date().getFullYear();
     const prefix = `KG-${year}-`;
-    const lastOrder = await prisma.order.findFirst({
-      where: { orderNumber: { startsWith: prefix } },
-      orderBy: { orderNumber: "desc" },
-      select: { orderNumber: true },
-    });
+    const itemCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
+
+    const [lastOrder, dailyResult, _customerNumber, prepMinutes] = await Promise.all([
+      prisma.order.findFirst({
+        where: { orderNumber: { startsWith: prefix } },
+        orderBy: { orderNumber: "desc" },
+        select: { orderNumber: true },
+      }),
+      getNextDailyNumber(data.shopId),
+      ensureCustomerNumber(user.id, data.shopId),
+      calculatePrepTime({
+        shopId: shop.id,
+        basePrepMin: shop.prepTimeMin,
+        busyMode: shop.busyMode,
+        busyExtraMin: shop.busyExtraMin,
+        itemCount,
+      }),
+    ]);
+
     const nextNum = lastOrder
       ? parseInt(lastOrder.orderNumber.slice(prefix.length), 10) + 1
       : 1;
     const orderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
-
-    // ── Ticket numbering ──
-    const { dailyNumber, displayNumber } = await getNextDailyNumber(data.shopId);
-    const customerNumber = await ensureCustomerNumber(user.id, data.shopId);
+    const { dailyNumber, displayNumber } = dailyResult;
 
     // Auto-cancel timer (Uber Eats style)
     const expiresAt = new Date(Date.now() + shop.acceptTimeoutMin * 60 * 1000);
     const initialStatus = shop.autoAccept ? "ACCEPTED" : "PENDING";
-
-    // ── Dynamic prep time + QR + estimatedReady ──
-    const itemCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
-    const prepMinutes = await calculatePrepTime({
-      shopId: shop.id,
-      basePrepMin: shop.prepTimeMin,
-      busyMode: shop.busyMode,
-      busyExtraMin: shop.busyExtraMin,
-      itemCount,
-    });
 
     const qrCode = shop.autoAccept ? randomUUID() : null;
     const estimatedReady = shop.autoAccept
@@ -357,43 +364,44 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Notify boucher
-    await sendNotification("ORDER_PENDING", {
-      shopId: order.shopId,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      customerName: user.firstName,
-    });
-
-    // Send confirmation email (fire-and-forget)
-    sendOrderConfirmationEmail(user.email, {
-      orderId: order.id,
-      displayNumber,
-      customerFirstName: user.firstName,
-      items: orderItems.map((oi) => ({
-        name: oi.name,
-        quantity: oi.quantity,
-        unit: oi.unit,
-        totalCents: oi.totalCents,
-        weightGrams: oi.weightGrams,
-      })),
-      totalCents,
-      shopName: shop.name,
-      shopAddress: shop.address,
-      shopCity: shop.city,
-      prepTimeMin: prepMinutes,
-    }).catch(() => {});
-
-    // Auto-busy if threshold reached (Uber Eats style)
-    const activeOrders = await prisma.order.count({
-      where: {
-        shopId: shop.id,
-        status: { in: ["PENDING", "ACCEPTED", "PREPARING"] },
-      },
-    });
-    if (activeOrders >= shop.autoBusyThreshold && !shop.busyMode) {
-      await setBusyMode(shop.id, { extraMin: 15, durationMin: 30 });
-    }
+    // ── Fire-and-forget: notifications + email + auto-busy ──
+    // These don't block the response — saves ~300-800ms
+    Promise.all([
+      sendNotification("ORDER_PENDING", {
+        shopId: order.shopId,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerName: user.firstName,
+      }),
+      sendOrderConfirmationEmail(user.email, {
+        orderId: order.id,
+        displayNumber,
+        customerFirstName: user.firstName,
+        items: orderItems.map((oi) => ({
+          name: oi.name,
+          quantity: oi.quantity,
+          unit: oi.unit,
+          totalCents: oi.totalCents,
+          weightGrams: oi.weightGrams,
+        })),
+        totalCents,
+        shopName: shop.name,
+        shopAddress: shop.address,
+        shopCity: shop.city,
+        prepTimeMin: prepMinutes,
+      }),
+      // Auto-busy check
+      prisma.order.count({
+        where: {
+          shopId: shop.id,
+          status: { in: ["PENDING", "ACCEPTED", "PREPARING"] },
+        },
+      }).then((activeOrders) => {
+        if (activeOrders >= shop.autoBusyThreshold && !shop.busyMode) {
+          return setBusyMode(shop.id, { extraMin: 15, durationMin: 30 });
+        }
+      }),
+    ]).catch((err) => console.error("[orders/POST] background error:", err));
 
     return apiSuccess(order, 201);
   } catch (error) {

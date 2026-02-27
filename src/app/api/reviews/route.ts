@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 
 export const dynamic = "force-dynamic";
@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
       },
     }));
 
-    return apiSuccess(serialized);
+    return apiCached(serialized, 60);
   } catch (error) {
     return handleApiError(error, "reviews/GET");
   }

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function GET(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    return apiSuccess(product);
+    return apiCached(product, 60);
   } catch (error) {
     return handleApiError(error);
   }

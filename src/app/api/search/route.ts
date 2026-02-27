@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchProducts } from "@/lib/ai-search";
+import { apiCached } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const results = await searchProducts(q, shopId, 10);
 
-    return NextResponse.json({ query: q, count: results.length, results });
+    return apiCached({ query: q, count: results.length, results }, 30);
   } catch (error) {
     void error;
     return NextResponse.json(

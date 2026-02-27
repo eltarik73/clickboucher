@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
       // Redis down — continue without cache
     }
 
-    return apiSuccess(allShops);
+    return apiCached(allShops, 60);
   } catch (error) {
     return handleApiError(error, "shops/nearby");
   }

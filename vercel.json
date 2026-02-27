@@ -1,0 +1,23 @@
+{
+  "regions": ["sfo1"],
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "crons": [
+    { "path": "/api/cron/auto-cancel", "schedule": "* * * * *" },
+    { "path": "/api/cron/busy-end", "schedule": "* * * * *" },
+    { "path": "/api/cron/unsnooze", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/ready-reminder", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/abandoned-carts", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/expire-promos", "schedule": "0 * * * *" },
+    { "path": "/api/cron/vacation-end", "schedule": "0 * * * *" },
+    { "path": "/api/cron/auto-promos", "schedule": "0 * * * *" },
+    { "path": "/api/cron/recurring-orders", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/calendar-alerts", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/trial-expiry", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/performance-refresh", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/weekly-report", "schedule": "0 9 * * 1" }
+  ]
+}

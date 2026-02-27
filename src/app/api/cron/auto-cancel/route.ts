@@ -3,18 +3,13 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { checkAutoPause } from "@/lib/shop-status";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    if (!process.env.CRON_SECRET) {
-      return apiError("INTERNAL_ERROR", "CRON_SECRET not configured");
-    }
-    const secret = req.headers.get("x-cron-secret");
-    if (secret !== process.env.CRON_SECRET) {
-      return apiError("UNAUTHORIZED", "Invalid cron secret");
-    }
+    if (!verifyCronAuth(req)) return apiError("UNAUTHORIZED", "Invalid cron secret");
 
     const now = new Date();
 

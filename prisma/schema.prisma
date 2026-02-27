@@ -826,6 +826,7 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+  @@index([userId, type, createdAt])
   @@index([orderId])
   @@map("notifications")
 }
@@ -903,6 +904,7 @@ model Order {
   @@index([shopId, createdAt])
   @@index([shopId, updatedAt])
   @@index([userId])
+  @@index([userId, status])
   @@index([expiresAt, status])
   @@index([createdAt, status])
   @@map("orders")

@@ -5,7 +5,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateShopSchema } from "@/lib/validators";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
 
 // ── GET /api/shops/[id] ────────────────────────
@@ -36,10 +36,10 @@ export async function GET(
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
 
-    return apiSuccess({
+    return apiCached({
       ...shop,
       effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
-    });
+    }, 60);
   } catch (error) {
     return handleApiError(error);
   }

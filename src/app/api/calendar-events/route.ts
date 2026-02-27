@@ -1,6 +1,6 @@
 // GET /api/calendar-events — List upcoming calendar events
 import prisma from "@/lib/prisma";
-import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { apiCached, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export async function GET() {
       suggestedProducts: (e.suggestedProducts as string[]) || [],
     }));
 
-    return apiSuccess(mapped);
+    return apiCached(mapped, 3600);
   } catch (error) {
     return handleApiError(error, "calendar-events/GET");
   }

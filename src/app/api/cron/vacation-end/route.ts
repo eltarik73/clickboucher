@@ -5,29 +5,27 @@ import { verifyCronAuth } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
-// ── GET /api/cron/expire-promos ──────────────
-// Expire all promos where promoEnd < now()
 export async function GET(req: NextRequest) {
   try {
     if (!verifyCronAuth(req)) return apiError("UNAUTHORIZED", "Invalid cron secret");
 
-    const result = await prisma.product.updateMany({
+    const now = new Date();
+    const result = await prisma.shop.updateMany({
       where: {
-        promoEnd: { lt: new Date() },
-        promoPct: { not: null },
+        vacationMode: true,
+        vacationEnd: { not: null, lte: now },
       },
       data: {
-        promoPct: null,
-        promoType: null,
-        promoEnd: null,
+        vacationMode: false,
+        status: "OPEN",
+        vacationStart: null,
+        vacationEnd: null,
+        vacationMessage: null,
       },
     });
 
-    return apiSuccess({
-      expired: result.count,
-      at: new Date().toISOString(),
-    });
+    return apiSuccess({ reopenedCount: result.count, timestamp: now.toISOString() });
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error, "cron/vacation-end");
   }
 }

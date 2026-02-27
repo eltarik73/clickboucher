@@ -2,7 +2,7 @@
 // Returns cross-sell product suggestions based on cart contents
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
-import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiCached, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return apiSuccess(
+    return apiCached(
       products.map((p) => ({
         id: p.id,
         name: p.name,
@@ -86,7 +86,8 @@ export async function GET(req: NextRequest) {
         origin: p.origin,
         promoPct: p.promoPct,
         promoType: p.promoType,
-      }))
+      })),
+      120
     );
   } catch (error) {
     return handleApiError(error, "suggestions");
