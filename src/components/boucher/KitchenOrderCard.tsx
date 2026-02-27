@@ -41,6 +41,11 @@ function formatUnit(unit: string) {
   return unit === "KG" ? "kg" : unit === "PIECE" ? "pc" : unit === "TRANCHE" ? "tr." : "barq.";
 }
 
+function isAsapTime(timeStr: string | null): boolean {
+  if (!timeStr) return false;
+  return timeStr.toLowerCase() === "asap";
+}
+
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString("fr-FR", {
     hour: "2-digit",
@@ -94,10 +99,11 @@ export default function KitchenOrderCard({
     ? Math.round((Date.now() - new Date(order.estimatedReady).getTime()) / 60_000)
     : 0;
 
-  // Pickup time display
+  // Pickup time display — "asap" is not a valid date, show "Dès que possible"
+  const isAsap = isAsapTime(order.requestedTime);
   const pickupTime = order.pickupSlotStart
     ? formatTime(order.pickupSlotStart)
-    : order.requestedTime
+    : order.requestedTime && !isAsap
       ? formatTime(order.requestedTime)
       : null;
 
@@ -148,9 +154,9 @@ export default function KitchenOrderCard({
                 {order.items.length} article{order.items.length > 1 ? "s" : ""}
               </span>
               <span className="text-base font-bold text-white">{formatPrice(order.totalCents)}</span>
-              {pickupTime && (
+              {(pickupTime || isAsap) && (
                 <span className="text-sm font-bold text-amber-400">
-                  <Clock size={12} className="inline mr-0.5" />{pickupTime}
+                  <Clock size={12} className="inline mr-0.5" />{pickupTime || "Dès que possible"}
                 </span>
               )}
               <span className="text-xs text-gray-600">{timeSince(order.createdAt)}</span>
@@ -199,9 +205,9 @@ export default function KitchenOrderCard({
             )}
           </div>
           <div className="flex items-center gap-3 mt-1">
-            {pickupTime && (
+            {(pickupTime || isAsap) && (
               <span className="text-base font-bold text-amber-400">
-                <Clock size={13} className="inline mr-0.5" /> Retrait {pickupTime}
+                <Clock size={13} className="inline mr-0.5" /> {pickupTime ? `Retrait ${pickupTime}` : "Dès que possible"}
               </span>
             )}
             {customerNum && (
@@ -322,7 +328,7 @@ export default function KitchenOrderCard({
       )}
 
       {/* ── Requested time (only if not already shown in header pickup) ── */}
-      {order.requestedTime && !pickupTime && (
+      {order.requestedTime && !pickupTime && !isAsap && (
         <div className="px-4 pb-2">
           <p className="text-xs text-gray-500">
             <Clock size={11} className="inline mr-1" />
