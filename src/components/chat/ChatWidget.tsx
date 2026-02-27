@@ -207,7 +207,7 @@ function RecapActions({
 
 export function ChatWidget() {
   const router = useRouter();
-  const { addItem } = useCart();
+  const { addItem, state } = useCart();
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -324,6 +324,16 @@ export function ChatWidget() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: updated.map((m) => ({ role: m.role, content: m.content })),
+            cart: state.items.map((item) => ({
+              name: item.name,
+              unit: item.unit,
+              quantity: item.quantity,
+              weightGrams: item.weightGrams,
+              priceCents: item.priceCents,
+              sliceCount: item.sliceCount,
+              thickness: item.thickness,
+            })),
+            cartShopName: state.shopName,
           }),
         });
 

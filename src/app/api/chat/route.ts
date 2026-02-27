@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import prisma from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -126,6 +126,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const allMessages: { role: "user" | "assistant"; content: string }[] =
       body.messages;
+    const cartItems: { name: string; unit: string; quantity: number; weightGrams?: number; priceCents: number; sliceCount?: number; thickness?: string }[] =
+      body.cart || [];
+    const cartShopName: string | null = body.cartShopName || null;
 
     if (!allMessages || !Array.isArray(allMessages) || allMessages.length === 0) {
       return NextResponse.json(
@@ -138,11 +141,38 @@ export async function POST(req: NextRequest) {
     const messages = allMessages.slice(-6);
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content || "";
 
-    // ── Auth (optional) ──────────────────────────
+    // ── Auth (optional) — fetch recent orders if logged in ──
+    let recentOrders: { orderNumber: string; status: string; totalCents: number; createdAt: Date; shopName: string; itemCount: number }[] = [];
     try {
-      await auth();
+      const userId = await getServerUserId();
+      if (userId) {
+        const user = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true } });
+        if (user) {
+          const orders = await prisma.order.findMany({
+            where: { userId: user.id },
+            select: {
+              orderNumber: true,
+              status: true,
+              totalCents: true,
+              createdAt: true,
+              shop: { select: { name: true } },
+              _count: { select: { items: true } },
+            },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          });
+          recentOrders = orders.map((o) => ({
+            orderNumber: o.orderNumber,
+            status: o.status,
+            totalCents: o.totalCents,
+            createdAt: o.createdAt,
+            shopName: o.shop.name,
+            itemCount: o._count.items,
+          }));
+        }
+      }
     } catch {
-      // Not authenticated — that's fine
+      // Auth/DB failed — non-blocking
     }
 
     // ── Extract keywords + search relevant products ──
@@ -218,6 +248,39 @@ export async function POST(req: NextRequest) {
           .join("\n")
       : "Aucun produit en base.";
 
+    // ── Cart context ─────────────────────────────
+    const cartContext = cartItems.length > 0
+      ? `PANIER ACTUEL (chez ${cartShopName || "?"}) :\n` +
+        cartItems.map((item) => {
+          const price = (item.priceCents / 100).toFixed(2);
+          const unit = item.unit === "KG" ? "kg" : item.unit === "TRANCHE" ? "tr." : item.unit === "PIECE" ? "pce" : "barq.";
+          const weight = item.weightGrams ? ` ${item.weightGrams}g` : "";
+          const slice = item.sliceCount ? ` ${item.sliceCount} tr.${item.thickness ? ` ${item.thickness}` : ""}` : "";
+          return `- ${item.name} x${item.quantity}${weight}${slice} | ${price}€/${unit}`;
+        }).join("\n")
+      : "PANIER VIDE";
+
+    // ── Recent orders context ──────────────────────
+    const STATUS_LABELS: Record<string, string> = {
+      PENDING: "En attente",
+      ACCEPTED: "Acceptee",
+      PREPARING: "En preparation",
+      READY: "Prete",
+      PICKED_UP: "Recuperee",
+      COMPLETED: "Terminee",
+      DENIED: "Refusee",
+      CANCELLED: "Annulee",
+    };
+
+    const ordersContext = recentOrders.length > 0
+      ? "COMMANDES RECENTES DU CLIENT :\n" +
+        recentOrders.map((o) => {
+          const status = STATUS_LABELS[o.status] || o.status;
+          const date = new Date(o.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+          return `- #${o.orderNumber} | ${status} | ${(o.totalCents / 100).toFixed(2)}€ | ${o.shopName} | ${o.itemCount} articles | ${date}`;
+        }).join("\n")
+      : "";
+
     // ── System prompt ────────────────────────────
     const systemPrompt = `Tu es l'assistant Klik&Go, expert en viande halal a Chambery. Tu tutoies le client. Sois CONCIS (3-4 phrases max).
 
@@ -230,6 +293,10 @@ Pour weightGrams : 500 par defaut pour KG. Pour PIECE/BARQUETTE : ne pas mettre 
 
 Quand le client valide ("c'est bon", "je valide", "on commande") :
 <!--ACTION:{"type":"go_to_checkout"}-->
+
+${cartContext}
+
+${ordersContext}
 
 BOUCHERIES OUVERTES :
 ${shopsContext}
@@ -245,7 +312,10 @@ REGLES :
 - Quand il valide : affiche recap avec total + temps + action go_to_checkout
 - Le poids peut varier de +-10% (mentionne-le UNE SEULE FOIS)
 - JAMAIS renvoyer vers le site. Tu fais tout.
-- MAX 3-4 phrases par reponse. Sois direct.`;
+- MAX 3-4 phrases par reponse. Sois direct.
+- Si le client demande "ou en est ma commande" ou "suivi" : utilise les COMMANDES RECENTES pour lui donner le statut. Si la commande est READY, dis-lui de venir la chercher.
+- Si le client a deja des articles dans son panier, mentionne-le naturellement ("je vois que tu as deja X dans ton panier").
+- Si le client veut recommander une commande passee, propose les memes articles.`;
 
     // ── Call Claude API with retry ───────────────
     const content = await callClaude(client, systemPrompt, messages);
