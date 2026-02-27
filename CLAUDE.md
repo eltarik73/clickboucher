@@ -15,8 +15,9 @@ Click & Collect pour boucheries artisanales, style Uber Eats / Deliveroo.
 - **Rate limiting** : Upstash Redis
 - **QR Code** : qrcode.react + html5-qrcode (scan)
 - **Charts** : Recharts (dashboard boucher)
-- **Hébergement** : Railway (full stack + PostgreSQL)
+- **Hébergement** : Vercel (frontend + serverless) + Railway (PostgreSQL)
 - **Repo** : https://github.com/eltarik73/clickboucher
+- **Production** : https://www.klikandgo.app
 
 ## Commandes
 
@@ -92,11 +93,53 @@ const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, t
 
 ## Base de données (Prisma)
 
-Modèles principaux : User, Shop, Category, Product, Order, OrderItem, Cart, CartItem, Review, LoyaltyPoint, Notification, Subscription, SupportTicket, ProAccess, PriceAdjustment, RecurringOrder, Referral, DailyCounter.
+Modèles principaux : User, Shop, Category, Product, Order, OrderItem, Cart, CartItem, Review, LoyaltyPoint, Notification, Subscription, SupportTicket, ProAccess, PriceAdjustment, RecurringOrder, Referral, DailyCounter, GlobalCategory, ReferenceProduct, ShopAlert.
 
 Features Uber Eats/Deliveroo : busy mode, pause manuelle, auto-pause, vacation mode, order throttling, snooze produit, auto-cancel commandes, QR code retrait, ajustement prix/poids.
 
 Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
+
+## Authentification API (CRITIQUE)
+
+Toutes les routes API utilisent `getServerUserId()` de `@/lib/auth/server-auth` — **JAMAIS `auth()` de Clerk directement**.
+
+```typescript
+// ✅ Correct — supporte le test mode
+import { getServerUserId } from "@/lib/auth/server-auth";
+const userId = await getServerUserId();
+
+// ✅ Routes boucher — retourne { userId, shopId }
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+const authResult = await getAuthenticatedBoucher();
+if (authResult.error) return authResult.error;
+
+// ✅ Routes admin
+import { requireAdmin } from "@/lib/admin-auth";
+
+// ❌ INTERDIT — casse le test mode
+import { auth } from "@clerk/nextjs/server";
+const { userId } = await auth();
+```
+
+Pour les vérifications de rôle, toujours faire un lookup DB :
+```typescript
+const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+if (!isAdmin(dbUser?.role)) { ... }
+```
+
+Shop ownership — toujours chercher avec OR clause (le shop peut stocker soit le clerkId soit le user.id Prisma) :
+```typescript
+const shop = await prisma.shop.findFirst({
+  where: { OR: [{ ownerId: clerkId }, { ownerId: dbUser.id }] }
+});
+```
+
+## Test Mode
+
+- Activation : `?testmode=KlikTest2026!` dans l'URL → set cookies
+- Cookies : `klikgo-test-activated=true` + `klikgo-test-role=CLIENT|BOUCHER|ADMIN`
+- Env vars Vercel : `NEXT_PUBLIC_TEST_MODE=true`, `NEXT_PUBLIC_TEST_SECRET=KlikTest2026!`
+- Test users définis dans `@/lib/auth/test-auth.ts`
 
 ## Design system
 
@@ -113,8 +156,12 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 
 ```
 DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-NEXT_PUBLIC_CLERK_SIGN_IN_URL, NEXT_PUBLIC_CLERK_SIGN_UP_URL
+NEXT_PUBLIC_CLERK_SIGN_IN_URL, NEXT_PUBLIC_CLERK_SIGN_UP_URL,
+NEXT_PUBLIC_TEST_MODE, NEXT_PUBLIC_TEST_SECRET,
+NEXT_PUBLIC_APP_URL, ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
 ```
+
+Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.
 
 ## Conventions
 
@@ -122,5 +169,8 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL, NEXT_PUBLIC_CLERK_SIGN_UP_URL
 - Poids en **grammes** (`weightGrams`)
 - Unités : KG, PIECE, BARQUETTE, TRANCHE
 - Imports panier : toujours `use-cart` (pas `useCart`)
-- Output standalone pour Railway (`next.config.mjs`)
+- Output standalone pour Vercel (`next.config.mjs`)
 - CSP configurée pour Clerk + Cloudflare + Anthropic
+- `sessionClaims` Clerk supprimé — utiliser DB lookup pour les rôles
+- Route `/boutique/[id]` utilise le **slug** pas l'ID (ex: `/boutique/boucherie-tarik`)
+- `git add prisma/schema.prisma` obligatoire à chaque modif du schema
