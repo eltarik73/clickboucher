@@ -482,6 +482,11 @@ export const updateReferenceProductSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const promoteProductSchema = z.object({
+  productId: z.string().min(1),
+  categoryId: z.string().cuid(),
+});
+
 export const referenceCatalogQuerySchema = z.object({
   categoryId: z.string().cuid().optional(),
   search: z.string().max(100).optional(),

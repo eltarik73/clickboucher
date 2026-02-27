@@ -20,6 +20,9 @@ import {
   ExternalLink,
   Flame,
   Star,
+  ArrowUpRight,
+  Loader2,
+  CheckCircle,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -112,6 +115,13 @@ export default function WebmasterCataloguePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [shops, setShops] = useState<ShopOption[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Promote
+  const [promoteProduct, setPromoteProduct] = useState<Product | null>(null);
+  const [globalCategories, setGlobalCategories] = useState<{ id: string; name: string; emoji: string | null }[]>([]);
+  const [promoteCatId, setPromoteCatId] = useState("");
+  const [promoting, setPromoting] = useState(false);
+  const [promoteResult, setPromoteResult] = useState<string | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -211,6 +221,44 @@ export default function WebmasterCataloguePage() {
     setActiveFilter("");
     setPromoFilter("");
     setSortBy("newest");
+  };
+
+  /* ── open promote dialog ── */
+  const openPromote = async (product: Product) => {
+    setPromoteProduct(product);
+    setPromoteCatId("");
+    setPromoteResult(null);
+    if (globalCategories.length === 0) {
+      try {
+        const res = await fetch("/api/webmaster/catalog/categories");
+        const d = await res.json();
+        if (d.success) setGlobalCategories(d.data);
+      } catch { /* ignore */ }
+    }
+  };
+
+  const handlePromote = async () => {
+    if (!promoteProduct || !promoteCatId) return;
+    setPromoting(true);
+    setPromoteResult(null);
+    try {
+      const res = await fetch("/api/webmaster/catalog/promote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: promoteProduct.id, categoryId: promoteCatId }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setPromoteResult("ok");
+        setTimeout(() => { setPromoteProduct(null); setPromoteResult(null); }, 1500);
+      } else {
+        setPromoteResult(d.error?.message || "Erreur");
+      }
+    } catch {
+      setPromoteResult("Erreur reseau");
+    } finally {
+      setPromoting(false);
+    }
   };
 
   const hasFilters =
@@ -437,6 +485,7 @@ export default function WebmasterCataloguePage() {
               key={product.id}
               product={product}
               onToggleActive={toggleActive}
+              onPromote={openPromote}
             />
           ))}
         </div>
@@ -486,6 +535,65 @@ export default function WebmasterCataloguePage() {
           </button>
         </div>
       )}
+      {/* Promote dialog */}
+      {promoteProduct && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setPromoteProduct(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl w-full max-w-md p-5 space-y-4">
+            <h3 className="font-display font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <ArrowUpRight size={18} className="text-red-600" />
+              Promouvoir au catalogue
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Ajouter <strong>{promoteProduct.name}</strong> ({promoteProduct.shop.name}) au catalogue de reference.
+            </p>
+
+            <div>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
+                Categorie globale *
+              </label>
+              <select
+                value={promoteCatId}
+                onChange={(e) => setPromoteCatId(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 outline-none"
+              >
+                <option value="">Choisir une categorie...</option>
+                {globalCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.emoji || ""} {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {promoteResult && promoteResult !== "ok" && (
+              <p className="text-sm text-red-600 bg-red-50 dark:bg-red-500/10 px-3 py-2 rounded-lg">{promoteResult}</p>
+            )}
+
+            {promoteResult === "ok" ? (
+              <div className="flex items-center justify-center gap-2 text-emerald-600 py-2">
+                <CheckCircle size={18} /> Produit promu avec succes
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPromoteProduct(null)}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 transition"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handlePromote}
+                  disabled={!promoteCatId || promoting}
+                  className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition flex items-center justify-center gap-1.5"
+                >
+                  {promoting ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpRight size={14} />}
+                  Promouvoir
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -496,9 +604,11 @@ export default function WebmasterCataloguePage() {
 function ProductCard({
   product,
   onToggleActive,
+  onPromote,
 }: {
   product: Product;
   onToggleActive: (p: Product) => void;
+  onPromote: (p: Product) => void;
 }) {
   const promoPrice = product.promoPct
     ? Math.round(product.priceCents * (1 - product.promoPct / 100))
@@ -649,6 +759,15 @@ function ProductCard({
             title={product.isActive ? "Masquer le produit" : "Rendre visible"}
           >
             {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+
+          {/* Promote to reference */}
+          <button
+            onClick={() => onPromote(product)}
+            className="p-2 rounded-xl text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition"
+            title="Promouvoir au catalogue reference"
+          >
+            <ArrowUpRight size={16} />
           </button>
 
           {/* Link to shop */}
