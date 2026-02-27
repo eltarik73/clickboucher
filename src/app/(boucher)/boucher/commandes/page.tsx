@@ -116,10 +116,11 @@ export default function KitchenModePage() {
   const [shopPauseEndsAt, setShopPauseEndsAt] = useState<string | null>(null);
   const [shopBusyEndsAt, setShopBusyEndsAt] = useState<string | null>(null);
   const [shopBusyExtraMin, setShopBusyExtraMin] = useState(0);
+  const [defaultBusyDuration, setDefaultBusyDuration] = useState(15);
   const [showPauseMenu, setShowPauseMenu] = useState(false);
   const [showBusyMenu, setShowBusyMenu] = useState(false);
   const [pauseRemaining, setPauseRemaining] = useState<number | null>(null);
-  const [busyRemaining, setBusyRemaining] = useState<number | null>(null);
+  const [busyCountdown, setBusyCountdown] = useState<string | null>(null);
 
   // Alert overlay
   const [alertOrder, setAlertOrder] = useState<KitchenOrder | null>(null);
@@ -220,6 +221,7 @@ export default function KitchenModePage() {
         setShopPauseEndsAt(json.data?.pauseEndsAt || null);
         setShopBusyEndsAt(json.data?.busyModeEndsAt || null);
         setShopBusyExtraMin(json.data?.busyExtraMin || 0);
+        setDefaultBusyDuration(json.data?.defaultBusyDurationMin || 15);
       }
     } catch {
       // silent
@@ -230,7 +232,7 @@ export default function KitchenModePage() {
     fetchShopInfo();
   }, [fetchShopInfo]);
 
-  // ── Countdown for pause/busy timers ──
+  // ── Countdown for pause/busy timers (1s tick for MM:SS) ──
   useEffect(() => {
     const tick = () => {
       if (shopPauseEndsAt) {
@@ -241,15 +243,21 @@ export default function KitchenModePage() {
         setPauseRemaining(null);
       }
       if (shopBusyEndsAt) {
-        const diff = Math.max(0, Math.floor((new Date(shopBusyEndsAt).getTime() - Date.now()) / 60000));
-        setBusyRemaining(diff > 0 ? diff : null);
-        if (diff <= 0) fetchShopInfo();
+        const diffMs = new Date(shopBusyEndsAt).getTime() - Date.now();
+        if (diffMs <= 0) {
+          setBusyCountdown(null);
+          fetchShopInfo();
+        } else {
+          const m = Math.floor(diffMs / 60000);
+          const s = Math.floor((diffMs % 60000) / 1000);
+          setBusyCountdown(`${m}:${s.toString().padStart(2, "0")}`);
+        }
       } else {
-        setBusyRemaining(null);
+        setBusyCountdown(null);
       }
     };
     tick();
-    const iv = setInterval(tick, 30000);
+    const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
   }, [shopPauseEndsAt, shopBusyEndsAt, fetchShopInfo]);
 
@@ -560,7 +568,7 @@ export default function KitchenModePage() {
         {shopStatus === "BUSY" && (
           <div className="shrink-0 bg-amber-500/15 border-b border-amber-500/20 px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-sm font-bold text-amber-400">
-              ⏱ +{shopBusyExtraMin} min sur les commandes{busyRemaining !== null ? ` — Normal dans ${busyRemaining} min` : ""}
+              🔴 Mode occupé{busyCountdown ? ` — ${busyCountdown}` : ""}
             </p>
             <button
               onClick={async () => {
@@ -619,19 +627,19 @@ export default function KitchenModePage() {
               )}
             </div>
 
-            {/* Extra prep time button with options */}
+            {/* Mode Occupé button with duration options */}
             <div className="relative">
               <button
                 onClick={(e) => { e.stopPropagation(); setShowBusyMenu(!showBusyMenu); setShowPauseMenu(false); }}
                 className="flex items-center gap-2 px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
               >
-                ⏱ +Temps prépa
+                🔴 Occupé
               </button>
               {showBusyMenu && (
                 <>
                   <div className="fixed inset-0 z-50" onClick={() => setShowBusyMenu(false)} />
                   <div className="absolute top-full mt-1 left-0 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl z-[51] min-w-[170px]">
-                    {[10, 15, 20].map((min) => (
+                    {[defaultBusyDuration, 30, 60].filter((v, i, a) => a.indexOf(v) === i).map((min) => (
                       <button
                         key={min}
                         onClick={async () => {
@@ -640,14 +648,14 @@ export default function KitchenModePage() {
                             const res = await fetch("/api/boucher/shop/status", {
                               method: "PATCH",
                               headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ action: "busy", extraMin: min, durationMin: 60 }),
+                              body: JSON.stringify({ action: "busy", extraMin: 15, durationMin: min }),
                             });
-                            if (res.ok) { fetchShopInfo(); toast.success(`+${min} min sur les commandes (1h)`); }
+                            if (res.ok) { fetchShopInfo(); toast.success(`Mode occupé activé (${min} min)`); }
                           } catch { toast.error("Erreur"); }
                         }}
                         className="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-white/10 transition-colors font-medium min-h-[44px]"
                       >
-                        +{min} min (1h)
+                        {min} min{min === defaultBusyDuration ? " (défaut)" : ""}
                       </button>
                     ))}
                   </div>

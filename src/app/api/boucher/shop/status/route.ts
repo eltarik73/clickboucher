@@ -34,6 +34,7 @@ export async function GET() {
         busyMode: true,
         busyExtraMin: true,
         busyModeEndsAt: true,
+        defaultBusyDurationMin: true,
         paused: true,
         pausedAt: true,
         pauseReason: true,

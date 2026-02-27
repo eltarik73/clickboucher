@@ -82,10 +82,13 @@ function formatTime(dateStr: string) {
 
 function timeRemaining(dateStr: string): string {
   const diff = new Date(dateStr).getTime() - Date.now();
-  if (diff <= 0) return "Expire";
-  const min = Math.floor(diff / 60000);
+  if (diff <= 0) return "Expiré";
+  const h = Math.floor(diff / 3600000);
+  const min = Math.floor((diff % 3600000) / 60000);
   const sec = Math.floor((diff % 60000) / 1000);
-  return `${min}:${sec.toString().padStart(2, "0")}`;
+  if (h > 0) return `${h} h ${min.toString().padStart(2, "0")} min`;
+  if (min > 0) return `${min} min ${sec.toString().padStart(2, "0")} s`;
+  return `${sec} s`;
 }
 
 // ─────────────────────────────────────────────

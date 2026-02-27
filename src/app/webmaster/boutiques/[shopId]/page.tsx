@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Loader2,
   ArrowLeft,
@@ -43,6 +44,7 @@ type ShopDetail = {
   ratingCount: number;
   commissionPct: number;
   commissionEnabled: boolean;
+  defaultBusyDurationMin: number;
   createdAt: string;
   legalName: string | null;
   suspendedAt: string | null;
@@ -489,6 +491,42 @@ export default function WebmasterShopDetailPage() {
             <p className="text-[10px] text-gray-400 mt-1.5">
               {shop.commissionEnabled ? "Active" : "Desactivee"} · Total percu: {centsToEuro(shop.stats.totalCommission)}
             </p>
+          </div>
+
+          {/* Mode occupé — durée par défaut */}
+          <div className="border-t border-gray-100 dark:border-white/5 pt-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Mode occupé</h3>
+            <p className="text-xs text-gray-400 mb-3">Durée par défaut quand le boucher active le mode occupé</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={5}
+                max={120}
+                value={shop.defaultBusyDurationMin ?? 15}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (!isNaN(val)) setShop((prev) => prev ? { ...prev, defaultBusyDurationMin: val } : prev);
+                }}
+                className="w-20 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white text-center"
+              />
+              <span className="text-xs text-gray-500">minutes</span>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/admin/shops/${shopId}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ defaultBusyDurationMin: shop.defaultBusyDurationMin ?? 15 }),
+                    });
+                    if (res.ok) toast.success("Durée mise à jour");
+                    else toast.error("Erreur");
+                  } catch { toast.error("Erreur de connexion"); }
+                }}
+                className="px-3 py-2 text-xs font-semibold bg-primary text-white rounded-lg hover:bg-[#b91c1c] transition-colors"
+              >
+                Enregistrer
+              </button>
+            </div>
           </div>
 
           {/* Suspend / Reactivate */}

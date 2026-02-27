@@ -85,6 +85,7 @@ export async function GET(
 const patchShopSchema = z.object({
   featured: z.boolean().optional(),
   visible: z.boolean().optional(),
+  defaultBusyDurationMin: z.number().int().min(5).max(120).optional(),
 });
 
 export async function PATCH(
@@ -99,7 +100,7 @@ export async function PATCH(
     const body = await req.json();
     const data = patchShopSchema.parse(body);
 
-    if (data.featured === undefined && data.visible === undefined) {
+    if (data.featured === undefined && data.visible === undefined && data.defaultBusyDurationMin === undefined) {
       return apiError("VALIDATION_ERROR", "Aucun champ a modifier");
     }
 
@@ -108,13 +109,15 @@ export async function PATCH(
       data: {
         ...(data.featured !== undefined && { featured: data.featured }),
         ...(data.visible !== undefined && { visible: data.visible }),
+        ...(data.defaultBusyDurationMin !== undefined && { defaultBusyDurationMin: data.defaultBusyDurationMin }),
       },
-      select: { id: true, featured: true, visible: true },
+      select: { id: true, featured: true, visible: true, defaultBusyDurationMin: true },
     });
 
-    const changes: Record<string, boolean> = {};
+    const changes: Record<string, boolean | number> = {};
     if (data.featured !== undefined) changes.featured = data.featured;
     if (data.visible !== undefined) changes.visible = data.visible;
+    if (data.defaultBusyDurationMin !== undefined) changes.defaultBusyDurationMin = data.defaultBusyDurationMin;
 
     await writeAuditLog({
       actorId: admin.userId,

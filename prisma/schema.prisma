@@ -261,7 +261,8 @@ model Shop {
   // ── Busy Mode (Uber Eats) ──
   busyMode       Boolean   @default(false) @map("busy_mode")
   busyExtraMin   Int       @default(15) @map("busy_extra_min")
-  busyModeEndsAt DateTime? @map("busy_mode_ends_at")
+  busyModeEndsAt         DateTime? @map("busy_mode_ends_at")
+  defaultBusyDurationMin Int       @default(15) @map("default_busy_duration_min")
 
   // ── Pause manuelle (Uber Eats "Pause new orders") ──
   paused      Boolean   @default(false)
