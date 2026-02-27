@@ -113,6 +113,13 @@ export default function KitchenModePage() {
   const [shopName, setShopName] = useState("");
   const [shopPrepTime, setShopPrepTime] = useState(15);
   const [shopStatus, setShopStatus] = useState("OPEN");
+  const [shopPauseEndsAt, setShopPauseEndsAt] = useState<string | null>(null);
+  const [shopBusyEndsAt, setShopBusyEndsAt] = useState<string | null>(null);
+  const [shopBusyExtraMin, setShopBusyExtraMin] = useState(0);
+  const [showPauseMenu, setShowPauseMenu] = useState(false);
+  const [showBusyMenu, setShowBusyMenu] = useState(false);
+  const [pauseRemaining, setPauseRemaining] = useState<number | null>(null);
+  const [busyRemaining, setBusyRemaining] = useState<number | null>(null);
 
   // Alert overlay
   const [alertOrder, setAlertOrder] = useState<KitchenOrder | null>(null);
@@ -210,6 +217,9 @@ export default function KitchenModePage() {
         setShopName(json.data?.name || "");
         setShopPrepTime(json.data?.prepTimeMin || 15);
         setShopStatus(json.data?.status || "OPEN");
+        setShopPauseEndsAt(json.data?.pauseEndsAt || null);
+        setShopBusyEndsAt(json.data?.busyModeEndsAt || null);
+        setShopBusyExtraMin(json.data?.busyExtraMin || 0);
       }
     } catch {
       // silent
@@ -219,6 +229,29 @@ export default function KitchenModePage() {
   useEffect(() => {
     fetchShopInfo();
   }, [fetchShopInfo]);
+
+  // ── Countdown for pause/busy timers ──
+  useEffect(() => {
+    const tick = () => {
+      if (shopPauseEndsAt) {
+        const diff = Math.max(0, Math.floor((new Date(shopPauseEndsAt).getTime() - Date.now()) / 60000));
+        setPauseRemaining(diff > 0 ? diff : null);
+        if (diff <= 0) fetchShopInfo();
+      } else {
+        setPauseRemaining(null);
+      }
+      if (shopBusyEndsAt) {
+        const diff = Math.max(0, Math.floor((new Date(shopBusyEndsAt).getTime() - Date.now()) / 60000));
+        setBusyRemaining(diff > 0 ? diff : null);
+        if (diff <= 0) fetchShopInfo();
+      } else {
+        setBusyRemaining(null);
+      }
+    };
+    tick();
+    const iv = setInterval(tick, 30000);
+    return () => clearInterval(iv);
+  }, [shopPauseEndsAt, shopBusyEndsAt, fetchShopInfo]);
 
   // ── Stop alert when no more pending orders ──
   useEffect(() => {
@@ -430,76 +463,17 @@ export default function KitchenModePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Shop status toggle (busy/pause/resume) */}
-            {shopStatus === "OPEN" && (
-              <>
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await fetch("/api/boucher/shop/status", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "busy", extraMin: 10, durationMin: 60 }),
-                      });
-                      if (res.ok) { fetchShopInfo(); toast.success("+10 min sur toutes les commandes (1h)"); }
-                    } catch { toast.error("Erreur"); }
-                  }}
-                  className="text-[10px] font-bold px-2 py-1.5 rounded-md min-h-[32px] bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
-                  title="Ajouter 10 min de prep (1h)"
-                >
-                  +10 min
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await fetch("/api/boucher/shop/status", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: 30 }),
-                      });
-                      if (res.ok) { fetchShopInfo(); toast.success("Boutique en pause (30 min)"); }
-                    } catch { toast.error("Erreur"); }
-                  }}
-                  className="text-[10px] font-bold px-2 py-1.5 rounded-md min-h-[32px] bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-                  title="Mettre en pause 30 min"
-                >
-                  Pause
-                </button>
-              </>
-            )}
-            {shopStatus === "BUSY" && (
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/boucher/shop/status", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "end_busy" }),
-                    });
-                    if (res.ok) { fetchShopInfo(); toast.success("Mode occupe desactive"); }
-                  } catch { toast.error("Erreur"); }
-                }}
-                className="text-[10px] font-bold px-2.5 py-1.5 rounded-md min-h-[32px] bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
-              >
-                Occupe — Arreter
-              </button>
-            )}
-            {(shopStatus === "PAUSED" || shopStatus === "CLOSED") && (
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/boucher/shop/status", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "resume" }),
-                    });
-                    if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
-                  } catch { toast.error("Erreur"); }
-                }}
-                className="text-[10px] font-bold px-2.5 py-1.5 rounded-md min-h-[32px] bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-              >
-                En pause — Reprendre
-              </button>
+            {/* Status indicator (actions in bar below) */}
+            {shopStatus !== "OPEN" && (
+              <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${
+                shopStatus === "PAUSED" || shopStatus === "CLOSED"
+                  ? "bg-red-500/20 text-red-400"
+                  : shopStatus === "BUSY"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-gray-500/20 text-gray-400"
+              }`}>
+                {shopStatus === "PAUSED" || shopStatus === "CLOSED" ? "En pause" : shopStatus === "BUSY" ? "Occupé" : shopStatus}
+              </span>
             )}
 
             {/* Time */}
@@ -557,6 +531,131 @@ export default function KitchenModePage() {
             </div>
           </div>
         </header>
+
+        {/* ── PAUSE BANNER ── */}
+        {(shopStatus === "PAUSED" || shopStatus === "CLOSED") && (
+          <div className="shrink-0 bg-red-500/15 border-b border-red-500/20 px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-red-400">
+              ⏸ Pause{pauseRemaining !== null ? ` — Reprise dans ${pauseRemaining} min` : ""}
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "resume" }),
+                  });
+                  if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
+                } catch { toast.error("Erreur"); }
+              }}
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+            >
+              ▶ Reprendre
+            </button>
+          </div>
+        )}
+
+        {/* ── BUSY BANNER ── */}
+        {shopStatus === "BUSY" && (
+          <div className="shrink-0 bg-amber-500/15 border-b border-amber-500/20 px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-amber-400">
+              ⏱ +{shopBusyExtraMin} min sur les commandes{busyRemaining !== null ? ` — Normal dans ${busyRemaining} min` : ""}
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "end_busy" }),
+                  });
+                  if (res.ok) { fetchShopInfo(); toast.success("Mode occupé désactivé"); }
+                } catch { toast.error("Erreur"); }
+              }}
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+            >
+              Arrêter
+            </button>
+          </div>
+        )}
+
+        {/* ── ACTION BAR: Pause + Extra prep (when OPEN) ── */}
+        {shopStatus === "OPEN" && (
+          <div className="shrink-0 bg-[#111] border-b border-white/5 px-4 py-2.5 flex items-center gap-3">
+            {/* Pause button with duration options */}
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowPauseMenu(!showPauseMenu); setShowBusyMenu(false); }}
+                className="flex items-center gap-2 px-5 py-3 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+              >
+                ⏸ Pause
+              </button>
+              {showPauseMenu && (
+                <>
+                  <div className="fixed inset-0 z-50" onClick={() => setShowPauseMenu(false)} />
+                  <div className="absolute top-full mt-1 left-0 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl z-[51] min-w-[150px]">
+                    {[15, 20, 30].map((min) => (
+                      <button
+                        key={min}
+                        onClick={async () => {
+                          setShowPauseMenu(false);
+                          try {
+                            const res = await fetch("/api/boucher/shop/status", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: min }),
+                            });
+                            if (res.ok) { fetchShopInfo(); toast.success(`Boutique en pause (${min} min)`); }
+                          } catch { toast.error("Erreur"); }
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-white/10 transition-colors font-medium min-h-[44px]"
+                      >
+                        {min} minutes
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Extra prep time button with options */}
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowBusyMenu(!showBusyMenu); setShowPauseMenu(false); }}
+                className="flex items-center gap-2 px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+              >
+                ⏱ +Temps prépa
+              </button>
+              {showBusyMenu && (
+                <>
+                  <div className="fixed inset-0 z-50" onClick={() => setShowBusyMenu(false)} />
+                  <div className="absolute top-full mt-1 left-0 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl z-[51] min-w-[170px]">
+                    {[10, 15, 20].map((min) => (
+                      <button
+                        key={min}
+                        onClick={async () => {
+                          setShowBusyMenu(false);
+                          try {
+                            const res = await fetch("/api/boucher/shop/status", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ action: "busy", extraMin: min, durationMin: 60 }),
+                            });
+                            if (res.ok) { fetchShopInfo(); toast.success(`+${min} min sur les commandes (1h)`); }
+                          } catch { toast.error("Erreur"); }
+                        }}
+                        className="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-white/10 transition-colors font-medium min-h-[44px]"
+                      >
+                        +{min} min (1h)
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Wake Lock not supported warning ── */}
         {!wakeLockSupported && (
