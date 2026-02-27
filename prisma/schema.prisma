@@ -627,6 +627,25 @@ model SupportMessage {
 }
 
 // ══════════════════════════════════════════
+// FAQ / KNOWLEDGE BASE
+// ══════════════════════════════════════════
+
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  category  String   // "boutique", "commandes", "facturation", "technique", "compte"
+  keywords  String[] @default([])
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([category, active])
+  @@map("faqs")
+}
+
+// ══════════════════════════════════════════
 // CART + ABANDONED
 // ══════════════════════════════════════════
 

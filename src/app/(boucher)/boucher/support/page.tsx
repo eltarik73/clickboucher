@@ -10,6 +10,9 @@ import {
   CheckCircle,
   AlertTriangle,
   Bot,
+  Search,
+  ChevronDown,
+  HelpCircle,
 } from "lucide-react";
 
 type Ticket = {
@@ -29,9 +32,29 @@ const STATUS_MAP: Record<string, { label: string; cls: string; icon: typeof Cloc
   CLOSED: { label: "Fermé", cls: "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400", icon: CheckCircle },
 };
 
+type FAQ = {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+};
+
+const FAQ_CATEGORIES = [
+  { key: "", label: "Tout" },
+  { key: "boutique", label: "Boutique" },
+  { key: "commandes", label: "Commandes" },
+  { key: "facturation", label: "Facturation" },
+  { key: "technique", label: "Technique" },
+  { key: "compte", label: "Compte" },
+];
+
 export default function BoucherSupportPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [faqSearch, setFaqSearch] = useState("");
+  const [faqCat, setFaqCat] = useState("");
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/support/tickets")
@@ -42,6 +65,19 @@ export default function BoucherSupportPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Fetch FAQ
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (faqSearch.trim()) params.set("q", faqSearch.trim());
+    if (faqCat) params.set("category", faqCat);
+    fetch(`/api/support/faq?${params}`)
+      .then(async (r) => {
+        const json = await r.json();
+        setFaqs(json.data || []);
+      })
+      .catch(() => {});
+  }, [faqSearch, faqCat]);
 
   if (loading) {
     return (
@@ -72,6 +108,74 @@ export default function BoucherSupportPage() {
         </Link>
       </div>
 
+      {/* ── FAQ Section ── */}
+      <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50 dark:border-white/5">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-[#f8f6f3] flex items-center gap-2">
+            <HelpCircle size={16} className="text-[#DC2626]" />
+            Questions fréquentes
+          </h2>
+          <div className="flex items-center gap-2 mt-3">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={faqSearch}
+                onChange={(e) => setFaqSearch(e.target.value)}
+                placeholder="Rechercher..."
+                className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg outline-none focus:border-[#DC2626] text-gray-900 dark:text-white placeholder:text-gray-400"
+              />
+            </div>
+            <div className="flex gap-1 overflow-x-auto">
+              {FAQ_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => setFaqCat(cat.key)}
+                  className={`px-2.5 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+                    faqCat === cat.key
+                      ? "bg-[#DC2626] text-white"
+                      : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        {faqs.length > 0 ? (
+          <div className="divide-y divide-gray-50 dark:divide-white/5">
+            {faqs.slice(0, 8).map((faq) => (
+              <button
+                key={faq.id}
+                onClick={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
+                className="w-full text-left px-5 py-3 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-[#f8f6f3]">
+                    {faq.question}
+                  </p>
+                  <ChevronDown
+                    size={14}
+                    className={`text-gray-400 shrink-0 transition-transform ${expandedFaq === faq.id ? "rotate-180" : ""}`}
+                  />
+                </div>
+                {expandedFaq === faq.id && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 leading-relaxed">
+                    {faq.answer}
+                  </p>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="px-5 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+            Aucun résultat pour cette recherche
+          </div>
+        )}
+      </div>
+
+      {/* ── Tickets Section ── */}
       {tickets.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
           <Headphones size={40} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />

@@ -70,6 +70,41 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Search FAQ for relevant answers
+    let faqContext = "";
+    try {
+      const words = userMessage.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2);
+      if (words.length > 0) {
+        const faqs = await prisma.fAQ.findMany({
+          where: { active: true },
+          select: { question: true, answer: true, keywords: true },
+        });
+
+        const matches = faqs
+          .map((faq) => {
+            let score = 0;
+            const lower = `${faq.question} ${faq.answer}`.toLowerCase();
+            for (const w of words) {
+              if (lower.includes(w)) score += 2;
+            }
+            for (const kw of faq.keywords) {
+              if (words.some((w: string) => kw.toLowerCase().includes(w))) score += 3;
+            }
+            return { ...faq, score };
+          })
+          .filter((f) => f.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
+
+        if (matches.length > 0) {
+          faqContext = "\n\nFAQ PERTINENTES (utilise ces reponses si elles correspondent) :\n" +
+            matches.map((m) => `Q: ${m.question}\nR: ${m.answer}`).join("\n\n");
+        }
+      }
+    } catch {
+      // Non-critical
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: "AI non configuree (ANTHROPIC_API_KEY manquante)" }, { status: 503 });
     }
@@ -79,7 +114,7 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 500,
-      system: `${SYSTEM_PROMPT}\n\nContexte : Boutique "${shopName}"`,
+      system: `${SYSTEM_PROMPT}\n\nContexte : Boutique "${shopName}"${faqContext}`,
       messages: cleanMessages,
     });
 

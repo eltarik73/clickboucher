@@ -730,6 +730,46 @@ async function main() {
   }
   console.log(`   📚 Reference catalog: ${REF_CATEGORIES.length} categories, ${REF_PRODUCTS.length} products`);
 
+  // ═══════════════════════════════════════════
+  // FAQ / KNOWLEDGE BASE
+  // ═══════════════════════════════════════════
+  console.log("\n❓ Seeding FAQ...");
+  await prisma.fAQ.deleteMany();
+
+  const FAQ_ENTRIES = [
+    // Boutique
+    { question: "Comment modifier mes horaires d'ouverture ?", answer: "Allez dans Paramètres > Horaires. Vous pouvez définir vos horaires pour chaque jour de la semaine. N'oubliez pas de sauvegarder.", category: "boutique", keywords: ["horaires", "ouverture", "fermeture", "heures"], order: 1 },
+    { question: "Comment activer le mode vacances ?", answer: "Allez dans Paramètres > Mode vacances. Activez-le et indiquez vos dates de départ et retour. Votre boutique sera automatiquement masquée pendant cette période.", category: "boutique", keywords: ["vacances", "fermer", "pause", "absence"], order: 2 },
+    { question: "Comment ajouter un nouveau produit ?", answer: "Allez dans Catalogue > Ajouter un produit. Renseignez le nom, le prix (en euros), la catégorie, le type de vente (au poids, à l'unité, à la tranche) et ajoutez une photo. Vous pouvez aussi importer depuis le catalogue de référence.", category: "boutique", keywords: ["produit", "ajouter", "creer", "nouveau"], order: 3 },
+    { question: "Comment mettre un produit en rupture de stock ?", answer: "Dans votre catalogue, cliquez sur le produit puis désactivez 'En stock'. Vous pouvez aussi utiliser le snooze temporaire pour masquer un produit pendant quelques heures.", category: "boutique", keywords: ["stock", "rupture", "indisponible", "snooze"], order: 4 },
+    { question: "Comment changer la photo de ma boutique ?", answer: "La photo de votre boutique est gérée par l'équipe Klik&Go. Contactez le support pour demander un changement de photo.", category: "boutique", keywords: ["photo", "image", "logo", "boutique"], order: 5 },
+
+    // Commandes
+    { question: "Comment accepter une commande ?", answer: "Quand une nouvelle commande arrive, vous recevez une notification. Allez dans Commandes et cliquez sur 'Accepter'. Indiquez le temps de préparation estimé. La commande sera automatiquement annulée si vous ne répondez pas dans les 10 minutes.", category: "commandes", keywords: ["accepter", "commande", "nouvelle", "notification"], order: 1 },
+    { question: "Comment refuser une commande ?", answer: "Dans l'écran Commandes, cliquez sur 'Refuser' et indiquez la raison (rupture de stock, trop de commandes, etc.). Le client sera notifié automatiquement.", category: "commandes", keywords: ["refuser", "annuler", "commande", "rejeter"], order: 2 },
+    { question: "Comment signaler qu'une commande est prête ?", answer: "Dans l'écran Commandes, cliquez sur 'Prête' pour la commande concernée. Le client recevra une notification push et pourra venir la récupérer avec son QR code.", category: "commandes", keywords: ["prete", "retrait", "qr", "recuperer"], order: 3 },
+    { question: "Comment ajuster le poids/prix d'une commande ?", answer: "Après avoir accepté la commande, vous pouvez ajuster le poids et le prix réels. Le client sera notifié de l'ajustement et pourra l'accepter ou le refuser.", category: "commandes", keywords: ["ajustement", "poids", "prix", "modifier"], order: 4 },
+    { question: "Que faire si le client ne vient pas chercher sa commande ?", answer: "Après 30 minutes, le client reçoit un rappel automatique. Vous pouvez aussi lui envoyer une note via l'écran de commande. Si la commande n'est pas récupérée, contactez le support.", category: "commandes", keywords: ["retard", "client", "recuperer", "attente"], order: 5 },
+
+    // Facturation
+    { question: "Comment fonctionne la facturation ?", answer: "Klik&Go prélève une commission sur chaque commande terminée. Vous pouvez consulter vos factures dans Facturation. Les détails incluent le montant total, la commission et le net à percevoir.", category: "facturation", keywords: ["facture", "commission", "paiement", "argent"], order: 1 },
+    { question: "Quels sont les tarifs des abonnements ?", answer: "Starter : gratuit (limité à 30 produits). Pro : fonctionnalités avancées (promos, stats, IA). Premium : tout inclus (fidélité, récurrent, support prioritaire). Consultez Plans & Avis pour les détails.", category: "facturation", keywords: ["tarif", "abonnement", "prix", "plan", "starter", "pro", "premium"], order: 2 },
+
+    // Technique
+    { question: "Je ne reçois pas les notifications de commande", answer: "Vérifiez dans Paramètres > Notifications que les notifications push sont activées. Assurez-vous aussi d'avoir autorisé les notifications dans votre navigateur. Si le problème persiste, contactez le support.", category: "technique", keywords: ["notification", "push", "alerte", "son"], order: 1 },
+    { question: "Le site est lent, que faire ?", answer: "Essayez de recharger la page. Si le problème persiste, vérifiez votre connexion internet. Le mode occupé (+10 min) peut aider à gérer le flux de commandes. Contactez le support si le problème continue.", category: "technique", keywords: ["lent", "bug", "erreur", "probleme", "crash"], order: 2 },
+    { question: "Comment scanner un QR code de retrait ?", answer: "Utilisez l'appareil photo de votre téléphone ou le scanner intégré dans l'écran de commande. Pointez vers le QR code du client pour valider le retrait automatiquement.", category: "technique", keywords: ["qr", "scanner", "code", "retrait", "camera"], order: 3 },
+
+    // Compte
+    { question: "Comment modifier mes informations de contact ?", answer: "Allez dans Paramètres > Mon profil pour modifier votre email, téléphone et autres informations. Les changements sont effectifs immédiatement.", category: "compte", keywords: ["profil", "email", "telephone", "contact", "modifier"], order: 1 },
+    { question: "Comment contacter le support Klik&Go ?", answer: "Vous pouvez créer un ticket de support depuis Support > Nouveau ticket. L'IA répondra immédiatement aux questions courantes. Pour les problèmes complexes, un membre de l'équipe prendra le relais.", category: "compte", keywords: ["support", "aide", "contact", "probleme"], order: 2 },
+  ];
+
+  for (const faq of FAQ_ENTRIES) {
+    await prisma.fAQ.create({ data: faq });
+  }
+  console.log(`   ❓ FAQ: ${FAQ_ENTRIES.length} entries`);
+
   console.log("═══════════════════════════════════════════\n");
 }
 
