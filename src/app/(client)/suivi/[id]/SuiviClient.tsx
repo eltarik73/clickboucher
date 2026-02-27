@@ -312,14 +312,10 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         </div>
 
         {/* ══════════════════════════════════════════════ */}
-        {/* ESTIMATED TIME */}
+        {/* ESTIMATED TIME + COUNTDOWN */}
         {/* ══════════════════════════════════════════════ */}
         {order.estimatedReady && !isCollected && (
-          <div className="text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              🕐 Retrait estimé : <span className="font-bold text-gray-900 dark:text-white">{fmtTime(order.estimatedReady)}</span>
-            </p>
-          </div>
+          <EstimatedCountdown estimatedReady={order.estimatedReady} />
         )}
 
         {/* Date */}
@@ -334,6 +330,44 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           })}
         </p>
       </main>
+    </div>
+  );
+}
+
+// ── Estimated Countdown ──
+
+function EstimatedCountdown({ estimatedReady }: { estimatedReady: string }) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const target = new Date(estimatedReady).getTime();
+  const diffMs = target - now;
+  const isLate = diffMs < 0;
+  const absDiff = Math.abs(diffMs);
+  const minutes = Math.floor(absDiff / 60_000);
+  const seconds = Math.floor((absDiff % 60_000) / 1000);
+
+  return (
+    <div className={`rounded-2xl border p-5 text-center ${
+      isLate
+        ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40"
+        : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/40"
+    }`}>
+      <p className={`text-xs font-medium mb-1 ${isLate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"}`}>
+        {isLate ? "Retrait estimé dépassé de" : "Prête dans environ"}
+      </p>
+      <p className={`text-3xl font-black tabular-nums tracking-tight ${
+        isLate ? "text-amber-800 dark:text-amber-300" : "text-blue-800 dark:text-blue-300"
+      }`}>
+        {minutes > 0 ? `${minutes} min ${seconds.toString().padStart(2, "0")}s` : `${seconds}s`}
+      </p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        Retrait estimé : {fmtTime(estimatedReady)}
+      </p>
     </div>
   );
 }

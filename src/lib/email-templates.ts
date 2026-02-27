@@ -473,6 +473,25 @@ export function priceAdjustmentAutoValidated(data: {
   `);
 }
 
+export function pickupSoon(data: {
+  orderNumber?: string;
+  shopName?: string;
+  estimatedMinutes?: number;
+  orderId?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const trackUrl = data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`;
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">🚶 Bientôt prête !</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      Votre commande <strong>#${esc(data.orderNumber || "")}</strong> chez <strong>${esc(data.shopName || "")}</strong>
+      sera prête dans environ <strong>${data.estimatedMinutes || 5} minutes</strong>.
+    </p>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280">Dirigez-vous vers la boutique pour récupérer votre commande dès qu'elle sera prête.</p>
+    ${button(trackUrl, "Suivre ma commande")}
+  `);
+}
+
 export function calendarAlert(data: {
   message?: string;
 }): string {

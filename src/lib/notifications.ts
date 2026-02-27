@@ -33,7 +33,8 @@ export type NotifEvent =
   | "PRICE_ADJUSTMENT_AUTO_APPROVED"
   | "PRICE_ADJUSTMENT_ACCEPTED"
   | "PRICE_ADJUSTMENT_REJECTED"
-  | "PRICE_ADJUSTMENT_AUTO_VALIDATED";
+  | "PRICE_ADJUSTMENT_AUTO_VALIDATED"
+  | "PICKUP_SOON";
 
 export type NotifData = {
   userId?: string;
@@ -235,6 +236,13 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         plainText: `L'ajustement de prix pour la commande ${data.orderNumber} a été validé automatiquement (délai expiré). Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
       };
 
+    case "PICKUP_SOON":
+      return {
+        subject: `🚶 Commande ${data.orderNumber} bientôt prête !`,
+        html: tpl.pickupSoon(data),
+        plainText: `Votre commande chez ${data.shopName} sera prête dans ~${data.estimatedMinutes || 5} min. Dirigez-vous vers la boutique !`,
+      };
+
     default:
       return {
         subject: `Notification Klik&Go`,
@@ -410,6 +418,14 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
         body: `L'ajustement de prix a été validé automatiquement`,
         url: orderUrl,
         tag: orderTag,
+      };
+    case "PICKUP_SOON":
+      return {
+        title: "🚶 Bientôt prête !",
+        body: `Dirigez-vous chez ${data.shopName} — prête dans ~${data.estimatedMinutes || 5} min`,
+        url: orderUrl,
+        tag: orderTag,
+        actions: [{ action: "track", title: "Suivre" }],
       };
     default:
       return {

@@ -583,6 +583,63 @@ export function startCronJobs() {
   });
 
   // ═══════════════════════════════════════════
+  // 12. Pickup soon — every 2 minutes
+  //     Notify customer ~5 min before estimatedReady
+  // ═══════════════════════════════════════════
+  cron.schedule("*/2 * * * *", async () => {
+    try {
+      const now = Date.now();
+      const fiveMinFromNow = new Date(now + 5 * 60 * 1000);
+      const tenMinFromNow = new Date(now + 10 * 60 * 1000);
+
+      // Find orders where estimatedReady is 5-10 min in the future
+      const approachingOrders = await prisma.order.findMany({
+        where: {
+          status: { in: ["ACCEPTED", "PREPARING"] },
+          estimatedReady: { gte: fiveMinFromNow, lte: tenMinFromNow },
+        },
+        select: {
+          id: true,
+          orderNumber: true,
+          userId: true,
+          estimatedReady: true,
+          notifSent: true,
+          shop: { select: { name: true } },
+        },
+      });
+
+      let sentCount = 0;
+      for (const order of approachingOrders) {
+        // Check if PICKUP_SOON was already sent
+        const existing = Array.isArray(order.notifSent) ? order.notifSent : [];
+        const alreadySent = existing.some(
+          (entry) => typeof entry === "object" && entry !== null && (entry as Record<string, unknown>).event === "PICKUP_SOON"
+        );
+        if (alreadySent) continue;
+
+        const minutesLeft = order.estimatedReady
+          ? Math.round((new Date(order.estimatedReady).getTime() - now) / 60_000)
+          : 5;
+
+        await sendNotification("PICKUP_SOON", {
+          userId: order.userId,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          shopName: order.shop.name,
+          estimatedMinutes: minutesLeft,
+        });
+        sentCount++;
+      }
+
+      if (sentCount > 0) {
+        console.log(`[CRON][pickup-soon] Sent ${sentCount} pickup-soon notifications`);
+      }
+    } catch (error) {
+      console.error("[CRON][pickup-soon] Error:", error);
+    }
+  });
+
+  // ═══════════════════════════════════════════
   // 13. Daily performance metrics refresh — 3 AM
   // ═══════════════════════════════════════════
   cron.schedule("0 3 * * *", async () => {
