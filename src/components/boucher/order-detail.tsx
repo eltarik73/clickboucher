@@ -20,6 +20,8 @@ interface OrderDetailItem {
   adjustedPriceCents?: number;
   needsValidation?: boolean;
   stockAction?: string;
+  sliceCount?: number;
+  sliceThickness?: string;
 }
 
 interface TimelineEvent {
@@ -98,6 +100,11 @@ export function OrderDetail({ order, onBack, onStatusChange, onStartWeighing, on
                   <Badge variant="outline" className="text-[10px]">
                     <Scale size={9} className="mr-0.5" />
                     {formatWeight(item.requestedWeight)}
+                  </Badge>
+                )}
+                {item.unit === "TRANCHE" && item.sliceCount && (
+                  <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">
+                    {item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""}
                   </Badge>
                 )}
               </div>

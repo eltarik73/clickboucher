@@ -173,7 +173,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [minSlices, setMinSlices] = useState(product?.sliceOptions?.minSlices ?? 2);
   const [maxSlices, setMaxSlices] = useState(product?.sliceOptions?.maxSlices ?? 20);
   const [thicknesses, setThicknesses] = useState<string[]>(
-    product?.sliceOptions?.thicknesses ?? ["chiffonnade", "fine", "normale", "epaisse"]
+    product?.sliceOptions?.thicknesses ?? ["chiffonnade", "fine", "moyenne"]
   );
 
   // Step 3 — Qualite
@@ -560,28 +560,46 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
                   Mode de vente *
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {([
-                    { value: "KG", label: "Au poids", emoji: "\u2696\uFE0F" },
-                    { value: "PIECE", label: "A l'unite", emoji: "\u{1F522}" },
-                    { value: "BARQUETTE", label: "Barquette", emoji: "\u{1F4E6}" },
-                    { value: "TRANCHE", label: "A la tranche", emoji: "\u{1F52A}" },
-                  ] as const).map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setUnit(opt.value)}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all min-h-[60px] ${
-                        unit === opt.value
-                          ? "bg-[#DC2626]/10 border-[#DC2626] text-[#DC2626]"
-                          : "bg-white dark:bg-[#0a0a0a] border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20"
-                      }`}
-                    >
-                      <span className="text-lg">{opt.emoji}</span>
-                      <span className="text-[11px] font-medium">{opt.label}</span>
-                    </button>
-                  ))}
+                    { value: "KG" as const, label: "Au poids", emoji: "\u{1F969}", desc: "Prix au kg" },
+                    { value: "PIECE" as const, label: "A l'unite", emoji: "\u{1F4E6}", desc: "Prix / piece" },
+                    { value: "TRANCHE" as const, label: "A la tranche", emoji: "\u{1F52A}", desc: "Prix au kg" },
+                  ]).map((opt) => {
+                    const isSelected = unit === opt.value || (opt.value === "PIECE" && unit === "BARQUETTE");
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setUnit(opt.value)}
+                        className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all min-h-[80px] ${
+                          isSelected
+                            ? "bg-[#DC2626]/10 border-[#DC2626] text-[#DC2626]"
+                            : "bg-white dark:bg-[#0a0a0a] border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20"
+                        }`}
+                      >
+                        <span className="text-2xl">{opt.emoji}</span>
+                        <span className="text-xs font-bold">{opt.label}</span>
+                        <span className="text-[10px] opacity-60">{opt.desc}</span>
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* Sub-option: Barquette under "À l'unité" */}
+                {(unit === "PIECE" || unit === "BARQUETTE") && (
+                  <div className="flex items-center gap-2 mt-2 pl-1">
+                    <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={unit === "BARQUETTE"}
+                        onChange={(e) => setUnit(e.target.checked ? "BARQUETTE" : "PIECE")}
+                        className="rounded border-gray-300"
+                      />
+                      Barquette (vendu en barquette)
+                    </label>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -782,22 +800,26 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Epaisseurs disponibles</p>
                     <div className="flex flex-wrap gap-2">
-                      {(["chiffonnade", "fine", "normale", "epaisse"] as const).map((t) => (
+                      {([
+                        { key: "chiffonnade", label: "Chiffonnade", weight: "15g/tr" },
+                        { key: "fine", label: "Fine", weight: "30g/tr" },
+                        { key: "moyenne", label: "Moyenne", weight: "50g/tr" },
+                      ] as const).map((t) => (
                         <button
-                          key={t}
+                          key={t.key}
                           type="button"
                           onClick={() =>
                             setThicknesses((prev) =>
-                              prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+                              prev.includes(t.key) ? prev.filter((x) => x !== t.key) : [...prev, t.key]
                             )
                           }
-                          className={`px-3 py-2 rounded-lg text-xs font-bold min-h-[36px] transition-all capitalize ${
-                            thicknesses.includes(t)
+                          className={`px-3 py-2 rounded-lg text-xs font-bold min-h-[36px] transition-all ${
+                            thicknesses.includes(t.key)
                               ? "bg-amber-600 text-white"
                               : "bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
                           }`}
                         >
-                          {t}
+                          {t.label} ({t.weight})
                         </button>
                       ))}
                     </div>

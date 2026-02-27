@@ -10,8 +10,9 @@ import { getFlag } from "@/lib/flags";
 
 const THICKNESS_CONFIG = {
   chiffonnade: { label: "Chiffonnade", weightG: 15, emoji: "🪶" },
-  fine: { label: "Fine", weightG: 25, emoji: "🔪" },
-  normale: { label: "Normale", weightG: 40, emoji: "🥩" },
+  fine: { label: "Fine", weightG: 30, emoji: "🔪" },
+  moyenne: { label: "Moyenne", weightG: 50, emoji: "🥩" },
+  normale: { label: "Normale", weightG: 50, emoji: "🥩" },
   epaisse: { label: "Épaisse", weightG: 60, emoji: "🍖" },
 } as const;
 
@@ -49,12 +50,12 @@ const PRESET_SLICES = [2, 4, 6, 8, 10, 12];
 export function TrancheSheet({ product, onConfirm, onClose }: Props) {
   const [visible, setVisible] = useState(false);
   const [sliceCount, setSliceCount] = useState(6);
-  const [thickness, setThickness] = useState<ThicknessKey>("normale");
+  const [thickness, setThickness] = useState<ThicknessKey>("fine");
 
   const opts = product?.sliceOptions;
   const availableThicknesses: ThicknessKey[] = opts?.thicknesses?.length
     ? opts.thicknesses
-    : ["fine", "normale", "epaisse"];
+    : ["chiffonnade", "fine", "moyenne"];
 
   // Reset state when product changes
   const [prevProductId, setPrevProductId] = useState<string | null>(null);

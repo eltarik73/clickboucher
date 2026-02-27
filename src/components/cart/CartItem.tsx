@@ -33,6 +33,9 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             <p className="text-xs text-gray-500">
               {item.quantity} x {price.toFixed(2)}€
               {item.unit === "KG" && item.weightGrams && ` (${item.weightGrams}g)`}
+              {item.unit === "TRANCHE" && item.sliceCount && (
+                <> — {item.sliceCount} tr.{item.thickness ? ` ${item.thickness}` : ""}</>
+              )}
             </p>
           </div>
           <p className="text-sm font-semibold text-gray-900 shrink-0">{totalPrice.toFixed(2)}€</p>

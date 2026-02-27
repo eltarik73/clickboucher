@@ -222,6 +222,14 @@ export default function KitchenOrderCard({
                   {item.quantity}
                 </span>{" "}
                 {formatUnit(item.product?.unit || item.unit)} — {item.product?.name || item.name}
+                {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") && item.sliceCount && (
+                  <span className="ml-1 text-amber-400 text-xs">
+                    ({item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""})
+                  </span>
+                )}
+                {(item.product?.unit === "KG" || item.unit === "KG") && item.weightGrams && (
+                  <span className="ml-1 text-blue-400 text-xs">({item.weightGrams}g)</span>
+                )}
               </span>
               <span className="text-gray-500 text-xs shrink-0 ml-2">
                 {formatPrice(item.totalCents || item.priceCents * item.quantity)}
