@@ -83,7 +83,7 @@ export default clerkMiddleware(async (auth, req) => {
     // If user already has a role in Clerk metadata, skip onboarding
     const role = await getUserRole(userId);
     if (role === "boucher") {
-      return NextResponse.redirect(new URL("/boucher/commandes", req.url));
+      return NextResponse.redirect(new URL("/boucher/dashboard", req.url));
     }
     if (role && ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL("/admin", req.url));

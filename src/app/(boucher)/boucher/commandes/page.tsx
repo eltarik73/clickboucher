@@ -118,7 +118,6 @@ export default function KitchenModePage() {
   const [shopBusyExtraMin, setShopBusyExtraMin] = useState(0);
   const [defaultBusyDuration, setDefaultBusyDuration] = useState(15);
   const [showPauseMenu, setShowPauseMenu] = useState(false);
-  const [showBusyMenu, setShowBusyMenu] = useState(false);
   const [pauseRemaining, setPauseRemaining] = useState<number | null>(null);
   const [busyCountdown, setBusyCountdown] = useState<string | null>(null);
 
@@ -570,21 +569,38 @@ export default function KitchenModePage() {
             <p className="text-sm font-bold text-amber-400">
               🔴 Mode occupé{busyCountdown ? ` — ${busyCountdown}` : ""}
             </p>
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch("/api/boucher/shop/status", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "end_busy" }),
-                  });
-                  if (res.ok) { fetchShopInfo(); toast.success("Mode occupé désactivé"); }
-                } catch { toast.error("Erreur"); }
-              }}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
-            >
-              Arrêter
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "busy", extraMin: 15, durationMin: defaultBusyDuration }),
+                    });
+                    if (res.ok) { fetchShopInfo(); toast.success(`+${defaultBusyDuration} min ajoutées`); }
+                  } catch { toast.error("Erreur"); }
+                }}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+              >
+                +{defaultBusyDuration} min
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "end_busy" }),
+                    });
+                    if (res.ok) { fetchShopInfo(); toast.success("Mode occupé désactivé"); }
+                  } catch { toast.error("Erreur"); }
+                }}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+              >
+                Arrêter
+              </button>
+            </div>
           </div>
         )}
 
@@ -594,7 +610,7 @@ export default function KitchenModePage() {
             {/* Pause button with duration options */}
             <div className="relative">
               <button
-                onClick={(e) => { e.stopPropagation(); setShowPauseMenu(!showPauseMenu); setShowBusyMenu(false); }}
+                onClick={(e) => { e.stopPropagation(); setShowPauseMenu(!showPauseMenu); }}
                 className="flex items-center gap-2 px-5 py-3 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
               >
                 ⏸ Pause
@@ -627,41 +643,22 @@ export default function KitchenModePage() {
               )}
             </div>
 
-            {/* Mode Occupé button with duration options */}
-            <div className="relative">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowBusyMenu(!showBusyMenu); setShowPauseMenu(false); }}
-                className="flex items-center gap-2 px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
-              >
-                🔴 Occupé
-              </button>
-              {showBusyMenu && (
-                <>
-                  <div className="fixed inset-0 z-50" onClick={() => setShowBusyMenu(false)} />
-                  <div className="absolute top-full mt-1 left-0 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl z-[51] min-w-[170px]">
-                    {[defaultBusyDuration, 30, 60].filter((v, i, a) => a.indexOf(v) === i).map((min) => (
-                      <button
-                        key={min}
-                        onClick={async () => {
-                          setShowBusyMenu(false);
-                          try {
-                            const res = await fetch("/api/boucher/shop/status", {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ action: "busy", extraMin: 15, durationMin: min }),
-                            });
-                            if (res.ok) { fetchShopInfo(); toast.success(`Mode occupé activé (${min} min)`); }
-                          } catch { toast.error("Erreur"); }
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-white/10 transition-colors font-medium min-h-[44px]"
-                      >
-                        {min} min{min === defaultBusyDuration ? " (défaut)" : ""}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Mode Occupé — single click adds defaultBusyDuration min */}
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "busy", extraMin: 15, durationMin: defaultBusyDuration }),
+                  });
+                  if (res.ok) { fetchShopInfo(); toast.success(`Mode occupé (${defaultBusyDuration} min)`); }
+                } catch { toast.error("Erreur"); }
+              }}
+              className="flex items-center gap-2 px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+            >
+              🔴 Occupé ({defaultBusyDuration} min)
+            </button>
           </div>
         )}
 

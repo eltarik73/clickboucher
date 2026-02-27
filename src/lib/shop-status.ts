@@ -136,7 +136,12 @@ export async function setBusyMode(
     durationMin: number;
   }
 ) {
-  const busyModeEndsAt = new Date(Date.now() + options.durationMin * 60 * 1000);
+  // If already busy, extend from current end time (cumulative)
+  const shop = await prisma.shop.findUnique({ where: { id: shopId }, select: { busyMode: true, busyModeEndsAt: true } });
+  const baseTime = shop?.busyMode && shop.busyModeEndsAt && shop.busyModeEndsAt.getTime() > Date.now()
+    ? shop.busyModeEndsAt.getTime()
+    : Date.now();
+  const busyModeEndsAt = new Date(baseTime + options.durationMin * 60 * 1000);
 
   await prisma.$transaction([
     prisma.shop.update({

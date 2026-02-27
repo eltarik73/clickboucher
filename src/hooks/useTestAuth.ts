@@ -60,7 +60,7 @@ export function useTestAuth() {
     // Redirect to the right section
     const redirects: Record<TestRole, string> = {
       CLIENT: "/decouvrir",
-      BOUCHER: "/boucher/commandes",
+      BOUCHER: "/boucher/dashboard",
       ADMIN: "/webmaster",
     };
     window.location.href = redirects[newRole];
