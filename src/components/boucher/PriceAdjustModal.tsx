@@ -38,6 +38,16 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     return map;
   });
 
+  // String-based weight inputs (prevents leading zeros)
+  const [weightInputs, setWeightInputs] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const item of order.items) {
+      const isKg = (item.product?.unit || item.unit) === "KG";
+      map[item.id] = isKg ? item.quantity.toFixed(2) : String(item.quantity);
+    }
+    return map;
+  });
+
   // Price tab: new unit prices per item (keyed by item.id, in cents)
   const [prices, setPrices] = useState<Record<string, number>>(() => {
     const map: Record<string, number> = {};
@@ -198,8 +208,16 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                         type="number"
                         step={isKg ? "0.01" : "1"}
                         min={0}
-                        value={quantities[item.id] ?? item.quantity}
-                        onChange={(e) => setQuantities({ ...quantities, [item.id]: parseFloat(e.target.value) || 0 })}
+                        value={weightInputs[item.id] ?? (isKg ? item.quantity.toFixed(2) : String(item.quantity))}
+                        onChange={(e) => {
+                          setWeightInputs({ ...weightInputs, [item.id]: e.target.value });
+                          setQuantities({ ...quantities, [item.id]: parseFloat(e.target.value) || 0 });
+                        }}
+                        onBlur={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          setWeightInputs({ ...weightInputs, [item.id]: isKg ? val.toFixed(2) : String(val) });
+                          setQuantities({ ...quantities, [item.id]: val });
+                        }}
                         className="w-20 bg-[#0a0a0a] border border-white/10 rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-500/40"
                       />
                       <span className="text-xs text-gray-500 w-6">{isKg ? "kg" : "pc"}</span>
