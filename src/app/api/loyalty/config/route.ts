@@ -1,6 +1,6 @@
 // src/app/api/loyalty/config/route.ts — Boucher configures loyalty rule
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -16,7 +16,7 @@ const configSchema = z.object({
 // ── GET /api/loyalty/config — Get loyalty config for boucher's shop ──
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getServerUserId();
     if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({
@@ -46,7 +46,7 @@ export async function GET() {
 // ── PATCH /api/loyalty/config — Update loyalty rule ──
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getServerUserId();
     if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shop = await prisma.shop.findFirst({

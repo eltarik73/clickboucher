@@ -1,5 +1,5 @@
 // GET /api/orders/[id]/stream — SSE for client-side order tracking
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
-  const { userId } = await auth();
+  const userId = await getServerUserId();
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
   }

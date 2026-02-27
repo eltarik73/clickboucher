@@ -1,5 +1,4 @@
 // GET /api/auth/me — Return current user's DB record (role, id)
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";

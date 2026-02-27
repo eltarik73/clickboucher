@@ -1,26 +1,22 @@
 // GET + POST /api/support/tickets — Boucher: list own tickets + create new ticket
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 
 export const dynamic = "force-dynamic";
 
 // GET — List boucher's tickets
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
-    // Look up by shop owner (boucher's tickets are per-shop)
-    const shops = await prisma.shop.findMany({
-      where: { ownerId: clerkId },
-      select: { id: true },
-    });
-    const shopIds = shops.map((s) => s.id);
+    const shopIds = [shopId];
 
     const tickets = await prisma.supportTicket.findMany({
       where: { shopId: { in: shopIds } },
@@ -47,28 +43,30 @@ const createTicketSchema = z.object({
 // POST — Create a new ticket with initial message + AI auto-response
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { userId, shopId: authShopId } = authResult;
 
     const body = await req.json();
     const data = createTicketSchema.parse(body);
 
-    // Verify user owns the shop
-    const shop = await prisma.shop.findFirst({
-      where: { id: data.shopId, ownerId: clerkId },
+    // Verify the shop matches
+    if (data.shopId !== authShopId) {
+      return apiError("FORBIDDEN", "Vous n'etes pas proprietaire de cette boutique");
+    }
+    const shop = await prisma.shop.findUnique({
+      where: { id: data.shopId },
       select: { id: true, name: true },
     });
-    if (!shop) return apiError("FORBIDDEN", "Vous n'etes pas proprietaire de cette boutique");
+    if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
 
-    // Get or create DB user (ensures valid foreign key)
-    const dbUser = await getOrCreateUser(clerkId);
-    if (!dbUser) return apiError("NOT_FOUND", "Utilisateur introuvable");
+    const dbUserId = userId;
 
     // Create ticket + initial message in transaction
     const ticket = await prisma.supportTicket.create({
       data: {
         shopId: data.shopId,
-        userId: dbUser.id,
+        userId: dbUserId,
         subject: data.subject,
         messages: {
           create: { role: "user", content: data.message },

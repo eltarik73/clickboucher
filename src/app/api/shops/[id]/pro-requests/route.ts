@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -11,13 +11,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId: clerkId, sessionClaims } = await auth();
+    const clerkId = await getServerUserId();
     if (!clerkId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
     const shopId = params.id;
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+    const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true, role: true } });
 
     // Verify user is shop owner or admin
     const shop = await prisma.shop.findUnique({ where: { id: shopId } });
@@ -25,7 +25,7 @@ export async function GET(
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
 
-    if (shop.ownerId !== clerkId && !isAdmin(role)) {
+    if (shop.ownerId !== clerkId && shop.ownerId !== dbUser?.id && !isAdmin(dbUser?.role)) {
       return apiError("FORBIDDEN", "Accès refusé");
     }
 

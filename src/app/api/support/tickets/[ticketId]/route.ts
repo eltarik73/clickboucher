@@ -1,7 +1,7 @@
 // GET /api/support/tickets/[ticketId] — Boucher: view ticket detail
 // POST /api/support/tickets/[ticketId] — Boucher: send a message
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -23,7 +23,7 @@ export async function GET(
   { params }: { params: { ticketId: string } }
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const { ticketId } = params;
@@ -57,7 +57,7 @@ export async function POST(
   { params }: { params: { ticketId: string } }
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const { ticketId } = params;

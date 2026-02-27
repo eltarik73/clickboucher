@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -46,9 +46,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = params;
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
-
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
@@ -63,7 +61,9 @@ export async function PATCH(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    if (!isAdmin(role) && product.shop.ownerId !== userId) {
+    // Check ownership: match by clerkId or DB userId
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+    if (!isAdmin(dbUser?.role) && product.shop.ownerId !== userId && product.shop.ownerId !== dbUser?.id) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 
@@ -144,8 +144,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+    const userId = await getServerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
@@ -163,7 +162,8 @@ export async function DELETE(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    if (!isAdmin(role) && product.shop.ownerId !== userId) {
+    const delUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+    if (!isAdmin(delUser?.role) && product.shop.ownerId !== userId && product.shop.ownerId !== delUser?.id) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 

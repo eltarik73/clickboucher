@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateServiceSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -15,7 +16,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = params;
-    const { userId } = await auth();
+    const userId = await getServerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");

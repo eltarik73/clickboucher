@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin, isBoucher } from "@/lib/roles";
@@ -10,14 +10,14 @@ export const dynamic = "force-dynamic";
 // Admin: sees all pending pro requests
 export async function GET() {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+    const userId = await getServerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    if (!isBoucher(role) && !isAdmin(role)) {
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+    if (!isBoucher(dbUser?.role) && !isAdmin(dbUser?.role)) {
       return apiError("FORBIDDEN", "Acces reserve aux bouchers et admins");
     }
 
@@ -26,9 +26,9 @@ export async function GET() {
     };
 
     // Boucher: only users who favorited their shop
-    if (role === "boucher") {
+    if (isBoucher(dbUser?.role)) {
       const shops = await prisma.shop.findMany({
-        where: { ownerId: userId },
+        where: { OR: [{ ownerId: userId }, { ownerId: dbUser?.id }] },
         select: { id: true },
       });
       const shopIds = shops.map((s) => s.id);

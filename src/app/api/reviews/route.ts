@@ -1,6 +1,6 @@
 // src/app/api/reviews/route.ts — Reviews API
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -18,7 +18,7 @@ const createReviewSchema = z.object({
 // ── POST /api/reviews — Create a review ─────────
 export async function POST(req: NextRequest) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getServerUserId();
     if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const user = await getOrCreateUser(clerkId);

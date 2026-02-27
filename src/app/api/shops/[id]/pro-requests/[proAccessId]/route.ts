@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { proAccessReviewSchema } from "@/lib/validators";
@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: { id: string; proAccessId: string } }
 ) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getServerUserId();
     if (!clerkId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }

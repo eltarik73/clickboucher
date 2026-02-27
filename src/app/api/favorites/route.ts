@@ -1,13 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { getServerUserId } from "@/lib/auth/server-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getServerUserId();
     if (!clerkId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }

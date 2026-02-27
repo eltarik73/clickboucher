@@ -1,6 +1,6 @@
 // POST /api/support/ai-respond — Claude AI auto-response for support tickets
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import Anthropic from "@anthropic-ai/sdk";
 import prisma from "@/lib/prisma";
 
@@ -23,7 +23,7 @@ Règles :
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) {
       return NextResponse.json({ error: "Authentification requise" }, { status: 401 });
     }

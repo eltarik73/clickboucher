@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 
@@ -10,7 +10,7 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 // Admin: exports all orders (optionally filtered by shopId)
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) {
       return NextResponse.json({ error: "Non autorise" }, { status: 401 });
     }

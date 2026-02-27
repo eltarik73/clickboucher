@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { put, del } from "@vercel/blob";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import crypto from "crypto";

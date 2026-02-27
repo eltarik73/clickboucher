@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
@@ -103,9 +104,16 @@ export async function GET(req: NextRequest) {
     });
 
     // Check if user is CLIENT_PRO to include proPriceCents
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
-    const isPro = role === "client_pro";
+    let isPro = false;
+    try {
+      const uid = await getServerUserId();
+      if (uid) {
+        const u = await prisma.user.findUnique({ where: { clerkId: uid }, select: { role: true } });
+        isPro = u?.role === "CLIENT_PRO";
+      }
+    } catch {
+      // Not logged in — show standard prices
+    }
 
     const data = products.map((p) => {
       if (isPro) return p;

@@ -1,16 +1,21 @@
 // GET /api/auth/check-admin — Lightweight admin role check for tap-5x
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { isAdmin } from "@/lib/roles";
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
+import { getServerUserId, isTestActivated, getTestRole } from "@/lib/auth/server-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return NextResponse.json({ admin: false }, { status: 401 });
+
+    // Test mode bypass
+    if (isTestActivated() && getTestRole() === "ADMIN") {
+      return NextResponse.json({ admin: true });
+    }
 
     // Check Clerk metadata first
     const user = await currentUser();

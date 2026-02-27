@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
 import { apiSuccess, apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     // ?owned=true — return shops owned by the current user (for boucher)
     if (params.owned === "true") {
-      const { userId: clerkId } = await auth();
+      const clerkId = await getServerUserId();
       if (!clerkId) {
         return apiError("UNAUTHORIZED", "Authentification requise");
       }
@@ -89,13 +89,12 @@ export async function GET(req: NextRequest) {
 // Admin only — create a new shop
 export async function POST(req: NextRequest) {
   try {
-    const { sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
-
-    if (!sessionClaims) {
+    const userId = await getServerUserId();
+    if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
-    if (!isAdmin(role)) {
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+    if (!isAdmin(dbUser?.role)) {
       return apiError("FORBIDDEN", "Réservé aux administrateurs");
     }
 

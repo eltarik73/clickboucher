@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+
 import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
 import { createOrderSchema, orderListQuerySchema } from "@/lib/validators";
@@ -14,6 +14,7 @@ import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { getNextDailyNumber, ensureCustomerNumber } from "@/lib/services/numbering.service";
 import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
 import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -49,15 +50,27 @@ export async function GET(req: NextRequest) {
       if (query.shopId) where.shopId = query.shopId;
     } else if (role === "BOUCHER") {
       // Boucher sees orders of their shop(s)
-      const shops = await prisma.shop.findMany({
-        where: { ownerId: userId },
-        select: { id: true },
-      });
-      const shopIds = shops.map((s) => s.id);
-      if (query.shopId && shopIds.includes(query.shopId)) {
-        where.shopId = query.shopId;
+      // Use getAuthenticatedBoucher() for reliable shop lookup (handles test mode + OR clause)
+      const boucherAuth = await getAuthenticatedBoucher();
+      if (boucherAuth.error) {
+        // Fallback: search by clerkId and DB userId
+        const shops = await prisma.shop.findMany({
+          where: { OR: [{ ownerId: userId }, { ownerId: user.id }] },
+          select: { id: true },
+        });
+        const shopIds = shops.map((s) => s.id);
+        if (query.shopId && shopIds.includes(query.shopId)) {
+          where.shopId = query.shopId;
+        } else {
+          where.shopId = { in: shopIds };
+        }
       } else {
-        where.shopId = { in: shopIds };
+        const shopId = boucherAuth.shopId;
+        if (query.shopId && query.shopId === shopId) {
+          where.shopId = query.shopId;
+        } else {
+          where.shopId = shopId;
+        }
       }
     } else {
       // Client sees own orders

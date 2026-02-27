@@ -1,16 +1,16 @@
 // src/app/api/loyalty/route.ts — Loyalty status API
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { getServerUserId } from "@/lib/auth/server-auth";
 
 export const dynamic = "force-dynamic";
 
 // ── GET /api/loyalty?shopId=X — Get loyalty status for user+shop ──
 export async function GET(req: NextRequest) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getServerUserId();
     if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const shopId = req.nextUrl.searchParams.get("shopId");

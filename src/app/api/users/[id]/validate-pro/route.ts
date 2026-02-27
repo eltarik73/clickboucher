@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin, isBoucher } from "@/lib/roles";
@@ -20,14 +21,14 @@ export async function POST(
 ) {
   try {
     const { id } = params;
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
+    const userId = await getServerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    if (!isBoucher(role) && !isAdmin(role)) {
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+    if (!isBoucher(dbUser?.role) && !isAdmin(dbUser?.role)) {
       return apiError("FORBIDDEN", "Acces reserve aux bouchers et admins");
     }
 

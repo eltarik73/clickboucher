@@ -1,7 +1,7 @@
 // POST /api/orders/reorder — Re-create an order from an existing one (1-click reorder)
 export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -9,7 +9,7 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
     const user = await getOrCreateUser(userId);

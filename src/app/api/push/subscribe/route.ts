@@ -1,6 +1,6 @@
 // POST /api/push/subscribe — Store push subscription for authenticated user
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
@@ -27,7 +27,7 @@ export async function GET() {
 // POST — store the push subscription
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 // DELETE — remove push subscription
 export async function DELETE() {
   try {
-    const { userId } = await auth();
+    const userId = await getServerUserId();
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }

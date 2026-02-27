@@ -1,26 +1,19 @@
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { isAdmin, isBoucher } from "@/lib/roles";
 import { NextRequest } from "next/server";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: NextRequest) {
   try {
-    const { userId: clerkId, sessionClaims } = await auth();
-    if (!clerkId) {
-      return apiError("UNAUTHORIZED", "Authentification requise");
-    }
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
-    const role = (sessionClaims?.metadata as Record<string, string> | undefined)?.role;
-    if (!isBoucher(role) && !isAdmin(role)) {
-      return apiError("FORBIDDEN", "Accès refusé");
-    }
-
-    // Get the shop owned by this user
+    // Get the shop
     const shop = await prisma.shop.findFirst({
-      where: { ownerId: clerkId },
+      where: { id: shopId },
     });
 
     if (!shop) {

@@ -2,7 +2,6 @@
 // POST /api/cart — Add item or sync full cart
 // DELETE /api/cart — Clear cart
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getServerUserId } from "@/lib/auth/server-auth";
