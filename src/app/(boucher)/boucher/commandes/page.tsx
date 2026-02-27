@@ -430,37 +430,77 @@ export default function KitchenModePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Shop status toggle (busy/pause) */}
-            <button
-              onClick={async () => {
-                try {
-                  const action = shopStatus === "OPEN" ? "busy" : shopStatus === "BUSY" ? "pause" : "resume";
-                  const body: Record<string, unknown> = { action };
-                  if (action === "busy") body.extraMinutes = 15;
-                  if (action === "pause") body.reason = "Pause manuelle";
-                  const res = await fetch("/api/boucher/shop/status", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(body),
-                  });
-                  if (res.ok) {
-                    fetchShopInfo();
-                    const labels: Record<string, string> = { busy: "Mode occupe active", pause: "Boutique en pause", resume: "Boutique en ligne" };
-                    toast.success(labels[action] || "Statut mis a jour");
-                  }
-                } catch { toast.error("Erreur de mise a jour du statut"); }
-              }}
-              className={`text-[10px] font-bold px-2.5 py-1.5 rounded-md min-h-[32px] transition-colors ${
-                shopStatus === "OPEN"
-                  ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                  : shopStatus === "BUSY"
-                  ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
-                  : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-              }`}
-              title={shopStatus === "OPEN" ? "Passer en occupe" : shopStatus === "BUSY" ? "Mettre en pause" : "Remettre en ligne"}
-            >
-              {shopStatus === "OPEN" ? "En ligne" : shopStatus === "BUSY" ? "Occupe" : shopStatus === "PAUSED" ? "En pause" : shopStatus}
-            </button>
+            {/* Shop status toggle (busy/pause/resume) */}
+            {shopStatus === "OPEN" && (
+              <>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/boucher/shop/status", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "busy", extraMin: 10, durationMin: 60 }),
+                      });
+                      if (res.ok) { fetchShopInfo(); toast.success("+10 min sur toutes les commandes (1h)"); }
+                    } catch { toast.error("Erreur"); }
+                  }}
+                  className="text-[10px] font-bold px-2 py-1.5 rounded-md min-h-[32px] bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
+                  title="Ajouter 10 min de prep (1h)"
+                >
+                  +10 min
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/boucher/shop/status", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: 30 }),
+                      });
+                      if (res.ok) { fetchShopInfo(); toast.success("Boutique en pause (30 min)"); }
+                    } catch { toast.error("Erreur"); }
+                  }}
+                  className="text-[10px] font-bold px-2 py-1.5 rounded-md min-h-[32px] bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                  title="Mettre en pause 30 min"
+                >
+                  Pause
+                </button>
+              </>
+            )}
+            {shopStatus === "BUSY" && (
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "end_busy" }),
+                    });
+                    if (res.ok) { fetchShopInfo(); toast.success("Mode occupe desactive"); }
+                  } catch { toast.error("Erreur"); }
+                }}
+                className="text-[10px] font-bold px-2.5 py-1.5 rounded-md min-h-[32px] bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
+              >
+                Occupe — Arreter
+              </button>
+            )}
+            {(shopStatus === "PAUSED" || shopStatus === "CLOSED") && (
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "resume" }),
+                    });
+                    if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
+                  } catch { toast.error("Erreur"); }
+                }}
+                className="text-[10px] font-bold px-2.5 py-1.5 rounded-md min-h-[32px] bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+              >
+                En pause — Reprendre
+              </button>
+            )}
 
             {/* Time */}
             <span className="text-xs text-gray-500 font-mono hidden sm:block">
