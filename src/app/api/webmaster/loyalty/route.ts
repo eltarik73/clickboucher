@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 // GET — Current loyalty program config + stats
 export async function GET() {
   try {
-    await requireAdmin();
+    const authResult = await requireAdmin();
+    if ("error" in authResult && authResult.error) return authResult.error;
 
     // Get or create default program
     let program = await prisma.loyaltyProgram.findFirst({
@@ -84,7 +85,8 @@ const updateSchema = z.object({
 
 export async function PATCH(req: NextRequest) {
   try {
-    await requireAdmin();
+    const authResult = await requireAdmin();
+    if ("error" in authResult && authResult.error) return authResult.error;
 
     const body = await req.json();
     const data = updateSchema.parse(body);

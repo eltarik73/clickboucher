@@ -19,6 +19,7 @@ import {
   Crown,
   Percent,
   Trophy,
+  Megaphone,
   Users,
   KeyRound,
   ChevronDown,
@@ -54,6 +55,7 @@ const NAV_SECTIONS: NavSection[] = [
       { key: "reference",  label: "Reference",     href: "/webmaster/catalogue/reference", icon: Package },
       { key: "promos",     label: "Promos",        href: "/webmaster/promos",       icon: Percent },
       { key: "fidelite",  label: "Fidélité",     href: "/webmaster/fidelite",     icon: Trophy },
+      { key: "marketing", label: "Marketing",    href: "/webmaster/marketing",    icon: Megaphone },
     ],
   },
   {
