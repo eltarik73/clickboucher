@@ -73,11 +73,17 @@ export default function MarketingPage() {
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [filter, setFilter] = useState<"all" | "platform" | "shop">("all");
 
+  // Loyalty stats
+  const [loyaltyStats, setLoyaltyStats] = useState<{
+    totalRewards: number; usedRewards: number; activeRewards: number; fideleCount: number; totalDiscountCents: number;
+  } | null>(null);
+
   const fetch_ = useCallback(async () => {
     try {
-      const [promosRes, campaignsRes] = await Promise.all([
+      const [promosRes, campaignsRes, loyaltyRes] = await Promise.all([
         fetch("/api/webmaster/promotions"),
         fetch("/api/webmaster/campaigns"),
+        fetch("/api/webmaster/loyalty"),
       ]);
       if (promosRes.ok) {
         const json = await promosRes.json();
@@ -86,6 +92,10 @@ export default function MarketingPage() {
       if (campaignsRes.ok) {
         const json = await campaignsRes.json();
         setCampaigns(json.data?.campaigns || []);
+      }
+      if (loyaltyRes.ok) {
+        const json = await loyaltyRes.json();
+        setLoyaltyStats(json.data?.stats || null);
       }
     } catch {
       // silent
@@ -185,23 +195,34 @@ export default function MarketingPage() {
         </button>
       </div>
 
-      {/* ═══════ PROMOTIONS TAB ═══════ */}
-      {tab === "promos" && <>
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/10 p-4">
-          <p className="text-xs text-gray-500">Actives</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeCount}</p>
+          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Promos actives</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{activeCount}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{platformCount} Klik&Go / {shopCount} bouchers</p>
         </div>
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/10 p-4">
-          <p className="text-xs text-gray-500">Klik&Go</p>
-          <p className="text-2xl font-bold text-primary">{platformCount}</p>
+          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Campagnes</p>
+          <p className="text-2xl font-bold text-purple-600 mt-1">{campaigns.filter((c) => c.status === "SENT").length}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{campaigns.reduce((s, c) => s + c.sentCount, 0)} emails envoyes</p>
         </div>
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/10 p-4">
-          <p className="text-xs text-gray-500">Bouchers</p>
-          <p className="text-2xl font-bold text-amber-500">{shopCount}</p>
+          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Fidelite</p>
+          <p className="text-2xl font-bold text-amber-500 mt-1">{loyaltyStats?.fideleCount || 0}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">{loyaltyStats?.activeRewards || 0} bons actifs</p>
+        </div>
+        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/10 p-4">
+          <p className="text-[11px] text-gray-500 uppercase tracking-wider">Utilisations</p>
+          <p className="text-2xl font-bold text-primary mt-1">{promos.reduce((s, p) => s + p.currentUses, 0)}</p>
+          <p className="text-[10px] text-gray-400 mt-0.5">
+            {loyaltyStats?.totalDiscountCents ? `${(loyaltyStats.totalDiscountCents / 100).toFixed(0)}€ fidelite` : "0€ fidelite"}
+          </p>
         </div>
       </div>
+
+      {/* ═══════ PROMOTIONS TAB ═══════ */}
+      {tab === "promos" && <>
 
       {/* Filters */}
       <div className="flex gap-1 bg-gray-100 dark:bg-white/5 rounded-xl p-1 mb-5 w-fit">
