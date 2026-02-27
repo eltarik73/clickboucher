@@ -755,7 +755,7 @@ export default function KitchenModePage() {
                 <div className="flex items-center gap-2">
                   <ScrollText size={16} className="text-gray-400" />
                   <h3 className="text-base font-bold text-white">Historique</h3>
-                  <span className="text-xs text-gray-500">3 derniers jours</span>
+                  <span className="text-xs text-gray-500">7 derniers jours</span>
                 </div>
                 <button
                   onClick={() => setShowHistory(false)}

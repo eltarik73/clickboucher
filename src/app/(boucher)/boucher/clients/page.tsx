@@ -267,9 +267,9 @@ export default function BoucherClientsPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">
-                          {req.user.firstName} {req.user.lastName}
+                          {req.user.firstName} {req.user.lastName?.charAt(0) || ""}.
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{req.user.email}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{req.user.email?.replace(/^(.{3}).*@/, "$1***@")}</p>
                       </div>
                       <Badge variant="outline" className="text-[10px] bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
                         En attente
@@ -430,7 +430,7 @@ export default function BoucherClientsPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
-                            {client.firstName} {client.lastName}
+                            {client.firstName} {client.lastName?.charAt(0) || ""}.
                           </p>
                           {client.proStatus === "APPROVED" ? (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 shrink-0">PRO</span>
@@ -440,7 +440,7 @@ export default function BoucherClientsPage() {
                             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 shrink-0">Particulier</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{client.email}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{client.email?.replace(/^(.{3}).*@/, "$1***@")}</p>
                       </div>
                       <div className="text-right shrink-0 ml-3">
                         <p className="text-sm font-bold text-gray-900 dark:text-white">

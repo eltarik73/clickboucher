@@ -462,7 +462,7 @@ export default function BoucherDashboardPage() {
               {recentOrders.map((order) => {
                 const st = STATUS_MAP[order.status] || STATUS_MAP.PENDING;
                 const clientName = order.user
-                  ? `${order.user.firstName} ${order.user.lastName}`
+                  ? `${order.user.firstName} ${order.user.lastName?.charAt(0) || ""}.`
                   : "Client";
 
                 return (

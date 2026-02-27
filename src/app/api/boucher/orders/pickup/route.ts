@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     });
 
     const clientName = order.user
-      ? `${order.user.firstName} ${order.user.lastName}`.trim()
+      ? `${order.user.firstName} ${order.user.lastName?.charAt(0) || ""}.`.trim()
       : "Client";
 
     const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);

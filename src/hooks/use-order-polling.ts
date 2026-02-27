@@ -146,8 +146,8 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     (o) => o.status === "ACCEPTED" || o.status === "PREPARING"
   );
 
-  // History: terminal statuses from the last 3 days
-  const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+  // History: terminal statuses from the last 7 days
+  const threeDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const TERMINAL_STATUSES = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED", "PARTIALLY_DENIED"];
   const historyOrders = orders
     .filter(
