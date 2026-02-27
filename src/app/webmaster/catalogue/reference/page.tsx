@@ -12,6 +12,10 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  Upload,
+  X,
+  ImageIcon,
+  Loader2,
 } from "lucide-react";
 
 interface GlobalCategory {
@@ -82,7 +86,7 @@ export default function ReferenceCatalogPage() {
   const [editingProduct, setEditingProduct] = useState<ReferenceProduct | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
-  // Form state
+  // Form state — suggestedPrice stored as EUROS string (e.g. "19.90")
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -95,6 +99,8 @@ export default function ReferenceCatalogPage() {
     isActive: true,
   });
   const [catForm, setCatForm] = useState({ name: "", emoji: "", order: "0" });
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -139,6 +145,7 @@ export default function ReferenceCatalogPage() {
       tags: "",
       isActive: true,
     });
+    setImagePreview(null);
     setShowModal(true);
   }
 
@@ -148,22 +155,73 @@ export default function ReferenceCatalogPage() {
       name: p.name,
       description: p.description || "",
       imageUrl: p.imageUrl || "",
-      suggestedPrice: p.suggestedPrice ? String(p.suggestedPrice) : "",
+      suggestedPrice: p.suggestedPrice ? (p.suggestedPrice / 100).toFixed(2) : "",
       unit: p.unit,
       categoryId: p.categoryId,
       origin: p.origin || "FRANCE",
       tags: p.tags.join(", "),
       isActive: p.isActive,
     });
+    setImagePreview(p.imageUrl || null);
     setShowModal(true);
   }
 
+  async function handleImageUpload(file: File) {
+    if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
+      alert("Format accepté : JPEG, PNG ou WebP");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image trop volumineuse (max 5 Mo)");
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/uploads/product-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const url = json.data?.url || json.url;
+        setForm((prev) => ({ ...prev, imageUrl: url }));
+        setImagePreview(url);
+      } else {
+        alert("Erreur lors de l'upload");
+      }
+    } catch {
+      alert("Erreur lors de l'upload");
+    }
+    setImageUploading(false);
+  }
+
+  function handleImageDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageUpload(file);
+  }
+
+  function removeImage() {
+    setForm((prev) => ({ ...prev, imageUrl: "" }));
+    setImagePreview(null);
+  }
+
   async function handleSave() {
+    // Convert euros to centimes: "19.90" → 1990
+    const priceCents = form.suggestedPrice
+      ? Math.round(parseFloat(form.suggestedPrice) * 100)
+      : undefined;
+
     const body: Record<string, unknown> = {
       name: form.name,
       description: form.description || undefined,
       imageUrl: form.imageUrl || undefined,
-      suggestedPrice: form.suggestedPrice ? parseInt(form.suggestedPrice) : undefined,
+      suggestedPrice: priceCents,
       unit: form.unit,
       categoryId: form.categoryId,
       origin: form.origin || undefined,
@@ -478,15 +536,20 @@ export default function ReferenceCatalogPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Prix suggéré (centimes)
+                    Prix suggéré (€)
                   </label>
-                  <input
-                    type="number"
-                    value={form.suggestedPrice}
-                    onChange={(e) => setForm({ ...form, suggestedPrice: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                    placeholder="1990"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.suggestedPrice}
+                      onChange={(e) => setForm({ ...form, suggestedPrice: e.target.value })}
+                      className="w-full px-3 py-2 pr-8 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
+                      placeholder="19.90"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">€</span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Origine</label>
@@ -515,15 +578,53 @@ export default function ReferenceCatalogPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Image URL (optionnel)
+                  Photo (optionnel)
                 </label>
-                <input
-                  type="text"
-                  value={form.imageUrl}
-                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                  placeholder="/img/products/boeuf-1.jpg"
-                />
+                {imagePreview || form.imageUrl ? (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#141414]">
+                    <img
+                      src={imagePreview || form.imageUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onDrop={handleImageDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    className="relative w-full h-40 rounded-xl border-2 border-dashed border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-[#141414] flex flex-col items-center justify-center cursor-pointer hover:border-[#DC2626]/50 hover:bg-[#DC2626]/5 transition-colors"
+                  >
+                    {imageUploading ? (
+                      <Loader2 size={24} className="text-[#DC2626] animate-spin" />
+                    ) : (
+                      <>
+                        <ImageIcon size={28} className="text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Glissez une image ou{" "}
+                          <span className="text-[#DC2626] font-medium">parcourir</span>
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP — max 5 Mo</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      disabled={imageUploading}
+                    />
+                  </div>
+                )}
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
