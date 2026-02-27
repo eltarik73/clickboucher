@@ -205,6 +205,12 @@ model User {
 
   deletedAt DateTime? @map("deleted_at")
 
+  // ── Fidélité plateforme ──
+  totalOrders    Int      @default(0) @map("total_orders")
+  loyaltyTier    Int      @default(0) @map("loyalty_tier")
+  loyaltyBadge   String?  @map("loyalty_badge")
+  pushPromoEnabled Boolean @default(true) @map("push_promo_enabled")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -213,6 +219,7 @@ model User {
   notifications   Notification[]
   reviews         Review[]
   loyaltyPoints   LoyaltyPoint[]
+  loyaltyRewards  LoyaltyReward[]
   carts           Cart[]
   recurringOrders RecurringOrder[]
   supportTickets  SupportTicket[]
@@ -377,6 +384,7 @@ model Shop {
   calendarEvents    CalendarEvent[]
   apiKeys           ApiKey[]
   alerts            ShopAlert[]
+  promotions        Promotion[]
 
   @@index([latitude, longitude])
   @@index([city])
@@ -882,6 +890,12 @@ model Order {
   vatAmountCents  Int @default(0) @map("vat_amount_cents")
   commissionCents Int @default(0) @map("commission_cents")
 
+  // ── Remise / Promo ──
+  discountCents   Int      @default(0) @map("discount_cents")
+  discountSource  String?  @map("discount_source") // SHOP | PLATFORM | LOYALTY
+  promotionId     String?  @map("promotion_id")
+  loyaltyRewardId String?  @map("loyalty_reward_id")
+
   // ── Remboursement ──
   refundedAt      DateTime? @map("refunded_at")
   refundAmountCents Int?    @map("refund_amount_cents")
@@ -1197,4 +1211,123 @@ model ApiKey {
   @@index([shopId])
   @@index([isActive])
   @@map("api_keys")
+}
+
+// ══════════════════════════════════════════
+// LOYALTY PROGRAM — Platform-level (webmaster)
+// ══════════════════════════════════════════
+
+model LoyaltyProgram {
+  id        String   @id @default(cuid())
+  // Paliers configurables : [{ minOrders, rewardType, rewardCents, label }, ...]
+  tiers     Json     @default("[]")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("loyalty_programs")
+}
+
+// ══════════════════════════════════════════
+// LOYALTY REWARD — Individual reward for a user
+// ══════════════════════════════════════════
+
+model LoyaltyReward {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+  tier          Int       // palier atteint (3, 7, 15)
+  rewardType    String    // FIXED | PERCENT
+  rewardCents   Int?      @map("reward_cents")
+  rewardPercent Float?    @map("reward_percent")
+  code          String    @unique
+  usedAt        DateTime? @map("used_at")
+  usedOnOrderId String?   @map("used_on_order_id")
+  expiresAt     DateTime  @map("expires_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, usedAt])
+  @@index([code])
+  @@map("loyalty_rewards")
+}
+
+// ══════════════════════════════════════════
+// PROMOTION — Shop or Platform promos
+// ══════════════════════════════════════════
+
+model Promotion {
+  id            String   @id @default(cuid())
+
+  // Qui crée et qui paie
+  source        String   // SHOP | PLATFORM
+  shopId        String?  @map("shop_id")
+  shop          Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdById   String   @map("created_by_id")
+
+  // Type de promo
+  type          String   // PERCENT | FIXED | FREE_FEES
+  valueCents    Int?     @map("value_cents")
+  valuePercent  Float?   @map("value_percent")
+  label         String
+  description   String?
+
+  // Ciblage
+  target          String   // ALL | LOYAL | INACTIVE | SPECIFIC_PRODUCTS
+  targetProductIds String[] @default([]) @map("target_product_ids")
+  minOrderCents   Int?     @map("min_order_cents")
+
+  // Limites
+  maxUses        Int?     @map("max_uses")
+  maxUsesPerUser Int      @default(1) @map("max_uses_per_user")
+  currentUses    Int      @default(0) @map("current_uses")
+
+  // Validité
+  code      String?   @unique
+  startsAt  DateTime  @map("starts_at")
+  endsAt    DateTime  @map("ends_at")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  // Flash / Dernière minute
+  isFlash            Boolean @default(false) @map("is_flash")
+  flashDurationHours Int?    @map("flash_duration_hours")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([shopId, isActive])
+  @@index([source, isActive])
+  @@index([code])
+  @@map("promotions")
+}
+
+// ══════════════════════════════════════════
+// CAMPAIGN — AI-powered email campaigns
+// ══════════════════════════════════════════
+
+model Campaign {
+  id          String   @id @default(cuid())
+  type        String   // NEWSLETTER_CLIENT | EMAIL_BUTCHER | SPECIAL_OFFER
+  subject     String
+  htmlContent String   @map("html_content") @db.Text
+  keywords    String[] @default([])
+  segment     String   // ALL | LOYAL | INACTIVE | BUTCHERS
+
+  // Stats
+  sentCount   Int @default(0) @map("sent_count")
+  openCount   Int @default(0) @map("open_count")
+  clickCount  Int @default(0) @map("click_count")
+  ordersCount Int @default(0) @map("orders_count")
+
+  // Planning
+  scheduledAt DateTime? @map("scheduled_at")
+  sentAt      DateTime? @map("sent_at")
+  status      String    @default("DRAFT") // DRAFT | SCHEDULED | SENT
+
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([segment])
+  @@map("campaigns")
 }
