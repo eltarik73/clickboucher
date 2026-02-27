@@ -14,6 +14,8 @@ import {
   Trash2,
   Building2,
   AlertTriangle,
+  Trophy,
+  Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -82,6 +84,16 @@ export default function ProfilPage() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Loyalty state
+  const [loyalty, setLoyalty] = useState<{
+    totalOrders: number;
+    tier: string;
+    badge: string | null;
+    nextTier: { minOrders: number; rewardCents: number; label: string } | null;
+    ordersToNext: number;
+    rewards: { id: string; code: string; rewardCents: number; expiresAt: string }[];
+  } | null>(null);
+
   // Delete account state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -103,6 +115,14 @@ export default function ProfilPage() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
+
+    // Fetch loyalty status
+    fetch("/api/loyalty/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) setLoyalty(data.data);
+      })
+      .catch(() => {});
   }, [isLoaded, isSignedIn]);
 
   const handleSavePrefs = async () => {
@@ -337,7 +357,82 @@ export default function ProfilPage() {
         </section>
 
         {/* ═══════════════════════════════════════ */}
-        {/* 2B. MES ACCÈS PRO                      */}
+        {/* 2B. MA FIDÉLITÉ                         */}
+        {/* ═══════════════════════════════════════ */}
+        {loyalty && (
+          <section className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy size={16} className="text-amber-500" />
+              <h2 className="text-sm font-bold text-gray-900 dark:text-white">Ma fidelite</h2>
+              {loyalty.badge && (
+                <span className="ml-auto text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  {loyalty.badge}
+                </span>
+              )}
+            </div>
+
+            {/* Progress */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-gray-500 dark:text-gray-400">
+                  {loyalty.totalOrders} commande{loyalty.totalOrders > 1 ? "s" : ""} recues
+                </span>
+                {loyalty.nextTier && (
+                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                    Plus que {loyalty.ordersToNext} pour {loyalty.nextTier.label.split("→")[1]?.trim() || "votre recompense"}
+                  </span>
+                )}
+              </div>
+              {loyalty.nextTier && (
+                <div className="w-full h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((loyalty.totalOrders % loyalty.nextTier.minOrders) / loyalty.nextTier.minOrders) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Available rewards */}
+            {loyalty.rewards.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-900 dark:text-white mb-2">
+                  Bons disponibles
+                </p>
+                <div className="space-y-2">
+                  {loyalty.rewards.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800"
+                    >
+                      <Gift size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                          -{(r.rewardCents / 100).toFixed(2).replace(".", ",")} EUR
+                        </p>
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                          Expire le {new Date(r.expiresAt).toLocaleDateString("fr-FR")}
+                        </p>
+                      </div>
+                      <code className="text-xs font-mono font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-lg select-all">
+                        {r.code}
+                      </code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loyalty.rewards.length === 0 && !loyalty.nextTier && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
+                Continuez vos achats pour debloquer des recompenses !
+              </p>
+            )}
+          </section>
+        )}
+
+        {/* ═══════════════════════════════════════ */}
+        {/* 2C. MES ACCÈS PRO                      */}
         {/* ═══════════════════════════════════════ */}
         {profile.proAccesses && profile.proAccesses.length > 0 && (
           <section className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)] p-5">

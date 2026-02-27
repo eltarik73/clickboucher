@@ -63,37 +63,42 @@ type ShopData = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// PROMOS (hardcoded for now)
+// PROMO TYPES
 // ─────────────────────────────────────────────────────────────
-const PROMOS = [
-  { id: "p1", title: "Merguez maison", discount: "20", price: 10.32, oldPrice: 12.90, shop: "El Fathe", shopSlug: "el-fathe" },
-  { id: "p2", title: "Entrecote premium", discount: "15", price: 32.30, oldPrice: 38.00, shop: "Elba Market", shopSlug: "elba-market" },
-  { id: "p3", title: "Brochettes BBQ", discount: "10", price: 19.80, oldPrice: 22.00, shop: "Boucherie de Joppet", shopSlug: "boucherie-joppet" },
-];
+type LivePromo = {
+  id: string;
+  label: string;
+  type: string;
+  valuePercent: number | null;
+  valueCents: number | null;
+  shopName: string;
+  shopSlug: string;
+};
 
-function PromoCard({ promo }: { promo: (typeof PROMOS)[0] }) {
+function PromoCard({ promo }: { promo: LivePromo }) {
+  const discountLabel = promo.type === "PERCENT" && promo.valuePercent
+    ? `-${promo.valuePercent}%`
+    : promo.type === "FIXED" && promo.valueCents
+    ? `-${(promo.valueCents / 100).toFixed(0)}\u20AC`
+    : "Offre";
   return (
     <Link
       href={`/boutique/${promo.shopSlug}`}
       className="flex items-center gap-4 p-4 bg-white dark:bg-white/[0.03] rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:shadow-sm transition-all cursor-pointer group"
     >
       <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
-        <span className="text-white text-sm font-bold">-{promo.discount}%</span>
+        <span className="text-white text-sm font-bold">{discountLabel}</span>
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-gray-900 dark:text-white truncate group-hover:text-[#DC2626] dark:group-hover:text-[#DC2626] transition-colors">
-          {promo.title}
+          {promo.label}
         </h4>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{promo.shop}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{promo.shopName}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="font-semibold text-gray-900 dark:text-white">
-          {promo.price.toFixed(2).replace(".", ",")} &euro;
-          <span className="text-xs font-normal text-gray-400">/kg</span>
-        </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 line-through">
-          {promo.oldPrice.toFixed(2).replace(".", ",")} &euro;
-        </p>
+        <span className="text-xs font-semibold text-[#DC2626] bg-[#DC2626]/10 px-2 py-1 rounded-full">
+          {promo.type === "FREE_FEES" ? "Frais offerts" : discountLabel}
+        </span>
       </div>
     </Link>
   );
@@ -106,6 +111,7 @@ export default async function DecouvrirPage() {
   let shops: ShopData[] = [];
   let dbError = false;
   let favoriteIds: Set<string> = new Set();
+  let livePromos: LivePromo[] = [];
 
   // 1. Auth (non-blocking — page works without login)
   let clerkId: string | null = null;
@@ -144,11 +150,31 @@ export default async function DecouvrirPage() {
         })
       : Promise.resolve(null);
 
-    const [shopsResult, favResult] = await Promise.all([shopsPromise, favPromise]);
+    const promosPromise = prisma.promotion.findMany({
+      where: {
+        isActive: true,
+        startsAt: { lte: new Date() },
+        endsAt: { gt: new Date() },
+      },
+      include: { shop: { select: { name: true, slug: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+
+    const [shopsResult, favResult, promosResult] = await Promise.all([shopsPromise, favPromise, promosPromise]);
     shops = shopsResult;
     if (favResult?.favoriteShops) {
       favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
     }
+    livePromos = promosResult.map((p) => ({
+      id: p.id,
+      label: p.label,
+      type: p.type,
+      valuePercent: p.valuePercent,
+      valueCents: p.valueCents,
+      shopName: p.shop?.name || "Klik&Go",
+      shopSlug: p.shop?.slug || "decouvrir",
+    }));
   } catch (error) {
     dbError = true;
     void error;
@@ -237,8 +263,8 @@ export default async function DecouvrirPage() {
         {/* Reorder carousel — only for logged-in users with past orders */}
         <ReorderCarousel />
 
-        {/* Promos — horizontal scroll */}
-        {PROMOS.length > 0 && (
+        {/* Promos — horizontal scroll (live from DB) */}
+        {livePromos.length > 0 && (
           <div className="mb-10">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-5 bg-[#DC2626] rounded-full" />
@@ -247,7 +273,7 @@ export default async function DecouvrirPage() {
               </h3>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
-              {PROMOS.map((promo) => (
+              {livePromos.map((promo) => (
                 <div key={promo.id} className="min-w-[280px] shrink-0">
                   <PromoCard promo={promo} />
                 </div>

@@ -286,7 +286,40 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // ── Min order check ──
+    // ── Apply promo / loyalty discount ──
+    let discountCents = 0;
+    let discountSource: string | null = null;
+    let promotionId: string | null = null;
+    let loyaltyRewardId: string | null = null;
+
+    if (data.promotionId && data.discountCents && data.discountSource) {
+      // Verify promotion is still valid
+      const promo = await prisma.promotion.findUnique({ where: { id: data.promotionId } });
+      if (promo && promo.isActive && new Date() >= promo.startsAt && new Date() <= promo.endsAt) {
+        discountCents = Math.min(data.discountCents, totalCents);
+        discountSource = data.discountSource;
+        promotionId = promo.id;
+        // Increment usage
+        await prisma.promotion.update({
+          where: { id: promo.id },
+          data: { currentUses: { increment: 1 } },
+        });
+      }
+    } else if (data.loyaltyRewardId && data.discountCents) {
+      const { markLoyaltyRewardUsed } = await import("@/lib/services/loyalty.service");
+      const reward = await prisma.loyaltyReward.findUnique({ where: { id: data.loyaltyRewardId } });
+      if (reward && !reward.usedAt && reward.userId === user.id) {
+        discountCents = Math.min(data.discountCents, totalCents);
+        discountSource = "LOYALTY";
+        loyaltyRewardId = reward.id;
+        // Mark reward as used (fire-and-forget is fine here since we already validated)
+        markLoyaltyRewardUsed(reward.id, "pending-order").catch(() => {});
+      }
+    }
+
+    const finalTotalCents = Math.max(0, totalCents - discountCents);
+
+    // ── Min order check (on original total before discount) ──
     if (shop.minOrderCents > 0 && totalCents < shop.minOrderCents) {
       return apiError(
         "VALIDATION_ERROR",
@@ -294,9 +327,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Commission calc ──
+    // ── Commission calc (on final total after discount) ──
     const commissionCents = shop.commissionEnabled
-      ? Math.round(totalCents * (shop.commissionPct / 100))
+      ? Math.round(finalTotalCents * (shop.commissionPct / 100))
       : 0;
 
     // ── Phase 3: Parallel — orderNumber + ticket numbering + prep time ──
@@ -347,8 +380,12 @@ export async function POST(req: NextRequest) {
         status: initialStatus,
         requestedTime: data.requestedTime,
         customerNote: data.customerNote,
-        totalCents,
+        totalCents: finalTotalCents,
         commissionCents,
+        discountCents: discountCents > 0 ? discountCents : undefined,
+        discountSource: discountSource || undefined,
+        promotionId: promotionId || undefined,
+        loyaltyRewardId: loyaltyRewardId || undefined,
         expiresAt: initialStatus === "PENDING" ? expiresAt : null,
         idempotencyKey: body.idempotencyKey || null,
         pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
@@ -384,7 +421,7 @@ export async function POST(req: NextRequest) {
           totalCents: oi.totalCents,
           weightGrams: oi.weightGrams,
         })),
-        totalCents,
+        totalCents: finalTotalCents,
         shopName: shop.name,
         shopAddress: shop.address,
         shopCity: shop.city,

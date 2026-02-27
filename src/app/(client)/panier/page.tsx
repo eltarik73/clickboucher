@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X, Tag, Loader2, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, type CartItem } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
@@ -149,6 +149,19 @@ export default function PanierPage() {
   // Clear cart dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  // Promo code
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<{
+    discountCents: number;
+    promotionId?: string;
+    loyaltyRewardId?: string;
+    source: string;
+    label: string;
+    type: string;
+  } | null>(null);
+
   // Shop payment config
   const [shopAcceptOnline, setShopAcceptOnline] = useState(false);
   const [shopAcceptOnPickup, setShopAcceptOnPickup] = useState(true);
@@ -191,6 +204,46 @@ export default function PanierPage() {
     if (timeMode === "slot") fetchSlots();
   }, [timeMode, fetchSlots]);
 
+  const applyPromoCode = async () => {
+    const code = promoCode.trim();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError("");
+    try {
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, orderTotalCents: totalCents }),
+      });
+      const json = await res.json();
+      if (json.data?.valid) {
+        setAppliedPromo({
+          discountCents: json.data.discountCents || 0,
+          promotionId: json.data.promotionId,
+          loyaltyRewardId: json.data.loyaltyRewardId,
+          source: json.data.source,
+          label: json.data.label,
+          type: json.data.type,
+        });
+        toast.success(`Code "${code}" applique !`);
+      } else {
+        setPromoError(json.data?.error || "Code invalide");
+      }
+    } catch {
+      setPromoError("Erreur reseau");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const removePromo = () => {
+    setAppliedPromo(null);
+    setPromoCode("");
+    setPromoError("");
+  };
+
+  const finalTotal = appliedPromo ? Math.max(0, totalCents - appliedPromo.discountCents) : totalCents;
+
   function navigateDate(dir: number) {
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + dir);
@@ -219,6 +272,16 @@ export default function PanierPage() {
       requestedTime,
       customerNote: customerNote.trim() || undefined,
       paymentMethod,
+      ...(appliedPromo?.promotionId && {
+        promotionId: appliedPromo.promotionId,
+        discountCents: appliedPromo.discountCents,
+        discountSource: appliedPromo.source,
+      }),
+      ...(appliedPromo?.loyaltyRewardId && {
+        loyaltyRewardId: appliedPromo.loyaltyRewardId,
+        discountCents: appliedPromo.discountCents,
+        discountSource: "LOYALTY",
+      }),
     };
 
     if (timeMode === "slot" && selectedSlot) {
@@ -326,14 +389,90 @@ export default function PanierPage() {
         {/* Suggestions */}
         <CartSuggestions />
 
+        {/* Promo code */}
+        {isSignedIn && (
+          <div className="mt-5 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag size={16} className="text-[#DC2626]" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                Code promo ou fidelite
+              </span>
+            </div>
+
+            {appliedPromo ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                <Gift size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                    {appliedPromo.label}
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    -{fmtPrice(appliedPromo.discountCents)}
+                  </p>
+                </div>
+                <button
+                  onClick={removePromo}
+                  className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(""); }}
+                    placeholder="Entrez un code..."
+                    maxLength={30}
+                    className="flex-1 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors uppercase"
+                  />
+                  <button
+                    onClick={applyPromoCode}
+                    disabled={promoLoading || !promoCode.trim()}
+                    className="px-4 py-2.5 rounded-xl bg-[#DC2626] text-white text-sm font-semibold hover:bg-[#b91c1c] disabled:opacity-50 transition-colors shrink-0 flex items-center gap-2"
+                  >
+                    {promoLoading ? <Loader2 size={14} className="animate-spin" /> : "Appliquer"}
+                  </button>
+                </div>
+                {promoError && (
+                  <p className="text-xs text-red-500 mt-2">{promoError}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Total */}
         <div className="mt-5 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Total estime</span>
-            <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-              {fmtPrice(totalCents)}
-            </span>
-          </div>
+          {appliedPromo ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Sous-total</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{fmtPrice(totalCents)}</span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-sm text-emerald-600 dark:text-emerald-400">Reduction</span>
+                <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                  -{fmtPrice(appliedPromo.discountCents)}
+                </span>
+              </div>
+              <div className="border-t border-[#ece8e3] dark:border-white/10 mt-2 pt-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">Total</span>
+                <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                  {fmtPrice(finalTotal)}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Total estime</span>
+              <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                {fmtPrice(totalCents)}
+              </span>
+            </div>
+          )}
           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
             Le poids exact sera ajuste au retrait. Paiement sur place.
           </p>
@@ -561,7 +700,7 @@ export default function PanierPage() {
                 size="lg"
               >
                 {paymentMethod === "ONLINE"
-                  ? `Payer ${fmtPrice(totalCents)} et commander`
+                  ? `Payer ${fmtPrice(finalTotal)} et commander`
                   : "Confirmer ma commande"}
               </Button>
             </div>
@@ -588,7 +727,7 @@ export default function PanierPage() {
         <OrderCountdown
           orderData={countdownOrderData}
           itemCount={itemCount}
-          totalCents={totalCents}
+          totalCents={finalTotal}
           shopName={state.shopName}
           pickupLabel={
             timeMode === "slot" && selectedSlot
