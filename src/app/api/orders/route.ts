@@ -42,6 +42,10 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = {};
 
     if (query.status) {
+      const validStatuses = ["PENDING", "ACCEPTED", "PREPARING", "READY", "PICKED_UP", "COMPLETED", "CANCELLED", "AUTO_CANCELLED", "DENIED"];
+      if (!validStatuses.includes(query.status)) {
+        return apiError("VALIDATION_ERROR", "Statut de commande invalide");
+      }
       where.status = query.status;
     }
 

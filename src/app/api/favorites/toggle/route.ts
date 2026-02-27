@@ -12,7 +12,13 @@ export async function POST(req: Request) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    const { shopId } = await req.json();
+    let shopId: string | undefined;
+    try {
+      const body = await req.json();
+      shopId = body.shopId;
+    } catch {
+      return apiError("VALIDATION_ERROR", "Corps de requête JSON invalide");
+    }
     if (!shopId) {
       return apiError("VALIDATION_ERROR", "shopId requis");
     }

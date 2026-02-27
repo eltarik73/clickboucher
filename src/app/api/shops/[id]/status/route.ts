@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateServiceSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -16,15 +15,15 @@ export async function PATCH(
 ) {
   try {
     const { id } = params;
-    const userId = await getServerUserId();
+    const authId = await getServerUserId();
 
-    if (!userId) {
+    if (!authId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+    const userId = await getBoucherOwnerUserId();
 
-    // Check admin role from publicMetadata
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    // Check role from DB
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: authId }, select: { id: true, role: true } });
 
     // Verify ownership or admin
     const shop = await prisma.shop.findUnique({
@@ -36,7 +35,7 @@ export async function PATCH(
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
 
-    if (shop.ownerId !== userId && !isAdmin(role)) {
+    if (shop.ownerId !== userId && shop.ownerId !== dbUser?.id && !isAdmin(dbUser?.role)) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 

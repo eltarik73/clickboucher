@@ -29,7 +29,12 @@ export async function getAuthenticatedBoucher(): Promise<
       if (!firstShop) {
         return { error: apiError("NOT_FOUND", "Aucune boutique trouvée (test mode)") };
       }
-      return { userId: firstShop.ownerId, shopId: firstShop.id };
+      // Resolve ownerId to DB user.id (ownerId may be clerkId or DB id)
+      const ownerUser = await prisma.user.findFirst({
+        where: { OR: [{ id: firstShop.ownerId }, { clerkId: firstShop.ownerId }] },
+        select: { id: true },
+      });
+      return { userId: ownerUser?.id || firstShop.ownerId, shopId: firstShop.id };
     }
     return { error: apiError("FORBIDDEN", "Accès réservé aux bouchers (test mode: rôle = " + testRole + ")") };
   }

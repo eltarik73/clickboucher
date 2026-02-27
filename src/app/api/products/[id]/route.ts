@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -46,10 +46,11 @@ export async function PATCH(
 ) {
   try {
     const { id } = params;
-    const userId = await getServerUserId();
-    if (!userId) {
+    const authId = await getServerUserId();
+    if (!authId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+    const userId = await getBoucherOwnerUserId();
 
     // Find product + shop owner
     const product = await prisma.product.findUnique({
@@ -62,7 +63,7 @@ export async function PATCH(
     }
 
     // Check ownership: match by clerkId or DB userId
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: authId }, select: { id: true, role: true } });
     if (!isAdmin(dbUser?.role) && product.shop.ownerId !== userId && product.shop.ownerId !== dbUser?.id) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
@@ -144,11 +145,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    const userId = await getServerUserId();
+    const authId = await getServerUserId();
 
-    if (!userId) {
+    if (!authId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+    const userId = await getBoucherOwnerUserId();
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -162,7 +164,7 @@ export async function DELETE(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    const delUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
+    const delUser = await prisma.user.findUnique({ where: { clerkId: authId }, select: { id: true, role: true } });
     if (!isAdmin(delUser?.role) && product.shop.ownerId !== userId && product.shop.ownerId !== delUser?.id) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
