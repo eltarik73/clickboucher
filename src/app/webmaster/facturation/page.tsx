@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Coins,
   TrendingUp,
@@ -120,7 +121,7 @@ export default function WebmasterFacturationPage() {
         setShopsNoCommission(d.data.shopsNoCommission);
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }

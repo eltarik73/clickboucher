@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 /* ─── types ─── */
 interface ConfigItem {
@@ -115,9 +116,11 @@ export default function WebmasterParametresPage() {
         for (const c of d.data) vals[c.key] = c.value;
         setEditValues(vals);
         if (vals.default_commission_pct) setGlobalPct(vals.default_commission_pct);
+      } else {
+        toast.error(d.error || "Impossible de charger la configuration");
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoadingConfigs(false);
     }
@@ -130,8 +133,9 @@ export default function WebmasterParametresPage() {
       const res = await fetch("/api/admin/calendar");
       const d = await res.json();
       if (d.success) setEvents(d.data);
+      else toast.error(d.error || "Impossible de charger les événements");
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoadingEvents(false);
     }
@@ -155,10 +159,14 @@ export default function WebmasterParametresPage() {
       });
       if (res.ok) {
         setSavedKey(key);
+        toast.success("Configuration sauvegardée");
         setTimeout(() => setSavedKey(null), 2000);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error || "Erreur lors de la sauvegarde");
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setSavingKey(null);
     }
@@ -184,10 +192,14 @@ export default function WebmasterParametresPage() {
           body: JSON.stringify({ key: "default_commission_pct", value: globalPct }),
         });
         setCommissionApplied(true);
+        toast.success("Commission appliquée à toutes les boutiques");
         setTimeout(() => setCommissionApplied(false), 3000);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error || "Erreur lors de l'application de la commission");
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setApplyingCommission(false);
     }
@@ -210,10 +222,14 @@ export default function WebmasterParametresPage() {
       if (res.ok) {
         setNewEvent({ name: "", description: "", date: "", type: "evenement", emoji: "📅", alertDaysBefore: 7 });
         setShowNewEvent(false);
+        toast.success("Événement créé");
         fetchEvents();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error || "Erreur lors de la création");
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setCreatingEvent(false);
     }
@@ -223,10 +239,15 @@ export default function WebmasterParametresPage() {
   const deleteEvent = async (id: string) => {
     setDeletingEvent(id);
     try {
-      await fetch(`/api/admin/calendar/${id}`, { method: "DELETE" });
-      setEvents((evts) => evts.filter((e) => e.id !== id));
+      const res = await fetch(`/api/admin/calendar/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setEvents((evts) => evts.filter((e) => e.id !== id));
+        toast.success("Événement supprimé");
+      } else {
+        toast.error("Erreur lors de la suppression");
+      }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setDeletingEvent(null);
     }

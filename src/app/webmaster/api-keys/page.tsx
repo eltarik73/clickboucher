@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Key,
   Plus,
@@ -112,7 +113,7 @@ export default function WebmasterApiKeysPage() {
         setAvailableScopes(d.data.availableScopes);
       }
     } catch {
-      /* silent */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
@@ -131,7 +132,7 @@ export default function WebmasterApiKeysPage() {
         );
       }
     } catch {
-      /* silent */
+      toast.error("Erreur de connexion au serveur");
     }
   }, []);
 
@@ -166,7 +167,7 @@ export default function WebmasterApiKeysPage() {
         fetchKeys();
       }
     } catch {
-      /* silent */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setCreating(false);
     }
@@ -194,6 +195,7 @@ export default function WebmasterApiKeysPage() {
       setKeys((ks) =>
         ks.map((key) => (key.id === k.id ? { ...key, isActive: prev } : key))
       );
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setTogglingId(null);
     }
@@ -210,7 +212,7 @@ export default function WebmasterApiKeysPage() {
         setKeys((ks) => ks.filter((k) => k.id !== id));
       }
     } catch {
-      /* silent */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);

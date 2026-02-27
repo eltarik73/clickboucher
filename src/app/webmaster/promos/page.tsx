@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import {
   Percent,
@@ -141,7 +142,7 @@ export default function WebmasterPromosPage() {
         setTotalPages(d.data.totalPages);
       }
     } catch {
-      /* silent */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }

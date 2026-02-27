@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Crown,
   Star,
@@ -138,7 +139,7 @@ export default function WebmasterPlansPage() {
         );
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoadingPlans(false);
     }
@@ -164,7 +165,7 @@ export default function WebmasterPlansPage() {
         setReviewStats(d.data.stats);
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoadingReviews(false);
     }
@@ -194,7 +195,7 @@ export default function WebmasterPlansPage() {
         fetchReviews();
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setDeletingId(null);
     }

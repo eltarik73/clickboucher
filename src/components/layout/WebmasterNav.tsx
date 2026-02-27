@@ -23,6 +23,8 @@ import {
   Users,
   KeyRound,
   ChevronDown,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
@@ -90,13 +92,14 @@ const NAV_SECTIONS: NavSection[] = [
 // Flat list for isActive lookups
 const ALL_ITEMS = NAV_SECTIONS.flatMap((s) => s.items);
 
-// Subset for mobile bottom nav (max 5 items)
-const MOBILE_NAV = ["dashboard", "boutiques", "commandes", "demandes", "parametres"];
+// Subset for mobile bottom nav (4 direct + "Plus" button)
+const MOBILE_NAV = ["dashboard", "boutiques", "commandes", "demandes"];
 
 export function WebmasterNav() {
   const pathname = usePathname();
   const [pendingCount, setPendingCount] = useState(0);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -210,6 +213,60 @@ export function WebmasterNav() {
         </div>
       </aside>
 
+      {/* ── Mobile "Plus" overlay ── */}
+      {showMoreMenu && (
+        <div className="md:hidden fixed inset-0 z-[60] flex flex-col">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMoreMenu(false)} />
+          {/* Panel */}
+          <div className="relative mt-auto bg-white dark:bg-[#141414] rounded-t-2xl max-h-[80vh] overflow-y-auto pb-safe-bottom animate-slide-up">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-[#141414] z-10">
+              <span className="text-sm font-bold text-gray-900 dark:text-white">Menu complet</span>
+              <button onClick={() => setShowMoreMenu(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-3 py-3">
+              {NAV_SECTIONS.map((section, idx) => (
+                <div key={idx} className={idx > 0 ? "mt-3" : ""}>
+                  {section.title && (
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-3 mb-1">
+                      {section.title}
+                    </p>
+                  )}
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const active = isActive(item);
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.key}
+                          href={item.href}
+                          onClick={() => setShowMoreMenu(false)}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                            active
+                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <Icon size={17} strokeWidth={active ? 2.4 : 1.8} />
+                          <span className="flex-1">{item.label}</span>
+                          {item.badge && pendingCount > 0 && (
+                            <span className="min-w-[20px] h-5 flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full px-1.5">
+                              {pendingCount > 99 ? "99+" : pendingCount}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Mobile bottom nav ── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-[#141414] border-t border-gray-100 dark:border-white/10 px-1 pb-safe-bottom z-50">
         <div className="flex items-center justify-around">
@@ -239,6 +296,17 @@ export function WebmasterNav() {
               </Link>
             );
           })}
+
+          {/* "Plus" button — opens full menu */}
+          <button
+            onClick={() => setShowMoreMenu(true)}
+            className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
+              showMoreMenu ? "text-primary" : "text-gray-400 dark:text-gray-500"
+            }`}
+          >
+            <MoreHorizontal size={20} strokeWidth={1.8} />
+            <span className="text-[10px] leading-none font-medium">Plus</span>
+          </button>
         </div>
       </nav>
     </>

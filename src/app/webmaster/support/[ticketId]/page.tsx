@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -97,7 +98,7 @@ export default function WebmasterTicketDetailPage() {
       const d = await res.json();
       if (d.success) setTicket(d.data);
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
@@ -128,7 +129,7 @@ export default function WebmasterTicketDetailPage() {
         fetchTicket();
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setSending(false);
     }
@@ -145,7 +146,7 @@ export default function WebmasterTicketDetailPage() {
       });
       if (res.ok) fetchTicket();
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setUpdatingStatus(null);
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Package,
   Search,
@@ -152,7 +153,7 @@ export default function WebmasterCataloguePage() {
           setShops(list);
         }
       })
-      .catch(() => {});
+      .catch(() => { toast.error("Erreur de connexion au serveur"); });
   }, []);
 
   /* ── fetch products ── */
@@ -178,7 +179,7 @@ export default function WebmasterCataloguePage() {
         setStats(d.data.stats);
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
@@ -233,7 +234,7 @@ export default function WebmasterCataloguePage() {
         const res = await fetch("/api/webmaster/catalog/categories");
         const d = await res.json();
         if (d.success) setGlobalCategories(d.data);
-      } catch { /* ignore */ }
+      } catch { toast.error("Erreur de connexion au serveur"); }
     }
   };
 

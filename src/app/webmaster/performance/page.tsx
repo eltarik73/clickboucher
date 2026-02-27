@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   BarChart3,
   AlertTriangle,
@@ -67,7 +68,7 @@ export default function PerformanceOverviewPage() {
         const json = await res.json();
         setShops(json.data || []);
       }
-    } catch { /* silent */ }
+    } catch { toast.error("Erreur de connexion au serveur"); }
     setLoading(false);
   }
 

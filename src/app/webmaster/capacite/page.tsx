@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Clock,
   Store,
@@ -134,7 +135,7 @@ export default function WebmasterCapacitePage() {
         setTotalOrdersToday(d.data.totalOrdersToday);
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }

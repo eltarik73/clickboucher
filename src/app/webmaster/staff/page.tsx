@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Users,
   Shield,
@@ -107,7 +108,7 @@ export default function WebmasterStaffPage() {
         setRecentAudit(d.data.recentAudit);
       }
     } catch {
-      /* silent */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
@@ -163,7 +164,7 @@ export default function WebmasterStaffPage() {
         setTotalAdmins((c) => c - 1);
       }
     } catch {
-      /* silent */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setRevoking(null);
       setConfirmRevoke(null);

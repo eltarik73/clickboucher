@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import {
   Headphones,
@@ -109,7 +110,7 @@ export default function WebmasterSupportPage() {
         setTotalPages(d.data.pagination.totalPages);
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }

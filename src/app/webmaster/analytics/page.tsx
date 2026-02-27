@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   BarChart3,
   TrendingUp,
@@ -160,7 +161,7 @@ export default function WebmasterAnalyticsPage() {
         setNotifStats(nData.data);
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }

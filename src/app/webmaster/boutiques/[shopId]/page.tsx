@@ -116,7 +116,7 @@ export default function WebmasterShopDetailPage() {
         }
       }
     } catch {
-      // silent
+      toast.error("Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
@@ -135,7 +135,8 @@ export default function WebmasterShopDetailPage() {
         body: JSON.stringify({ approved, plan: "STARTER", trialDays: 14 }),
       });
       if (res.ok) await fetchShop();
-    } catch { /* silent */ }
+      else toast.error("Erreur");
+    } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
 
@@ -151,8 +152,8 @@ export default function WebmasterShopDetailPage() {
         setShowSuspendConfirm(false);
         setSuspendReason("");
         await fetchShop();
-      }
-    } catch { /* silent */ }
+      } else toast.error("Erreur");
+    } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
 
@@ -165,7 +166,8 @@ export default function WebmasterShopDetailPage() {
         body: JSON.stringify({ suspended: false }),
       });
       if (res.ok) await fetchShop();
-    } catch { /* silent */ }
+      else toast.error("Erreur");
+    } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
 
@@ -181,8 +183,8 @@ export default function WebmasterShopDetailPage() {
       if (res.ok) {
         setShowPlanModal(false);
         await fetchShop();
-      }
-    } catch { /* silent */ }
+      } else toast.error("Erreur");
+    } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
 
@@ -197,8 +199,8 @@ export default function WebmasterShopDetailPage() {
       if (res.ok) {
         setCommissionDirty(false);
         await fetchShop();
-      }
-    } catch { /* silent */ }
+      } else toast.error("Erreur");
+    } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
 
@@ -215,6 +217,7 @@ export default function WebmasterShopDetailPage() {
       if (!res.ok) setShop((prev) => prev ? { ...prev, [field]: !newVal } : prev);
     } catch {
       setShop((prev) => prev ? { ...prev, [field]: !newVal } : prev);
+      toast.error("Erreur de connexion au serveur");
     }
   }
 
@@ -624,7 +627,7 @@ export default function WebmasterShopDetailPage() {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ imageUrl: url }),
                     });
-                  } catch { /* silent */ }
+                  } catch { toast.error("Erreur de connexion au serveur"); }
                 }}
                 className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
                   isActive

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Plus,
   Search,
@@ -110,7 +111,7 @@ export default function ReferenceCatalogPage() {
         const json = await res.json();
         setCategories(json.data || []);
       }
-    } catch { /* silent */ }
+    } catch { toast.error("Erreur de connexion au serveur"); }
   }, []);
 
   const fetchProducts = useCallback(async () => {
@@ -126,7 +127,7 @@ export default function ReferenceCatalogPage() {
         setProducts(json.data || []);
         setTotalPages(json.pagination?.totalPages || 1);
       }
-    } catch { /* silent */ }
+    } catch { toast.error("Erreur de connexion au serveur"); }
     setLoading(false);
   }, [page, search, categoryFilter]);
 
