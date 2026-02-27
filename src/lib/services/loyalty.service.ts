@@ -102,10 +102,12 @@ export async function processLoyaltyOnPickup(userId: string, orderId: string): P
       ? `${(matchedTier.rewardCents / 100).toFixed(0)}€`
       : `${matchedTier.rewardPercent}%`;
 
-    await sendNotification("LOYALTY_REWARD_EARNED" as never, {
+    await sendNotification("LOYALTY_REWARD_EARNED", {
       userId,
       orderId,
-      message: `🏆 Bravo ! ${matchedTier.minOrders} commandes → Votre bon de ${rewardLabel} : ${code}`,
+      rewardCode: code,
+      rewardAmount: rewardLabel,
+      message: `Bravo ! ${matchedTier.minOrders} commandes → Votre bon de ${rewardLabel} : ${code}`,
     });
   } catch (error) {
     // Non-critical — don't fail the pickup flow

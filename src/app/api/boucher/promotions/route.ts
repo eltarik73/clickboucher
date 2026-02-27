@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { sendNotification } from "@/lib/notifications";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -99,6 +100,29 @@ export async function POST(req: NextRequest) {
         isActive: true,
       },
     });
+
+    // Send flash offer notification to users who ordered from this shop
+    if (data.isFlash) {
+      const shop = await prisma.shop.findUnique({ where: { id: shopId }, select: { name: true } });
+      // Get recent customers of this shop (last 90 days)
+      const recentCustomers = await prisma.order.findMany({
+        where: { shopId, createdAt: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } },
+        select: { userId: true },
+        distinct: ["userId"],
+      });
+      // Notify first 50 (non-blocking)
+      Promise.all(
+        recentCustomers.slice(0, 50).map((c) =>
+          sendNotification("FLASH_OFFER", {
+            userId: c.userId,
+            shopId,
+            shopName: shop?.name || "",
+            promoLabel: data.label,
+            promoCode: data.code?.toUpperCase() || undefined,
+          }).catch(() => {})
+        )
+      ).catch(() => {});
+    }
 
     return apiSuccess(promotion);
   } catch (error) {

@@ -34,7 +34,10 @@ export type NotifEvent =
   | "PRICE_ADJUSTMENT_ACCEPTED"
   | "PRICE_ADJUSTMENT_REJECTED"
   | "PRICE_ADJUSTMENT_AUTO_VALIDATED"
-  | "PICKUP_SOON";
+  | "PICKUP_SOON"
+  | "LOYALTY_REWARD_EARNED"
+  | "PROMO_NEW"
+  | "FLASH_OFFER";
 
 export type NotifData = {
   userId?: string;
@@ -59,6 +62,11 @@ export type NotifData = {
   weeklyAvgOrder?: number;
   weeklyRating?: number;
   weeklyTopProduct?: string;
+  // Promo / Loyalty data
+  rewardCode?: string;
+  rewardAmount?: string;
+  promoLabel?: string;
+  promoCode?: string;
 };
 
 // ─────────────────────────────────────────────
@@ -241,6 +249,27 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         subject: `🚶 Commande ${data.orderNumber} bientôt prête !`,
         html: tpl.pickupSoon(data),
         plainText: `Votre commande chez ${data.shopName} sera prête dans ~${data.estimatedMinutes || 5} min. Dirigez-vous vers la boutique !`,
+      };
+
+    case "LOYALTY_REWARD_EARNED":
+      return {
+        subject: `🏆 Récompense fidélité débloquée !`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>Bravo, vous avez débloqué une récompense !</h2><p>${data.message || `Votre bon de ${data.rewardAmount || ""} : <strong>${data.rewardCode || ""}</strong>`}</p><p>Utilisez ce code lors de votre prochaine commande.</p><a href="https://klikandgo.app/profil" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon profil</a></div>`,
+        plainText: data.message || `Récompense fidélité : ${data.rewardCode} (${data.rewardAmount})`,
+      };
+
+    case "PROMO_NEW":
+      return {
+        subject: `🎁 Nouveau code promo Klik&Go !`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>${data.promoLabel || "Nouvelle promotion"}</h2>${data.promoCode ? `<p>Utilisez le code <strong>${data.promoCode}</strong> lors de votre prochaine commande.</p>` : "<p>Profitez de cette offre sur votre prochaine commande !</p>"}<a href="https://klikandgo.app/decouvrir" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Commander</a></div>`,
+        plainText: `${data.promoLabel}${data.promoCode ? ` — Code : ${data.promoCode}` : ""}`,
+      };
+
+    case "FLASH_OFFER":
+      return {
+        subject: `⚡ Offre flash chez ${data.shopName} !`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>⚡ Offre flash !</h2><p><strong>${data.promoLabel}</strong> chez ${data.shopName}.</p>${data.promoCode ? `<p>Code : <strong>${data.promoCode}</strong></p>` : ""}<p>Dépêchez-vous, l'offre est limitée dans le temps !</p><a href="https://klikandgo.app/decouvrir" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">En profiter</a></div>`,
+        plainText: `Offre flash chez ${data.shopName} : ${data.promoLabel}`,
       };
 
     default:
@@ -426,6 +455,27 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
         url: orderUrl,
         tag: orderTag,
         actions: [{ action: "track", title: "Suivre" }],
+      };
+    case "LOYALTY_REWARD_EARNED":
+      return {
+        title: "🏆 Récompense fidélité !",
+        body: data.message || `Bon de ${data.rewardAmount} débloqué : ${data.rewardCode}`,
+        url: `${baseUrl}/profil`,
+        tag: "loyalty-reward",
+      };
+    case "PROMO_NEW":
+      return {
+        title: "🎁 Nouveau code promo !",
+        body: `${data.promoLabel}${data.promoCode ? ` — Code : ${data.promoCode}` : ""}`,
+        url: `${baseUrl}/decouvrir`,
+        tag: "promo-new",
+      };
+    case "FLASH_OFFER":
+      return {
+        title: `⚡ Flash chez ${data.shopName} !`,
+        body: data.promoLabel || "Offre flash limitée",
+        url: `${baseUrl}/decouvrir`,
+        tag: "flash-offer",
       };
     default:
       return {
