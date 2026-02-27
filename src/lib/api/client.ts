@@ -55,7 +55,7 @@ export const ordersApi = {
   get: (id: string) => apiFetch(`/api/orders/${id}`),
   create: (data: {
     shopId: string;
-    items: Array<{ productId?: string; packId?: string; quantity: number; weightGrams?: number }>;
+    items: Array<{ productId?: string; packId?: string; quantity: number; weightGrams?: number; sliceCount?: number; sliceThickness?: string }>;
     paymentMethod: string;
     userId?: string;
     guestPhone?: string;

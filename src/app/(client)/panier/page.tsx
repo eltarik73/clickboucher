@@ -268,6 +268,9 @@ export default function PanierPage() {
         quantity: (i.unit === "KG" || i.unit === "TRANCHE") && i.weightGrams
           ? (i.weightGrams / 1000) * i.quantity
           : i.quantity,
+        ...(i.weightGrams && { weightGrams: i.weightGrams }),
+        ...(i.sliceCount && { sliceCount: i.sliceCount }),
+        ...(i.thickness && { sliceThickness: i.thickness }),
       })),
       requestedTime,
       customerNote: customerNote.trim() || undefined,
