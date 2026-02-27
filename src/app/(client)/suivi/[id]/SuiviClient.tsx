@@ -147,7 +147,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
             <>
               <div
                 className="text-[72px] leading-none font-black text-[#DC2626] tracking-tight"
-                style={{ fontFamily: "DM Sans, sans-serif" }}
+                style={{ fontFamily: "var(--font-body), sans-serif" }}
               >
                 {order.displayNumber}
               </div>

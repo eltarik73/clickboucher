@@ -1290,7 +1290,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   >
                     <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/10 overflow-hidden flex-shrink-0">
                       {ref.imageUrl ? (
-                        <img src={ref.imageUrl} alt="" className="w-full h-full object-cover" />
+                        <Image src={ref.imageUrl} alt="" width={40} height={40} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300">
                           <Package size={16} />

@@ -20,8 +20,12 @@ export const dynamic = "force-dynamic";
 
 // GET — return VAPID public key so client can subscribe
 export async function GET() {
-  const key = getVapidPublicKey();
-  return apiSuccess({ vapidPublicKey: key });
+  try {
+    const key = getVapidPublicKey();
+    return apiSuccess({ vapidPublicKey: key });
+  } catch (error) {
+    return handleApiError(error, "push/vapid-key");
+  }
 }
 
 // POST — store the push subscription

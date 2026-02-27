@@ -355,7 +355,7 @@ export default function CommandesPage() {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 filter === tab.key
                   ? "bg-[#DC2626] text-white"
                   : "bg-white dark:bg-[#141414] text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-white/10"

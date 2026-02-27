@@ -188,23 +188,23 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
           {!outOfStock && (
             showStepper ? (
               /* Inline quantity stepper [-] qty [+] */
-              <div className="flex items-center gap-0 rounded-lg overflow-hidden border border-[#DC2626]/20">
+              <div className="flex items-center gap-0 rounded-xl overflow-hidden border border-[#DC2626]/20">
                 <button
                   onClick={handleDecrement}
                   aria-label="Diminuer la quantité"
-                  className="w-[24px] h-[24px] flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
+                  className="w-[32px] h-[32px] flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
                 >
-                  <Minus size={12} strokeWidth={2.5} />
+                  <Minus size={14} strokeWidth={2.5} />
                 </button>
-                <span className="w-[22px] text-center text-[11px] font-bold text-gray-900 dark:text-white tabular-nums">
+                <span className="w-[24px] text-center text-[12px] font-bold text-gray-900 dark:text-white tabular-nums">
                   {cartQty}
                 </span>
                 <button
                   onClick={handleIncrement}
                   aria-label="Augmenter la quantité"
-                  className="w-[24px] h-[24px] flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
+                  className="w-[32px] h-[32px] flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
                 >
-                  <Plus size={12} strokeWidth={2.5} />
+                  <Plus size={14} strokeWidth={2.5} />
                 </button>
               </div>
             ) : (
@@ -212,14 +212,14 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               <button
                 onClick={handleAdd}
                 aria-label="Ajouter au panier"
-                className={`w-[26px] h-[26px] rounded-lg flex items-center justify-center
+                className={`w-[32px] h-[32px] rounded-xl flex items-center justify-center
                   transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
                   ${animating
                     ? "bg-emerald-500 text-white"
                     : "bg-[#DC2626] text-white"
                   }`}
               >
-                {animating ? <Check size={13} strokeWidth={3} /> : <Plus size={15} strokeWidth={2.5} />}
+                {animating ? <Check size={14} strokeWidth={3} /> : <Plus size={16} strokeWidth={2.5} />}
               </button>
             )
           )}

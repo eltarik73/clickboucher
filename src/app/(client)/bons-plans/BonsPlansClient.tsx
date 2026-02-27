@@ -84,7 +84,7 @@ export function BonsPlansClient({ promos, categories }: Props) {
           <div className="flex gap-1.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
             <button
               onClick={() => setActiveCat("Tout")}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
+              className={`shrink-0 px-4 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
                 activeCat === "Tout"
                   ? "bg-[#DC2626] text-white"
                   : "bg-white/80 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"
@@ -98,7 +98,7 @@ export function BonsPlansClient({ promos, categories }: Props) {
                 <button
                   key={cat.id}
                   onClick={() => setActiveCat(activeCat === cat.id ? "Tout" : cat.id)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
+                  className={`shrink-0 px-4 py-2 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all ${
                     activeCat === cat.id
                       ? "bg-[#DC2626] text-white"
                       : "bg-white/80 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400"

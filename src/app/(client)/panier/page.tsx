@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X, Tag, Loader2, Gift } from "lucide-react";
 import { toast } from "sonner";
@@ -61,14 +62,13 @@ function CartItemRow({
   return (
     <div className="flex items-center gap-3 bg-white dark:bg-[#141414] rounded-2xl p-3 border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
       {/* Image */}
-      <div className="w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0">
-        <img
+      <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0">
+        <Image
           src={item.imageUrl || "/img/products/boeuf-1.jpg"}
           alt={item.name}
           width={60}
           height={60}
-          loading="lazy"
-          className="w-full h-full object-cover"
+          className="object-cover w-full h-full"
         />
       </div>
 

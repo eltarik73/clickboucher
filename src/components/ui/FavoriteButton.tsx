@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Heart } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 interface FavoriteButtonProps {
   shopId: string;
@@ -42,6 +43,7 @@ export function FavoriteButton({
       if (res.ok && data.success) {
         setIsFavorite(data.data.isFavorite);
         onToggle?.(data.data.isFavorite);
+        toast.success(data.data.isFavorite ? "Ajouté aux favoris" : "Retiré des favoris", { duration: 1500 });
       } else {
         setIsFavorite((prev) => !prev);
       }

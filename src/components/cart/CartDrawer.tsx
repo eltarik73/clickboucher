@@ -20,7 +20,7 @@ export function CartDrawer({ open, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/50" role="presentation" aria-hidden="true" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col">
+      <div className="absolute right-0 top-0 h-full w-full sm:max-w-md bg-white dark:bg-[#141414] shadow-xl flex flex-col">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold">Panier ({count})</h2>
           <div className="flex items-center gap-2">

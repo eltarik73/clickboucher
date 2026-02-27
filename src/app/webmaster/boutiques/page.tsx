@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ArrowUpDown,
 } from "lucide-react";
+import Image from "next/image";
 
 // ── Types ──
 
@@ -55,7 +56,7 @@ function ShopAvatar({ src, name, size = 44 }: { src?: string | null; name: strin
       style={{ width: size, height: size }}
     >
       {src ? (
-        <img src={src} alt={name} className="w-full h-full object-cover" />
+        <Image src={src} alt={name} width={size} height={size} className="w-full h-full object-cover" />
       ) : (
         <span className="text-gray-400 font-bold" style={{ fontSize: size * 0.3 }}>
           {name?.slice(0, 2).toUpperCase()}

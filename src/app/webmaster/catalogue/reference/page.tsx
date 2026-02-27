@@ -17,6 +17,7 @@ import {
   ImageIcon,
   Loader2,
 } from "lucide-react";
+import Image from "next/image";
 
 interface GlobalCategory {
   id: string;
@@ -380,7 +381,7 @@ export default function ReferenceCatalogPage() {
               {/* Image */}
               <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-white/10 overflow-hidden flex-shrink-0">
                 {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                  <Image src={p.imageUrl} alt={p.name} width={56} height={56} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">
                     <Package size={20} />

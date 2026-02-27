@@ -23,6 +23,7 @@ import {
   Camera,
   Check,
 } from "lucide-react";
+import Image from "next/image";
 
 // ── Types ──
 
@@ -551,7 +552,7 @@ export default function WebmasterShopDetailPage() {
         <div className="flex items-center gap-4 mb-4">
           <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-white/5 overflow-hidden flex-shrink-0">
             {shop.imageUrl ? (
-              <img src={shop.imageUrl} alt={shop.name} className="w-full h-full object-cover" />
+              <Image src={shop.imageUrl} alt={shop.name} width={80} height={80} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-2xl text-gray-300">🏪</div>
             )}
@@ -593,7 +594,7 @@ export default function WebmasterShopDetailPage() {
                     : "border-transparent hover:border-gray-300 dark:hover:border-white/20"
                 }`}
               >
-                <img src={url} alt={`Photo ${n}`} className="w-full h-full object-cover" />
+                <Image src={url} alt={`Photo ${n}`} fill className="object-cover" />
                 {isActive && (
                   <div className="absolute inset-0 bg-[#DC2626]/20 flex items-center justify-center">
                     <Check size={18} className="text-white drop-shadow" />
