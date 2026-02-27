@@ -41,5 +41,33 @@ export function getTestRole(): TestRole | null {
   return (cookieStore.get("klikgo-test-role")?.value || "CLIENT") as TestRole;
 }
 
+/**
+ * Like getServerUserId(), but for boucher routes that check shop ownership.
+ * In test mode with BOUCHER role, returns the shop's actual ownerId
+ * so that `order.shop.ownerId !== userId` checks pass correctly.
+ * Outside test mode, behaves identically to getServerUserId().
+ */
+export async function getBoucherOwnerUserId(): Promise<string | null> {
+  if (isTestActivated()) {
+    const cookieStore = cookies();
+    const testRole = (cookieStore.get("klikgo-test-role")?.value || "CLIENT") as TestRole;
+    if (testRole === "BOUCHER" || testRole === "ADMIN") {
+      // Lazy import to avoid circular dependency
+      const { default: prisma } = await import("@/lib/prisma");
+      const firstShop = await prisma.shop.findFirst({
+        select: { ownerId: true },
+        orderBy: { createdAt: "asc" },
+      });
+      return firstShop?.ownerId || null;
+    }
+    // Non-boucher test role: return the regular test user ID
+    const user = TEST_USERS[testRole];
+    return user?.clerkId || null;
+  }
+
+  const { userId } = await auth();
+  return userId;
+}
+
 /** Expose isTestActivated for admin-auth and boucher-auth */
 export { isTestActivated };

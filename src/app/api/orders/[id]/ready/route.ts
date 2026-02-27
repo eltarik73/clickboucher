@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
@@ -14,7 +14,7 @@ export async function POST(
 ) {
   try {
     const { id } = params;
-    const userId = await getServerUserId();
+    const userId = await getBoucherOwnerUserId();
 
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
