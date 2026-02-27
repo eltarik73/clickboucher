@@ -20,6 +20,8 @@ import {
   PauseCircle,
   PlayCircle,
   AlertTriangle,
+  Camera,
+  Check,
 } from "lucide-react";
 
 // ── Types ──
@@ -561,6 +563,70 @@ export default function WebmasterShopDetailPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Shop photo management */}
+      <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+          <Camera size={15} className="text-gray-400" /> Photo de la boutique
+        </h3>
+
+        {/* Current photo */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-white/5 overflow-hidden flex-shrink-0">
+            {shop.imageUrl ? (
+              <img src={shop.imageUrl} alt={shop.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl text-gray-300">🏪</div>
+            )}
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {shop.imageUrl ? "Photo actuelle" : "Aucune photo"}
+            </p>
+            {shop.imageUrl && (
+              <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px]">{shop.imageUrl}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Default photos grid */}
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+          Choisir une photo par defaut
+        </p>
+        <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+          {[1, 3, 4, 5, 6, 8, 10].map((n) => {
+            const url = `/img/shops/shop-${n}.jpg`;
+            const isActive = shop.imageUrl === url;
+            return (
+              <button
+                key={n}
+                onClick={async () => {
+                  setShop((prev) => prev ? { ...prev, imageUrl: url } : prev);
+                  try {
+                    await fetch(`/api/shops/${shopId}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ imageUrl: url }),
+                    });
+                  } catch { /* silent */ }
+                }}
+                className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                  isActive
+                    ? "border-[#DC2626] ring-2 ring-[#DC2626]/20"
+                    : "border-transparent hover:border-gray-300 dark:hover:border-white/20"
+                }`}
+              >
+                <img src={url} alt={`Photo ${n}`} className="w-full h-full object-cover" />
+                {isActive && (
+                  <div className="absolute inset-0 bg-[#DC2626]/20 flex items-center justify-center">
+                    <Check size={18} className="text-white drop-shadow" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

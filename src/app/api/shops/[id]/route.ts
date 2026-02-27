@@ -82,6 +82,12 @@ export async function PATCH(
     const body = await req.json();
     const data = updateShopSchema.parse(body);
 
+    // Photos are webmaster-only: strip imageUrl/bannerUrl for non-admins
+    if (!isAdmin(role)) {
+      delete (data as Record<string, unknown>).imageUrl;
+      delete (data as Record<string, unknown>).bannerUrl;
+    }
+
     const updated = await prisma.shop.update({
       where: { id },
       data,
