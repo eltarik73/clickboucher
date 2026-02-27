@@ -67,7 +67,7 @@ export function BoucherNav() {
         <div className="px-3 pt-4 pb-2">
           <Link
             href="/boucher/commandes"
-            className="flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] text-white font-bold py-3 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-[#DC2626]/25"
+            className="flex items-center justify-center gap-2 bg-primary hover:bg-[#b91c1c] text-white font-bold py-3 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-[#DC2626]/25"
           >
             <ChefHat size={18} />
             Mode Cuisine
@@ -91,14 +91,14 @@ export function BoucherNav() {
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[#DC2626]/10 text-[#DC2626] dark:bg-[#DC2626]/20 dark:text-[#DC2626]"
+                    ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                     : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-[#f8f6f3]"
                 }`}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.4 : 1.8} />
                 <span className="flex-1">{item.label}</span>
                 {"badge" in item && item.badge && pendingCount > 0 && (
-                  <span className="min-w-[20px] h-5 flex items-center justify-center bg-[#DC2626] text-white text-[10px] font-bold rounded-full px-1.5">
+                  <span className="min-w-[20px] h-5 flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full px-1.5">
                     {pendingCount > 99 ? "99+" : pendingCount}
                   </span>
                 )}
@@ -120,13 +120,13 @@ export function BoucherNav() {
                 key={item.key}
                 href={item.href}
                 className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
-                  isActive ? "text-[#DC2626] dark:text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
+                  isActive ? "text-primary dark:text-primary" : "text-gray-400 dark:text-gray-500"
                 }`}
               >
                 <div className="relative">
                   <Icon size={20} strokeWidth={isActive ? 2.4 : 1.8} />
                   {"badge" in item && item.badge && pendingCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center bg-[#DC2626] text-white text-[9px] font-bold rounded-full px-1">
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center bg-primary text-white text-[9px] font-bold rounded-full px-1">
                       {pendingCount > 99 ? "99+" : pendingCount}
                     </span>
                   )}

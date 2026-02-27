@@ -76,31 +76,7 @@ function unitLabel(u: string) {
   return u === "KG" ? "kg" : u === "PIECE" ? "pce" : u === "TRANCHE" ? "tr." : "barq.";
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  ACCEPTED: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  PREPARING: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-  READY: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  PICKED_UP: "bg-emerald-500/10 text-emerald-600",
-  COMPLETED: "bg-green-500/10 text-green-600 dark:text-green-400",
-  DENIED: "bg-red-500/10 text-red-500",
-  CANCELLED: "bg-gray-500/10 text-gray-500",
-  PARTIALLY_DENIED: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-  AUTO_CANCELLED: "bg-gray-400/10 text-gray-400",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  ACCEPTED: "Acceptee",
-  PREPARING: "En preparation",
-  READY: "Prete",
-  PICKED_UP: "Retiree",
-  COMPLETED: "Terminee",
-  DENIED: "Refusee",
-  CANCELLED: "Annulee",
-  PARTIALLY_DENIED: "Part. refusee",
-  AUTO_CANCELLED: "Auto-annulee",
-};
+import { ORDER_STATUS_COLORS as STATUS_COLORS, ORDER_STATUS_LABELS as STATUS_LABELS } from "@/lib/design-tokens";
 
 const ALL_STATUSES = Object.keys(STATUS_LABELS);
 

@@ -79,32 +79,7 @@ function centsToEuro(c: number) {
   return (c / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
-const ORDER_STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  ACCEPTED: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  PREPARING: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-  READY: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  PICKED_UP: "bg-emerald-500/10 text-emerald-600",
-  COMPLETED: "bg-emerald-500/10 text-emerald-600",
-  DENIED: "bg-red-500/10 text-red-500",
-  CANCELLED: "bg-gray-500/10 text-gray-500",
-  AUTO_CANCELLED: "bg-gray-500/10 text-gray-400",
-};
-
-const PLAN_COLORS: Record<string, string> = {
-  STARTER: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
-  PRO: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300",
-  PREMIUM: "bg-[#DC2626]/10 text-[#DC2626]",
-};
-
-const SUB_STATUS_COLORS: Record<string, string> = {
-  TRIAL: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  ACTIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  SUSPENDED: "bg-red-500/10 text-red-500",
-  CANCELLED: "bg-gray-500/10 text-gray-500",
-  EXPIRED: "bg-gray-500/10 text-gray-400",
-  PENDING: "bg-amber-500/10 text-amber-600",
-};
+import { ORDER_STATUS_COLORS, PLAN_COLORS, SUB_STATUS_COLORS } from "@/lib/design-tokens";
 
 // ── Component ──
 

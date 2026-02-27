@@ -152,7 +152,7 @@ export function SearchBar() {
             <button
               type="button"
               onClick={() => inputRef.current?.focus()}
-              className="w-8 h-8 rounded-full bg-[#DC2626] flex items-center justify-center hover:bg-[#b91c1c] transition-colors"
+              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center hover:bg-[#b91c1c] transition-colors"
               aria-label="Recherche vocale"
             >
               <Mic size={14} className="text-white" />

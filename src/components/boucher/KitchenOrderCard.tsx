@@ -21,6 +21,7 @@ import {
 import PrepTimer from "./PrepTimer";
 import { printOrderTicket } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
+import { ORDER_STATUS_BORDER } from "@/lib/design-tokens";
 
 type Props = {
   order: KitchenOrder;
@@ -55,13 +56,7 @@ function timeSince(dateStr: string) {
   return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`;
 }
 
-// Status → top border color
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "border-t-amber-400",
-  ACCEPTED: "border-t-blue-400",
-  PREPARING: "border-t-indigo-400",
-  READY: "border-t-emerald-400",
-};
+// Status border colors imported from design-tokens
 
 export default function KitchenOrderCard({
   order,
@@ -131,7 +126,7 @@ export default function KitchenOrderCard({
   if (order.status === "PENDING" && !expanded) {
     return (
       <div
-        className={`bg-[#1a1a1a] rounded-xl border-t-4 ${STATUS_COLORS.PENDING} border border-white/5 overflow-hidden`}
+        className={`bg-[#1a1a1a] rounded-xl border-t-4 ${ORDER_STATUS_BORDER["PENDING"]} border border-white/5 overflow-hidden`}
       >
         <div className="px-4 py-3 flex items-center justify-between">
           <div className="min-w-0">
@@ -175,7 +170,7 @@ export default function KitchenOrderCard({
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-xl border-t-4 ${STATUS_COLORS[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
+      className={`bg-[#1a1a1a] rounded-xl border-t-4 ${ORDER_STATUS_BORDER[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
     >
       {/* ── Late badge ── */}
       {isLate && (

@@ -91,7 +91,7 @@ export default function PushPrompt() {
               <button
                 onClick={handleEnable}
                 disabled={loading}
-                className="px-4 py-2 bg-[#DC2626] text-white text-xs font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors disabled:opacity-50"
               >
                 {loading ? "Activation..." : "Activer"}
               </button>

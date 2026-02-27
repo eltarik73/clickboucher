@@ -78,7 +78,7 @@ export default function CartSuggestions() {
                   className="w-full h-full object-cover"
                 />
                 {product.promoPct && (
-                  <span className="absolute top-1.5 left-1.5 bg-[#DC2626] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                  <span className="absolute top-1.5 left-1.5 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
                     -{product.promoPct}%
                   </span>
                 )}
@@ -98,7 +98,7 @@ export default function CartSuggestions() {
                   </span>
                   <button
                     onClick={() => handleAdd(product)}
-                    className="w-7 h-7 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#b91c1c] transition-colors"
+                    className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white hover:bg-[#b91c1c] transition-colors"
                   >
                     <Plus size={14} />
                   </button>

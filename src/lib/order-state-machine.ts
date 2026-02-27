@@ -1,5 +1,6 @@
 // src/lib/order-state-machine.ts — Uber Eats style order state machine
 import type { OrderStatus } from "@prisma/client";
+import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/lib/design-tokens";
 
 // ── Valid transitions ────────────────────────────
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -29,32 +30,8 @@ const STEP_INDEX: Record<OrderStatus, number> = {
   AUTO_CANCELLED:   -1,
 };
 
-// ── Labels français ──────────────────────────────
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING:          "En attente",
-  ACCEPTED:         "Acceptée",
-  PREPARING:        "En préparation",
-  READY:            "Prête",
-  PICKED_UP:        "Récupérée",
-  COMPLETED:        "Terminée",
-  DENIED:           "Refusée",
-  CANCELLED:        "Annulée",
-  PARTIALLY_DENIED: "Modification en cours",
-  AUTO_CANCELLED:   "Expirée",
-};
-
-const STATUS_COLORS: Record<OrderStatus, string> = {
-  PENDING:          "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  ACCEPTED:         "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-  PREPARING:        "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
-  READY:            "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  PICKED_UP:        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  COMPLETED:        "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-  DENIED:           "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  CANCELLED:        "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  PARTIALLY_DENIED: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-  AUTO_CANCELLED:   "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-};
+// Labels and colors now imported from @/lib/design-tokens
+// Re-exported via getStatusLabel() and getStatusColor() below
 
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from]?.includes(to) ?? false;
@@ -69,11 +46,11 @@ export function getStepIndex(status: OrderStatus): number {
 }
 
 export function getStatusLabel(status: OrderStatus): string {
-  return STATUS_LABELS[status] ?? status;
+  return ORDER_STATUS_LABELS[status] ?? status;
 }
 
 export function getStatusColor(status: OrderStatus): string {
-  return STATUS_COLORS[status] ?? "bg-gray-100 text-gray-800";
+  return ORDER_STATUS_COLORS[status] ?? "bg-gray-500/10 text-gray-500";
 }
 
 export function isTerminal(status: OrderStatus): boolean {

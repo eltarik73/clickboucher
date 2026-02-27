@@ -88,17 +88,7 @@ const STATUS_LABELS: Record<string, string> = {
   PARTIALLY_DENIED: "Partielle",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "#eab308",
-  ACCEPTED: "#3b82f6",
-  PREPARING: "#6366f1",
-  READY: "#10b981",
-  PICKED_UP: "#22c55e",
-  COMPLETED: "#16a34a",
-  DENIED: "#ef4444",
-  CANCELLED: "#9ca3af",
-  PARTIALLY_DENIED: "#f97316",
-};
+import { ORDER_STATUS_HEX as STATUS_COLORS } from "@/lib/design-tokens";
 
 // ── Page Component ───────────────────────────────
 export default function AdminAnalyticsPage() {

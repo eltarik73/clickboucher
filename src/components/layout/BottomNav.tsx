@@ -36,7 +36,7 @@ export function BottomNav() {
           const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;
           const Icon = item.icon;
           return (
-            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"}`}>
+            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-primary" : "text-gray-400 dark:text-gray-500"}`}>
               <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
               <span className={`text-[10px] leading-none ${isActive ? "font-bold" : "font-medium"}`}>{item.label}</span>
             </Link>
@@ -47,12 +47,12 @@ export function BottomNav() {
         <div className="flex flex-col items-center -mt-7 pointer-events-none">
           <button
             onClick={() => window.dispatchEvent(new CustomEvent("klikgo:open-chat"))}
-            className="pointer-events-auto w-[52px] h-[52px] rounded-full bg-[#DC2626] flex items-center justify-center shadow-lg shadow-[#DC2626]/40 ring-4 ring-white dark:ring-black relative"
+            className="pointer-events-auto w-[52px] h-[52px] rounded-full bg-primary flex items-center justify-center shadow-lg shadow-[#DC2626]/40 ring-4 ring-white dark:ring-black relative"
           >
-            <span className="absolute inset-0 rounded-full bg-[#DC2626] animate-ping opacity-15" />
+            <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-15" />
             <MessageCircle size={24} className="text-white relative z-10" fill="white" strokeWidth={0} />
           </button>
-          <span className="pointer-events-none text-[10px] leading-none font-bold text-[#DC2626] mt-1">Mon Boucher</span>
+          <span className="pointer-events-none text-[10px] leading-none font-bold text-primary mt-1">Mon Boucher</span>
         </div>
 
         {/* Right items: Panier + Commandes */}
@@ -60,16 +60,16 @@ export function BottomNav() {
           const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;
           const Icon = item.icon;
           return (
-            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"}`}>
+            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-primary" : "text-gray-400 dark:text-gray-500"}`}>
               <div className="relative">
                 <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
                 {item.badge === "cart" && itemCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-[#DC2626] text-white text-[10px] font-bold rounded-full px-1">
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full px-1">
                     {itemCount > 99 ? "99+" : itemCount}
                   </span>
                 )}
                 {item.badge === "notif" && unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-[#DC2626] text-white text-[10px] font-bold rounded-full px-1">
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full px-1">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -98,7 +98,7 @@ export function BottomNav() {
               <Link
                 href="/sign-in"
                 className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-                  pathname === "/sign-in" ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"
+                  pathname === "/sign-in" ? "text-primary" : "text-gray-400 dark:text-gray-500"
                 }`}
               >
                 <LogIn size={22} strokeWidth={1.8} />
