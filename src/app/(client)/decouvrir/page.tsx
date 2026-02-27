@@ -72,7 +72,7 @@ type LivePromo = {
   valuePercent: number | null;
   valueCents: number | null;
   shopName: string;
-  shopSlug: string;
+  shopSlug: string | null;
 };
 
 function PromoCard({ promo }: { promo: LivePromo }) {
@@ -81,9 +81,13 @@ function PromoCard({ promo }: { promo: LivePromo }) {
     : promo.type === "FIXED" && promo.valueCents
     ? `-${(promo.valueCents / 100).toFixed(0)}\u20AC`
     : "Offre";
+
+  // Platform promos (no shop) → link to /bons-plans instead of a non-existent shop page
+  const href = promo.shopSlug ? `/boutique/${promo.shopSlug}` : "/bons-plans";
+
   return (
     <Link
-      href={`/boutique/${promo.shopSlug}`}
+      href={href}
       className="flex items-center gap-4 p-4 bg-white dark:bg-white/[0.03] rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:shadow-sm transition-all cursor-pointer group"
     >
       <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
@@ -173,7 +177,7 @@ export default async function DecouvrirPage() {
       valuePercent: p.valuePercent,
       valueCents: p.valueCents,
       shopName: p.shop?.name || "Klik&Go",
-      shopSlug: p.shop?.slug || "decouvrir",
+      shopSlug: p.shop?.slug || null,
     }));
   } catch (error) {
     dbError = true;
