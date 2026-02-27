@@ -35,7 +35,7 @@ export type KitchenOrder = {
     sliceThickness: string | null;
     itemNote: string | null;
     available: boolean;
-    product?: { name: string; unit: string; vatRate?: number | null };
+    product?: { name: string; unit: string; vatRate?: number | null; imageUrl?: string | null };
   }[];
   user: { firstName: string; lastName: string; customerNumber?: string | null; phone?: string | null } | null;
   shop?: { id: string; name: string; slug: string; imageUrl: string | null; priceAdjustmentThreshold?: number };

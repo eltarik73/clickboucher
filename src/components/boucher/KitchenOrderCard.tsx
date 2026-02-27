@@ -251,9 +251,16 @@ export default function KitchenOrderCard({
           {order.items.map((item) => (
             <div
               key={item.id}
-              className={`flex items-center justify-between text-base ${!item.available ? "opacity-40 line-through" : ""}`}
+              className={`flex items-center gap-2 text-base ${!item.available ? "opacity-40 line-through" : ""}`}
             >
-              <span className="text-gray-300">
+              {item.product?.imageUrl && (
+                <img
+                  src={item.product.imageUrl}
+                  alt=""
+                  className="w-8 h-8 rounded object-cover shrink-0"
+                />
+              )}
+              <span className="text-gray-300 flex-1 min-w-0">
                 <span className="text-white font-bold text-lg">
                   {item.quantity}
                 </span>{" "}
