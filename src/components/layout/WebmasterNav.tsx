@@ -18,6 +18,7 @@ import {
   BarChart3,
   Crown,
   Percent,
+  Trophy,
   Users,
   KeyRound,
   ChevronDown,
@@ -52,6 +53,7 @@ const NAV_SECTIONS: NavSection[] = [
       { key: "catalogue",  label: "Produits",      href: "/webmaster/catalogue",    icon: Package },
       { key: "reference",  label: "Reference",     href: "/webmaster/catalogue/reference", icon: Package },
       { key: "promos",     label: "Promos",        href: "/webmaster/promos",       icon: Percent },
+      { key: "fidelite",  label: "Fidélité",     href: "/webmaster/fidelite",     icon: Trophy },
     ],
   },
   {

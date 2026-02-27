@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { pickupOrderSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
+import { processLoyaltyOnPickup } from "@/lib/services/loyalty.service";
 
 // ── POST /api/orders/[id]/picked-up ────────────
 // QR code scan — verify and mark as picked up
@@ -71,6 +72,9 @@ export async function POST(
       orderNumber: order.orderNumber,
       shopName: order.shop.name,
     });
+
+    // Process loyalty (increment orders, check tier, create reward)
+    await processLoyaltyOnPickup(order.userId, id);
 
     return apiSuccess(updated);
   } catch (error) {

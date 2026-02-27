@@ -9,6 +9,7 @@ import { sendNotification } from "@/lib/notifications";
 import { canTransition } from "@/lib/order-state-machine";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { sendOrderReceiptEmail } from "@/lib/emails/order-receipt";
+import { processLoyaltyOnPickup } from "@/lib/services/loyalty.service";
 import type { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -398,6 +399,7 @@ export async function PATCH(
         });
 
         sendReceiptForOrder(order, now).catch(() => {});
+        processLoyaltyOnPickup(order.user.id, orderId).catch(() => {});
 
         return apiSuccess(updated);
       }
@@ -427,6 +429,7 @@ export async function PATCH(
         });
 
         sendReceiptForOrder(order, manualNow).catch(() => {});
+        processLoyaltyOnPickup(order.user.id, orderId).catch(() => {});
 
         return apiSuccess(manualUpdated);
       }
