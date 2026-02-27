@@ -35,9 +35,9 @@ const WELCOME_MSG =
 
 const SUGGESTIONS = [
   "\uD83E\uDD69 BBQ 6 personnes",
-  "\uD83D\uDC11 Couscous agneau",
+  "\uD83D\uDC11 Couscous pour 8",
   "\uD83D\uDD25 Promos du moment",
-  "\uD83C\uDFEA Boucherie la + rapide",
+  "\uD83D\uDCCB O\u00F9 en est ma commande ?",
 ];
 
 const MAX_RETRIES = 2;
