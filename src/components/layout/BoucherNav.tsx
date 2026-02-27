@@ -17,7 +17,7 @@ import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 const NAV_ITEMS = [
   { key: "dashboard",  label: "Dashboard",   href: "/boucher/dashboard",  icon: LayoutDashboard },
-  { key: "commandes",  label: "Commandes",   href: "/boucher/commandes",  icon: ClipboardList, badge: true },
+  { key: "commandes",  label: "Commandes",   href: "/boucher/historique",  icon: ClipboardList, badge: true },
   { key: "produits",   label: "Produits",    href: "/boucher/produits",   icon: Package },
   { key: "clients",    label: "Clients",     href: "/boucher/clients",    icon: Users },
   { key: "performance",label: "Performance", href: "/boucher/performance",icon: BarChart3 },
