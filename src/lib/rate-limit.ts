@@ -19,6 +19,10 @@ export const rateLimits = {
   orders: createLimiter(60, 5),
   /** AI Chat: 3 req / minute */
   aiChat: createLimiter(60, 3),
+  /** OTP send: 2 req / minute (prevent brute force) */
+  otpSend: createLimiter(60, 2),
+  /** OTP verify: 5 req / 5 minutes (prevent code guessing) */
+  otpVerify: createLimiter(300, 5),
 };
 
 /**

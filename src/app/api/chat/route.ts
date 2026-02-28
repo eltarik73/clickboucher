@@ -137,6 +137,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate message size to prevent DoS
+    const MAX_MESSAGE_LENGTH = 5000;
+    const MAX_MESSAGES = 50;
+    if (allMessages.length > MAX_MESSAGES) {
+      return NextResponse.json(
+        { error: "Trop de messages" },
+        { status: 400 }
+      );
+    }
+    for (const msg of allMessages) {
+      if (typeof msg.content !== "string" || typeof msg.role !== "string") {
+        return NextResponse.json(
+          { error: "Format de message invalide" },
+          { status: 400 }
+        );
+      }
+      if (msg.content.length > MAX_MESSAGE_LENGTH) {
+        return NextResponse.json(
+          { error: `Message trop long (max ${MAX_MESSAGE_LENGTH} caractères)` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Keep only last 6 messages to reduce tokens
     const messages = allMessages.slice(-6);
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content || "";

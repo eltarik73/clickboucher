@@ -23,6 +23,16 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
+
+function sanitizeHtml(html: string): string {
+  if (typeof window === "undefined") return "";
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["h1","h2","h3","h4","h5","h6","p","br","strong","em","b","i","u","a","ul","ol","li","img","span","div","table","thead","tbody","tr","td","th","blockquote","hr"],
+    ALLOWED_ATTR: ["href","src","alt","style","class","target","width","height"],
+    ALLOW_DATA_ATTR: false,
+  });
+}
 
 type Promotion = {
   id: string;
@@ -660,7 +670,7 @@ function CampaignRow({ campaign, onRefresh }: { campaign: Campaign; onRefresh: (
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">Aperçu : {campaign.subject}</h3>
               <button onClick={() => setShowPreview(false)} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
-            <div className="p-4" dangerouslySetInnerHTML={{ __html: campaign.htmlContent }} />
+            <div className="p-4" dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.htmlContent) }} />
           </div>
         </div>
       )}

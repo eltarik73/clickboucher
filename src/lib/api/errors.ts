@@ -18,6 +18,7 @@ export type ApiErrorCode =
   | "OFFER_EXPIRED"
   | "RESERVATION_EXPIRED"
   | "PAYMENT_FAILED"
+  | "RATE_LIMITED"
   | "INTERNAL_ERROR";
 
 interface ApiError {
@@ -39,6 +40,7 @@ const STATUS_MAP: Record<ApiErrorCode, number> = {
   OFFER_EXPIRED: 410,
   RESERVATION_EXPIRED: 410,
   PAYMENT_FAILED: 402,
+  RATE_LIMITED: 429,
   INTERNAL_ERROR: 500,
 };
 
