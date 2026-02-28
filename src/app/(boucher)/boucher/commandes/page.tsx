@@ -1,6 +1,6 @@
 // /boucher/commandes — MODE CUISINE (v6)
 // Full-screen tablet kitchen interface — dark theme, big buttons, audio alerts
-// 3 columns: Nouvelles (25%) | En cours (45%) | Pretes (30%)
+// 3 columns: Nouvelles (35%) | En cours (40%) | Pretes (25%)
 // Bottom bar: Historique + Programmees → Sheet drawers
 "use client";
 
@@ -709,11 +709,11 @@ export default function KitchenModePage() {
         </div>
 
         {/* ══════════════════════════════════════════ */}
-        {/* ── DESKTOP: 3-column layout (25%/45%/30%) ── */}
+        {/* ── DESKTOP: 3-column layout (35%/40%/25%) ── */}
         {/* ══════════════════════════════════════════ */}
         <div className="flex-1 overflow-hidden hidden md:flex pb-14">
-          {/* Column 1: Nouvelles (25%) */}
-          <div className="w-1/4 shrink-0">
+          {/* Column 1: Nouvelles (35%) */}
+          <div className="w-[35%] shrink-0">
             <KitchenColumn
               title="Nouvelles"
               count={pendingCount}
@@ -755,8 +755,8 @@ export default function KitchenModePage() {
           {/* Divider */}
           <div className="w-px bg-white/5 shrink-0" />
 
-          {/* Column 3: Pretes (30%) */}
-          <div className="w-[30%] shrink-0">
+          {/* Column 3: Pretes (25%) */}
+          <div className="w-1/4 shrink-0">
             <KitchenColumn
               title="Pretes"
               count={readyCount}
