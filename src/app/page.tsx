@@ -105,7 +105,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════ */}
       {/* COMMENT ÇA MARCHE — slightly lighter background       */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <section className="bg-white dark:bg-[#111111] py-20 sm:py-28 transition-colors duration-300">
+      <section className="bg-[#F0EDE8] dark:bg-[#111111] py-20 sm:py-28 transition-colors duration-300">
         <div className="max-w-5xl mx-auto px-6">
           <p className="text-center text-sm font-semibold text-[#DC2626] uppercase tracking-widest mb-3">
             Simple et rapide
@@ -119,7 +119,7 @@ export default function HomePage() {
               <div key={idx} className="flex flex-col items-center text-center group">
                 {/* Icon with numbered badge */}
                 <div className="relative mb-6">
-                  <div className="w-20 h-20 bg-red-50 dark:bg-[#DC2626]/10 rounded-2xl flex items-center justify-center group-hover:bg-red-100 dark:group-hover:bg-[#DC2626]/15 transition-colors duration-300">
+                  <div className="w-20 h-20 bg-white dark:bg-[#DC2626]/10 rounded-2xl flex items-center justify-center group-hover:bg-red-50 dark:group-hover:bg-[#DC2626]/15 transition-colors duration-300 shadow-sm">
                     <span className="text-4xl">{step.icon}</span>
                   </div>
                   <div className="absolute -top-2 -right-2 w-7 h-7 bg-[#DC2626] rounded-full flex items-center justify-center shadow-lg shadow-[#DC2626]/30">
@@ -162,7 +162,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════ */}
       {/* FOOTER                                                 */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <footer className="bg-[#0A0A0A] text-white py-12">
+      <footer className="bg-[#1A1A1A] dark:bg-[#0A0A0A] text-white py-12">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <div className="flex items-center justify-center gap-2.5 mb-6">
             <div className="w-9 h-9 bg-[#DC2626] rounded-xl flex items-center justify-center">
