@@ -1,4 +1,4 @@
-// /api/webmaster/promotions — Platform promo management (source=PLATFORM)
+// /api/webmaster/promotions — Platform promo + shop proposal management
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
@@ -19,23 +19,25 @@ export async function GET() {
     });
 
     // Stats
+    const now = new Date();
     const activeCount = promotions.filter(
-      (p) => p.isActive && new Date(p.endsAt) > new Date()
+      (p) => p.isActive && new Date(p.endsAt) > now
     ).length;
     const platformCount = promotions.filter((p) => p.source === "PLATFORM").length;
     const shopCount = promotions.filter((p) => p.source === "SHOP").length;
+    const proposedCount = promotions.filter((p) => p.proposalStatus === "PROPOSED").length;
     const totalUses = promotions.reduce((sum, p) => sum + p.currentUses, 0);
 
     return apiSuccess({
       promotions,
-      stats: { activeCount, platformCount, shopCount, totalUses },
+      stats: { activeCount, platformCount, shopCount, proposedCount, totalUses },
     });
   } catch (error) {
     return handleApiError(error, "webmaster/promotions/GET");
   }
 }
 
-// POST — Create a platform promotion
+// POST — Create a platform promotion OR propose a promo to a boucher
 const createSchema = z.object({
   type: z.enum(["PERCENT", "FIXED", "FREE_FEES"]),
   valueCents: z.number().int().min(0).optional(),
@@ -50,6 +52,9 @@ const createSchema = z.object({
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime(),
   code: z.string().min(3).max(30).optional(),
+  // Proposal fields (optional — if shopId is set, it's a proposal to a boucher)
+  shopId: z.string().optional(),
+  proposalNote: z.string().max(500).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -60,10 +65,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createSchema.parse(body);
 
+    const isProposal = !!data.shopId;
+
     const promotion = await prisma.promotion.create({
       data: {
-        source: "PLATFORM",
-        shopId: null,
+        source: isProposal ? "SHOP" : "PLATFORM",
+        shopId: data.shopId || null,
         createdById: authResult.userId,
         type: data.type,
         valueCents: data.valueCents,
@@ -78,8 +85,11 @@ export async function POST(req: NextRequest) {
         startsAt: new Date(data.startsAt),
         endsAt: new Date(data.endsAt),
         code: data.code?.toUpperCase() || null,
-        isActive: true,
+        isActive: isProposal ? false : true,
+        proposalStatus: isProposal ? "PROPOSED" : null,
+        proposalNote: isProposal ? data.proposalNote || null : null,
       },
+      include: { shop: { select: { name: true, slug: true } } },
     });
 
     return apiSuccess(promotion);

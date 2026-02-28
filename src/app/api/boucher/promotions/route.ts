@@ -1,4 +1,4 @@
-// /api/boucher/promotions — Boucher promo management (source=SHOP)
+// /api/boucher/promotions — Boucher promo management (source=SHOP) + proposals
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
@@ -8,19 +8,27 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-// GET — List boucher's promotions
+// GET — List boucher's promotions + pending proposals from webmaster
 export async function GET() {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
 
-    const promotions = await prisma.promotion.findMany({
-      where: { shopId, source: "SHOP" },
-      orderBy: { createdAt: "desc" },
-    });
+    const [promotions, proposals] = await Promise.all([
+      // Boucher's own promos
+      prisma.promotion.findMany({
+        where: { shopId, source: "SHOP", proposalStatus: null },
+        orderBy: { createdAt: "desc" },
+      }),
+      // Webmaster proposals awaiting response
+      prisma.promotion.findMany({
+        where: { shopId, proposalStatus: { in: ["PROPOSED", "ACCEPTED", "REJECTED"] } },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
-    return apiSuccess(promotions);
+    return apiSuccess({ promotions, proposals });
   } catch (error) {
     return handleApiError(error, "boucher/promotions/GET");
   }
@@ -104,13 +112,11 @@ export async function POST(req: NextRequest) {
     // Send flash offer notification to users who ordered from this shop
     if (data.isFlash) {
       const shop = await prisma.shop.findUnique({ where: { id: shopId }, select: { name: true } });
-      // Get recent customers of this shop (last 90 days)
       const recentCustomers = await prisma.order.findMany({
         where: { shopId, createdAt: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } },
         select: { userId: true },
         distinct: ["userId"],
       });
-      // Notify first 50 (non-blocking)
       Promise.all(
         recentCustomers.slice(0, 50).map((c) =>
           sendNotification("FLASH_OFFER", {

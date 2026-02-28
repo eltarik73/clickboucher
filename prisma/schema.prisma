@@ -1292,11 +1292,17 @@ model Promotion {
   isFlash            Boolean @default(false) @map("is_flash")
   flashDurationHours Int?    @map("flash_duration_hours")
 
+  // Proposition webmaster → boucher
+  proposalStatus  String?  @map("proposal_status") // PROPOSED | ACCEPTED | REJECTED
+  proposalNote    String?  @map("proposal_note")
+  rejectedReason  String?  @map("rejected_reason")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([shopId, isActive])
   @@index([source, isActive])
+  @@index([shopId, proposalStatus])
   @@index([code])
   @@map("promotions")
 }

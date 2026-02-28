@@ -11,6 +11,10 @@ import {
   Trash2,
   Calendar,
   Tag,
+  Megaphone,
+  Check,
+  X,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +37,12 @@ type Promotion = {
   createdAt: string;
 };
 
+type Proposal = Promotion & {
+  proposalStatus: string; // PROPOSED | ACCEPTED | REJECTED
+  proposalNote: string | null;
+  rejectedReason: string | null;
+};
+
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", {
     day: "2-digit",
@@ -50,6 +60,7 @@ function formatPromoValue(promo: Promotion) {
 
 export default function BoucherPromosPage() {
   const [promos, setPromos] = useState<Promotion[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
@@ -59,7 +70,8 @@ export default function BoucherPromosPage() {
       const res = await fetch("/api/boucher/promotions");
       if (res.ok) {
         const json = await res.json();
-        setPromos(json.data || []);
+        setPromos(json.data?.promotions || []);
+        setProposals(json.data?.proposals || []);
       }
     } catch {
       // silent
@@ -137,9 +149,45 @@ export default function BoucherPromosPage() {
         </div>
       </div>
 
+      {/* Proposals from webmaster */}
+      {proposals.filter((p) => p.proposalStatus === "PROPOSED").length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
+            <Megaphone size={16} />
+            Propositions Klik&Go
+            <span className="min-w-[20px] h-5 flex items-center justify-center bg-amber-500 text-white text-[10px] font-bold rounded-full px-1.5">
+              {proposals.filter((p) => p.proposalStatus === "PROPOSED").length}
+            </span>
+          </h2>
+          <div className="space-y-2">
+            {proposals
+              .filter((p) => p.proposalStatus === "PROPOSED")
+              .map((p) => (
+                <ProposalCard key={p.id} proposal={p} onAction={fetchPromos} />
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Accepted/rejected proposals history */}
+      {proposals.filter((p) => p.proposalStatus !== "PROPOSED").length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
+            Propositions traitees ({proposals.filter((p) => p.proposalStatus !== "PROPOSED").length})
+          </h2>
+          <div className="space-y-2 opacity-60">
+            {proposals
+              .filter((p) => p.proposalStatus !== "PROPOSED")
+              .map((p) => (
+                <ProposalCard key={p.id} proposal={p} onAction={fetchPromos} />
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* Active promos */}
       <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-        Promos actives ({activePromos.length})
+        Mes promos actives ({activePromos.length})
       </h2>
 
       {loading && (
@@ -505,6 +553,154 @@ function CreatePromoDialog({
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ── Proposal Card (accept / reject) ──
+function ProposalCard({ proposal, onAction }: { proposal: Proposal; onAction: () => void }) {
+  const [acting, setActing] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const isPending = proposal.proposalStatus === "PROPOSED";
+
+  async function handleAction(action: "accept" | "reject") {
+    setActing(true);
+    try {
+      const res = await fetch(`/api/boucher/promotions/${proposal.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          ...(action === "reject" && rejectReason ? { rejectedReason: rejectReason } : {}),
+        }),
+      });
+      if (res.ok) {
+        toast.success(action === "accept" ? "Promotion acceptee !" : "Proposition refusee");
+        onAction();
+      } else {
+        toast.error("Erreur");
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setActing(false);
+      setShowReject(false);
+    }
+  }
+
+  return (
+    <div className={`bg-white dark:bg-[#141414] rounded-xl border px-4 py-3 ${
+      isPending
+        ? "border-amber-300 dark:border-amber-500/30 ring-1 ring-amber-200/50 dark:ring-amber-500/20"
+        : "border-gray-200 dark:border-white/10"
+    }`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+            <Megaphone size={14} className="text-primary" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-gray-900 dark:text-white text-sm">
+                {proposal.label}
+              </span>
+              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                {formatPromoValue(proposal)}
+              </span>
+              {proposal.proposalStatus === "PROPOSED" && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/10 text-amber-600">
+                  En attente
+                </span>
+              )}
+              {proposal.proposalStatus === "ACCEPTED" && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600">
+                  Acceptee
+                </span>
+              )}
+              {proposal.proposalStatus === "REJECTED" && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-500/10 text-red-600">
+                  Refusee
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+              <span className="flex items-center gap-1">
+                <Calendar size={10} />
+                {formatDate(proposal.startsAt)} — {formatDate(proposal.endsAt)}
+              </span>
+              {proposal.code && (
+                <span className="font-mono text-gray-500 bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-[10px]">
+                  {proposal.code}
+                </span>
+              )}
+            </div>
+
+            {proposal.proposalNote && (
+              <div className="flex items-start gap-1.5 mt-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 rounded-lg px-2.5 py-1.5">
+                <MessageSquare size={12} className="shrink-0 mt-0.5" />
+                <span>{proposal.proposalNote}</span>
+              </div>
+            )}
+
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5">
+              Vous payez cette promotion (deduite de votre reversement)
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        {isPending && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => handleAction("accept")}
+              disabled={acting}
+              className="flex items-center gap-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+            >
+              <Check size={14} />
+              Accepter
+            </button>
+            <button
+              onClick={() => setShowReject(true)}
+              disabled={acting}
+              className="flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-white/5 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-600 dark:text-gray-300 hover:text-red-600 text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+            >
+              <X size={14} />
+              Refuser
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Reject reason input */}
+      {showReject && (
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-white/10">
+          <input
+            type="text"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Raison du refus (optionnel)"
+            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white mb-2"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowReject(false)}
+              className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={() => handleAction("reject")}
+              disabled={acting}
+              className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+            >
+              Confirmer le refus
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -18,9 +18,9 @@ import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 const NAV_ITEMS = [
   { key: "dashboard",  label: "Dashboard",   href: "/boucher/dashboard",  icon: LayoutDashboard },
-  { key: "commandes",  label: "Commandes",   href: "/boucher/historique",  icon: ClipboardList, badge: true },
+  { key: "commandes",  label: "Commandes",   href: "/boucher/historique",  icon: ClipboardList, badge: "orders" as const },
   { key: "produits",   label: "Produits",    href: "/boucher/produits",   icon: Package },
-  { key: "promos",     label: "Promos",      href: "/boucher/promos",     icon: Percent },
+  { key: "promos",     label: "Promos",      href: "/boucher/promos",     icon: Percent, badge: "promos" as const },
   { key: "clients",    label: "Clients",     href: "/boucher/clients",    icon: Users },
   { key: "performance",label: "Performance", href: "/boucher/performance",icon: BarChart3 },
   { key: "support",    label: "Support",     href: "/boucher/support",    icon: Headphones },
@@ -30,14 +30,23 @@ const NAV_ITEMS = [
 export function BoucherNav() {
   const pathname = usePathname();
   const [pendingCount, setPendingCount] = useState(0);
+  const [proposalCount, setProposalCount] = useState(0);
 
   const fetchPending = useCallback(async () => {
     try {
-      const res = await fetch("/api/orders");
-      if (res.ok) {
-        const json = await res.json();
+      const [ordersRes, promosRes] = await Promise.all([
+        fetch("/api/orders"),
+        fetch("/api/boucher/promotions"),
+      ]);
+      if (ordersRes.ok) {
+        const json = await ordersRes.json();
         const orders: { status: string }[] = json.data || [];
         setPendingCount(orders.filter((o) => o.status === "PENDING").length);
+      }
+      if (promosRes.ok) {
+        const json = await promosRes.json();
+        const proposals = json.data?.proposals || [];
+        setProposalCount(proposals.filter((p: { proposalStatus: string }) => p.proposalStatus === "PROPOSED").length);
       }
     } catch {
       // silent
@@ -46,9 +55,15 @@ export function BoucherNav() {
 
   useEffect(() => {
     fetchPending();
-    const interval = setInterval(fetchPending, 15_000);
+    const interval = setInterval(fetchPending, 30_000);
     return () => clearInterval(interval);
   }, [fetchPending]);
+
+  function getBadgeCount(badge: string | undefined): number {
+    if (badge === "orders") return pendingCount;
+    if (badge === "promos") return proposalCount;
+    return 0;
+  }
 
   return (
     <>
@@ -99,9 +114,11 @@ export function BoucherNav() {
               >
                 <Icon size={18} strokeWidth={isActive ? 2.4 : 1.8} />
                 <span className="flex-1">{item.label}</span>
-                {"badge" in item && item.badge && pendingCount > 0 && (
-                  <span className="min-w-[20px] h-5 flex items-center justify-center bg-primary text-white text-[10px] font-bold rounded-full px-1.5">
-                    {pendingCount > 99 ? "99+" : pendingCount}
+                {"badge" in item && item.badge && getBadgeCount(item.badge) > 0 && (
+                  <span className={`min-w-[20px] h-5 flex items-center justify-center text-white text-[10px] font-bold rounded-full px-1.5 ${
+                    item.badge === "promos" ? "bg-amber-500" : "bg-primary"
+                  }`}>
+                    {getBadgeCount(item.badge) > 99 ? "99+" : getBadgeCount(item.badge)}
                   </span>
                 )}
               </Link>
@@ -127,9 +144,11 @@ export function BoucherNav() {
               >
                 <div className="relative">
                   <Icon size={20} strokeWidth={isActive ? 2.4 : 1.8} />
-                  {"badge" in item && item.badge && pendingCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center bg-primary text-white text-[9px] font-bold rounded-full px-1">
-                      {pendingCount > 99 ? "99+" : pendingCount}
+                  {"badge" in item && item.badge && getBadgeCount(item.badge) > 0 && (
+                    <span className={`absolute -top-1.5 -right-2.5 min-w-[16px] h-4 flex items-center justify-center text-white text-[9px] font-bold rounded-full px-1 ${
+                      item.badge === "promos" ? "bg-amber-500" : "bg-primary"
+                    }`}>
+                      {getBadgeCount(item.badge) > 99 ? "99+" : getBadgeCount(item.badge)}
                     </span>
                   )}
                 </div>

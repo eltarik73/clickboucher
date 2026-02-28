@@ -18,6 +18,9 @@ import {
   Loader2,
   Sparkles,
   Eye,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,7 +41,15 @@ type Promotion = {
   isActive: boolean;
   isFlash: boolean;
   shop: { name: string; slug: string } | null;
+  proposalStatus: string | null;
+  proposalNote: string | null;
+  rejectedReason: string | null;
   createdAt: string;
+};
+
+type ShopOption = {
+  id: string;
+  name: string;
 };
 
 type Campaign = {
@@ -70,6 +81,7 @@ export default function MarketingPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [showPropose, setShowPropose] = useState(false);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [filter, setFilter] = useState<"all" | "platform" | "shop">("all");
 
@@ -148,13 +160,22 @@ export default function MarketingPage() {
           </p>
         </div>
         {tab === "promos" ? (
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-[#b91c1c] text-white font-semibold rounded-xl transition-colors text-sm"
-          >
-            <Plus size={16} />
-            Promo Klik&Go
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowPropose(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl transition-colors text-sm"
+            >
+              <Store size={16} />
+              Proposer au boucher
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-[#b91c1c] text-white font-semibold rounded-xl transition-colors text-sm"
+            >
+              <Plus size={16} />
+              Promo Klik&Go
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => setShowCreateCampaign(true)}
@@ -298,6 +319,21 @@ export default function MarketingPage() {
                         }`}>
                           {promo.source === "PLATFORM" ? "Klik&Go paie" : "Boucher paie"}
                         </span>
+                        {promo.proposalStatus === "PROPOSED" && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/10 text-amber-600 flex items-center gap-0.5">
+                            <Clock size={10} /> En attente
+                          </span>
+                        )}
+                        {promo.proposalStatus === "ACCEPTED" && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 flex items-center gap-0.5">
+                            <CheckCircle2 size={10} /> Acceptee
+                          </span>
+                        )}
+                        {promo.proposalStatus === "REJECTED" && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-500/10 text-red-500 flex items-center gap-0.5">
+                            <XCircle size={10} /> Refusee
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                         {promo.shop && <span className="flex items-center gap-1"><Store size={10} />{promo.shop.name}</span>}
@@ -361,6 +397,13 @@ export default function MarketingPage() {
         <CreatePlatformPromoDialog
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); fetch_(); }}
+        />
+      )}
+
+      {showPropose && (
+        <ProposeToShopDialog
+          onClose={() => setShowPropose(false)}
+          onCreated={() => { setShowPropose(false); fetch_(); }}
         />
       )}
 
@@ -743,6 +786,191 @@ function CreateCampaignDialog({ onClose, onCreated }: { onClose: () => void; onC
             <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-medium text-gray-600 dark:text-gray-300">Annuler</button>
             <button type="submit" disabled={saving || !objective.trim()} className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
               {saving ? <><Loader2 size={14} className="animate-spin" /> Génération IA...</> : <><Sparkles size={14} /> Générer</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Propose to Shop Dialog ──
+function ProposeToShopDialog({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [shops, setShops] = useState<ShopOption[]>([]);
+  const [loadingShops, setLoadingShops] = useState(true);
+  const [shopId, setShopId] = useState("");
+  const [label, setLabel] = useState("");
+  const [type, setType] = useState<"PERCENT" | "FIXED" | "FREE_FEES">("FIXED");
+  const [valueCents, setValueCents] = useState(500);
+  const [valuePercent, setValuePercent] = useState(10);
+  const [code, setCode] = useState("");
+  const [daysValid, setDaysValid] = useState(30);
+  const [maxUses, setMaxUses] = useState<number | "">(100);
+  const [proposalNote, setProposalNote] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/shops")
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json.data || []).map((s: { id: string; name: string }) => ({
+          id: s.id,
+          name: s.name,
+        }));
+        setShops(list);
+        if (list.length > 0) setShopId(list[0].id);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingShops(false));
+  }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!label.trim() || !shopId) return;
+    setSaving(true);
+
+    const now = new Date();
+    const endsAt = new Date(now.getTime() + daysValid * 24 * 60 * 60 * 1000);
+
+    try {
+      const res = await fetch("/api/webmaster/promotions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          valueCents: type === "FIXED" ? valueCents : undefined,
+          valuePercent: type === "PERCENT" ? valuePercent : undefined,
+          label: label.trim(),
+          target: "ALL",
+          maxUses: maxUses || undefined,
+          maxUsesPerUser: 1,
+          startsAt: now.toISOString(),
+          endsAt: endsAt.toISOString(),
+          code: code.trim() || undefined,
+          shopId,
+          proposalNote: proposalNote.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        toast.success("Proposition envoyee au boucher !");
+        onCreated();
+      } else {
+        const json = await res.json().catch(() => null);
+        toast.error(json?.error?.message || "Erreur");
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <Store size={20} className="text-amber-500" />
+          Proposer au boucher
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Boutique</label>
+            {loadingShops ? (
+              <div className="flex items-center gap-2 mt-1 text-sm text-gray-400">
+                <Loader2 size={14} className="animate-spin" /> Chargement...
+              </div>
+            ) : (
+              <select
+                value={shopId}
+                onChange={(e) => setShopId(e.target.value)}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white"
+                required
+              >
+                {shops.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Nom de la promo</label>
+            <input type="text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex: -10% Barbecue Weekend" className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white" required />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</label>
+            <select value={type} onChange={(e) => setType(e.target.value as typeof type)} className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white">
+              <option value="FIXED">Montant fixe (EUR)</option>
+              <option value="PERCENT">Pourcentage (%)</option>
+              <option value="FREE_FEES">Frais offerts</option>
+            </select>
+          </div>
+
+          {type === "FIXED" && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Montant (EUR)</label>
+              <input type="number" value={valueCents / 100} onChange={(e) => setValueCents(Math.round(parseFloat(e.target.value) * 100) || 0)} min={0.5} step={0.5} className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white" />
+            </div>
+          )}
+
+          {type === "PERCENT" && (
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pourcentage</label>
+              <input type="number" value={valuePercent} onChange={(e) => setValuePercent(parseInt(e.target.value) || 0)} min={1} max={100} className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white" />
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Code promo (optionnel)</label>
+            <input type="text" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Ex: BBQ2026" className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white font-mono" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Duree (jours)</label>
+              <input type="number" value={daysValid} onChange={(e) => setDaysValid(parseInt(e.target.value) || 1)} min={1} className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Max utilisations</label>
+              <input type="number" value={maxUses} onChange={(e) => setMaxUses(e.target.value ? parseInt(e.target.value) : "")} placeholder="Illimite" min={1} className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Message au boucher (optionnel)</label>
+            <textarea
+              value={proposalNote}
+              onChange={(e) => setProposalNote(e.target.value)}
+              placeholder="Ex: On te propose cette promo pour booster tes ventes ce week-end..."
+              rows={2}
+              maxLength={500}
+              className="w-full mt-1 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-900 dark:text-white resize-none"
+            />
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3">
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold mb-1">Le boucher paie cette promotion</p>
+            <p className="text-[11px] text-amber-600 dark:text-amber-400/80">
+              La reduction sera deduite du reversement du boucher. Il doit accepter la proposition avant que la promo soit active.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 text-sm font-medium text-gray-600 dark:text-gray-300">Annuler</button>
+            <button type="submit" disabled={saving || !label.trim() || !shopId} className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold transition-colors disabled:opacity-50">
+              {saving ? "Envoi..." : "Proposer"}
             </button>
           </div>
         </form>
