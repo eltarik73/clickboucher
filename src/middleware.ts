@@ -82,10 +82,11 @@ export default clerkMiddleware(async (auth, req) => {
     }
     // If user already has a role in Clerk metadata, skip onboarding
     const role = await getUserRole(userId);
-    if (role === "boucher") {
+    const roleLower = role?.toLowerCase();
+    if (roleLower === "boucher") {
       return NextResponse.redirect(new URL("/boucher/dashboard", req.url));
     }
-    if (role && ADMIN_ROLES.includes(role)) {
+    if (roleLower && ADMIN_ROLES.includes(roleLower)) {
       return NextResponse.redirect(new URL("/admin", req.url));
     }
     // role === "client" or no role → allow onboarding page
@@ -99,7 +100,8 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL("/admin-login", req.url));
     }
     const role = await getUserRole(userId);
-    if (!role || !ADMIN_ROLES.includes(role)) {
+    const roleLower = role?.toLowerCase();
+    if (!roleLower || !ADMIN_ROLES.includes(roleLower)) {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
     }
     return;
@@ -111,7 +113,8 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL("/admin-login", req.url));
     }
     const role = await getUserRole(userId);
-    if (!role || !ADMIN_ROLES.includes(role)) {
+    const roleLower = role?.toLowerCase();
+    if (!roleLower || !ADMIN_ROLES.includes(roleLower)) {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
     }
     return;
@@ -123,7 +126,8 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL("/espace-boucher", req.url));
     }
     const role = await getUserRole(userId);
-    if (role !== "boucher" && (!role || !ADMIN_ROLES.includes(role))) {
+    const roleLower = role?.toLowerCase();
+    if (roleLower !== "boucher" && (!roleLower || !ADMIN_ROLES.includes(roleLower))) {
       return NextResponse.redirect(new URL("/decouvrir", req.url));
     }
     return;

@@ -4,11 +4,15 @@
 const ADMIN_ROLES = ["admin", "webmaster"];
 
 export function isAdmin(role: string | undefined | null): boolean {
-  return !!role && ADMIN_ROLES.includes(role);
+  if (!role) return false;
+  const lower = role.toLowerCase();
+  return ADMIN_ROLES.includes(lower);
 }
 
 export function isBoucher(role: string | undefined | null): boolean {
-  return role === "boucher" || isAdmin(role);
+  if (!role) return false;
+  const lower = role.toLowerCase();
+  return lower === "boucher" || isAdmin(role);
 }
 
 /**
