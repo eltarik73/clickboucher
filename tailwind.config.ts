@@ -57,8 +57,8 @@ const config: Config = {
         sm: "calc(var(--radius) - 8px)",
       },
       fontFamily: {
-        sans: ["var(--font-body)", "'Outfit'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["var(--font-body)", "'Outfit'", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "'DM Sans'", "system-ui", "-apple-system", "sans-serif"],
+        display: ["var(--font-display)", "'Outfit'", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)", "'Cormorant Garamond'", "Georgia", "serif"],
       },
       fontSize: {
@@ -84,6 +84,7 @@ const config: Config = {
         "scale-in": "scaleIn 0.2s ease-out",
         "pulse-soft": "pulseSoft 2s ease-in-out infinite",
         "shimmer": "shimmer 2s linear infinite",
+        "hero-scale": "heroScale 0.8s ease-out both",
       },
       keyframes: {
         fadeIn: {
@@ -113,6 +114,10 @@ const config: Config = {
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
+        },
+        heroScale: {
+          "0%": { opacity: "0", transform: "scale(0.8)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
         },
       },
       spacing: {

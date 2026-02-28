@@ -28,8 +28,8 @@
   --radius: 20px;
   --radius-sm: 14px;
   --radius-xs: 10px;
-  --font-display-stack: var(--font-body, "Outfit"), sans-serif;
-  --font-body-stack: var(--font-body, "Outfit"), sans-serif;
+  --font-display-stack: var(--font-display, "Outfit"), sans-serif;
+  --font-body-stack: var(--font-body, "DM Sans"), sans-serif;
 
   /* Recharts chart theming */
   --tooltip-bg: #fff;

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Cormorant_Garamond } from "next/font/google";
+import { DM_Sans, Outfit, Cormorant_Garamond } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
@@ -17,10 +17,17 @@ import OfflineBanner from "@/components/pwa/OfflineBanner";
 import { TestRoleSwitcher } from "@/components/test/TestRoleSwitcher";
 import "@/styles/globals.css";
 
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
+
 const outfit = Outfit({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-body",
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -73,7 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
-        <body className={`${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased transition-colors duration-300`}>
+        <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased transition-colors duration-300`}>
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>
