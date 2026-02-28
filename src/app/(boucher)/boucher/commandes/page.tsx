@@ -540,7 +540,29 @@ export default function KitchenModePage() {
         </header>
 
         {/* ── PAUSE BANNER ── */}
-        {(shopStatus === "PAUSED" || shopStatus === "CLOSED") && (
+        {shopStatus === "CLOSED" && (
+          <div className="shrink-0 bg-gray-500/15 border-b border-gray-500/20 px-4 py-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-gray-400">
+              ⏹ Boutique hors ligne
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "resume" }),
+                  });
+                  if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
+                } catch { toast.error("Erreur"); }
+              }}
+              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+            >
+              ▶ Passer en ligne
+            </button>
+          </div>
+        )}
+        {shopStatus === "PAUSED" && (
           <div className="shrink-0 bg-red-500/15 border-b border-red-500/20 px-4 py-3 flex items-center justify-between gap-3">
             <p className="text-sm font-bold text-red-400">
               ⏸ Pause{pauseRemaining !== null ? ` — Reprise dans ${pauseRemaining} min` : ""}
@@ -658,6 +680,23 @@ export default function KitchenModePage() {
               className="flex items-center gap-2 px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
             >
               🔴 Occupé ({defaultBusyDuration} min)
+            </button>
+
+            {/* Fermer boutique */}
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "close" }),
+                  });
+                  if (res.ok) { fetchShopInfo(); toast.success("Boutique fermée"); }
+                } catch { toast.error("Erreur"); }
+              }}
+              className="flex items-center gap-2 px-5 py-3 bg-gray-500/15 hover:bg-gray-500/25 text-gray-400 font-bold rounded-xl transition-colors text-sm min-h-[48px] ml-auto"
+            >
+              ⏹ Fermer
             </button>
           </div>
         )}

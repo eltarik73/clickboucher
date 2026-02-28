@@ -651,5 +651,73 @@ export function startCronJobs() {
     }
   });
 
+  // ═══════════════════════════════════════════
+  // 14. Auto-open/close based on opening hours — every minute
+  //     Opens CLOSED shops during their hours, closes OPEN/BUSY shops after hours
+  //     Respects manual PAUSED and VACATION — never overrides
+  // ═══════════════════════════════════════════
+  cron.schedule("* * * * *", async () => {
+    try {
+      const DAYS_FR = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+      const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+      const dayKey = DAYS_FR[now.getDay()];
+      const currentTime = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+
+      // Find shops with opening hours configured
+      const shops = await prisma.shop.findMany({
+        where: {
+          visible: true,
+          vacationMode: false,
+          openingHours: { not: { equals: {} } },
+        },
+        select: {
+          id: true,
+          status: true,
+          paused: true,
+          openingHours: true,
+        },
+      });
+
+      let opened = 0;
+      let closed = 0;
+
+      for (const shop of shops) {
+        const hours = shop.openingHours as Record<string, { open: string; close: string }> | null;
+        if (!hours || !hours[dayKey]) continue;
+
+        const { open, close } = hours[dayKey];
+        if (!open || !close) continue;
+
+        const isWithinHours = currentTime >= open && currentTime < close;
+
+        if (isWithinHours && shop.status === "CLOSED") {
+          // Auto-open: only if CLOSED (not PAUSED, not VACATION)
+          await prisma.shop.update({
+            where: { id: shop.id },
+            data: { status: "OPEN" },
+          });
+          opened++;
+        } else if (!isWithinHours && (shop.status === "OPEN" || shop.status === "BUSY")) {
+          // Auto-close: only if OPEN or BUSY (not PAUSED, not VACATION)
+          await prisma.shop.update({
+            where: { id: shop.id },
+            data: {
+              status: "CLOSED",
+              busyMode: false,
+              busyModeEndsAt: null,
+            },
+          });
+          closed++;
+        }
+      }
+
+      if (opened > 0 || closed > 0) {
+        console.log(`[CRON][auto-schedule] Opened ${opened}, closed ${closed} shops based on opening hours`);
+      }
+    } catch (error) {
+      console.error("[CRON][auto-schedule] Error:", error);
+    }
+  });
+
   console.log("[CRON] All cron jobs scheduled successfully");
 }

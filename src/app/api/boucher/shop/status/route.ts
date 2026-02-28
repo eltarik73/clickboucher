@@ -93,6 +93,7 @@ const actionSchema = z.discriminatedUnion("action", [
     message: z.string().max(200).optional(),
   }),
   z.object({ action: z.literal("end_vacation") }),
+  z.object({ action: z.literal("close") }),
   z.object({
     action: z.literal("update_settings"),
     prepTimeMin: z.number().int().min(5).max(120).optional(),
@@ -150,6 +151,20 @@ export async function PATCH(req: NextRequest) {
 
       case "end_vacation":
         await endVacationMode(shopId);
+        break;
+
+      case "close":
+        await prisma.shop.update({
+          where: { id: shopId },
+          data: {
+            status: "CLOSED",
+            paused: false,
+            pauseReason: null,
+            pauseEndsAt: null,
+            busyMode: false,
+            busyModeEndsAt: null,
+          },
+        });
         break;
 
       case "update_settings": {

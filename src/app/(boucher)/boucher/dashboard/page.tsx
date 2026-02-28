@@ -161,6 +161,17 @@ function StatusBar({
               Arreter busy
             </Button>
           )}
+          {shop.status === "CLOSED" && (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 text-xs bg-emerald-500/80 hover:bg-emerald-500 text-white border-0"
+              onClick={() => onAction("resume")}
+              disabled={loading}
+            >
+              <Play size={12} className="mr-1" /> Passer en ligne
+            </Button>
+          )}
           {shop.status === "OPEN" && (
             <>
               <Button
@@ -180,6 +191,15 @@ function StatusBar({
                 disabled={loading}
               >
                 <Flame size={12} className="mr-1" /> Occupe
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+                onClick={() => onAction("close")}
+                disabled={loading}
+              >
+                <WifiOff size={12} className="mr-1" /> Fermer
               </Button>
             </>
           )}
@@ -270,7 +290,15 @@ export default function BoucherDashboardPage() {
       });
       if (res.ok) {
         await fetchShopStatus();
-        toast.success(action === "resume" ? "Commandes reprises" : `Action: ${action}`);
+        const actionMessages: Record<string, string> = {
+          resume: "Boutique en ligne",
+          pause: "Boutique en pause",
+          close: "Boutique fermée",
+          busy: "Mode occupé activé",
+          end_busy: "Mode occupé désactivé",
+          end_vacation: "Fin des vacances",
+        };
+        toast.success(actionMessages[action] || `Action: ${action}`);
       } else {
         toast.error("Erreur lors du changement de statut");
       }
