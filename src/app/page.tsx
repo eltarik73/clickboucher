@@ -1,17 +1,4 @@
-export const dynamic = "force-dynamic";
-
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import Link from "next/link";
-
-// ─────────────────────────────────────────────────────────────
-// AUTH CHECK — redirect signed-in users to /decouvrir
-// ─────────────────────────────────────────────────────────────
-
-async function checkAuth() {
-  const { userId } = await auth();
-  if (userId) redirect("/decouvrir");
-}
 
 // ─────────────────────────────────────────────────────────────
 // STEPS DATA
@@ -39,8 +26,7 @@ const STEPS = [
 // PAGE
 // ─────────────────────────────────────────────────────────────
 
-export default async function HomePage() {
-  await checkAuth();
+export default function HomePage() {
 
   return (
     <div className="min-h-screen">
