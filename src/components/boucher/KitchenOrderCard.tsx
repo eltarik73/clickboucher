@@ -17,6 +17,8 @@ import {
   Eye,
   DollarSign,
   Phone,
+  CalendarClock,
+  Ban,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
 import { printOrderTicket } from "./OrderTicket";
@@ -61,6 +63,22 @@ function timeSince(dateStr: string) {
   return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`;
 }
 
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "Maintenant";
+  const totalMin = Math.floor(ms / 60_000);
+  if (totalMin < 60) return `Dans ${totalMin} min`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m > 0 ? `Dans ${h}h${String(m).padStart(2, "0")}` : `Dans ${h}h`;
+}
+
+function getCountdownColor(ms: number): string {
+  const min = ms / 60_000;
+  if (min <= 30) return "bg-red-500/20 text-red-400 border-red-500/30";
+  if (min <= 60) return "bg-amber-500/20 text-amber-400 border-amber-500/30";
+  return "bg-purple-500/20 text-purple-400 border-purple-500/30";
+}
+
 // Status border colors imported from design-tokens
 
 export default function KitchenOrderCard({
@@ -99,6 +117,19 @@ export default function KitchenOrderCard({
     ? Math.round((Date.now() - new Date(order.estimatedReady).getTime()) / 60_000)
     : 0;
 
+  // Scheduled order detection
+  const THIRTY_MIN = 30 * 60 * 1000;
+  const isScheduledFuture = !!order.pickupSlotStart
+    && new Date(order.pickupSlotStart).getTime() > Date.now() + THIRTY_MIN
+    && order.status === "ACCEPTED";
+  const isScheduledSoon = !!order.pickupSlotStart
+    && new Date(order.pickupSlotStart).getTime() > Date.now()
+    && new Date(order.pickupSlotStart).getTime() <= Date.now() + THIRTY_MIN
+    && (order.status === "ACCEPTED" || order.status === "PREPARING");
+  const scheduledMs = order.pickupSlotStart
+    ? new Date(order.pickupSlotStart).getTime() - Date.now()
+    : 0;
+
   // Pickup time display — "asap" is not a valid date, show "Dès que possible"
   const isAsap = isAsapTime(order.requestedTime);
   const pickupTime = order.pickupSlotStart
@@ -126,6 +157,92 @@ export default function KitchenOrderCard({
   function handleView() {
     setExpanded(true);
     onView?.(order.id);
+  }
+
+  // ── SCHEDULED FUTURE VIEW (in "Programmées" column, >30min before pickup) ──
+  if (isScheduledFuture) {
+    return (
+      <div className="bg-[#1a1a1a] rounded-2xl border-t-4 border-t-purple-500 border border-white/5 overflow-hidden">
+        {/* Scheduled header */}
+        <div className="px-5 pt-4 pb-3">
+          <div className="flex items-center gap-3">
+            <span className="font-black text-[36px] leading-none text-white tracking-tight">
+              {ticketNumber}
+            </span>
+            <span className="text-[24px] font-bold text-gray-300 leading-none truncate">
+              {clientName}
+            </span>
+            {order.isPro && (
+              <span className="text-sm font-bold bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-md">
+                PRO
+              </span>
+            )}
+          </div>
+          {/* Big pickup time */}
+          <div className="mt-3 flex items-center gap-3">
+            <CalendarClock size={24} className="text-purple-400" />
+            <span className="text-2xl font-black text-purple-300">
+              Retrait a {pickupTime}
+            </span>
+          </div>
+          {/* Countdown badge */}
+          <div className={`mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-lg font-bold ${getCountdownColor(scheduledMs)}`}>
+            <Clock size={18} />
+            {formatCountdown(scheduledMs)}
+          </div>
+        </div>
+
+        {/* Items list (compact) */}
+        <div className="px-5 pb-3">
+          <div className="bg-white/5 rounded-xl p-4 space-y-2">
+            {order.items.map((item) => (
+              <div key={item.id} className="flex items-center gap-2 text-base">
+                <span className="text-white font-bold text-xl">{item.quantity}</span>
+                <span className="text-gray-400">
+                  {formatUnit(item.product?.unit || item.unit)} — <span className="text-white font-medium">{item.product?.name || item.name}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Total */}
+        <div className="px-5 pb-3 flex justify-between items-center">
+          <span className="text-lg text-gray-500">Total</span>
+          <span className="text-2xl font-bold text-white">{formatPrice(order.totalCents)}</span>
+        </div>
+
+        {/* Customer note */}
+        {order.customerNote && (
+          <div className="px-5 pb-3">
+            <div className="bg-blue-500/10 rounded-xl px-4 py-3 flex items-start gap-2">
+              <MessageSquare size={16} className="text-blue-400 shrink-0 mt-0.5" />
+              <p className="text-base text-blue-300">&quot;{order.customerNote}&quot;</p>
+            </div>
+          </div>
+        )}
+
+        {/* Actions: Cancel + Print only */}
+        <div className="px-5 pb-5 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => printOrderTicket(order, shopName)}
+              className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[52px] py-3 rounded-xl text-base font-medium transition-all"
+            >
+              <Printer size={18} /> Ticket
+            </button>
+            <button
+              onClick={() => doAction("cancel", { reason: "Annulation commande programmée" })}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 bg-red-600/80 hover:bg-red-700 active:scale-95 text-white font-bold py-3 rounded-xl transition-all text-base disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={18} className="animate-spin" /> : <Ban size={18} />}
+              Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── PENDING COMPACT VIEW (not yet expanded) ──
@@ -205,7 +322,12 @@ export default function KitchenOrderCard({
             )}
           </div>
           <div className="flex items-center gap-4 mt-2">
-            {(pickupTime || isAsap) && (
+            {isScheduledSoon && pickupTime && (
+              <span className="text-base font-bold bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                <CalendarClock size={14} /> {pickupTime}
+              </span>
+            )}
+            {!isScheduledSoon && (pickupTime || isAsap) && (
               <span className="text-xl font-bold text-amber-400">
                 <Clock size={18} className="inline mr-1" /> {pickupTime ? `Retrait ${pickupTime}` : "Dès que possible"}
               </span>

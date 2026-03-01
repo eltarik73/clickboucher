@@ -52,6 +52,7 @@ export type NotifData = {
   customerName?: string;
   nbItems?: number;
   slot?: string;
+  pickupTime?: string;
   message?: string;
   note?: string;
   // Price adjustment data
@@ -179,9 +180,13 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
 
     case "SCHEDULED_REMINDER":
       return {
-        subject: `📅 Rappel — Commande ${data.orderNumber} dans ${data.slot || "peu de temps"}`,
+        subject: data.customerName
+          ? `📅 Commande programmée #${data.orderNumber} — Retrait ${data.slot || "bientôt"}`
+          : `📅 Rappel — Commande ${data.orderNumber} dans ${data.slot || "peu de temps"}`,
         html: tpl.readyReminder(data),
-        plainText: `Rappel : votre commande chez ${data.shopName} est prévue pour ${data.slot || "bientôt"}. Préparez-vous !`,
+        plainText: data.customerName
+          ? `📅 Nouvelle commande programmée de ${data.customerName}. Retrait prévu à ${data.slot || "bientôt"}.`
+          : `Rappel : votre commande chez ${data.shopName} est prévue pour ${data.slot || "bientôt"}. Préparez-vous !`,
       };
 
     case "RECURRING_REMINDER":
@@ -404,12 +409,19 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
         url: `${baseUrl}/boucher/dashboard/abonnement`,
       };
     case "SCHEDULED_REMINDER":
-      return {
-        title: "📅 Commande bientôt",
-        body: `N'oubliez pas votre commande chez ${data.shopName} prévue pour ${data.slot || "bientôt"}`,
-        url: orderUrl,
-        tag: orderTag,
-      };
+      return data.customerName
+        ? {
+            title: "📅 Commande programmée",
+            body: `#${data.orderNumber} de ${data.customerName} — Retrait ${data.slot || "bientôt"}`,
+            url: `${baseUrl}/boucher/commandes`,
+            tag: orderTag,
+          }
+        : {
+            title: "📅 Commande bientôt",
+            body: `N'oubliez pas votre commande chez ${data.shopName} prévue pour ${data.slot || "bientôt"}`,
+            url: orderUrl,
+            tag: orderTag,
+          };
     case "RECURRING_REMINDER":
       return {
         title: "🔄 Commande récurrente",
@@ -553,7 +565,7 @@ type UserPrefs = {
 
 async function resolveUser(event: NotifEvent, data: NotifData): Promise<UserPrefs | null> {
   // Events targeted at boucher (by shopId)
-  const boucherEvents: NotifEvent[] = ["ORDER_PENDING", "PRICE_ADJUSTMENT_ACCEPTED", "PRICE_ADJUSTMENT_REJECTED", "PRICE_ADJUSTMENT_ESCALATED"];
+  const boucherEvents: NotifEvent[] = ["ORDER_PENDING", "SCHEDULED_REMINDER", "PRICE_ADJUSTMENT_ACCEPTED", "PRICE_ADJUSTMENT_REJECTED", "PRICE_ADJUSTMENT_ESCALATED"];
   if (boucherEvents.includes(event) && data.shopId) {
     const shop = await prisma.shop.findUnique({
       where: { id: data.shopId },

@@ -1,7 +1,7 @@
-// /boucher/commandes — MODE CUISINE (v6)
+// /boucher/commandes — MODE CUISINE (v7)
 // Full-screen tablet kitchen interface — dark theme, big buttons, audio alerts
-// 3 columns: Nouvelles (35%) | En cours (40%) | Pretes (25%)
-// Bottom bar: Historique + Programmees → Sheet drawers
+// 4 columns: Nouvelles (25%) | Programmées (20%) | En cours (flex) | Prêtes (20%)
+// Bottom bar: Historique → Sheet drawer
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -60,7 +60,7 @@ import { toast } from "sonner";
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type Tab = "nouvelles" | "en-cours" | "pretes";
+type Tab = "nouvelles" | "programmees" | "en-cours" | "pretes";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -132,9 +132,8 @@ export default function KitchenModePage() {
   const [adjustPriceOrder, setAdjustPriceOrder] = useState<KitchenOrder | null>(null);
   const [showScanner, setShowScanner] = useState(false);
 
-  // Bottom bar drawers
+  // Bottom bar drawer
   const [showHistory, setShowHistory] = useState(false);
-  const [showScheduled, setShowScheduled] = useState(false);
 
   // Sound muted
   const [muted, setMuted] = useState(false);
@@ -188,6 +187,25 @@ export default function KitchenModePage() {
     onStatusChange: () => {
       // Refresh shop status on any change
       fetchShopInfo();
+    },
+    onScheduledReady: (order) => {
+      // Scheduled order entered 30-min preparation window
+      const pickupTime = order.pickupSlotStart
+        ? new Date(order.pickupSlotStart).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+        : "";
+      const ticketNum = order.displayNumber || `#${order.orderNumber}`;
+      // Show alert overlay
+      setAlertOrder(order);
+      // Play sound
+      if (!mutedRef.current) {
+        startOrderAlert();
+      }
+      // Send browser notification
+      sendNotificationRef.current?.(order);
+      // Toast
+      toast.info(`⏰ ${ticketNum} a preparer — Retrait ${pickupTime}`);
+      // Notify client via server endpoint
+      fetch(`/api/orders/${order.id}/scheduled-notify`, { method: "POST" }).catch(() => {});
     },
   });
 
@@ -378,17 +396,20 @@ export default function KitchenModePage() {
     );
   }
 
-  // Tab data (3 main tabs only — Historique/Programmées in bottom bar drawers)
-  const tabs: { key: Tab; label: string; count: number; icon: typeof Bell; color: string }[] = [
-    { key: "nouvelles", label: "Nouvelles", count: pendingCount, icon: Bell, color: "amber" },
-    { key: "en-cours", label: "En cours", count: inProgressCount, icon: ChefHat, color: "blue" },
-    { key: "pretes", label: "Pretes", count: readyCount, icon: CheckCircle, color: "emerald" },
+  // Tab data (4 main tabs — Historique in bottom bar drawer)
+  const tabs: { key: Tab; label: string; shortLabel: string; count: number; icon: typeof Bell; color: string }[] = [
+    { key: "nouvelles", label: "Nouvelles", shortLabel: "Nouv.", count: pendingCount, icon: Bell, color: "amber" },
+    { key: "programmees", label: "Programmees", shortLabel: "Prog.", count: scheduledCount, icon: CalendarClock, color: "purple" },
+    { key: "en-cours", label: "En cours", shortLabel: "En cours", count: inProgressCount, icon: ChefHat, color: "blue" },
+    { key: "pretes", label: "Pretes", shortLabel: "Pretes", count: readyCount, icon: CheckCircle, color: "emerald" },
   ];
 
   // Get orders for active tab (mobile)
   const activeOrders =
     activeTab === "nouvelles"
       ? pendingOrders
+      : activeTab === "programmees"
+      ? scheduledOrders
       : activeTab === "en-cours"
       ? inProgressOrders
       : readyOrders;
@@ -727,7 +748,7 @@ export default function KitchenModePage() {
                   }`}
                 >
                   <Icon size={14} />
-                  <span className="truncate">{tab.label}</span>
+                  <span className="truncate">{tab.shortLabel}</span>
                   {tab.count > 0 && (
                     <span
                       className={`min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
@@ -748,11 +769,11 @@ export default function KitchenModePage() {
         </div>
 
         {/* ══════════════════════════════════════════ */}
-        {/* ── DESKTOP: 3-column layout (35%/40%/25%) ── */}
+        {/* ── DESKTOP: 4-column layout (25%/20%/flex/20%) ── */}
         {/* ══════════════════════════════════════════ */}
         <div className="flex-1 overflow-hidden hidden md:flex pb-14">
-          {/* Column 1: Nouvelles (35%) */}
-          <div className="w-[35%] shrink-0">
+          {/* Column 1: Nouvelles (25%) */}
+          <div className="w-1/4 shrink-0">
             <KitchenColumn
               title="Nouvelles"
               count={pendingCount}
@@ -772,7 +793,28 @@ export default function KitchenModePage() {
           {/* Divider */}
           <div className="w-px bg-white/5 shrink-0" />
 
-          {/* Column 2: En cours (45% — flex-1) */}
+          {/* Column 2: Programmées (20%) */}
+          <div className="w-1/5 shrink-0">
+            <KitchenColumn
+              title="Programmees"
+              count={scheduledCount}
+              icon={<CalendarClock size={16} />}
+              color="purple"
+              orders={scheduledOrders}
+              shopName={shopName}
+              shopPrepTime={shopPrepTime}
+              onAction={handleAction}
+              onStockIssue={setStockIssueOrder}
+              onView={handleViewOrder}
+              emptyMessage="Aucune commande programmee"
+              emptyIcon={<CalendarClock size={32} className="text-gray-700" />}
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="w-px bg-white/5 shrink-0" />
+
+          {/* Column 3: En cours (flex-1) */}
           <div className="flex-1 min-w-0">
             <KitchenColumn
               title="En cours"
@@ -794,8 +836,8 @@ export default function KitchenModePage() {
           {/* Divider */}
           <div className="w-px bg-white/5 shrink-0" />
 
-          {/* Column 3: Pretes (25%) */}
-          <div className="w-1/4 shrink-0">
+          {/* Column 4: Pretes (20%) */}
+          <div className="w-1/5 shrink-0">
             <KitchenColumn
               title="Pretes"
               count={readyCount}
@@ -823,7 +865,7 @@ export default function KitchenModePage() {
           </div>
         </div>
 
-        {/* ── Desktop bottom bar (Historique + Programmées) ── */}
+        {/* ── Desktop bottom bar (Historique) ── */}
         <div className="hidden md:flex fixed bottom-0 inset-x-0 h-14 bg-zinc-900 border-t border-zinc-800 items-center justify-center gap-4 px-6 z-40">
           <button
             onClick={() => setShowHistory(true)}
@@ -834,18 +876,6 @@ export default function KitchenModePage() {
             {historyCount > 0 && (
               <span className="min-w-[20px] h-5 flex items-center justify-center bg-white/10 text-gray-300 text-[10px] font-bold rounded-full px-1.5">
                 {historyCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setShowScheduled(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors text-sm font-medium"
-          >
-            <CalendarClock size={16} />
-            Programmees
-            {scheduledCount > 0 && (
-              <span className="min-w-[20px] h-5 flex items-center justify-center bg-purple-500/30 text-purple-300 text-[10px] font-bold rounded-full px-1.5">
-                {scheduledCount}
               </span>
             )}
           </button>
@@ -868,10 +898,12 @@ export default function KitchenModePage() {
           {activeOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               {activeTab === "nouvelles" && <Bell size={40} className="text-gray-700" />}
+              {activeTab === "programmees" && <CalendarClock size={40} className="text-gray-700" />}
               {activeTab === "en-cours" && <ChefHat size={40} className="text-gray-700" />}
               {activeTab === "pretes" && <CheckCircle size={40} className="text-gray-700" />}
               <p className="text-gray-600 text-sm">
                 {activeTab === "nouvelles" && "Aucune nouvelle commande"}
+                {activeTab === "programmees" && "Aucune commande programmee"}
                 {activeTab === "en-cours" && "Aucune commande en cours"}
                 {activeTab === "pretes" && "Aucune commande prete"}
               </p>
@@ -892,29 +924,17 @@ export default function KitchenModePage() {
           )}
         </div>
 
-        {/* ── Mobile bottom bar (Historique + Programmées) ── */}
+        {/* ── Mobile bottom bar (Historique) ── */}
         <div className="md:hidden fixed bottom-0 inset-x-0 h-14 bg-zinc-900 border-t border-zinc-800 flex items-center justify-center gap-3 px-4 z-40">
           <button
             onClick={() => setShowHistory(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
+            className="flex items-center justify-center gap-1.5 py-2.5 px-5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
           >
             <ScrollText size={14} />
             Historique
             {historyCount > 0 && (
               <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-white/10 text-gray-300 text-[9px] font-bold rounded-full px-1">
                 {historyCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setShowScheduled(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
-          >
-            <CalendarClock size={14} />
-            Programmees
-            {scheduledCount > 0 && (
-              <span className="min-w-[18px] h-[18px] flex items-center justify-center bg-purple-500/30 text-purple-300 text-[9px] font-bold rounded-full px-1">
-                {scheduledCount}
               </span>
             )}
           </button>
@@ -965,57 +985,6 @@ export default function KitchenModePage() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════ */}
-      {/* ── SCHEDULED DRAWER (slide-up) ── */}
-      {/* ══════════════════════════════════════════ */}
-      {showScheduled && (
-        <div className="fixed inset-0 z-[70]" onClick={() => setShowScheduled(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div
-            className="absolute bottom-0 inset-x-0 h-[70vh] bg-[#111] border-t border-white/10 rounded-t-2xl flex flex-col animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Handle + Header */}
-            <div className="shrink-0 pt-3 pb-2 px-5">
-              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3" />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CalendarClock size={16} className="text-purple-400" />
-                  <h3 className="text-base font-bold text-white">Programmees</h3>
-                </div>
-                <button
-                  onClick={() => setShowScheduled(false)}
-                  className="text-gray-500 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
-              {scheduledOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <CalendarClock size={32} className="text-gray-700" />
-                  <p className="text-gray-600 text-sm">Aucune commande programmee</p>
-                </div>
-              ) : (
-                scheduledOrders.map((order) => (
-                  <KitchenOrderCard
-                    key={order.id}
-                    order={order}
-                    shopName={shopName}
-                    shopPrepTime={shopPrepTime}
-                    onAction={handleAction}
-                    onStockIssue={setStockIssueOrder}
-                    onView={handleViewOrder}
-                    onAdjustPrice={setAdjustPriceOrder}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
@@ -1042,7 +1011,7 @@ function KitchenColumn({
   title: string;
   count: number;
   icon: React.ReactNode;
-  color: "amber" | "blue" | "emerald";
+  color: "amber" | "blue" | "emerald" | "purple";
   orders: KitchenOrder[];
   shopName: string;
   shopPrepTime: number;
@@ -1058,6 +1027,7 @@ function KitchenColumn({
     amber: "text-amber-400 bg-amber-500/20",
     blue: "text-blue-400 bg-blue-500/20",
     emerald: "text-emerald-400 bg-emerald-500/20",
+    purple: "text-purple-400 bg-purple-500/20",
   };
 
   return (
@@ -1073,6 +1043,8 @@ function KitchenColumn({
                 ? "bg-amber-500 text-white"
                 : color === "blue"
                 ? "bg-blue-500 text-white"
+                : color === "purple"
+                ? "bg-purple-500 text-white"
                 : "bg-emerald-500 text-white"
             }`}
           >

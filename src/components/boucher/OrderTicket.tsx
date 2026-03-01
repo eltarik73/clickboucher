@@ -112,6 +112,14 @@ function buildTicketHtml(order: KitchenOrder, shopName: string, copyLabel?: stri
       </div>
     </div>
 
+    ${order.pickupSlotStart ? `
+    <div class="scheduled-banner">
+      <div class="scheduled-icon">📅</div>
+      <div class="scheduled-label">COMMANDE PROGRAMMEE</div>
+      <div class="scheduled-time">RETRAIT A ${formatTime(order.pickupSlotStart)}</div>
+    </div>
+    ` : ""}
+
     <hr class="divider-double">
 
     <!-- Items -->
@@ -316,6 +324,33 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string, copies 
       font-size: 10px;
       text-transform: uppercase;
       color: #666;
+    }
+
+    /* ── Scheduled banner ── */
+    .scheduled-banner {
+      text-align: center;
+      padding: 8px 6px;
+      margin: 6px 0;
+      background: #000;
+      color: #fff;
+      border: 2px solid #000;
+      border-radius: 4px;
+    }
+    .scheduled-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+    .scheduled-label {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+    .scheduled-time {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin-top: 2px;
     }
 
     /* ── Info line ── */

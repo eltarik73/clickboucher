@@ -60,17 +60,23 @@ type UseOrderPollingOptions = {
   onNewOrder?: (order: KitchenOrder) => void;
   /** Called when any order status changes */
   onStatusChange?: (orderId: string, oldStatus: string, newStatus: string) => void;
+  /** Called when a scheduled order enters the 30-min preparation window */
+  onScheduledReady?: (order: KitchenOrder) => void;
   /** Statuses to include (default: active orders) */
   statuses?: string[];
   /** Auto-start polling (default true) */
   enabled?: boolean;
 };
 
+const TERMINAL_STATUSES = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED", "PARTIALLY_DENIED"];
+const THIRTY_MIN = 30 * 60 * 1000;
+
 export function useOrderPolling(options: UseOrderPollingOptions = {}) {
   const {
     intervalMs = 5000,
     onNewOrder,
     onStatusChange,
+    onScheduledReady,
     enabled = true,
   } = options;
 
@@ -80,8 +86,9 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
 
   // Track previous state for diff detection
   const prevOrderMapRef = useRef<Map<string, string>>(new Map());
-  const callbacksRef = useRef({ onNewOrder, onStatusChange });
-  callbacksRef.current = { onNewOrder, onStatusChange };
+  const prevScheduledIdsRef = useRef<Set<string>>(new Set());
+  const callbacksRef = useRef({ onNewOrder, onStatusChange, onScheduledReady });
+  callbacksRef.current = { onNewOrder, onStatusChange, onScheduledReady };
   const isFirstFetch = useRef(true);
 
   const fetchOrders = useCallback(async () => {
@@ -99,6 +106,7 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
       // Diff detection (skip on first fetch)
       if (!isFirstFetch.current) {
         const prevMap = prevOrderMapRef.current;
+        const prevScheduledIds = prevScheduledIdsRef.current;
 
         for (const order of fetched) {
           const prevStatus = prevMap.get(order.id);
@@ -112,16 +120,38 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
           if (prevStatus && prevStatus !== order.status) {
             callbacksRef.current.onStatusChange?.(order.id, prevStatus, order.status);
           }
+
+          // Scheduled order entered 30-min preparation window
+          if (
+            prevScheduledIds.has(order.id) &&
+            order.pickupSlotStart &&
+            new Date(order.pickupSlotStart).getTime() <= Date.now() + THIRTY_MIN &&
+            !TERMINAL_STATUSES.includes(order.status) &&
+            order.status !== "PENDING"
+          ) {
+            callbacksRef.current.onScheduledReady?.(order);
+          }
         }
       }
       isFirstFetch.current = false;
 
-      // Update map
+      // Update maps
       const newMap = new Map<string, string>();
+      const newScheduledIds = new Set<string>();
       for (const order of fetched) {
         newMap.set(order.id, order.status);
+        // Track orders that are still in the "scheduled future" window (>30min)
+        if (
+          order.pickupSlotStart &&
+          new Date(order.pickupSlotStart).getTime() > Date.now() + THIRTY_MIN &&
+          !TERMINAL_STATUSES.includes(order.status) &&
+          order.status !== "PENDING"
+        ) {
+          newScheduledIds.add(order.id);
+        }
       }
       prevOrderMapRef.current = newMap;
+      prevScheduledIdsRef.current = newScheduledIds;
     } catch {
       setError("Erreur de connexion");
     } finally {
@@ -137,18 +167,27 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     return () => clearInterval(interval);
   }, [fetchOrders, intervalMs, enabled]);
 
-  // Filtered views
+  // Filtered views — scheduled orders (>30min before pickup) separated from in-progress
+  const scheduledIds = new Set<string>();
+  const scheduledOrders = orders
+    .filter((o) => {
+      if (!o.pickupSlotStart || TERMINAL_STATUSES.includes(o.status) || o.status === "PENDING") return false;
+      if (new Date(o.pickupSlotStart).getTime() <= Date.now() + THIRTY_MIN) return false;
+      scheduledIds.add(o.id);
+      return true;
+    })
+    .sort((a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime());
+
   const pendingOrders = orders.filter((o) => o.status === "PENDING");
   const acceptedOrders = orders.filter((o) => o.status === "ACCEPTED");
   const preparingOrders = orders.filter((o) => o.status === "PREPARING");
   const readyOrders = orders.filter((o) => o.status === "READY");
   const inProgressOrders = orders.filter(
-    (o) => o.status === "ACCEPTED" || o.status === "PREPARING"
+    (o) => (o.status === "ACCEPTED" || o.status === "PREPARING") && !scheduledIds.has(o.id)
   );
 
   // History: terminal statuses from the last 7 days
   const threeDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const TERMINAL_STATUSES = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED", "PARTIALLY_DENIED"];
   const historyOrders = orders
     .filter(
       (o) =>
@@ -156,16 +195,6 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
         new Date(o.updatedAt).getTime() >= threeDaysAgo
     )
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-
-  // Scheduled: orders with pickupSlotStart in the future
-  const scheduledOrders = orders
-    .filter(
-      (o) =>
-        o.pickupSlotStart &&
-        new Date(o.pickupSlotStart).getTime() > Date.now() &&
-        !TERMINAL_STATUSES.includes(o.status)
-    )
-    .sort((a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime());
 
   return {
     orders,
