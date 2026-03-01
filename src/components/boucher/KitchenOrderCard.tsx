@@ -21,9 +21,10 @@ import {
   Ban,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
-import { printOrderTicket } from "./OrderTicket";
+import { printOrderTicket, printOrderTicketFallback } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import { ORDER_STATUS_BORDER } from "@/lib/design-tokens";
+import { toast } from "sonner";
 
 type Props = {
   order: KitchenOrder;
@@ -138,13 +139,23 @@ export default function KitchenOrderCard({
       ? formatTime(order.requestedTime)
       : null;
 
+  /** Silent print: prints via hidden iframe, shows toast feedback */
+  function silentPrint() {
+    const ok = printOrderTicket(order, shopName);
+    if (ok) {
+      toast.success("Ticket imprime", { duration: 2000 });
+    } else {
+      toast.error("Impression echouee — utilisez Reimprimer", { duration: 4000 });
+    }
+  }
+
   async function doAction(action: string, data?: Record<string, unknown>) {
     setLoading(true);
     try {
       await onAction(order.id, action, data);
-      // Auto-print 2 tickets (CUISINE + CLIENT) on accept
+      // Auto-print 1 ticket silently on accept
       if (action === "accept") {
-        printOrderTicket(order, shopName, 2);
+        silentPrint();
       }
       setShowAcceptForm(false);
       setShowDenyForm(false);
@@ -226,7 +237,7 @@ export default function KitchenOrderCard({
         <div className="px-5 pb-5 pt-2">
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => printOrderTicket(order, shopName)}
+              onClick={silentPrint}
               className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[52px] py-3 rounded-xl text-base font-medium transition-all"
             >
               <Printer size={18} /> Ticket
@@ -495,7 +506,7 @@ export default function KitchenOrderCard({
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <button
-                onClick={() => printOrderTicket(order, shopName)}
+                onClick={silentPrint}
                 className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[52px] py-3 rounded-xl text-base font-medium transition-all"
               >
                 <Printer size={18} /> Ticket
@@ -671,7 +682,7 @@ export default function KitchenOrderCard({
                 <Timer size={16} /> +10 min
               </button>
               <button
-                onClick={() => printOrderTicket(order, shopName)}
+                onClick={silentPrint}
                 className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[52px] py-3 rounded-xl text-base font-medium transition-all"
               >
                 <Printer size={16} /> Ticket
@@ -715,7 +726,7 @@ export default function KitchenOrderCard({
                 <Timer size={16} /> +10 min
               </button>
               <button
-                onClick={() => printOrderTicket(order, shopName)}
+                onClick={silentPrint}
                 className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[52px] py-3 rounded-xl text-base font-medium transition-all"
               >
                 <Printer size={16} /> Ticket
@@ -742,7 +753,7 @@ export default function KitchenOrderCard({
               Remis au client
             </button>
             <button
-              onClick={() => printOrderTicket(order, shopName)}
+              onClick={silentPrint}
               className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[52px] py-3 rounded-xl text-base font-medium transition-all"
             >
               <Printer size={16} /> Imprimer le ticket

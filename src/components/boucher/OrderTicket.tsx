@@ -1,6 +1,5 @@
 // OrderTicket — Professional thermal receipt (302px / 80mm)
-// Opens in a new window with auto-print and @media print isolation
-// Supports multiple copies (CUISINE / CLIENT) with page-break
+// Silent printing via hidden iframe — no new tab/window
 "use client";
 
 import type { KitchenOrder } from "@/hooks/use-order-polling";
@@ -51,10 +50,8 @@ const LOGO_SVG = `<svg viewBox="0 0 100 100" width="48" height="48" style="displ
   <rect x="76" y="53" width="12" height="2.5" rx="1.25" fill="white" opacity="0.3"/>
 </svg>`;
 
-const COPY_LABELS = ["CUISINE", "CLIENT"];
-
-/** Build the HTML for a single ticket copy */
-function buildTicketHtml(order: KitchenOrder, shopName: string, copyLabel?: string): string {
+/** Build the HTML for a single ticket */
+function buildTicketHtml(order: KitchenOrder, shopName: string): string {
   const clientName = order.user
     ? `${order.user.firstName} ${order.user.lastName}`
     : "Client";
@@ -81,19 +78,13 @@ function buildTicketHtml(order: KitchenOrder, shopName: string, copyLabel?: stri
 
   const qrSection = order.qrCode
     ? `<div class="qr-section">
-        <div class="qr-label">QR Code de retrait</div>
+        <div class="qr-label">Code retrait</div>
         <div class="qr-code">${escapeHtml(order.qrCode)}</div>
       </div>`
     : "";
 
-  const copyBadge = copyLabel
-    ? `<div class="copy-badge">${escapeHtml(copyLabel)}</div>`
-    : "";
-
   return `
   <div class="ticket">
-    ${copyBadge}
-
     <!-- Header with logo -->
     <div class="header">
       ${LOGO_SVG}
@@ -144,7 +135,10 @@ function buildTicketHtml(order: KitchenOrder, shopName: string, copyLabel?: stri
       <div>${escapeHtml(order.customerNote)}</div>
     </div>` : ""}
 
-    ${order.requestedTime ? `
+    ${order.pickupSlotStart ? `
+    <div class="info-line">
+      Retrait : <strong>${formatTime(order.pickupSlotStart)}</strong>
+    </div>` : order.requestedTime ? `
     <div class="info-line">
       Retrait : <strong>${formatTime(order.requestedTime)}</strong>
     </div>` : ""}
@@ -162,25 +156,8 @@ function buildTicketHtml(order: KitchenOrder, shopName: string, copyLabel?: stri
   </div>`;
 }
 
-/** Open a printable thermal ticket in a new window.
- *  copies: number of ticket copies (default 1). 2 = CUISINE + CLIENT. */
-export function printOrderTicket(order: KitchenOrder, shopName?: string, copies = 1) {
-  const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
-  const shop = shopName || "Klik&Go";
-
-  let ticketsHtml = "";
-  for (let i = 0; i < copies; i++) {
-    const label = copies > 1 ? COPY_LABELS[i] || `COPIE ${i + 1}` : undefined;
-    const pageBreak = i < copies - 1 ? ' style="page-break-after: always;"' : "";
-    ticketsHtml += `<div${pageBreak}>${buildTicketHtml(order, shop, label)}</div>`;
-  }
-
-  const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>Ticket ${escapeHtml(ticketNumber)}</title>
-  <style>
+/** CSS styles for the thermal ticket (shared between silent and fallback) */
+const TICKET_CSS = `
     @page { margin: 0; size: 80mm auto; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -193,250 +170,136 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string, copies 
       color: #000;
       background: #fff;
     }
+    .ticket { padding: 12px 8px; position: relative; }
+    .header { text-align: center; padding-bottom: 6px; }
+    .brand-name { font-size: 16px; font-weight: bold; letter-spacing: 1px; margin-top: 4px; }
+    .shop-name { font-size: 14px; font-weight: bold; margin-top: 2px; color: #333; }
+    .hero { text-align: center; padding: 8px 0; }
+    .ticket-number { font-size: 28px; font-weight: 900; letter-spacing: 2px; line-height: 1.1; }
+    .client-name { font-size: 22px; font-weight: bold; margin-top: 2px; line-height: 1.2; }
+    .order-meta { font-size: 11px; color: #666; margin-top: 4px; }
+    .divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+    .divider-double { border: none; border-top: 2px solid #000; margin: 6px 0; }
+    .item-line { font-size: 12px; white-space: pre; font-family: 'Courier New', monospace; line-height: 1.6; }
+    .total-section { text-align: right; padding: 4px 0; }
+    .total-items { font-size: 11px; color: #666; }
+    .total-price { font-size: 18px; font-weight: bold; letter-spacing: 1px; }
+    .payment { font-size: 11px; text-align: center; padding: 4px; background: #f0f0f0; border-radius: 3px; margin: 4px 0; }
+    .pro-badge { display: inline-block; background: #DC2626; color: white; padding: 1px 6px; border-radius: 3px; font-size: 12px; font-weight: bold; vertical-align: middle; }
+    .note-section { background: #f5f5f5; padding: 6px; border-radius: 3px; font-size: 11px; margin: 4px 0; }
+    .note-section .note-label { font-weight: bold; font-size: 10px; text-transform: uppercase; color: #666; }
+    .scheduled-banner { text-align: center; padding: 8px 6px; margin: 6px 0; background: #000; color: #fff; border: 2px solid #000; border-radius: 4px; }
+    .scheduled-icon { font-size: 20px; line-height: 1; }
+    .scheduled-label { font-size: 14px; font-weight: 900; letter-spacing: 1px; margin-top: 2px; }
+    .scheduled-time { font-size: 18px; font-weight: 900; letter-spacing: 2px; margin-top: 2px; }
+    .info-line { font-size: 11px; margin: 4px 0; }
+    .qr-section { text-align: center; padding: 8px 0 4px; }
+    .qr-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+    .qr-code { font-size: 11px; font-weight: bold; letter-spacing: 2px; padding: 4px; border: 1px dashed #999; display: inline-block; margin-top: 4px; }
+    .footer { text-align: center; padding-top: 8px; }
+    .footer .thanks { font-size: 13px; font-weight: bold; }
+    .footer .tagline { font-size: 10px; color: #666; margin-top: 2px; }
+    .footer .date { font-size: 9px; color: #999; margin-top: 4px; }
+    @media print { body { width: 100%; padding: 0; } }
+`;
 
-    .ticket {
-      padding: 12px 8px;
-      position: relative;
-    }
+/** Build the full HTML document for the ticket */
+function buildFullHtml(order: KitchenOrder, shopName: string): string {
+  const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Ticket ${escapeHtml(ticketNumber)}</title>
+  <style>${TICKET_CSS}</style>
+</head>
+<body>
+  ${buildTicketHtml(order, shopName)}
+</body>
+</html>`;
+}
 
-    /* ── Copy badge ── */
-    .copy-badge {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: #000;
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 9px;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
+/** Print a single ticket silently via a hidden iframe.
+ *  No new tab, no popup, no preview — goes straight to printer.
+ *  Returns true if print was triggered, false on failure. */
+export function printOrderTicket(order: KitchenOrder, shopName?: string): boolean {
+  const shop = shopName || "Klik&Go";
+  const html = buildFullHtml(order, shop);
 
-    /* ── Header ── */
-    .header {
-      text-align: center;
-      padding-bottom: 6px;
-    }
-    .brand-name {
-      font-size: 16px;
-      font-weight: bold;
-      letter-spacing: 1px;
-      margin-top: 4px;
-    }
-    .shop-name {
-      font-size: 14px;
-      font-weight: bold;
-      margin-top: 2px;
-      color: #333;
-    }
+  try {
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.top = "-10000px";
+    iframe.style.left = "-10000px";
+    iframe.style.width = "302px";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    document.body.appendChild(iframe);
 
-    /* ── Hero: Big ticket number + client name ── */
-    .hero {
-      text-align: center;
-      padding: 8px 0;
-    }
-    .ticket-number {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      line-height: 1.1;
-    }
-    .client-name {
-      font-size: 22px;
-      font-weight: bold;
-      margin-top: 2px;
-      line-height: 1.2;
-    }
-    .order-meta {
-      font-size: 11px;
-      color: #666;
-      margin-top: 4px;
-    }
-
-    /* ── Dividers ── */
-    .divider {
-      border: none;
-      border-top: 1px dashed #000;
-      margin: 6px 0;
-    }
-    .divider-double {
-      border: none;
-      border-top: 2px solid #000;
-      margin: 6px 0;
-    }
-
-    /* ── Items ── */
-    .item-line {
-      font-size: 12px;
-      white-space: pre;
-      font-family: 'Courier New', monospace;
-      line-height: 1.6;
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      return false;
     }
 
-    /* ── Total ── */
-    .total-section {
-      text-align: right;
-      padding: 4px 0;
-    }
-    .total-items {
-      font-size: 11px;
-      color: #666;
-    }
-    .total-price {
-      font-size: 18px;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
+    doc.open();
+    doc.write(html);
+    doc.close();
 
-    /* ── Payment ── */
-    .payment {
-      font-size: 11px;
-      text-align: center;
-      padding: 4px;
-      background: #f0f0f0;
-      border-radius: 3px;
-      margin: 4px 0;
-    }
+    // Clean up iframe after print (or after timeout fallback)
+    const cleanup = () => {
+      try { document.body.removeChild(iframe); } catch { /* already removed */ }
+    };
 
-    /* ── Pro badge ── */
-    .pro-badge {
-      display: inline-block;
-      background: #DC2626;
-      color: white;
-      padding: 1px 6px;
-      border-radius: 3px;
-      font-size: 12px;
-      font-weight: bold;
-      vertical-align: middle;
-    }
+    iframe.contentWindow?.addEventListener("afterprint", cleanup);
 
-    /* ── Note ── */
-    .note-section {
-      background: #f5f5f5;
-      padding: 6px;
-      border-radius: 3px;
-      font-size: 11px;
-      margin: 4px 0;
-    }
-    .note-section .note-label {
-      font-weight: bold;
-      font-size: 10px;
-      text-transform: uppercase;
-      color: #666;
-    }
+    // Small delay for rendering, then trigger print
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.print();
+      } catch {
+        cleanup();
+      }
+      // Safety: remove iframe after 10s even if afterprint never fires
+      setTimeout(cleanup, 10_000);
+    }, 250);
 
-    /* ── Scheduled banner ── */
-    .scheduled-banner {
-      text-align: center;
-      padding: 8px 6px;
-      margin: 6px 0;
-      background: #000;
-      color: #fff;
-      border: 2px solid #000;
-      border-radius: 4px;
-    }
-    .scheduled-icon {
-      font-size: 20px;
-      line-height: 1;
-    }
-    .scheduled-label {
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: 1px;
-      margin-top: 2px;
-    }
-    .scheduled-time {
-      font-size: 18px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      margin-top: 2px;
-    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-    /* ── Info line ── */
-    .info-line {
-      font-size: 11px;
-      margin: 4px 0;
-    }
+/** Fallback: open ticket in a new window (manual print).
+ *  Used when silent print fails or user clicks "Réimprimer". */
+export function printOrderTicketFallback(order: KitchenOrder, shopName?: string) {
+  const shop = shopName || "Klik&Go";
+  const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
+  const ticketHtml = buildTicketHtml(order, shop);
 
-    /* ── QR ── */
-    .qr-section {
-      text-align: center;
-      padding: 8px 0 4px;
-    }
-    .qr-label {
-      font-size: 10px;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .qr-code {
-      font-size: 11px;
-      font-weight: bold;
-      letter-spacing: 2px;
-      padding: 4px;
-      border: 1px dashed #999;
-      display: inline-block;
-      margin-top: 4px;
-    }
-
-    /* ── Footer ── */
-    .footer {
-      text-align: center;
-      padding-top: 8px;
-    }
-    .footer .thanks {
-      font-size: 13px;
-      font-weight: bold;
-    }
-    .footer .tagline {
-      font-size: 10px;
-      color: #666;
-      margin-top: 2px;
-    }
-    .footer .date {
-      font-size: 9px;
-      color: #999;
-      margin-top: 4px;
-    }
-
-    /* ── Print ── */
-    @media print {
-      body { width: 100%; padding: 0; }
-      .no-print { display: none !important; }
-    }
-
-    /* ── Screen print button ── */
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Ticket ${escapeHtml(ticketNumber)}</title>
+  <style>
+    ${TICKET_CSS}
+    .no-print { display: block; }
+    @media print { .no-print { display: none !important; } }
     .print-btn {
-      display: block;
-      width: 280px;
-      margin: 12px auto;
-      padding: 10px;
-      background: #DC2626;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      font-family: sans-serif;
+      display: block; width: 280px; margin: 12px auto; padding: 10px;
+      background: #DC2626; color: white; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: bold; cursor: pointer; font-family: sans-serif;
     }
     .print-btn:hover { background: #b91c1c; }
   </style>
 </head>
 <body>
-  ${ticketsHtml}
-
-  <!-- Print button (screen only) -->
-  <button class="print-btn no-print" onclick="window.print()">
-    Imprimer ${copies > 1 ? `les ${copies} tickets` : "le ticket"}
-  </button>
-
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 300);
-    };
-  </script>
+  ${ticketHtml}
+  <button class="print-btn no-print" onclick="window.print()">Imprimer le ticket</button>
+  <script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>
 </body>
 </html>`;
 
