@@ -237,17 +237,36 @@ export async function POST(req: NextRequest) {
     // Verify stock + snooze
     const productMap = new Map(products.map((p) => [p.id, p]));
 
+    const missingProductIds: string[] = [];
+    const unavailableProducts: string[] = [];
+
     for (const item of data.items) {
       const product = productMap.get(item.productId);
       if (!product) {
-        return apiError("NOT_FOUND", `Produit ${item.productId} introuvable dans cette boucherie`);
+        missingProductIds.push(item.productId);
+        continue;
       }
       if (!product.inStock) {
-        return apiError("STOCK_INSUFFICIENT", `${product.name} n'est plus en stock`);
+        unavailableProducts.push(product.name);
       }
       if (product.snoozeType !== "NONE") {
-        return apiError("STOCK_INSUFFICIENT", `${product.name} est temporairement indisponible`);
+        unavailableProducts.push(product.name);
       }
+    }
+
+    if (missingProductIds.length > 0) {
+      return apiError(
+        "PRODUCTS_MISSING",
+        `${missingProductIds.length} produit(s) introuvable(s) — ils ont peut-etre ete supprimes. Veuillez actualiser votre panier.`,
+        { missingProductIds }
+      );
+    }
+
+    if (unavailableProducts.length > 0) {
+      return apiError(
+        "STOCK_INSUFFICIENT",
+        `${unavailableProducts.join(", ")} — produit(s) indisponible(s)`
+      );
     }
 
     // ── Calculate totalCents with promo + weight ──

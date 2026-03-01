@@ -13,7 +13,7 @@ interface OrderCountdownProps {
   pickupLabel: string;
   onCancel: () => void;
   onSuccess: (order: { id: string; orderNumber: string }) => void;
-  onError: () => void;
+  onError: (missingProductIds?: string[]) => void;
   duration?: number;
 }
 
@@ -44,6 +44,7 @@ export function OrderCountdown({
   const [status, setStatus] = useState<Status>("countdown");
   const [errorMsg, setErrorMsg] = useState("");
   const cancelledRef = useRef(false);
+  const missingIdsRef = useRef<string[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prefersReducedMotion =
     typeof window !== "undefined" &&
@@ -77,15 +78,12 @@ export function OrderCountdown({
       } else {
         const msg =
           data.error?.message || "Erreur lors de la commande";
-        const details = data.error?.details;
-        const detailStr = details
-          ? " — " +
-            Object.entries(details)
-              .map(([k, v]) => `${k}: ${v}`)
-              .join(", ")
-          : "";
-        setErrorMsg(msg + detailStr);
+        setErrorMsg(msg);
         setStatus("error");
+        // If products are missing, store their IDs for cleanup
+        if (data.error?.code === "PRODUCTS_MISSING" && data.error?.details?.missingProductIds) {
+          missingIdsRef.current = data.error.details.missingProductIds;
+        }
       }
     } catch {
       if (cancelledRef.current) return;
@@ -297,7 +295,7 @@ export function OrderCountdown({
                 type="button"
                 onClick={() => {
                   cancelledRef.current = true;
-                  onError();
+                  onError(missingIdsRef.current.length > 0 ? missingIdsRef.current : undefined);
                 }}
                 className="w-full h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800 text-gray-900 dark:text-white text-sm font-medium transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-700"
               >

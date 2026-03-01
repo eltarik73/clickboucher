@@ -169,7 +169,7 @@ export default function PanierPage() {
   const role = user?.publicMetadata?.role as string | undefined;
   const isPro = role === "client_pro";
 
-  // Fetch shop payment config
+  // Fetch shop payment config + validate cart products
   useEffect(() => {
     if (!state.shopId) return;
     fetch(`/api/shops/${state.shopId}`)
@@ -183,6 +183,39 @@ export default function PanierPage() {
         }
       })
       .catch(() => {});
+  }, [state.shopId]);
+
+  // Validate cart products still exist in the shop
+  useEffect(() => {
+    if (!state.shopId || state.items.length === 0) return;
+    const productIds = state.items
+      .map((i) => i.productId || i.id)
+      .filter(Boolean);
+    if (productIds.length === 0) return;
+
+    fetch(`/api/shops/${state.shopId}/products/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productIds }),
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        const missingIds: string[] = json.data?.missingIds || [];
+        if (missingIds.length > 0) {
+          // Remove stale items from cart
+          for (const item of state.items) {
+            const pid = item.productId || item.id;
+            if (missingIds.includes(pid)) {
+              removeItem(item.id);
+            }
+          }
+          toast.error(
+            `${missingIds.length} produit(s) supprime(s) du panier (plus disponibles)`
+          );
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.shopId]);
 
   // Fetch available slots when date or shop changes
@@ -747,9 +780,21 @@ export default function PanierPage() {
             toast.success(`Commande ${order.orderNumber} confirmee !`);
             router.push(`/suivi/${order.id}`);
           }}
-          onError={() => {
+          onError={(missingProductIds) => {
             setShowCountdown(false);
             setCountdownOrderData(null);
+            // Auto-clean stale products from cart
+            if (missingProductIds && missingProductIds.length > 0) {
+              for (const item of state.items) {
+                const pid = item.productId || item.id;
+                if (missingProductIds.includes(pid)) {
+                  removeItem(item.id);
+                }
+              }
+              toast.error(
+                `${missingProductIds.length} produit(s) retire(s) du panier (plus disponibles)`
+              );
+            }
           }}
           duration={5}
         />
