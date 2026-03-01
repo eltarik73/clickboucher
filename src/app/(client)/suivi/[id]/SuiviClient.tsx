@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Phone, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
+import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
 
 // ── Types ──
 
@@ -13,6 +15,19 @@ interface OrderItem {
   unit: string;
   totalCents: number;
   weightGrams: number | null;
+}
+
+interface PriceAdjustmentData {
+  id: string;
+  originalTotal: number;
+  newTotal: number;
+  reason: string | null;
+  adjustmentType: string;
+  status: string;
+  tier: number;
+  autoApproveAt: string | null;
+  escalateAt: string | null;
+  createdAt: string;
 }
 
 interface OrderData {
@@ -31,6 +46,7 @@ interface OrderData {
   items: OrderItem[];
   shop: { id: string; name: string; address: string; city: string; phone: string };
   user: { firstName: string; lastName: string; customerNumber: string | null };
+  priceAdjustment: PriceAdjustmentData | null;
 }
 
 // ── Helpers ──
@@ -72,8 +88,19 @@ function getStepIndex(status: string) {
 
 // ── Component ──
 
+// ── Status toast labels ──
+const STATUS_TOAST: Record<string, { label: string; emoji: string }> = {
+  ACCEPTED: { label: "Commande acceptée !", emoji: "✅" },
+  PREPARING: { label: "En préparation...", emoji: "👨‍🍳" },
+  READY: { label: "Commande prête — venez la chercher !", emoji: "🎉" },
+  PICKED_UP: { label: "Commande retirée — bon appétit !", emoji: "🥩" },
+  DENIED: { label: "Commande refusée", emoji: "❌" },
+  CANCELLED: { label: "Commande annulée", emoji: "🚫" },
+};
+
 export default function SuiviClient({ order: initial }: { order: OrderData }) {
   const [order, setOrder] = useState(initial);
+  const prevStatusRef = useRef(initial.status);
   const isTerminal = TERMINAL.includes(order.status);
   const isCollected = order.status === "PICKED_UP" || order.status === "COMPLETED";
   const isReady = order.status === "READY";
@@ -83,7 +110,18 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
   const customerName = `${order.user.firstName} ${order.user.lastName.charAt(0)}.`;
   const stepIdx = getStepIndex(order.status);
 
-  // ── Polling 10s ──
+  // ── Toast on status change ──
+  useEffect(() => {
+    if (order.status !== prevStatusRef.current) {
+      const info = STATUS_TOAST[order.status];
+      if (info) {
+        toast(info.label, { icon: info.emoji });
+      }
+      prevStatusRef.current = order.status;
+    }
+  }, [order.status]);
+
+  // ── Polling 5s ──
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch(`/api/orders/${order.id}/status`);
@@ -93,12 +131,17 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           setOrder((prev) => ({
             ...prev,
             status: json.data.status,
+            totalCents: json.data.totalCents ?? prev.totalCents,
             boucherNote: json.data.boucherNote ?? prev.boucherNote,
             estimatedReady: json.data.estimatedReady ?? prev.estimatedReady,
             actualReady: json.data.actualReady ?? prev.actualReady,
             pickedUpAt: json.data.pickedUpAt ?? prev.pickedUpAt,
             updatedAt: json.data.updatedAt ?? prev.updatedAt,
             displayNumber: json.data.displayNumber ?? prev.displayNumber,
+            items: json.data.items?.length ? json.data.items : prev.items,
+            priceAdjustment: json.data.priceAdjustment !== undefined
+              ? json.data.priceAdjustment
+              : prev.priceAdjustment,
           }));
         }
       }
@@ -107,7 +150,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
 
   useEffect(() => {
     if (isTerminal) return;
-    const iv = setInterval(fetchStatus, 10_000);
+    const iv = setInterval(fetchStatus, 5_000);
     return () => clearInterval(iv);
   }, [fetchStatus, isTerminal]);
 
@@ -182,6 +225,17 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* ══════════════════════════════════════════════ */}
         {!isCollected && (
           <StatusBadge status={order.status} />
+        )}
+
+        {/* ══════════════════════════════════════════════ */}
+        {/* PRICE ADJUSTMENT BANNER */}
+        {/* ══════════════════════════════════════════════ */}
+        {order.priceAdjustment && (
+          <PriceAdjustmentBanner
+            orderId={order.id}
+            adjustment={order.priceAdjustment}
+            onUpdate={fetchStatus}
+          />
         )}
 
         {/* ══════════════════════════════════════════════ */}
@@ -314,7 +368,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* ══════════════════════════════════════════════ */}
         {/* ESTIMATED TIME + COUNTDOWN */}
         {/* ══════════════════════════════════════════════ */}
-        {order.estimatedReady && !isCollected && (
+        {order.estimatedReady && !isCollected && !isReady && (
           <EstimatedCountdown estimatedReady={order.estimatedReady} />
         )}
 

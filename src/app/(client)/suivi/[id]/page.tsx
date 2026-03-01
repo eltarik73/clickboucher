@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { MapPin, Phone } from "lucide-react";
 import prisma from "@/lib/prisma";
 import SuiviClient from "./SuiviClient";
 
@@ -40,6 +39,20 @@ export default async function SuiviPage({
       },
       shop: { select: { id: true, name: true, address: true, city: true, phone: true } },
       user: { select: { firstName: true, lastName: true, customerNumber: true } },
+      priceAdjustment: {
+        select: {
+          id: true,
+          originalTotal: true,
+          newTotal: true,
+          reason: true,
+          adjustmentType: true,
+          status: true,
+          tier: true,
+          autoApproveAt: true,
+          escalateAt: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -74,6 +87,20 @@ export default async function SuiviPage({
           lastName: order.user.lastName,
           customerNumber: order.user.customerNumber,
         },
+        priceAdjustment: order.priceAdjustment
+          ? {
+              id: order.priceAdjustment.id,
+              originalTotal: order.priceAdjustment.originalTotal,
+              newTotal: order.priceAdjustment.newTotal,
+              reason: order.priceAdjustment.reason,
+              adjustmentType: order.priceAdjustment.adjustmentType,
+              status: order.priceAdjustment.status,
+              tier: order.priceAdjustment.tier,
+              autoApproveAt: order.priceAdjustment.autoApproveAt?.toISOString() ?? null,
+              escalateAt: order.priceAdjustment.escalateAt?.toISOString() ?? null,
+              createdAt: order.priceAdjustment.createdAt.toISOString(),
+            }
+          : null,
       }}
     />
   );

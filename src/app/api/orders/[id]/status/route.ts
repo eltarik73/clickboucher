@@ -52,6 +52,20 @@ export async function GET(
         },
         shop: { select: { id: true, name: true, phone: true, address: true, city: true } },
         user: { select: { clerkId: true, firstName: true, lastName: true, customerNumber: true } },
+        priceAdjustment: {
+          select: {
+            id: true,
+            originalTotal: true,
+            newTotal: true,
+            reason: true,
+            adjustmentType: true,
+            status: true,
+            tier: true,
+            autoApproveAt: true,
+            escalateAt: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
