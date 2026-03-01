@@ -34,6 +34,7 @@ export type NotifEvent =
   | "PRICE_ADJUSTMENT_ACCEPTED"
   | "PRICE_ADJUSTMENT_REJECTED"
   | "PRICE_ADJUSTMENT_AUTO_VALIDATED"
+  | "PRICE_ADJUSTMENT_ESCALATED"
   | "PICKUP_SOON"
   | "LOYALTY_REWARD_EARNED"
   | "PROMO_NEW"
@@ -56,6 +57,8 @@ export type NotifData = {
   // Price adjustment data
   originalTotal?: number;
   newTotal?: number;
+  tier?: number;
+  autoApproveSeconds?: number;
   // Weekly report data
   weeklyRevenue?: number;
   weeklyOrders?: number;
@@ -242,6 +245,13 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         subject: `✅ Ajustement validé automatiquement — Commande ${data.orderNumber}`,
         html: tpl.priceAdjustmentAutoValidated(data),
         plainText: `L'ajustement de prix pour la commande ${data.orderNumber} a été validé automatiquement (délai expiré). Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
+      };
+
+    case "PRICE_ADJUSTMENT_ESCALATED":
+      return {
+        subject: `⚠️ Ajustement escaladé — Commande ${data.orderNumber}`,
+        html: `<p>L'ajustement de prix pour la commande <strong>${data.orderNumber}</strong> chez ${data.shopName} n'a pas reçu de réponse client après 10 minutes.</p><p>Ancien total : ${((data.originalTotal || 0) / 100).toFixed(2)}€ → Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€</p><p>Action requise du webmaster.</p>`,
+        plainText: `Ajustement escaladé — Commande ${data.orderNumber} chez ${data.shopName}. Pas de réponse client après 10 min. ${((data.originalTotal || 0) / 100).toFixed(2)}€ → ${((data.newTotal || 0) / 100).toFixed(2)}€. Action webmaster requise.`,
       };
 
     case "PICKUP_SOON":
@@ -448,6 +458,13 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
         url: orderUrl,
         tag: orderTag,
       };
+    case "PRICE_ADJUSTMENT_ESCALATED":
+      return {
+        title: "⚠️ Ajustement escaladé",
+        body: `Commande #${data.orderNumber} — pas de réponse client après 10 min`,
+        url: `${baseUrl}/boucher/commandes`,
+        tag: orderTag,
+      };
     case "PICKUP_SOON":
       return {
         title: "🚶 Bientôt prête !",
@@ -536,7 +553,7 @@ type UserPrefs = {
 
 async function resolveUser(event: NotifEvent, data: NotifData): Promise<UserPrefs | null> {
   // Events targeted at boucher (by shopId)
-  const boucherEvents: NotifEvent[] = ["ORDER_PENDING", "PRICE_ADJUSTMENT_ACCEPTED", "PRICE_ADJUSTMENT_REJECTED"];
+  const boucherEvents: NotifEvent[] = ["ORDER_PENDING", "PRICE_ADJUSTMENT_ACCEPTED", "PRICE_ADJUSTMENT_REJECTED", "PRICE_ADJUSTMENT_ESCALATED"];
   if (boucherEvents.includes(event) && data.shopId) {
     const shop = await prisma.shop.findUnique({
       where: { id: data.shopId },

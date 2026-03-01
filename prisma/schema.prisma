@@ -63,6 +63,7 @@ enum AdjustmentStatus {
   APPROVED
   REJECTED
   AUTO_VALIDATED
+  ESCALATED
 }
 
 enum Unit {
@@ -1013,12 +1014,16 @@ model PriceAdjustment {
   adjustmentType AdjustmentType   @map("adjustment_type")
   status         AdjustmentStatus @default(PENDING)
   itemsSnapshot  Json?            @map("items_snapshot")
+  tier           Int              @default(1)
   autoApproveAt  DateTime?        @map("auto_approve_at")
+  escalateAt     DateTime?        @map("escalate_at")
   respondedAt    DateTime?        @map("responded_at")
   createdAt      DateTime         @default(now()) @map("created_at")
 
   @@index([orderId])
   @@index([shopId, status])
+  @@index([status, autoApproveAt])
+  @@index([status, escalateAt])
   @@map("price_adjustments")
 }
 

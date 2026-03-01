@@ -652,7 +652,117 @@ export function startCronJobs() {
   });
 
   // ═══════════════════════════════════════════
-  // 14. Auto-open/close based on opening hours — every minute
+  // 14. Price adjustment auto-approve (tier 2) + escalation (tier 3) — every 30s
+  // ═══════════════════════════════════════════
+  cron.schedule("*/1 * * * *", async () => {
+    try {
+      const now = new Date();
+
+      // ── Tier 2: auto-approve expired (30s timer) ──
+      const expiredTier2 = await prisma.priceAdjustment.findMany({
+        where: {
+          status: "PENDING",
+          tier: 2,
+          autoApproveAt: { not: null, lte: now },
+        },
+        select: { id: true, orderId: true, newTotal: true, itemsSnapshot: true },
+      });
+
+      for (const adj of expiredTier2) {
+        try {
+          await prisma.$transaction([
+            prisma.priceAdjustment.update({
+              where: { id: adj.id },
+              data: { status: "AUTO_VALIDATED", respondedAt: now },
+            }),
+            prisma.order.update({
+              where: { id: adj.orderId },
+              data: { totalCents: adj.newTotal },
+            }),
+          ]);
+
+          // Apply item snapshot
+          if (adj.itemsSnapshot && Array.isArray(adj.itemsSnapshot)) {
+            for (const snap of adj.itemsSnapshot as Record<string, unknown>[]) {
+              const updateData: Record<string, unknown> = {};
+              if (snap.newQuantity !== undefined) updateData.quantity = snap.newQuantity;
+              if (snap.newPriceCents !== undefined) updateData.priceCents = snap.newPriceCents;
+              if (snap.newTotalCents !== undefined) updateData.totalCents = snap.newTotalCents;
+              if (Object.keys(updateData).length > 0 && snap.orderItemId) {
+                await prisma.orderItem.update({
+                  where: { id: snap.orderItemId as string },
+                  data: updateData,
+                });
+              }
+            }
+          }
+
+          // Notify client
+          const order = await prisma.order.findUnique({
+            where: { id: adj.orderId },
+            select: { userId: true, orderNumber: true, shop: { select: { name: true } } },
+          });
+          if (order) {
+            await sendNotification("PRICE_ADJUSTMENT_AUTO_VALIDATED", {
+              userId: order.userId,
+              orderId: adj.orderId,
+              orderNumber: order.orderNumber,
+              shopName: order.shop.name,
+            });
+          }
+        } catch {
+          // Continue with next adjustment
+        }
+      }
+
+      // ── Tier 3: escalate after 10 min ──
+      const expiredTier3 = await prisma.priceAdjustment.findMany({
+        where: {
+          status: "PENDING",
+          tier: 3,
+          escalateAt: { not: null, lte: now },
+        },
+        select: { id: true, orderId: true, originalTotal: true, newTotal: true },
+      });
+
+      for (const adj of expiredTier3) {
+        try {
+          await prisma.priceAdjustment.update({
+            where: { id: adj.id },
+            data: { status: "ESCALATED", respondedAt: now },
+          });
+
+          // Notify admin/webmaster
+          const order = await prisma.order.findUnique({
+            where: { id: adj.orderId },
+            select: { orderNumber: true, shop: { select: { name: true } } },
+          });
+          if (order) {
+            await sendNotification("PRICE_ADJUSTMENT_ESCALATED", {
+              orderId: adj.orderId,
+              orderNumber: order.orderNumber,
+              shopName: order.shop.name,
+              originalTotal: adj.originalTotal,
+              newTotal: adj.newTotal,
+              tier: 3,
+            });
+          }
+        } catch {
+          // Continue with next adjustment
+        }
+      }
+
+      const total = expiredTier2.length + expiredTier3.length;
+      if (total > 0) {
+        console.log(`[CRON][price-adjust] Auto-validated ${expiredTier2.length} tier-2, escalated ${expiredTier3.length} tier-3`);
+      }
+    } catch (error) {
+      console.error("[CRON][price-adjust] Error:", error);
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  // 15. Auto-open/close based on opening hours — every minute
   //     Opens CLOSED shops during their hours, closes OPEN/BUSY shops after hours
   //     Respects manual PAUSED and VACATION — never overrides
   // ═══════════════════════════════════════════

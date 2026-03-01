@@ -1,9 +1,10 @@
-// PriceAdjustModal — Boucher adjusts order price (weight/price/manual)
+// PriceAdjustModal — Boucher adjusts order price (3-tier system)
 "use client";
 
 import { useState } from "react";
-import { DollarSign, Loader2, X, Scale, Tag, PenLine } from "lucide-react";
+import { DollarSign, Loader2, X, Scale, Tag, PenLine, Shield, Clock, AlertTriangle } from "lucide-react";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
+import { TIER_1_MAX, TIER_2_MAX, MAX_INCREASE_PCT } from "@/lib/price-adjustment-config";
 
 type Props = {
   order: KitchenOrder;
@@ -24,12 +25,19 @@ function formatPrice(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
+function computeDisplayTier(diffPct: number, isDecrease: boolean): number {
+  if (isDecrease) return 1;
+  if (diffPct <= TIER_1_MAX) return 1;
+  if (diffPct <= TIER_2_MAX) return 2;
+  return 3;
+}
+
 export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
   const [tab, setTab] = useState<TabKey>("WEIGHT");
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState("");
 
-  // Weight tab: new quantities per item (keyed by item.id)
+  // Weight tab: new quantities per item
   const [quantities, setQuantities] = useState<Record<string, number>>(() => {
     const map: Record<string, number> = {};
     for (const item of order.items) {
@@ -38,7 +46,6 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     return map;
   });
 
-  // String-based weight inputs (prevents leading zeros)
   const [weightInputs, setWeightInputs] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
     for (const item of order.items) {
@@ -48,7 +55,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     return map;
   });
 
-  // Price tab: new unit prices per item (keyed by item.id, in cents)
+  // Price tab: new unit prices per item
   const [prices, setPrices] = useState<Record<string, number>>(() => {
     const map: Record<string, number> = {};
     for (const item of order.items) {
@@ -57,7 +64,6 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     return map;
   });
 
-  // String-based input states (allows free editing without reformatting)
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
     for (const item of order.items) {
@@ -66,7 +72,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     return map;
   });
 
-  // Manual tab: new total in cents
+  // Manual tab
   const [manualTotal, setManualTotal] = useState(order.totalCents);
   const [manualInput, setManualInput] = useState((order.totalCents / 100).toFixed(2));
 
@@ -89,13 +95,12 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
   }
 
   const diff = newTotal - originalTotal;
-  const diffPct = originalTotal > 0 ? (diff / originalTotal) * 100 : 0;
-  const maxAllowed = Math.round(originalTotal * 1.1);
+  const diffPct = originalTotal > 0 ? Math.abs(diff / originalTotal) * 100 : 0;
+  const maxAllowed = Math.round(originalTotal * (1 + MAX_INCREASE_PCT / 100));
   const overMax = newTotal > maxAllowed;
   const hasChanges = newTotal !== originalTotal;
-  // Threshold logic: within threshold = auto, above = needs client validation
-  const shopThreshold = (order as KitchenOrder & { shop?: { priceAdjustmentThreshold?: number } }).shop?.priceAdjustmentThreshold ?? 10;
-  const withinThreshold = diff <= 0 || diffPct <= shopThreshold;
+  const isDecrease = diff < 0;
+  const tier = hasChanges ? computeDisplayTier(diffPct, isDecrease) : 0;
 
   async function handleSubmit() {
     setLoading(true);
@@ -137,6 +142,13 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     { key: "PRICE", label: "Prix", icon: Tag },
     { key: "MANUAL", label: "Manuel", icon: PenLine },
   ];
+
+  // ── Tier badge config ──
+  const tierConfig = {
+    1: { label: "Palier 1", color: "emerald", icon: Shield, desc: "Auto-accepte" },
+    2: { label: "Palier 2", color: "amber", icon: Clock, desc: "30s pour refuser" },
+    3: { label: "Palier 3", color: "red", icon: AlertTriangle, desc: "Approbation client requise" },
+  } as const;
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -294,18 +306,20 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
 
           {/* Reason */}
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Raison (optionnel)</label>
+            <label className="text-xs text-gray-400 block mb-1">
+              Raison {tier === 3 ? "(recommande)" : "(optionnel)"}
+            </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Ex: Poids reel different du commande..."
+              placeholder="Ex: Poids reel different de la commande..."
               className="w-full bg-[#0a0a0a] border border-white/10 rounded-xl px-3 py-2 text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500/40 placeholder-gray-600"
               rows={2}
             />
           </div>
         </div>
 
-        {/* ── Price diff display ── */}
+        {/* ── Price diff + tier display ── */}
         <div className="px-5 py-3 border-t border-white/10 shrink-0">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -315,7 +329,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
             <div className="text-center">
               <p className="text-xs text-gray-500">Difference</p>
               <p className={`text-sm font-bold ${diff < 0 ? "text-emerald-400" : diff > 0 ? "text-amber-400" : "text-gray-500"}`}>
-                {diff >= 0 ? "+" : ""}{formatPrice(diff)} ({diffPct >= 0 ? "+" : ""}{diffPct.toFixed(1)}%)
+                {diff >= 0 ? "+" : ""}{formatPrice(diff)} ({diff >= 0 ? "+" : "-"}{diffPct.toFixed(1)}%)
               </p>
             </div>
             <div className="text-right">
@@ -324,35 +338,62 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
             </div>
           </div>
 
-          {/* Warnings */}
+          {/* Tier badge */}
+          {hasChanges && !overMax && tier > 0 && (
+            <div className={`rounded-lg px-3 py-2.5 mb-3 border ${
+              tier === 1
+                ? "bg-emerald-500/10 border-emerald-500/20"
+                : tier === 2
+                ? "bg-amber-500/10 border-amber-500/20"
+                : "bg-red-500/10 border-red-500/20"
+            }`}>
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const tc = tierConfig[tier as 1 | 2 | 3];
+                  const Icon = tc.icon;
+                  return (
+                    <>
+                      <Icon size={14} className={
+                        tier === 1 ? "text-emerald-400" :
+                        tier === 2 ? "text-amber-400" :
+                        "text-red-400"
+                      } />
+                      <span className={`text-xs font-bold ${
+                        tier === 1 ? "text-emerald-400" :
+                        tier === 2 ? "text-amber-400" :
+                        "text-red-400"
+                      }`}>
+                        {tc.label}
+                      </span>
+                      <span className={`text-xs ml-1 ${
+                        tier === 1 ? "text-emerald-400/70" :
+                        tier === 2 ? "text-amber-400/70" :
+                        "text-red-400/70"
+                      }`}>
+                        — {tc.desc}
+                      </span>
+                    </>
+                  );
+                })()}
+              </div>
+              <p className={`text-[11px] mt-1 ${
+                tier === 1 ? "text-emerald-400/60" :
+                tier === 2 ? "text-amber-400/60" :
+                "text-red-400/60"
+              }`}>
+                {tier === 1 && isDecrease && "Baisse de prix — appliquee automatiquement"}
+                {tier === 1 && !isDecrease && `Hausse ≤${TIER_1_MAX}% — appliquee automatiquement`}
+                {tier === 2 && `Hausse ${TIER_1_MAX}-${TIER_2_MAX}% — le client a 30s pour refuser`}
+                {tier === 3 && `Hausse >${TIER_2_MAX}% — le client doit accepter (escalade apres 10 min)`}
+              </p>
+            </div>
+          )}
+
+          {/* Over max warning */}
           {overMax && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-3">
               <p className="text-xs text-red-400 font-medium">
-                L&apos;ajustement ne peut pas depasser +10% du prix initial ({formatPrice(maxAllowed)} max)
-              </p>
-            </div>
-          )}
-
-          {diff > 0 && !overMax && !withinThreshold && (
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
-              <p className="text-xs text-amber-400">
-                Au-dessus du seuil ({shopThreshold}%) — le client aura 5 min pour valider
-              </p>
-            </div>
-          )}
-
-          {diff > 0 && !overMax && withinThreshold && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 mb-3">
-              <p className="text-xs text-emerald-400">
-                Dans le seuil ({shopThreshold}%) — sera applique automatiquement
-              </p>
-            </div>
-          )}
-
-          {diff < 0 && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 mb-3">
-              <p className="text-xs text-emerald-400">
-                Baisse de prix — sera appliquee automatiquement
+                L&apos;ajustement ne peut pas depasser +{MAX_INCREASE_PCT}% du prix initial ({formatPrice(maxAllowed)} max)
               </p>
             </div>
           )}
@@ -368,14 +409,18 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
             <button
               onClick={handleSubmit}
               disabled={!hasChanges || overMax || loading}
-              className="flex-1 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className={`flex-1 py-3 rounded-xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                tier === 3
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : "bg-amber-600 hover:bg-amber-700 text-white"
+              }`}
             >
               {loading ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
                   <DollarSign size={16} />
-                  Confirmer
+                  {tier === 3 ? "Envoyer au client" : "Confirmer"}
                 </>
               )}
             </button>

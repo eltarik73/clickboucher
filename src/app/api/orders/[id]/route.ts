@@ -38,8 +38,13 @@ export async function GET(
       return apiError("NOT_FOUND", "Commande introuvable");
     }
 
-    // Auto-approve expired price adjustment if any
-    if (order.priceAdjustment?.status === "PENDING" && order.priceAdjustment.autoApproveAt && new Date() >= new Date(order.priceAdjustment.autoApproveAt)) {
+    // Auto-approve/escalate expired price adjustment if any
+    const pa = order.priceAdjustment;
+    const shouldCheck = pa?.status === "PENDING" && (
+      (pa.autoApproveAt && new Date() >= new Date(pa.autoApproveAt)) ||
+      (pa.escalateAt && new Date() >= new Date(pa.escalateAt))
+    );
+    if (shouldCheck) {
       await autoApproveExpiredAdjustment(id);
       const refreshed = await prisma.order.findUnique({
         where: { id },

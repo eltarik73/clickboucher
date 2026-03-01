@@ -81,7 +81,9 @@ interface OrderData {
     reason: string | null;
     adjustmentType: string;
     status: string;
+    tier: number;
     autoApproveAt: string | null;
+    escalateAt: string | null;
     createdAt: string;
   } | null;
 }

@@ -5,7 +5,12 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
-import { MAX_INCREASE_PCT } from "@/lib/price-adjustment";
+import {
+  MAX_INCREASE_PCT,
+  computeTier,
+  TIER_2_AUTO_APPROVE_SEC,
+  TIER_3_ESCALATION_MIN,
+} from "@/lib/price-adjustment";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -22,7 +27,7 @@ const adjustPriceSchema = z.object({
 });
 
 // ── PATCH /api/orders/[id]/adjust-price ──
-// Boucher creates a price adjustment
+// Boucher creates a price adjustment (3-tier system)
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -74,7 +79,6 @@ export async function PATCH(
         let newItemTotal = item.totalCents;
 
         if (data.adjustmentType === "WEIGHT" && adj.newQuantity !== undefined) {
-          // Recalculate based on new quantity (weight for KG items)
           newItemTotal = Math.round(item.priceCents * adj.newQuantity);
           itemsSnapshot.push({
             orderItemId: item.id,
@@ -107,13 +111,7 @@ export async function PATCH(
       return apiError("VALIDATION_ERROR", "Donnees d'ajustement manquantes");
     }
 
-    // ── Compute difference vs shop threshold ──
-    const shopThreshold = order.shop.priceAdjustmentThreshold ?? 10;
-    const differencePercent = originalTotal > 0
-      ? ((newTotal - originalTotal) / originalTotal) * 100
-      : 0;
-
-    // Hard cap: never exceed MAX_INCREASE_PCT (safety net)
+    // ── Hard cap safety net ──
     const maxAllowed = Math.round(originalTotal * (1 + MAX_INCREASE_PCT / 100));
     if (newTotal > maxAllowed) {
       return apiError("VALIDATION_ERROR",
@@ -121,12 +119,15 @@ export async function PATCH(
       );
     }
 
+    // ── Compute tier ──
+    const tier = computeTier(originalTotal, newTotal);
+
     // ── Delete previous resolved adjustment if exists ──
     if (order.priceAdjustment && order.priceAdjustment.status !== "PENDING") {
       await prisma.priceAdjustment.delete({ where: { id: order.priceAdjustment.id } });
     }
 
-    // Helper: apply item-level changes
+    // Helper: apply item-level changes immediately
     const applyItemChanges = async () => {
       if (!data.items) return;
       for (const adj of data.items) {
@@ -146,11 +147,14 @@ export async function PATCH(
       }
     };
 
-    // ── Decision: cheaper OR within threshold → auto-approve ──
-    const withinThreshold = newTotal <= originalTotal || differencePercent <= shopThreshold;
+    const snapshotJson = itemsSnapshot.length > 0
+      ? (itemsSnapshot as unknown as Prisma.InputJsonValue)
+      : undefined;
 
-    if (withinThreshold) {
-      // AUTO_APPROVED — apply immediately
+    // ═══════════════════════════════════════════
+    // TIER 1 (≤10% or price decrease) — AUTO_APPROVED immediately
+    // ═══════════════════════════════════════════
+    if (tier === 1) {
       const [adjustment] = await prisma.$transaction([
         prisma.priceAdjustment.create({
           data: {
@@ -161,7 +165,8 @@ export async function PATCH(
             reason: data.reason,
             adjustmentType: data.adjustmentType,
             status: "AUTO_APPROVED",
-            itemsSnapshot: itemsSnapshot.length > 0 ? (itemsSnapshot as unknown as Prisma.InputJsonValue) : undefined,
+            tier: 1,
+            itemsSnapshot: snapshotJson,
             respondedAt: new Date(),
           },
         }),
@@ -181,13 +186,18 @@ export async function PATCH(
           shopName: order.shop.name,
           originalTotal,
           newTotal,
+          tier: 1,
         });
       } catch { /* non-blocking */ }
 
-      return apiSuccess({ adjustment, autoApproved: true });
-    } else {
-      // Above threshold → PENDING, needs client validation, 5 min timer
-      const autoApproveAt = new Date(Date.now() + 5 * 60 * 1000);
+      return apiSuccess({ adjustment, tier: 1, autoApproved: true });
+    }
+
+    // ═══════════════════════════════════════════
+    // TIER 2 (10-20%) — PENDING, auto-approved after 30s, client can refuse
+    // ═══════════════════════════════════════════
+    if (tier === 2) {
+      const autoApproveAt = new Date(Date.now() + TIER_2_AUTO_APPROVE_SEC * 1000);
 
       const adjustment = await prisma.priceAdjustment.create({
         data: {
@@ -198,7 +208,8 @@ export async function PATCH(
           reason: data.reason,
           adjustmentType: data.adjustmentType,
           status: "PENDING",
-          itemsSnapshot: itemsSnapshot.length > 0 ? (itemsSnapshot as unknown as Prisma.InputJsonValue) : undefined,
+          tier: 2,
+          itemsSnapshot: snapshotJson,
           autoApproveAt,
         },
       });
@@ -211,11 +222,48 @@ export async function PATCH(
           shopName: order.shop.name,
           originalTotal,
           newTotal,
+          tier: 2,
+          autoApproveSeconds: TIER_2_AUTO_APPROVE_SEC,
         });
       } catch { /* non-blocking */ }
 
-      return apiSuccess({ adjustment, autoApproved: false });
+      return apiSuccess({ adjustment, tier: 2, autoApproved: false });
     }
+
+    // ═══════════════════════════════════════════
+    // TIER 3 (>20%) — PENDING, client MUST approve, escalation after 10 min
+    // ═══════════════════════════════════════════
+    const escalateAt = new Date(Date.now() + TIER_3_ESCALATION_MIN * 60 * 1000);
+
+    const adjustment = await prisma.priceAdjustment.create({
+      data: {
+        orderId,
+        shopId: order.shop.id,
+        originalTotal,
+        newTotal,
+        reason: data.reason,
+        adjustmentType: data.adjustmentType,
+        status: "PENDING",
+        tier: 3,
+        itemsSnapshot: snapshotJson,
+        escalateAt,
+        // No autoApproveAt — client must approve
+      },
+    });
+
+    try {
+      await sendNotification("PRICE_ADJUSTMENT_PENDING", {
+        userId: order.user.id,
+        orderId,
+        orderNumber: order.orderNumber,
+        shopName: order.shop.name,
+        originalTotal,
+        newTotal,
+        tier: 3,
+      });
+    } catch { /* non-blocking */ }
+
+    return apiSuccess({ adjustment, tier: 3, autoApproved: false });
   } catch (error) {
     return handleApiError(error, "orders/adjust-price");
   }
