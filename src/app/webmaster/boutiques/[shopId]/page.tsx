@@ -25,6 +25,7 @@ import {
   Check,
 } from "lucide-react";
 import Image from "next/image";
+import ShopAdjustmentsTab from "@/components/webmaster/ShopAdjustmentsTab";
 
 // ── Types ──
 
@@ -100,6 +101,9 @@ export default function WebmasterShopDetailPage() {
   // Commission state
   const [commissionPct, setCommissionPct] = useState(0);
   const [commissionDirty, setCommissionDirty] = useState(false);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"general" | "adjustments">("general");
 
   // Suspend reason
   const [suspendReason, setSuspendReason] = useState("");
@@ -306,6 +310,38 @@ export default function WebmasterShopDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-1 bg-gray-100 dark:bg-white/5 rounded-xl p-1">
+        <button
+          onClick={() => setActiveTab("general")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === "general"
+              ? "bg-white dark:bg-[#141414] text-gray-900 dark:text-white shadow-sm"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          }`}
+        >
+          Général
+        </button>
+        <button
+          onClick={() => setActiveTab("adjustments")}
+          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === "adjustments"
+              ? "bg-white dark:bg-[#141414] text-gray-900 dark:text-white shadow-sm"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+          }`}
+        >
+          Ajustements prix
+        </button>
+      </div>
+
+      {/* Tab: Adjustments */}
+      {activeTab === "adjustments" && (
+        <ShopAdjustmentsTab shopId={shopId} />
+      )}
+
+      {/* Tab: General */}
+      {activeTab === "general" && (<>
 
       {/* Not validated alert */}
       {isNotValidated && (
@@ -697,6 +733,8 @@ export default function WebmasterShopDetailPage() {
           </div>
         </div>
       )}
+
+      </>)}
     </div>
   );
 }

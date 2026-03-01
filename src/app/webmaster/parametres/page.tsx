@@ -14,6 +14,7 @@ import {
   Database,
   AlertTriangle,
   X,
+  Scale,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -89,6 +90,24 @@ export default function WebmasterParametresPage() {
   const [applyingCommission, setApplyingCommission] = useState(false);
   const [commissionApplied, setCommissionApplied] = useState(false);
 
+  /* ── Price adjustment config state ── */
+  const [paConfig, setPaConfig] = useState<Record<string, string>>({
+    pa_tier1_max_pct: "10",
+    pa_tier2_max_pct: "20",
+    pa_tier2_auto_approve_sec: "30",
+    pa_tier3_escalation_min: "10",
+    pa_max_increase_pct: "50",
+    pa_require_reason: "true",
+    pa_default_reasons: JSON.stringify(["Poids réel différent", "Rupture produit", "Erreur de prix catalogue", "Ajustement découpe"]),
+    pa_max_adjustments_per_order: "3",
+    pa_enable_auto_approve: "true",
+  });
+  const [paOriginal, setPaOriginal] = useState<Record<string, string>>({});
+  const [paSavingKey, setPaSavingKey] = useState<string | null>(null);
+  const [paSavedKey, setPaSavedKey] = useState<string | null>(null);
+  const [loadingPaConfig, setLoadingPaConfig] = useState(true);
+  const [newReason, setNewReason] = useState("");
+
   /* ── Calendar state ── */
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -126,6 +145,25 @@ export default function WebmasterParametresPage() {
     }
   }, []);
 
+  /* ── Fetch price adjustment config ── */
+  const fetchPaConfig = useCallback(async () => {
+    setLoadingPaConfig(true);
+    try {
+      const res = await fetch("/api/webmaster/config");
+      const d = await res.json();
+      if (d.success) {
+        const vals: Record<string, string> = {};
+        for (const c of d.data as { key: string; value: string }[]) {
+          if (c.key.startsWith("pa_")) vals[c.key] = c.value;
+        }
+        // Merge with defaults (keep defaults for missing keys)
+        setPaConfig((prev) => ({ ...prev, ...vals }));
+        setPaOriginal((prev) => ({ ...prev, ...vals }));
+      }
+    } catch { /* ignore */ }
+    setLoadingPaConfig(false);
+  }, []);
+
   /* ── Fetch calendar events ── */
   const fetchEvents = useCallback(async () => {
     setLoadingEvents(true);
@@ -144,7 +182,8 @@ export default function WebmasterParametresPage() {
   useEffect(() => {
     fetchConfigs();
     fetchEvents();
-  }, [fetchConfigs, fetchEvents]);
+    fetchPaConfig();
+  }, [fetchConfigs, fetchEvents, fetchPaConfig]);
 
   /* ── Save config value ── */
   const saveConfig = async (key: string) => {
@@ -265,6 +304,56 @@ export default function WebmasterParametresPage() {
     } catch {
       setEvents((evts) => evts.map((e) => (e.id === evt.id ? { ...e, active: evt.active } : e)));
     }
+  };
+
+  /* ── Save PA config value ── */
+  const savePaConfig = async (key: string) => {
+    const val = paConfig[key];
+    if (val === undefined) return;
+    setPaSavingKey(key);
+    try {
+      const res = await fetch("/api/webmaster/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value: val }),
+      });
+      if (res.ok) {
+        setPaSavedKey(key);
+        setPaOriginal((prev) => ({ ...prev, [key]: val }));
+        toast.success("Configuration sauvegardée");
+        setTimeout(() => setPaSavedKey(null), 2000);
+      } else {
+        toast.error("Erreur lors de la sauvegarde");
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    } finally {
+      setPaSavingKey(null);
+    }
+  };
+
+  /* ── PA reasons helpers ── */
+  const paReasons: string[] = (() => {
+    try {
+      const parsed = JSON.parse(paConfig.pa_default_reasons || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const addReason = (reason: string) => {
+    if (!reason.trim()) return;
+    const updated = [...paReasons, reason.trim()];
+    const val = JSON.stringify(updated);
+    setPaConfig((prev) => ({ ...prev, pa_default_reasons: val }));
+    setNewReason("");
+  };
+
+  const removeReason = (idx: number) => {
+    const updated = paReasons.filter((_, i) => i !== idx);
+    const val = JSON.stringify(updated);
+    setPaConfig((prev) => ({ ...prev, pa_default_reasons: val }));
   };
 
   const configKeys = Object.keys(CONFIG_META);
@@ -583,6 +672,287 @@ export default function WebmasterParametresPage() {
           </button>
         )}
       </Section>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* Section 4: Price Adjustment Policy */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <Section icon={Scale} title="Politique d'ajustement des prix">
+        {loadingPaConfig ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 size={20} className="animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* ── Seuils des paliers ── */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Seuils des paliers
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {([
+                  { key: "pa_tier1_max_pct", label: "Palier 1 max (%)", desc: "Auto-approuvé si hausse ≤ ce %" },
+                  { key: "pa_tier2_max_pct", label: "Palier 2 max (%)", desc: "Auto-validé après délai si hausse ≤ ce %" },
+                  { key: "pa_max_increase_pct", label: "Cap maximum (%)", desc: "Hausse max autorisée (sécurité)" },
+                ] as const).map(({ key, label, desc }) => (
+                  <PaField
+                    key={key}
+                    configKey={key}
+                    label={label}
+                    description={desc}
+                    type="number"
+                    value={paConfig[key]}
+                    onChange={(v) => setPaConfig((prev) => ({ ...prev, [key]: v }))}
+                    changed={paConfig[key] !== paOriginal[key]}
+                    saving={paSavingKey === key}
+                    saved={paSavedKey === key}
+                    onSave={() => savePaConfig(key)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* ── Timers ── */}
+            <div className="border-t border-gray-100 dark:border-white/5 pt-4">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Timers
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <PaField
+                  configKey="pa_tier2_auto_approve_sec"
+                  label="Auto-validation palier 2 (sec)"
+                  description="Délai avant auto-approbation du palier 2"
+                  type="number"
+                  value={paConfig.pa_tier2_auto_approve_sec}
+                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_tier2_auto_approve_sec: v }))}
+                  changed={paConfig.pa_tier2_auto_approve_sec !== paOriginal.pa_tier2_auto_approve_sec}
+                  saving={paSavingKey === "pa_tier2_auto_approve_sec"}
+                  saved={paSavedKey === "pa_tier2_auto_approve_sec"}
+                  onSave={() => savePaConfig("pa_tier2_auto_approve_sec")}
+                />
+                <PaField
+                  configKey="pa_tier3_escalation_min"
+                  label="Escalade palier 3 (min)"
+                  description="Délai avant escalade au webmaster"
+                  type="number"
+                  value={paConfig.pa_tier3_escalation_min}
+                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_tier3_escalation_min: v }))}
+                  changed={paConfig.pa_tier3_escalation_min !== paOriginal.pa_tier3_escalation_min}
+                  saving={paSavingKey === "pa_tier3_escalation_min"}
+                  saved={paSavedKey === "pa_tier3_escalation_min"}
+                  onSave={() => savePaConfig("pa_tier3_escalation_min")}
+                />
+              </div>
+            </div>
+
+            {/* ── Options ── */}
+            <div className="border-t border-gray-100 dark:border-white/5 pt-4">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Options
+              </h3>
+              <div className="space-y-3">
+                {/* Toggle: require reason */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Motif obligatoire</span>
+                    <p className="text-xs text-gray-400">Le boucher doit fournir un motif pour chaque ajustement</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const newVal = paConfig.pa_require_reason === "true" ? "false" : "true";
+                        setPaConfig((prev) => ({ ...prev, pa_require_reason: newVal }));
+                      }}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${
+                        paConfig.pa_require_reason === "true" ? "bg-red-600" : "bg-gray-300 dark:bg-white/20"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                          paConfig.pa_require_reason === "true" ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                    {paConfig.pa_require_reason !== paOriginal.pa_require_reason && (
+                      <button
+                        onClick={() => savePaConfig("pa_require_reason")}
+                        disabled={paSavingKey === "pa_require_reason"}
+                        className="px-2 py-1 text-[10px] font-semibold bg-red-600 text-white rounded-lg"
+                      >
+                        {paSavingKey === "pa_require_reason" ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Toggle: auto-approve */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-approbation</span>
+                    <p className="text-xs text-gray-400">Activer l&apos;auto-validation pour les paliers 1 et 2</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const newVal = paConfig.pa_enable_auto_approve === "true" ? "false" : "true";
+                        setPaConfig((prev) => ({ ...prev, pa_enable_auto_approve: newVal }));
+                      }}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${
+                        paConfig.pa_enable_auto_approve === "true" ? "bg-red-600" : "bg-gray-300 dark:bg-white/20"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                          paConfig.pa_enable_auto_approve === "true" ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                    {paConfig.pa_enable_auto_approve !== paOriginal.pa_enable_auto_approve && (
+                      <button
+                        onClick={() => savePaConfig("pa_enable_auto_approve")}
+                        disabled={paSavingKey === "pa_enable_auto_approve"}
+                        className="px-2 py-1 text-[10px] font-semibold bg-red-600 text-white rounded-lg"
+                      >
+                        {paSavingKey === "pa_enable_auto_approve" ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Max adjustments per order */}
+                <PaField
+                  configKey="pa_max_adjustments_per_order"
+                  label="Max ajustements par commande"
+                  description="Nombre maximum d'ajustements autorisés sur une même commande"
+                  type="number"
+                  value={paConfig.pa_max_adjustments_per_order}
+                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_max_adjustments_per_order: v }))}
+                  changed={paConfig.pa_max_adjustments_per_order !== paOriginal.pa_max_adjustments_per_order}
+                  saving={paSavingKey === "pa_max_adjustments_per_order"}
+                  saved={paSavedKey === "pa_max_adjustments_per_order"}
+                  onSave={() => savePaConfig("pa_max_adjustments_per_order")}
+                />
+              </div>
+            </div>
+
+            {/* ── Default reasons ── */}
+            <div className="border-t border-gray-100 dark:border-white/5 pt-4">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Motifs par défaut
+              </h3>
+              <div className="space-y-2 mb-3">
+                {paReasons.map((reason, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06]"
+                  >
+                    <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{reason}</span>
+                    <button
+                      onClick={() => removeReason(idx)}
+                      className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newReason}
+                  onChange={(e) => setNewReason(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { addReason(newReason); } }}
+                  placeholder="Nouveau motif..."
+                  className="flex-1 px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none"
+                />
+                <button
+                  onClick={() => addReason(newReason)}
+                  disabled={!newReason.trim()}
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 transition"
+                >
+                  <Plus size={14} /> Ajouter
+                </button>
+              </div>
+              {paConfig.pa_default_reasons !== paOriginal.pa_default_reasons && (
+                <button
+                  onClick={() => savePaConfig("pa_default_reasons")}
+                  disabled={paSavingKey === "pa_default_reasons"}
+                  className="mt-3 flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl font-medium bg-red-600 text-white hover:bg-red-700 transition"
+                >
+                  {paSavingKey === "pa_default_reasons" ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : paSavedKey === "pa_default_reasons" ? (
+                    <Check size={14} />
+                  ) : (
+                    <Save size={14} />
+                  )}
+                  {paSavedKey === "pa_default_reasons" ? "Sauvé" : "Sauvegarder les motifs"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </Section>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* ── PaField helper ─── */
+/* ================================================================== */
+function PaField({
+  label,
+  description,
+  type,
+  value,
+  onChange,
+  changed,
+  saving,
+  saved,
+  onSave,
+}: {
+  configKey: string;
+  label: string;
+  description: string;
+  type: "number" | "text";
+  value: string;
+  onChange: (v: string) => void;
+  changed: boolean;
+  saving: boolean;
+  saved: boolean;
+  onSave: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+      <p className="text-xs text-gray-400 mb-1">{description}</p>
+      <div className="flex items-center gap-2">
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+        />
+        {changed && (
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className={`flex items-center gap-1 px-3 py-2 text-xs rounded-xl font-medium shrink-0 transition ${
+              saved
+                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                : "bg-red-600 text-white hover:bg-red-700"
+            }`}
+          >
+            {saving ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : saved ? (
+              <Check size={12} />
+            ) : (
+              <Save size={12} />
+            )}
+            {saved ? "Sauvé" : "Sauver"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

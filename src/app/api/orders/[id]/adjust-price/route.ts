@@ -6,10 +6,8 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
 import {
-  MAX_INCREASE_PCT,
   computeTier,
-  TIER_2_AUTO_APPROVE_SEC,
-  TIER_3_ESCALATION_MIN,
+  getPriceAdjConfig,
 } from "@/lib/price-adjustment";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -62,6 +60,9 @@ export async function PATCH(
     const body = await req.json();
     const data = adjustPriceSchema.parse(body);
 
+    // ── Load dynamic config ──
+    const config = await getPriceAdjConfig();
+
     // ── Calculate new total ──
     const originalTotal = order.totalCents;
     let newTotal: number;
@@ -112,15 +113,15 @@ export async function PATCH(
     }
 
     // ── Hard cap safety net ──
-    const maxAllowed = Math.round(originalTotal * (1 + MAX_INCREASE_PCT / 100));
+    const maxAllowed = Math.round(originalTotal * (1 + config.maxIncreasePct / 100));
     if (newTotal > maxAllowed) {
       return apiError("VALIDATION_ERROR",
-        `L'ajustement ne peut pas depasser ${MAX_INCREASE_PCT}% du prix initial`
+        `L'ajustement ne peut pas depasser ${config.maxIncreasePct}% du prix initial`
       );
     }
 
-    // ── Compute tier ──
-    const tier = computeTier(originalTotal, newTotal);
+    // ── Compute tier (dynamic thresholds) ──
+    const tier = computeTier(originalTotal, newTotal, config.tier1MaxPct, config.tier2MaxPct);
 
     // ── Delete previous resolved adjustment if exists ──
     if (order.priceAdjustment && order.priceAdjustment.status !== "PENDING") {
@@ -197,7 +198,7 @@ export async function PATCH(
     // TIER 2 (10-20%) — PENDING, auto-approved after 30s, client can refuse
     // ═══════════════════════════════════════════
     if (tier === 2) {
-      const autoApproveAt = new Date(Date.now() + TIER_2_AUTO_APPROVE_SEC * 1000);
+      const autoApproveAt = new Date(Date.now() + config.tier2AutoApproveSec * 1000);
 
       const adjustment = await prisma.priceAdjustment.create({
         data: {
@@ -223,7 +224,7 @@ export async function PATCH(
           originalTotal,
           newTotal,
           tier: 2,
-          autoApproveSeconds: TIER_2_AUTO_APPROVE_SEC,
+          autoApproveSeconds: config.tier2AutoApproveSec,
         });
       } catch { /* non-blocking */ }
 
@@ -233,7 +234,7 @@ export async function PATCH(
     // ═══════════════════════════════════════════
     // TIER 3 (>20%) — PENDING, client MUST approve, escalation after 10 min
     // ═══════════════════════════════════════════
-    const escalateAt = new Date(Date.now() + TIER_3_ESCALATION_MIN * 60 * 1000);
+    const escalateAt = new Date(Date.now() + config.tier3EscalationMin * 60 * 1000);
 
     const adjustment = await prisma.priceAdjustment.create({
       data: {
