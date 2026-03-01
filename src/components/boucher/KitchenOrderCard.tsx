@@ -119,12 +119,12 @@ export default function KitchenOrderCard({
 
   // Scheduled order detection
   const THIRTY_MIN = 30 * 60 * 1000;
-  const isScheduledFuture = !!order.pickupSlotStart
-    && new Date(order.pickupSlotStart).getTime() > Date.now() + THIRTY_MIN
-    && order.status === "ACCEPTED";
-  const isScheduledSoon = !!order.pickupSlotStart
-    && new Date(order.pickupSlotStart).getTime() > Date.now()
-    && new Date(order.pickupSlotStart).getTime() <= Date.now() + THIRTY_MIN
+  const isScheduled = !!order.pickupSlotStart && new Date(order.pickupSlotStart).getTime() > Date.now();
+  const isScheduledFuture = isScheduled
+    && new Date(order.pickupSlotStart!).getTime() > Date.now() + THIRTY_MIN
+    && (order.status === "ACCEPTED" || order.status === "PREPARING");
+  const isScheduledSoon = isScheduled
+    && new Date(order.pickupSlotStart!).getTime() <= Date.now() + THIRTY_MIN
     && (order.status === "ACCEPTED" || order.status === "PREPARING");
   const scheduledMs = order.pickupSlotStart
     ? new Date(order.pickupSlotStart).getTime() - Date.now()
@@ -249,8 +249,17 @@ export default function KitchenOrderCard({
   if (order.status === "PENDING" && !expanded) {
     return (
       <div
-        className={`bg-[#1a1a1a] rounded-2xl border-t-4 ${ORDER_STATUS_BORDER["PENDING"]} border border-white/5 overflow-hidden`}
+        className={`bg-[#1a1a1a] rounded-2xl border-t-4 ${isScheduled ? "border-t-amber-500" : ORDER_STATUS_BORDER["PENDING"]} border border-white/5 overflow-hidden`}
       >
+        {/* Orange banner for scheduled orders */}
+        {isScheduled && pickupTime && (
+          <div className="bg-amber-500/20 border-b border-amber-500/30 px-5 py-3 flex items-center gap-2">
+            <CalendarClock size={18} className="text-amber-400 shrink-0" />
+            <span className="text-base font-bold text-amber-300">
+              PROGRAMMEE — Retrait a {pickupTime}
+            </span>
+          </div>
+        )}
         <div className="px-5 py-4 flex items-center justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
@@ -271,9 +280,9 @@ export default function KitchenOrderCard({
                 {order.items.length} article{order.items.length > 1 ? "s" : ""}
               </span>
               <span className="text-xl font-bold text-white">{formatPrice(order.totalCents)}</span>
-              {(pickupTime || isAsap) && (
+              {!isScheduled && (pickupTime || isAsap) && (
                 <span className="text-lg font-bold text-amber-400">
-                  <Clock size={16} className="inline mr-1" />{pickupTime || "Dès que possible"}
+                  <Clock size={16} className="inline mr-1" />{pickupTime || "Des que possible"}
                 </span>
               )}
               <span className="text-base text-gray-600">{timeSince(order.createdAt)}</span>
@@ -295,6 +304,16 @@ export default function KitchenOrderCard({
     <div
       className={`bg-[#1a1a1a] rounded-2xl border-t-4 ${ORDER_STATUS_BORDER[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
     >
+      {/* ── Scheduled banner (expanded PENDING) ── */}
+      {order.status === "PENDING" && isScheduled && pickupTime && (
+        <div className="mx-5 mt-4 mb-2 px-4 py-3 bg-amber-500/20 border border-amber-500/30 rounded-xl flex items-center gap-3">
+          <CalendarClock size={20} className="text-amber-400 shrink-0" />
+          <span className="text-lg font-bold text-amber-300">
+            PROGRAMMEE — Retrait a {pickupTime}
+          </span>
+        </div>
+      )}
+
       {/* ── Late badge ── */}
       {isLate && (
         <div className="mx-5 mt-4 mb-2 px-4 py-3 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center justify-center gap-2">
@@ -488,22 +507,31 @@ export default function KitchenOrderCard({
               >
                 <XCircle size={20} /> Refuser
               </button>
+              {/* Scheduled: accept directly (no time selector). ASAP: show time selector form */}
               <button
-                onClick={() => { setShowAcceptForm(true); setAcceptMinutes(shopPrepTime); }}
+                onClick={() => {
+                  if (isScheduled) {
+                    doAction("accept", { estimatedMinutes: 0 });
+                  } else {
+                    setShowAcceptForm(true);
+                    setAcceptMinutes(shopPrepTime);
+                  }
+                }}
                 disabled={loading}
                 className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-4 rounded-xl transition-all text-lg disabled:opacity-50"
               >
-                <CheckCircle size={20} /> Accepter
+                {loading ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle size={20} />}
+                Accepter
               </button>
             </div>
           </div>
         )}
 
-        {/* ── Accept form (prep time selector) ── */}
-        {order.status === "PENDING" && showAcceptForm && (
+        {/* ── Accept form (prep time selector — ASAP orders only) ── */}
+        {order.status === "PENDING" && showAcceptForm && !isScheduled && (
           <div className="bg-emerald-500/10 rounded-2xl p-5 space-y-4 border border-emerald-500/20">
             <p className="text-lg font-medium text-emerald-300">
-              Délai de préparation
+              Delai de preparation
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               {[10, 15, 20, 30, 45, 60].map((m) => (

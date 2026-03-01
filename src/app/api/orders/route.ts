@@ -379,19 +379,17 @@ export async function POST(req: NextRequest) {
     const orderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
     const { dailyNumber, displayNumber } = dailyResult;
 
-    // Scheduled order detection: pickupSlotStart in the future → auto-accept
+    // Scheduled order detection (for notification purposes only — NOT auto-accepted)
     const isScheduled = !!data.pickupSlotStart && new Date(data.pickupSlotStart).getTime() > Date.now();
 
     // Auto-cancel timer (Uber Eats style)
     const expiresAt = new Date(Date.now() + shop.acceptTimeoutMin * 60 * 1000);
-    const initialStatus = (isScheduled || shop.autoAccept) ? "ACCEPTED" : "PENDING";
+    const initialStatus = shop.autoAccept ? "ACCEPTED" : "PENDING";
 
     const qrCode = initialStatus === "ACCEPTED" ? randomUUID() : null;
-    const estimatedReady = isScheduled
-      ? new Date(data.pickupSlotStart!)
-      : shop.autoAccept
-        ? new Date(Date.now() + prepMinutes * 60_000)
-        : null;
+    const estimatedReady = shop.autoAccept
+      ? (isScheduled ? new Date(data.pickupSlotStart!) : new Date(Date.now() + prepMinutes * 60_000))
+      : null;
 
     const order = await prisma.order.create({
       data: {
@@ -432,33 +430,14 @@ export async function POST(req: NextRequest) {
       : undefined;
 
     Promise.all([
-      // Boucher notification: scheduled → SCHEDULED_REMINDER, otherwise → ORDER_PENDING
-      isScheduled
-        ? sendNotification("SCHEDULED_REMINDER", {
-            shopId: order.shopId,
-            orderId: order.id,
-            orderNumber: order.orderNumber,
-            customerName: user.firstName,
-            slot: pickupTimeStr,
-            shopName: shop.name,
-          })
-        : sendNotification("ORDER_PENDING", {
-            shopId: order.shopId,
-            orderId: order.id,
-            orderNumber: order.orderNumber,
-            customerName: user.firstName,
-          }),
-      // Client notification: scheduled → ORDER_ACCEPTED (auto-accepted), otherwise → email only
-      isScheduled
-        ? sendNotification("ORDER_ACCEPTED", {
-            userId: user.clerkId,
-            orderId: order.id,
-            orderNumber: order.orderNumber,
-            shopName: shop.name,
-            estimatedMinutes: Math.round((new Date(data.pickupSlotStart!).getTime() - Date.now()) / 60_000),
-            slot: pickupTimeStr,
-          })
-        : Promise.resolve(),
+      // Boucher notification: always ORDER_PENDING (scheduled orders need manual acceptance too)
+      sendNotification("ORDER_PENDING", {
+        shopId: order.shopId,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerName: user.firstName,
+        slot: pickupTimeStr,
+      }),
       sendOrderConfirmationEmail(user.email, {
         orderId: order.id,
         displayNumber,

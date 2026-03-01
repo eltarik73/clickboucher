@@ -93,8 +93,14 @@ export async function PATCH(
           itemCount,
         });
 
-        const estimatedMinutes = Math.max(data.estimatedMinutes, prepMinutes);
-        const estimatedReady = new Date(Date.now() + estimatedMinutes * 60_000);
+        // Scheduled orders: use pickupSlotStart as estimatedReady (no prep time selector)
+        const isScheduledOrder = !!order.pickupSlotStart && new Date(order.pickupSlotStart).getTime() > Date.now();
+        const estimatedMinutes = isScheduledOrder
+          ? Math.round((new Date(order.pickupSlotStart!).getTime() - Date.now()) / 60_000)
+          : Math.max(data.estimatedMinutes, prepMinutes);
+        const estimatedReady = isScheduledOrder
+          ? new Date(order.pickupSlotStart!)
+          : new Date(Date.now() + estimatedMinutes * 60_000);
         const qrCode = order.qrCode || randomUUID();
 
         const updated = await prisma.order.update({

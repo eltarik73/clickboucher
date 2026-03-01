@@ -1,8 +1,9 @@
-// /boucher/commandes — MODE CUISINE (v8)
+// /boucher/commandes — MODE CUISINE (v9)
 // Full-screen tablet kitchen interface — dark theme, big buttons, audio alerts
-// Tabs: Nouvelles | En cours | Prêtes | Programmées | Historique
-// Desktop: 4 columns (Nouvelles 25% | En cours flex | Prêtes 20% | Programmées 20%) + Historique bottom bar
-// Scheduled orders ≤30min before pickup appear in Nouvelles (not En cours)
+// Tabs: Nouvelles | En cours | Prêtes | Historique
+// "En cours" is split into 2 sections: "À préparer maintenant" + "Programmées (en attente)"
+// Scheduled orders arrive in Nouvelles as PENDING, after accept go to En cours > Programmées section
+// 30 min before pickup → move up to "À préparer maintenant" section + sound + notification
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -61,7 +62,8 @@ import { toast } from "sonner";
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type Tab = "nouvelles" | "en-cours" | "pretes" | "programmees" | "historique";
+type Tab = "nouvelles" | "en-cours" | "pretes" | "historique";
+const THIRTY_MIN = 30 * 60 * 1000;
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -162,14 +164,10 @@ export default function KitchenModePage() {
     inProgressOrders,
     readyOrders,
     historyOrders,
-    scheduledOrders,
-    scheduledSoonOrders,
     pendingCount,
     inProgressCount,
     readyCount,
     historyCount,
-    scheduledCount,
-    scheduledSoonCount,
     refetch,
   } = useOrderPolling({
     intervalMs: 5000,
@@ -192,15 +190,15 @@ export default function KitchenModePage() {
       fetchShopInfo();
     },
     onScheduledReady: (order) => {
-      // Scheduled order entered 30-min preparation window → appears in Nouvelles
+      // Scheduled order entered 30-min window → moves up to "À préparer maintenant" in En cours
       const pickupTime = order.pickupSlotStart
         ? new Date(order.pickupSlotStart).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
         : "";
       const ticketNum = order.displayNumber || `#${order.orderNumber}`;
       // Show alert overlay
       setAlertOrder(order);
-      // Switch to Nouvelles tab (mobile)
-      setActiveTab("nouvelles");
+      // Switch to En cours tab (mobile)
+      setActiveTab("en-cours");
       // Play sound
       if (!mutedRef.current) {
         startOrderAlert();
@@ -401,29 +399,34 @@ export default function KitchenModePage() {
     );
   }
 
-  // Nouvelles = pending + scheduled-soon (≤30min before pickup, shown as fresh orders)
-  const nouvellesOrders = [...pendingOrders, ...scheduledSoonOrders];
-  const nouvellesCount = pendingCount + scheduledSoonCount;
+  // Split inProgressOrders into: prepare now vs scheduled waiting
+  const prepareNowOrders = inProgressOrders.filter((o) => {
+    if (!o.pickupSlotStart) return true; // ASAP
+    return new Date(o.pickupSlotStart).getTime() <= Date.now() + THIRTY_MIN;
+  });
+  const scheduledWaitingOrders = inProgressOrders
+    .filter((o) => {
+      if (!o.pickupSlotStart) return false;
+      return new Date(o.pickupSlotStart).getTime() > Date.now() + THIRTY_MIN;
+    })
+    .sort((a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime());
 
-  // Tab data — order: Nouvelles | En cours | Prêtes | Programmées | Historique
+  // Tab data — 4 tabs: Nouvelles | En cours | Prêtes | Historique
   const tabs: { key: Tab; label: string; shortLabel: string; count: number; icon: typeof Bell; color: string }[] = [
-    { key: "nouvelles", label: "Nouvelles", shortLabel: "Nouv.", count: nouvellesCount, icon: Bell, color: "amber" },
+    { key: "nouvelles", label: "Nouvelles", shortLabel: "Nouv.", count: pendingCount, icon: Bell, color: "amber" },
     { key: "en-cours", label: "En cours", shortLabel: "En cours", count: inProgressCount, icon: ChefHat, color: "blue" },
     { key: "pretes", label: "Pretes", shortLabel: "Pretes", count: readyCount, icon: CheckCircle, color: "emerald" },
-    { key: "programmees", label: "Programmees", shortLabel: "Prog.", count: scheduledCount, icon: CalendarClock, color: "purple" },
     { key: "historique", label: "Historique", shortLabel: "Histo.", count: historyCount, icon: ScrollText, color: "gray" as string },
   ];
 
   // Get orders for active tab (mobile)
   const activeOrders =
     activeTab === "nouvelles"
-      ? nouvellesOrders
+      ? pendingOrders
       : activeTab === "en-cours"
       ? inProgressOrders
       : activeTab === "pretes"
       ? readyOrders
-      : activeTab === "programmees"
-      ? scheduledOrders
       : historyOrders;
 
   return (
@@ -781,17 +784,17 @@ export default function KitchenModePage() {
         </div>
 
         {/* ══════════════════════════════════════════ */}
-        {/* ── DESKTOP: 4-column layout (25%/20%/flex/20%) ── */}
+        {/* ── DESKTOP: 3-column layout (25% / flex / 25%) ── */}
         {/* ══════════════════════════════════════════ */}
         <div className="flex-1 overflow-hidden hidden md:flex pb-14">
-          {/* Column 1: Nouvelles (25%) — pending + scheduled-soon */}
+          {/* Column 1: Nouvelles (25%) */}
           <div className="w-1/4 shrink-0">
             <KitchenColumn
               title="Nouvelles"
-              count={nouvellesCount}
+              count={pendingCount}
               icon={<Bell size={16} />}
               color="amber"
-              orders={nouvellesOrders}
+              orders={pendingOrders}
               shopName={shopName}
               shopPrepTime={shopPrepTime}
               onAction={handleAction}
@@ -805,30 +808,89 @@ export default function KitchenModePage() {
           {/* Divider */}
           <div className="w-px bg-white/5 shrink-0" />
 
-          {/* Column 2: En cours (flex-1) */}
-          <div className="flex-1 min-w-0">
-            <KitchenColumn
-              title="En cours"
-              count={inProgressCount}
-              icon={<ChefHat size={16} />}
-              color="blue"
-              orders={inProgressOrders}
-              shopName={shopName}
-              shopPrepTime={shopPrepTime}
-              onAction={handleAction}
-              onStockIssue={setStockIssueOrder}
-              onView={handleViewOrder}
-              onAdjustPrice={setAdjustPriceOrder}
-              emptyMessage="Aucune commande en cours"
-              emptyIcon={<ChefHat size={32} className="text-gray-700" />}
-            />
+          {/* Column 2: En cours (flex-1) — split: À préparer + Programmées en attente */}
+          <div className="flex-1 min-w-0 flex flex-col h-full">
+            {/* Column header */}
+            <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
+              <div className="text-blue-400 bg-blue-500/20 p-1.5 rounded-lg"><ChefHat size={16} /></div>
+              <h2 className="text-sm font-bold text-white">En cours</h2>
+              {inProgressCount > 0 && (
+                <span className="min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 bg-blue-500 text-white">
+                  {inProgressCount}
+                </span>
+              )}
+            </div>
+
+            {/* Scrollable content with 2 sections */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {inProgressCount === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <ChefHat size={32} className="text-gray-700" />
+                  <p className="text-gray-600 text-sm">Aucune commande en cours</p>
+                </div>
+              ) : (
+                <>
+                  {/* Section 1: À préparer maintenant */}
+                  {prepareNowOrders.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 px-1 pt-1">
+                        <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                        <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">A preparer maintenant</span>
+                      </div>
+                      {prepareNowOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.id}
+                          order={order}
+                          shopName={shopName}
+                          shopPrepTime={shopPrepTime}
+                          onAction={handleAction}
+                          onStockIssue={setStockIssueOrder}
+                          onView={handleViewOrder}
+                          onAdjustPrice={setAdjustPriceOrder}
+                        />
+                      ))}
+                    </>
+                  )}
+
+                  {/* Separator between sections */}
+                  {prepareNowOrders.length > 0 && scheduledWaitingOrders.length > 0 && (
+                    <div className="flex items-center gap-3 py-2">
+                      <div className="flex-1 h-px bg-white/10" />
+                      <CalendarClock size={14} className="text-purple-400" />
+                      <div className="flex-1 h-px bg-white/10" />
+                    </div>
+                  )}
+
+                  {/* Section 2: Programmées en attente */}
+                  {scheduledWaitingOrders.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 px-1">
+                        <CalendarClock size={14} className="text-purple-400" />
+                        <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Programmees (en attente)</span>
+                      </div>
+                      {scheduledWaitingOrders.map((order) => (
+                        <KitchenOrderCard
+                          key={order.id}
+                          order={order}
+                          shopName={shopName}
+                          shopPrepTime={shopPrepTime}
+                          onAction={handleAction}
+                          onStockIssue={setStockIssueOrder}
+                          onView={handleViewOrder}
+                        />
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* Divider */}
           <div className="w-px bg-white/5 shrink-0" />
 
-          {/* Column 3: Prêtes (20%) */}
-          <div className="w-1/5 shrink-0">
+          {/* Column 3: Prêtes (25%) */}
+          <div className="w-1/4 shrink-0">
             <KitchenColumn
               title="Pretes"
               count={readyCount}
@@ -852,27 +914,6 @@ export default function KitchenModePage() {
                   </button>
                 ) : null
               }
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="w-px bg-white/5 shrink-0" />
-
-          {/* Column 4: Programmées (20%) */}
-          <div className="w-1/5 shrink-0">
-            <KitchenColumn
-              title="Programmees"
-              count={scheduledCount}
-              icon={<CalendarClock size={16} />}
-              color="purple"
-              orders={scheduledOrders}
-              shopName={shopName}
-              shopPrepTime={shopPrepTime}
-              onAction={handleAction}
-              onStockIssue={setStockIssueOrder}
-              onView={handleViewOrder}
-              emptyMessage="Aucune commande programmee"
-              emptyIcon={<CalendarClock size={32} className="text-gray-700" />}
             />
           </div>
         </div>
@@ -919,17 +960,70 @@ export default function KitchenModePage() {
                 <HistoryCard key={order.id} order={order} />
               ))
             )
+          ) : activeTab === "en-cours" ? (
+            /* En cours tab — split: À préparer + Programmées en attente */
+            inProgressCount === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <ChefHat size={40} className="text-gray-700" />
+                <p className="text-gray-600 text-sm">Aucune commande en cours</p>
+              </div>
+            ) : (
+              <>
+                {prepareNowOrders.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 px-1 pt-1">
+                      <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                      <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">A preparer maintenant</span>
+                    </div>
+                    {prepareNowOrders.map((order) => (
+                      <KitchenOrderCard
+                        key={order.id}
+                        order={order}
+                        shopName={shopName}
+                        shopPrepTime={shopPrepTime}
+                        onAction={handleAction}
+                        onStockIssue={setStockIssueOrder}
+                        onView={handleViewOrder}
+                        onAdjustPrice={setAdjustPriceOrder}
+                      />
+                    ))}
+                  </>
+                )}
+                {prepareNowOrders.length > 0 && scheduledWaitingOrders.length > 0 && (
+                  <div className="flex items-center gap-3 py-2">
+                    <div className="flex-1 h-px bg-white/10" />
+                    <CalendarClock size={14} className="text-purple-400" />
+                    <div className="flex-1 h-px bg-white/10" />
+                  </div>
+                )}
+                {scheduledWaitingOrders.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 px-1">
+                      <CalendarClock size={14} className="text-purple-400" />
+                      <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Programmees (en attente)</span>
+                    </div>
+                    {scheduledWaitingOrders.map((order) => (
+                      <KitchenOrderCard
+                        key={order.id}
+                        order={order}
+                        shopName={shopName}
+                        shopPrepTime={shopPrepTime}
+                        onAction={handleAction}
+                        onStockIssue={setStockIssueOrder}
+                        onView={handleViewOrder}
+                      />
+                    ))}
+                  </>
+                )}
+              </>
+            )
           ) : activeOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               {activeTab === "nouvelles" && <Bell size={40} className="text-gray-700" />}
-              {activeTab === "en-cours" && <ChefHat size={40} className="text-gray-700" />}
               {activeTab === "pretes" && <CheckCircle size={40} className="text-gray-700" />}
-              {activeTab === "programmees" && <CalendarClock size={40} className="text-gray-700" />}
               <p className="text-gray-600 text-sm">
                 {activeTab === "nouvelles" && "Aucune nouvelle commande"}
-                {activeTab === "en-cours" && "Aucune commande en cours"}
                 {activeTab === "pretes" && "Aucune commande prete"}
-                {activeTab === "programmees" && "Aucune commande programmee"}
               </p>
             </div>
           ) : (

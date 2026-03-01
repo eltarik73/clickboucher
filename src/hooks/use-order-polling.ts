@@ -167,46 +167,20 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     return () => clearInterval(interval);
   }, [fetchOrders, intervalMs, enabled]);
 
-  // Filtered views — scheduled orders (>30min before pickup) separated from in-progress
-  const scheduledIds = new Set<string>();
-  const scheduledOrders = orders
-    .filter((o) => {
-      if (!o.pickupSlotStart || TERMINAL_STATUSES.includes(o.status) || o.status === "PENDING") return false;
-      if (new Date(o.pickupSlotStart).getTime() <= Date.now() + THIRTY_MIN) return false;
-      scheduledIds.add(o.id);
-      return true;
-    })
-    .sort((a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime());
-
-  // Scheduled-soon: pickupSlotStart within 30min, ACCEPTED only (not yet preparing)
-  // These go to "Nouvelles" so the boucher starts them like a fresh order
-  const scheduledSoonIds = new Set<string>();
-  const scheduledSoonOrders = orders.filter((o) => {
-    if (!o.pickupSlotStart || scheduledIds.has(o.id)) return false;
-    if (o.status !== "ACCEPTED") return false;
-    const pickupTime = new Date(o.pickupSlotStart).getTime();
-    if (pickupTime <= Date.now() + THIRTY_MIN && pickupTime > Date.now() - 5 * 60 * 1000) {
-      scheduledSoonIds.add(o.id);
-      return true;
-    }
-    return false;
-  });
-
+  // Filtered views
   const pendingOrders = orders.filter((o) => o.status === "PENDING");
-  const acceptedOrders = orders.filter((o) => o.status === "ACCEPTED");
-  const preparingOrders = orders.filter((o) => o.status === "PREPARING");
-  const readyOrders = orders.filter((o) => o.status === "READY");
   const inProgressOrders = orders.filter(
-    (o) => (o.status === "ACCEPTED" || o.status === "PREPARING") && !scheduledIds.has(o.id) && !scheduledSoonIds.has(o.id)
+    (o) => o.status === "ACCEPTED" || o.status === "PREPARING"
   );
+  const readyOrders = orders.filter((o) => o.status === "READY");
 
   // History: terminal statuses from the last 7 days
-  const threeDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const historyOrders = orders
     .filter(
       (o) =>
         TERMINAL_STATUSES.includes(o.status) &&
-        new Date(o.updatedAt).getTime() >= threeDaysAgo
+        new Date(o.updatedAt).getTime() >= sevenDaysAgo
     )
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
@@ -217,19 +191,13 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     refetch: fetchOrders,
     // Filtered
     pendingOrders,
-    acceptedOrders,
-    preparingOrders,
-    readyOrders,
     inProgressOrders,
+    readyOrders,
     historyOrders,
-    scheduledOrders,
-    scheduledSoonOrders,
     // Counts
     pendingCount: pendingOrders.length,
     inProgressCount: inProgressOrders.length,
     readyCount: readyOrders.length,
     historyCount: historyOrders.length,
-    scheduledCount: scheduledOrders.length,
-    scheduledSoonCount: scheduledSoonOrders.length,
   };
 }
