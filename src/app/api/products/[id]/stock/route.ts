@@ -16,18 +16,18 @@ export async function PATCH(
     const { id } = params;
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { shopId } = authResult;
 
     const product = await prisma.product.findUnique({
       where: { id },
-      select: { shop: { select: { ownerId: true } } },
+      select: { shopId: true },
     });
 
     if (!product) {
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    if (product.shop.ownerId !== userId) {
+    if (product.shopId !== shopId) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 

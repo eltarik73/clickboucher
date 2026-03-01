@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { shopId } = authResult;
 
     const body = await req.json();
     const data = pickupByQrSchema.parse(body);
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
           },
         },
         user: { select: { firstName: true, lastName: true } },
-        shop: { select: { id: true, ownerId: true, name: true } },
+        shop: { select: { id: true, name: true } },
       },
     });
 
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the boucher owns this shop
-    if (order.shop.ownerId !== userId) {
+    if (order.shop.id !== shopId) {
       return apiError("FORBIDDEN", "Cette commande n'appartient pas a votre boucherie");
     }
 

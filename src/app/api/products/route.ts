@@ -142,12 +142,12 @@ export async function POST(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { shopId: authShopId } = authResult;
 
     const body = await req.json();
     const data = createProductSchema.parse(body);
 
-    // Verify ownership or admin
+    // Verify ownership via shopId (admin bypass)
     let role: string | undefined;
     if (isTestActivated()) {
       const testRole = getTestRole();
@@ -157,14 +157,7 @@ export async function POST(req: NextRequest) {
       role = (user?.publicMetadata as Record<string, string>)?.role;
     }
     if (!isAdmin(role)) {
-      const shop = await prisma.shop.findUnique({
-        where: { id: data.shopId },
-        select: { ownerId: true },
-      });
-      if (!shop) {
-        return apiError("NOT_FOUND", "Boucherie introuvable");
-      }
-      if (shop.ownerId !== userId) {
+      if (data.shopId !== authShopId) {
         return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
       }
     }

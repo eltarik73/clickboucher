@@ -22,7 +22,7 @@ export async function PATCH(
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { shopId } = authResult;
 
     const body = await req.json();
     const parsed = patchCatalogueSchema.safeParse(body);
@@ -32,10 +32,10 @@ export async function PATCH(
 
     const product = await prisma.product.findUnique({
       where: { id: params.productId },
-      include: { shop: { select: { ownerId: true } } },
+      select: { id: true, shopId: true },
     });
     if (!product) return apiError("NOT_FOUND", "Produit introuvable");
-    if (product.shop.ownerId !== userId) return apiError("FORBIDDEN", "Accès refusé");
+    if (product.shopId !== shopId) return apiError("FORBIDDEN", "Accès refusé");
 
     const updated = await prisma.product.update({
       where: { id: params.productId },

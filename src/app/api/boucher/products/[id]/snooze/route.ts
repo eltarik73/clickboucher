@@ -22,15 +22,15 @@ export async function PATCH(
     const { id: productId } = params;
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { shopId } = authResult;
 
     // Verify ownership
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, shopId: true, shop: { select: { ownerId: true } } },
+      select: { id: true, shopId: true },
     });
     if (!product) return apiError("NOT_FOUND", "Produit introuvable");
-    if (product.shop.ownerId !== userId) {
+    if (product.shopId !== shopId) {
       return apiError("FORBIDDEN", "Ce produit ne vous appartient pas");
     }
 

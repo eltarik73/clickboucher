@@ -61,11 +61,18 @@ export async function GET(
 
     // Permission: client owner or shop owner
     if (order.user.clerkId !== userId) {
-      const shop = await prisma.shop.findUnique({
-        where: { id: order.shop.id },
-        select: { ownerId: true },
-      });
-      if (shop?.ownerId !== userId) {
+      // Check shop ownership with OR clause (ownerId may store clerkId OR dbUser.id)
+      const [shop, dbUser] = await Promise.all([
+        prisma.shop.findUnique({
+          where: { id: order.shop.id },
+          select: { ownerId: true },
+        }),
+        prisma.user.findUnique({
+          where: { clerkId: userId },
+          select: { id: true },
+        }),
+      ]);
+      if (shop?.ownerId !== userId && shop?.ownerId !== dbUser?.id) {
         return apiError("FORBIDDEN", "Accès refusé");
       }
     }

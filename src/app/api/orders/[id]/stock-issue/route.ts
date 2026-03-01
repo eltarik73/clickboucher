@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
@@ -21,25 +21,23 @@ export async function POST(
 ) {
   try {
     const { id } = params;
-    const userId = await getServerUserId();
-
-    if (!userId) {
-      return apiError("UNAUTHORIZED", "Authentification requise");
-    }
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     // 1. Load order with items + product category info
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
         items: { include: { product: { include: { category: true } } } },
-        shop: { select: { id: true, ownerId: true, name: true } },
+        shop: { select: { id: true, name: true } },
       },
     });
 
     if (!order) {
       return apiError("NOT_FOUND", "Commande introuvable");
     }
-    if (order.shop.ownerId !== userId) {
+    if (order.shopId !== shopId) {
       return apiError("FORBIDDEN", "Cette commande n'appartient pas a votre boucherie");
     }
     if (order.status !== "PENDING") {

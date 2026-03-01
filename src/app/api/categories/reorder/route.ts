@@ -19,12 +19,12 @@ export async function PATCH(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { shopId: authShopId } = authResult;
 
     const body = await req.json();
     const { shopId, categoryIds } = reorderSchema.parse(body);
 
-    // Verify ownership
+    // Verify ownership via shopId
     let role: string | undefined;
     if (isTestActivated()) {
       const testRole = getTestRole();
@@ -34,12 +34,7 @@ export async function PATCH(req: NextRequest) {
       role = (user?.publicMetadata as Record<string, string>)?.role;
     }
     if (!isAdmin(role)) {
-      const shop = await prisma.shop.findUnique({
-        where: { id: shopId },
-        select: { ownerId: true },
-      });
-      if (!shop) return apiError("NOT_FOUND", "Boucherie introuvable");
-      if (shop.ownerId !== userId) return apiError("FORBIDDEN", "Non autorise");
+      if (shopId !== authShopId) return apiError("FORBIDDEN", "Non autorise");
     }
 
     // Validate all categories belong to this shop

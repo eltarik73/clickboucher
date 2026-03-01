@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
@@ -29,21 +29,22 @@ export async function PATCH(
 ) {
   try {
     const { id: orderId } = params;
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const authResult = await getAuthenticatedBoucher();
+    if (authResult.error) return authResult.error;
+    const { shopId } = authResult;
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         items: { include: { product: { select: { unit: true } } } },
-        shop: { select: { id: true, ownerId: true, name: true, priceAdjustmentThreshold: true } },
+        shop: { select: { id: true, name: true, priceAdjustmentThreshold: true } },
         user: { select: { id: true } },
         priceAdjustment: true,
       },
     });
 
     if (!order) return apiError("NOT_FOUND", "Commande introuvable");
-    if (order.shop.ownerId !== userId) return apiError("FORBIDDEN", "Pas votre boucherie");
+    if (order.shopId !== shopId) return apiError("FORBIDDEN", "Pas votre boucherie");
 
     if (order.status !== "ACCEPTED" && order.status !== "PREPARING") {
       return apiError("VALIDATION_ERROR", `Ajustement impossible (statut: ${order.status})`);

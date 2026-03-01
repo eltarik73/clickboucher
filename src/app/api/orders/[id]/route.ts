@@ -60,7 +60,8 @@ export async function GET(
     if (role === "ADMIN") {
       // Admin can see all
     } else if (role === "BOUCHER") {
-      if (order.shop.ownerId !== userId) {
+      // Check ownership with OR clause (ownerId may store clerkId OR dbUser.id)
+      if (order.shop.ownerId !== userId && order.shop.ownerId !== dbUser?.id) {
         return apiError("FORBIDDEN", "Cette commande n'appartient pas a votre boucherie");
       }
     } else {

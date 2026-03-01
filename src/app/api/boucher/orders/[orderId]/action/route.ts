@@ -45,7 +45,7 @@ export async function PATCH(
     const { orderId } = params;
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { userId, shopId } = authResult;
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -66,7 +66,7 @@ export async function PATCH(
     if (!order) {
       return apiError("NOT_FOUND", "Commande introuvable");
     }
-    if (order.shop.ownerId !== userId) {
+    if (order.shopId !== shopId) {
       return apiError("FORBIDDEN", "Cette commande n'appartient pas à votre boucherie");
     }
 

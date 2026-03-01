@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { userId } = authResult;
+    const { shopId: authShopId } = authResult;
 
     const body = await req.json();
     const { productId } = duplicateSchema.parse(body);
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       const user = await currentUser();
       role = (user?.publicMetadata as Record<string, string>)?.role;
     }
-    if (!isAdmin(role) && original.shop.ownerId !== userId) {
+    if (!isAdmin(role) && original.shopId !== authShopId) {
       return apiError("FORBIDDEN", "Non autorise");
     }
 
