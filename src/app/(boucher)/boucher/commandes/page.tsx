@@ -784,11 +784,11 @@ export default function KitchenModePage() {
         </div>
 
         {/* ══════════════════════════════════════════ */}
-        {/* ── DESKTOP: 3-column layout (35% / flex / 25%) ── */}
+        {/* ── DESKTOP: 3-column layout (40% / flex / 20%) ── */}
         {/* ══════════════════════════════════════════ */}
         <div className="flex-1 overflow-hidden hidden md:flex pb-14">
-          {/* Column 1: Nouvelles (35%) */}
-          <div className="w-[35%] shrink-0">
+          {/* Column 1: Nouvelles (40%) */}
+          <div className="w-[40%] shrink-0">
             <KitchenColumn
               title="Nouvelles"
               count={pendingCount}
