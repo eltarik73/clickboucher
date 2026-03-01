@@ -178,12 +178,26 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     })
     .sort((a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime());
 
+  // Scheduled-soon: pickupSlotStart within 30min, ACCEPTED only (not yet preparing)
+  // These go to "Nouvelles" so the boucher starts them like a fresh order
+  const scheduledSoonIds = new Set<string>();
+  const scheduledSoonOrders = orders.filter((o) => {
+    if (!o.pickupSlotStart || scheduledIds.has(o.id)) return false;
+    if (o.status !== "ACCEPTED") return false;
+    const pickupTime = new Date(o.pickupSlotStart).getTime();
+    if (pickupTime <= Date.now() + THIRTY_MIN && pickupTime > Date.now() - 5 * 60 * 1000) {
+      scheduledSoonIds.add(o.id);
+      return true;
+    }
+    return false;
+  });
+
   const pendingOrders = orders.filter((o) => o.status === "PENDING");
   const acceptedOrders = orders.filter((o) => o.status === "ACCEPTED");
   const preparingOrders = orders.filter((o) => o.status === "PREPARING");
   const readyOrders = orders.filter((o) => o.status === "READY");
   const inProgressOrders = orders.filter(
-    (o) => (o.status === "ACCEPTED" || o.status === "PREPARING") && !scheduledIds.has(o.id)
+    (o) => (o.status === "ACCEPTED" || o.status === "PREPARING") && !scheduledIds.has(o.id) && !scheduledSoonIds.has(o.id)
   );
 
   // History: terminal statuses from the last 7 days
@@ -209,11 +223,13 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     inProgressOrders,
     historyOrders,
     scheduledOrders,
+    scheduledSoonOrders,
     // Counts
     pendingCount: pendingOrders.length,
     inProgressCount: inProgressOrders.length,
     readyCount: readyOrders.length,
     historyCount: historyOrders.length,
     scheduledCount: scheduledOrders.length,
+    scheduledSoonCount: scheduledSoonOrders.length,
   };
 }
