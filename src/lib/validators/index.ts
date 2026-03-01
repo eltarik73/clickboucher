@@ -111,7 +111,7 @@ const productImageSchema = z.object({
 
 const productLabelInputSchema = z.object({
   name: z.string().min(1).max(100),
-  color: z.string().max(20).optional(),
+  color: z.string().max(20).nullable().optional(),
 });
 
 export const createProductSchema = z.object({
@@ -146,7 +146,7 @@ export const createProductSchema = z.object({
     defaultSlices: z.number().int().min(1).max(50),
     minSlices: z.number().int().min(1).max(50),
     maxSlices: z.number().int().min(1).max(50),
-    thicknesses: z.array(z.enum(["chiffonnade","fine","normale","epaisse"])),
+    thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
   }).nullable().optional(),
   images: z.array(productImageSchema).optional(),
   labels: z.array(productLabelInputSchema).optional(),
@@ -183,7 +183,7 @@ export const updateProductSchema = z.object({
     defaultSlices: z.number().int().min(1).max(50),
     minSlices: z.number().int().min(1).max(50),
     maxSlices: z.number().int().min(1).max(50),
-    thicknesses: z.array(z.enum(["chiffonnade","fine","normale","epaisse"])),
+    thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
   }).nullable().optional(),
   images: z.array(productImageSchema).optional(),
   labels: z.array(productLabelInputSchema).optional(),

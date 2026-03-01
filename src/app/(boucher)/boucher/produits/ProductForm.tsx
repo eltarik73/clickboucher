@@ -362,20 +362,17 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
     }
 
     // Images (server-uploaded: blob URLs or legacy /api/ URLs)
+    // Always send images array (even empty) so the API can delete removed images
     const uploadedImages = images.filter((i) => !i.uploading && (i.url.startsWith("/api/") || i.url.startsWith("https://")));
-    if (uploadedImages.length > 0) {
-      body.images = uploadedImages.map((img, i) => ({
-        url: img.url,
-        alt: img.alt || name,
-        order: i,
-        isPrimary: img.isPrimary,
-      }));
-    }
+    body.images = uploadedImages.map((img, i) => ({
+      url: img.url,
+      alt: img.alt || name,
+      order: i,
+      isPrimary: img.isPrimary,
+    }));
 
-    // Labels
-    if (labels.length > 0) {
-      body.labels = labels.map((l) => ({ name: l.name, color: l.color }));
-    }
+    // Labels — always send so the API can sync (empty = remove all)
+    body.labels = labels.map((l) => ({ name: l.name, color: l.color }));
 
     try {
       const url = isEdit ? `/api/products/${product!.id}` : "/api/products";
