@@ -231,7 +231,7 @@ export const createOrderSchema = z.object({
 // -- Boucher unified action --
 
 export const boucherActionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("accept"), estimatedMinutes: z.number().int().min(1).max(480) }),
+  z.object({ action: z.literal("accept"), estimatedMinutes: z.number().int().min(0).max(480) }),
   z.object({ action: z.literal("deny"), reason: z.string().min(1).max(500) }),
   z.object({ action: z.literal("start_preparing"), addMinutes: z.number().int().min(0).max(120).optional() }),
   z.object({ action: z.literal("add_time"), addMinutes: z.number().int().min(1).max(120) }),
