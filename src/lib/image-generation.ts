@@ -76,6 +76,17 @@ export async function generateImage(opts: GenerateOpts) {
 
   let imageUrl: string;
 
+  // Replicate FileOutput is a special object — String(obj) gives the URL
+  function extractUrl(output: unknown): string {
+    const items = Array.isArray(output) ? output : [output];
+    const first = items[0];
+    if (typeof first === "string") return first;
+    // FileOutput: String() gives the delivery URL
+    const str = String(first);
+    if (str.startsWith("http")) return str;
+    throw new Error("Unexpected Replicate output format");
+  }
+
   if (model === "IDEOGRAM") {
     const output = await replicate.run(modelId, {
       input: {
@@ -84,10 +95,7 @@ export async function generateImage(opts: GenerateOpts) {
         magic_prompt_option: "AUTO",
       },
     });
-    // Ideogram returns array of URLs or FileOutput
-    const urls = Array.isArray(output) ? output : [output];
-    const first = urls[0];
-    imageUrl = typeof first === "string" ? first : (first as { url?: string })?.url || String(first);
+    imageUrl = extractUrl(output);
   } else {
     const output = await replicate.run(modelId, {
       input: {
@@ -98,10 +106,7 @@ export async function generateImage(opts: GenerateOpts) {
         ...(model === "FLUX_SCHNELL" ? { num_inference_steps: 4 } : {}),
       },
     });
-    // FLUX returns array of URLs or FileOutput
-    const urls = Array.isArray(output) ? output : [output];
-    const first = urls[0];
-    imageUrl = typeof first === "string" ? first : (first as { url?: string })?.url || String(first);
+    imageUrl = extractUrl(output);
   }
 
   // Save to DB
