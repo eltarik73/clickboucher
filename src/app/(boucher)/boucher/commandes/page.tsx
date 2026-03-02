@@ -821,67 +821,66 @@ export default function KitchenModePage() {
               )}
             </div>
 
-            {/* Scrollable content with 2 sections */}
+            {/* Scrollable content — always split into 2 sections */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {inProgressCount === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <ChefHat size={32} className="text-gray-700" />
-                  <p className="text-gray-600 text-sm">Aucune commande en cours</p>
-                </div>
+              {/* Section 1: À préparer maintenant — always visible */}
+              <div className="flex items-center gap-2 px-1 pt-1">
+                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-blue-400 animate-pulse" : "bg-gray-700"}`} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-blue-400" : "text-gray-600"}`}>
+                  A preparer maintenant
+                </span>
+                {prepareNowOrders.length > 0 && (
+                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
+                )}
+              </div>
+              {prepareNowOrders.length > 0 ? (
+                prepareNowOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.id}
+                    order={order}
+                    shopName={shopName}
+                    shopPrepTime={shopPrepTime}
+                    onAction={handleAction}
+                    onStockIssue={setStockIssueOrder}
+                    onView={handleViewOrder}
+                    onAdjustPrice={setAdjustPriceOrder}
+                  />
+                ))
               ) : (
-                <>
-                  {/* Section 1: À préparer maintenant */}
-                  {prepareNowOrders.length > 0 && (
-                    <>
-                      <div className="flex items-center gap-2 px-1 pt-1">
-                        <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                        <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">A preparer maintenant</span>
-                      </div>
-                      {prepareNowOrders.map((order) => (
-                        <KitchenOrderCard
-                          key={order.id}
-                          order={order}
-                          shopName={shopName}
-                          shopPrepTime={shopPrepTime}
-                          onAction={handleAction}
-                          onStockIssue={setStockIssueOrder}
-                          onView={handleViewOrder}
-                          onAdjustPrice={setAdjustPriceOrder}
-                        />
-                      ))}
-                    </>
-                  )}
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande a preparer</p>
+              )}
 
-                  {/* Separator between sections */}
-                  {prepareNowOrders.length > 0 && scheduledWaitingOrders.length > 0 && (
-                    <div className="flex items-center gap-3 py-2">
-                      <div className="flex-1 h-px bg-white/10" />
-                      <CalendarClock size={14} className="text-purple-400" />
-                      <div className="flex-1 h-px bg-white/10" />
-                    </div>
-                  )}
+              {/* Separator — always visible */}
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-white/10" />
+                <CalendarClock size={14} className="text-purple-400/60" />
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
 
-                  {/* Section 2: Programmées en attente */}
-                  {scheduledWaitingOrders.length > 0 && (
-                    <>
-                      <div className="flex items-center gap-2 px-1">
-                        <CalendarClock size={14} className="text-purple-400" />
-                        <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Programmees (en attente)</span>
-                      </div>
-                      {scheduledWaitingOrders.map((order) => (
-                        <KitchenOrderCard
-                          key={order.id}
-                          order={order}
-                          shopName={shopName}
-                          shopPrepTime={shopPrepTime}
-                          onAction={handleAction}
-                          onStockIssue={setStockIssueOrder}
-                          onView={handleViewOrder}
-                        />
-                      ))}
-                    </>
-                  )}
-                </>
+              {/* Section 2: Programmées — always visible */}
+              <div className="flex items-center gap-2 px-1">
+                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-700"} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-600"}`}>
+                  Programmees (en attente)
+                </span>
+                {scheduledWaitingOrders.length > 0 && (
+                  <span className="text-[10px] font-bold bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
+                )}
+              </div>
+              {scheduledWaitingOrders.length > 0 ? (
+                scheduledWaitingOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.id}
+                    order={order}
+                    shopName={shopName}
+                    shopPrepTime={shopPrepTime}
+                    onAction={handleAction}
+                    onStockIssue={setStockIssueOrder}
+                    onView={handleViewOrder}
+                  />
+                ))
+              ) : (
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmee</p>
               )}
             </div>
           </div>
@@ -961,62 +960,68 @@ export default function KitchenModePage() {
               ))
             )
           ) : activeTab === "en-cours" ? (
-            /* En cours tab — split: À préparer + Programmées en attente */
-            inProgressCount === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <ChefHat size={40} className="text-gray-700" />
-                <p className="text-gray-600 text-sm">Aucune commande en cours</p>
-              </div>
-            ) : (
-              <>
+            /* En cours tab — always split: À préparer + Programmées */
+            <>
+              {/* Section 1: À préparer maintenant */}
+              <div className="flex items-center gap-2 px-1 pt-1">
+                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-blue-400 animate-pulse" : "bg-gray-700"}`} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-blue-400" : "text-gray-600"}`}>
+                  A preparer maintenant
+                </span>
                 {prepareNowOrders.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-2 px-1 pt-1">
-                      <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                      <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">A preparer maintenant</span>
-                    </div>
-                    {prepareNowOrders.map((order) => (
-                      <KitchenOrderCard
-                        key={order.id}
-                        order={order}
-                        shopName={shopName}
-                        shopPrepTime={shopPrepTime}
-                        onAction={handleAction}
-                        onStockIssue={setStockIssueOrder}
-                        onView={handleViewOrder}
-                        onAdjustPrice={setAdjustPriceOrder}
-                      />
-                    ))}
-                  </>
+                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
                 )}
-                {prepareNowOrders.length > 0 && scheduledWaitingOrders.length > 0 && (
-                  <div className="flex items-center gap-3 py-2">
-                    <div className="flex-1 h-px bg-white/10" />
-                    <CalendarClock size={14} className="text-purple-400" />
-                    <div className="flex-1 h-px bg-white/10" />
-                  </div>
-                )}
+              </div>
+              {prepareNowOrders.length > 0 ? (
+                prepareNowOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.id}
+                    order={order}
+                    shopName={shopName}
+                    shopPrepTime={shopPrepTime}
+                    onAction={handleAction}
+                    onStockIssue={setStockIssueOrder}
+                    onView={handleViewOrder}
+                    onAdjustPrice={setAdjustPriceOrder}
+                  />
+                ))
+              ) : (
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande a preparer</p>
+              )}
+
+              {/* Separator */}
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-white/10" />
+                <CalendarClock size={14} className="text-purple-400/60" />
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+
+              {/* Section 2: Programmées */}
+              <div className="flex items-center gap-2 px-1">
+                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-700"} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-600"}`}>
+                  Programmees (en attente)
+                </span>
                 {scheduledWaitingOrders.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-2 px-1">
-                      <CalendarClock size={14} className="text-purple-400" />
-                      <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Programmees (en attente)</span>
-                    </div>
-                    {scheduledWaitingOrders.map((order) => (
-                      <KitchenOrderCard
-                        key={order.id}
-                        order={order}
-                        shopName={shopName}
-                        shopPrepTime={shopPrepTime}
-                        onAction={handleAction}
-                        onStockIssue={setStockIssueOrder}
-                        onView={handleViewOrder}
-                      />
-                    ))}
-                  </>
+                  <span className="text-[10px] font-bold bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
                 )}
-              </>
-            )
+              </div>
+              {scheduledWaitingOrders.length > 0 ? (
+                scheduledWaitingOrders.map((order) => (
+                  <KitchenOrderCard
+                    key={order.id}
+                    order={order}
+                    shopName={shopName}
+                    shopPrepTime={shopPrepTime}
+                    onAction={handleAction}
+                    onStockIssue={setStockIssueOrder}
+                    onView={handleViewOrder}
+                  />
+                ))
+              ) : (
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmee</p>
+              )}
+            </>
           ) : activeOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               {activeTab === "nouvelles" && <Bell size={40} className="text-gray-700" />}

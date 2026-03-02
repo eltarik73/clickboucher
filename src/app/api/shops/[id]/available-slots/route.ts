@@ -69,10 +69,12 @@ export async function GET(
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
 
-    const effectivePrepTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
     const now = new Date();
     const isToday = dateStr === now.toISOString().slice(0, 10);
-    const nowMinutes = isToday ? now.getHours() * 60 + now.getMinutes() + effectivePrepTime : 0;
+    // Minimum pickup: now + 30 min, rounded UP to next slot boundary
+    const rawMin = now.getHours() * 60 + now.getMinutes() + 30;
+    const remainder = rawMin % intervalMin;
+    const nowMinutes = isToday ? (remainder === 0 ? rawMin : rawMin + intervalMin - remainder) : 0;
 
     // Count existing orders per slot for this date
     const dayStart = new Date(dateStr + "T00:00:00Z");
