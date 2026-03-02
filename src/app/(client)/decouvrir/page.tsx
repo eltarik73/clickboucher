@@ -60,6 +60,7 @@ type ShopData = {
   status: string;
   rating: number;
   ratingCount: number;
+  activePromo: string | null;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -166,7 +167,7 @@ export default async function DecouvrirPage() {
     });
 
     const [shopsResult, favResult, promosResult] = await Promise.all([shopsPromise, favPromise, promosPromise]);
-    shops = shopsResult;
+
     if (favResult?.favoriteShops) {
       favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
     }
@@ -179,6 +180,30 @@ export default async function DecouvrirPage() {
       shopName: p.shop?.name || "Klik&Go",
       shopSlug: p.shop?.slug || null,
     }));
+
+    // Build shopId → promo label map for badge display
+    const shopPromoMap = new Map<string, string>();
+    for (const p of promosResult) {
+      if (p.shopId && !shopPromoMap.has(p.shopId)) {
+        const shortLabel = p.type === "FREE_FEES" ? "Frais offerts"
+          : p.type === "PERCENT" && p.valuePercent ? `-${p.valuePercent}%`
+          : p.type === "FIXED" && p.valueCents ? `-${(p.valueCents / 100).toFixed(0)}€`
+          : p.label;
+        shopPromoMap.set(p.shopId, shortLabel);
+      }
+    }
+
+    // Attach promo label to shops + sort: shops with promos first
+    shops = shopsResult.map((s) => ({
+      ...s,
+      activePromo: shopPromoMap.get(s.id) || null,
+    }));
+    shops.sort((a, b) => {
+      const aHasPromo = a.activePromo ? 1 : 0;
+      const bHasPromo = b.activePromo ? 1 : 0;
+      if (bHasPromo !== aHasPromo) return bHasPromo - aHasPromo;
+      return 0; // Keep existing order (rating desc) for ties
+    });
   } catch (error) {
     dbError = true;
     void error;
@@ -294,7 +319,7 @@ export default async function DecouvrirPage() {
 
         {/* Geolocation-aware shop list */}
         <NearbyShops
-          initialShops={shops.map((s) => ({ ...s, distance: null }))}
+          initialShops={shops.map((s) => ({ ...s, distance: null, activePromo: s.activePromo }))}
           favoriteIds={Array.from(favoriteIds)}
         />
       </section>

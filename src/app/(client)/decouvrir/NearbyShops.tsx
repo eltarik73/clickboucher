@@ -8,7 +8,7 @@ import LocationPicker from "@/components/location/LocationPicker";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { StarRating } from "@/components/ui/StarRating";
 import { getShopImage } from "@/lib/product-images";
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, Tag } from "lucide-react";
 
 const SHOP_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' fill='%23e5e7eb'%3E%3Crect width='600' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🏪%3C/text%3E%3C/svg%3E";
 
@@ -26,6 +26,7 @@ type ShopData = {
   rating: number;
   ratingCount: number;
   distance: number | null;
+  activePromo: string | null;
 };
 
 type Props = {
@@ -182,24 +183,33 @@ function NearbyButcherCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
         {/* Top-left badges */}
-        <div className="absolute top-3 left-3 flex items-center gap-2">
-          {shop.status === "OPEN" || shop.status === "BUSY" ? (
-            <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${prepBadgeClasses}`}>
-              {effectiveTime <= 15 && (
-                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              )}
-              {effectiveTime} min
-            </span>
-          ) : (
-            <span className="px-2.5 py-1 bg-gray-600/90 text-white text-xs font-semibold rounded-lg">
-              Fermé
+        <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
+          {/* Promo badge */}
+          {shop.activePromo && (
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-[#DC2626] text-white text-xs font-bold rounded-lg shadow-md">
+              <Tag className="w-3 h-3" />
+              {shop.activePromo}
             </span>
           )}
-          {shop.status === "BUSY" && (
-            <span className="px-2 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-lg">
-              Occupé
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {shop.status === "OPEN" || shop.status === "BUSY" ? (
+              <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${prepBadgeClasses}`}>
+                {effectiveTime <= 15 && (
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                )}
+                {effectiveTime} min
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 bg-gray-600/90 text-white text-xs font-semibold rounded-lg">
+                Fermé
+              </span>
+            )}
+            {shop.status === "BUSY" && (
+              <span className="px-2 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-lg">
+                Occupé
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Top-right: favorite + distance or city */}

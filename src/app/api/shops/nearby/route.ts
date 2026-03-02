@@ -121,7 +121,42 @@ export async function GET(req: NextRequest) {
       distance: null as number | null,
     }));
 
-    const allShops = [...nearbyNormalized, ...withoutCoordsNormalized];
+    // Fetch active promos for these shops
+    const allShopIds = [...nearbyNormalized, ...withoutCoordsNormalized].map((s) => s.id);
+    const activePromos = allShopIds.length > 0
+      ? await prisma.promotion.findMany({
+          where: {
+            shopId: { in: allShopIds },
+            isActive: true,
+            startsAt: { lte: new Date() },
+            endsAt: { gt: new Date() },
+          },
+          select: { shopId: true, type: true, valueCents: true, valuePercent: true, label: true },
+        })
+      : [];
+
+    const shopPromoMap = new Map<string, string>();
+    for (const p of activePromos) {
+      if (p.shopId && !shopPromoMap.has(p.shopId)) {
+        const shortLabel = p.type === "FREE_FEES" ? "Frais offerts"
+          : p.type === "PERCENT" && p.valuePercent ? `-${p.valuePercent}%`
+          : p.type === "FIXED" && p.valueCents ? `-${(p.valueCents / 100).toFixed(0)}€`
+          : p.label;
+        shopPromoMap.set(p.shopId, shortLabel);
+      }
+    }
+
+    const allShops = [...nearbyNormalized, ...withoutCoordsNormalized].map((s) => ({
+      ...s,
+      activePromo: shopPromoMap.get(s.id) || null,
+    }));
+
+    // Sort: shops with promos first, then by existing order
+    allShops.sort((a, b) => {
+      const aHasPromo = a.activePromo ? 1 : 0;
+      const bHasPromo = b.activePromo ? 1 : 0;
+      return bHasPromo - aHasPromo;
+    });
 
     // ── Cache store (TTL 60s) ──
     try {

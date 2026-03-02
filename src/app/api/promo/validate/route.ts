@@ -15,8 +15,15 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const clerkId = await getServerUserId();
+    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
+
+    // Resolve Clerk ID → Prisma user ID (needed for loyalty rewards)
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+    const userId = dbUser?.id || clerkId;
 
     const body = await req.json();
     const { code, orderTotalCents } = schema.parse(body);
