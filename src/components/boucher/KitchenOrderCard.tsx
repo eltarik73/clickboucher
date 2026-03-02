@@ -108,6 +108,7 @@ export default function KitchenOrderCard({
   const clientName = order.user
     ? formatClientName(order.user.firstName, order.user.lastName)
     : "Client";
+  const isFidele = order.user?.loyaltyBadge === "FIDELE";
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
   const customerNum = order.user?.customerNumber;
@@ -190,6 +191,9 @@ export default function KitchenOrderCard({
             {order.isPro && (
               <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded shrink-0">PRO</span>
             )}
+            {isFidele && (
+              <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded shrink-0">FIDÈLE</span>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-sm font-bold text-purple-300">
@@ -248,6 +252,9 @@ export default function KitchenOrderCard({
                 <span className="text-sm font-bold bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-md">
                   PRO
                 </span>
+              )}
+              {isFidele && (
+                <span className="text-sm font-bold bg-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-md">FIDÈLE</span>
               )}
             </div>
             <div className="flex items-center gap-4 mt-2">
@@ -313,6 +320,9 @@ export default function KitchenOrderCard({
               <span className="text-sm font-bold bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-md">
                 PRO
               </span>
+            )}
+            {isFidele && (
+              <span className="text-sm font-bold bg-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-md">FIDÈLE</span>
             )}
           </div>
           <div className="flex items-center gap-4 mt-2">
