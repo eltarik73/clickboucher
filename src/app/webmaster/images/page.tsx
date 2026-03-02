@@ -1,4 +1,4 @@
-// src/app/webmaster/images/page.tsx — Webmaster AI Image Gallery
+// src/app/webmaster/images/page.tsx — Webmaster Marketing Visuals
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -10,9 +10,11 @@ import {
   Trash2,
   Filter,
   Sparkles,
+  LayoutTemplate,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import PromoBannerCreator from "@/components/marketing/PromoBannerCreator";
 import ImageGenerator from "@/components/marketing/ImageGenerator";
 
 type GenImage = {
@@ -27,7 +29,7 @@ type GenImage = {
   createdAt: string;
 };
 
-type Tab = "generate" | "gallery";
+type Tab = "banners" | "ai-photos" | "gallery";
 type UsageFilter = "" | "CAMPAIGN" | "PROMO" | "PRODUCT" | "SOCIAL" | "BANNER";
 
 const USAGE_LABELS: Record<string, string> = {
@@ -39,7 +41,7 @@ const USAGE_LABELS: Record<string, string> = {
 };
 
 export default function WebmasterImagesPage() {
-  const [tab, setTab] = useState<Tab>("generate");
+  const [tab, setTab] = useState<Tab>("banners");
   const [images, setImages] = useState<GenImage[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<UsageFilter>("");
@@ -75,16 +77,17 @@ export default function WebmasterImagesPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Sparkles size={24} className="text-red-600" />
-            Images IA
+            Visuels Marketing
           </h1>
-          <p className="text-sm text-gray-500">Générer et gérer les images marketing</p>
+          <p className="text-sm text-gray-500">Bannières promo, photos IA et galerie</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200 dark:border-white/10 pb-2">
         {([
-          ["generate", "Générer", Sparkles],
+          ["banners", "Bannières Promo", LayoutTemplate],
+          ["ai-photos", "Photos IA", Sparkles],
           ["gallery", "Galerie", ImageIcon],
         ] as [Tab, string, typeof Sparkles][]).map(([key, label, Icon]) => (
           <button
@@ -101,14 +104,31 @@ export default function WebmasterImagesPage() {
         ))}
       </div>
 
-      {/* Generate tab */}
-      {tab === "generate" && (
+      {/* Banners tab — NEW main feature */}
+      {tab === "banners" && (
+        <div className="max-w-2xl bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Créer une bannière promo</h2>
+            <p className="text-sm text-gray-500">
+              Choisissez un modèle, personnalisez le texte et téléchargez en PNG
+            </p>
+          </div>
+          <PromoBannerCreator />
+        </div>
+      )}
+
+      {/* AI Photos tab */}
+      {tab === "ai-photos" && (
         <div className="max-w-xl bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Générer une photo IA</h2>
+            <p className="text-sm text-gray-500">
+              Photos de produits et ambiances via IA (FLUX / Ideogram)
+            </p>
+          </div>
           <ImageGenerator
             endpoint="/api/admin/images/generate"
-            onGenerated={() => {
-              toast.success("Image ajoutée à la galerie");
-            }}
+            onGenerated={() => toast.success("Image ajoutée à la galerie")}
           />
         </div>
       )}
@@ -162,6 +182,11 @@ export default function WebmasterImagesPage() {
                       src={img.imageUrl}
                       alt={img.prompt}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        (e.target as HTMLImageElement).parentElement!.innerHTML =
+                          '<div class="flex items-center justify-center h-full text-gray-400 text-xs">Image expirée</div>';
+                      }}
                     />
                   </div>
                   <div className="p-2">
@@ -186,7 +211,6 @@ export default function WebmasterImagesPage() {
                     <button
                       onClick={async () => {
                         if (!confirm("Supprimer cette image ?")) return;
-                        // TODO: add DELETE endpoint if needed
                         toast.info("Suppression non implémentée");
                       }}
                       className="p-1.5 rounded-lg bg-white/90 dark:bg-black/80 shadow text-red-500"

@@ -1,4 +1,4 @@
-// src/app/(boucher)/boucher/dashboard/images/page.tsx — Boucher AI Image Gallery
+// src/app/(boucher)/boucher/dashboard/images/page.tsx — Boucher Marketing Visuals
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -9,9 +9,11 @@ import {
   Download,
   Filter,
   Sparkles,
+  LayoutTemplate,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import PromoBannerCreator from "@/components/marketing/PromoBannerCreator";
 import ImageGenerator from "@/components/marketing/ImageGenerator";
 
 type GenImage = {
@@ -25,7 +27,7 @@ type GenImage = {
   createdAt: string;
 };
 
-type Tab = "generate" | "gallery";
+type Tab = "banners" | "ai-photos" | "gallery";
 type UsageFilter = "" | "CAMPAIGN" | "PROMO" | "PRODUCT" | "SOCIAL" | "BANNER";
 
 const USAGE_LABELS: Record<string, string> = {
@@ -37,7 +39,7 @@ const USAGE_LABELS: Record<string, string> = {
 };
 
 export default function BoucherImagesPage() {
-  const [tab, setTab] = useState<Tab>("generate");
+  const [tab, setTab] = useState<Tab>("banners");
   const [images, setImages] = useState<GenImage[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<UsageFilter>("");
@@ -73,16 +75,17 @@ export default function BoucherImagesPage() {
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Sparkles size={20} className="text-red-600" />
-            Images IA
+            Visuels Marketing
           </h1>
-          <p className="text-sm text-gray-500">Générer des visuels pour vos promos et produits</p>
+          <p className="text-sm text-gray-500">Bannières promo et photos pour votre boutique</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200 dark:border-white/10 pb-2">
         {([
-          ["generate", "Générer", Sparkles],
+          ["banners", "Bannières Promo", LayoutTemplate],
+          ["ai-photos", "Photos IA", Sparkles],
           ["gallery", "Mes images", ImageIcon],
         ] as [Tab, string, typeof Sparkles][]).map(([key, label, Icon]) => (
           <button
@@ -99,16 +102,33 @@ export default function BoucherImagesPage() {
         ))}
       </div>
 
-      {/* Generate */}
-      {tab === "generate" && (
+      {/* Banners tab */}
+      {tab === "banners" && (
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Créer une bannière promo</h2>
+            <p className="text-sm text-gray-500">
+              Personnalisez le texte, choisissez un style et téléchargez
+            </p>
+          </div>
+          <PromoBannerCreator />
+        </div>
+      )}
+
+      {/* AI Photos */}
+      {tab === "ai-photos" && (
+        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold">Générer une photo IA</h2>
+            <p className="text-sm text-gray-500">
+              Photos de produits et ambiances via IA
+            </p>
+          </div>
           <ImageGenerator
             endpoint="/api/boucher/images/generate"
             defaultUsage="PROMO"
             compact
-            onGenerated={() => {
-              toast.success("Image ajoutée à votre galerie");
-            }}
+            onGenerated={() => toast.success("Image ajoutée à votre galerie")}
           />
         </div>
       )}
@@ -148,10 +168,10 @@ export default function BoucherImagesPage() {
               <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
               <p>Aucune image générée</p>
               <button
-                onClick={() => setTab("generate")}
+                onClick={() => setTab("banners")}
                 className="mt-2 text-sm text-red-600 hover:underline"
               >
-                Générer votre première image
+                Créer votre première bannière
               </button>
             </div>
           ) : (
@@ -167,6 +187,11 @@ export default function BoucherImagesPage() {
                       src={img.imageUrl}
                       alt={img.prompt}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        (e.target as HTMLImageElement).parentElement!.innerHTML =
+                          '<div class="flex items-center justify-center h-full text-gray-400 text-xs">Image expirée</div>';
+                      }}
                     />
                   </div>
                   <div className="p-2">
