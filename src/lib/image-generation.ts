@@ -1,6 +1,7 @@
 // src/lib/image-generation.ts — AI image generation via Replicate (FLUX + Ideogram)
 import { getReplicateClient } from "./replicate";
 import { prisma } from "./prisma";
+import { put } from "@vercel/blob";
 
 // ── Models ──
 export const IMAGE_MODELS = {
@@ -109,18 +110,36 @@ export async function generateImage(opts: GenerateOpts) {
     imageUrl = extractUrl(output);
   }
 
+  // Upload to Vercel Blob for permanent storage (Replicate URLs expire)
+  let permanentUrl = imageUrl;
+  try {
+    const response = await fetch(imageUrl);
+    if (response.ok) {
+      const blob = await response.blob();
+      const ext = imageUrl.includes(".webp") ? "webp" : "png";
+      const filename = `generated/${opts.usage.toLowerCase()}-${Date.now()}.${ext}`;
+      const { url: blobUrl } = await put(filename, blob, {
+        access: "public",
+        contentType: blob.type || `image/${ext}`,
+      });
+      permanentUrl = blobUrl;
+    }
+  } catch {
+    // Fallback to Replicate URL if Blob upload fails
+  }
+
   // Save to DB
   const record = await prisma.generatedImage.create({
     data: {
       prompt: opts.prompt,
       model,
-      imageUrl,
+      imageUrl: permanentUrl,
       width: dims.width,
       height: dims.height,
       usage: opts.usage,
       shopId: opts.shopId || null,
       createdBy: opts.createdBy,
-      metadata: { fullPrompt, modelId },
+      metadata: { fullPrompt, modelId, replicateUrl: imageUrl },
     },
   });
 
