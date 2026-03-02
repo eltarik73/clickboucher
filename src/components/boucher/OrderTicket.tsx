@@ -42,6 +42,22 @@ function getPickupCode(qrCode: string): string {
   return String(num).padStart(4, "0");
 }
 
+/** Inline SVG logo (Klik&Go red circle with K) */
+const LOGO_SVG = `<svg viewBox="0 0 100 100" width="48" height="48" style="display:block;margin:0 auto;">
+  <defs>
+    <linearGradient id="tktGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a83320"/>
+      <stop offset="50%" stop-color="#DC2626"/>
+      <stop offset="100%" stop-color="#DC2626"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="46" fill="url(#tktGrad)"/>
+  <path d="M35 25 L35 75 L45 75 L45 55 L60 75 L73 75 L55 52 L72 25 L59 25 L45 47 L45 25 Z" fill="white"/>
+  <rect x="76" y="33" width="14" height="3.5" rx="1.75" fill="white" opacity="0.7"/>
+  <rect x="79" y="43" width="16" height="3" rx="1.5" fill="white" opacity="0.5"/>
+  <rect x="76" y="53" width="12" height="2.5" rx="1.25" fill="white" opacity="0.3"/>
+</svg>`;
+
 /** Build item quantity string */
 function formatItemQty(item: KitchenOrder["items"][0]): string {
   const unit = item.product?.unit || item.unit;
@@ -101,7 +117,11 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
   return `
   <div class="ticket">
     <div class="double-line"></div>
-    <div class="brand">Klik&amp;Go</div>
+    <div class="header">
+      ${LOGO_SVG}
+      <div class="brand">Klik&amp;Go</div>
+      <div class="shop-name">${escapeHtml(shopName)}</div>
+    </div>
     <div class="double-line"></div>
 
     <div class="hero">
@@ -110,12 +130,12 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
     </div>
 
     <div class="dates">
-      Commande passee le ${formatDateFull(order.createdAt)}<br>
-      ${prepDateStr ? `A preparer pour le ${prepDateStr}` : "A preparer des que possible"}
+      Commande pass\u00E9e le ${formatDateFull(order.createdAt)}<br>
+      ${prepDateStr ? `\u00C0 pr\u00E9parer pour le ${prepDateStr}` : "\u00C0 pr\u00E9parer d\u00E8s que possible"}
     </div>
 
     <div class="pickup-box">
-      ${isScheduled ? `RETRAIT ${pickupTimeStr}` : "RETRAIT DES QUE POSSIBLE"}
+      ${isScheduled ? `RETRAIT ${pickupTimeStr}` : "RETRAIT D\u00C8S QUE POSSIBLE"}
     </div>
 
     <div class="divider"></div>
@@ -124,13 +144,14 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
 
     ${noteHtml}
 
+    <div class="divider"></div>
     <div class="totals">
       <div class="total-row"><span>Sous-total</span><span>${formatPrice(order.totalCents)}</span></div>
-      <div class="total-row"><span>Montant paye</span><span>${formatPrice(order.totalCents)}</span></div>
+      <div class="total-row"><span>Montant pay\u00E9</span><span>${formatPrice(order.totalCents)}</span></div>
     </div>
     <div class="divider"></div>
 
-    ${pickupCode ? `<div class="code-section">Code retrait : ${pickupCode}</div>` : ""}
+    ${pickupCode ? `<div class="code-section">\uD83D\uDD11 Code retrait : ${pickupCode}</div>` : ""}
 
     <div class="divider"></div>
     <div class="footer">Merci &mdash; www.klikandgo.app</div>
@@ -138,42 +159,64 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
   </div>`;
 }
 
-/** CSS styles for the Uber Eats style thermal ticket */
+/** CSS styles for the Uber Eats style thermal ticket — tablet + desktop compatible */
 const TICKET_CSS = `
     @page { margin: 0; size: 80mm auto; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    html, body {
       font-family: 'Courier New', 'Lucida Console', monospace;
       font-size: 12px;
       line-height: 1.4;
       width: 302px;
+      max-width: 302px;
       margin: 0 auto;
       padding: 0;
       color: #000;
       background: #fff;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
     }
-    .ticket { padding: 8px; }
+    .ticket { padding: 8px; width: 302px; max-width: 302px; }
     .double-line { border-top: 3px double #000; margin: 4px 0; }
-    .brand { text-align: center; font-size: 20px; font-weight: 900; letter-spacing: 2px; padding: 6px 0; }
-    .hero { background: #000; color: #fff; padding: 10px 12px; text-align: center; margin: 6px 0; }
-    .hero-number { font-size: 28px; font-weight: 900; letter-spacing: 2px; }
-    .hero-name { font-size: 22px; font-weight: 700; margin-left: 12px; }
-    .pro-badge { display: inline-block; background: #DC2626; color: white; padding: 1px 6px; border-radius: 3px; font-size: 12px; font-weight: bold; vertical-align: middle; }
+    .header { text-align: center; padding: 4px 0; }
+    .brand { text-align: center; font-size: 20px; font-weight: 900; letter-spacing: 2px; padding: 4px 0; }
+    .shop-name { font-size: 13px; font-weight: bold; color: #333; margin-top: 2px; text-align: center; }
+    .hero {
+      background: #000 !important;
+      color: #fff !important;
+      padding: 10px 12px;
+      text-align: center;
+      margin: 6px 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .hero-number { font-size: 28px; font-weight: 900; letter-spacing: 2px; display: inline; }
+    .hero-name { font-size: 22px; font-weight: 700; margin-left: 12px; display: inline; }
+    .pro-badge { display: inline-block; background: #DC2626 !important; color: white !important; padding: 1px 6px; border-radius: 3px; font-size: 12px; font-weight: bold; vertical-align: middle; -webkit-print-color-adjust: exact !important; }
     .dates { text-align: center; font-size: 11px; line-height: 1.6; padding: 6px 0; color: #333; }
     .pickup-box { text-align: center; font-size: 22px; font-weight: 900; letter-spacing: 2px; border: 3px solid #000; padding: 8px; margin: 8px 12px; }
     .divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
     .item { margin: 6px 0; }
-    .item-line { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; }
-    .item-price { white-space: nowrap; margin-left: 8px; }
-    .item-halal { font-size: 10px; color: #666; padding-left: 8px; margin-top: 1px; }
+    .item-line { font-size: 12px; font-weight: 500; overflow: hidden; }
+    .item-line span:first-child { float: left; max-width: 220px; }
+    .item-price { float: right; white-space: nowrap; }
+    .item-line::after { content: ''; display: table; clear: both; }
+    .item-halal { font-size: 10px; color: #666; padding-left: 8px; margin-top: 1px; clear: both; }
     .note-section { margin: 6px 0; }
     .note-title { font-size: 11px; text-align: center; color: #666; margin-bottom: 4px; }
     .note-box { border: 1px solid #000; padding: 6px 8px; font-size: 11px; border-radius: 2px; }
     .totals { padding: 4px 0; }
-    .total-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; padding: 2px 0; }
+    .total-row { font-size: 13px; font-weight: bold; padding: 2px 0; overflow: hidden; }
+    .total-row span:first-child { float: left; }
+    .total-row span:last-child { float: right; }
+    .total-row::after { content: ''; display: table; clear: both; }
     .code-section { text-align: center; font-size: 16px; font-weight: 900; padding: 8px 0; letter-spacing: 1px; }
     .footer { text-align: center; font-size: 12px; padding: 6px 0; color: #333; }
-    @media print { body { width: 100%; padding: 0; } }
+    @media print {
+      html, body { width: 80mm !important; max-width: 80mm !important; padding: 0 !important; margin: 0 !important; }
+      .ticket { width: 80mm !important; max-width: 80mm !important; }
+    }
 `;
 
 /** Build the full HTML document for the ticket */
@@ -205,10 +248,11 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string): boolea
     iframe.style.top = "-10000px";
     iframe.style.left = "-10000px";
     iframe.style.width = "302px";
-    iframe.style.height = "0";
+    iframe.style.height = "900px"; // real height so tablet renders content
     iframe.style.border = "none";
     iframe.style.opacity = "0";
     iframe.style.pointerEvents = "none";
+    iframe.style.zIndex = "-9999";
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow?.document;
