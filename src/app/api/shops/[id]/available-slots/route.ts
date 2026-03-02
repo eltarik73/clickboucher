@@ -71,8 +71,9 @@ export async function GET(
 
     const now = new Date();
     const isToday = dateStr === now.toISOString().slice(0, 10);
-    // Minimum pickup: now + 30 min, rounded UP to next slot boundary
-    const rawMin = now.getHours() * 60 + now.getMinutes() + 30;
+    // Minimum pickup: now + 10 min margin, rounded UP to next slot boundary
+    // 13h09 → 13h30 | 13h22 → 14h00 | 14h31 → 15h00
+    const rawMin = now.getHours() * 60 + now.getMinutes() + 10;
     const remainder = rawMin % intervalMin;
     const nowMinutes = isToday ? (remainder === 0 ? rawMin : rawMin + intervalMin - remainder) : 0;
 
