@@ -23,6 +23,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 import DOMPurify from "dompurify";
 
 function sanitizeHtml(html: string): string {
@@ -244,6 +245,12 @@ export default function MarketingPage() {
         >
           <Clock size={14} /> Historique
         </button>
+        <Link
+          href="/webmaster/images"
+          className="px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-white ml-auto"
+        >
+          <Sparkles size={14} /> Images IA
+        </Link>
       </div>
 
       {/* Overview Stats */}
