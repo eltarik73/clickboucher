@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
-import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X, Tag, Loader2, Gift } from "lucide-react";
+import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X, Tag, Loader2, Gift, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, type CartItem } from "@/lib/hooks/use-cart";
 import { Button } from "@/components/ui/button";
@@ -162,6 +162,9 @@ export default function PanierPage() {
     type: string;
   } | null>(null);
 
+  // Available loyalty rewards
+  const [availableRewards, setAvailableRewards] = useState<{ code: string; rewardCents: number | null; rewardPercent: number | null; rewardType: string }[]>([]);
+
   // Shop payment config
   const [shopAcceptOnline, setShopAcceptOnline] = useState(false);
   const [shopAcceptOnPickup, setShopAcceptOnPickup] = useState(true);
@@ -184,6 +187,15 @@ export default function PanierPage() {
       })
       .catch(() => {});
   }, [state.shopId]);
+
+  // Fetch available loyalty rewards
+  useEffect(() => {
+    if (!isSignedIn) return;
+    fetch("/api/loyalty/available")
+      .then((r) => r.json())
+      .then((json) => { if (json.data?.rewards) setAvailableRewards(json.data.rewards); })
+      .catch(() => {});
+  }, [isSignedIn]);
 
   // Validate cart products still exist in the shop
   useEffect(() => {
@@ -455,6 +467,24 @@ export default function PanierPage() {
               </div>
             ) : (
               <div>
+                {/* Loyalty reward suggestion */}
+                {availableRewards.length > 0 && !appliedPromo && (
+                  <button
+                    onClick={() => { setPromoCode(availableRewards[0].code); }}
+                    className="w-full mb-3 flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-left hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors"
+                  >
+                    <Trophy size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span className="text-xs text-amber-800 dark:text-amber-300">
+                      Vous avez un bon de{" "}
+                      <span className="font-bold">
+                        {availableRewards[0].rewardType === "FIXED" && availableRewards[0].rewardCents
+                          ? fmtPrice(availableRewards[0].rewardCents)
+                          : `${availableRewards[0].rewardPercent}%`}
+                      </span>
+                      {" "}&mdash; Appliquer ?
+                    </span>
+                  </button>
+                )}
                 <div className="flex gap-2">
                   <input
                     type="text"
