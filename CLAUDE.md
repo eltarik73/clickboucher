@@ -235,7 +235,10 @@ Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessi
 - Route `/boutique/[id]` utilise le **slug** pas l'ID (ex: `/boutique/boucherie-tarik`)
 - `git add prisma/schema.prisma` obligatoire à chaque modif du schema
 
-## Mode autonome
+## Permissions
 - Exécute TOUT sans demander confirmation
-- Ne pose AUCUNE question, avance directement
-- Fais les choix toi-même quand il y a une ambiguïté
+- Ne demande JAMAIS "Voulez-vous continuer ?" ou "Dois-je procéder ?"
+- Fais les choix toi-même et avance
+- Applique les modifications directement
+- Lance npm run build automatiquement
+- Fais git add/commit/push sans demander
