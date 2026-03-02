@@ -829,5 +829,72 @@ export function startCronJobs() {
     }
   });
 
+  // ═══════════════════════════════════════════
+  // CAMPAIGN — Send scheduled campaigns every 5 min
+  // ═══════════════════════════════════════════
+  cron.schedule("*/5 * * * *", async () => {
+    try {
+      const now = new Date();
+      const dueCampaigns = await prisma.campaign.findMany({
+        where: {
+          status: "SCHEDULED",
+          scheduledAt: { not: null, lte: now },
+        },
+        select: { id: true },
+      });
+
+      for (const campaign of dueCampaigns) {
+        try {
+          const { sendCampaign } = await import("@/lib/services/campaign.service");
+          await sendCampaign(campaign.id);
+          console.log(`[CRON][campaign] Sent campaign ${campaign.id}`);
+        } catch (err) {
+          console.error(`[CRON][campaign] Failed to send ${campaign.id}:`, err);
+        }
+      }
+    } catch (error) {
+      console.error("[CRON][campaign] Error:", error);
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  // LOYALTY — Remind expiring rewards daily at 10h
+  // ═══════════════════════════════════════════
+  cron.schedule("0 10 * * *", async () => {
+    try {
+      const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      // Rewards expiring in 3 days (between tomorrow and 3 days)
+      const expiringRewards = await prisma.loyaltyReward.findMany({
+        where: {
+          usedAt: null,
+          expiresAt: { gte: tomorrow, lte: threeDaysFromNow },
+        },
+        include: {
+          user: { select: { id: true, pushPromoEnabled: true, firstName: true } },
+        },
+      });
+
+      let sent = 0;
+      for (const reward of expiringRewards) {
+        if (!reward.user.pushPromoEnabled) continue;
+
+        const label = reward.rewardCents
+          ? `${(reward.rewardCents / 100).toFixed(0)}\u20AC`
+          : `${reward.rewardPercent}%`;
+
+        await sendNotification("PROMO_NEW", {
+          userId: reward.user.id,
+          message: `Votre bon de ${label} expire dans 3 jours ! Code : ${reward.code}`,
+        }).catch(() => {});
+        sent++;
+      }
+      if (sent > 0) console.log(`[CRON][loyalty] Sent ${sent} expiring reward reminders`);
+    } catch (error) {
+      console.error("[CRON][loyalty] Error:", error);
+    }
+  });
+
   console.log("[CRON] All cron jobs scheduled successfully");
 }
