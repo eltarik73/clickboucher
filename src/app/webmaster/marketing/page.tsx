@@ -86,7 +86,7 @@ function fmtValue(p: Promotion) {
 }
 
 export default function MarketingPage() {
-  const [tab, setTab] = useState<"promos" | "campaigns">("promos");
+  const [tab, setTab] = useState<"promos" | "campaigns" | "loyalty" | "history">("promos");
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +223,26 @@ export default function MarketingPage() {
               {campaigns.filter((c) => c.status === "DRAFT").length}
             </span>
           )}
+        </button>
+        <button
+          onClick={() => setTab("loyalty")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+            tab === "loyalty"
+              ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+              : "text-gray-500"
+          }`}
+        >
+          <Users size={14} /> Fidélité
+        </button>
+        <button
+          onClick={() => setTab("history")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+            tab === "history"
+              ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm"
+              : "text-gray-500"
+          }`}
+        >
+          <Clock size={14} /> Historique
         </button>
       </div>
 
@@ -398,6 +418,78 @@ export default function MarketingPage() {
                 <CampaignRow key={c.id} campaign={c} onRefresh={fetch_} />
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════ LOYALTY TAB ═══════ */}
+      {tab === "loyalty" && (
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/10 p-5">
+            <h3 className="text-sm font-bold mb-4">Programme de fidélité</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-amber-500">{loyaltyStats?.fideleCount || 0}</p>
+                <p className="text-[11px] text-gray-500">Clients fidèles</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{loyaltyStats?.totalRewards || 0}</p>
+                <p className="text-[11px] text-gray-500">Bons générés</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">{loyaltyStats?.usedRewards || 0}</p>
+                <p className="text-[11px] text-gray-500">Bons utilisés</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary">
+                  {loyaltyStats?.totalRewards ? Math.round((loyaltyStats.usedRewards / loyaltyStats.totalRewards) * 100) : 0}%
+                </p>
+                <p className="text-[11px] text-gray-500">Taux conversion</p>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 dark:border-white/10 pt-4">
+              <p className="text-xs text-gray-500 mb-2">Montant total des réductions fidélité :</p>
+              <p className="text-lg font-bold text-primary">
+                {loyaltyStats?.totalDiscountCents ? (loyaltyStats.totalDiscountCents / 100).toFixed(2).replace(".", ",") + " \u20AC" : "0,00 \u20AC"}
+              </p>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">
+              Gérer les paliers : <a href="/webmaster/fidelite" className="text-primary hover:underline">Paramètres fidélité</a>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ HISTORY TAB ═══════ */}
+      {tab === "history" && (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500 mb-2">{promos.filter((p) => !p.isActive || new Date(p.endsAt) <= new Date()).length} promotions terminées</p>
+          {promos
+            .filter((p) => !p.isActive || new Date(p.endsAt) <= new Date())
+            .map((p) => (
+              <div key={p.id} className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/10 p-4 opacity-70">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm truncate">{p.label}</span>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${p.source === "PLATFORM" ? "bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400" : "bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"}`}>
+                        {p.source === "PLATFORM" ? "Klik&Go" : "Boucher"}
+                      </span>
+                      {p.isFlash && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">Flash</span>}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {fmtValue(p)} &middot; {p.currentUses} utilisations &middot; {fmtDate(p.startsAt)} → {fmtDate(p.endsAt)}
+                      {p.shop ? ` · ${p.shop.name}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-bold text-gray-600 dark:text-gray-300">{p.currentUses} util.</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          {promos.filter((p) => !p.isActive || new Date(p.endsAt) <= new Date()).length === 0 && (
+            <div className="text-center py-12 text-gray-400 text-sm">Aucun historique</div>
           )}
         </div>
       )}
