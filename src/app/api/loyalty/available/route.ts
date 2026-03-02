@@ -7,12 +7,19 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const clerkId = await getServerUserId();
+    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
+
+    // Resolve Prisma user.id from clerkId
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+    if (!dbUser) return apiSuccess({ rewards: [] });
 
     const rewards = await prisma.loyaltyReward.findMany({
       where: {
-        userId,
+        userId: dbUser.id,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },

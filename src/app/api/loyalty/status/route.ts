@@ -2,16 +2,24 @@
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getUserLoyaltyStatus } from "@/lib/services/loyalty.service";
+import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const clerkId = await getServerUserId();
+    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
-    const status = await getUserLoyaltyStatus(userId);
-    if (!status) return apiError("NOT_FOUND", "Utilisateur introuvable");
+    // Resolve Prisma user.id from clerkId
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+    if (!dbUser) return apiError("NOT_FOUND", "Utilisateur introuvable");
+
+    const status = await getUserLoyaltyStatus(dbUser.id);
+    if (!status) return apiError("NOT_FOUND", "Statut de fidélité introuvable");
 
     return apiSuccess(status);
   } catch (error) {

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { generateImage, type ImageModel, type ImageUsage } from "@/lib/image-generation";
+import { isReplicateConfigured } from "@/lib/replicate";
 
 const VALID_MODELS: ImageModel[] = ["FLUX_SCHNELL", "FLUX_PRO", "IDEOGRAM"];
 const VALID_USAGES: ImageUsage[] = ["CAMPAIGN", "PROMO", "PRODUCT", "SOCIAL", "BANNER"];
@@ -11,6 +12,10 @@ export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
+
+    if (!isReplicateConfigured()) {
+      return apiError("SERVICE_DISABLED", "Service d'images IA non configuré. Ajoutez REPLICATE_API_TOKEN dans les variables d'environnement.");
+    }
 
     const body = await req.json();
     const { prompt, model, width, height, usage, shopId } = body;
@@ -40,6 +45,9 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess(image, 201);
   } catch (err) {
+    if (err instanceof Error && err.message === "REPLICATE_API_TOKEN_MISSING") {
+      return apiError("SERVICE_DISABLED", "Service d'images IA non configuré. Ajoutez REPLICATE_API_TOKEN.");
+    }
     return handleApiError(err, "admin/images/generate");
   }
 }
