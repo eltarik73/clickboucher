@@ -1,4 +1,6 @@
 // GET /api/admin/images/gallery — Webmaster gallery (all images)
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";

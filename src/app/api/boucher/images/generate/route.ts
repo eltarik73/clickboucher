@@ -1,4 +1,6 @@
 // POST /api/boucher/images/generate — Boucher AI image generation (scoped to shop)
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";

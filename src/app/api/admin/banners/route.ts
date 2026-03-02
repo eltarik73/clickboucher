@@ -1,4 +1,6 @@
 // /api/admin/banners — CRUD for site banners
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";

@@ -1,4 +1,6 @@
 // GET /api/boucher/images/gallery — Boucher gallery (shop-scoped)
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";

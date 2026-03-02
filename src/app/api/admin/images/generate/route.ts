@@ -1,4 +1,6 @@
 // POST /api/admin/images/generate — Webmaster AI image generation
+export const dynamic = "force-dynamic";
+
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
