@@ -1199,7 +1199,7 @@ function HistoryCard({ order }: { order: KitchenOrder }) {
   const BadgeIcon = badge.icon;
 
   const clientName = order.user
-    ? `${order.user.firstName} ${order.user.lastName.charAt(0)}.`
+    ? (order.user.firstName.charAt(0).toUpperCase() + order.user.firstName.slice(1).toLowerCase() + "." + order.user.lastName.charAt(0).toUpperCase())
     : "Client";
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;

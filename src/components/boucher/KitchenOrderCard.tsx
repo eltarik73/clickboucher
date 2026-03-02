@@ -21,7 +21,7 @@ import {
   Ban,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
-import { printOrderTicket, printOrderTicketFallback } from "./OrderTicket";
+import { printOrderTicket } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import { ORDER_STATUS_BORDER } from "@/lib/design-tokens";
 import { toast } from "sonner";
@@ -73,6 +73,13 @@ function formatCountdown(ms: number): string {
   return m > 0 ? `Dans ${h}h${String(m).padStart(2, "0")}` : `Dans ${h}h`;
 }
 
+function formatClientName(firstName: string, lastName: string): string {
+  if (!firstName) return "Client";
+  const first = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : "";
+  return lastInitial ? `${first}.${lastInitial}` : first;
+}
+
 function getCountdownColor(ms: number): string {
   const min = ms / 60_000;
   if (min <= 30) return "bg-red-500/20 text-red-400 border-red-500/30";
@@ -99,7 +106,7 @@ export default function KitchenOrderCard({
   const [denyReason, setDenyReason] = useState("");
 
   const clientName = order.user
-    ? `${order.user.firstName} ${order.user.lastName.charAt(0)}.`
+    ? formatClientName(order.user.firstName, order.user.lastName)
     : "Client";
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
