@@ -651,7 +651,26 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
     }
 
     // ── Push ──
-    if (user.notifPush && user.pushSubscription) {
+    // Promo push rate limit: max 3 promo pushes/week/user + respect pushPromoEnabled
+    const isPromoEvent = event === "PROMO_NEW" || event === "FLASH_OFFER" || event === "LOYALTY_REWARD_EARNED";
+    let promoPushAllowed = true;
+    if (isPromoEvent) {
+      const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { pushPromoEnabled: true } });
+      if (dbUser && !dbUser.pushPromoEnabled) promoPushAllowed = false;
+      if (promoPushAllowed) {
+        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const promoPushCount = await prisma.notification.count({
+          where: {
+            userId: user.id,
+            type: { in: ["PROMO_NEW", "FLASH_OFFER", "LOYALTY_REWARD_EARNED"] },
+            channel: "PUSH",
+            createdAt: { gte: oneWeekAgo },
+          },
+        });
+        if (promoPushCount >= 3) promoPushAllowed = false;
+      }
+    }
+    if (user.notifPush && user.pushSubscription && (!isPromoEvent || promoPushAllowed)) {
       try {
         const sub = user.pushSubscription as PushSubscriptionData;
         if (sub.endpoint && sub.keys) {
