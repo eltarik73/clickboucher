@@ -16,7 +16,7 @@ import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
 import { ReorderCarousel } from "@/components/order/ReorderCarousel";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
-import MarketingBanner from "@/components/marketing/MarketingBanner";
+import { OfferPopup } from "@/components/client/OfferPopup";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -122,6 +122,7 @@ export default async function DecouvrirPage() {
   let dbError = false;
   let favoriteIds: Set<string> = new Set();
   let livePromos: LivePromo[] = [];
+  let popupOffers: { id: string; name: string; code: string; type: string; discountValue: number; popupTitle: string | null; popupMessage: string | null; popupColor: string | null; popupFrequency: string | null; popupImageUrl: string | null }[] = [];
 
   // 1. Auth (non-blocking — page works without login)
   let clerkId: string | null = null;
@@ -160,41 +161,72 @@ export default async function DecouvrirPage() {
         })
       : Promise.resolve(null);
 
-    const promosPromise = prisma.promotion.findMany({
+    const offersPromise = prisma.offer.findMany({
       where: {
-        isActive: true,
-        startsAt: { lte: new Date() },
-        endsAt: { gt: new Date() },
+        status: "ACTIVE",
+        startDate: { lte: new Date() },
+        endDate: { gt: new Date() },
+        diffBadge: true,
       },
       include: { shop: { select: { name: true, slug: true } } },
       orderBy: { createdAt: "desc" },
       take: 6,
     });
 
-    const [shopsResult, favResult, promosResult] = await Promise.all([shopsPromise, favPromise, promosPromise]);
+    const popupOffersPromise = prisma.offer.findMany({
+      where: {
+        status: "ACTIVE",
+        startDate: { lte: new Date() },
+        endDate: { gt: new Date() },
+        diffPopup: true,
+      },
+      select: {
+        id: true, name: true, code: true, type: true, discountValue: true,
+        popupTitle: true, popupMessage: true, popupColor: true, popupFrequency: true, popupImageUrl: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+    });
+
+    const [shopsResult, favResult, offersResult, popupOffersResult] = await Promise.all([shopsPromise, favPromise, offersPromise, popupOffersPromise]);
 
     if (favResult?.favoriteShops) {
       favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
     }
-    livePromos = promosResult.map((p) => ({
-      id: p.id,
-      label: p.label,
-      type: p.type,
-      valuePercent: p.valuePercent,
-      valueCents: p.valueCents,
-      shopName: p.shop?.name || "Klik&Go",
-      shopSlug: p.shop?.slug || null,
+    livePromos = offersResult.map((o) => ({
+      id: o.id,
+      label: o.name,
+      type: o.type,
+      valuePercent: o.type === "PERCENT" ? o.discountValue : null,
+      valueCents: o.type === "AMOUNT" ? Math.round(o.discountValue * 100) : null,
+      shopName: o.shop?.name || "Klik&Go",
+      shopSlug: o.shop?.slug || null,
+    }));
+
+    popupOffers = popupOffersResult.map((o) => ({
+      id: o.id,
+      name: o.name,
+      code: o.code,
+      type: o.type,
+      discountValue: o.discountValue,
+      popupTitle: o.popupTitle,
+      popupMessage: o.popupMessage,
+      popupColor: o.popupColor,
+      popupFrequency: o.popupFrequency,
+      popupImageUrl: o.popupImageUrl,
     }));
 
     // Build shopId → promo label map for badge display
     const shopPromoMap = new Map<string, string>();
-    for (const p of promosResult) {
-      if (p.shopId && !shopPromoMap.has(p.shopId)) {
-        const shortLabel = p.type === "FREE_FEES" ? "Frais offerts"
-          : p.type === "PERCENT" && p.valuePercent ? `-${p.valuePercent}%`
-          : p.type === "FIXED" && p.valueCents ? `-${(p.valueCents / 100).toFixed(0)}€`
-          : p.label;
-        shopPromoMap.set(p.shopId, shortLabel);
+    for (const o of offersResult) {
+      if (o.shopId && !shopPromoMap.has(o.shopId)) {
+        const shortLabel = o.type === "FREE_DELIVERY" ? "Frais offerts"
+          : o.type === "PERCENT" ? `-${o.discountValue}%`
+          : o.type === "AMOUNT" ? `-${o.discountValue}€`
+          : o.type === "BOGO" ? "1+1 offert"
+          : o.type === "BUNDLE" ? "Pack"
+          : o.name;
+        shopPromoMap.set(o.shopId, shortLabel);
       }
     }
 
@@ -272,9 +304,8 @@ export default async function DecouvrirPage() {
       <HowItWorks />
 
       {/* ═══════════════════════════════════════════════════════════ */}
-      {/* MARKETING BANNERS / POPUPS / PROMO STRIP */}
+      {/* MARKETING (placeholder — rebuilt in Phase 5) */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <MarketingBanner />
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* CALENDAR BANNER */}
@@ -375,6 +406,9 @@ export default async function DecouvrirPage() {
           </div>
         </div>
       </footer>
+
+      {/* Offer popup */}
+      {popupOffers.length > 0 && <OfferPopup offers={popupOffers} />}
     </div>
   );
 }

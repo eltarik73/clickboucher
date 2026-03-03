@@ -16,114 +16,121 @@ function getClient(): Anthropic | null {
 // ── AI: Generate email content ──
 export async function generateEmailContent(params: {
   type: string;
-  segment: string;
+  audience: string;
   objective: string;
   keywords: string[];
   tone?: string;
-}): Promise<{ subject: string; htmlContent: string }> {
+}): Promise<{ subject: string; body: string }> {
   const client = getClient();
 
-  const segmentDesc: Record<string, string> = {
-    ALL: "tous les clients",
-    LOYAL: "les clients fidèles (3+ commandes)",
-    INACTIVE: "les clients inactifs (pas de commande depuis 30j)",
-    BUTCHERS: "les bouchers partenaires",
+  const audienceDesc: Record<string, string> = {
+    CLIENTS_ALL: "tous les clients",
+    CLIENTS_LOYAL: "les clients fidèles (3+ commandes)",
+    CLIENTS_INACTIVE: "les clients inactifs (pas de commande depuis 30j)",
+    CLIENTS_NEW: "les nouveaux clients (1ère commande)",
+    BUTCHERS_ALL: "tous les bouchers partenaires",
+    BUTCHERS_NEW: "les nouveaux bouchers",
+    BUTCHERS_ACTIVE: "les bouchers actifs",
   };
 
-  const prompt = `Tu es un expert marketing email pour Klik&Go, une plateforme de click & collect pour boucheries artisanales halal.
+  const prompt = `Tu es un expert marketing pour Klik&Go, une plateforme de click & collect pour boucheries halal.
+Génère un email marketing professionnel.
 
-Génère un email marketing avec:
-- Type: ${params.type}
-- Audience: ${segmentDesc[params.segment] || params.segment}
-- Objectif: ${params.objective}
-- Mots-clés: ${params.keywords.join(", ") || "aucun"}
-- Ton: ${params.tone || "amical et professionnel"}
+Type : ${params.type}
+Audience : ${audienceDesc[params.audience] || params.audience}
+Objectif : ${params.objective}
+Mots-clés : ${params.keywords.join(", ")}
+Ton : ${params.tone || "professionnel et chaleureux"}
 
-Réponds UNIQUEMENT en JSON valide avec cette structure:
-{"subject": "l'objet de l'email (max 60 chars)", "html": "le contenu HTML de l'email"}
-
-Le HTML doit:
-- Être un email responsive simple (inline styles)
-- Utiliser la couleur primaire #DC2626 (rouge)
-- Inclure le logo texte "Klik&Go" en haut
-- Avoir un CTA clair (bouton rouge)
-- Être en français
-- Maximum 300 mots`;
+Réponds UNIQUEMENT en JSON :
+{
+  "subject": "Objet de l'email (max 60 chars)",
+  "body": "Contenu HTML de l'email (h2, p, ul, strong, pas de style inline)"
+}`;
 
   if (!client) {
-    // Fallback stub
     return {
-      subject: `[Klik&Go] ${params.objective.slice(0, 50)}`,
-      htmlContent: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
-<h1 style="color:#DC2626">Klik&Go</h1>
-<p>${params.objective}</p>
-<a href="https://klikandgo.app" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Découvrir →</a>
-</div>`,
+      subject: `[${params.type}] ${params.objective}`,
+      body: `<h2>${params.objective}</h2><p>Contenu généré automatiquement.</p>`,
     };
   }
 
-  try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
-      messages: [{ role: "user", content: prompt }],
-    });
+  const msg = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1500,
+    messages: [{ role: "user", content: prompt }],
+  });
 
-    const block = response.content[0];
-    const text = block && block.type === "text" ? block.text : "";
-
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        subject: parsed.subject || `[Klik&Go] ${params.objective.slice(0, 50)}`,
-        htmlContent: parsed.html || parsed.htmlContent || text,
-      };
-    }
-
-    return {
-      subject: `[Klik&Go] ${params.objective.slice(0, 50)}`,
-      htmlContent: text,
-    };
-  } catch (error) {
-    console.error("[campaign] AI generation error:", error);
-    throw new Error("Erreur lors de la génération du contenu IA");
+  const text = msg.content[0].type === "text" ? msg.content[0].text : "";
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return { subject: params.objective, body: `<p>${text}</p>` };
   }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  return { subject: parsed.subject || params.objective, body: parsed.body || parsed.htmlContent || "" };
 }
 
-// ── Get recipients by segment ──
-export async function getRecipientsBySegment(segment: string): Promise<{ email: string; firstName: string }[]> {
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-  switch (segment) {
-    case "LOYAL": {
+// ── Get recipients by audience segment ──
+async function getRecipientsByAudience(audience: string): Promise<{ email: string; firstName: string | null }[]> {
+  switch (audience) {
+    case "CLIENTS_LOYAL": {
       const users = await prisma.user.findMany({
-        where: { totalOrders: { gte: 3 }, role: { in: ["CLIENT", "CLIENT_PRO"] } },
+        where: { role: { in: ["CLIENT", "CLIENT_PRO"] }, totalOrders: { gte: 3 } },
         select: { email: true, firstName: true },
       });
       return users;
     }
-    case "INACTIVE": {
-      // Users with at least 1 order but none in the last 30 days
+    case "CLIENTS_INACTIVE": {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const users = await prisma.user.findMany({
         where: {
           role: { in: ["CLIENT", "CLIENT_PRO"] },
-          orders: { some: {} },
-          NOT: { orders: { some: { createdAt: { gte: thirtyDaysAgo } } } },
+          orders: { none: { createdAt: { gte: thirtyDaysAgo } } },
         },
         select: { email: true, firstName: true },
       });
       return users;
     }
-    case "BUTCHERS": {
+    case "CLIENTS_NEW": {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const users = await prisma.user.findMany({
+        where: { role: { in: ["CLIENT", "CLIENT_PRO"] }, createdAt: { gte: sevenDaysAgo } },
+        select: { email: true, firstName: true },
+      });
+      return users;
+    }
+    case "BUTCHERS_ALL": {
       const users = await prisma.user.findMany({
         where: { role: "BOUCHER" },
         select: { email: true, firstName: true },
       });
       return users;
     }
-    case "ALL":
+    case "BUTCHERS_NEW": {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const users = await prisma.user.findMany({
+        where: { role: "BOUCHER", createdAt: { gte: thirtyDaysAgo } },
+        select: { email: true, firstName: true },
+      });
+      return users;
+    }
+    case "BUTCHERS_ACTIVE": {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const users = await prisma.user.findMany({
+        where: {
+          role: "BOUCHER",
+          orders: { some: { createdAt: { gte: sevenDaysAgo } } },
+        },
+        select: { email: true, firstName: true },
+      });
+      return users;
+    }
+    case "CLIENTS_ALL":
     default: {
       const users = await prisma.user.findMany({
         where: { role: { in: ["CLIENT", "CLIENT_PRO"] } },
@@ -140,7 +147,7 @@ export async function sendCampaign(campaignId: string): Promise<{ sentCount: num
   if (!campaign) throw new Error("Campagne introuvable");
   if (campaign.status === "SENT") throw new Error("Campagne déjà envoyée");
 
-  const recipients = await getRecipientsBySegment(campaign.segment);
+  const recipients = await getRecipientsByAudience(campaign.audience);
   let sentCount = 0;
 
   // Send in batches of 10 to avoid rate limits
@@ -148,8 +155,7 @@ export async function sendCampaign(campaignId: string): Promise<{ sentCount: num
     const batch = recipients.slice(i, i + 10);
     const results = await Promise.allSettled(
       batch.map((r) => {
-        // Personalize content
-        const html = campaign.htmlContent.replace(/\{\{prenom\}\}/g, r.firstName || "");
+        const html = campaign.body.replace(/\{\{prenom\}\}/g, r.firstName || "");
         return sendEmail(r.email, campaign.subject, html);
       })
     );

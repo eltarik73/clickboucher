@@ -67,12 +67,12 @@ export default async function BonsPlansPage() {
         orderBy: [{ promoType: "asc" }, { promoPct: "desc" }],
       }),
 
-      // 2. Platform promotions (created from Marketing)
-      prisma.promotion.findMany({
+      // 2. Active offers (from Marketing Hub)
+      prisma.offer.findMany({
         where: {
-          isActive: true,
-          startsAt: { lte: now },
-          endsAt: { gt: now },
+          status: "ACTIVE",
+          startDate: { lte: now },
+          endDate: { gt: now },
         },
         include: { shop: { select: { name: true, slug: true } } },
         orderBy: { createdAt: "desc" },
@@ -96,17 +96,17 @@ export default async function BonsPlansPage() {
       images: p.images.map((i) => ({ url: i.url, isPrimary: i.isPrimary })),
     }));
 
-    platformPromos = promotions.map((p) => ({
-      id: p.id,
-      label: p.label,
-      description: p.description,
-      type: p.type,
-      valueCents: p.valueCents,
-      valuePercent: p.valuePercent,
-      code: p.code,
-      endsAt: p.endsAt.toISOString(),
-      shopName: p.shop?.name || null,
-      shopSlug: p.shop?.slug || null,
+    platformPromos = promotions.map((o) => ({
+      id: o.id,
+      label: o.name,
+      description: null,
+      type: o.type,
+      valueCents: o.type === "AMOUNT" ? Math.round(o.discountValue * 100) : null,
+      valuePercent: o.type === "PERCENT" ? o.discountValue : null,
+      code: o.code,
+      endsAt: o.endDate.toISOString(),
+      shopName: o.shop?.name || null,
+      shopSlug: o.shop?.slug || null,
     }));
   } catch {
     // Promo fetch failed — continue with empty lists

@@ -121,28 +121,31 @@ export async function GET(req: NextRequest) {
       distance: null as number | null,
     }));
 
-    // Fetch active promos for these shops
+    // Fetch active offers for these shops
     const allShopIds = [...nearbyNormalized, ...withoutCoordsNormalized].map((s) => s.id);
-    const activePromos = allShopIds.length > 0
-      ? await prisma.promotion.findMany({
+    const activeOffers = allShopIds.length > 0
+      ? await prisma.offer.findMany({
           where: {
             shopId: { in: allShopIds },
-            isActive: true,
-            startsAt: { lte: new Date() },
-            endsAt: { gt: new Date() },
+            status: "ACTIVE",
+            startDate: { lte: new Date() },
+            endDate: { gt: new Date() },
+            diffBadge: true,
           },
-          select: { shopId: true, type: true, valueCents: true, valuePercent: true, label: true },
+          select: { shopId: true, type: true, discountValue: true, name: true },
         })
       : [];
 
     const shopPromoMap = new Map<string, string>();
-    for (const p of activePromos) {
-      if (p.shopId && !shopPromoMap.has(p.shopId)) {
-        const shortLabel = p.type === "FREE_FEES" ? "Frais offerts"
-          : p.type === "PERCENT" && p.valuePercent ? `-${p.valuePercent}%`
-          : p.type === "FIXED" && p.valueCents ? `-${(p.valueCents / 100).toFixed(0)}€`
-          : p.label;
-        shopPromoMap.set(p.shopId, shortLabel);
+    for (const o of activeOffers) {
+      if (o.shopId && !shopPromoMap.has(o.shopId)) {
+        const shortLabel = o.type === "FREE_DELIVERY" ? "Frais offerts"
+          : o.type === "PERCENT" ? `-${o.discountValue}%`
+          : o.type === "AMOUNT" ? `-${o.discountValue}€`
+          : o.type === "BOGO" ? "1+1 offert"
+          : o.type === "BUNDLE" ? "Pack"
+          : o.name;
+        shopPromoMap.set(o.shopId, shortLabel);
       }
     }
 

@@ -305,55 +305,33 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // ── Apply promo / loyalty discount ──
+    // ── Apply offer discount ──
     let discountCents = 0;
     let discountSource: string | null = null;
-    let promotionId: string | null = null;
+    let offerId: string | null = null;
     let loyaltyRewardId: string | null = null;
-    let promoCodeId: string | null = null;
 
-    if (data.promoCodeId && data.discountCents) {
-      // New unified PromoCode system
-      const pc = await prisma.promoCode.findUnique({ where: { id: data.promoCodeId } });
-      if (pc && pc.status === "ACTIVE" && new Date() >= pc.startsAt && new Date() <= pc.endsAt) {
+    if (data.offerId && data.discountCents) {
+      const offer = await prisma.offer.findUnique({ where: { id: data.offerId } });
+      if (offer && offer.status === "ACTIVE" && new Date() >= offer.startDate && new Date() <= offer.endDate) {
         discountCents = Math.min(data.discountCents, totalCents);
-        discountSource = pc.scope;
-        promoCodeId = pc.id;
-        // Increment usage + create usage record
-        await Promise.all([
-          prisma.promoCode.update({
-            where: { id: pc.id },
-            data: { currentUses: { increment: 1 } },
-          }),
-          prisma.promoCodeUsage.create({
-            data: {
-              promoCodeId: pc.id,
-              userId: user.id,
-              discountCents,
-            },
-          }),
-        ]);
-      }
-    } else if (data.promotionId && data.discountCents && data.discountSource) {
-      // Legacy Promotion system
-      const promo = await prisma.promotion.findUnique({ where: { id: data.promotionId } });
-      if (promo && promo.isActive && new Date() >= promo.startsAt && new Date() <= promo.endsAt) {
-        discountCents = Math.min(data.discountCents, totalCents);
-        discountSource = data.discountSource;
-        promotionId = promo.id;
-        await prisma.promotion.update({
-          where: { id: promo.id },
+        discountSource = offer.shopId ? "SHOP" : "PLATFORM";
+        offerId = offer.id;
+        await prisma.offer.update({
+          where: { id: offer.id },
           data: { currentUses: { increment: 1 } },
         });
       }
     } else if (data.loyaltyRewardId && data.discountCents) {
-      const { markLoyaltyRewardUsed } = await import("@/lib/services/loyalty.service");
       const reward = await prisma.loyaltyReward.findUnique({ where: { id: data.loyaltyRewardId } });
       if (reward && !reward.usedAt && reward.userId === user.id) {
         discountCents = Math.min(data.discountCents, totalCents);
         discountSource = "LOYALTY";
         loyaltyRewardId = reward.id;
-        markLoyaltyRewardUsed(reward.id, "pending-order").catch(() => {});
+        await prisma.loyaltyReward.update({
+          where: { id: reward.id },
+          data: { usedAt: new Date() },
+        }).catch(() => {});
       }
     }
 
@@ -426,10 +404,10 @@ export async function POST(req: NextRequest) {
         totalCents: finalTotalCents,
         commissionCents,
         discountCents: discountCents > 0 ? discountCents : undefined,
+        discountAmount: discountCents > 0 ? discountCents / 100 : undefined,
         discountSource: discountSource || undefined,
-        promotionId: promotionId || undefined,
+        offerId: offerId || undefined,
         loyaltyRewardId: loyaltyRewardId || undefined,
-        promoCodeId: promoCodeId || undefined,
         expiresAt: initialStatus === "PENDING" ? expiresAt : null,
         idempotencyKey: body.idempotencyKey || null,
         pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,

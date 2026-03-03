@@ -165,12 +165,12 @@ enum SnoozeType {
   CUSTOM
 }
 
-// ── Marketing Hub enums ──
+// ── Marketing Hub V3 enums ──
 
-enum DiscountType {
+enum OfferType {
   PERCENT
-  FIXED
-  FREE_FEES
+  AMOUNT
+  FREE_DELIVERY
   BOGO
   BUNDLE
 }
@@ -180,49 +180,53 @@ enum OfferPayer {
   BUTCHER
 }
 
-enum PromoScope {
-  PLATFORM
-  SHOP
-  LOYALTY
-}
-
-enum PromoAudience {
+enum OfferAudience {
   ALL
-  NEW_CLIENTS
-  LOYAL_CLIENTS
-  INACTIVE_CLIENTS
-  PRO_CLIENTS
+  NEW
+  LOYAL
+  VIP
 }
 
-enum PromoCodeStatus {
+enum OfferStatus {
   DRAFT
   ACTIVE
   PAUSED
   EXPIRED
-  ARCHIVED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 enum CampaignType {
-  EMAIL
-  BANNER
-  POPUP
-  PUSH
-  BUTCHER_PROMO
+  NEWSLETTER
+  ONBOARDING
+  REACTIVATION
+  PROMO
+  UPDATE
+  REMINDER
+  REPORT
+  EDUCATION
+}
+
+enum CampaignAudience {
+  CLIENTS_ALL
+  CLIENTS_NEW
+  CLIENTS_LOYAL
+  CLIENTS_INACTIVE
+  BUTCHERS_ALL
+  BUTCHERS_NEW
+  BUTCHERS_ACTIVE
 }
 
 enum CampaignStatus {
   DRAFT
   SCHEDULED
-  ACTIVE
+  SENDING
+  SENT
   PAUSED
-  COMPLETED
-  ARCHIVED
-}
-
-enum OptInStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
 }
 
 // ══════════════════════════════════════════
@@ -285,7 +289,6 @@ model User {
   recurringOrders RecurringOrder[]
   supportTickets  SupportTicket[]
   proAccesses     ProAccess[]
-  promoCodeUsages PromoCodeUsage[]
 
   @@map("users")
 }
@@ -447,10 +450,9 @@ model Shop {
   calendarEvents    CalendarEvent[]
   apiKeys           ApiKey[]
   alerts            ShopAlert[]
-  promotions        Promotion[]
   generatedImages   GeneratedImage[] @relation("ShopImages")
-  promoCodes        PromoCode[]
-  butcherOptIns     ButcherOptIn[]
+  offers            Offer[]
+  offerProposals    OfferProposal[]
   offerProducts     OfferProduct[]
 
   @@index([latitude, longitude])
@@ -958,13 +960,13 @@ model Order {
   vatAmountCents  Int @default(0) @map("vat_amount_cents")
   commissionCents Int @default(0) @map("commission_cents")
 
-  // ── Remise / Promo ──
+  // ── Remise / Offre ──
   discountCents   Int      @default(0) @map("discount_cents")
-  discountSource  String?  @map("discount_source") // SHOP | PLATFORM | LOYALTY
-  promotionId     String?  @map("promotion_id")
+  discountAmount  Float    @default(0) @map("discount_amount")
+  discountSource  String?  @map("discount_source")
+  offerId         String?  @map("offer_id")
+  offer           Offer?   @relation(fields: [offerId], references: [id])
   loyaltyRewardId String?  @map("loyalty_reward_id")
-  promoCodeId     String?  @map("promo_code_id")
-  promoCode       PromoCode? @relation(fields: [promoCodeId], references: [id])
 
   // ── Remboursement ──
   refundedAt      DateTime? @map("refunded_at")
@@ -1010,7 +1012,7 @@ model Order {
   @@index([userId, status])
   @@index([expiresAt, status])
   @@index([createdAt, status])
-  @@index([promoCodeId])
+  @@index([offerId])
   @@map("orders")
 }
 
@@ -1330,86 +1332,114 @@ model LoyaltyReward {
 // PROMOTION — Shop or Platform promos
 // ══════════════════════════════════════════
 
-model Promotion {
-  id            String   @id @default(cuid())
+// ══════════════════════════════════════════
+// OFFER — Unified offer/promo system V3
+// ══════════════════════════════════════════
 
-  // Qui crée et qui paie
-  source        String   // SHOP | PLATFORM
-  shopId        String?  @map("shop_id")
-  shop          Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  createdById   String   @map("created_by_id")
+model Offer {
+  id            String        @id @default(cuid())
+  shopId        String?       @map("shop_id")
+  shop          Shop?         @relation(fields: [shopId], references: [id])
+  name          String
+  code          String        @unique
+  type          OfferType
+  discountValue Float         @map("discount_value")
+  minOrder      Float         @default(0) @map("min_order")
+  payer         OfferPayer
+  audience      OfferAudience @default(ALL)
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  maxUses       Int?          @map("max_uses")
+  currentUses   Int           @default(0) @map("current_uses")
+  status        OfferStatus   @default(ACTIVE)
 
-  // Type de promo
-  type          String   // PERCENT | FIXED | FREE_FEES
-  valueCents    Int?     @map("value_cents")
-  valuePercent  Float?   @map("value_percent")
-  label         String
-  description   String?
+  // Diffusion
+  diffBadge      Boolean  @default(true) @map("diff_badge")
+  diffBanner     Boolean  @default(false) @map("diff_banner")
+  diffPopup      Boolean  @default(false) @map("diff_popup")
 
-  // Ciblage
-  target          String   // ALL | LOYAL | INACTIVE | SPECIFIC_PRODUCTS
-  targetProductIds String[] @default([]) @map("target_product_ids")
-  minOrderCents   Int?     @map("min_order_cents")
+  // Visuels bannière
+  bannerTitle    String?  @map("banner_title")
+  bannerSubtitle String?  @map("banner_subtitle")
+  bannerColor    String?  @default("red") @map("banner_color")
+  bannerPosition String?  @default("discover_top") @map("banner_position")
+  bannerImageUrl String?  @map("banner_image_url") @db.Text
 
-  // Limites
-  maxUses        Int?     @map("max_uses")
-  maxUsesPerUser Int      @default(1) @map("max_uses_per_user")
-  currentUses    Int      @default(0) @map("current_uses")
+  // Visuels popup
+  popupTitle     String?  @map("popup_title")
+  popupMessage   String?  @map("popup_message") @db.Text
+  popupColor     String?  @default("red") @map("popup_color")
+  popupFrequency String?  @default("once_user") @map("popup_frequency")
+  popupImageUrl  String?  @map("popup_image_url") @db.Text
 
-  // Validité
-  code      String?   @unique
-  startsAt  DateTime  @map("starts_at")
-  endsAt    DateTime  @map("ends_at")
-  isActive  Boolean   @default(true) @map("is_active")
-
-  // Flash / Dernière minute
-  isFlash            Boolean @default(false) @map("is_flash")
-  flashDurationHours Int?    @map("flash_duration_hours")
-
-  // Proposition webmaster → boucher
-  proposalStatus  String?  @map("proposal_status") // PROPOSED | ACCEPTED | REJECTED
-  proposalNote    String?  @map("proposal_note")
-  rejectedReason  String?  @map("rejected_reason")
+  // Relations
+  proposals        OfferProposal[]
+  eligibleProducts OfferProduct[]
+  campaigns        Campaign[]
+  orders           Order[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([shopId, isActive])
-  @@index([source, isActive])
-  @@index([shopId, proposalStatus])
-  @@index([code])
-  @@map("promotions")
+  @@index([status, startDate, endDate])
+  @@index([shopId, status])
+  @@map("offers")
 }
 
 // ══════════════════════════════════════════
-// CAMPAIGN — AI-powered email campaigns
+// OFFER PROPOSAL — Webmaster → Boucher proposals
+// ══════════════════════════════════════════
+
+model OfferProposal {
+  id          String         @id @default(cuid())
+  offerId     String         @map("offer_id")
+  offer       Offer          @relation(fields: [offerId], references: [id])
+  shopId      String         @map("shop_id")
+  shop        Shop           @relation(fields: [shopId], references: [id])
+  status      ProposalStatus @default(PENDING)
+  respondedAt DateTime?      @map("responded_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@unique([offerId, shopId])
+  @@index([shopId, status])
+  @@map("offer_proposals")
+}
+
+// ══════════════════════════════════════════
+// CAMPAIGN — Email campaigns V3
 // ══════════════════════════════════════════
 
 model Campaign {
-  id          String   @id @default(cuid())
-  type        String   // NEWSLETTER_CLIENT | EMAIL_BUTCHER | SPECIAL_OFFER
-  subject     String
-  htmlContent String   @map("html_content") @db.Text
-  keywords    String[] @default([])
-  segment     String   // ALL | LOYAL | INACTIVE | BUTCHERS
+  id             String           @id @default(cuid())
+  title          String
+  type           CampaignType
+  audience       CampaignAudience
+  subject        String
+  body           String           @db.Text
+
+  // Visuel header
+  visualTitle    String?          @map("visual_title")
+  visualSubtitle String?          @map("visual_subtitle")
+  visualColor    String?          @default("red") @map("visual_color")
+  visualImageUrl String?          @map("visual_image_url") @db.Text
+
+  // Code promo attaché
+  offerId        String?          @map("offer_id")
+  offer          Offer?           @relation(fields: [offerId], references: [id])
+
+  status         CampaignStatus   @default(DRAFT)
+  scheduledAt    DateTime?        @map("scheduled_at")
+  sentAt         DateTime?        @map("sent_at")
 
   // Stats
-  sentCount   Int @default(0) @map("sent_count")
-  openCount   Int @default(0) @map("open_count")
-  clickCount  Int @default(0) @map("click_count")
-  ordersCount Int @default(0) @map("orders_count")
+  sentCount      Int              @default(0) @map("sent_count")
+  openedCount    Int              @default(0) @map("opened_count")
+  clickedCount   Int              @default(0) @map("clicked_count")
 
-  // Planning
-  scheduledAt DateTime? @map("scheduled_at")
-  sentAt      DateTime? @map("sent_at")
-  status      String    @default("DRAFT") // DRAFT | SCHEDULED | SENT
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
 
-  createdById String   @map("created_by_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([status])
-  @@index([segment])
+  @@index([status, audience])
   @@map("campaigns")
 }
 
@@ -1464,201 +1494,22 @@ model SiteBanner {
 }
 
 // ══════════════════════════════════════════
-// PROMO CODE — Unified promo code system
-// ══════════════════════════════════════════
-
-model PromoCode {
-  id              String         @id @default(cuid())
-  code            String         @unique
-
-  // Type & value
-  discountType    DiscountType   @map("discount_type")
-  valueCents      Int?           @map("value_cents")
-  valuePercent    Float?         @map("value_percent")
-
-  // Scope & source
-  scope           PromoScope
-  shopId          String?        @map("shop_id")
-  shop            Shop?          @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  // Display
-  label           String
-  description     String?
-
-  // Audience targeting
-  audience        PromoAudience  @default(ALL)
-
-  // Conditions
-  minOrderCents   Int?           @map("min_order_cents")
-  maxDiscountCents Int?          @map("max_discount_cents")
-
-  // Limits
-  maxUses         Int?           @map("max_uses")
-  maxUsesPerUser  Int            @default(1) @map("max_uses_per_user")
-  currentUses     Int            @default(0) @map("current_uses")
-
-  // Validity
-  status          PromoCodeStatus @default(DRAFT)
-  startsAt        DateTime       @map("starts_at")
-  endsAt          DateTime       @map("ends_at")
-
-  // Flash promo
-  isFlash         Boolean        @default(false) @map("is_flash")
-
-  // ── Payer (qui finance la réduction) ──
-  payer           OfferPayer     @default(KLIKGO)
-
-  // ── Diffusion channels ──
-  diffBadge       Boolean        @default(true) @map("diff_badge")
-  diffBanner      Boolean        @default(false) @map("diff_banner")
-  diffPopup       Boolean        @default(false) @map("diff_popup")
-
-  // ── Banner visuals ──
-  bannerTitle     String?        @map("banner_title")
-  bannerSubtitle  String?        @map("banner_subtitle")
-  bannerColor     String?        @default("red") @map("banner_color")
-  bannerPosition  String?        @default("discover_top") @map("banner_position")
-  bannerImageUrl  String?        @map("banner_image_url") @db.Text
-
-  // ── Popup visuals ──
-  popupTitle      String?        @map("popup_title")
-  popupMessage    String?        @map("popup_message") @db.Text
-  popupColor      String?        @default("red") @map("popup_color")
-  popupFrequency  String?        @default("once_user") @map("popup_frequency")
-  popupImageUrl   String?        @map("popup_image_url") @db.Text
-
-  // Creator
-  createdById     String         @map("created_by_id")
-
-  // Campaign link (optional)
-  campaignId      String?        @map("campaign_id")
-  campaign        MarketingCampaign? @relation(fields: [campaignId], references: [id])
-
-  // Relations
-  usages          PromoCodeUsage[]
-  orders          Order[]
-  eligibleProducts OfferProduct[]
-
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-
-  @@index([code])
-  @@index([shopId, status])
-  @@index([scope, status])
-  @@index([status, startsAt, endsAt])
-  @@map("promo_codes")
-}
-
-// ══════════════════════════════════════════
-// PROMO CODE USAGE — Track usage per user
-// ══════════════════════════════════════════
-
-model PromoCodeUsage {
-  id            String    @id @default(cuid())
-  promoCodeId   String    @map("promo_code_id")
-  promoCode     PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
-  userId        String    @map("user_id")
-  user          User      @relation(fields: [userId], references: [id])
-  orderId       String?   @map("order_id")
-  discountCents Int       @map("discount_cents")
-
-  usedAt        DateTime  @default(now()) @map("used_at")
-
-  @@index([promoCodeId])
-  @@index([userId])
-  @@index([orderId])
-  @@map("promo_code_usages")
-}
-
-// ══════════════════════════════════════════
-// MARKETING CAMPAIGN — Enhanced campaign model
-// ══════════════════════════════════════════
-
-model MarketingCampaign {
-  id            String         @id @default(cuid())
-  name          String
-  type          CampaignType
-  status        CampaignStatus @default(DRAFT)
-
-  // Content (depends on type)
-  subject       String?
-  htmlContent   String?        @map("html_content") @db.Text
-  imageUrl      String?        @map("image_url") @db.Text
-  linkUrl       String?        @map("link_url")
-  popupTitle    String?        @map("popup_title")
-  popupMessage  String?        @map("popup_message") @db.Text
-  bannerText    String?        @map("banner_text")
-
-  // Targeting
-  segment       String         @default("ALL") // ALL | LOYAL | INACTIVE | BUTCHERS | NEW
-  targetShopIds String[]       @default([]) @map("target_shop_ids")
-
-  // Schedule
-  startsAt      DateTime?      @map("starts_at")
-  endsAt        DateTime?      @map("ends_at")
-  scheduledAt   DateTime?      @map("scheduled_at")
-  sentAt        DateTime?      @map("sent_at")
-
-  // Stats
-  sentCount     Int            @default(0) @map("sent_count")
-  openCount     Int            @default(0) @map("open_count")
-  clickCount    Int            @default(0) @map("click_count")
-  ordersCount   Int            @default(0) @map("orders_count")
-  impressions   Int            @default(0)
-
-  // Relations
-  promoCodes    PromoCode[]
-  optIns        ButcherOptIn[]
-
-  // Creator
-  createdById   String         @map("created_by_id")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-
-  @@index([status, type])
-  @@index([type, startsAt])
-  @@map("marketing_campaigns")
-}
-
-// ══════════════════════════════════════════
-// BUTCHER OPT-IN — Webmaster → Boucher proposals
-// ══════════════════════════════════════════
-
-model ButcherOptIn {
-  id             String            @id @default(cuid())
-  campaignId     String            @map("campaign_id")
-  campaign       MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  shopId         String            @map("shop_id")
-  shop           Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  status         OptInStatus       @default(PENDING)
-  respondedAt    DateTime?         @map("responded_at")
-  rejectedReason String?           @map("rejected_reason")
-
-  createdAt      DateTime          @default(now()) @map("created_at")
-
-  @@unique([campaignId, shopId])
-  @@index([shopId, status])
-  @@map("butcher_opt_ins")
-}
-
-// ══════════════════════════════════════════
-// OFFER PRODUCT — Product eligibility for BOGO/BUNDLE offers
+// OFFER PRODUCT — Product eligibility for BOGO/BUNDLE
 // ══════════════════════════════════════════
 
 model OfferProduct {
-  id          String    @id @default(cuid())
-  promoCodeId String    @map("promo_code_id")
-  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
-  productId   String    @map("product_id")
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  shopId      String    @map("shop_id")
-  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  offerId   String  @map("offer_id")
+  offer     Offer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  productId String  @map("product_id")
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId    String  @map("shop_id")
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime  @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  @@unique([promoCodeId, productId])
-  @@index([promoCodeId, shopId])
+  @@unique([offerId, productId])
+  @@index([offerId, shopId])
   @@index([productId])
   @@map("offer_products")
 }

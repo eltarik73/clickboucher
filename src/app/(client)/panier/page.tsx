@@ -155,9 +155,8 @@ export default function PanierPage() {
   const [promoError, setPromoError] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<{
     discountCents: number;
-    promotionId?: string;
+    offerId?: string;
     loyaltyRewardId?: string;
-    promoCodeId?: string;
     source: string;
     label: string;
     type: string;
@@ -256,7 +255,7 @@ export default function PanierPage() {
     setPromoLoading(true);
     setPromoError("");
     try {
-      const res = await fetch("/api/promo-codes/validate", {
+      const res = await fetch("/api/offers/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, orderTotalCents: totalCents, shopId: state.shopId }),
@@ -265,9 +264,8 @@ export default function PanierPage() {
       if (json.data?.valid) {
         setAppliedPromo({
           discountCents: json.data.discountCents || 0,
-          promotionId: json.data.promotionId,
+          offerId: json.data.offerId,
           loyaltyRewardId: json.data.loyaltyRewardId,
-          promoCodeId: json.data.promoCodeId,
           source: json.data.source,
           label: json.data.label,
           type: json.data.type,
@@ -322,17 +320,12 @@ export default function PanierPage() {
       requestedTime,
       customerNote: customerNote.trim() || undefined,
       paymentMethod,
-      ...(appliedPromo?.promoCodeId && {
-        promoCodeId: appliedPromo.promoCodeId,
+      ...(appliedPromo?.offerId && {
+        offerId: appliedPromo.offerId,
         discountCents: appliedPromo.discountCents,
         discountSource: appliedPromo.source,
       }),
-      ...(appliedPromo?.promotionId && !appliedPromo?.promoCodeId && {
-        promotionId: appliedPromo.promotionId,
-        discountCents: appliedPromo.discountCents,
-        discountSource: appliedPromo.source,
-      }),
-      ...(appliedPromo?.loyaltyRewardId && {
+      ...(appliedPromo?.loyaltyRewardId && !appliedPromo?.offerId && {
         loyaltyRewardId: appliedPromo.loyaltyRewardId,
         discountCents: appliedPromo.discountCents,
         discountSource: "LOYALTY",

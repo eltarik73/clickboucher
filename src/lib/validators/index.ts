@@ -221,10 +221,9 @@ export const createOrderSchema = z.object({
   pickupSlotEnd: z.string().datetime().optional(),
   idempotencyKey: z.string().max(100).optional(),
   paymentMethod: z.enum(["ONLINE", "ON_PICKUP"]).optional(),
-  // Promo / Loyalty
-  promotionId: z.string().optional(),
+  // Offer / Loyalty
+  offerId: z.string().optional(),
   loyaltyRewardId: z.string().optional(),
-  promoCodeId: z.string().optional(),
   discountCents: z.number().int().min(0).optional(),
   discountSource: z.enum(["PLATFORM", "SHOP", "LOYALTY"]).optional(),
 });

@@ -21,6 +21,8 @@ import { ShopSchema } from "@/components/seo/ShopSchema";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ProductSchema } from "@/components/seo/ProductSchema";
 import { SEO_CITIES } from "@/lib/seo/cities";
+import { OfferBanner } from "@/components/client/OfferBanner";
+import { OfferProductSection } from "@/components/client/OfferProductSection";
 
 // ── Cached shop query with Redis (shared between generateMetadata & page) ──
 
@@ -142,6 +144,48 @@ export default async function BoutiquePage({
 
   // Favorites & proStatus are handled client-side (FavoriteButton + ShopProductsClient)
   // Removing server-side auth() allows this page to be ISR-cached (revalidate: 30s)
+
+  // Fetch active offers for this shop (banner + eligible products)
+  const now = new Date();
+  const activeOffers = await prisma.offer.findMany({
+    where: {
+      status: "ACTIVE",
+      startDate: { lte: now },
+      endDate: { gt: now },
+      OR: [
+        { shopId: shop.id },
+        { proposals: { some: { shopId: shop.id, status: "ACCEPTED" } } },
+      ],
+    },
+    select: {
+      id: true, name: true, code: true, type: true, discountValue: true,
+      diffBanner: true, bannerTitle: true, bannerSubtitle: true, bannerColor: true,
+      eligibleProducts: {
+        where: { shopId: shop.id },
+        select: {
+          product: { select: { id: true, name: true, imageUrl: true, priceCents: true, unit: true } },
+        },
+      },
+    },
+  });
+
+  // Banner offer (first with diffBanner)
+  const bannerOffer = activeOffers.find((o) => o.diffBanner);
+
+  // Eligible products from all offers
+  const offerProducts = activeOffers.flatMap((o) =>
+    o.eligibleProducts.map((ep) => ({
+      id: ep.product.id,
+      name: ep.product.name,
+      imageUrl: ep.product.imageUrl,
+      priceCents: ep.product.priceCents,
+      unit: ep.product.unit,
+      offerName: o.name,
+      offerType: o.type,
+      discountValue: o.discountValue,
+      offerCode: o.code,
+    }))
+  );
 
   const effectiveTime =
     shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
@@ -345,6 +389,31 @@ export default async function BoutiquePage({
             ) : null;
           })()}
         </div>
+
+        {/* ═══════════════════════════════════════════ */}
+        {/* OFFER BANNER */}
+        {/* ═══════════════════════════════════════════ */}
+        {bannerOffer && (
+          <OfferBanner
+            title={bannerOffer.bannerTitle || bannerOffer.name}
+            subtitle={bannerOffer.bannerSubtitle}
+            code={bannerOffer.code}
+            color={bannerOffer.bannerColor || "red"}
+            discountLabel={
+              bannerOffer.type === "PERCENT" ? `-${bannerOffer.discountValue}%`
+              : bannerOffer.type === "AMOUNT" ? `-${bannerOffer.discountValue}€`
+              : bannerOffer.type === "FREE_DELIVERY" ? "Frais offerts"
+              : bannerOffer.type === "BOGO" ? "1+1 offert"
+              : bannerOffer.type === "BUNDLE" ? `Pack -${bannerOffer.discountValue}%`
+              : bannerOffer.name
+            }
+          />
+        )}
+
+        {/* ═══════════════════════════════════════════ */}
+        {/* OFFER PRODUCTS */}
+        {/* ═══════════════════════════════════════════ */}
+        <OfferProductSection products={offerProducts} />
 
         {/* ═══════════════════════════════════════════ */}
         {/* LOYALTY BADGE */}
