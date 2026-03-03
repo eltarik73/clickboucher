@@ -310,15 +310,37 @@ export async function POST(req: NextRequest) {
     let discountSource: string | null = null;
     let promotionId: string | null = null;
     let loyaltyRewardId: string | null = null;
+    let promoCodeId: string | null = null;
 
-    if (data.promotionId && data.discountCents && data.discountSource) {
-      // Verify promotion is still valid
+    if (data.promoCodeId && data.discountCents) {
+      // New unified PromoCode system
+      const pc = await prisma.promoCode.findUnique({ where: { id: data.promoCodeId } });
+      if (pc && pc.status === "ACTIVE" && new Date() >= pc.startsAt && new Date() <= pc.endsAt) {
+        discountCents = Math.min(data.discountCents, totalCents);
+        discountSource = pc.scope;
+        promoCodeId = pc.id;
+        // Increment usage + create usage record
+        await Promise.all([
+          prisma.promoCode.update({
+            where: { id: pc.id },
+            data: { currentUses: { increment: 1 } },
+          }),
+          prisma.promoCodeUsage.create({
+            data: {
+              promoCodeId: pc.id,
+              userId: user.id,
+              discountCents,
+            },
+          }),
+        ]);
+      }
+    } else if (data.promotionId && data.discountCents && data.discountSource) {
+      // Legacy Promotion system
       const promo = await prisma.promotion.findUnique({ where: { id: data.promotionId } });
       if (promo && promo.isActive && new Date() >= promo.startsAt && new Date() <= promo.endsAt) {
         discountCents = Math.min(data.discountCents, totalCents);
         discountSource = data.discountSource;
         promotionId = promo.id;
-        // Increment usage
         await prisma.promotion.update({
           where: { id: promo.id },
           data: { currentUses: { increment: 1 } },
@@ -331,7 +353,6 @@ export async function POST(req: NextRequest) {
         discountCents = Math.min(data.discountCents, totalCents);
         discountSource = "LOYALTY";
         loyaltyRewardId = reward.id;
-        // Mark reward as used (fire-and-forget is fine here since we already validated)
         markLoyaltyRewardUsed(reward.id, "pending-order").catch(() => {});
       }
     }
@@ -408,6 +429,7 @@ export async function POST(req: NextRequest) {
         discountSource: discountSource || undefined,
         promotionId: promotionId || undefined,
         loyaltyRewardId: loyaltyRewardId || undefined,
+        promoCodeId: promoCodeId || undefined,
         expiresAt: initialStatus === "PENDING" ? expiresAt : null,
         idempotencyKey: body.idempotencyKey || null,
         pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,

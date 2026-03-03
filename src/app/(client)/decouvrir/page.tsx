@@ -16,6 +16,7 @@ import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
 import { ReorderCarousel } from "@/components/order/ReorderCarousel";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
+import MarketingBanner from "@/components/marketing/MarketingBanner";
 
 export const metadata: Metadata = {
   title: "Découvrir les boucheries | Klik&Go",
@@ -265,6 +266,11 @@ export default async function DecouvrirPage() {
       {/* HOW IT WORKS */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <HowItWorks />
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* MARKETING BANNERS / POPUPS / PROMO STRIP */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <MarketingBanner />
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* CALENDAR BANNER */}

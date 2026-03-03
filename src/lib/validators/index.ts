@@ -224,6 +224,7 @@ export const createOrderSchema = z.object({
   // Promo / Loyalty
   promotionId: z.string().optional(),
   loyaltyRewardId: z.string().optional(),
+  promoCodeId: z.string().optional(),
   discountCents: z.number().int().min(0).optional(),
   discountSource: z.enum(["PLATFORM", "SHOP", "LOYALTY"]).optional(),
 });

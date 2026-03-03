@@ -157,6 +157,7 @@ export default function PanierPage() {
     discountCents: number;
     promotionId?: string;
     loyaltyRewardId?: string;
+    promoCodeId?: string;
     source: string;
     label: string;
     type: string;
@@ -255,10 +256,10 @@ export default function PanierPage() {
     setPromoLoading(true);
     setPromoError("");
     try {
-      const res = await fetch("/api/promo/validate", {
+      const res = await fetch("/api/promo-codes/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, orderTotalCents: totalCents }),
+        body: JSON.stringify({ code, orderTotalCents: totalCents, shopId: state.shopId }),
       });
       const json = await res.json();
       if (json.data?.valid) {
@@ -266,16 +267,17 @@ export default function PanierPage() {
           discountCents: json.data.discountCents || 0,
           promotionId: json.data.promotionId,
           loyaltyRewardId: json.data.loyaltyRewardId,
+          promoCodeId: json.data.promoCodeId,
           source: json.data.source,
           label: json.data.label,
           type: json.data.type,
         });
-        toast.success(`Code "${code}" applique !`);
+        toast.success(`Code "${code}" appliqué !`);
       } else {
         setPromoError(json.data?.error || "Code invalide");
       }
     } catch {
-      setPromoError("Erreur reseau");
+      setPromoError("Erreur réseau");
     } finally {
       setPromoLoading(false);
     }
@@ -320,7 +322,12 @@ export default function PanierPage() {
       requestedTime,
       customerNote: customerNote.trim() || undefined,
       paymentMethod,
-      ...(appliedPromo?.promotionId && {
+      ...(appliedPromo?.promoCodeId && {
+        promoCodeId: appliedPromo.promoCodeId,
+        discountCents: appliedPromo.discountCents,
+        discountSource: appliedPromo.source,
+      }),
+      ...(appliedPromo?.promotionId && !appliedPromo?.promoCodeId && {
         promotionId: appliedPromo.promotionId,
         discountCents: appliedPromo.discountCents,
         discountSource: appliedPromo.source,
