@@ -206,10 +206,10 @@ export default function StatsTab() {
       {/* ---- 2-column grid: Top Offers + Email Performance ---- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Card 1 — Top offres */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Gift className="h-5 w-5 text-red-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Top offres</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Top offres</h3>
           </div>
 
           {topOffers.length === 0 ? (
@@ -243,10 +243,10 @@ export default function StatsTab() {
 
                     {/* Code + name */}
                     <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <code className="bg-gray-50 rounded-lg px-2 py-0.5 text-xs font-mono text-gray-600">
+                      <code className="bg-gray-50 dark:bg-white/10 rounded-lg px-2 py-0.5 text-xs font-mono text-gray-600 dark:text-gray-300">
                         {offer.code}
                       </code>
-                      <span className="text-sm text-gray-700 truncate">
+                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
                         {offer.name}
                       </span>
                     </div>
@@ -270,10 +270,10 @@ export default function StatsTab() {
         </div>
 
         {/* Card 2 — Performance emails */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-5">
           <div className="flex items-center gap-2 mb-4">
             <Mail className="h-5 w-5 text-blue-600" />
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
               Performance emails
             </h3>
           </div>
@@ -282,14 +282,14 @@ export default function StatsTab() {
             {/* Clients — Ouverture */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   Clients — Ouverture
                 </span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
                   {clientOpenRate}%
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-gray-100">
+              <div className="h-2 rounded-full bg-gray-100 dark:bg-white/10">
                 <div
                   className="h-2 rounded-full bg-red-500 transition-all"
                   style={{ width: `${Math.min(clientOpenRate, 100)}%` }}
@@ -300,12 +300,12 @@ export default function StatsTab() {
             {/* Clients — Clics */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">Clients — Clics</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Clients — Clics</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
                   {clientClickRate}%
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-gray-100">
+              <div className="h-2 rounded-full bg-gray-100 dark:bg-white/10">
                 <div
                   className="h-2 rounded-full bg-red-400 transition-all"
                   style={{ width: `${Math.min(clientClickRate, 100)}%` }}
@@ -316,14 +316,14 @@ export default function StatsTab() {
             {/* Bouchers — Ouverture */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   Bouchers — Ouverture
                 </span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
                   {butcherOpenRate}%
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-gray-100">
+              <div className="h-2 rounded-full bg-gray-100 dark:bg-white/10">
                 <div
                   className="h-2 rounded-full bg-amber-500 transition-all"
                   style={{ width: `${Math.min(butcherOpenRate, 100)}%` }}
@@ -334,14 +334,14 @@ export default function StatsTab() {
             {/* Bouchers — Clics */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   Bouchers — Clics
                 </span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
                   {butcherClickRate}%
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-gray-100">
+              <div className="h-2 rounded-full bg-gray-100 dark:bg-white/10">
                 <div
                   className="h-2 rounded-full bg-amber-400 transition-all"
                   style={{ width: `${Math.min(butcherClickRate, 100)}%` }}
@@ -353,10 +353,10 @@ export default function StatsTab() {
       </div>
 
       {/* ---- Card 3 — Monthly KPIs (full width) ---- */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-5">
         <div className="flex items-center gap-2 mb-5">
           <TrendingUp className="h-5 w-5 text-emerald-600" />
-          <h3 className="text-sm font-semibold text-gray-900">{monthLabel}</h3>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{monthLabel}</h3>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
@@ -365,7 +365,7 @@ export default function StatsTab() {
             <p className="text-xs text-gray-500 uppercase tracking-wide">
               Cmd avec offre
             </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
               {ordersWithOffer}
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
@@ -378,7 +378,7 @@ export default function StatsTab() {
             <p className="text-xs text-gray-500 uppercase tracking-wide">
               CA via offres
             </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
               {formatEur(caViaOffers)}
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
@@ -391,7 +391,7 @@ export default function StatsTab() {
             <p className="text-xs text-gray-500 uppercase tracking-wide">
               Cout Klik&Go
             </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
               {formatEur(coutKlikgo)}
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
@@ -402,7 +402,7 @@ export default function StatsTab() {
           {/* KPI 4 — ROI */}
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide">ROI</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
               {roi ? `x${roi}` : "—"}
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
@@ -415,7 +415,7 @@ export default function StatsTab() {
             <p className="text-xs text-gray-500 uppercase tracking-wide">
               Emails envoyes
             </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
               {emailsThisMonth}
             </p>
             <p className="mt-0.5 text-xs text-gray-400">

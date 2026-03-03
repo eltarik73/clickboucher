@@ -34,8 +34,8 @@ import { toast } from "sonner";
 
 type OfferType = "PERCENT" | "AMOUNT" | "FREE_DELIVERY" | "BOGO" | "BUNDLE";
 type Audience = "ALL" | "NEW" | "LOYAL" | "VIP";
-type BannerPosition = "discover" | "shop" | "all";
-type PopupFrequency = "once_client" | "once_day" | "every_visit";
+type BannerPosition = "discover_top" | "shop_page" | "all_pages";
+type PopupFrequency = "once_user" | "once_day" | "every_visit";
 
 interface OfferFormProps {
   onClose: () => void;
@@ -88,13 +88,13 @@ const POPUP_COLORS = [
 ];
 
 const BANNER_POSITIONS: { key: BannerPosition; label: string }[] = [
-  { key: "discover", label: "Haut /decouvrir" },
-  { key: "shop", label: "Page boucherie" },
-  { key: "all", label: "Toutes pages" },
+  { key: "discover_top", label: "Haut /decouvrir" },
+  { key: "shop_page", label: "Page boucherie" },
+  { key: "all_pages", label: "Toutes pages" },
 ];
 
 const POPUP_FREQUENCIES: { key: PopupFrequency; label: string }[] = [
-  { key: "once_client", label: "1x/client" },
+  { key: "once_user", label: "1x/client" },
   { key: "once_day", label: "1x/jour" },
   { key: "every_visit", label: "Chaque visite" },
 ];
@@ -155,7 +155,7 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
 
   const [name, setName] = useState("");
   const [type, setType] = useState<OfferType>("PERCENT");
-  const [discountValue, setDiscountValue] = useState<number>(10);
+  const [discountValue, setDiscountValue] = useState("10");
   const [code, setCode] = useState(generateCode());
   const [audience, setAudience] = useState<Audience>("ALL");
   const [startDate, setStartDate] = useState(
@@ -164,7 +164,10 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
   const [endDate, setEndDate] = useState(
     new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
   );
-  const [minOrder, setMinOrder] = useState<number | "">("");
+  const [minOrder, setMinOrder] = useState("");
+
+  // Parse number from string (supports comma and dot)
+  const parseNum = (v: string) => parseFloat(v.replace(",", ".")) || 0;
 
   // Diffusion
   const [diffBadge] = useState(true);
@@ -176,13 +179,13 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerSubtitle, setBannerSubtitle] = useState("");
   const [bannerColor, setBannerColor] = useState("red");
-  const [bannerPosition, setBannerPosition] = useState<BannerPosition>("discover");
+  const [bannerPosition, setBannerPosition] = useState<BannerPosition>("discover_top");
 
   // Popup
   const [popupTitle, setPopupTitle] = useState("");
   const [popupMessage, setPopupMessage] = useState("");
   const [popupColor, setPopupColor] = useState("red");
-  const [popupFrequency, setPopupFrequency] = useState<PopupFrequency>("once_client");
+  const [popupFrequency, setPopupFrequency] = useState<PopupFrequency>("once_user");
 
   // UI
   const [submitting, setSubmitting] = useState(false);
@@ -192,23 +195,17 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
 
   const generateName = useCallback(async () => {
     setGeneratingName(true);
-    try {
-      const typeLabel =
-        OFFER_TYPES.find((t) => t.key === type)?.label ?? type;
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `Genere un nom commercial court et accrocheur (max 5 mots, en francais) pour une offre promotionnelle de type "${typeLabel}" pour une boucherie halal. Reponds uniquement avec le nom, sans guillemets.`,
-        }),
-      });
-      const json = await res.json();
-      if (json.text) setName(json.text.trim());
-    } catch {
-      toast.error("Erreur IA");
-    } finally {
-      setGeneratingName(false);
-    }
+    const names: Record<OfferType, string[]> = {
+      PERCENT: ["Promo du Moment", "Offre Speciale", "Reduction Exclusive", "Bon Plan Viande", "Happy Hour Boucher"],
+      AMOUNT: ["Cadeau Fidelite", "Remise VIP", "Offre Decouverte", "Bon de Reduction", "Promo Flash"],
+      FREE_DELIVERY: ["Frais Offerts", "Livraison Gratuite", "Click & Go Gratuit", "Zero Frais", "Retrait Offert"],
+      BOGO: ["1 Achete 1 Offert", "Double Plaisir", "Duo Gourmand", "Le 2eme Offert", "Offre Duo"],
+      BUNDLE: ["Pack Famille", "Assortiment Malin", "Le Bon Pack", "Mega Pack", "Pack Decouverte"],
+    };
+    const options = names[type] || names.PERCENT;
+    const pick = options[Math.floor(Math.random() * options.length)];
+    setName(pick);
+    setGeneratingName(false);
   }, [type]);
 
   // ---- Submit ---------------------------------------------------------------
@@ -229,12 +226,12 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
         const body = {
           name: name.trim(),
           type,
-          discountValue,
+          discountValue: parseNum(discountValue),
           code: code.trim().toUpperCase(),
           audience,
-          startDate,
-          endDate,
-          minOrder: minOrder === "" ? 0 : minOrder,
+          startDate: new Date(startDate + "T00:00:00").toISOString(),
+          endDate: new Date(endDate + "T23:59:59").toISOString(),
+          minOrder: minOrder ? parseNum(minOrder) : 0,
           payer: "KLIKGO",
           status: asDraft ? "DRAFT" : "ACTIVE",
           diffBadge,
@@ -410,11 +407,12 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
                     {valueLabel(type)}
                   </label>
                   <input
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ex: 10 ou 0,99"
                     value={discountValue}
                     onChange={(e) =>
-                      setDiscountValue(Number(e.target.value))
+                      setDiscountValue(e.target.value)
                     }
                     className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
                   />
@@ -514,15 +512,11 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
                   Commande minimum (EUR, optionnel)
                 </label>
                 <input
-                  type="number"
-                  min={0}
+                  type="text"
+                  inputMode="decimal"
                   value={minOrder}
-                  onChange={(e) =>
-                    setMinOrder(
-                      e.target.value === "" ? "" : Number(e.target.value)
-                    )
-                  }
-                  placeholder="0"
+                  onChange={(e) => setMinOrder(e.target.value)}
+                  placeholder="Ex: 15 ou 9,99"
                   className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                 />
               </div>
@@ -568,7 +562,7 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
                   <div className="relative bg-gradient-to-r from-amber-100 to-orange-100 h-16 flex items-center justify-center">
                     <Store className="h-6 w-6 text-amber-600/40" />
                     <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      {badgeText(type, discountValue)}
+                      {badgeText(type, parseNum(discountValue))}
                     </span>
                   </div>
                   <div className="bg-white dark:bg-[#1a1a1a] px-2.5 py-2">

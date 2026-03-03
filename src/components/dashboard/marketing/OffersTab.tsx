@@ -209,16 +209,16 @@ export default function OffersTab({
               onClick={() => setPayerFilter(key)}
               className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition ${
                 payerFilter === key
-                  ? "bg-gray-900 text-white rounded-xl"
-                  : "bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50"
+                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl"
+                  : "bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/10"
               }`}
             >
               {label}
               <span
                 className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
                   payerFilter === key
-                    ? "bg-white/20 text-white"
-                    : "bg-gray-100 text-gray-500"
+                    ? "bg-white/20 text-white dark:bg-black/20 dark:text-gray-900"
+                    : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400"
                 }`}
               >
                 {count}
@@ -253,10 +253,10 @@ export default function OffersTab({
       {/* ---- Empty state ---- */}
       {filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 mb-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-white/10 mb-4">
             <Zap className="h-6 w-6 text-gray-400" />
           </div>
-          <p className="text-sm font-medium text-gray-900">Aucune offre</p>
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Aucune offre</p>
           <p className="mt-1 text-sm text-gray-500">
             Creez votre premiere offre pour booster les ventes.
           </p>
@@ -290,7 +290,7 @@ export default function OffersTab({
             <div
               key={offer.id}
               onClick={() => onEdit?.(offer)}
-              className="group relative bg-white rounded-xl border border-gray-100 px-5 py-4 flex items-center gap-4 hover:shadow-sm transition cursor-pointer"
+              className="group relative bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 px-5 py-4 flex items-center gap-4 hover:shadow-sm transition cursor-pointer"
             >
               {/* Payer icon */}
               <div
@@ -311,7 +311,7 @@ export default function OffersTab({
               <div className="flex-1 min-w-0">
                 {/* Line 1 — name + badges */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-sm text-gray-900 truncate">
+                  <span className="font-semibold text-sm text-gray-900 dark:text-white truncate">
                     {offer.name}
                   </span>
                   <span
@@ -382,7 +382,7 @@ export default function OffersTab({
                   <button
                     onClick={(e) => toggleStatus(offer, e)}
                     disabled={togglingId === offer.id}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1.5 hover:bg-gray-100"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-white/10"
                     title={
                       offer.status === "ACTIVE"
                         ? "Mettre en pause"

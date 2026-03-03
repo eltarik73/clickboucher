@@ -19,13 +19,13 @@ export const createOfferSchema = z.object({
   // Banner visuals
   bannerTitle: z.string().max(100).optional(),
   bannerSubtitle: z.string().max(200).optional(),
-  bannerColor: z.enum(["red", "black", "green", "orange", "blue"]).default("red"),
+  bannerColor: z.enum(["red", "black", "green", "orange", "blue", "purple", "amber"]).default("red"),
   bannerPosition: z.enum(["discover_top", "shop_page", "all_pages"]).default("discover_top"),
   bannerImageUrl: z.string().url().optional(),
   // Popup visuals
   popupTitle: z.string().max(100).optional(),
   popupMessage: z.string().max(500).optional(),
-  popupColor: z.enum(["red", "black", "green", "orange", "blue"]).default("red"),
+  popupColor: z.enum(["red", "black", "green", "orange", "blue", "purple", "amber"]).default("red"),
   popupFrequency: z.enum(["once_user", "once_day", "every_visit"]).default("once_user"),
   popupImageUrl: z.string().url().optional(),
 }).refine((d) => new Date(d.endDate) > new Date(d.startDate), {
@@ -44,12 +44,12 @@ export const updateOfferSchema = z.object({
   diffPopup: z.boolean().optional(),
   bannerTitle: z.string().max(100).optional(),
   bannerSubtitle: z.string().max(200).optional(),
-  bannerColor: z.enum(["red", "black", "green", "orange", "blue"]).optional(),
+  bannerColor: z.enum(["red", "black", "green", "orange", "blue", "purple", "amber"]).optional(),
   bannerPosition: z.enum(["discover_top", "shop_page", "all_pages"]).optional(),
   bannerImageUrl: z.string().url().nullable().optional(),
   popupTitle: z.string().max(100).optional(),
   popupMessage: z.string().max(500).optional(),
-  popupColor: z.enum(["red", "black", "green", "orange", "blue"]).optional(),
+  popupColor: z.enum(["red", "black", "green", "orange", "blue", "purple", "amber"]).optional(),
   popupFrequency: z.enum(["once_user", "once_day", "every_visit"]).optional(),
   popupImageUrl: z.string().url().nullable().optional(),
 });

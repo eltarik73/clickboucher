@@ -139,7 +139,7 @@ export default function ButcherOfferForm({ onClose, onCreated }: Props) {
     return (
       name.trim().length >= 3 &&
       code.trim().length >= 3 &&
-      parseFloat(discountValue) > 0 &&
+      parseFloat(discountValue.replace(",", ".")) > 0 &&
       !!startDate &&
       !!endDate &&
       new Date(endDate) > new Date(startDate)
@@ -163,8 +163,8 @@ export default function ButcherOfferForm({ onClose, onCreated }: Props) {
           name: name.trim(),
           code: code.trim().toUpperCase(),
           type,
-          discountValue: parseFloat(discountValue),
-          minOrder: parseFloat(minOrder) || 0,
+          discountValue: parseFloat(discountValue.replace(",", ".")) || 0,
+          minOrder: parseFloat(minOrder.replace(",", ".")) || 0,
           audience,
           startDate: new Date(startDate).toISOString(),
           endDate: new Date(endDate).toISOString(),
@@ -321,10 +321,9 @@ export default function ButcherOfferForm({ onClose, onCreated }: Props) {
                     {type === "PERCENT" ? "Réduction (%)" : type === "AMOUNT" ? "Montant (\u20AC)" : "Valeur"}
                   </label>
                   <input
-                    type="number"
-                    step={type === "PERCENT" ? "1" : "0.01"}
-                    min="0"
-                    max={type === "PERCENT" ? "100" : undefined}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ex: 10 ou 0,99"
                     value={discountValue}
                     onChange={(e) => setDiscountValue(e.target.value)}
                     disabled={type === "FREE_DELIVERY"}
@@ -412,9 +411,9 @@ export default function ButcherOfferForm({ onClose, onCreated }: Props) {
                     Min. commande (\u20AC)
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ex: 15 ou 9,99"
                     value={minOrder}
                     onChange={(e) => setMinOrder(e.target.value)}
                     className="w-full px-3 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/40"

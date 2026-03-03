@@ -199,19 +199,21 @@ export default function CampaignForm({
     setGeneratingSubject(true);
     try {
       const typeInfo = types.find((t) => t.key === type);
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `Genere un objet d'email court et accrocheur (max 8 mots, en francais) pour une campagne ${
-            typeInfo?.label ?? type
-          } d'une plateforme de boucherie halal click & collect. Reponds uniquement avec l'objet, sans guillemets.`,
-        }),
-      });
-      const json = await res.json();
-      if (json.text) setSubject(json.text.trim());
+      const SUBJECTS: Record<string, string[]> = {
+        NEWSLETTER: ["Nouveautes chez Klik&Go", "Vos boucheries preferees vous attendent", "Decouvrez nos nouvelles boutiques", "Les tendances viande du moment"],
+        ONBOARDING: ["Bienvenue sur Klik&Go !", "Votre boucherie halal en 1 clic", "Pret a commander ? C'est parti !", "Decouvrez Klik&Go en 3 etapes"],
+        REACTIVATION: ["Vous nous manquez !", "Une offre speciale vous attend", "Revenez decouvrir nos nouveautes", "Ca fait longtemps ! -10% pour vous"],
+        PROMO: ["Offre exclusive Klik&Go", "Promo flash : ne ratez pas ca", "Vos produits halal en promo", "Code promo special pour vous"],
+        UPDATE: ["Nouveautes plateforme Klik&Go", "Mise a jour importante", "De nouvelles fonctionnalites arrivent", "Klik&Go evolue pour vous"],
+        REMINDER: ["Rappel : actions en attente", "N'oubliez pas vos commandes", "Un point important a verifier", "Rappel de la semaine"],
+        REPORT: ["Votre rapport mensuel", "Vos stats du mois", "Performance de votre boutique", "Bilan et tendances"],
+        EDUCATION: ["Conseil : optimisez vos ventes", "Astuce pour plus de clients", "Guide : mieux utiliser Klik&Go", "Formation express"],
+      };
+      const pool = SUBJECTS[type] ?? SUBJECTS.NEWSLETTER;
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      setSubject(picked ?? `${typeInfo?.label ?? type} — Klik&Go`);
     } catch {
-      toast.error("Erreur IA");
+      toast.error("Erreur generation");
     } finally {
       setGeneratingSubject(false);
     }
@@ -220,26 +222,49 @@ export default function CampaignForm({
   const generateBody = useCallback(async () => {
     setGeneratingBody(true);
     try {
-      const typeInfo = types.find((t) => t.key === type);
-      const res = await fetch("/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `Redige un corps d'email court (3-4 phrases, en francais, ton chaleureux et professionnel) pour une campagne "${
-            typeInfo?.label ?? type
-          }" d'une plateforme de boucherie halal click & collect nommee Klik&Go. Sujet: "${
-            subject || typeInfo?.label
-          }". Reponds uniquement avec le texte, sans guillemets ni formatage.`,
-        }),
-      });
-      const json = await res.json();
-      if (json.text) setBody(json.text.trim());
+      const BODIES: Record<string, string[]> = {
+        NEWSLETTER: [
+          "Bonjour ! Decouvrez les dernieres nouveautes de nos boucheries partenaires. De nouveaux produits halal de qualite vous attendent sur Klik&Go. Commandez en ligne et retirez en boutique en toute simplicite.",
+          "Chers clients, cette semaine nos bouchers vous ont prepare une selection exceptionnelle. Viandes fraiches, marinades maison et specialites du moment. Passez commande maintenant !",
+        ],
+        ONBOARDING: [
+          "Bienvenue sur Klik&Go ! Nous sommes ravis de vous compter parmi nous. Decouvrez nos boucheries halal artisanales pres de chez vous et passez votre premiere commande en quelques clics.",
+          "Felicitations pour votre inscription ! Sur Klik&Go, commandez vos viandes halal preferees et retirez-les en boutique. Simple, rapide et toujours frais.",
+        ],
+        REACTIVATION: [
+          "Cela fait un moment que vous n'etes pas venu nous voir ! Vos boucheries preferees ont de nouvelles specialites a vous faire decouvrir. Profitez-en, une surprise vous attend.",
+          "Vous nous manquez ! Nos bouchers ont prepare de nouvelles recettes et produits. Revenez decouvrir tout ca avec un avantage exclusif.",
+        ],
+        PROMO: [
+          "Bonne nouvelle ! Une offre speciale vous attend sur Klik&Go. Profitez de reductions exclusives sur vos viandes halal preferees. Offre limitee, ne tardez pas !",
+          "Offre flash ! Vos produits halal a prix reduit pendant une duree limitee. Commandez maintenant sur Klik&Go et economisez sur votre prochain panier.",
+        ],
+        UPDATE: [
+          "Chers bouchers partenaires, nous avons ameliore la plateforme pour vous faciliter la gestion de vos commandes. Decouvrez les nouvelles fonctionnalites disponibles des maintenant.",
+          "Mise a jour Klik&Go ! De nouvelles options sont disponibles pour optimiser votre boutique en ligne. Connectez-vous pour les decouvrir.",
+        ],
+        REMINDER: [
+          "Un petit rappel : vous avez des actions en attente sur votre espace Klik&Go. Prenez quelques minutes pour mettre a jour votre catalogue et repondre aux commandes.",
+          "N'oubliez pas de verifier vos commandes en cours et de mettre a jour vos horaires si necessaire. Vos clients comptent sur vous !",
+        ],
+        REPORT: [
+          "Voici votre rapport de performance du mois. Decouvrez vos chiffres cles, vos produits les plus vendus et les tendances de votre clientele. Analysez et optimisez !",
+          "Bilan mensuel disponible ! Consultez vos statistiques de vente, le nombre de commandes et votre taux de satisfaction client.",
+        ],
+        EDUCATION: [
+          "Astuce du jour : saviez-vous que les boutiques avec des photos de qualite ont 40% de commandes en plus ? Mettez a jour vos visuels pour attirer plus de clients.",
+          "Conseil pro : activez les notifications push pour ne manquer aucune commande. Vos clients apprecient la reactivite !",
+        ],
+      };
+      const pool = BODIES[type] ?? BODIES.NEWSLETTER;
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      setBody(picked ?? "");
     } catch {
-      toast.error("Erreur IA");
+      toast.error("Erreur generation");
     } finally {
       setGeneratingBody(false);
     }
-  }, [type, types, subject]);
+  }, [type]);
 
   // ---- Submit ---------------------------------------------------------------
 
@@ -474,18 +499,44 @@ export default function CampaignForm({
                 Visuel (optionnel)
               </label>
               <div className="border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl p-4 flex items-center justify-center gap-3">
-                <button className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-gray-200 dark:hover:bg-white/20 transition">
-                  <Palette className="h-3.5 w-3.5" />
-                  Creer
-                </button>
-                <button className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-gray-200 dark:hover:bg-white/20 transition">
-                  <Upload className="h-3.5 w-3.5" />
-                  Uploader
-                </button>
-                <button className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-gray-200 dark:hover:bg-white/20 transition">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Generer IA
-                </button>
+                {visualImageUrl ? (
+                  <div className="relative w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={visualImageUrl} alt="Visuel" className="w-full h-24 object-cover rounded-lg" />
+                    <button
+                      onClick={() => setVisualImageUrl(null)}
+                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <label className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-gray-200 dark:hover:bg-white/20 transition cursor-pointer">
+                      <Upload className="h-3.5 w-3.5" />
+                      Uploader
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const url = URL.createObjectURL(file);
+                            setVisualImageUrl(url);
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={() => setVisualImageUrl("/img/marketing-placeholder.jpg")}
+                      className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-gray-200 dark:hover:bg-white/20 transition"
+                    >
+                      <Palette className="h-3.5 w-3.5" />
+                      Template
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 

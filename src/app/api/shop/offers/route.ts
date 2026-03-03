@@ -49,7 +49,7 @@ const createSchema = z.object({
   diffBanner: z.boolean().default(false),
   bannerTitle: z.string().max(100).optional(),
   bannerSubtitle: z.string().max(200).optional(),
-  bannerColor: z.enum(["red", "black", "green", "orange", "blue"]).default("red"),
+  bannerColor: z.enum(["red", "black", "green", "orange", "blue", "purple", "amber"]).default("red"),
 });
 
 export async function POST(req: NextRequest) {

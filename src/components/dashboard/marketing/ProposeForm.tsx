@@ -90,15 +90,17 @@ export default function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
   const [type, setType] = useState<OfferType>("BOGO");
   const [name, setName] = useState("");
   const [payer, setPayer] = useState<Payer>("KLIKGO");
-  const [discountValue, setDiscountValue] = useState<number>(10);
-  const [code] = useState(generateCode());
+  const [discountValue, setDiscountValue] = useState("10");
+  const [code, setCode] = useState(generateCode());
   const [startDate, setStartDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
   const [endDate, setEndDate] = useState(
     new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
   );
-  const [minOrder, setMinOrder] = useState<number | "">("");
+  const [minOrder, setMinOrder] = useState("");
+
+  const parseNum = (v: string) => parseFloat(v.replace(",", ".")) || 0;
 
   // Shops
   const [shops, setShops] = useState<Shop[]>([]);
@@ -181,12 +183,12 @@ export default function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
       const offerBody = {
         name: name.trim(),
         type,
-        discountValue,
+        discountValue: parseNum(discountValue),
         code: code.trim().toUpperCase(),
         audience: "ALL",
-        startDate,
-        endDate,
-        minOrder: minOrder === "" ? 0 : minOrder,
+        startDate: new Date(startDate + "T00:00:00").toISOString(),
+        endDate: new Date(endDate + "T23:59:59").toISOString(),
+        minOrder: minOrder ? parseNum(minOrder) : 0,
         payer,
         status: "ACTIVE",
         diffBadge,
@@ -384,10 +386,11 @@ export default function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
                       : "Valeur (EUR)"}
                   </label>
                   <input
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ex: 10 ou 0,99"
                     value={discountValue}
-                    onChange={(e) => setDiscountValue(Number(e.target.value))}
+                    onChange={(e) => setDiscountValue(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
                   />
                 </div>
@@ -396,14 +399,10 @@ export default function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
                     Commande minimum (EUR)
                   </label>
                   <input
-                    type="number"
-                    min={0}
+                    type="text"
+                    inputMode="decimal"
                     value={minOrder}
-                    onChange={(e) =>
-                      setMinOrder(
-                        e.target.value === "" ? "" : Number(e.target.value)
-                      )
-                    }
+                    onChange={(e) => setMinOrder(e.target.value)}
                     placeholder="0"
                     className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                   />
@@ -677,7 +676,7 @@ export default function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
                         Commande min
                       </div>
                       <div className="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">
-                        {minOrder === "" || minOrder === 0
+                        {minOrder === "" || minOrder === "0"
                           ? "Aucune"
                           : `${minOrder}\u20AC`}
                       </div>
