@@ -40,7 +40,7 @@ src/
 │   ├── page.tsx                  # Redirect → /decouvrir
 │   ├── (client)/                 # Route group client
 │   │   ├── decouvrir/            # Accueil (boutiques + offres)
-│   │   ├── boutique/[id]/        # Détail boutique + produits
+│   │   ├── boutique/[slug]/       # Détail boutique + produits
 │   │   ├── panier/               # Panier
 │   │   ├── checkout/             # Paiement
 │   │   ├── commandes/            # Suivi commandes
@@ -57,6 +57,10 @@ src/
 │   │           ├── catalogue/    # Produits + packs
 │   │           ├── clients/      # Clients (part. + pro)
 │   │           └── parametres/   # Réglages boutique
+│   ├── boucherie-halal/[ville]/   # Pages SEO par ville (SSG)
+│   ├── robots.ts                 # robots.txt dynamique
+│   ├── sitemap.ts                # Sitemap XML (shops + villes)
+│   ├── opengraph-image.tsx       # OG image dynamique (Edge)
 │   └── api/                      # 27+ groupes de routes API
 │       ├── shops/  orders/  products/  cart/  payments/
 │       ├── auth/  users/  webhooks/  admin/  onboarding/
@@ -72,6 +76,7 @@ src/
 │   ├── order/       # OrderCard, OrderTimeline
 │   ├── checkout/    # Checkout flow
 │   ├── boucher/     # KitchenOrderCard, OrderTicket, PrepTimer, OrderAlertOverlay, PriceAdjustModal
+│   ├── seo/         # OrganizationSchema, ShopSchema, BreadcrumbSchema, ProductSchema
 │   ├── webmaster/   # ShopAdjustmentsTab, etc.
 │   └── providers/   # CartProviderWrapper
 ├── hooks/
@@ -85,6 +90,7 @@ src/
 │   ├── sounds.ts            # startOrderAlert() / stopOrderAlert()
 │   ├── boucher-auth.ts      # getAuthenticatedBoucher()
 │   ├── api/                  # Fonctions client API
+│   ├── seo/                  # cities.ts (SEO_CITIES config)
 │   ├── services/             # Business logic
 │   └── validators/           # Schémas Zod
 └── types/index.ts
@@ -218,10 +224,13 @@ const shop = await prisma.shop.findFirst({
 DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 NEXT_PUBLIC_CLERK_SIGN_IN_URL, NEXT_PUBLIC_CLERK_SIGN_UP_URL,
 NEXT_PUBLIC_TEST_MODE, NEXT_PUBLIC_TEST_SECRET,
-NEXT_PUBLIC_APP_URL, ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
+NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_PLAUSIBLE_DOMAIN,
+ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
 ```
 
-Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.
+- `NEXT_PUBLIC_SITE_URL` : URL canonique du site (`https://klikandgo.app`). Utilisé pour sitemap, OG, canonical.
+- `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` : Domaine Plausible Analytics (si défini, active le tracking RGPD).
+- Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.
 
 ## Marketing & Promos (ÉTAPE 17)
 
@@ -258,6 +267,32 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - ADMIN/WEBMASTER : 61 tests OK — 32 pages, 24 APIs, 5 tests sécurité
 - Marketing + Fidélité : 27 tests OK — promos, campagnes, images, validation codes
 
+## SEO
+
+- **Domaine canonique** : `klikandgo.app` — aucune URL Railway ou klikandgo.fr
+- **SITE_URL** : `process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app"` partout
+- **metadataBase** : `new URL(SITE_URL)` dans `layout.tsx` pour résolution automatique OG/canonical
+- **Title template** : `%s | Klik&Go`
+- **robots.ts** : Bloque /api/, /dashboard/, /admin/, /checkout/, /boucher/, /panier/, /profil/, /commandes/
+- **noindex** : Pages privées (checkout, panier, commandes, profil, onboarding) avec `robots: { index: false }`
+- **Sitemap** : Pages statiques + boutiques (DB) + villes (SEO_CITIES)
+- **OG Image** : `opengraph-image.tsx` — Edge runtime, 1200×630 PNG
+- **Analytics** : Plausible (RGPD), conditionnel sur `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`
+
+### JSON-LD Schemas (`src/components/seo/`)
+
+- `OrganizationSchema` — Global dans layout.tsx
+- `ShopSchema` — Type Store, sur boutique + city pages
+- `BreadcrumbSchema` — Sur boutique + city pages
+- `ProductSchema` — Type Product, premiers 20 produits par boutique (priceCents → EUR)
+
+### Pages SEO Villes
+
+- **Route** : `/boucherie-halal/[ville]` — SSG via `generateStaticParams()`
+- **Config** : `src/lib/seo/cities.ts` — 6 villes (Chambéry, Aix-les-Bains, Grenoble, Lyon, Saint-Étienne, Annecy)
+- **Schemas** : BreadcrumbSchema + FAQPage (4 questions) + ShopSchema par boutique
+- **Maillage** : Liens ville dans footer accueil, section decouvrir, info bar boutique, liens croisés entre villes
+
 ## Conventions
 
 - Prix toujours en **centimes** (`priceCents`, `totalCents`)
@@ -267,7 +302,7 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - Output standalone pour Vercel (`next.config.mjs`)
 - CSP configurée pour Clerk + Cloudflare + Anthropic
 - `sessionClaims` Clerk supprimé — utiliser DB lookup pour les rôles
-- Route `/boutique/[id]` utilise le **slug** pas l'ID (ex: `/boutique/boucherie-tarik`)
+- Route `/boutique/[slug]` utilise le **slug** (ex: `/boutique/boucherie-tarik`)
 - `git add prisma/schema.prisma` obligatoire à chaque modif du schema
 
 ## Permissions
