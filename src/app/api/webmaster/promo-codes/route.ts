@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       include: {
         shop: { select: { id: true, name: true, slug: true } },
         campaign: { select: { id: true, name: true } },
-        _count: { select: { usages: true, orders: true } },
+        _count: { select: { usages: true, orders: true, eligibleProducts: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
 const createSchema = z.object({
   code: z.string().min(3).max(30).transform((v) => v.toUpperCase().trim()),
-  discountType: z.enum(["PERCENT", "FIXED", "FREE_FEES"]),
+  discountType: z.enum(["PERCENT", "FIXED", "FREE_FEES", "BOGO", "BUNDLE"]),
   valueCents: z.number().int().min(0).optional(),
   valuePercent: z.number().min(0).max(100).optional(),
   scope: z.enum(["PLATFORM", "SHOP"]),
@@ -63,6 +63,24 @@ const createSchema = z.object({
   endsAt: z.string().datetime(),
   isFlash: z.boolean().default(false),
   campaignId: z.string().optional(),
+  // Payer
+  payer: z.enum(["KLIKGO", "BUTCHER"]).default("KLIKGO"),
+  // Diffusion
+  diffBadge: z.boolean().default(true),
+  diffBanner: z.boolean().default(false),
+  diffPopup: z.boolean().default(false),
+  // Banner visuals
+  bannerTitle: z.string().max(100).optional(),
+  bannerSubtitle: z.string().max(200).optional(),
+  bannerColor: z.enum(["red", "black", "green", "orange", "blue"]).default("red"),
+  bannerPosition: z.enum(["discover_top", "shop_page", "all_pages"]).default("discover_top"),
+  bannerImageUrl: z.string().url().optional(),
+  // Popup visuals
+  popupTitle: z.string().max(100).optional(),
+  popupMessage: z.string().max(500).optional(),
+  popupColor: z.enum(["red", "black", "green", "orange", "blue"]).default("red"),
+  popupFrequency: z.enum(["once_user", "once_day", "every_visit"]).default("once_user"),
+  popupImageUrl: z.string().url().optional(),
 });
 
 // ── POST — Create promo code (platform or for a specific shop) ──
@@ -103,6 +121,20 @@ export async function POST(req: NextRequest) {
         startsAt: new Date(data.startsAt),
         endsAt: new Date(data.endsAt),
         isFlash: data.isFlash,
+        payer: data.payer,
+        diffBadge: data.diffBadge,
+        diffBanner: data.diffBanner,
+        diffPopup: data.diffPopup,
+        bannerTitle: data.bannerTitle,
+        bannerSubtitle: data.bannerSubtitle,
+        bannerColor: data.bannerColor,
+        bannerPosition: data.bannerPosition,
+        bannerImageUrl: data.bannerImageUrl,
+        popupTitle: data.popupTitle,
+        popupMessage: data.popupMessage,
+        popupColor: data.popupColor,
+        popupFrequency: data.popupFrequency,
+        popupImageUrl: data.popupImageUrl,
         createdById: auth.userId,
         campaignId: data.campaignId,
       },

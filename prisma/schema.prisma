@@ -171,6 +171,13 @@ enum DiscountType {
   PERCENT
   FIXED
   FREE_FEES
+  BOGO
+  BUNDLE
+}
+
+enum OfferPayer {
+  KLIKGO
+  BUTCHER
 }
 
 enum PromoScope {
@@ -444,6 +451,7 @@ model Shop {
   generatedImages   GeneratedImage[] @relation("ShopImages")
   promoCodes        PromoCode[]
   butcherOptIns     ButcherOptIn[]
+  offerProducts     OfferProduct[]
 
   @@index([latitude, longitude])
   @@index([city])
@@ -558,6 +566,7 @@ model Product {
   orderItems OrderItem[]
   cartItems  CartItem[]
 
+  offerProducts      OfferProduct[]
   suggestSourceRules SuggestRule[] @relation("SuggestSource")
   suggestTargetRules SuggestRule[] @relation("SuggestTarget")
 
@@ -1496,6 +1505,28 @@ model PromoCode {
   // Flash promo
   isFlash         Boolean        @default(false) @map("is_flash")
 
+  // ── Payer (qui finance la réduction) ──
+  payer           OfferPayer     @default(KLIKGO)
+
+  // ── Diffusion channels ──
+  diffBadge       Boolean        @default(true) @map("diff_badge")
+  diffBanner      Boolean        @default(false) @map("diff_banner")
+  diffPopup       Boolean        @default(false) @map("diff_popup")
+
+  // ── Banner visuals ──
+  bannerTitle     String?        @map("banner_title")
+  bannerSubtitle  String?        @map("banner_subtitle")
+  bannerColor     String?        @default("red") @map("banner_color")
+  bannerPosition  String?        @default("discover_top") @map("banner_position")
+  bannerImageUrl  String?        @map("banner_image_url") @db.Text
+
+  // ── Popup visuals ──
+  popupTitle      String?        @map("popup_title")
+  popupMessage    String?        @map("popup_message") @db.Text
+  popupColor      String?        @default("red") @map("popup_color")
+  popupFrequency  String?        @default("once_user") @map("popup_frequency")
+  popupImageUrl   String?        @map("popup_image_url") @db.Text
+
   // Creator
   createdById     String         @map("created_by_id")
 
@@ -1506,6 +1537,7 @@ model PromoCode {
   // Relations
   usages          PromoCodeUsage[]
   orders          Order[]
+  eligibleProducts OfferProduct[]
 
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
@@ -1608,4 +1640,25 @@ model ButcherOptIn {
   @@unique([campaignId, shopId])
   @@index([shopId, status])
   @@map("butcher_opt_ins")
+}
+
+// ══════════════════════════════════════════
+// OFFER PRODUCT — Product eligibility for BOGO/BUNDLE offers
+// ══════════════════════════════════════════
+
+model OfferProduct {
+  id          String    @id @default(cuid())
+  promoCodeId String    @map("promo_code_id")
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  productId   String    @map("product_id")
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId      String    @map("shop_id")
+  shop        Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([promoCodeId, productId])
+  @@index([promoCodeId, shopId])
+  @@index([productId])
+  @@map("offer_products")
 }

@@ -17,7 +17,7 @@ export async function GET() {
       where: { shopId: auth.shopId, scope: "SHOP" },
       orderBy: { createdAt: "desc" },
       include: {
-        _count: { select: { usages: true } },
+        _count: { select: { usages: true, eligibleProducts: true } },
       },
     });
 
@@ -29,7 +29,7 @@ export async function GET() {
 
 const createSchema = z.object({
   code: z.string().min(3).max(30).transform((v) => v.toUpperCase().trim()),
-  discountType: z.enum(["PERCENT", "FIXED", "FREE_FEES"]),
+  discountType: z.enum(["PERCENT", "FIXED", "FREE_FEES", "BOGO", "BUNDLE"]),
   valueCents: z.number().int().min(0).optional(),
   valuePercent: z.number().min(0).max(100).optional(),
   label: z.string().min(1).max(100),

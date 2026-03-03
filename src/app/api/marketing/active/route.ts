@@ -52,13 +52,62 @@ export async function GET() {
         label: true,
         isFlash: true,
         endsAt: true,
+        diffBadge: true,
+        diffBanner: true,
+        diffPopup: true,
+        bannerTitle: true,
+        bannerSubtitle: true,
+        bannerColor: true,
+        bannerPosition: true,
+        bannerImageUrl: true,
+        popupTitle: true,
+        popupMessage: true,
+        popupColor: true,
+        popupFrequency: true,
+        popupImageUrl: true,
       },
       orderBy: { createdAt: "desc" },
       take: 5,
     });
 
-    const banners = campaigns.filter((c) => c.type === "BANNER");
-    const popups = campaigns.filter((c) => c.type === "POPUP");
+    // Promo codes with diffBanner or diffPopup active — merge with campaigns
+    const codeBanners = promoCodes
+      .filter((c) => c.diffBanner)
+      .map((c) => ({
+        id: `code-${c.id}`,
+        type: "BANNER" as const,
+        name: c.bannerTitle || c.label,
+        imageUrl: c.bannerImageUrl,
+        linkUrl: null,
+        bannerText: c.bannerSubtitle || c.label,
+        bannerColor: c.bannerColor,
+        bannerPosition: c.bannerPosition,
+        code: c.code,
+      }));
+
+    const codePopups = promoCodes
+      .filter((c) => c.diffPopup)
+      .map((c) => ({
+        id: `code-${c.id}`,
+        type: "POPUP" as const,
+        name: c.popupTitle || c.label,
+        imageUrl: c.popupImageUrl,
+        linkUrl: null,
+        popupTitle: c.popupTitle || c.label,
+        popupMessage: c.popupMessage,
+        popupColor: c.popupColor,
+        popupFrequency: c.popupFrequency,
+        code: c.code,
+      }));
+
+    const banners = [
+      ...campaigns.filter((c) => c.type === "BANNER"),
+      ...codeBanners,
+    ];
+    const popups = [
+      ...campaigns.filter((c) => c.type === "POPUP"),
+      ...codePopups,
+    ];
 
     return apiSuccess({ banners, popups, promoCodes });
   } catch (error) {

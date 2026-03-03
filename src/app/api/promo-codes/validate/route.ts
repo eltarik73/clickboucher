@@ -92,14 +92,25 @@ export async function POST(req: NextRequest) {
 
       // Calculate discount
       let discountCents = 0;
+      let offerType: string = promoCode.discountType;
+      let eligibleProductIds: string[] = [];
+
       if (promoCode.discountType === "FIXED" && promoCode.valueCents) {
         discountCents = Math.min(promoCode.valueCents, orderTotalCents);
       } else if (promoCode.discountType === "PERCENT" && promoCode.valuePercent) {
         discountCents = Math.round(orderTotalCents * (promoCode.valuePercent / 100));
-        // Apply max discount cap
         if (promoCode.maxDiscountCents && discountCents > promoCode.maxDiscountCents) {
           discountCents = promoCode.maxDiscountCents;
         }
+      } else if (promoCode.discountType === "BOGO" || promoCode.discountType === "BUNDLE") {
+        // BOGO/BUNDLE: discount calculated at checkout based on eligible products in cart
+        // For validation, just confirm the offer is valid and return eligible product IDs
+        const eligibleProducts = await prisma.offerProduct.findMany({
+          where: { promoCodeId: promoCode.id },
+          select: { productId: true },
+        });
+        eligibleProductIds = eligibleProducts.map((p) => p.productId);
+        offerType = promoCode.discountType;
       }
       // FREE_FEES: discountCents stays 0, handled at checkout level
 
@@ -109,8 +120,9 @@ export async function POST(req: NextRequest) {
         promoCodeId: promoCode.id,
         source: promoCode.scope,
         label: promoCode.label,
-        type: promoCode.discountType,
+        type: offerType,
         isFlash: promoCode.isFlash,
+        ...(eligibleProductIds.length > 0 && { eligibleProductIds }),
       });
     }
 
