@@ -300,7 +300,7 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
 // Push notification title/body helpers
 // ─────────────────────────────────────────────
 function getPushPayload(event: NotifEvent, data: NotifData) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const orderUrl = data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`;
   const orderTag = data.orderId ? `order-${data.orderId}` : undefined;
 

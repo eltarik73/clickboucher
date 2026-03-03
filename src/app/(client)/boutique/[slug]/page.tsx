@@ -17,6 +17,8 @@ import {
 } from "@/components/shop/ShopProductsClient";
 import { ReviewList } from "@/components/shop/ReviewList";
 import { LoyaltyBadge } from "@/components/shop/LoyaltyBadge";
+import { ShopSchema } from "@/components/seo/ShopSchema";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 
 // ── Cached shop query with Redis (shared between generateMetadata & page) ──
 
@@ -69,28 +71,43 @@ const getShop = cache(async (slug: string): Promise<ShopWithProducts | null> => 
 
 // ── Dynamic metadata for SEO ────────────────────
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: { slug: string };
 }): Promise<Metadata> {
-  const shop = await getShop(params.id);
+  const shop = await getShop(params.slug);
 
   if (!shop) {
-    return { title: "Boutique introuvable — Klik&Go" };
+    return { title: "Boucherie introuvable" };
   }
 
-  const desc = shop.description
-    ? `Commandez chez ${shop.name} à ${shop.city}. ${shop.description}`
-    : `Commandez chez ${shop.name} à ${shop.city}. Retrait rapide, zéro file.`;
+  const title = `${shop.name} — Boucherie Halal à ${shop.city || "votre ville"}`;
+  const description = `Commandez en ligne chez ${shop.name}${shop.city ? `, boucherie halal à ${shop.city}` : ""}. Click & collect, viande fraîche halal, retrait en boutique.${shop.description ? " " + shop.description.slice(0, 80) : ""}`;
 
   return {
-    title: `${shop.name} — Klik&Go`,
-    description: desc,
+    title,
+    description,
     openGraph: {
-      title: `${shop.name} — Klik&Go`,
-      description: desc,
+      title,
+      description,
+      url: `${SITE_URL}/boutique/${shop.slug}`,
+      images: shop.imageUrl
+        ? [{ url: shop.imageUrl, width: 1200, height: 630, alt: shop.name }]
+        : [{ url: "/og-image.png", width: 1200, height: 630, alt: "Klik&Go" }],
       type: "website",
+      siteName: "Klik&Go",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: shop.imageUrl ? [shop.imageUrl] : ["/og-image.png"],
+    },
+    alternates: {
+      canonical: `${SITE_URL}/boutique/${shop.slug}`,
     },
   };
 }
@@ -108,9 +125,9 @@ function prepTimeClasses(minutes: number) {
 export default async function BoutiquePage({
   params,
 }: {
-  params: { id: string };
+  params: { slug: string };
 }) {
-  const { id: slug } = params;
+  const { slug } = params;
 
   let shop;
   try {
@@ -179,6 +196,14 @@ export default async function BoutiquePage({
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
+      <ShopSchema shop={shop} />
+      <BreadcrumbSchema
+        items={[
+          { name: "Accueil", url: `${SITE_URL}` },
+          { name: "Boucheries", url: `${SITE_URL}/decouvrir` },
+          { name: shop.name, url: `${SITE_URL}/boutique/${shop.slug}` },
+        ]}
+      />
       <div className="mx-auto max-w-5xl">
         {/* ═══════════════════════════════════════════ */}
         {/* HERO */}

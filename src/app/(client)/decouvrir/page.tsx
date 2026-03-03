@@ -18,14 +18,18 @@ import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
 import MarketingBanner from "@/components/marketing/MarketingBanner";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
 export const metadata: Metadata = {
-  title: "Découvrir les boucheries | Klik&Go",
+  title: "Boucheries Halal près de chez vous — Click & Collect",
   description:
-    "Parcourez les boucheries halal de Chambéry, consultez les avis et commandez en click & collect. Retrait rapide avec QR code.",
+    "Trouvez votre boucherie halal et commandez en click & collect. Viande fraîche, retrait rapide, paiement sécurisé. Boucheries partenaires en Rhône-Alpes.",
   openGraph: {
-    title: "Découvrir les boucheries | Klik&Go",
-    description: "Parcourez les boucheries halal de Chambéry et commandez en ligne.",
+    title: "Boucheries Halal près de chez vous — Click & Collect | Klik&Go",
+    description: "Trouvez votre boucherie halal et commandez en click & collect. Retrait rapide en boutique.",
+    url: `${SITE_URL}/decouvrir`,
   },
+  alternates: { canonical: `${SITE_URL}/decouvrir` },
 };
 
 // ─────────────────────────────────────────────────────────────

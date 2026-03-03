@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Mes commandes | Klik&Go",
   description:
     "Suivez l'historique de vos commandes click & collect et recommandez facilement.",
+  robots: { index: false, follow: false },
 };
 
 export default function CommandesLayout({ children }: { children: React.ReactNode }) {

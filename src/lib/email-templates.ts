@@ -53,7 +53,7 @@ export function orderAccepted(data: {
   estimatedMinutes?: number;
   qrCode?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Commande acceptée !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -82,7 +82,7 @@ export function orderReady(data: {
   shopName?: string;
   qrCode?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Votre commande est prête !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -105,7 +105,7 @@ export function orderDenied(data: {
   shopName?: string;
   denyReason?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Commande refusée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -126,7 +126,7 @@ export function orderPending(data: {
   orderNumber?: string;
   customerName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udd14 Nouvelle commande !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -141,7 +141,7 @@ export function orderPickedUp(data: {
   orderNumber?: string;
   shopName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udce6 Commande récupérée !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -156,7 +156,7 @@ export function stockIssue(data: {
   orderNumber?: string;
   shopName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u26a0\ufe0f Rupture de stock partielle</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -168,7 +168,7 @@ export function stockIssue(data: {
 }
 
 export function proValidated(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf1f Compte Pro validé !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -185,7 +185,7 @@ export function proValidated(): string {
 }
 
 export function proRejected(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">Demande Pro refusée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -200,7 +200,7 @@ export function cartAbandoned(data: {
   shopName?: string;
   nbItems?: number;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\uded2 Votre panier vous attend !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -214,7 +214,7 @@ export function cartAbandoned(data: {
 export function accountApproved(data: {
   shopName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Bienvenue sur Klik&amp;Go !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -234,7 +234,7 @@ export function trialExpiring(data: {
   shopName?: string;
   message?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f3 Votre essai se termine bientôt</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -253,7 +253,7 @@ export function weeklyReport(data: {
   weeklyRating?: number;
   weeklyTopProduct?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const rev = ((data.weeklyRevenue || 0) / 100).toFixed(2);
   const avg = ((data.weeklyAvgOrder || 0) / 100).toFixed(2);
   return layout(`
@@ -299,7 +299,7 @@ export function orderPreparing(data: {
   orderNumber?: string;
   shopName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udc68\u200d\ud83c\udf73 Commande en préparation</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -315,7 +315,7 @@ export function orderCancelled(data: {
   shopName?: string;
   denyReason?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Commande annulée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -338,7 +338,7 @@ export function boucherNote(data: {
   shopName?: string;
   note?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcac Message du boucher</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -357,7 +357,7 @@ export function readyReminder(data: {
   orderNumber?: string;
   shopName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f0 N'oubliez pas votre commande !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -378,7 +378,7 @@ export function priceAdjustmentPending(data: {
   originalTotal?: number;
   newTotal?: number;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const oldPrice = ((data.originalTotal || 0) / 100).toFixed(2);
   const newPrice = ((data.newTotal || 0) / 100).toFixed(2);
   return layout(`
@@ -403,7 +403,7 @@ export function priceAdjustmentAutoApproved(data: {
   originalTotal?: number;
   newTotal?: number;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const oldPrice = ((data.originalTotal || 0) / 100).toFixed(2);
   const newPrice = ((data.newTotal || 0) / 100).toFixed(2);
   return layout(`
@@ -425,7 +425,7 @@ export function priceAdjustmentAccepted(data: {
   orderNumber?: string;
   shopName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Ajustement accept\u00E9</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -440,7 +440,7 @@ export function priceAdjustmentRejected(data: {
   orderNumber?: string;
   shopName?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Ajustement refus\u00E9</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
@@ -457,7 +457,7 @@ export function priceAdjustmentAutoValidated(data: {
   originalTotal?: number;
   newTotal?: number;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const newPrice = ((data.newTotal || 0) / 100).toFixed(2);
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Ajustement valid\u00E9 automatiquement</h1>
@@ -479,7 +479,7 @@ export function pickupSoon(data: {
   estimatedMinutes?: number;
   orderId?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const trackUrl = data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`;
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">🚶 Bientôt prête !</h1>
@@ -495,7 +495,7 @@ export function pickupSoon(data: {
 export function calendarAlert(data: {
   message?: string;
 }): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.fr";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">📅 Événement à venir</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">

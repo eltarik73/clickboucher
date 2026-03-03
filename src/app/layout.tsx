@@ -15,6 +15,7 @@ import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistratio
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import OfflineBanner from "@/components/pwa/OfflineBanner";
 import { TestRoleSwitcher } from "@/components/test/TestRoleSwitcher";
+import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
 import "@/styles/globals.css";
 
 const dmSans = DM_Sans({
@@ -46,18 +47,29 @@ export const viewport: Viewport = {
   themeColor: "#DC2626",
 };
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
 export const metadata: Metadata = {
-  title: "Klik&Go — Click & Collect Boucheries Halal Chambéry",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Klik&Go — Click & Collect Boucherie Halal",
+    template: "%s | Klik&Go",
+  },
   description:
-    "Commandez en ligne chez votre boucher halal à Chambéry. Retrait rapide avec QR code. Zéro file, zéro stress, 100% frais.",
+    "Commandez en ligne chez votre boucherie halal de proximité. Click & collect rapide à Chambéry, Grenoble, Lyon, Saint-Étienne. Viande halal fraîche, retrait en boutique.",
   keywords: [
     "boucherie halal",
     "click and collect",
-    "Chambéry",
     "viande halal",
     "commande en ligne",
-    "retrait rapide",
+    "halal",
+    "Chambéry",
+    "Grenoble",
+    "Lyon",
   ],
+  authors: [{ name: "Klik&Go" }],
+  creator: "Klik&Go",
+  publisher: "Klik&Go",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -68,11 +80,35 @@ export const metadata: Metadata = {
     apple: "/icons/icon-192.png",
   },
   openGraph: {
-    title: "Klik&Go — Click & Collect Boucheries Halal",
-    description: "Commandez, récupérez. Zéro file, zéro stress.",
-    url: "https://clickboucher-production.up.railway.app",
-    siteName: "Klik&Go",
     type: "website",
+    locale: "fr_FR",
+    url: SITE_URL,
+    siteName: "Klik&Go",
+    title: "Klik&Go — Click & Collect Boucherie Halal",
+    description: "Commandez en ligne chez votre boucherie halal de proximité. Viande fraîche, retrait rapide en boutique.",
+    images: [{
+      url: "/og-image.png",
+      width: 1200,
+      height: 630,
+      alt: "Klik&Go - Click & Collect Boucherie Halal",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Klik&Go — Click & Collect Boucherie Halal",
+    description: "Commandez en ligne chez votre boucherie halal de proximité.",
+    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large" as const,
+      "max-snippet": -1,
+    },
   },
 };
 
@@ -81,6 +117,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
         <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased transition-colors duration-300`}>
+          <OrganizationSchema />
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>

@@ -35,7 +35,7 @@ export async function sendOrderConfirmationEmail(
   to: string,
   data: ConfirmationData
 ): Promise<boolean> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://clickboucher-production.up.railway.app";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const suiviUrl = `${baseUrl}/suivi/${data.orderId}`;
 
   const itemsHtml = data.items

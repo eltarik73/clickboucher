@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
+export const metadata: Metadata = {
+  title: "Klik&Go — Click & Collect Boucherie Halal | Commandez en ligne",
+  description:
+    "Commandez en ligne chez votre boucherie halal de proximité. Retrait rapide en boutique à Chambéry, Grenoble, Lyon. Frais de service 0,99€ seulement.",
+  alternates: { canonical: SITE_URL },
+};
 
 // ─────────────────────────────────────────────────────────────
 // STEPS DATA

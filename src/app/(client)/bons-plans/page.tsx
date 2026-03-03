@@ -2,12 +2,16 @@
 // ISR: cached, revalidated every 60s (promos don't change every second)
 export const revalidate = 60;
 
+import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
 import { BonsPlansClient } from "./BonsPlansClient";
 
-export const metadata = {
-  title: "Bons plans — Klik&Go",
-  description: "Toutes les promotions et offres flash des boucheries pres de chez vous",
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
+export const metadata: Metadata = {
+  title: "Bons Plans & Promotions Boucherie Halal",
+  description: "Toutes les promotions et offres flash des boucheries halal près de chez vous. Réductions, offres du moment, codes promo.",
+  alternates: { canonical: `${SITE_URL}/bons-plans` },
 };
 
 export default async function BonsPlansPage() {

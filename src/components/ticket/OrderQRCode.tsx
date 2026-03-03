@@ -17,7 +17,7 @@ export default function OrderQRCode({ orderId, qrCodeEnabled, size = 120 }: Prop
 
   const baseUrl = typeof window !== "undefined"
     ? window.location.origin
-    : "https://clickboucher-production.up.railway.app";
+    : process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
   const url = `${baseUrl}/suivi/${orderId}`;
 
