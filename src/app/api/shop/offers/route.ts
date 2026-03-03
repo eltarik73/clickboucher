@@ -1,93 +1,113 @@
-// GET/POST /api/shop/offers — Boucher offer management
+// src/app/api/shop/offers/route.ts — Boucher offers management
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { z } from "zod";
+import { createOfferSchema } from "@/lib/validations/offer";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/shop/offers
+ * Returns proposals (pending webmaster offers) + boucher's own offers
+ */
 export async function GET() {
   try {
     const auth = await getAuthenticatedBoucher();
     if (auth.error) return auth.error;
 
-    // Boucher's own offers + proposals from webmaster
-    const [ownOffers, proposals] = await Promise.all([
-      prisma.offer.findMany({
-        where: { shopId: auth.shopId },
-        include: { _count: { select: { eligibleProducts: true, orders: true } } },
-        orderBy: { createdAt: "desc" },
-      }),
+    const [proposals, offers] = await Promise.all([
+      // Pending proposals from webmaster
       prisma.offerProposal.findMany({
-        where: { shopId: auth.shopId },
+        where: { shopId: auth.shopId, status: "PENDING" },
         include: {
           offer: {
-            select: { id: true, name: true, code: true, type: true, discountValue: true, payer: true, startDate: true, endDate: true, minOrder: true, audience: true, diffBadge: true, diffBanner: true, diffPopup: true },
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              discountValue: true,
+              payer: true,
+              audience: true,
+              startDate: true,
+              endDate: true,
+              minOrder: true,
+            },
           },
         },
         orderBy: { createdAt: "desc" },
       }),
+
+      // Boucher's own offers
+      prisma.offer.findMany({
+        where: { shopId: auth.shopId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: {
+          _count: { select: { orders: true } },
+        },
+      }),
     ]);
 
-    return apiSuccess({ offers: ownOffers, proposals });
+    return apiSuccess({ proposals, offers });
   } catch (error) {
-    return handleApiError(error, "shop/offers/GET");
+    return handleApiError(error, "shop/offers GET");
   }
 }
 
-const createSchema = z.object({
-  name: z.string().min(3).max(100),
-  code: z.string().min(3).max(30).transform((v) => v.toUpperCase().trim()),
-  type: z.enum(["PERCENT", "AMOUNT", "FREE_DELIVERY", "BOGO", "BUNDLE"]),
-  discountValue: z.number().positive(),
-  minOrder: z.number().min(0).default(0),
-  audience: z.enum(["ALL", "NEW", "LOYAL", "VIP"]).default("ALL"),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
-  maxUses: z.number().int().min(1).optional(),
-  diffBanner: z.boolean().default(false),
-  bannerTitle: z.string().max(100).optional(),
-  bannerSubtitle: z.string().max(200).optional(),
-  bannerColor: z.enum(["red", "black", "green", "orange", "blue", "purple", "amber"]).default("red"),
-});
-
+/**
+ * POST /api/shop/offers
+ * Create a new offer for the boucher's shop (payer forced to BUTCHER)
+ */
 export async function POST(req: NextRequest) {
   try {
     const auth = await getAuthenticatedBoucher();
     if (auth.error) return auth.error;
 
     const body = await req.json();
-    const data = createSchema.parse(body);
+    const parsed = createOfferSchema.parse(body);
 
     // Check code uniqueness
-    const existing = await prisma.offer.findUnique({ where: { code: data.code } });
-    if (existing) return apiError("VALIDATION_ERROR", "Ce code existe déjà");
+    const existing = await prisma.offer.findUnique({
+      where: { code: parsed.code },
+    });
+    if (existing) {
+      return apiError("CONFLICT", "Ce code promo existe déjà");
+    }
 
     const offer = await prisma.offer.create({
       data: {
-        name: data.name,
-        code: data.code,
-        type: data.type,
-        discountValue: data.discountValue,
-        minOrder: data.minOrder,
-        payer: "BUTCHER",
-        audience: data.audience,
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
-        maxUses: data.maxUses,
         shopId: auth.shopId,
+        name: parsed.name,
+        code: parsed.code,
+        type: parsed.type,
+        discountValue: parsed.discountValue,
+        minOrder: parsed.minOrder,
+        payer: "BUTCHER",
+        audience: parsed.audience,
+        startDate: new Date(parsed.startDate),
+        endDate: new Date(parsed.endDate),
+        maxUses: parsed.maxUses ?? null,
         status: "ACTIVE",
-        diffBadge: true,
-        diffBanner: data.diffBanner,
-        bannerTitle: data.bannerTitle,
-        bannerSubtitle: data.bannerSubtitle,
-        bannerColor: data.bannerColor,
+        diffBadge: parsed.diffBadge,
+        diffBanner: parsed.diffBanner,
+        diffPopup: parsed.diffPopup,
+        bannerTitle: parsed.bannerTitle ?? null,
+        bannerSubtitle: parsed.bannerSubtitle ?? null,
+        bannerColor: parsed.bannerColor ?? null,
+        bannerPosition: parsed.bannerPosition ?? null,
+        bannerImageUrl: parsed.bannerImageUrl ?? null,
+        popupTitle: parsed.popupTitle ?? null,
+        popupMessage: parsed.popupMessage ?? null,
+        popupColor: parsed.popupColor ?? null,
+        popupFrequency: parsed.popupFrequency ?? null,
+        popupImageUrl: parsed.popupImageUrl ?? null,
       },
     });
 
-    return apiSuccess(offer);
+    return apiSuccess(offer, 201);
   } catch (error) {
-    return handleApiError(error, "shop/offers/POST");
+    return handleApiError(error, "shop/offers POST");
   }
 }

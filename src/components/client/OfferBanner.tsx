@@ -1,69 +1,68 @@
-// src/components/client/OfferBanner.tsx — Gradient banner on boutique page
 "use client";
 
-import { Gift, Copy, Check } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { X } from "lucide-react";
 
-type OfferBannerProps = {
+const gradientMap: Record<string, string> = {
+  red: "from-red-500 to-red-700",
+  black: "from-gray-800 to-gray-950",
+  green: "from-emerald-500 to-emerald-700",
+  orange: "from-orange-500 to-amber-600",
+  blue: "from-blue-500 to-indigo-600",
+};
+
+export function OfferBanner({
+  title,
+  subtitle,
+  code,
+  color,
+  discountLabel,
+}: {
   title: string;
   subtitle?: string | null;
   code: string;
-  color?: string;
+  color: string;
   discountLabel: string;
-};
+}) {
+  const [dismissed, setDismissed] = useState(false);
 
-const COLOR_MAP: Record<string, string> = {
-  red: "from-red-600 to-red-800",
-  black: "from-gray-800 to-black",
-  green: "from-emerald-600 to-emerald-800",
-  orange: "from-orange-500 to-orange-700",
-  blue: "from-blue-600 to-blue-800",
-};
+  if (dismissed) return null;
 
-export function OfferBanner({ title, subtitle, code, color = "red", discountLabel }: OfferBannerProps) {
-  const [copied, setCopied] = useState(false);
-  const gradient = COLOR_MAP[color] || COLOR_MAP.red;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      toast.success("Code copié !");
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
+  const gradient = gradientMap[color] || gradientMap.red;
 
   return (
-    <div className={`mx-3 mt-2 rounded-2xl bg-gradient-to-r ${gradient} p-4 sm:p-5 relative overflow-hidden`}>
-      {/* Background pattern */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
-          backgroundSize: "20px 20px",
-        }}
-      />
-      <div className="relative z-10 flex items-center gap-4">
-        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shrink-0">
-          <Gift className="w-6 h-6 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white text-sm font-bold">{title}</p>
+    <div
+      className={`bg-gradient-to-r ${gradient} rounded-xl p-5 text-white relative overflow-hidden`}
+    >
+      {/* Decorative circle */}
+      <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/5 rounded-full" />
+
+      {/* Close button */}
+      <button
+        onClick={() => setDismissed(true)}
+        className="absolute top-3 right-3 text-white/50 hover:text-white transition-colors"
+        aria-label="Fermer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      <div className="flex items-center justify-between gap-4">
+        {/* Left side */}
+        <div className="min-w-0">
+          <p className="text-lg font-bold leading-tight">{title}</p>
           {subtitle && (
-            <p className="text-white/70 text-xs mt-0.5">{subtitle}</p>
+            <p className="text-sm text-white/70 mt-1">{subtitle}</p>
           )}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs font-bold">
-              {discountLabel}
-            </span>
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1 px-3 py-1 bg-white rounded-lg text-gray-900 text-xs font-bold hover:bg-white/90 transition-colors"
-            >
-              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              {code}
-            </button>
-          </div>
+        </div>
+
+        {/* Right side */}
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <span className="bg-white/20 rounded-lg px-3 py-1 font-bold text-sm">
+            {discountLabel}
+          </span>
+          <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-xs">
+            {code}
+          </span>
         </div>
       </div>
     </div>

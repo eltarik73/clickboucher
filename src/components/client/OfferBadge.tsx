@@ -1,16 +1,34 @@
-// src/components/client/OfferBadge.tsx — Promo badge on shop cards
-"use client";
+export function OfferBadge({
+  type,
+  discountValue,
+}: {
+  type: string;
+  discountValue: number;
+}) {
+  let label = "";
 
-import { Tag } from "lucide-react";
+  switch (type) {
+    case "FREE_DELIVERY":
+      label = "🚀 FRAIS OFFERTS";
+      break;
+    case "PERCENT":
+      label = `💰 -${discountValue}%`;
+      break;
+    case "BOGO":
+      label = "🎁 1+1 OFFERT";
+      break;
+    case "AMOUNT":
+      label = `🏷️ -${discountValue}€`;
+      break;
+    case "BUNDLE":
+      label = `📦 PACK -${discountValue}€`;
+      break;
+    default:
+      label = `💰 -${discountValue}%`;
+  }
 
-type OfferBadgeProps = {
-  label: string;
-};
-
-export function OfferBadge({ label }: OfferBadgeProps) {
   return (
-    <span className="flex items-center gap-1 px-2.5 py-1 bg-[#DC2626] text-white text-[10px] font-bold rounded-full shadow-sm">
-      <Tag className="w-2.5 h-2.5" />
+    <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10">
       {label}
     </span>
   );

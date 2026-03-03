@@ -1,4 +1,4 @@
-// GET/PATCH/DELETE /api/dashboard/campaigns/[campaignId]
+// src/app/api/dashboard/campaigns/[campaignId]/route.ts — Get, update, delete campaign (admin)
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
@@ -7,60 +7,102 @@ import { updateCampaignSchema } from "@/lib/validations/campaign";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest, { params }: { params: { campaignId: string } }) {
+type Params = { params: { campaignId: string } };
+
+// ── GET — Get campaign by ID ──────────────────────────────────
+export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
+
+    const { campaignId } = params;
 
     const campaign = await prisma.campaign.findUnique({
-      where: { id: params.campaignId },
-      include: { offer: { select: { id: true, code: true, name: true, type: true, discountValue: true } } },
+      where: { id: campaignId },
+      include: {
+        offer: {
+          select: { id: true, name: true, code: true, type: true, discountValue: true },
+        },
+      },
     });
 
-    if (!campaign) return apiError("NOT_FOUND", "Campagne introuvable");
+    if (!campaign) {
+      return apiError("NOT_FOUND", "Campagne introuvable");
+    }
+
     return apiSuccess(campaign);
   } catch (error) {
-    return handleApiError(error, "dashboard/campaigns/[campaignId]/GET");
+    return handleApiError(error, "dashboard/campaigns/[id] GET");
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { campaignId: string } }) {
+// ── PATCH — Update campaign ───────────────────────────────────
+export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
-    const campaign = await prisma.campaign.findUnique({ where: { id: params.campaignId } });
-    if (!campaign) return apiError("NOT_FOUND", "Campagne introuvable");
+    const { campaignId } = params;
+
+    const existing = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return apiError("NOT_FOUND", "Campagne introuvable");
+    }
 
     const body = await req.json();
     const data = updateCampaignSchema.parse(body);
 
-    const updated = await prisma.campaign.update({
-      where: { id: params.campaignId },
-      data: {
-        ...data,
-        ...(data.scheduledAt === null ? { scheduledAt: null } : data.scheduledAt ? { scheduledAt: new Date(data.scheduledAt) } : {}),
+    const updateData: Record<string, unknown> = { ...data };
+
+    // Parse scheduledAt string to Date if present
+    if (data.scheduledAt !== undefined) {
+      updateData.scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
+    }
+
+    const campaign = await prisma.campaign.update({
+      where: { id: campaignId },
+      data: updateData,
+      include: {
+        offer: {
+          select: { id: true, name: true, code: true, type: true, discountValue: true },
+        },
       },
     });
 
-    return apiSuccess(updated);
+    return apiSuccess(campaign);
   } catch (error) {
-    return handleApiError(error, "dashboard/campaigns/[campaignId]/PATCH");
+    return handleApiError(error, "dashboard/campaigns/[id] PATCH");
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { campaignId: string } }) {
+// ── DELETE — Delete campaign (only drafts) ────────────────────
+export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
-    const campaign = await prisma.campaign.findUnique({ where: { id: params.campaignId } });
-    if (!campaign) return apiError("NOT_FOUND", "Campagne introuvable");
-    if (campaign.status !== "DRAFT") return apiError("VALIDATION_ERROR", "Seules les campagnes brouillon peuvent être supprimées");
+    const { campaignId } = params;
 
-    await prisma.campaign.delete({ where: { id: params.campaignId } });
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { id: true, status: true },
+    });
+
+    if (!campaign) {
+      return apiError("NOT_FOUND", "Campagne introuvable");
+    }
+
+    if (campaign.status !== "DRAFT") {
+      return apiError("VALIDATION_ERROR", "Seuls les brouillons peuvent être supprimés");
+    }
+
+    await prisma.campaign.delete({ where: { id: campaignId } });
+
     return apiSuccess({ deleted: true });
   } catch (error) {
-    return handleApiError(error, "dashboard/campaigns/[campaignId]/DELETE");
+    return handleApiError(error, "dashboard/campaigns/[id] DELETE");
   }
 }

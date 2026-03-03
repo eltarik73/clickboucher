@@ -10,12 +10,10 @@ import {
   ToggleRight,
   Trash2,
   Image as ImageIcon,
-  Sparkles,
   GripVertical,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import ImageGenerator from "@/components/marketing/ImageGenerator";
 
 type Banner = {
   id: string;
@@ -34,7 +32,6 @@ export default function BannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [showGenerator, setShowGenerator] = useState(false);
 
   // Form
   const [title, setTitle] = useState("");
@@ -173,12 +170,6 @@ export default function BannersPage() {
               placeholder="URL de l'image"
               className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm"
             />
-            <button
-              onClick={() => setShowGenerator(!showGenerator)}
-              className="px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-sm flex items-center gap-1"
-            >
-              <Sparkles size={14} /> Générer
-            </button>
           </div>
           <input
             value={linkUrl}
@@ -187,20 +178,6 @@ export default function BannersPage() {
             className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm"
           />
 
-          {showGenerator && (
-            <div className="border border-dashed border-gray-300 dark:border-white/20 rounded-xl p-4">
-              <ImageGenerator
-                endpoint="/api/admin/images/generate"
-                defaultUsage="BANNER"
-                compact
-                onGenerated={(img) => {
-                  setImageUrl(img.imageUrl);
-                  setShowGenerator(false);
-                  toast.success("Image générée et appliquée");
-                }}
-              />
-            </div>
-          )}
 
           <button
             onClick={createBanner}

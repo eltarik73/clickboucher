@@ -1,181 +1,270 @@
 // src/app/dashboard/marketing/page.tsx — Marketing Hub
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Megaphone, Gift, Mail, BarChart3, TrendingUp, Send, Loader2 } from "lucide-react";
-import OffersTab from "@/components/dashboard/marketing/OffersTab";
-import CampaignsTab from "@/components/dashboard/marketing/CampaignsTab";
-import StatsTab from "@/components/dashboard/marketing/StatsTab";
-import OfferForm from "@/components/dashboard/marketing/OfferForm";
-import ProposeForm from "@/components/dashboard/marketing/ProposeForm";
-import CampaignForm from "@/components/dashboard/marketing/CampaignForm";
+import { useEffect, useState, useCallback } from "react";
+import {
+  Gift,
+  Mail,
+  BarChart3,
+  Loader2,
+  ChevronRight,
+} from "lucide-react";
+import { OffersList } from "@/components/dashboard/marketing/OffersList";
+import { CampaignsList } from "@/components/dashboard/marketing/CampaignsList";
+import { OfferForm } from "@/components/dashboard/marketing/OfferForm";
+import { CampaignForm } from "@/components/dashboard/marketing/CampaignForm";
 
-type KPI = { label: string; value: string; detail: string; icon: React.ReactNode; color: string };
-
-const TABS = [
-  { id: "offers", label: "Offres", icon: Gift },
-  { id: "campaigns", label: "Campagnes", icon: Mail },
-  { id: "stats", label: "Stats", icon: BarChart3 },
-] as const;
-
-type Tab = (typeof TABS)[number]["id"];
+type Stats = {
+  activeOffers: number;
+  campaignsThisMonth: number;
+  conversions: number;
+  emailsSent: number;
+  revenueViaOffers: number;
+  roi: number;
+};
 
 export default function MarketingHubPage() {
-  const [tab, setTab] = useState<Tab>("offers");
-  const [showOfferForm, setShowOfferForm] = useState(false);
-  const [showProposeForm, setShowProposeForm] = useState(false);
-  const [showCampaignForm, setShowCampaignForm] = useState(false);
-  const [kpis, setKpis] = useState<KPI[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [view, setView] = useState<"hub" | "offer-form" | "campaign-form">("hub");
+  const [tab, setTab] = useState<"offers" | "campaigns">("offers");
+  const [offerFilter, setOfferFilter] = useState("all");
+  const [campaignFilter, setCampaignFilter] = useState("all");
+  const [offers, setOffers] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
-
-  // Fetch KPI data
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/dashboard/offers").then((r) => r.json()),
-      fetch("/api/dashboard/campaigns").then((r) => r.json()),
-    ]).then(([offersJson, campaignsJson]) => {
-      const offers = offersJson.success ? offersJson.data : [];
-      const campaigns = campaignsJson.success ? campaignsJson.data : [];
-
-      const activeOffers = offers.filter((o: any) => o.status === "ACTIVE");
-      const klikgoCount = activeOffers.filter((o: any) => o.payer === "KLIKGO").length;
-      const boucherCount = activeOffers.filter((o: any) => o.payer === "BUTCHER").length;
-
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const thisMonthCampaigns = campaigns.filter((c: any) => new Date(c.createdAt) >= monthStart);
-      const clientCampaigns = thisMonthCampaigns.filter((c: any) => c.audience?.startsWith("CLIENTS_"));
-      const boucherCampaigns = thisMonthCampaigns.filter((c: any) => c.audience?.startsWith("BUTCHERS_"));
-
-      const totalOrders = offers.reduce((sum: number, o: any) => sum + (o._count?.orders || 0), 0);
-      const totalAllOrders = Math.max(totalOrders, 1);
-      const convPct = totalOrders > 0 ? Math.round((totalOrders / totalAllOrders) * 100) : 0;
-
-      const totalSent = campaigns.reduce((sum: number, c: any) => sum + (c.sentCount || 0), 0);
-      const totalOpened = campaigns.reduce((sum: number, c: any) => sum + (c.openedCount || 0), 0);
-      const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
-
-      setKpis([
-        {
-          label: "Offres actives",
-          value: String(activeOffers.length),
-          detail: `${klikgoCount} Klik&Go · ${boucherCount} boucher`,
-          icon: <Gift className="w-5 h-5" />,
-          color: "bg-red-50 text-red-600",
-        },
-        {
-          label: "Campagnes ce mois",
-          value: String(thisMonthCampaigns.length),
-          detail: `${clientCampaigns.length} clients · ${boucherCampaigns.length} bouchers`,
-          icon: <Mail className="w-5 h-5" />,
-          color: "bg-blue-50 text-blue-600",
-        },
-        {
-          label: "Conversions",
-          value: String(totalOrders),
-          detail: `${convPct}% des commandes`,
-          icon: <TrendingUp className="w-5 h-5" />,
-          color: "bg-emerald-50 text-emerald-600",
-        },
-        {
-          label: "Emails envoyés",
-          value: String(totalSent),
-          detail: `${openRate}% ouverture`,
-          icon: <Send className="w-5 h-5" />,
-          color: "bg-purple-50 text-purple-600",
-        },
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [offersRes, campaignsRes, statsRes] = await Promise.all([
+        fetch("/api/dashboard/offers"),
+        fetch("/api/dashboard/campaigns"),
+        fetch("/api/dashboard/marketing/stats"),
       ]);
-    }).catch(() => {});
-  }, [refreshKey]);
+
+      if (offersRes.ok) {
+        const json = await offersRes.json();
+        setOffers(json.data || []);
+      }
+      if (campaignsRes.ok) {
+        const json = await campaignsRes.json();
+        setCampaigns(json.data || []);
+      }
+      if (statsRes.ok) {
+        const json = await statsRes.json();
+        setStats(json.data || null);
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // ── Full-page forms ──
+  if (view === "offer-form") {
+    return (
+      <OfferForm
+        onClose={() => setView("hub")}
+        onCreated={() => {
+          setView("hub");
+          fetchData();
+        }}
+      />
+    );
+  }
+  if (view === "campaign-form") {
+    return (
+      <CampaignForm
+        onClose={() => setView("hub")}
+        onCreated={() => {
+          setView("hub");
+          fetchData();
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-2xl flex items-center justify-center shadow-lg">
-          <Megaphone className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Marketing Hub</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Offres, campagnes, stats</p>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${kpi.color}`}>
-                {kpi.icon}
-              </div>
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{kpi.label}</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{kpi.value}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{kpi.detail}</p>
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      {/* ═══════════════════════════════════════════ */}
+      {/* ZONE HAUTE — Actions + Stats */}
+      {/* ═══════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Nouvelle offre */}
+        <button
+          onClick={() => setView("offer-form")}
+          className="relative bg-gradient-to-br from-red-500 to-red-700 rounded-2xl p-6 text-white text-left hover:shadow-lg transition-shadow overflow-hidden group"
+        >
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5" />
+          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+            <Gift size={24} />
           </div>
-        ))}
+          <p className="text-xl font-bold">Nouvelle offre</p>
+          <p className="text-sm text-white/70 mt-1">Code promo, réduction, 1+1...</p>
+          <ChevronRight
+            size={20}
+            className="absolute bottom-6 right-6 opacity-50 group-hover:opacity-100 transition-opacity"
+          />
+        </button>
+
+        {/* Nouvelle campagne */}
+        <button
+          onClick={() => setView("campaign-form")}
+          className="relative bg-gradient-to-br from-blue-500 to-indigo-700 rounded-2xl p-6 text-white text-left hover:shadow-lg transition-shadow overflow-hidden group"
+        >
+          <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/5" />
+          <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+            <Mail size={24} />
+          </div>
+          <p className="text-xl font-bold">Nouvelle campagne</p>
+          <p className="text-sm text-white/70 mt-1">Email, newsletter, notification...</p>
+          <ChevronRight
+            size={20}
+            className="absolute bottom-6 right-6 opacity-50 group-hover:opacity-100 transition-opacity"
+          />
+        </button>
+
+        {/* Stats card */}
+        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 size={18} className="text-gray-400" />
+            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Ce mois</span>
+          </div>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="animate-spin text-gray-300" size={20} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats?.conversions ?? 0}
+                </p>
+                <p className="text-xs text-gray-400">Conversions offres</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-blue-600">
+                  {stats?.emailsSent ?? 0}
+                </p>
+                <p className="text-xs text-gray-400">Emails envoyés</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {(stats?.revenueViaOffers ?? 0).toFixed(0)}€
+                </p>
+                <p className="text-xs text-gray-400">CA via offres</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-purple-600">
+                  {(stats?.roi ?? 0).toFixed(1)}x
+                </p>
+                <p className="text-xs text-gray-400">ROI offres</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-1.5 flex gap-1">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const isActive = tab === t.id;
-          return (
+      {/* ═══════════════════════════════════════════ */}
+      {/* ZONE BASSE — Historique */}
+      {/* ═══════════════════════════════════════════ */}
+      <div className="space-y-4">
+        {/* Tab switch + filters */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          {/* Offres / Campagnes toggle */}
+          <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-1 flex gap-1">
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-                isActive
-                  ? "bg-red-600 text-white shadow-sm"
-                  : "text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5"
+              onClick={() => setTab("offers")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                tab === "offers"
+                  ? "bg-red-600 text-white"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-white"
               }`}
             >
-              <Icon className="w-4 h-4" />
-              {t.label}
+              <Gift size={16} />
+              Offres
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  tab === "offers" ? "bg-white/20" : "bg-gray-100 dark:bg-white/10"
+                }`}
+              >
+                {offers.length}
+              </span>
             </button>
-          );
-        })}
+            <button
+              onClick={() => setTab("campaigns")}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                tab === "campaigns"
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-white"
+              }`}
+            >
+              <Mail size={16} />
+              Campagnes
+              <span
+                className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  tab === "campaigns" ? "bg-white/20" : "bg-gray-100 dark:bg-white/10"
+                }`}
+              >
+                {campaigns.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Contextual filters */}
+          <div className="flex gap-1.5">
+            {tab === "offers" ? (
+              <>
+                {["all", "KLIKGO", "BUTCHER"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setOfferFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      offerFilter === f
+                        ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
+                        : "bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 hover:bg-gray-50 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {f === "all" ? "Toutes" : f === "KLIKGO" ? "Klik&Go" : "Bouchers"}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                {["all", "CLIENTS", "BUTCHERS"].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setCampaignFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                      campaignFilter === f
+                        ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
+                        : "bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 hover:bg-gray-50 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    {f === "all" ? "Toutes" : f === "CLIENTS" ? "Clients" : "Bouchers"}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* List */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="animate-spin text-red-600" size={24} />
+          </div>
+        ) : tab === "offers" ? (
+          <OffersList offers={offers} filter={offerFilter} />
+        ) : (
+          <CampaignsList campaigns={campaigns} filter={campaignFilter} />
+        )}
       </div>
-
-      {/* Tab content */}
-      {tab === "offers" && (
-        <OffersTab
-          key={refreshKey}
-          onCreateKlikgo={() => setShowOfferForm(true)}
-          onPropose={() => setShowProposeForm(true)}
-        />
-      )}
-      {tab === "campaigns" && (
-        <CampaignsTab
-          key={refreshKey}
-          onCreateCampaign={() => setShowCampaignForm(true)}
-        />
-      )}
-      {tab === "stats" && <StatsTab key={refreshKey} />}
-
-      {/* Modals */}
-      {showOfferForm && (
-        <OfferForm
-          onClose={() => setShowOfferForm(false)}
-          onCreated={() => { setShowOfferForm(false); refresh(); }}
-        />
-      )}
-      {showProposeForm && (
-        <ProposeForm
-          onClose={() => setShowProposeForm(false)}
-          onCreated={() => { setShowProposeForm(false); refresh(); }}
-        />
-      )}
-      {showCampaignForm && (
-        <CampaignForm
-          onClose={() => setShowCampaignForm(false)}
-          onCreated={() => { setShowCampaignForm(false); refresh(); }}
-        />
-      )}
     </div>
   );
 }

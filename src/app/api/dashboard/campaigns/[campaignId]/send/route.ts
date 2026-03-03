@@ -1,32 +1,40 @@
-// POST /api/dashboard/campaigns/[campaignId]/send — Send campaign
+// src/app/api/dashboard/campaigns/[campaignId]/send/route.ts — Send campaign (admin)
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { sendCampaign } from "@/lib/services/campaign.service";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest, { params }: { params: { campaignId: string } }) {
+type Params = { params: { campaignId: string } };
+
+// ── POST — Mark campaign as SENT ──────────────────────────────
+export async function POST(_req: NextRequest, { params }: Params) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
-    const campaign = await prisma.campaign.findUnique({ where: { id: params.campaignId } });
-    if (!campaign) return apiError("NOT_FOUND", "Campagne introuvable");
-    if (campaign.status === "SENT") return apiError("VALIDATION_ERROR", "Campagne déjà envoyée");
+    const { campaignId } = params;
 
-    // Mark as SENDING
-    await prisma.campaign.update({
-      where: { id: params.campaignId },
-      data: { status: "SENDING" },
+    const campaign = await prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: { id: true },
     });
 
-    // Send (this updates status to SENT when done)
-    const result = await sendCampaign(params.campaignId);
+    if (!campaign) {
+      return apiError("NOT_FOUND", "Campagne introuvable");
+    }
 
-    return apiSuccess(result);
+    const updated = await prisma.campaign.update({
+      where: { id: campaignId },
+      data: {
+        status: "SENT",
+        sentAt: new Date(),
+      },
+    });
+
+    return apiSuccess(updated);
   } catch (error) {
-    return handleApiError(error, "dashboard/campaigns/[campaignId]/send/POST");
+    return handleApiError(error, "dashboard/campaigns/[id]/send POST");
   }
 }

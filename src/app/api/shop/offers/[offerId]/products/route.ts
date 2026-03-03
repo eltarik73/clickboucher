@@ -1,64 +1,110 @@
-// POST /api/shop/offers/[offerId]/products — Boucher selects eligible products
+// src/app/api/shop/offers/[offerId]/products/route.ts — Manage eligible products for an offer
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const schema = z.object({
-  productIds: z.array(z.string().min(1)).min(1),
-});
-
-export async function POST(req: NextRequest, { params }: { params: { offerId: string } }) {
+/**
+ * GET /api/shop/offers/[offerId]/products
+ * List eligible products for an offer (scoped to boucher's shop)
+ */
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { offerId: string } }
+) {
   try {
     const auth = await getAuthenticatedBoucher();
     if (auth.error) return auth.error;
 
+    const { offerId } = params;
+
+    const offerProducts = await prisma.offerProduct.findMany({
+      where: { offerId, shopId: auth.shopId },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            priceCents: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return apiSuccess(offerProducts);
+  } catch (error) {
+    return handleApiError(error, "shop/offers/products GET");
+  }
+}
+
+/**
+ * POST /api/shop/offers/[offerId]/products
+ * Add eligible products to an offer (scoped to boucher's shop)
+ * Body: { productIds: string[] }
+ */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { offerId: string } }
+) {
+  try {
+    const auth = await getAuthenticatedBoucher();
+    if (auth.error) return auth.error;
+
+    const { offerId } = params;
     const body = await req.json();
-    const data = schema.parse(body);
+    const productIds: string[] = body.productIds;
 
-    // Verify the offer exists and the proposal is accepted
-    const proposal = await prisma.offerProposal.findFirst({
-      where: { offerId: params.offerId, shopId: auth.shopId, status: "ACCEPTED" },
-    });
-
-    // Also allow if it's the boucher's own offer
-    const ownOffer = await prisma.offer.findFirst({
-      where: { id: params.offerId, shopId: auth.shopId },
-    });
-
-    if (!proposal && !ownOffer) {
-      return apiError("FORBIDDEN", "Vous n'avez pas accès à cette offre");
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return apiError("VALIDATION_ERROR", "productIds requis (tableau non vide)");
     }
 
-    // Verify products belong to this shop
-    const products = await prisma.product.findMany({
-      where: { id: { in: data.productIds }, shopId: auth.shopId },
-      select: { id: true },
+    // Verify the offer exists and belongs to or is proposed to this shop
+    const offer = await prisma.offer.findFirst({
+      where: {
+        id: offerId,
+        OR: [
+          { shopId: auth.shopId },
+          { proposals: { some: { shopId: auth.shopId, status: "ACCEPTED" } } },
+        ],
+      },
     });
-    const validIds = products.map((p) => p.id);
 
-    if (validIds.length === 0) {
-      return apiError("VALIDATION_ERROR", "Aucun produit valide trouvé");
+    if (!offer) {
+      return apiError("NOT_FOUND", "Offre introuvable ou non autorisée");
     }
 
-    // Clear existing and add new
-    await prisma.offerProduct.deleteMany({
-      where: { offerId: params.offerId, shopId: auth.shopId },
-    });
-
-    const result = await prisma.offerProduct.createMany({
-      data: validIds.map((productId) => ({
-        offerId: params.offerId,
+    // Create OfferProduct entries (skip duplicates)
+    await prisma.offerProduct.createMany({
+      data: productIds.map((productId) => ({
+        offerId,
         productId,
         shopId: auth.shopId,
       })),
+      skipDuplicates: true,
     });
 
-    return apiSuccess({ selected: result.count });
+    // Return the full list after creation
+    const offerProducts = await prisma.offerProduct.findMany({
+      where: { offerId, shopId: auth.shopId },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            priceCents: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return apiSuccess(offerProducts, 201);
   } catch (error) {
-    return handleApiError(error, "shop/offers/[offerId]/products/POST");
+    return handleApiError(error, "shop/offers/products POST");
   }
 }

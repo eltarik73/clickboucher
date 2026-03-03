@@ -1,4 +1,4 @@
-// GET/POST /api/dashboard/offers — Webmaster offer management
+// src/app/api/dashboard/offers/route.ts — List & create offers (admin)
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
@@ -7,22 +7,26 @@ import { createOfferSchema } from "@/lib/validations/offer";
 
 export const dynamic = "force-dynamic";
 
+// ── GET — List offers (filterable by status, payer) ──────────
 export async function GET(req: NextRequest) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
-    const status = req.nextUrl.searchParams.get("status");
-    const payer = req.nextUrl.searchParams.get("payer");
+    const { searchParams } = req.nextUrl;
+    const status = searchParams.get("status");
+    const payer = searchParams.get("payer");
+
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    if (payer) where.payer = payer;
 
     const offers = await prisma.offer.findMany({
-      where: {
-        ...(status && status !== "all" ? { status: status as "ACTIVE" | "PAUSED" | "EXPIRED" | "DRAFT" } : {}),
-        ...(payer && payer !== "all" ? { payer: payer as "KLIKGO" | "BUTCHER" } : {}),
-      },
+      where,
       include: {
         shop: { select: { id: true, name: true, slug: true } },
-        _count: { select: { proposals: true, eligibleProducts: true, orders: true } },
+        eligibleProducts: true,
+        _count: { select: { proposals: true, orders: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -30,21 +34,27 @@ export async function GET(req: NextRequest) {
 
     return apiSuccess(offers);
   } catch (error) {
-    return handleApiError(error, "dashboard/offers/GET");
+    return handleApiError(error, "dashboard/offers GET");
   }
 }
 
+// ── POST — Create offer ──────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
     const body = await req.json();
     const data = createOfferSchema.parse(body);
 
     // Check code uniqueness
-    const existing = await prisma.offer.findUnique({ where: { code: data.code } });
-    if (existing) return apiError("VALIDATION_ERROR", "Ce code existe déjà");
+    const existing = await prisma.offer.findUnique({
+      where: { code: data.code },
+      select: { id: true },
+    });
+    if (existing) {
+      return apiError("CONFLICT", "Ce code promo existe déjà");
+    }
 
     const offer = await prisma.offer.create({
       data: {
@@ -57,27 +67,27 @@ export async function POST(req: NextRequest) {
         audience: data.audience,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
-        maxUses: data.maxUses,
-        shopId: data.shopId,
+        maxUses: data.maxUses ?? null,
+        shopId: data.shopId ?? null,
         status: "ACTIVE",
         diffBadge: data.diffBadge,
         diffBanner: data.diffBanner,
         diffPopup: data.diffPopup,
-        bannerTitle: data.bannerTitle,
-        bannerSubtitle: data.bannerSubtitle,
-        bannerColor: data.bannerColor,
-        bannerPosition: data.bannerPosition,
-        bannerImageUrl: data.bannerImageUrl,
-        popupTitle: data.popupTitle,
-        popupMessage: data.popupMessage,
-        popupColor: data.popupColor,
-        popupFrequency: data.popupFrequency,
-        popupImageUrl: data.popupImageUrl,
+        bannerTitle: data.bannerTitle ?? null,
+        bannerSubtitle: data.bannerSubtitle ?? null,
+        bannerColor: data.bannerColor ?? null,
+        bannerPosition: data.bannerPosition ?? null,
+        bannerImageUrl: data.bannerImageUrl ?? null,
+        popupTitle: data.popupTitle ?? null,
+        popupMessage: data.popupMessage ?? null,
+        popupColor: data.popupColor ?? null,
+        popupFrequency: data.popupFrequency ?? null,
+        popupImageUrl: data.popupImageUrl ?? null,
       },
     });
 
-    return apiSuccess(offer);
+    return apiSuccess(offer, 201);
   } catch (error) {
-    return handleApiError(error, "dashboard/offers/POST");
+    return handleApiError(error, "dashboard/offers POST");
   }
 }

@@ -1,44 +1,47 @@
-// POST /api/dashboard/offers/[offerId]/propose — Propose offer to butchers
+// src/app/api/dashboard/offers/[offerId]/propose/route.ts — Propose offer to shops (admin)
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { proposeOfferSchema } from "@/lib/validations/offer";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest, { params }: { params: { offerId: string } }) {
+type RouteContext = { params: { offerId: string } };
+
+const proposeSchema = z.object({
+  shopIds: z.array(z.string().min(1)).min(1, "Au moins une boutique requise"),
+});
+
+// ── POST — Create proposals for shops ────────────────────────
+export async function POST(req: NextRequest, { params }: RouteContext) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
-    const offer = await prisma.offer.findUnique({ where: { id: params.offerId } });
-    if (!offer) return apiError("NOT_FOUND", "Offre introuvable");
+    const { offerId } = params;
 
-    const body = await req.json();
-    const data = proposeOfferSchema.parse(body);
-
-    // Check for existing proposals
-    const existing = await prisma.offerProposal.findMany({
-      where: { offerId: params.offerId, shopId: { in: data.shopIds } },
-      select: { shopId: true },
+    const offer = await prisma.offer.findUnique({
+      where: { id: offerId },
+      select: { id: true },
     });
-    const existingIds = new Set(existing.map((e) => e.shopId));
-    const newShopIds = data.shopIds.filter((id) => !existingIds.has(id));
-
-    if (newShopIds.length === 0) {
-      return apiError("VALIDATION_ERROR", "Toutes ces boucheries ont déjà reçu cette proposition");
+    if (!offer) {
+      return apiError("NOT_FOUND", "Offre introuvable");
     }
 
-    const proposals = await prisma.offerProposal.createMany({
-      data: newShopIds.map((shopId) => ({
-        offerId: params.offerId,
+    const body = await req.json();
+    const data = proposeSchema.parse(body);
+
+    const result = await prisma.offerProposal.createMany({
+      data: data.shopIds.map((shopId) => ({
+        offerId,
         shopId,
       })),
+      skipDuplicates: true,
     });
 
-    return apiSuccess({ created: proposals.count, skipped: existingIds.size });
+    return apiSuccess({ created: result.count }, 201);
   } catch (error) {
-    return handleApiError(error, "dashboard/offers/[offerId]/propose/POST");
+    return handleApiError(error, "dashboard/offers/[offerId]/propose POST");
   }
 }

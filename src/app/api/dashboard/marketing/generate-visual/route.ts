@@ -1,0 +1,76 @@
+// src/app/api/dashboard/marketing/generate-visual/route.ts — Generate visual (admin)
+import { NextRequest } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
+import prisma from "@/lib/prisma";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
+
+export const dynamic = "force-dynamic";
+
+// ── POST — Generate marketing visual ─────────────────────────
+export async function POST(req: NextRequest) {
+  try {
+    const auth = await requireAdmin();
+    if (auth.error) return auth.error;
+
+    const body = await req.json();
+    const { type, title, subtitle, color, context } = body as {
+      type: "template" | "ai";
+      title?: string;
+      subtitle?: string;
+      color?: string;
+      context?: string;
+    };
+
+    if (!type) {
+      return apiError("VALIDATION_ERROR", "Le champ 'type' est requis (template | ai)");
+    }
+
+    // ── Template mode: pass-through for client-side rendering ──
+    if (type === "template") {
+      return apiSuccess({ type: "template", title, subtitle, color });
+    }
+
+    // ── AI mode: generate with Replicate ──────────────────────
+    if (!isReplicateConfigured()) {
+      return apiError("SERVICE_DISABLED", "Replicate n'est pas configuré (REPLICATE_API_TOKEN manquant)");
+    }
+
+    const prompt = `Professional marketing banner for a halal butcher shop app called Klik&Go. ${
+      context || ""
+    } ${title ? `Title: "${title}".` : ""} ${
+      subtitle ? `Subtitle: "${subtitle}".` : ""
+    } Modern, clean design with ${
+      color || "red"
+    } accent color. Food photography style, appetizing meat display, premium quality feel. No text in image.`;
+
+    const replicate = getReplicateClient();
+    const output = await replicate.run("black-forest-labs/flux-schnell", {
+      input: {
+        prompt,
+        num_outputs: 1,
+        aspect_ratio: "16:9",
+      },
+    });
+
+    // Replicate returns an array of URLs
+    const imageUrl = Array.isArray(output) ? String(output[0]) : String(output);
+
+    // Save to GeneratedImage
+    const image = await prisma.generatedImage.create({
+      data: {
+        prompt,
+        model: "FLUX_SCHNELL",
+        imageUrl,
+        width: 1024,
+        height: 576,
+        usage: "CAMPAIGN",
+        createdBy: auth.userId,
+      },
+    });
+
+    return apiSuccess({ type: "ai", imageUrl, id: image.id });
+  } catch (error) {
+    return handleApiError(error, "dashboard/marketing/generate-visual POST");
+  }
+}

@@ -1,4 +1,4 @@
-// GET/POST /api/dashboard/campaigns — Webmaster campaign management
+// src/app/api/dashboard/campaigns/route.ts — List & create campaigns (admin)
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
@@ -7,21 +7,30 @@ import { createCampaignSchema } from "@/lib/validations/campaign";
 
 export const dynamic = "force-dynamic";
 
+// ── GET — List campaigns (filterable by audience, status) ─────
 export async function GET(req: NextRequest) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
-    const audience = req.nextUrl.searchParams.get("audience");
-    const status = req.nextUrl.searchParams.get("status");
+    const { searchParams } = req.nextUrl;
+    const audience = searchParams.get("audience");
+    const status = searchParams.get("status");
+
+    const where: Record<string, unknown> = {};
+    if (audience) {
+      where.audience = { contains: audience };
+    }
+    if (status) {
+      where.status = status;
+    }
 
     const campaigns = await prisma.campaign.findMany({
-      where: {
-        ...(audience && audience !== "all" ? { audience: audience as any } : {}),
-        ...(status && status !== "all" ? { status: status as any } : {}),
-      },
+      where,
       include: {
-        offer: { select: { id: true, code: true, name: true, type: true } },
+        offer: {
+          select: { id: true, name: true, code: true, type: true, discountValue: true },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -29,14 +38,15 @@ export async function GET(req: NextRequest) {
 
     return apiSuccess(campaigns);
   } catch (error) {
-    return handleApiError(error, "dashboard/campaigns/GET");
+    return handleApiError(error, "dashboard/campaigns GET");
   }
 }
 
+// ── POST — Create campaign ────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
     const body = await req.json();
     const data = createCampaignSchema.parse(body);
@@ -48,18 +58,23 @@ export async function POST(req: NextRequest) {
         audience: data.audience,
         subject: data.subject,
         body: data.body,
-        visualTitle: data.visualTitle,
-        visualSubtitle: data.visualSubtitle,
-        visualColor: data.visualColor,
-        visualImageUrl: data.visualImageUrl,
-        offerId: data.offerId,
+        visualTitle: data.visualTitle ?? null,
+        visualSubtitle: data.visualSubtitle ?? null,
+        visualColor: data.visualColor ?? null,
+        visualImageUrl: data.visualImageUrl ?? null,
+        offerId: data.offerId ?? null,
+        status: data.status ?? "DRAFT",
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
-        status: data.scheduledAt ? "SCHEDULED" : "DRAFT",
+      },
+      include: {
+        offer: {
+          select: { id: true, name: true, code: true, type: true, discountValue: true },
+        },
       },
     });
 
-    return apiSuccess(campaign);
+    return apiSuccess(campaign, 201);
   } catch (error) {
-    return handleApiError(error, "dashboard/campaigns/POST");
+    return handleApiError(error, "dashboard/campaigns POST");
   }
 }

@@ -1,4 +1,4 @@
-// GET/PATCH/DELETE /api/dashboard/offers/[offerId]
+// src/app/api/dashboard/offers/[offerId]/route.ts — Get, update, soft-delete offer (admin)
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
@@ -7,70 +7,102 @@ import { updateOfferSchema } from "@/lib/validations/offer";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest, { params }: { params: { offerId: string } }) {
+type RouteContext = { params: { offerId: string } };
+
+// ── GET — Single offer with relations ────────────────────────
+export async function GET(_req: NextRequest, { params }: RouteContext) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
+
+    const { offerId } = params;
 
     const offer = await prisma.offer.findUnique({
-      where: { id: params.offerId },
+      where: { id: offerId },
       include: {
         shop: { select: { id: true, name: true, slug: true } },
-        proposals: { include: { shop: { select: { id: true, name: true, slug: true } } } },
-        eligibleProducts: { include: { product: { select: { id: true, name: true, priceCents: true, imageUrl: true } } } },
+        proposals: {
+          include: { shop: { select: { id: true, name: true } } },
+        },
+        eligibleProducts: {
+          include: {
+            product: {
+              select: { id: true, name: true, imageUrl: true, priceCents: true },
+            },
+          },
+        },
         _count: { select: { orders: true } },
       },
     });
 
-    if (!offer) return apiError("NOT_FOUND", "Offre introuvable");
+    if (!offer) {
+      return apiError("NOT_FOUND", "Offre introuvable");
+    }
+
     return apiSuccess(offer);
   } catch (error) {
-    return handleApiError(error, "dashboard/offers/[offerId]/GET");
+    return handleApiError(error, "dashboard/offers/[offerId] GET");
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { offerId: string } }) {
+// ── PATCH — Update offer ─────────────────────────────────────
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
+
+    const { offerId } = params;
+
+    const existing = await prisma.offer.findUnique({
+      where: { id: offerId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return apiError("NOT_FOUND", "Offre introuvable");
+    }
 
     const body = await req.json();
     const data = updateOfferSchema.parse(body);
 
-    const offer = await prisma.offer.findUnique({ where: { id: params.offerId } });
-    if (!offer) return apiError("NOT_FOUND", "Offre introuvable");
+    // Build update payload, handling date fields
+    const updateData: Record<string, unknown> = { ...data };
+    if (data.startDate) updateData.startDate = new Date(data.startDate);
+    if (data.endDate) updateData.endDate = new Date(data.endDate);
 
-    const updated = await prisma.offer.update({
-      where: { id: params.offerId },
-      data: {
-        ...data,
-        ...(data.startDate ? { startDate: new Date(data.startDate) } : {}),
-        ...(data.endDate ? { endDate: new Date(data.endDate) } : {}),
-      },
+    const offer = await prisma.offer.update({
+      where: { id: offerId },
+      data: updateData,
     });
 
-    return apiSuccess(updated);
+    return apiSuccess(offer);
   } catch (error) {
-    return handleApiError(error, "dashboard/offers/[offerId]/PATCH");
+    return handleApiError(error, "dashboard/offers/[offerId] PATCH");
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { offerId: string } }) {
+// ── DELETE — Soft delete (set status EXPIRED) ────────────────
+export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth && auth.error) return auth.error;
+    if (auth.error) return auth.error;
 
-    const offer = await prisma.offer.findUnique({ where: { id: params.offerId } });
-    if (!offer) return apiError("NOT_FOUND", "Offre introuvable");
+    const { offerId } = params;
 
-    // Soft delete
-    const updated = await prisma.offer.update({
-      where: { id: params.offerId },
+    const existing = await prisma.offer.findUnique({
+      where: { id: offerId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return apiError("NOT_FOUND", "Offre introuvable");
+    }
+
+    const offer = await prisma.offer.update({
+      where: { id: offerId },
       data: { status: "EXPIRED" },
     });
 
-    return apiSuccess(updated);
+    return apiSuccess(offer);
   } catch (error) {
-    return handleApiError(error, "dashboard/offers/[offerId]/DELETE");
+    return handleApiError(error, "dashboard/offers/[offerId] DELETE");
   }
 }
