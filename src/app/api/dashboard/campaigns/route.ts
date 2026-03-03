@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, unknown> = {};
     if (audience) {
-      where.audience = { contains: audience };
+      where.audience = audience;
     }
     if (status) {
       where.status = status;

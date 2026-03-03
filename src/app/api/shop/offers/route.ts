@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await req.json();
-    const parsed = createOfferSchema.parse(body);
+    const parsed = createOfferSchema.parse({ ...body, payer: "BUTCHER" });
 
     // Check code uniqueness
     const existing = await prisma.offer.findUnique({
