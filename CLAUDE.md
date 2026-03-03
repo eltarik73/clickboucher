@@ -223,6 +223,41 @@ NEXT_PUBLIC_APP_URL, ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
 
 Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.
 
+## Marketing & Promos (ÉTAPE 17)
+
+- **Promotions** : Modèle `Promotion` — types PERCENT / FIXED / FREE_FEES, source SHOP ou PLATFORM
+- **Routes** : `/api/boucher/promotions` (boucher), `/api/webmaster/promotions` (webmaster), `/api/promo/validate` (validation code)
+- **Badge promo** : Sur les cartes boutiques dans `/decouvrir` — badge rouge `#DC2626` avec label (ex: "Frais offerts", "-20%")
+- **Tri** : Boutiques avec promos actives remontées EN PREMIER dans la liste
+- **Campagnes** : `/api/webmaster/campaigns` — types NEWSLETTER_CLIENT / EMAIL_BUTCHER, statuses DRAFT / SENT
+- **Images IA** : Replicate (FLUX/Ideogram) → upload Vercel Blob pour URLs permanentes. `/api/boucher/images/generate`, `/api/admin/images/generate`
+- **PromoBannerCreator** : Composant template-based (6 gradients, 6 presets) → export PNG via `html-to-image`
+
+## Programme Fidélité
+
+- **3 paliers** : 3 commandes → -2€, 7 commandes → -5€, 15 commandes → -10€
+- **Modèle** : `LoyaltyReward` — code unique (KG-XXXXXX), lié au user, expire 30 jours
+- **Processus** : `processLoyaltyOnPickup()` appelé après retrait → crée reward + notifie
+- **Validation** : `/api/promo/validate` essaie d'abord comme `Promotion`, puis comme `LoyaltyReward`
+- **Config boucher** : `/api/loyalty/config` — chaque boucher peut configurer sa propre règle fidélité
+- **Pages** : `/avantages` (client), `/webmaster/fidelite` (admin), `/boucher/dashboard/promos` (boucher)
+
+## Résolution userId (CRITIQUE — Bug fix Mars 2026)
+
+Quand on compare des IDs en base (LoyaltyReward.userId, Order.userId), toujours résoudre le Clerk ID vers le Prisma user ID :
+```typescript
+const clerkId = await getServerUserId(); // Retourne Clerk ID (user_xxx)
+const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
+const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons DB
+```
+
+## Audit Prod (Mars 2026) — 117/117 tests passés
+
+- CLIENT : 23 tests OK — pages, APIs, panier, fidélité, favoris, recherche
+- BOUCHER : 33 tests OK — 16 pages, 13 APIs, 4 tests sécurité
+- ADMIN/WEBMASTER : 61 tests OK — 32 pages, 24 APIs, 5 tests sécurité
+- Marketing + Fidélité : 27 tests OK — promos, campagnes, images, validation codes
+
 ## Conventions
 
 - Prix toujours en **centimes** (`priceCents`, `totalCents`)
