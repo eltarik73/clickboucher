@@ -16,6 +16,7 @@ import InstallPrompt from "@/components/pwa/InstallPrompt";
 import OfflineBanner from "@/components/pwa/OfflineBanner";
 import { TestRoleSwitcher } from "@/components/test/TestRoleSwitcher";
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
+import Script from "next/script";
 import "@/styles/globals.css";
 
 const dmSans = DM_Sans({
@@ -116,6 +117,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
+        <head>
+          {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
+            <Script
+              defer
+              data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
+              src="https://plausible.io/js/script.js"
+              strategy="afterInteractive"
+            />
+          )}
+        </head>
         <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased transition-colors duration-300`}>
           <OrganizationSchema />
           <ThemeProvider>

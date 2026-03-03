@@ -19,6 +19,8 @@ import { ReviewList } from "@/components/shop/ReviewList";
 import { LoyaltyBadge } from "@/components/shop/LoyaltyBadge";
 import { ShopSchema } from "@/components/seo/ShopSchema";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { ProductSchema } from "@/components/seo/ProductSchema";
+import { SEO_CITIES } from "@/lib/seo/cities";
 
 // ── Cached shop query with Redis (shared between generateMetadata & page) ──
 
@@ -204,6 +206,22 @@ export default async function BoutiquePage({
           { name: shop.name, url: `${SITE_URL}/boutique/${shop.slug}` },
         ]}
       />
+      {/* Product schemas for rich results (first 20 products) */}
+      {shop.products.slice(0, 20).map((p) => (
+        <ProductSchema
+          key={p.id}
+          product={{
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            priceCents: p.priceCents,
+            imageUrl: p.imageUrl,
+            inStock: p.inStock,
+            category: p.category,
+          }}
+          shop={{ name: shop.name, slug: shop.slug }}
+        />
+      ))}
       <div className="mx-auto max-w-5xl">
         {/* ═══════════════════════════════════════════ */}
         {/* HERO */}
@@ -312,6 +330,20 @@ export default async function BoutiquePage({
               { hour: "2-digit", minute: "2-digit" }
             )}
           </p>
+          {/* SEO: link to city page */}
+          {(() => {
+            const cityMatch = SEO_CITIES.find((c) =>
+              shop.city.toLowerCase().includes(c.name.toLowerCase())
+            );
+            return cityMatch ? (
+              <Link
+                href={`/boucherie-halal/${cityMatch.slug}`}
+                className="inline-block text-xs text-[#DC2626] hover:underline mt-1.5"
+              >
+                Toutes les boucheries halal à {cityMatch.name} &rarr;
+              </Link>
+            ) : null;
+          })()}
         </div>
 
         {/* ═══════════════════════════════════════════ */}

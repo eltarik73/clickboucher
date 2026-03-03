@@ -337,6 +337,36 @@ export default async function DecouvrirPage() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* FOOTER */}
       {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* SEO: CITY LINKS */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-5 pb-10">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1 h-5 bg-[#DC2626] rounded-full" />
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white font-display">
+            Boucheries halal par ville
+          </h3>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { slug: "chambery", name: "Chambéry" },
+            { slug: "aix-les-bains", name: "Aix-les-Bains" },
+            { slug: "grenoble", name: "Grenoble" },
+            { slug: "lyon", name: "Lyon" },
+            { slug: "saint-etienne", name: "Saint-Étienne" },
+            { slug: "annecy", name: "Annecy" },
+          ].map((city) => (
+            <Link
+              key={city.slug}
+              href={`/boucherie-halal/${city.slug}`}
+              className="px-4 py-2 bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626] transition"
+            >
+              {city.name}
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <footer className="border-t border-[#ece8e3] dark:border-white/[0.06] bg-white dark:bg-white/[0.02] py-10">
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

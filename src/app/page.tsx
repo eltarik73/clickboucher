@@ -173,7 +173,7 @@ export default function HomePage() {
       {/* FOOTER                                                 */}
       {/* ═══════════════════════════════════════════════════════ */}
       <footer className="bg-[#1A1A1A] dark:bg-[#0A0A0A] text-white py-12">
-        <div className="max-w-5xl mx-auto px-6 text-center">
+        <div className="max-w-5xl mx-auto px-6">
           <div className="flex items-center justify-center gap-2.5 mb-6">
             <div className="w-9 h-9 bg-[#DC2626] rounded-xl flex items-center justify-center">
               <span className="text-white font-bold text-base">K</span>
@@ -187,15 +187,29 @@ export default function HomePage() {
               Boucheries
             </Link>
             <span className="text-[#333]">|</span>
+            <Link href="/bons-plans" className="hover:text-white transition-colors">
+              Bons plans
+            </Link>
+            <span className="text-[#333]">|</span>
+            <Link href="/espace-boucher" className="hover:text-white transition-colors">
+              Devenir partenaire
+            </Link>
+            <span className="text-[#333]">|</span>
             <Link href="/sign-up" className="hover:text-white transition-colors">
               S&apos;inscrire
             </Link>
-            <span className="text-[#333]">|</span>
-            <span className="cursor-default">CGV</span>
-            <span className="text-[#333]">|</span>
-            <span className="cursor-default">Mentions légales</span>
           </div>
-          <p className="text-xs text-[#555]">
+          {/* SEO: City links */}
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-[#555] mb-6">
+            <span className="text-[#666]">Nos villes :</span>
+            <Link href="/boucherie-halal/chambery" className="hover:text-[#DC2626] transition-colors">Chambéry</Link>
+            <Link href="/boucherie-halal/aix-les-bains" className="hover:text-[#DC2626] transition-colors">Aix-les-Bains</Link>
+            <Link href="/boucherie-halal/grenoble" className="hover:text-[#DC2626] transition-colors">Grenoble</Link>
+            <Link href="/boucherie-halal/lyon" className="hover:text-[#DC2626] transition-colors">Lyon</Link>
+            <Link href="/boucherie-halal/saint-etienne" className="hover:text-[#DC2626] transition-colors">Saint-Étienne</Link>
+            <Link href="/boucherie-halal/annecy" className="hover:text-[#DC2626] transition-colors">Annecy</Link>
+          </div>
+          <p className="text-xs text-[#555] text-center">
             &copy; 2026 Klik&amp;Go
           </p>
         </div>

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { MetadataRoute } from "next";
 import prisma from "@/lib/prisma";
+import { SEO_CITIES } from "@/lib/seo/cities";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -46,5 +47,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...shopPages];
+  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.map((city) => ({
+    url: `${BASE_URL}/boucherie-halal/${city.slug}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...shopPages, ...cityPages];
 }
