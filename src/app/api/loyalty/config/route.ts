@@ -19,8 +19,10 @@ export async function GET() {
     const clerkId = await getServerUserId();
     if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
+    // Resolve to DB user for OR clause (shop.ownerId can be clerkId or prisma user.id)
+    const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
     const shop = await prisma.shop.findFirst({
-      where: { ownerId: clerkId },
+      where: { OR: [{ ownerId: clerkId }, ...(dbUser ? [{ ownerId: dbUser.id }] : [])] },
       select: { id: true },
     });
     if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
@@ -49,8 +51,9 @@ export async function PATCH(req: NextRequest) {
     const clerkId = await getServerUserId();
     if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
+    const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
     const shop = await prisma.shop.findFirst({
-      where: { ownerId: clerkId },
+      where: { OR: [{ ownerId: clerkId }, ...(dbUser ? [{ ownerId: dbUser.id }] : [])] },
       select: { id: true, name: true },
     });
     if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
