@@ -68,24 +68,28 @@ export default function MarketingHubPage() {
   // ── Full-page forms ──
   if (view === "offer-form") {
     return (
-      <OfferForm
-        onClose={() => setView("hub")}
-        onCreated={() => {
-          setView("hub");
-          fetchData();
-        }}
-      />
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <OfferForm
+          onClose={() => setView("hub")}
+          onCreated={() => {
+            setView("hub");
+            fetchData();
+          }}
+        />
+      </div>
     );
   }
   if (view === "campaign-form") {
     return (
-      <CampaignForm
-        onClose={() => setView("hub")}
-        onCreated={() => {
-          setView("hub");
-          fetchData();
-        }}
-      />
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <CampaignForm
+          onClose={() => setView("hub")}
+          onCreated={() => {
+            setView("hub");
+            fetchData();
+          }}
+        />
+      </div>
     );
   }
 

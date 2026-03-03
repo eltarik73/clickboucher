@@ -370,7 +370,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
           {/* ── Section 3: Type d'offre ── */}
           <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-5">
             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Type d&apos;offre</h3>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {OFFER_TYPES.map((t) => (
                 <button
                   key={t.value}
@@ -412,7 +412,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
             </div>
 
             {/* 3-col: discount, code, min order */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">R\u00e9duction</label>
                 <input
@@ -464,7 +464,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
             </div>
 
             {/* 2-col: dates */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">D\u00e9but</label>
                 <input
