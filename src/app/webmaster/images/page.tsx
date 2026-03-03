@@ -71,7 +71,7 @@ export default function WebmasterImagesPage() {
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/webmaster/marketing" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5">
+        <Link href="/dashboard/marketing" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5">
           <ArrowLeft size={20} />
         </Link>
         <div>
