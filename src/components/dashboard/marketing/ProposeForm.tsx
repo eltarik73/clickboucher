@@ -204,7 +204,8 @@ export default function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
       const json = await res.json();
 
       if (!json.success) {
-        toast.error(json.error ?? "Erreur lors de la creation de l'offre");
+        const msg = typeof json.error === "string" ? json.error : json.error?.message;
+        toast.error(msg ?? "Erreur lors de la creation de l'offre");
         setSubmitting(false);
         return;
       }
@@ -230,9 +231,8 @@ export default function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
         );
         onCreated();
       } else {
-        toast.error(
-          proposeJson.error ?? "Erreur lors de l'envoi des propositions"
-        );
+        const propMsg = typeof proposeJson.error === "string" ? proposeJson.error : proposeJson.error?.message;
+        toast.error(propMsg ?? "Erreur lors de l'envoi des propositions");
       }
     } catch {
       toast.error("Erreur reseau");

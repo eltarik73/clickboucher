@@ -178,7 +178,7 @@ export default function ButcherOfferForm({ onClose, onCreated }: Props) {
 
       if (!offerRes.ok) {
         const data = await offerRes.json().catch(() => null);
-        throw new Error(data?.message || "Erreur lors de la création");
+        throw new Error(data?.error?.message || "Erreur lors de la création");
       }
 
       const offerData = await offerRes.json();

@@ -264,7 +264,8 @@ export default function OfferForm({ onClose, onCreated }: OfferFormProps) {
           );
           onCreated();
         } else {
-          toast.error(json.error ?? "Erreur lors de la creation");
+          const msg = typeof json.error === "string" ? json.error : json.error?.message;
+          toast.error(msg ?? "Erreur lors de la creation");
         }
       } catch {
         toast.error("Erreur reseau");
