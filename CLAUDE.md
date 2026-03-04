@@ -37,9 +37,9 @@ npm run db:reset     # prisma migrate reset
 ```
 src/
 ├── app/
-│   ├── page.tsx                  # Redirect → /decouvrir
 │   ├── (client)/                 # Route group client
-│   │   ├── decouvrir/            # Accueil (boutiques + offres)
+│   │   ├── page.tsx              # Homepage (boutiques + offres, ISR 60s)
+│   │   ├── decouvrir/            # Redirect → / (legacy)
 │   │   ├── boutique/[slug]/       # Détail boutique + produits
 │   │   ├── panier/               # Panier
 │   │   ├── checkout/             # Paiement
@@ -207,11 +207,22 @@ const shop = await prisma.shop.findFirst({
 - Env vars Vercel : `NEXT_PUBLIC_TEST_MODE=true`, `NEXT_PUBLIC_TEST_SECRET=KlikTest2026!`
 - Test users définis dans `@/lib/auth/test-auth.ts`
 
+## Performance (PageSpeed)
+
+- **Images** : WebP first, AVIF fallback — JAMAIS AVIF en premier (transcodage 3-5x plus lent)
+- **SafeImage** : `src/components/ui/SafeImage.tsx` — wraps next/image avec fallback SVG on error
+- **Quality** : 60 pour les cards boutiques, cache 30 jours
+- **Lazy-load** : PWA (ServiceWorker, InstallPrompt, OfflineBanner) + OfferPopup + TestRoleSwitcher → `dynamic({ ssr: false })`
+- **Server Components** : HowItWorks et CalendarBanner — PAS de "use client" (0 hydratation)
+- **Preconnect** : Clerk + Google Fonts dans layout.tsx `<head>`
+- **loading.tsx** : Le skeleton hero doit matcher la vraie page (bg-white, PAS bg-noir)
+- **OfferPopup** : Utilise `<img>` natif (PAS next/image) pour éviter 400 sur URLs externes
+
 ## Design system
 
 - **Primaire** : Rouge `#DC2626` (boutons, accents)
-- **Hero** : Fond noir `#0A0A0A`
-- **Background** : `#FAFAFA`
+- **Hero** : Fond blanc `bg-white` (ancien splash noir supprimé)
+- **Background** : `#f8f6f3` (light) / `#0a0a0a` (dark)
 - **Fonts** : DM Sans (body), Outfit (display), Cormorant Garamond (serif)
 - **Radius** : 16px (cards arrondies)
 - **Shadows** : soft, card, elevated, glow
@@ -232,15 +243,18 @@ ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
 - `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` : Domaine Plausible Analytics (si défini, active le tracking RGPD).
 - Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.
 
-## Marketing & Promos (ÉTAPE 17)
+## Marketing Hub V2 (ÉTAPE 17 — TERMINÉ)
 
-- **Promotions** : Modèle `Promotion` — types PERCENT / FIXED / FREE_FEES, source SHOP ou PLATFORM
-- **Routes** : `/api/boucher/promotions` (boucher), `/api/webmaster/promotions` (webmaster), `/api/promo/validate` (validation code)
-- **Badge promo** : Sur les cartes boutiques dans `/decouvrir` — badge rouge `#DC2626` avec label (ex: "Frais offerts", "-20%")
+- **Système unifié** : PromoCode + Promotion + LoyaltyReward — validation cascade dans `/api/promo-codes/validate`
+- **Types** : PERCENT / FIXED / FREE_FEES / BOGO / BUNDLE — OfferPayer (KLIKGO | BUTCHER)
+- **Diffusion** : Badge client, bannière (gradient, image IA, position), popup (couleur, fréquence, image IA)
+- **Routes boucher** : `/api/boucher/promo-codes` — CRUD + produits éligibles
+- **Routes webmaster** : `/api/webmaster/promo-codes` — CRUD + propose aux bouchers + stats KPI
+- **Client** : MarketingBanner (auto-rotate 5s) + OfferPopup (fréquence localStorage)
+- **Badge promo** : Sur les cartes boutiques — badge rouge `#DC2626` avec label (ex: "Frais offerts", "-20%")
 - **Tri** : Boutiques avec promos actives remontées EN PREMIER dans la liste
-- **Campagnes** : `/api/webmaster/campaigns` — types NEWSLETTER_CLIENT / EMAIL_BUTCHER, statuses DRAFT / SENT
-- **Images IA** : Replicate (FLUX/Ideogram) → upload Vercel Blob pour URLs permanentes. `/api/boucher/images/generate`, `/api/admin/images/generate`
-- **PromoBannerCreator** : Composant template-based (6 gradients, 6 presets) → export PNG via `html-to-image`
+- **Images IA** : Replicate (FLUX) → upload Vercel Blob. `/api/admin/images/generate`
+- **IMPORTANT** : Pas de "livraison" — c'est "frais offerts" partout (click & collect uniquement)
 
 ## Programme Fidélité
 
@@ -291,7 +305,11 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - **Route** : `/boucherie-halal/[ville]` — SSG via `generateStaticParams()`
 - **Config** : `src/lib/seo/cities.ts` — 6 villes (Chambéry, Aix-les-Bains, Grenoble, Lyon, Saint-Étienne, Annecy)
 - **Schemas** : BreadcrumbSchema + FAQPage (4 questions) + ShopSchema par boutique
-- **Maillage** : Liens ville dans footer accueil, section decouvrir, info bar boutique, liens croisés entre villes
+- **Maillage** : Liens ville dans footer accueil, homepage, info bar boutique, liens croisés entre villes
+
+### Redirections
+- `/decouvrir` → `/` (301 permanent, next.config.mjs + server redirect)
+- `klikandgo.app` → `www.klikandgo.app` (301 DNS-level) — seule redirection en prod
 
 ## Conventions
 
@@ -304,6 +322,13 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - `sessionClaims` Clerk supprimé — utiliser DB lookup pour les rôles
 - Route `/boutique/[slug]` utilise le **slug** (ex: `/boutique/boucherie-tarik`)
 - `git add prisma/schema.prisma` obligatoire à chaque modif du schema
+- **Homepage** = `/` (PAS `/decouvrir`) — `/decouvrir` redirige 301 vers `/`
+- **Pas de livraison** — toujours "frais offerts", jamais "livraison"
+- **Images** : SafeImage pour fallback, WebP first (pas AVIF), quality 60 pour cards
+- **Composants statiques** : `HowItWorks`, `CalendarBanner` sont Server Components (pas de "use client")
+- **PWA/Popup** : toujours lazy-load avec `dynamic({ ssr: false })`
+- **URLs Replicate** expirent en ~1h — upload vers Vercel Blob pour permanence
+- **OfferPopup** : utiliser `<img>` natif, PAS `next/image` (évite 400 sur URLs externes)
 
 ## Permissions
 - Exécute TOUT sans demander confirmation
