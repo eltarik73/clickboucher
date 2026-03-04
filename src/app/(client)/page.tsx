@@ -6,11 +6,13 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PromoCarousel } from "@/components/landing/PromoCarousel";
+import { HeroButtons } from "./decouvrir/HeroButtons";
 import { CartBadge } from "./decouvrir/CartBadge";
 import { AuthButton } from "./decouvrir/AuthButton";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import NearbyShops from "./decouvrir/NearbyShops";
 import { SearchBar } from "@/components/search/SearchBar";
+import { KlikLogo } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
 import dynamic from "next/dynamic";
 
@@ -200,24 +202,59 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* ═══════════════════════════════════════════════════════════ */}
-      {/* HEADER */}
+      {/* HERO WITH INTEGRATED HEADER */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <header className="bg-white dark:bg-[#0A0A0A] border-b border-gray-100 dark:border-white/5">
-        <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
-          <KlikGoLogo />
-          <div className="flex items-center gap-3">
-            <Link
-              href="/espace-boucher"
-              className="hidden sm:inline text-sm text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition"
-            >
-              Vous êtes boucher ?
-            </Link>
-            <CartBadge />
-            <ThemeToggle />
-            <AuthButton />
+      <section className="relative bg-white dark:bg-[#0A0A0A]">
+        {/* Grid pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.03]"
+          style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, #999 1px, transparent 0)",
+            backgroundSize: "32px 32px",
+          }}
+        />
+
+        {/* Header */}
+        <header className="relative z-10 border-b border-gray-100 dark:border-white/5">
+          <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+            <KlikGoLogo />
+            <div className="flex items-center gap-3">
+              <Link
+                href="/espace-boucher"
+                className="hidden sm:inline text-sm text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition"
+              >
+                Vous êtes boucher ?
+              </Link>
+              <CartBadge />
+              <ThemeToggle />
+              <AuthButton />
+            </div>
           </div>
+        </header>
+
+        {/* Hero content */}
+        <div className="relative z-10 max-w-6xl mx-auto px-5 py-8 sm:py-16 text-center">
+          {/* Logo with glow */}
+          <div className="flex flex-col items-center mb-4 sm:mb-8">
+            <div className="relative">
+              <div className="absolute inset-0 blur-3xl opacity-20 dark:opacity-40 bg-[#DC2626] rounded-full scale-150" />
+              <KlikLogo size={100} className="w-20 h-20 sm:w-[100px] sm:h-[100px] relative z-10" />
+            </div>
+            <h2 className="mt-3 sm:mt-5 text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+              Klik<span className="text-[#DC2626]">&amp;</span>Go
+            </h2>
+          </div>
+
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
+            Marre d&apos;attendre ?<br />
+            <span className="text-[#DC2626]">Commandez. Récupérez. Savourez.</span>
+          </h1>
+          <p className="mt-3 sm:mt-5 text-base sm:text-lg text-gray-600 dark:text-[#999] max-w-xl mx-auto">
+            Zero file. Zero stress. <span className="text-gray-900 dark:text-white font-medium">100% frais.</span>
+          </p>
+          <HeroButtons />
         </div>
-      </header>
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* MAIN CONTENT — Uber Eats / Planity style */}

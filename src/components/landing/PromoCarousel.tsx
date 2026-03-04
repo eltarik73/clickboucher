@@ -1,9 +1,8 @@
-// src/components/landing/PromoCarousel.tsx — Horizontal promo cards (Server Component)
+// src/components/landing/PromoCarousel.tsx — Compact horizontal promo cards (Server Component)
 
 import Link from "next/link";
-import { Tag } from "lucide-react";
 
-// Religious events — same as old CalendarBanner
+// Religious events
 const EVENTS = [
   { name: "Ramadan", date: "2025-03-01", endDate: "2025-03-30", emoji: "🌙", type: "ramadan", link: "Préparez l'Iftar" },
   { name: "Aïd el-Fitr", date: "2025-03-31", emoji: "🎉", type: "aid", link: "Commandez pour la fête" },
@@ -24,15 +23,37 @@ function getUpcomingEvent() {
   }) || null;
 }
 
-type LivePromo = {
-  id: string;
-  label: string;
-  type: string;
-  valuePercent: number | null;
-  valueCents: number | null;
-  shopName: string;
-  shopSlug: string | null;
-};
+// Static promo cards (always visible)
+const STATIC_PROMOS = [
+  {
+    emoji: "🔥",
+    title: "-10%",
+    subtitle: "1ère commande",
+    bgClass: "bg-gradient-to-br from-red-600 to-red-800",
+    accentClass: "text-amber-100",
+  },
+  {
+    emoji: "🥩",
+    title: "Pack Famille",
+    subtitle: "5kg à prix réduit",
+    bgClass: "bg-gradient-to-br from-emerald-800 to-emerald-900",
+    accentClass: "text-emerald-300",
+  },
+  {
+    emoji: "⚡",
+    title: "Express",
+    subtitle: "Prêt en 15 min",
+    bgClass: "bg-gradient-to-br from-violet-600 to-violet-800",
+    accentClass: "text-violet-200",
+  },
+  {
+    emoji: "🎁",
+    title: "Parrainage",
+    subtitle: "5€ offerts",
+    bgClass: "bg-gradient-to-br from-orange-600 to-orange-800",
+    accentClass: "text-orange-200",
+  },
+];
 
 const EVENT_GRADIENTS: Record<string, string> = {
   ramadan: "from-slate-800 to-slate-900",
@@ -46,14 +67,18 @@ const EVENT_ACCENTS: Record<string, string> = {
   "aid-adha": "text-emerald-300",
 };
 
+type LivePromo = {
+  id: string;
+  label: string;
+  type: string;
+  valuePercent: number | null;
+  valueCents: number | null;
+  shopName: string;
+  shopSlug: string | null;
+};
+
 export function PromoCarousel({ livePromos }: { livePromos: LivePromo[] }) {
   const event = getUpcomingEvent();
-  if (!event && livePromos.length === 0) return null;
-
-  const eventDays = event
-    ? Math.ceil((new Date(event.date).getTime() - Date.now()) / 86_400_000)
-    : 0;
-  const isOngoing = eventDays <= 0;
 
   return (
     <section className="mb-2">
@@ -65,32 +90,41 @@ export function PromoCarousel({ livePromos }: { livePromos: LivePromo[] }) {
       </div>
 
       <div
-        className="flex gap-3 overflow-x-auto pb-2"
-        style={{ scrollbarWidth: "none" }}
+        className="flex gap-2.5 overflow-x-auto pb-1 snap-x snap-mandatory"
+        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
       >
-        {/* Event card */}
+        {/* Event card (Ramadan, Aïd, etc.) */}
         {event && (
           <Link
             href="/#butchers"
-            className={`min-w-[260px] shrink-0 bg-gradient-to-br ${EVENT_GRADIENTS[event.type] || "from-slate-800 to-slate-900"} rounded-2xl p-5 relative overflow-hidden hover:scale-[1.02] active:scale-[0.98] transition-transform`}
+            className={`min-w-[140px] max-w-[140px] bg-gradient-to-br ${EVENT_GRADIENTS[event.type] || "from-slate-800 to-slate-900"} rounded-[14px] p-4 snap-start flex-shrink-0 relative overflow-hidden cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform`}
           >
-            <span className="absolute -bottom-3 -right-2 text-6xl opacity-[0.08] select-none">
+            <span className="absolute -bottom-2 -right-1.5 text-5xl opacity-[0.08] select-none">
               {event.emoji}
             </span>
-            <div className="relative z-10">
-              <p className={`text-xs font-medium uppercase tracking-wider ${EVENT_ACCENTS[event.type] || "text-amber-400"} opacity-80`}>
-                {isOngoing ? "En cours" : `Dans ${eventDays} jour${eventDays > 1 ? "s" : ""}`}
-              </p>
-              <h3 className="text-xl font-bold text-white mt-1">
-                {event.emoji} {event.name}
-              </h3>
-              <p className="text-sm text-white/80 mt-1">{event.link}</p>
-              <span className="inline-block mt-3 px-4 py-2 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-semibold text-white transition-colors">
-                Voir les boucheries
-              </span>
+            <div className="text-xl mb-2.5">{event.emoji}</div>
+            <div className="text-white font-extrabold text-base leading-tight mb-0.5">
+              {event.name}
+            </div>
+            <div className={`${EVENT_ACCENTS[event.type] || "text-amber-400"} text-xs font-medium opacity-90`}>
+              {event.link}
             </div>
           </Link>
         )}
+
+        {/* Static promo cards */}
+        {STATIC_PROMOS.map((p) => (
+          <Link
+            key={p.title}
+            href="/#butchers"
+            className={`min-w-[140px] max-w-[140px] ${p.bgClass} rounded-[14px] p-4 snap-start flex-shrink-0 relative overflow-hidden cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform`}
+          >
+            <span className="absolute -bottom-2 -right-1.5 text-5xl opacity-[0.08] select-none">{p.emoji}</span>
+            <div className="text-xl mb-2.5">{p.emoji}</div>
+            <div className="text-white font-extrabold text-base leading-tight mb-0.5">{p.title}</div>
+            <div className={`${p.accentClass} text-xs font-medium opacity-90`}>{p.subtitle}</div>
+          </Link>
+        ))}
 
         {/* DB promo cards */}
         {livePromos.map((promo) => {
@@ -100,9 +134,9 @@ export function PromoCarousel({ livePromos }: { livePromos: LivePromo[] }) {
               : promo.type === "AMOUNT" && promo.valueCents
                 ? `-${(promo.valueCents / 100).toFixed(0)}€`
                 : promo.type === "FREE_DELIVERY"
-                  ? "Frais offerts"
+                  ? "Gratuit"
                   : promo.type === "BOGO"
-                    ? "1+1 offert"
+                    ? "1+1"
                     : promo.type === "BUNDLE"
                       ? "Pack"
                       : "Offre";
@@ -113,30 +147,12 @@ export function PromoCarousel({ livePromos }: { livePromos: LivePromo[] }) {
             <Link
               key={promo.id}
               href={href}
-              className="min-w-[260px] shrink-0 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] p-4 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all group"
+              className="min-w-[140px] max-w-[140px] bg-gradient-to-br from-[#DC2626] to-red-800 rounded-[14px] p-4 snap-start flex-shrink-0 relative overflow-hidden cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform"
             >
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center shrink-0">
-                  <span className="text-white text-sm font-bold">{discountLabel}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-[#DC2626] transition-colors">
-                    {promo.label}
-                  </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                    {promo.shopName}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 dark:border-white/5">
-                <span className="flex items-center gap-1 text-xs text-gray-400">
-                  <Tag size={12} />
-                  {discountLabel}
-                </span>
-                <span className="text-xs font-semibold text-[#DC2626]">
-                  En profiter →
-                </span>
-              </div>
+              <span className="absolute -bottom-2 -right-1.5 text-5xl opacity-[0.08] select-none">🏷️</span>
+              <div className="text-xl mb-2.5">🏷️</div>
+              <div className="text-white font-extrabold text-base leading-tight mb-0.5">{discountLabel}</div>
+              <div className="text-red-200 text-xs font-medium opacity-90 truncate">{promo.shopName}</div>
             </Link>
           );
         })}
