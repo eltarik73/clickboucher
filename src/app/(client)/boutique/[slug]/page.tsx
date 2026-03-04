@@ -159,7 +159,7 @@ export default async function BoutiquePage({
     },
     select: {
       id: true, name: true, code: true, type: true, discountValue: true,
-      diffBanner: true, bannerTitle: true, bannerSubtitle: true, bannerColor: true,
+      diffBanner: true, bannerTitle: true, bannerSubtitle: true, bannerColor: true, bannerImageUrl: true,
       eligibleProducts: {
         where: { shopId: shop.id },
         select: {
@@ -399,12 +399,13 @@ export default async function BoutiquePage({
             subtitle={bannerOffer.bannerSubtitle}
             code={bannerOffer.code}
             color={bannerOffer.bannerColor || "red"}
+            imageUrl={bannerOffer.bannerImageUrl}
             discountLabel={
               bannerOffer.type === "PERCENT" ? `-${bannerOffer.discountValue}%`
               : bannerOffer.type === "AMOUNT" ? `-${bannerOffer.discountValue}€`
               : bannerOffer.type === "FREE_DELIVERY" ? "Frais offerts"
               : bannerOffer.type === "BOGO" ? "1+1 offert"
-              : bannerOffer.type === "BUNDLE" ? `Pack -${bannerOffer.discountValue}%`
+              : bannerOffer.type === "BUNDLE" ? `Pack -${bannerOffer.discountValue}€`
               : bannerOffer.name
             }
           />

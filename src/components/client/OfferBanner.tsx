@@ -17,12 +17,14 @@ export function OfferBanner({
   code,
   color,
   discountLabel,
+  imageUrl,
 }: {
   title: string;
   subtitle?: string | null;
   code: string;
   color: string;
   discountLabel: string;
+  imageUrl?: string | null;
 }) {
   const [dismissed, setDismissed] = useState(false);
 
@@ -32,10 +34,17 @@ export function OfferBanner({
 
   return (
     <div
-      className={`bg-gradient-to-r ${gradient} rounded-xl p-5 text-white relative overflow-hidden`}
+      className={`${imageUrl ? "" : `bg-gradient-to-r ${gradient}`} rounded-xl p-5 text-white relative overflow-hidden`}
+      style={imageUrl ? {
+        backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.65), rgba(0,0,0,0.3)), url(${imageUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      } : undefined}
     >
-      {/* Decorative circle */}
-      <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/5 rounded-full" />
+      {/* Decorative circle (only when no image) */}
+      {!imageUrl && (
+        <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/5 rounded-full" />
+      )}
 
       {/* Close button */}
       <button

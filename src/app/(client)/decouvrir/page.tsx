@@ -84,7 +84,7 @@ type LivePromo = {
 function PromoCard({ promo }: { promo: LivePromo }) {
   const discountLabel = promo.type === "PERCENT" && promo.valuePercent
     ? `-${promo.valuePercent}%`
-    : promo.type === "FIXED" && promo.valueCents
+    : promo.type === "AMOUNT" && promo.valueCents
     ? `-${(promo.valueCents / 100).toFixed(0)}\u20AC`
     : "Offre";
 
@@ -107,7 +107,7 @@ function PromoCard({ promo }: { promo: LivePromo }) {
       </div>
       <div className="text-right shrink-0">
         <span className="text-xs font-semibold text-[#DC2626] bg-[#DC2626]/10 px-2 py-1 rounded-full">
-          {promo.type === "FREE_FEES" ? "Frais offerts" : discountLabel}
+          {promo.type === "FREE_DELIVERY" ? "Frais offerts" : discountLabel}
         </span>
       </div>
     </Link>

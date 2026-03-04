@@ -54,7 +54,11 @@ export async function validatePromoCode(params: {
 
   // 7. Already used by this client?
   const alreadyUsed = await prisma.order.findFirst({
-    where: { userId: params.userId, offerId: offer.id },
+    where: {
+      userId: params.userId,
+      offerId: offer.id,
+      status: { notIn: ["CANCELLED", "DENIED"] },
+    },
   });
   if (alreadyUsed)
     return { valid: false, error: "Vous avez déjà utilisé ce code" };

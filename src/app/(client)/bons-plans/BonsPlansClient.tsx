@@ -59,7 +59,7 @@ function unitLabel(unit: string) {
 
 function fmtPromoValue(p: PlatformPromo) {
   if (p.type === "PERCENT" && p.valuePercent) return `-${p.valuePercent}%`;
-  if (p.type === "FIXED" && p.valueCents) return `-${(p.valueCents / 100).toFixed(0)}\u20AC`;
+  if (p.type === "AMOUNT" && p.valueCents) return `-${(p.valueCents / 100).toFixed(0)}\u20AC`;
   return "Frais offerts";
 }
 

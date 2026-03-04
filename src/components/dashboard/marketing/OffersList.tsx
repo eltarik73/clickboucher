@@ -109,10 +109,10 @@ function getAudienceLabel(audience: string): string {
       return "Tous";
     case "NEW":
       return "Nouveaux";
-    case "RETURNING":
+    case "LOYAL":
       return "Fid\u00E8les";
-    case "PRO":
-      return "Pro";
+    case "VIP":
+      return "VIP";
     default:
       return audience;
   }
@@ -156,7 +156,7 @@ export function OffersList({
         const usesLabel =
           offer.maxUses !== null
             ? `${offer.currentUses}/${offer.maxUses}`
-            : `${offer.currentUses} utilis\u00E9`;
+            : `${offer.currentUses} utilisation${offer.currentUses > 1 ? "s" : ""}`;
 
         return (
           <button

@@ -63,30 +63,23 @@ function daysLeft(dateStr: string) {
 }
 
 function rewardValueLabel(r: { rewardType: string; rewardCents: number | null; rewardPercent: number | null }) {
-  if (r.rewardType === "FIXED" && r.rewardCents) return `-${formatEuro(r.rewardCents)}`;
+  if (r.rewardType === "AMOUNT" && r.rewardCents) return `-${formatEuro(r.rewardCents)}`;
   if (r.rewardType === "PERCENT" && r.rewardPercent) return `-${r.rewardPercent}%`;
   return "Récompense";
 }
 
 export default function AvantagesPage() {
   const [loyalty, setLoyalty] = useState<LoyaltyStatus | null>(null);
-  const [promos, setPromos] = useState<ActivePromo[]>([]);
+  const [promos] = useState<ActivePromo[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [loyaltyRes, promosRes] = await Promise.all([
-        fetch("/api/loyalty/status"),
-        fetch("/api/promos/active"),
-      ]);
+      const loyaltyRes = await fetch("/api/loyalty/status");
       if (loyaltyRes.ok) {
         const json = await loyaltyRes.json();
         setLoyalty(json.data);
-      }
-      if (promosRes.ok) {
-        const json = await promosRes.json();
-        setPromos(json.data?.platformPromos || []);
       }
     } catch {
       // silent
@@ -241,7 +234,7 @@ export default function AvantagesPage() {
               <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-white/10">
                 <div className="w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center">
                   <span className="text-sm font-black text-white">
-                    {p.type === "PERCENT" ? `-${p.valuePercent}%` : p.type === "FIXED" ? `-${formatEuro(p.valueCents || 0)}` : "GRATUIT"}
+                    {p.type === "PERCENT" ? `-${p.valuePercent}%` : p.type === "AMOUNT" ? `-${formatEuro(p.valueCents || 0)}` : "GRATUIT"}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">

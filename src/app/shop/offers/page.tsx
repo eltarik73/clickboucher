@@ -47,7 +47,7 @@ function typeBadge(type: string) {
     case "AMOUNT":
       return { label: "Montant fixe", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" };
     case "FREE_DELIVERY":
-      return { label: "Livraison offerte", color: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" };
+      return { label: "Frais offerts", color: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" };
     case "BOGO":
       return { label: "1+1 offert", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300" };
     case "BUNDLE":

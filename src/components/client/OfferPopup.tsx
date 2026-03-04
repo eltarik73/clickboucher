@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 type PopupOffer = {
   id: string;
@@ -12,6 +13,7 @@ type PopupOffer = {
   popupMessage: string | null;
   popupColor: string | null;
   popupFrequency: string | null;
+  popupImageUrl: string | null;
 };
 
 const gradientMap: Record<string, string> = {
@@ -25,17 +27,17 @@ const gradientMap: Record<string, string> = {
 function getEmoji(type: string): string {
   switch (type) {
     case "FREE_DELIVERY":
-      return "🚀";
+      return "\u{1F680}";
     case "PERCENT":
-      return "💰";
+      return "\u{1F4B0}";
     case "BOGO":
-      return "🎁";
+      return "\u{1F381}";
     case "AMOUNT":
-      return "🏷️";
+      return "\u{1F3F7}\uFE0F";
     case "BUNDLE":
-      return "📦";
+      return "\u{1F4E6}";
     default:
-      return "💰";
+      return "\u{1F4B0}";
   }
 }
 
@@ -44,15 +46,19 @@ function shouldShow(offer: PopupOffer): boolean {
 
   const freq = offer.popupFrequency || "every_visit";
 
-  if (freq === "once_user") {
-    const key = `popup_seen_${offer.id}`;
-    if (localStorage.getItem(key)) return false;
-  }
+  try {
+    if (freq === "once_user") {
+      const key = `popup_seen_${offer.id}`;
+      if (localStorage.getItem(key)) return false;
+    }
 
-  if (freq === "once_day") {
-    const today = new Date().toISOString().slice(0, 10);
-    const key = `popup_day_${offer.id}_${today}`;
-    if (localStorage.getItem(key)) return false;
+    if (freq === "once_day") {
+      const today = new Date().toISOString().slice(0, 10);
+      const key = `popup_day_${offer.id}_${today}`;
+      if (localStorage.getItem(key)) return false;
+    }
+  } catch {
+    // localStorage may be unavailable (private browsing, storage full, etc.)
   }
 
   // "every_visit" always shows
@@ -64,13 +70,17 @@ function markSeen(offer: PopupOffer): void {
 
   const freq = offer.popupFrequency || "every_visit";
 
-  if (freq === "once_user") {
-    localStorage.setItem(`popup_seen_${offer.id}`, "true");
-  }
+  try {
+    if (freq === "once_user") {
+      localStorage.setItem(`popup_seen_${offer.id}`, "true");
+    }
 
-  if (freq === "once_day") {
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem(`popup_day_${offer.id}_${today}`, "true");
+    if (freq === "once_day") {
+      const today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem(`popup_day_${offer.id}_${today}`, "true");
+    }
+  } catch {
+    // localStorage may be unavailable
   }
 }
 
@@ -108,7 +118,19 @@ export function OfferPopup({ offers }: { offers: PopupOffer[] }) {
         <div
           className={`bg-gradient-to-r ${gradient} py-6 text-center text-white`}
         >
-          <span className="text-4xl block mb-2">{emoji}</span>
+          {activeOffer.popupImageUrl ? (
+            <div className="relative w-full h-32 mb-2">
+              <Image
+                src={activeOffer.popupImageUrl}
+                alt={activeOffer.popupTitle || activeOffer.name}
+                fill
+                sizes="(max-width: 400px) 100vw, 400px"
+                className="object-contain"
+              />
+            </div>
+          ) : (
+            <span className="text-4xl block mb-2">{emoji}</span>
+          )}
           <h3 className="text-xl font-bold px-4">
             {activeOffer.popupTitle || activeOffer.name}
           </h3>
@@ -132,7 +154,7 @@ export function OfferPopup({ offers }: { offers: PopupOffer[] }) {
             onClick={handleClose}
             className="bg-red-600 hover:bg-red-700 text-white w-full rounded-xl py-3 font-bold transition-colors"
           >
-            En profiter →
+            En profiter &rarr;
           </button>
 
           {/* Close text */}

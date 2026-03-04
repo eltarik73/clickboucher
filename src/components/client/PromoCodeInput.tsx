@@ -46,16 +46,18 @@ export function PromoCodeInput({
         }),
       });
 
-      const data = await res.json();
+      const json = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Code invalide");
+        setError(json.error?.message || "Code invalide");
         return;
       }
 
+      const data = json.data;
+
       const result = {
         discount: data.discount,
-        offerName: data.offerName || data.name || trimmed,
+        offerName: data.offer?.name || trimmed,
         offerCode: trimmed,
         freeProductId: data.freeProductId,
       };
@@ -89,7 +91,7 @@ export function PromoCodeInput({
           <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
             Code appliqu&eacute; !{" "}
             <span className="font-bold">
-              -{(applied.discount / 100).toFixed(2).replace(".", ",")}€
+              -{applied.discount.toFixed(2).replace(".", ",")}€
             </span>
           </span>
           <span className="font-mono text-xs bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 px-2 py-0.5 rounded">

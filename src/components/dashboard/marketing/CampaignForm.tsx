@@ -277,11 +277,7 @@ export function CampaignForm({
           body: JSON.stringify({
             name: `Promo ${newCode}`,
             code: newCode,
-            type: newType.includes("%")
-              ? "PERCENT"
-              : newType.includes("\u20AC")
-                ? "AMOUNT"
-                : "FREE_DELIVERY",
+            type: newType,
             discountValue: parseFloat(newDiscountValue) || 0,
             minOrder: parseFloat(newMinOrder) || 0,
             payer: "KLIKGO",
@@ -320,6 +316,14 @@ export function CampaignForm({
         toast.error(json.error?.message || "Erreur");
         return;
       }
+
+      // Actually send the campaign if scheduled
+      if (status === "SCHEDULED") {
+        await fetch(`/api/dashboard/campaigns/${json.data.id}/send`, {
+          method: "POST",
+        });
+      }
+
       toast.success(
         status === "DRAFT"
           ? "Brouillon sauvegard\u00E9"
