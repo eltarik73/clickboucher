@@ -357,7 +357,7 @@ export default function WebmasterAnalyticsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard icon={Bell} label="Total 30j" value={String(notifStats.last30d)} color="text-purple-600 dark:text-purple-400" />
             <KpiCard icon={Zap} label="7 derniers jours" value={String(notifStats.last7d)} color="text-blue-600 dark:text-blue-400" />
-            <KpiCard icon={CheckCircle} label="Taux livraison" value={`${notifStats.deliveryRate}%`} color="text-emerald-600 dark:text-emerald-400" />
+            <KpiCard icon={CheckCircle} label="Taux envoi" value={`${notifStats.deliveryRate}%`} color="text-emerald-600 dark:text-emerald-400" />
             <KpiCard icon={Eye} label="Taux lecture" value={`${notifStats.readRate}%`} color="text-amber-600 dark:text-amber-400" />
           </div>
 

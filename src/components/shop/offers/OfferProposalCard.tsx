@@ -38,7 +38,7 @@ function typeLabel(type: string) {
     case "AMOUNT":
       return "Montant fixe";
     case "FREE_DELIVERY":
-      return "Livraison offerte";
+      return "Frais offerts";
     case "BOGO":
       return "1+1 offert";
     case "BUNDLE":
