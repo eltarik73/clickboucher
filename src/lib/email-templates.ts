@@ -118,7 +118,7 @@ export function orderDenied(data: {
       </td></tr>
     </table>
     <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande auprès d'une autre boucherie.</p>
-    ${button(`${baseUrl}/decouvrir`, "Découvrir les boucheries")}
+    ${button(`${baseUrl}/`, "Découvrir les boucheries")}
   `);
 }
 
@@ -180,7 +180,7 @@ export function proValidated(): string {
         <p style="margin:0;font-size:14px;color:#065f46">\u2022 Tarifs professionnels sur tous les produits<br>\u2022 Commandes en gros facilitées<br>\u2022 Support prioritaire</p>
       </td></tr>
     </table>
-    ${button(`${baseUrl}/decouvrir`, "Commander maintenant")}
+    ${button(`${baseUrl}/`, "Commander maintenant")}
   `);
 }
 
@@ -192,7 +192,7 @@ export function proRejected(): string {
       Votre demande de compte professionnel n'a pas pu être validée pour le moment.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Si vous pensez qu'il s'agit d'une erreur, n'hésitez pas à nous contacter.</p>
-    ${button(`${baseUrl}/decouvrir`, "Retour à l'accueil")}
+    ${button(`${baseUrl}/`, "Retour à l'accueil")}
   `);
 }
 
@@ -329,7 +329,7 @@ export function orderCancelled(data: {
       </td></tr>
     </table>` : ""}
     <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande à tout moment.</p>
-    ${button(`${baseUrl}/decouvrir`, "Découvrir les boucheries")}
+    ${button(`${baseUrl}/`, "Découvrir les boucheries")}
   `);
 }
 

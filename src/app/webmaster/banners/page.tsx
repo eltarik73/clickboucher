@@ -174,7 +174,7 @@ export default function BannersPage() {
           <input
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
-            placeholder="Lien (optionnel, ex: /decouvrir)"
+            placeholder="Lien (optionnel, ex: /)"
             className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm"
           />
 

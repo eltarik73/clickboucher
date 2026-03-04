@@ -92,7 +92,7 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
         <div className="bg-gradient-to-r from-[#DC2626] to-[#ef4444] px-4 pt-12 pb-5">
           <div className="flex items-center gap-3 mb-2">
             <Link
-              href="/decouvrir"
+              href="/"
               className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center"
             >
               <ArrowLeft size={15} className="text-white" />
@@ -199,7 +199,7 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
                 Les offres apparaitront ici des qu&apos;un boucher en lancera
               </p>
               <Link
-                href="/decouvrir"
+                href="/"
                 className="inline-block mt-4 px-4 py-2 bg-[#DC2626] text-white text-xs font-semibold rounded-full hover:bg-[#b91c1c] transition-colors"
               >
                 Decouvrir les boutiques

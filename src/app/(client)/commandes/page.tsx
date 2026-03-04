@@ -318,7 +318,7 @@ export default function CommandesPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <Button className="bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
-                <Link href="/decouvrir">Decouvrir les boucheries</Link>
+                <Link href="/">Decouvrir les boucheries</Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
                 <Link href="/favoris">Mes favoris</Link>
@@ -396,7 +396,7 @@ function Header() {
     <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
       <div className="max-w-xl mx-auto flex items-center gap-3">
         <Link
-          href="/decouvrir"
+          href="/"
           className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
         >
           <ArrowLeft size={17} className="text-gray-900 dark:text-white" />

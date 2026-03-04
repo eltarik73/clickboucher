@@ -34,7 +34,7 @@ export default function WebmasterError({
             R&eacute;essayer
           </button>
           <a
-            href="/decouvrir"
+            href="/"
             className="px-6 py-2.5 bg-white dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-[#ece8e3] dark:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-colors"
           >
             Retour &agrave; l&apos;accueil

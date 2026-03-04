@@ -13,7 +13,7 @@ type NavItem =
 
 function getNavItems(): NavItem[] {
   return [
-    { key: "accueil",   label: "Accueil",   href: "/decouvrir",  icon: Home },
+    { key: "accueil",   label: "Accueil",   href: "/",  icon: Home },
     { key: "favoris",   label: "Favoris",    href: "/favoris",    icon: Heart },
     // Center button is rendered separately as elevated
     { key: "panier",    label: "Panier",     href: "/panier",     icon: ShoppingCart, badge: "cart" as const },
@@ -90,7 +90,7 @@ export function BottomNav() {
           <>
             <SignedIn>
               <div className="relative z-10 flex flex-col items-center gap-0.5 py-2 px-3">
-                <UserButton afterSignOutUrl="/decouvrir" />
+                <UserButton afterSignOutUrl="/" />
                 <span className="text-[10px] leading-none font-medium text-gray-400 dark:text-gray-500">Profil</span>
               </div>
             </SignedIn>

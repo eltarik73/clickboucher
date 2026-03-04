@@ -51,7 +51,6 @@ const isOnboardingRoute = createRouteMatcher(["/onboarding"]);
 
 const isPublicRoute = createRouteMatcher([
   "/",
-  "/decouvrir",
   "/boutique/(.*)",
   "/espace-boucher",
   "/bons-plans",
@@ -102,7 +101,7 @@ export default clerkMiddleware(async (auth, req) => {
     const role = await getUserRole(userId);
     const roleLower = role?.toLowerCase();
     if (!roleLower || !ADMIN_ROLES.includes(roleLower)) {
-      return NextResponse.redirect(new URL("/decouvrir", req.url));
+      return NextResponse.redirect(new URL("/", req.url));
     }
     return;
   }
@@ -115,7 +114,7 @@ export default clerkMiddleware(async (auth, req) => {
     const role = await getUserRole(userId);
     const roleLower = role?.toLowerCase();
     if (!roleLower || !ADMIN_ROLES.includes(roleLower)) {
-      return NextResponse.redirect(new URL("/decouvrir", req.url));
+      return NextResponse.redirect(new URL("/", req.url));
     }
     return;
   }
@@ -128,7 +127,7 @@ export default clerkMiddleware(async (auth, req) => {
     const role = await getUserRole(userId);
     const roleLower = role?.toLowerCase();
     if (roleLower !== "boucher" && (!roleLower || !ADMIN_ROLES.includes(roleLower))) {
-      return NextResponse.redirect(new URL("/decouvrir", req.url));
+      return NextResponse.redirect(new URL("/", req.url));
     }
     return;
   }

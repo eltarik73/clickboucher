@@ -13,7 +13,7 @@ export default function NotFoundPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 mt-8 justify-center">
           <Link
-            href="/decouvrir"
+            href="/"
             className="px-6 py-2.5 bg-[#DC2626] text-white font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors"
           >
             Retour a l&apos;accueil

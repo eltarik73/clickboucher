@@ -30,7 +30,7 @@ export function AuthButton() {
         </Link>
       </SignedOut>
       <SignedIn>
-        <UserButton afterSignOutUrl="/decouvrir" />
+        <UserButton afterSignOutUrl="/" />
       </SignedIn>
     </>
   );

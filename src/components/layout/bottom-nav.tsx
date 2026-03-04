@@ -7,7 +7,7 @@ import { Compass, Percent, Heart, ClipboardList, Briefcase } from "lucide-react"
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { label: "Découvrir", href: "/decouvrir", icon: Compass },
+  { label: "Découvrir", href: "/", icon: Compass },
   { label: "Bons plans", href: "/bons-plans", icon: Percent },
   { label: "Favoris", href: "/favoris", icon: Heart },
   { label: "Commandes", href: "/commandes", icon: ClipboardList },

@@ -35,7 +35,7 @@ export default async function AdminLoginPage() {
             Vous n&apos;avez pas les droits d&apos;administration.
           </p>
           <p className="text-xs text-gray-500 mt-3">Redirection dans 3 secondes...</p>
-          <meta httpEquiv="refresh" content="3;url=/decouvrir" />
+          <meta httpEquiv="refresh" content="3;url=/" />
         </div>
       </div>
     );

@@ -43,7 +43,7 @@ export default function OnboardingPage() {
           } else if (role === "ADMIN") {
             router.replace("/admin");
           } else {
-            router.replace("/decouvrir");
+            router.replace("/");
           }
         } else {
           // New user — show choice
@@ -69,7 +69,7 @@ export default function OnboardingPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error?.message || "Erreur");
       }
-      router.push("/decouvrir");
+      router.push("/");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de l'inscription");
       setLoading(false);

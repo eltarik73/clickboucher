@@ -276,14 +276,14 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
     case "PROMO_NEW":
       return {
         subject: `🎁 Nouveau code promo Klik&Go !`,
-        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>${data.promoLabel || "Nouvelle promotion"}</h2>${data.promoCode ? `<p>Utilisez le code <strong>${data.promoCode}</strong> lors de votre prochaine commande.</p>` : "<p>Profitez de cette offre sur votre prochaine commande !</p>"}<a href="https://klikandgo.app/decouvrir" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Commander</a></div>`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>${data.promoLabel || "Nouvelle promotion"}</h2>${data.promoCode ? `<p>Utilisez le code <strong>${data.promoCode}</strong> lors de votre prochaine commande.</p>` : "<p>Profitez de cette offre sur votre prochaine commande !</p>"}<a href="https://klikandgo.app/" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Commander</a></div>`,
         plainText: `${data.promoLabel}${data.promoCode ? ` — Code : ${data.promoCode}` : ""}`,
       };
 
     case "FLASH_OFFER":
       return {
         subject: `⚡ Offre flash chez ${data.shopName} !`,
-        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>⚡ Offre flash !</h2><p><strong>${data.promoLabel}</strong> chez ${data.shopName}.</p>${data.promoCode ? `<p>Code : <strong>${data.promoCode}</strong></p>` : ""}<p>Dépêchez-vous, l'offre est limitée dans le temps !</p><a href="https://klikandgo.app/decouvrir" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">En profiter</a></div>`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>⚡ Offre flash !</h2><p><strong>${data.promoLabel}</strong> chez ${data.shopName}.</p>${data.promoCode ? `<p>Code : <strong>${data.promoCode}</strong></p>` : ""}<p>Dépêchez-vous, l'offre est limitée dans le temps !</p><a href="https://klikandgo.app/" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">En profiter</a></div>`,
         plainText: `Offre flash chez ${data.shopName} : ${data.promoLabel}`,
       };
 
@@ -496,14 +496,14 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
       return {
         title: "🎁 Nouveau code promo !",
         body: `${data.promoLabel}${data.promoCode ? ` — Code : ${data.promoCode}` : ""}`,
-        url: `${baseUrl}/decouvrir`,
+        url: `${baseUrl}/`,
         tag: "promo-new",
       };
     case "FLASH_OFFER":
       return {
         title: `⚡ Flash chez ${data.shopName} !`,
         body: data.promoLabel || "Offre flash limitée",
-        url: `${baseUrl}/decouvrir`,
+        url: `${baseUrl}/`,
         tag: "flash-offer",
       };
     default:

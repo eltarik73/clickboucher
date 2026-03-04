@@ -111,7 +111,7 @@ export default async function CityPage({
       <BreadcrumbSchema
         items={[
           { name: "Accueil", url: SITE_URL },
-          { name: "Boucheries", url: `${SITE_URL}/decouvrir` },
+          { name: "Boucheries", url: `${SITE_URL}/` },
           { name: city.name, url: `${SITE_URL}/boucherie-halal/${city.slug}` },
         ]}
       />
@@ -141,7 +141,7 @@ export default async function CityPage({
         }} />
         <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-20">
           <Link
-            href="/decouvrir"
+            href="/"
             className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
           >
             &larr; Toutes les boucheries
@@ -290,7 +290,7 @@ export default async function CityPage({
               Découvrez toutes nos boucheries halal partenaires et commandez en quelques clics.
             </p>
             <Link
-              href="/decouvrir"
+              href="/"
               className="inline-block px-8 py-3 bg-white text-[#DC2626] font-semibold rounded-full hover:bg-gray-50 transition"
             >
               Voir les boucheries

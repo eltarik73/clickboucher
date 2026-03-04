@@ -164,7 +164,7 @@ export default function ProfilPage() {
       if (data.success) {
         toast.success("Compte supprimé. Vous allez être déconnecté.");
         // Keep deleting=true to prevent double-click, then sign out
-        setTimeout(() => clerk.signOut({ redirectUrl: "/decouvrir" }), 1500);
+        setTimeout(() => clerk.signOut({ redirectUrl: "/" }), 1500);
         return; // Don't reset state on success
       } else {
         toast.error(data.error?.message || "Erreur lors de la suppression");
@@ -553,7 +553,7 @@ export default function ProfilPage() {
                 Aucune boucherie en favori
               </p>
               <Link
-                href="/decouvrir"
+                href="/"
                 className="text-sm font-semibold text-[#DC2626] hover:underline mt-2 inline-block"
               >
                 Découvrir les boucheries
@@ -664,7 +664,7 @@ function Header() {
     <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
       <div className="max-w-xl mx-auto flex items-center gap-3">
         <Link
-          href="/decouvrir"
+          href="/"
           className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
         >
           <ArrowLeft size={17} className="text-gray-900 dark:text-white" />

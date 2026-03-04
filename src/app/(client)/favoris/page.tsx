@@ -49,7 +49,7 @@ export default function FavorisPage() {
     <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
       <div className="max-w-3xl mx-auto flex items-center gap-3">
         <Link
-          href="/decouvrir"
+          href="/"
           className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
         >
           <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
@@ -116,7 +116,7 @@ export default function FavorisPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <Link
-                href="/decouvrir"
+                href="/"
                 className="px-6 py-2.5 bg-[#DC2626] text-white font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors"
               >
                 Decouvrir les boucheries

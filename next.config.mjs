@@ -14,6 +14,11 @@ const nextConfig = {
       { protocol: "https", hostname: "*.replicate.delivery" },
     ],
   },
+  async redirects() {
+    return [
+      { source: "/decouvrir", destination: "/", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

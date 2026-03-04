@@ -260,7 +260,7 @@ export default function AvantagesPage() {
 
       {/* CTA */}
       <Link
-        href="/decouvrir"
+        href="/"
         className="block text-center bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl transition-colors"
       >
         Commander maintenant <ChevronRight size={16} className="inline ml-1" />

@@ -35,7 +35,7 @@ export default function SignUpPage() {
         />
         <p className="text-center mt-5">
           <a
-            href="/decouvrir"
+            href="/"
             className="text-xs text-stone-400 underline underline-offset-4 hover:text-stone-600"
           >
             Retour au site

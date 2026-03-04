@@ -121,7 +121,7 @@ function InscriptionBoucherContent() {
               size="lg"
               asChild
             >
-              <Link href="/decouvrir">Retour a l&apos;accueil</Link>
+              <Link href="/">Retour a l&apos;accueil</Link>
             </Button>
           </div>
         </main>

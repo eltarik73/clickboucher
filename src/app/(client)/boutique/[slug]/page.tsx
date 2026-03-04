@@ -246,7 +246,7 @@ export default async function BoutiquePage({
       <BreadcrumbSchema
         items={[
           { name: "Accueil", url: `${SITE_URL}` },
-          { name: "Boucheries", url: `${SITE_URL}/decouvrir` },
+          { name: "Boucheries", url: `${SITE_URL}/` },
           { name: shop.name, url: `${SITE_URL}/boutique/${shop.slug}` },
         ]}
       />
@@ -299,7 +299,7 @@ export default async function BoutiquePage({
           {/* Back button + Favorite */}
           <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
             <Link
-              href="/decouvrir"
+              href="/"
               aria-label="Retour aux boucheries"
               className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
             >

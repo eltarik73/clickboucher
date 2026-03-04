@@ -166,7 +166,7 @@ export default function EspaceBoucherPage() {
         <header className="relative z-10 border-b border-white/5">
           <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
             <Link
-              href="/decouvrir"
+              href="/"
               className="flex items-center gap-2.5 text-white hover:text-gray-300 transition"
             >
               <ArrowLeft size={18} />

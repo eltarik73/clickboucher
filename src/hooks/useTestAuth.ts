@@ -59,7 +59,7 @@ export function useTestAuth() {
 
     // Redirect to the right section
     const redirects: Record<TestRole, string> = {
-      CLIENT: "/decouvrir",
+      CLIENT: "/",
       BOUCHER: "/boucher/dashboard",
       ADMIN: "/webmaster",
     };
@@ -75,7 +75,7 @@ export function useTestAuth() {
     document.cookie = `${ROLE_KEY}=;path=/;max-age=0`;
     setActivated(false);
     // Reload to go back to normal Clerk mode
-    window.location.href = "/decouvrir";
+    window.location.href = "/";
   }, []);
 
   const user = TEST_USERS[role];

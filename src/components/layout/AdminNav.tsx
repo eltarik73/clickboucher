@@ -70,7 +70,7 @@ export function AdminSidebar() {
       {/* Footer */}
       <div className="px-6 py-4 border-t border-gray-100 dark:border-white/10">
         <Link
-          href="/decouvrir"
+          href="/"
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#DC2626] transition-colors"
         >
           ← Retour au site
@@ -137,7 +137,7 @@ export function AdminMobileHeader({
           </span>
         </div>
         <Link
-          href="/decouvrir"
+          href="/"
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#DC2626] transition-colors"
         >
           ← Site

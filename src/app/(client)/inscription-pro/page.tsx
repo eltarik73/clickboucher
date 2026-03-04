@@ -151,7 +151,7 @@ export default function InscriptionProPage() {
               Vous recevrez une notification dès approbation.
             </p>
             <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
-              <Link href="/decouvrir">Retour à l&apos;accueil</Link>
+              <Link href="/">Retour à l&apos;accueil</Link>
             </Button>
           </div>
         </main>
@@ -177,7 +177,7 @@ export default function InscriptionProPage() {
               Vous recevrez une notification dès validation.
             </p>
             <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
-              <Link href="/decouvrir">Retour à l&apos;accueil</Link>
+              <Link href="/">Retour à l&apos;accueil</Link>
             </Button>
           </div>
         </main>

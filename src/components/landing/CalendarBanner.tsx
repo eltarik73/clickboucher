@@ -51,7 +51,7 @@ export default function CalendarBanner() {
         </h3>
         <p className="text-sm opacity-90 mt-1">{event.link}</p>
         <Link
-          href="/decouvrir#butchers"
+          href="/#butchers"
           className="inline-block mt-3 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-semibold transition-colors"
         >
           Voir les boucheries

@@ -802,7 +802,7 @@ export default function CommandePage({
               className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]"
               asChild
             >
-              <Link href="/decouvrir">Decouvrir les boucheries</Link>
+              <Link href="/">Decouvrir les boucheries</Link>
             </Button>
           </div>
         )}
@@ -829,7 +829,7 @@ export default function CommandePage({
                 variant="outline"
                 asChild
               >
-                <Link href="/decouvrir">Autres boucheries</Link>
+                <Link href="/">Autres boucheries</Link>
               </Button>
             </div>
           </div>

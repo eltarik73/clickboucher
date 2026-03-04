@@ -62,7 +62,7 @@ function buildCampaignHtml(campaign: {
       <div style="font-size:15px;color:#374151;line-height:1.6">${campaign.body}</div>
       ${promoHtml}
       <table cellpadding="0" cellspacing="0" style="margin:24px 0"><tr><td>
-        <a href="${baseUrl}/decouvrir" style="display:inline-block;padding:12px 28px;background:#DC2626;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px">Découvrir nos boucheries →</a>
+        <a href="${baseUrl}/" style="display:inline-block;padding:12px 28px;background:#DC2626;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px">Découvrir nos boucheries →</a>
       </td></tr></table>
     </td>
   </tr>
