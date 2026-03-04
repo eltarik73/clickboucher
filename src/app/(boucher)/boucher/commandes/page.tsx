@@ -117,18 +117,15 @@ export default function KitchenModePage() {
   const [shopPrepTime, setShopPrepTime] = useState(15);
   const [shopStatus, setShopStatus] = useState("OPEN");
   const [shopPauseEndsAt, setShopPauseEndsAt] = useState<string | null>(null);
-  const [shopBusyEndsAt, setShopBusyEndsAt] = useState<string | null>(null);
-  const [shopBusyExtraMin, setShopBusyExtraMin] = useState(0);
-  const [defaultBusyDuration, setDefaultBusyDuration] = useState(15);
-  const [showPauseMenu, setShowPauseMenu] = useState(false);
-  const [pauseRemaining, setPauseRemaining] = useState<number | null>(null);
-  const [busyCountdown, setBusyCountdown] = useState<string | null>(null);
+  const [pauseCountdownStr, setPauseCountdownStr] = useState<string | null>(null);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [selectedPauseDuration, setSelectedPauseDuration] = useState(15);
 
   // Alert overlay
   const [alertOrder, setAlertOrder] = useState<KitchenOrder | null>(null);
 
   // Active tab (mobile) — desktop uses multi-column layout
-  const [activeTab, setActiveTab] = useState<Tab>("nouvelles");
+  const [activeTab, setActiveTab] = useState<Tab>("en-cours");
 
   // Modals
   const [stockIssueOrder, setStockIssueOrder] = useState<KitchenOrder | null>(null);
@@ -239,9 +236,6 @@ export default function KitchenModePage() {
         setShopPrepTime(json.data?.prepTimeMin || 15);
         setShopStatus(json.data?.status || "OPEN");
         setShopPauseEndsAt(json.data?.pauseEndsAt || null);
-        setShopBusyEndsAt(json.data?.busyModeEndsAt || null);
-        setShopBusyExtraMin(json.data?.busyExtraMin || 0);
-        setDefaultBusyDuration(json.data?.defaultBusyDurationMin || 15);
       }
     } catch {
       // silent
@@ -252,34 +246,27 @@ export default function KitchenModePage() {
     fetchShopInfo();
   }, [fetchShopInfo]);
 
-  // ── Countdown for pause/busy timers (1s tick for MM:SS) ──
+  // ── Countdown for pause timer (1s tick for MM:SS) ──
   useEffect(() => {
     const tick = () => {
       if (shopPauseEndsAt) {
-        const diff = Math.max(0, Math.floor((new Date(shopPauseEndsAt).getTime() - Date.now()) / 60000));
-        setPauseRemaining(diff > 0 ? diff : null);
-        if (diff <= 0) fetchShopInfo();
-      } else {
-        setPauseRemaining(null);
-      }
-      if (shopBusyEndsAt) {
-        const diffMs = new Date(shopBusyEndsAt).getTime() - Date.now();
+        const diffMs = new Date(shopPauseEndsAt).getTime() - Date.now();
         if (diffMs <= 0) {
-          setBusyCountdown(null);
+          setPauseCountdownStr(null);
           fetchShopInfo();
         } else {
           const m = Math.floor(diffMs / 60000);
           const s = Math.floor((diffMs % 60000) / 1000);
-          setBusyCountdown(`${m}:${s.toString().padStart(2, "0")}`);
+          setPauseCountdownStr(`${m}:${s.toString().padStart(2, "0")}`);
         }
       } else {
-        setBusyCountdown(null);
+        setPauseCountdownStr(null);
       }
     };
     tick();
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
-  }, [shopPauseEndsAt, shopBusyEndsAt, fetchShopInfo]);
+  }, [shopPauseEndsAt, fetchShopInfo]);
 
   // ── Stop alert when no more pending orders ──
   useEffect(() => {
@@ -480,6 +467,55 @@ export default function KitchenModePage() {
         </div>
       )}
 
+      {/* ── Pause modal ── */}
+      {showPauseModal && (
+        <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4" onClick={() => setShowPauseModal(false)}>
+          <div className="bg-[#1a1a1a] rounded-2xl max-w-sm w-full p-5 space-y-4 border border-white/10" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-white font-bold text-base">Mettre en pause</h3>
+            <p className="text-sm text-gray-400">Les clients ne pourront pas passer de commande pendant la pause.</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[15, 30, 60].map((min) => (
+                <button
+                  key={min}
+                  onClick={() => setSelectedPauseDuration(min)}
+                  className={`py-3 rounded-xl text-sm font-bold transition-all ${
+                    selectedPauseDuration === min
+                      ? "bg-amber-500 text-white"
+                      : "bg-white/5 text-gray-400 hover:bg-white/10"
+                  }`}
+                >
+                  {min} min
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={async () => {
+                  setShowPauseModal(false);
+                  try {
+                    const res = await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: selectedPauseDuration }),
+                    });
+                    if (res.ok) { fetchShopInfo(); toast.success(`Pause ${selectedPauseDuration} min`); }
+                  } catch { toast.error("Erreur"); }
+                }}
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors text-sm"
+              >
+                Lancer la pause
+              </button>
+              <button
+                onClick={() => setShowPauseModal(false)}
+                className="px-4 py-3 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-colors text-sm"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══════════════════════════════════════════ */}
       {/* ── KITCHEN INTERFACE ── */}
       {/* ══════════════════════════════════════════ */}
@@ -506,17 +542,43 @@ export default function KitchenModePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Status indicator (actions in bar below) */}
-            {shopStatus !== "OPEN" && (
-              <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${
-                shopStatus === "PAUSED" || shopStatus === "CLOSED"
-                  ? "bg-red-500/20 text-red-400"
-                  : shopStatus === "BUSY"
-                  ? "bg-amber-500/20 text-amber-400"
-                  : "bg-gray-500/20 text-gray-400"
-              }`}>
-                {shopStatus === "PAUSED" || shopStatus === "CLOSED" ? "En pause" : shopStatus === "BUSY" ? "Occupé" : shopStatus}
-              </span>
+            {/* ── Toggle En ligne / Hors ligne ── */}
+            <button
+              onClick={async () => {
+                try {
+                  const isOnline = shopStatus === "OPEN" || shopStatus === "BUSY";
+                  const action = isOnline ? "close" : "resume";
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action }),
+                  });
+                  if (res.ok) {
+                    fetchShopInfo();
+                    toast.success(isOnline ? "Boutique hors ligne" : "Boutique en ligne");
+                  }
+                } catch { toast.error("Erreur"); }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] ${
+                shopStatus === "OPEN" || shopStatus === "BUSY"
+                  ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                  : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${
+                shopStatus === "OPEN" || shopStatus === "BUSY" ? "bg-emerald-400 animate-pulse" : "bg-red-400"
+              }`} />
+              {shopStatus === "OPEN" || shopStatus === "BUSY" ? "En ligne" : "Hors ligne"}
+            </button>
+
+            {/* ── Pause button (only when online) ── */}
+            {(shopStatus === "OPEN" || shopStatus === "BUSY") && (
+              <button
+                onClick={() => { setSelectedPauseDuration(15); setShowPauseModal(true); }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all min-h-[36px]"
+              >
+                <Clock size={12} /> Pause
+              </button>
             )}
 
             {/* Time */}
@@ -575,33 +637,11 @@ export default function KitchenModePage() {
           </div>
         </header>
 
-        {/* ── PAUSE BANNER ── */}
-        {shopStatus === "CLOSED" && (
-          <div className="shrink-0 bg-gray-500/15 border-b border-gray-500/20 px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-gray-400">
-              ⏹ Boutique hors ligne
-            </p>
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch("/api/boucher/shop/status", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "resume" }),
-                  });
-                  if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
-                } catch { toast.error("Erreur"); }
-              }}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
-            >
-              ▶ Passer en ligne
-            </button>
-          </div>
-        )}
+        {/* ── PAUSE BANNER (amber, countdown MM:SS) ── */}
         {shopStatus === "PAUSED" && (
-          <div className="shrink-0 bg-red-500/15 border-b border-red-500/20 px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-red-400">
-              ⏸ Pause{pauseRemaining !== null ? ` — Reprise dans ${pauseRemaining} min` : ""}
+          <div className="shrink-0 bg-amber-500/15 border-b border-amber-500/20 px-4 py-2.5 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-amber-400">
+              ⏸ Pause{pauseCountdownStr ? ` — Reprise dans ${pauseCountdownStr}` : ""}
             </p>
             <button
               onClick={async () => {
@@ -614,125 +654,9 @@ export default function KitchenModePage() {
                   if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
                 } catch { toast.error("Erreur"); }
               }}
-              className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
+              className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[40px]"
             >
-              ▶ Reprendre
-            </button>
-          </div>
-        )}
-
-        {/* ── BUSY BANNER ── */}
-        {shopStatus === "BUSY" && (
-          <div className="shrink-0 bg-amber-500/15 border-b border-amber-500/20 px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-amber-400">
-              🔴 Mode occupé{busyCountdown ? ` — ${busyCountdown}` : ""}
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/boucher/shop/status", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "busy", extraMin: 15, durationMin: defaultBusyDuration }),
-                    });
-                    if (res.ok) { fetchShopInfo(); toast.success(`+${defaultBusyDuration} min ajoutées`); }
-                  } catch { toast.error("Erreur"); }
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
-              >
-                +{defaultBusyDuration} min
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch("/api/boucher/shop/status", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "end_busy" }),
-                    });
-                    if (res.ok) { fetchShopInfo(); toast.success("Mode occupé désactivé"); }
-                  } catch { toast.error("Erreur"); }
-                }}
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[48px]"
-              >
-                Arrêter
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── ACTION BAR: Pause + Extra prep (when OPEN) ── */}
-        {shopStatus === "OPEN" && (
-          <div className="shrink-0 bg-[#111] border-b border-white/5 px-4 py-2.5 flex items-center gap-3">
-            {/* Pause button with duration options */}
-            <div className="relative">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowPauseMenu(!showPauseMenu); }}
-                className="flex items-center gap-2 px-5 py-3 bg-red-500/15 hover:bg-red-500/25 text-red-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
-              >
-                ⏸ Pause
-              </button>
-              {showPauseMenu && (
-                <>
-                  <div className="fixed inset-0 z-50" onClick={() => setShowPauseMenu(false)} />
-                  <div className="absolute top-full mt-1 left-0 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl z-[51] min-w-[150px]">
-                    {[15, 20, 30].map((min) => (
-                      <button
-                        key={min}
-                        onClick={async () => {
-                          setShowPauseMenu(false);
-                          try {
-                            const res = await fetch("/api/boucher/shop/status", {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: min }),
-                            });
-                            if (res.ok) { fetchShopInfo(); toast.success(`Boutique en pause (${min} min)`); }
-                          } catch { toast.error("Erreur"); }
-                        }}
-                        className="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-white/10 transition-colors font-medium min-h-[44px]"
-                      >
-                        {min} minutes
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Mode Occupé — single click adds defaultBusyDuration min */}
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch("/api/boucher/shop/status", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "busy", extraMin: 15, durationMin: defaultBusyDuration }),
-                  });
-                  if (res.ok) { fetchShopInfo(); toast.success(`Mode occupé (${defaultBusyDuration} min)`); }
-                } catch { toast.error("Erreur"); }
-              }}
-              className="flex items-center gap-2 px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 font-bold rounded-xl transition-colors text-sm min-h-[48px]"
-            >
-              🔴 Occupé ({defaultBusyDuration} min)
-            </button>
-
-            {/* Fermer boutique */}
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch("/api/boucher/shop/status", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "close" }),
-                  });
-                  if (res.ok) { fetchShopInfo(); toast.success("Boutique fermée"); }
-                } catch { toast.error("Erreur"); }
-              }}
-              className="flex items-center gap-2 px-5 py-3 bg-gray-500/15 hover:bg-gray-500/25 text-gray-400 font-bold rounded-xl transition-colors text-sm min-h-[48px] ml-auto"
-            >
-              ⏹ Fermer
+              Reprendre
             </button>
           </div>
         )}
@@ -746,8 +670,8 @@ export default function KitchenModePage() {
           </div>
         )}
 
-        {/* ── Mobile tabs (md-) ── */}
-        <div className="md:hidden shrink-0 bg-[#111] border-b border-white/5 px-2 py-1.5">
+        {/* ── Mobile/tablet tabs (lg-) ── */}
+        <div className="lg:hidden shrink-0 bg-[#111] border-b border-white/5 px-2 py-1.5">
           <div className="flex gap-1 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -786,7 +710,7 @@ export default function KitchenModePage() {
         {/* ══════════════════════════════════════════ */}
         {/* ── DESKTOP: 3-column layout (40% / flex / 20%) ── */}
         {/* ══════════════════════════════════════════ */}
-        <div className="flex-1 overflow-hidden hidden md:flex pb-14">
+        <div className="flex-1 overflow-hidden hidden lg:flex pb-14">
           {/* Column 1: Nouvelles (40%) */}
           <div className="w-[40%] shrink-0">
             <KitchenColumn
@@ -811,18 +735,18 @@ export default function KitchenModePage() {
           {/* Column 2: En cours (flex-1) — split: À préparer + Programmées en attente */}
           <div className="flex-1 min-w-0 flex flex-col h-full">
             {/* Column header */}
-            <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
-              <div className="text-blue-400 bg-blue-500/20 p-1.5 rounded-lg"><ChefHat size={16} /></div>
-              <h2 className="text-sm font-bold text-white">En cours</h2>
+            <div className="shrink-0 px-3 py-2 bg-[#111] border-b border-white/5 flex items-center gap-1.5">
+              <div className="text-blue-400 bg-blue-500/20 p-1 rounded-md"><ChefHat size={16} /></div>
+              <h2 className="text-xs font-bold text-white">En cours</h2>
               {inProgressCount > 0 && (
-                <span className="min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 bg-blue-500 text-white">
+                <span className="min-w-[20px] h-5 flex items-center justify-center text-[11px] font-bold rounded-full px-1 bg-blue-500 text-white">
                   {inProgressCount}
                 </span>
               )}
             </div>
 
             {/* Scrollable content — always split into 2 sections */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
               {/* Section 1: À préparer maintenant — always visible */}
               <div className="flex items-center gap-2 px-1 pt-1">
                 <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-blue-400 animate-pulse" : "bg-gray-700"}`} />
@@ -918,7 +842,7 @@ export default function KitchenModePage() {
         </div>
 
         {/* ── Desktop bottom bar (Historique) ── */}
-        <div className="hidden md:flex fixed bottom-0 inset-x-0 h-14 bg-zinc-900 border-t border-zinc-800 items-center justify-center gap-4 px-6 z-40">
+        <div className="hidden lg:flex fixed bottom-0 inset-x-0 h-14 bg-zinc-900 border-t border-zinc-800 items-center justify-center gap-4 px-6 z-40">
           <button
             onClick={() => setShowHistory(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors text-sm font-medium"
@@ -936,7 +860,7 @@ export default function KitchenModePage() {
         {/* ══════════════════════════════════════════ */}
         {/* ── MOBILE: Single column (3 tabs) ── */}
         {/* ══════════════════════════════════════════ */}
-        <div className="flex-1 overflow-y-auto md:hidden p-3 pb-4 space-y-3">
+        <div className="flex-1 overflow-y-auto lg:hidden p-3 pb-4 space-y-1.5">
           {/* Scanner button for ready tab */}
           {activeTab === "pretes" && readyCount > 0 && (
             <button
@@ -1143,12 +1067,12 @@ function KitchenColumn({
   return (
     <div className="flex flex-col h-full min-w-0">
       {/* Column header */}
-      <div className="shrink-0 px-4 py-3 bg-[#111] border-b border-white/5 flex items-center gap-2">
-        <div className={`${colorMap[color]} p-1.5 rounded-lg`}>{icon}</div>
-        <h2 className="text-sm font-bold text-white">{title}</h2>
+      <div className="shrink-0 px-3 py-2 bg-[#111] border-b border-white/5 flex items-center gap-1.5">
+        <div className={`${colorMap[color]} p-1 rounded-md`}>{icon}</div>
+        <h2 className="text-xs font-bold text-white">{title}</h2>
         {count > 0 && (
           <span
-            className={`min-w-[22px] h-[22px] flex items-center justify-center text-[11px] font-bold rounded-full px-1.5 ${
+            className={`min-w-[20px] h-5 flex items-center justify-center text-[11px] font-bold rounded-full px-1 ${
               color === "amber"
                 ? "bg-amber-500 text-white"
                 : color === "blue"
@@ -1166,7 +1090,7 @@ function KitchenColumn({
       </div>
 
       {/* Column content */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {extra}
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">

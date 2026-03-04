@@ -346,7 +346,7 @@ export default async function BoutiquePage({
 
               {/* Paused badge */}
               {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
-                <span className="px-3 py-1.5 bg-red-500/80 backdrop-blur-xl text-white text-xs font-bold rounded-[10px]">
+                <span className="px-3 py-1.5 bg-amber-500/80 backdrop-blur-xl text-white text-xs font-bold rounded-[10px]">
                   Pause
                 </span>
               )}
@@ -389,6 +389,23 @@ export default async function BoutiquePage({
             ) : null;
           })()}
         </div>
+
+        {/* ── Pause banner (visible to clients) ── */}
+        {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
+          <div className="mx-5 mb-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 rounded-xl flex items-center gap-2">
+            <Clock size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+            <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+              Commandes temporairement suspendues
+              {shop.pauseEndsAt && (
+                <> — Reprise estimée à{" "}
+                  <span className="font-bold">
+                    {new Date(shop.pauseEndsAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════ */}
         {/* OFFER BANNER */}
