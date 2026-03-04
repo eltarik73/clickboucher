@@ -835,16 +835,31 @@ export function startCronJobs() {
   cron.schedule("*/5 * * * *", async () => {
     try {
       const now = new Date();
-      const dueCampaigns = await prisma.campaign.updateMany({
+
+      // Find due scheduled campaigns
+      const dueCampaigns = await prisma.campaign.findMany({
         where: {
           status: "SCHEDULED",
           scheduledAt: { not: null, lte: now },
         },
-        data: { status: "SENT", sentAt: now },
+        select: { id: true, title: true },
       });
 
-      if (dueCampaigns.count > 0) {
-        console.log(`[CRON][campaign] Marked ${dueCampaigns.count} campaigns as SENT`);
+      if (dueCampaigns.length === 0) return;
+
+      const { executeCampaignSend } = await import("@/lib/marketing/send-campaign");
+
+      for (const campaign of dueCampaigns) {
+        try {
+          const result = await executeCampaignSend(campaign.id);
+          console.log(`[CRON][campaign] Sent "${campaign.title}": ${result.sent}/${result.total} emails`);
+        } catch (err) {
+          console.error(`[CRON][campaign] Error sending "${campaign.title}":`, err);
+          await prisma.campaign.update({
+            where: { id: campaign.id },
+            data: { status: "SCHEDULED" },
+          }).catch(() => {});
+        }
       }
     } catch (error) {
       console.error("[CRON][campaign] Error:", error);
