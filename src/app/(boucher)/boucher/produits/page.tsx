@@ -23,6 +23,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { getFlag, getOriginCountry } from "@/lib/flags";
+import { resolveProductImage } from "@/lib/product-images";
 import { ProductForm, type EditProduct } from "./ProductForm";
 import { useNotify } from "@/components/ui/NotificationToast";
 
@@ -837,10 +838,10 @@ function ProductRow({
     return h < 24 ? `Retour ${h}h` : "Retour demain";
   }
 
-  // Pick best image
+  // Pick best image — with fallback chain
   const imgSrc = product.images.length > 0
     ? (product.images.find((i) => i.isPrimary) || product.images[0]).url
-    : product.imageUrl;
+    : (product.imageUrl || null);
 
   const SNOOZE_OPTIONS = [
     { type: "ONE_HOUR", label: "1 heure" },
@@ -874,6 +875,10 @@ function ProductRow({
             height={52}
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
+            onError={(e) => {
+              const fallback = resolveProductImage({ name: product.name, imageUrl: null, category: product.category.name });
+              (e.target as HTMLImageElement).src = fallback;
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xl">

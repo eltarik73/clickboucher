@@ -341,6 +341,8 @@ export default function PanierPage() {
     setShowCountdown(true);
   };
 
+  const backHref = state.shopSlug ? `/boutique/${state.shopSlug}` : "/";
+
   // ── Empty cart ──────────────────────────────────
   if (state.items.length === 0) {
     return (
@@ -349,7 +351,7 @@ export default function PanierPage() {
         <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
           <div className="max-w-xl mx-auto flex items-center gap-3">
             <Link
-              href="/"
+              href={backHref}
               className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
             >
               <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
@@ -386,7 +388,7 @@ export default function PanierPage() {
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href={backHref}
               className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
             >
               <ArrowLeft size={17} className="text-gray-900 dark:text-white" />

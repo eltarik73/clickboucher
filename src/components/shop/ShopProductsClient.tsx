@@ -137,6 +137,13 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
     [cardProducts, activeCat]
   );
 
+  /** Resolve the best image for a product — same logic as ProductCard */
+  const getProductImage = useCallback((p: ProductCardData) => {
+    return p.images?.length > 0
+      ? p.images[0].url
+      : resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name });
+  }, []);
+
   const handleAdd = useCallback(
     (p: ProductCardData) => {
       if (p.unit === "KG") {
@@ -145,7 +152,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           id: p.id,
           name: p.name,
           description: p.description || "",
-          imageUrl: resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name }),
+          imageUrl: getProductImage(p),
           category: p.category.name,
           unit: p.unit,
           priceCents: p.priceCents,
@@ -165,7 +172,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           id: p.id,
           name: p.name,
           description: p.description || "",
-          imageUrl: resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name }),
+          imageUrl: getProductImage(p),
           category: p.category.name,
           priceCents: p.priceCents,
           origin: p.origin,
@@ -181,7 +188,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           id: p.id,
           productId: p.id,
           name: p.name,
-          imageUrl: resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name }),
+          imageUrl: getProductImage(p),
           unit: p.unit as "PIECE" | "BARQUETTE",
           priceCents: p.priceCents,
           quantity: 1,
@@ -192,7 +199,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       toast.success(`${p.name} ajouté au panier`, { icon: <ShoppingBag size={14} />, duration: 1500 });
       navigator.vibrate?.(50);
     },
-    [addItem, shopRef, products]
+    [addItem, shopRef, products, getProductImage]
   );
 
   const handleWeightConfirm = useCallback(
