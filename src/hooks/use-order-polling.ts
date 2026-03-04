@@ -33,6 +33,9 @@ export type KitchenOrder = {
     weightGrams: number | null;
     sliceCount: number | null;
     sliceThickness: string | null;
+    variant: string | null;
+    pieceCount: number | null;
+    pieceLabel: string | null;
     itemNote: string | null;
     available: boolean;
     product?: { name: string; unit: string; vatRate?: number | null; imageUrl?: string | null };

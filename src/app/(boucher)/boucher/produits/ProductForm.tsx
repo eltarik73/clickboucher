@@ -67,6 +67,10 @@ export type EditProduct = {
   isActive: boolean;
   unitLabel: string | null;
   sliceOptions: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
+  variants: string[];
+  weightPerPiece: number | null;
+  pieceLabel: string | null;
+  weightMargin: number;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
 };
@@ -197,6 +201,15 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   );
   const [customerNote, setCustomerNote] = useState(product?.customerNote || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Variantes (saveurs)
+  const [variants, setVariants] = useState<string[]>(product?.variants || []);
+  const [variantInput, setVariantInput] = useState("");
+
+  // Calculateur poids/pièces
+  const [weightPerPiece, setWeightPerPiece] = useState<number | null>(product?.weightPerPiece ?? null);
+  const [pieceLabel, setPieceLabel] = useState(product?.pieceLabel || "");
+  const [weightMargin, setWeightMargin] = useState(product?.weightMargin ?? 15);
 
   // ── Import from reference catalog ──
   async function openCatalogImport() {
@@ -359,6 +372,19 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
       body.sliceOptions = { defaultSlices, minSlices, maxSlices, thicknesses };
     } else {
       body.sliceOptions = null;
+    }
+
+    // Variantes
+    body.variants = variants;
+
+    // Calculateur pièces (KG only)
+    if (unit === "KG" && weightPerPiece) {
+      body.weightPerPiece = weightPerPiece;
+      body.pieceLabel = pieceLabel.trim() || null;
+      body.weightMargin = weightMargin;
+    } else {
+      body.weightPerPiece = null;
+      body.pieceLabel = null;
     }
 
     // Images (server-uploaded: blob URLs or legacy /api/ URLs)
@@ -598,6 +624,42 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   </div>
                 )}
               </div>
+
+              {/* Variantes / Saveurs (optionnel) */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
+                  Variantes / Saveurs <span className="text-gray-400 font-normal text-xs">(optionnel)</span>
+                </label>
+                {variants.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {variants.map((v, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
+                        {v}
+                        <button type="button" onClick={() => setVariants(variants.filter((_, j) => j !== i))} className="hover:text-[#DC2626]">
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {["Nature", "Tex-Mex", "Curry", "Herbes", "Piment", "Ail"].filter(s => !variants.includes(s)).slice(0, 6).map(s => (
+                    <button key={s} type="button" onClick={() => setVariants([...variants, s])}
+                      className="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      + {s}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input value={variantInput} onChange={e => setVariantInput(e.target.value)}
+                    placeholder="Autre saveur..." className="h-9 text-sm"
+                    onKeyDown={e => { if (e.key === "Enter" && variantInput.trim()) { e.preventDefault(); if (!variants.includes(variantInput.trim())) setVariants([...variants, variantInput.trim()]); setVariantInput(""); } }} />
+                  <Button type="button" variant="outline" size="sm" disabled={!variantInput.trim() || variants.includes(variantInput.trim())}
+                    onClick={() => { if (variantInput.trim() && !variants.includes(variantInput.trim())) setVariants([...variants, variantInput.trim()]); setVariantInput(""); }}>
+                    <Plus size={14} />
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -756,6 +818,45 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                       ))}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Calculateur pièces (only for KG) */}
+              {unit === "KG" && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-xl p-4 space-y-3 border border-blue-200 dark:border-blue-800/30">
+                  <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                    Calculateur pieces <span className="text-blue-400 font-normal text-xs">(optionnel)</span>
+                  </span>
+                  <p className="text-xs text-blue-500 dark:text-blue-400">
+                    Si ce produit se vend aussi a la piece (ex: merguez 80g/piece), le client pourra choisir un nombre de pieces.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Poids par piece (g)</p>
+                      <Input type="number" value={weightPerPiece ?? ""} onChange={e => setWeightPerPiece(e.target.value ? parseInt(e.target.value) : null)}
+                        placeholder="ex: 80" className="h-9 text-sm" min={1} max={5000} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Nom de la piece</p>
+                      <Input value={pieceLabel} onChange={e => setPieceLabel(e.target.value)}
+                        placeholder="ex: merguez" className="h-9 text-sm" />
+                    </div>
+                  </div>
+                  {weightPerPiece && (
+                    <div>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Marge estimation (%)</p>
+                      <div className="flex gap-1.5">
+                        {[5, 10, 15, 20, 25].map(m => (
+                          <button key={m} type="button" onClick={() => setWeightMargin(m)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold min-h-[36px] transition-all ${
+                              weightMargin === m ? "bg-blue-600 text-white" : "bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
+                            }`}>
+                            &plusmn;{m}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

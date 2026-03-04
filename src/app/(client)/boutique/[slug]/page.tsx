@@ -221,6 +221,10 @@ export default async function BoutiquePage({
     weightStepG: p.weightStepG,
     maxWeightG: p.maxWeightG,
     sliceOptions: p.sliceOptions as ProductData["sliceOptions"] ?? null,
+    variants: p.variants ?? [],
+    weightPerPiece: p.weightPerPiece ?? null,
+    pieceLabel: p.pieceLabel ?? null,
+    weightMargin: p.weightMargin ?? 15,
     category: {
       id: p.category.id,
       name: p.category.name,

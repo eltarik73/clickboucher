@@ -301,6 +301,9 @@ export async function POST(req: NextRequest) {
         itemNote: item.itemNote ?? null,
         sliceCount: item.sliceCount ?? null,
         sliceThickness: item.sliceThickness ?? null,
+        variant: item.variant ?? null,
+        pieceCount: item.pieceCount ?? null,
+        pieceLabel: item.pieceLabel ?? null,
         estimatedPriceCents: itemTotal,
       };
     });

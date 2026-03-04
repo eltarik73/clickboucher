@@ -95,9 +95,11 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
     .map((item) => {
       const qtyStr = formatItemQty(item);
       const name = item.product?.name || item.name;
+      const variantStr = item.variant ? ` [${item.variant}]` : "";
+      const pieceStr = item.pieceCount && item.pieceLabel ? ` (${item.pieceCount} ${item.pieceLabel})` : "";
       const price = formatPrice(item.totalCents || item.priceCents * item.quantity);
       return `<div class="item">
-      <div class="item-line"><span>${escapeHtml(qtyStr)} ${escapeHtml(name)}</span><span class="item-price">${escapeHtml(price)}</span></div>
+      <div class="item-line"><span>${escapeHtml(qtyStr)} ${escapeHtml(name)}${escapeHtml(variantStr)}${escapeHtml(pieceStr)}</span><span class="item-price">${escapeHtml(price)}</span></div>
       <div class="item-halal">HALAL</div>
     </div>`;
     })

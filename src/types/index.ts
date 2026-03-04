@@ -46,6 +46,10 @@ export type Product = {
   race: string | null;
   freshness: string;
   customerNote: string | null;
+  variants: string[];
+  weightPerPiece: number | null;
+  pieceLabel: string | null;
+  weightMargin: number;
   promoPct: number | null;
   promoEnd: string | null;
   promoType: string | null;

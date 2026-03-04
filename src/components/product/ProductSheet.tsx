@@ -9,7 +9,7 @@ import type { ProductCardData } from "./ProductCard";
 interface Props {
   product: ProductCardData | null;
   cartQty?: number;
-  onAdd: () => void;
+  onAdd: (variant?: string) => void;
   onIncrement?: () => void;
   onDecrement?: () => void;
   onClose: () => void;
@@ -30,10 +30,12 @@ function promoPrice(cents: number, pct: number) {
 export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecrement, onClose }: Props) {
   const [visible, setVisible] = useState(false);
   const [qty, setQty] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   useEffect(() => {
     if (product) {
       setQty(cartQty > 0 ? cartQty : 1);
+      setSelectedVariant(null);
       requestAnimationFrame(() => setVisible(true));
     } else {
       setVisible(false);
@@ -66,7 +68,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
   const totalPrice = effectivePrice * qty;
 
   function handleAdd() {
-    onAdd();
+    onAdd(selectedVariant || undefined);
     for (let i = 1; i < qty; i++) {
       onIncrement?.();
     }
@@ -227,6 +229,30 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
               >
                 ⚖️ ±10%
               </span>
+            )}
+
+            {/* Variant selector */}
+            {product.variants && product.variants.length > 0 && (
+              <div className="mt-2.5">
+                <p style={{ fontSize: "10px", fontWeight: 700, color: "#A08060", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Saveur</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {product.variants.map(v => (
+                    <button key={v} type="button" onClick={() => setSelectedVariant(v === selectedVariant ? null : v)}
+                      className="transition-all"
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: "9999px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        background: selectedVariant === v ? "#DC2626" : "rgba(255,255,255,0.8)",
+                        color: selectedVariant === v ? "#fff" : "#374151",
+                        border: selectedVariant === v ? "1px solid #DC2626" : "1px solid #ece8e3",
+                      }}>
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 

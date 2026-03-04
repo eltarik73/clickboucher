@@ -44,6 +44,10 @@ export interface ProductData {
   weightStepG: number;
   maxWeightG: number;
   sliceOptions?: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
+  variants: string[];
+  weightPerPiece: number | null;
+  pieceLabel: string | null;
+  weightMargin: number;
   category: CategoryData;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
@@ -111,6 +115,10 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       promoType: p.promoType,
       freshness: p.freshness,
       customerNote: p.customerNote,
+      variants: p.variants,
+      weightPerPiece: p.weightPerPiece,
+      pieceLabel: p.pieceLabel,
+      weightMargin: p.weightMargin,
       category: p.category,
       images: p.images,
       labels: p.labels,
@@ -163,6 +171,10 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           halalOrg: p.halalOrg,
           race: p.race,
           freshness: p.freshness,
+          variants: original?.variants,
+          weightPerPiece: original?.weightPerPiece,
+          pieceLabel: original?.pieceLabel,
+          weightMargin: original?.weightMargin,
         });
         return;
       }
@@ -181,6 +193,12 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           freshness: p.freshness,
           sliceOptions: (original?.sliceOptions as TrancheSheetProduct["sliceOptions"]) ?? null,
         });
+        return;
+      }
+      // If product has variants, open detail sheet for variant selection
+      const original = products.find(prod => prod.id === p.id);
+      if (original?.variants && original.variants.length > 0) {
+        setDetailProduct(p);
         return;
       }
       addItem(
@@ -203,11 +221,12 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
   );
 
   const handleWeightConfirm = useCallback(
-    (weightG: number) => {
+    (weightG: number, options?: { variant?: string; pieceCount?: number; pieceLabel?: string }) => {
       if (!selectedProduct) return;
+      const cartId = options?.variant ? `${selectedProduct.id}-${options.variant}` : selectedProduct.id;
       addItem(
         {
-          id: selectedProduct.id,
+          id: cartId,
           productId: selectedProduct.id,
           name: selectedProduct.name,
           imageUrl: selectedProduct.imageUrl,
@@ -218,10 +237,14 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           category: selectedProduct.category,
           quantiteG: weightG,
           prixAuKg: selectedProduct.priceCents / 100,
+          variant: options?.variant,
+          pieceCount: options?.pieceCount,
+          pieceLabel: options?.pieceLabel,
         },
         shopRef
       );
-      toast.success(`${selectedProduct.name} (${weightG}g) ajouté`, { icon: <ShoppingBag size={14} />, duration: 1500 });
+      const label = options?.variant ? `${selectedProduct.name} (${options.variant}, ${weightG}g)` : `${selectedProduct.name} (${weightG}g)`;
+      toast.success(`${label} ajouté`, { icon: <ShoppingBag size={14} />, duration: 1500 });
       navigator.vibrate?.(50);
       setSelectedProduct(null);
     },
@@ -376,7 +399,32 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       <ProductSheet
         product={detailProduct}
         cartQty={detailProduct ? (cartItems.find(i => i.id === detailProduct.id)?.quantity ?? 0) : 0}
-        onAdd={() => { if (detailProduct) handleAdd(detailProduct); }}
+        onAdd={(variant?: string) => {
+          if (!detailProduct) return;
+          const original = products.find(prod => prod.id === detailProduct.id);
+          // For PIECE/BARQUETTE with variant — add directly with variant id
+          if (variant && (detailProduct.unit === "PIECE" || detailProduct.unit === "BARQUETTE")) {
+            addItem(
+              {
+                id: `${detailProduct.id}-${variant}`,
+                productId: detailProduct.id,
+                name: detailProduct.name,
+                imageUrl: getProductImage(detailProduct),
+                unit: detailProduct.unit as "PIECE" | "BARQUETTE",
+                priceCents: detailProduct.priceCents,
+                quantity: 1,
+                category: detailProduct.category.name,
+                variant,
+              },
+              shopRef
+            );
+            toast.success(`${detailProduct.name} (${variant}) ajouté`, { icon: <ShoppingBag size={14} />, duration: 1500 });
+            navigator.vibrate?.(50);
+            return;
+          }
+          // Default: use normal handleAdd flow (KG opens WeightSheet, etc.)
+          handleAdd(detailProduct);
+        }}
         onIncrement={detailProduct ? () => handleIncrement(detailProduct.id) : undefined}
         onDecrement={detailProduct ? () => handleDecrement(detailProduct.id) : undefined}
         onClose={() => setDetailProduct(null)}

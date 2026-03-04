@@ -23,17 +23,24 @@ export interface WeightSheetProduct {
   halalOrg?: string | null;
   race?: string | null;
   freshness?: string | null;
+  variants?: string[] | null;
+  weightPerPiece?: number | null;
+  pieceLabel?: string | null;
+  weightMargin?: number | null;
 }
 
 interface Props {
   product: WeightSheetProduct | null;
-  onConfirm: (weightG: number) => void;
+  onConfirm: (weightG: number, options?: { variant?: string; pieceCount?: number; pieceLabel?: string }) => void;
   onClose: () => void;
 }
 
 export function WeightSheet({ product, onConfirm, onClose }: Props) {
   const [visible, setVisible] = useState(false);
   const [qty, setQty] = useState(500);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [pieceMode, setPieceMode] = useState(false);
+  const [pieceCount, setPieceCount] = useState(6);
 
   const rule = product ? getConversionRule(product.category) : null;
 
@@ -48,6 +55,9 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
     const r = getConversionRule(product.category);
     const d = r.presetsG[1] ?? r.presetsG[0] ?? (product.minWeightG ?? r.minG);
     setQty(d);
+    setSelectedVariant(null);
+    setPieceMode(false);
+    setPieceCount(6);
   }
 
   useEffect(() => {
@@ -83,7 +93,6 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
   };
 
   const prixAuKg = product.priceCents / 100;
-  const prix = computePrice(qty, prixAuKg);
 
   return (
     <>
@@ -175,27 +184,83 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
             </div>
           )}
 
-          {/* ── Weight selector ── */}
-          <div className="px-3.5 pt-3 pb-1">
-            <QuantitySelector rule={effectiveRule} initialG={qty} onChange={setQty} compact />
-          </div>
+          {/* ── Variant selector ── */}
+          {product.variants && product.variants.length > 0 && (
+            <div className="px-3.5 mt-2.5">
+              <p className="text-[10px] font-bold text-[#A08060] dark:text-neutral-500 uppercase tracking-[1px] mb-1.5">Saveur</p>
+              <div className="flex flex-wrap gap-1.5">
+                {product.variants.map(v => (
+                  <button key={v} type="button" onClick={() => setSelectedVariant(v === selectedVariant ? null : v)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${selectedVariant === v ? "bg-[#DC2626] text-white" : "bg-white/80 dark:bg-white/5 border border-[#ece8e3] dark:border-white/10 text-gray-700 dark:text-gray-300"}`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Weight/Pieces toggle ── */}
+          {product.weightPerPiece && product.weightPerPiece > 0 && (
+            <div className="px-3.5 mt-2">
+              <div className="flex bg-[#EDE8E2] dark:bg-white/5 rounded-lg p-0.5">
+                <button type="button" onClick={() => setPieceMode(false)}
+                  className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${!pieceMode ? "bg-white dark:bg-[#2a2a2a] shadow-sm text-[#1C1512] dark:text-white" : "text-gray-500"}`}>
+                  Au poids
+                </button>
+                <button type="button" onClick={() => setPieceMode(true)}
+                  className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${pieceMode ? "bg-white dark:bg-[#2a2a2a] shadow-sm text-[#1C1512] dark:text-white" : "text-gray-500"}`}>
+                  Par pieces
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Weight selector OR Piece counter ── */}
+          {pieceMode && product.weightPerPiece ? (
+            <div className="px-3.5 pt-3 pb-1 space-y-2">
+              <div className="flex items-center justify-center gap-4">
+                <button type="button" onClick={() => setPieceCount(Math.max(1, pieceCount - 1))}
+                  className="w-9 h-9 rounded-full bg-white dark:bg-white/5 border border-[#ece8e3] dark:border-white/10 flex items-center justify-center text-lg font-bold text-[#1C1512] dark:text-white">-</button>
+                <div className="text-center">
+                  <span className="text-2xl font-black text-[#1C1512] dark:text-white">{pieceCount}</span>
+                  <span className="text-sm text-[#A08060] ml-1">{product.pieceLabel || "pieces"}</span>
+                </div>
+                <button type="button" onClick={() => setPieceCount(Math.min(50, pieceCount + 1))}
+                  className="w-9 h-9 rounded-full bg-white dark:bg-white/5 border border-[#ece8e3] dark:border-white/10 flex items-center justify-center text-lg font-bold text-[#1C1512] dark:text-white">+</button>
+              </div>
+              <p className="text-center text-xs text-[#A08060] dark:text-neutral-500">
+                ~{pieceCount * product.weightPerPiece}g &plusmn;{product.weightMargin || 15}%
+              </p>
+            </div>
+          ) : (
+            <div className="px-3.5 pt-3 pb-1">
+              <QuantitySelector rule={effectiveRule} initialG={qty} onChange={setQty} compact />
+            </div>
+          )}
 
           {/* Weight tolerance note */}
           <div className="px-3.5 mt-1">
             <span className="inline-block px-2 py-1 rounded-md text-[10px] font-medium bg-[#FFFBEB] dark:bg-amber-950/30 text-[#92400E] dark:text-amber-400">
-              ⚖️ ±10% — ajustement au poids réel
+              ⚖️ &plusmn;{product.weightMargin || 10}% — ajustement au poids reel
             </span>
           </div>
 
           {/* ── CTA button ── */}
           <div className="px-3.5 pb-3.5 pt-2.5 mt-1">
             <button
-              onClick={() => onConfirm(qty)}
+              onClick={() => {
+                const effectiveWeight = pieceMode && product.weightPerPiece ? pieceCount * product.weightPerPiece : qty;
+                onConfirm(effectiveWeight, {
+                  variant: selectedVariant || undefined,
+                  pieceCount: pieceMode && product.weightPerPiece ? pieceCount : undefined,
+                  pieceLabel: pieceMode && product.weightPerPiece ? (product.pieceLabel || undefined) : undefined,
+                });
+              }}
               className="w-full h-10 rounded-[10px] flex items-center justify-center gap-2 text-white text-sm font-extrabold active:scale-[0.97] transition-transform bg-[#DC2626] shadow-[0_4px_12px_rgba(220,38,38,0.2)]"
             >
               Ajouter
               <span className="bg-white/20 px-2 py-0.5 rounded-md text-[13px] font-black">
-                {formatPrice(prix)}
+                {formatPrice(computePrice(pieceMode && product.weightPerPiece ? pieceCount * product.weightPerPiece : qty, prixAuKg))}
               </span>
             </button>
           </div>

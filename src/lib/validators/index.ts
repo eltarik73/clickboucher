@@ -148,6 +148,10 @@ export const createProductSchema = z.object({
     maxSlices: z.number().int().min(1).max(50),
     thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
   }).nullable().optional(),
+  variants: z.array(z.string().max(50)).max(10).optional(),
+  weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
+  pieceLabel: z.string().max(100).nullable().optional(),
+  weightMargin: z.number().int().min(1).max(50).optional(),
   images: z.array(productImageSchema).optional(),
   labels: z.array(productLabelInputSchema).optional(),
 });
@@ -185,6 +189,10 @@ export const updateProductSchema = z.object({
     maxSlices: z.number().int().min(1).max(50),
     thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
   }).nullable().optional(),
+  variants: z.array(z.string().max(50)).max(10).optional(),
+  weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
+  pieceLabel: z.string().max(100).nullable().optional(),
+  weightMargin: z.number().int().min(1).max(50).optional(),
   images: z.array(productImageSchema).optional(),
   labels: z.array(productLabelInputSchema).optional(),
 });
@@ -210,6 +218,9 @@ const cartItemSchema = z.object({
   itemNote: z.string().max(300).optional(),
   sliceCount: z.number().int().min(1).optional(),
   sliceThickness: z.string().max(50).optional(),
+  variant: z.string().max(50).optional(),
+  pieceCount: z.number().int().min(1).optional(),
+  pieceLabel: z.string().max(100).optional(),
 });
 
 export const createOrderSchema = z.object({

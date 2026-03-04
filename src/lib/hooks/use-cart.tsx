@@ -19,6 +19,10 @@ export interface CartItem {
   // TRANCHE-specific
   sliceCount?: number;
   thickness?: string;
+  // Variant & piece selection
+  variant?: string;
+  pieceCount?: number;
+  pieceLabel?: string;
   // Added for CartItem.tsx compatibility
   category?: string;
   quantiteG?: number;

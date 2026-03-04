@@ -399,6 +399,12 @@ export default function KitchenOrderCard({
                 {(item.product?.unit === "KG" || item.unit === "KG") && item.weightGrams && (
                   <span className="ml-1 text-blue-400 text-[10px]">({item.weightGrams}g)</span>
                 )}
+                {item.variant && (
+                  <span className="ml-1 text-pink-400 text-[10px] font-bold">[{item.variant}]</span>
+                )}
+                {item.pieceCount && item.pieceLabel && (
+                  <span className="ml-1 text-cyan-400 text-[10px]">({item.pieceCount} {item.pieceLabel})</span>
+                )}
               </span>
               <span className="text-gray-500 text-xs font-medium shrink-0 ml-1">
                 {formatPrice(item.totalCents || item.priceCents * item.quantity)}

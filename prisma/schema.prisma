@@ -557,6 +557,12 @@ model Product {
   pricePerKg   Int?     @map("price_per_kg")
   sliceWeights Json?    @map("slice_weights")
 
+  // ── Variantes & Calculateur poids/pièces ──
+  variants       String[]          @default([])
+  weightPerPiece Int?              @map("weight_per_piece")
+  pieceLabel     String?           @map("piece_label")
+  weightMargin   Int     @default(15) @map("weight_margin")
+
   // ── Catalogue de référence (lien souple) ──
   referenceId  String?  @map("reference_id")
 
@@ -1039,6 +1045,12 @@ model OrderItem {
   // ── Types de vente ──
   sliceCount          Int?      @map("slice_count")
   sliceThickness      String?   @map("slice_thickness")
+
+  // ── Variante & pièces ──
+  variant    String?   @map("variant")
+  pieceCount Int?      @map("piece_count")
+  pieceLabel String?   @map("piece_label")
+
   estimatedPriceCents Int?      @map("estimated_price_cents")
 
   // ── Ajustement poids/prix (boucher) ──

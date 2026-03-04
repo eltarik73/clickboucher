@@ -13,7 +13,8 @@ import type { Product as ProductV2, ProductImage as ProductImageType } from "@/t
 export type ProductCardData = Pick<ProductV2,
   "id" | "shopId" | "name" | "description" | "imageUrl" | "priceCents" | "unit" |
   "inStock" | "tags" | "origin" | "halalOrg" | "race" | "popular" |
-  "promoPct" | "promoEnd" | "promoType" | "freshness" | "customerNote"
+  "promoPct" | "promoEnd" | "promoType" | "freshness" | "customerNote" |
+  "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin"
 > & {
   category: { id: string; name: string; emoji: string | null };
   images: ProductImageType[];

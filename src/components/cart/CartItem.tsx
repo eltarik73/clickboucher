@@ -36,6 +36,16 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
               {item.unit === "TRANCHE" && item.sliceCount && (
                 <> — {item.sliceCount} tr.{item.thickness ? ` ${item.thickness}` : ""}</>
               )}
+              {item.variant && (
+                <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#DC2626]/10 text-[#DC2626]">
+                  {item.variant}
+                </span>
+              )}
+              {item.pieceCount && item.pieceLabel && (
+                <span className="ml-1 text-[10px] text-gray-400">
+                  ({item.pieceCount} {item.pieceLabel})
+                </span>
+              )}
             </p>
           </div>
           <p className="text-sm font-semibold text-gray-900 shrink-0">{totalPrice.toFixed(2)}€</p>
