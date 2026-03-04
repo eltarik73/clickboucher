@@ -221,7 +221,7 @@ export default async function HomePage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/espace-boucher"
-                className="hidden sm:inline text-sm text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition"
+                className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
               >
                 Vous êtes boucher ?
               </Link>
