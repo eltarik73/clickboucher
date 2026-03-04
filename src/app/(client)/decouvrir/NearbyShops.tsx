@@ -181,6 +181,7 @@ function NearbyButcherCard({
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           quality={60}
           priority={priority}
+          {...(priority ? { fetchPriority: "high" as const } : {})}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
