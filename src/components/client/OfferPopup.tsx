@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 
 type PopupOffer = {
   id: string;
@@ -120,12 +120,11 @@ export function OfferPopup({ offers }: { offers: PopupOffer[] }) {
         >
           {activeOffer.popupImageUrl ? (
             <div className="relative w-full h-32 mb-2">
-              <Image
+              <img
                 src={activeOffer.popupImageUrl}
                 alt={activeOffer.popupTitle || activeOffer.name}
-                fill
-                sizes="(max-width: 400px) 100vw, 400px"
-                className="object-contain"
+                className="w-full h-full object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
             </div>
           ) : (

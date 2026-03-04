@@ -102,7 +102,7 @@ function PromoCard({ promo }: { promo: LivePromo }) {
         <h4 className="font-medium text-gray-900 dark:text-white truncate group-hover:text-[#DC2626] dark:group-hover:text-[#DC2626] transition-colors">
           {promo.label}
         </h4>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{promo.shopName}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{promo.shopName}</p>
       </div>
       <div className="text-right shrink-0">
         <span className="text-xs font-semibold text-[#DC2626] bg-[#DC2626]/10 px-2 py-1 rounded-full">
@@ -285,7 +285,7 @@ export default async function HomePage() {
             Marre d&apos;attendre ?<br />
             <span className="text-[#DC2626]">Commandez. Récupérez. Savourez.</span>
           </h1>
-          <p className="mt-3 sm:mt-5 text-base sm:text-lg text-gray-500 dark:text-[#888] max-w-xl mx-auto">
+          <p className="mt-3 sm:mt-5 text-base sm:text-lg text-gray-600 dark:text-[#999] max-w-xl mx-auto">
             Zero file. Zero stress. <span className="text-gray-900 dark:text-white font-medium">100% frais.</span>
           </p>
           <HeroButtons />
@@ -389,7 +389,7 @@ export default async function HomePage() {
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />
-            <p className="text-sm text-gray-400 dark:text-gray-500">&copy; 2026 Klik&amp;Go</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">&copy; 2026 Klik&amp;Go</p>
           </div>
         </div>
       </footer>

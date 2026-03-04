@@ -4,12 +4,6 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import dynamic from "next/dynamic";
-
-const SplashScreen = dynamic(
-  () => import("@/components/SplashScreen").then(m => m.SplashScreen),
-  { ssr: false }
-);
 import { NotificationProvider } from "@/components/ui/NotificationToast";
 import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
@@ -43,8 +37,6 @@ const cormorant = Cormorant_Garamond({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#DC2626",
 };
 
@@ -134,7 +126,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NotificationProvider>
               <ServiceWorkerRegistration />
               <OfflineBanner />
-              <SplashScreen>{children}</SplashScreen>
+              <main>{children}</main>
               <InstallPrompt />
               <TestRoleSwitcher />
             </NotificationProvider>

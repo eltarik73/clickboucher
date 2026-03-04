@@ -25,6 +25,7 @@ export function CartBadge() {
   return (
     <Link
       href="/panier"
+      aria-label={`Panier (${itemCount} article${itemCount > 1 ? "s" : ""})`}
       className="relative p-2.5 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-xl transition-colors"
     >
       <svg
