@@ -13,12 +13,9 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  Upload,
-  X,
-  ImageIcon,
-  Loader2,
 } from "lucide-react";
 import Image from "next/image";
+import { ProductForm, type EditProduct, type Category } from "@/app/(boucher)/boucher/produits/ProductForm";
 
 interface GlobalCategory {
   id: string;
@@ -41,39 +38,86 @@ interface ReferenceProduct {
   pricePerKg: number | null;
   tags: string[];
   isActive: boolean;
+  halalOrg: string | null;
+  freshness: string | null;
+  race: string | null;
+  customerNote: string | null;
+  minWeightG: number;
+  weightStepG: number;
+  maxWeightG: number;
+  sliceOptions: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
+  variants: string[];
+  weightPerPiece: number | null;
+  pieceLabel: string | null;
+  weightMargin: number;
+  images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
+  labels: { id: string; name: string; color: string | null }[];
 }
 
 const UNIT_LABELS: Record<string, string> = {
   KG: "/kg",
-  PIECE: "/pièce",
+  PIECE: "/pi\u00e8ce",
   BARQUETTE: "/barq.",
   TRANCHE: "/tr.",
 };
 
-const ORIGINS = [
-  { value: "FRANCE", label: "France", flag: "🇫🇷" },
-  { value: "EU", label: "Union Européenne", flag: "🇪🇺" },
-  { value: "ESPAGNE", label: "Espagne", flag: "🇪🇸" },
-  { value: "IRLANDE", label: "Irlande", flag: "🇮🇪" },
-  { value: "BELGIQUE", label: "Belgique", flag: "🇧🇪" },
-  { value: "ALLEMAGNE", label: "Allemagne", flag: "🇩🇪" },
-  { value: "NOUVELLE_ZELANDE", label: "Nouvelle-Zélande", flag: "🇳🇿" },
-  { value: "BRESIL", label: "Brésil", flag: "🇧🇷" },
-  { value: "POLOGNE", label: "Pologne", flag: "🇵🇱" },
-  { value: "ITALIE", label: "Italie", flag: "🇮🇹" },
-  { value: "UK", label: "Royaume-Uni", flag: "🇬🇧" },
-  { value: "AUTRE", label: "Autre", flag: "🌍" },
-];
-
-const ORIGIN_FLAGS: Record<string, string> = Object.fromEntries(
-  ORIGINS.map((o) => [o.value, o.flag])
-);
+const ORIGIN_FLAGS: Record<string, string> = {
+  FRANCE: "\u{1F1EB}\u{1F1F7}",
+  EU: "\u{1F1EA}\u{1F1FA}",
+  ESPAGNE: "\u{1F1EA}\u{1F1F8}",
+  IRLANDE: "\u{1F1EE}\u{1F1EA}",
+  BELGIQUE: "\u{1F1E7}\u{1F1EA}",
+  ALLEMAGNE: "\u{1F1E9}\u{1F1EA}",
+  POLOGNE: "\u{1F1F5}\u{1F1F1}",
+  ITALIE: "\u{1F1EE}\u{1F1F9}",
+  UK: "\u{1F1EC}\u{1F1E7}",
+  BRESIL: "\u{1F1E7}\u{1F1F7}",
+  NOUVELLE_ZELANDE: "\u{1F1F3}\u{1F1FF}",
+  AUTRE: "\u{1F30D}",
+};
 
 function fmt(cents: number) {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
+}
+
+/** Map a ReferenceProduct to the EditProduct type expected by ProductForm */
+function toEditProduct(p: ReferenceProduct): EditProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    imageUrl: p.imageUrl,
+    priceCents: 0,
+    suggestedPrice: p.suggestedPrice,
+    proPriceCents: null,
+    unit: p.unit,
+    categoryId: p.categoryId,
+    tags: p.tags,
+    origin: p.origin,
+    halalOrg: p.halalOrg,
+    race: p.race,
+    freshness: p.freshness,
+    promoPct: null,
+    promoEnd: null,
+    promoType: null,
+    customerNote: p.customerNote,
+    minWeightG: p.minWeightG ?? 200,
+    weightStepG: p.weightStepG ?? 50,
+    maxWeightG: p.maxWeightG,
+    popular: false,
+    isActive: p.isActive,
+    unitLabel: null,
+    sliceOptions: p.sliceOptions,
+    variants: p.variants || [],
+    weightPerPiece: p.weightPerPiece,
+    pieceLabel: p.pieceLabel,
+    weightMargin: p.weightMargin ?? 15,
+    images: p.images || [],
+    labels: p.labels || [],
+  };
 }
 
 export default function ReferenceCatalogPage() {
@@ -84,25 +128,15 @@ export default function ReferenceCatalogPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ReferenceProduct | null>(null);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
-  // Form state — suggestedPrice stored as EUROS string (e.g. "19.90")
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    imageUrl: "",
-    suggestedPrice: "",
-    unit: "KG",
-    categoryId: "",
-    origin: "FRANCE",
-    tags: "",
-    isActive: true,
-  });
+  // ProductForm state
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<EditProduct | null>(null);
+  const [editingRefId, setEditingRefId] = useState<string | undefined>(undefined);
+
+  // Category modal
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [catForm, setCatForm] = useState({ name: "", emoji: "", order: "0" });
-  const [imageUploading, setImageUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -134,122 +168,28 @@ export default function ReferenceCatalogPage() {
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  // Map GlobalCategory → Category for ProductForm
+  const formCategories: Category[] = categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    emoji: c.emoji,
+    order: c.order,
+  }));
+
   function openCreate() {
     setEditingProduct(null);
-    setForm({
-      name: "",
-      description: "",
-      imageUrl: "",
-      suggestedPrice: "",
-      unit: "KG",
-      categoryId: categories[0]?.id || "",
-      origin: "FRANCE",
-      tags: "",
-      isActive: true,
-    });
-    setImagePreview(null);
-    setShowModal(true);
+    setEditingRefId(undefined);
+    setShowProductForm(true);
   }
 
   function openEdit(p: ReferenceProduct) {
-    setEditingProduct(p);
-    setForm({
-      name: p.name,
-      description: p.description || "",
-      imageUrl: p.imageUrl || "",
-      suggestedPrice: p.suggestedPrice ? (p.suggestedPrice / 100).toFixed(2) : "",
-      unit: p.unit,
-      categoryId: p.categoryId,
-      origin: p.origin || "FRANCE",
-      tags: p.tags.join(", "),
-      isActive: p.isActive,
-    });
-    setImagePreview(p.imageUrl || null);
-    setShowModal(true);
-  }
-
-  async function handleImageUpload(file: File) {
-    if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
-      alert("Format accepté : JPEG, PNG ou WebP");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image trop volumineuse (max 5 Mo)");
-      return;
-    }
-
-    setImageUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/uploads/product-image", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.ok) {
-        const json = await res.json();
-        const url = json.data?.url || json.url;
-        setForm((prev) => ({ ...prev, imageUrl: url }));
-        setImagePreview(url);
-      } else {
-        alert("Erreur lors de l'upload");
-      }
-    } catch {
-      alert("Erreur lors de l'upload");
-    }
-    setImageUploading(false);
-  }
-
-  function handleImageDrop(e: React.DragEvent) {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleImageUpload(file);
-  }
-
-  function removeImage() {
-    setForm((prev) => ({ ...prev, imageUrl: "" }));
-    setImagePreview(null);
-  }
-
-  async function handleSave() {
-    // Convert euros to centimes: "19.90" → 1990
-    const priceCents = form.suggestedPrice
-      ? Math.round(parseFloat(form.suggestedPrice) * 100)
-      : undefined;
-
-    const body: Record<string, unknown> = {
-      name: form.name,
-      description: form.description || undefined,
-      imageUrl: form.imageUrl || undefined,
-      suggestedPrice: priceCents,
-      unit: form.unit,
-      categoryId: form.categoryId,
-      origin: form.origin || undefined,
-      tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
-      isActive: form.isActive,
-    };
-
-    const url = editingProduct
-      ? `/api/webmaster/catalog/reference/${editingProduct.id}`
-      : "/api/webmaster/catalog/reference";
-    const method = editingProduct ? "PATCH" : "POST";
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (res.ok) {
-      setShowModal(false);
-      fetchProducts();
-    }
+    setEditingProduct(toEditProduct(p));
+    setEditingRefId(p.id);
+    setShowProductForm(true);
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Supprimer ce produit de référence ?")) return;
+    if (!confirm("Supprimer ce produit de r\u00e9f\u00e9rence ?")) return;
     const res = await fetch(`/api/webmaster/catalog/reference/${id}`, { method: "DELETE" });
     if (res.ok) fetchProducts();
   }
@@ -287,10 +227,10 @@ export default function ReferenceCatalogPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
-            Catalogue de Référence
+            Catalogue de R\u00e9f\u00e9rence
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Produits de référence que les bouchers peuvent importer dans leur catalogue
+            Produits de r\u00e9f\u00e9rence que les bouchers peuvent importer dans leur catalogue
           </p>
         </div>
         <div className="flex gap-2">
@@ -299,7 +239,7 @@ export default function ReferenceCatalogPage() {
             className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-white/15 transition-colors"
           >
             <Plus size={16} />
-            Catégorie
+            Cat\u00e9gorie
           </button>
           <button
             onClick={openCreate}
@@ -330,7 +270,7 @@ export default function ReferenceCatalogPage() {
             onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
             className="pl-9 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-sm appearance-none cursor-pointer"
           >
-            <option value="">Toutes catégories</option>
+            <option value="">Toutes cat\u00e9gories</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.emoji} {c.name} ({c._count?.products || 0})
@@ -365,9 +305,9 @@ export default function ReferenceCatalogPage() {
       ) : products.length === 0 ? (
         <div className="text-center py-12">
           <Package size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
-          <p className="text-gray-500 dark:text-gray-400">Aucun produit de référence</p>
+          <p className="text-gray-500 dark:text-gray-400">Aucun produit de r\u00e9f\u00e9rence</p>
           <button onClick={openCreate} className="mt-4 text-[#DC2626] text-sm font-medium hover:underline">
-            Créer le premier
+            Cr\u00e9er le premier
           </button>
         </div>
       ) : (
@@ -398,7 +338,7 @@ export default function ReferenceCatalogPage() {
                   </span>
                   {p.origin && (
                     <span className="text-sm" title={p.origin}>
-                      {ORIGIN_FLAGS[p.origin] || "🌍"}
+                      {ORIGIN_FLAGS[p.origin] || "\u{1F30D}"}
                     </span>
                   )}
                 </div>
@@ -409,6 +349,11 @@ export default function ReferenceCatalogPage() {
                   <span className="text-xs text-gray-400">
                     {p.unit}
                   </span>
+                  {p.variants?.length > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 font-medium">
+                      {p.variants.length} variante{p.variants.length > 1 ? "s" : ""}
+                    </span>
+                  )}
                   {p.tags.map((t) => (
                     <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-[#DC2626]/10 text-[#DC2626] font-medium">
                       {t}
@@ -425,7 +370,7 @@ export default function ReferenceCatalogPage() {
                     <span className="text-xs font-normal text-gray-400">{UNIT_LABELS[p.unit]}</span>
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-400">—</span>
+                  <span className="text-sm text-gray-400">&mdash;</span>
                 )}
               </div>
 
@@ -434,7 +379,7 @@ export default function ReferenceCatalogPage() {
                 <button
                   onClick={() => handleToggleActive(p)}
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors"
-                  title={p.isActive ? "Désactiver" : "Activer"}
+                  title={p.isActive ? "D\u00e9sactiver" : "Activer"}
                 >
                   {p.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
                 </button>
@@ -481,180 +426,17 @@ export default function ReferenceCatalogPage() {
         </div>
       )}
 
-      {/* Product Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-[#f8f6f3] mb-4">
-              {editingProduct ? "Modifier le produit" : "Nouveau produit de référence"}
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                  placeholder="Entrecôte de boeuf"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                  rows={2}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Catégorie</label>
-                  <select
-                    value={form.categoryId}
-                    onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unité</label>
-                  <select
-                    value={form.unit}
-                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                  >
-                    <option value="KG">Au kilo</option>
-                    <option value="PIECE">A la pièce</option>
-                    <option value="BARQUETTE">Barquette</option>
-                    <option value="TRANCHE">A la tranche</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Prix suggéré (€)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={form.suggestedPrice}
-                      onChange={(e) => setForm({ ...form, suggestedPrice: e.target.value })}
-                      className="w-full px-3 py-2 pr-8 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                      placeholder="19.90"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">€</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Origine</label>
-                  <select
-                    value={form.origin}
-                    onChange={(e) => setForm({ ...form, origin: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                  >
-                    {ORIGINS.map((o) => (
-                      <option key={o.value} value={o.value}>{o.flag} {o.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Tags (séparés par virgule)
-                </label>
-                <input
-                  type="text"
-                  value={form.tags}
-                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                  placeholder="Halal, Premium"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Photo (optionnel)
-                </label>
-                {imagePreview || form.imageUrl ? (
-                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#141414]">
-                    <img
-                      src={imagePreview || form.imageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onDrop={handleImageDrop}
-                    onDragOver={(e) => e.preventDefault()}
-                    className="relative w-full h-40 rounded-xl border-2 border-dashed border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-[#141414] flex flex-col items-center justify-center cursor-pointer hover:border-[#DC2626]/50 hover:bg-[#DC2626]/5 transition-colors"
-                  >
-                    {imageUploading ? (
-                      <Loader2 size={24} className="text-[#DC2626] animate-spin" />
-                    ) : (
-                      <>
-                        <ImageIcon size={28} className="text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Glissez une image ou{" "}
-                          <span className="text-[#DC2626] font-medium">parcourir</span>
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP — max 5 Mo</p>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file);
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      disabled={imageUploading}
-                    />
-                  </div>
-                )}
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="rounded"
-                />
-                <span className="text-gray-700 dark:text-gray-300">Actif</span>
-              </label>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-[#f8f6f3]"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!form.name || !form.categoryId}
-                className="px-6 py-2 bg-[#DC2626] text-white rounded-xl text-sm font-bold hover:bg-[#b91c1c] disabled:opacity-50 transition-colors"
-              >
-                {editingProduct ? "Enregistrer" : "Créer"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ProductForm (replaces simple dialog) */}
+      {showProductForm && (
+        <ProductForm
+          mode="reference"
+          referenceProductId={editingRefId}
+          categories={formCategories}
+          product={editingProduct}
+          onClose={() => setShowProductForm(false)}
+          onSaved={() => { setShowProductForm(false); fetchProducts(); }}
+          onDeleted={() => { setShowProductForm(false); fetchProducts(); }}
+        />
       )}
 
       {/* Category Modal */}
@@ -662,7 +444,7 @@ export default function ReferenceCatalogPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl w-full max-w-sm p-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-[#f8f6f3] mb-4">
-              Nouvelle catégorie globale
+              Nouvelle cat\u00e9gorie globale
             </h2>
             <div className="space-y-4">
               <div>
@@ -683,7 +465,7 @@ export default function ReferenceCatalogPage() {
                     value={catForm.emoji}
                     onChange={(e) => setCatForm({ ...catForm, emoji: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] rounded-xl text-sm"
-                    placeholder="🥩"
+                    placeholder="\u{1F969}"
                   />
                 </div>
                 <div>
@@ -709,7 +491,7 @@ export default function ReferenceCatalogPage() {
                 disabled={!catForm.name}
                 className="px-6 py-2 bg-[#DC2626] text-white rounded-xl text-sm font-bold hover:bg-[#b91c1c] disabled:opacity-50 transition-colors"
               >
-                Créer
+                Cr\u00e9er
               </button>
             </div>
           </div>

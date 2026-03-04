@@ -49,6 +49,7 @@ export type EditProduct = {
   description: string | null;
   imageUrl: string | null;
   priceCents: number;
+  suggestedPrice?: number | null;
   proPriceCents: number | null;
   unit: string;
   categoryId: string;
@@ -63,6 +64,7 @@ export type EditProduct = {
   customerNote: string | null;
   minWeightG: number;
   weightStepG: number;
+  maxWeightG?: number;
   popular: boolean;
   isActive: boolean;
   unitLabel: string | null;
@@ -76,12 +78,14 @@ export type EditProduct = {
 };
 
 interface Props {
-  shopId: string;
+  shopId?: string;
   categories: Category[];
   product?: EditProduct | null;
   onClose: () => void;
   onSaved: () => void;
   onDeleted?: () => void;
+  mode?: "shop" | "reference";
+  referenceProductId?: string;
 }
 
 // ─────────────────────────────────────────────
@@ -136,7 +140,8 @@ function fmtPrice(cents: number) {
 // ─────────────────────────────────────────────
 // Form Component
 // ─────────────────────────────────────────────
-export function ProductForm({ shopId, categories, product, onClose, onSaved, onDeleted }: Props) {
+export function ProductForm({ shopId, categories, product, onClose, onSaved, onDeleted, mode = "shop", referenceProductId }: Props) {
+  const isReference = mode === "reference";
   const isEdit = !!product;
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -145,7 +150,18 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showCatalogImport, setShowCatalogImport] = useState(false);
-  const [catalogProducts, setCatalogProducts] = useState<{ id: string; name: string; description: string | null; imageUrl: string | null; suggestedPrice: number | null; unit: string; origin: string | null; tags: string[]; category: { name: string; emoji: string | null } }[]>([]);
+  type CatalogRef = {
+    id: string; name: string; description: string | null; imageUrl: string | null;
+    suggestedPrice: number | null; unit: string; origin: string | null; tags: string[];
+    category: { name: string; emoji: string | null };
+    halalOrg?: string | null; freshness?: string | null; race?: string | null;
+    customerNote?: string | null; minWeightG?: number; weightStepG?: number; maxWeightG?: number;
+    sliceOptions?: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
+    variants?: string[]; weightPerPiece?: number | null; pieceLabel?: string | null; weightMargin?: number;
+    images?: { url: string; alt: string | null; order: number; isPrimary: boolean }[];
+    labels?: { name: string; color: string | null }[];
+  };
+  const [catalogProducts, setCatalogProducts] = useState<CatalogRef[]>([]);
   const [catalogSearch, setCatalogSearch] = useState("");
   const [catalogLoading, setCatalogLoading] = useState(false);
   const { notify } = useNotify();
@@ -161,7 +177,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [isActive, setIsActive] = useState(product?.isActive !== false);
 
   // Step 2 — Prix
-  const [priceCents, setPriceCents] = useState(product ? (product.priceCents / 100).toFixed(2) : "");
+  const initPrice = isReference && product?.suggestedPrice ? product.suggestedPrice : product?.priceCents ?? 0;
+  const [priceCents, setPriceCents] = useState(initPrice ? (initPrice / 100).toFixed(2) : "");
   const [proPriceCents, setProPriceCents] = useState(
     product?.proPriceCents ? (product.proPriceCents / 100).toFixed(2) : ""
   );
@@ -225,13 +242,36 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
     setCatalogLoading(false);
   }
 
-  function importFromCatalog(ref: typeof catalogProducts[number]) {
+  function importFromCatalog(ref: CatalogRef) {
     setName(ref.name);
     setDescription(ref.description || "");
     if (ref.unit) setUnit(ref.unit as "KG" | "PIECE" | "BARQUETTE" | "TRANCHE");
     if (ref.origin) setOrigin(ref.origin);
     if (ref.suggestedPrice) setPriceCents((ref.suggestedPrice / 100).toFixed(2));
-    if (ref.imageUrl) setImages([{ url: ref.imageUrl, alt: ref.name, isPrimary: true, order: 0 }]);
+    // Enriched fields from reference catalog
+    if (ref.halalOrg) setHalalOrg(ref.halalOrg);
+    if (ref.freshness) setFreshness(ref.freshness);
+    if (ref.race) setRace(ref.race);
+    if (ref.customerNote) setCustomerNote(ref.customerNote);
+    if (ref.minWeightG) setMinWeightG(ref.minWeightG);
+    if (ref.weightStepG) setWeightStepG(ref.weightStepG);
+    if (ref.variants?.length) setVariants(ref.variants);
+    if (ref.weightPerPiece) setWeightPerPiece(ref.weightPerPiece);
+    if (ref.pieceLabel) setPieceLabel(ref.pieceLabel);
+    if (ref.weightMargin) setWeightMargin(ref.weightMargin);
+    if (ref.labels?.length) setLabels(ref.labels.map((l) => ({ name: l.name, color: l.color })));
+    if (ref.sliceOptions) {
+      setDefaultSlices(ref.sliceOptions.defaultSlices);
+      setMinSlices(ref.sliceOptions.minSlices);
+      setMaxSlices(ref.sliceOptions.maxSlices);
+      setThicknesses(ref.sliceOptions.thicknesses);
+    }
+    // Images: use reference images if available, else fallback to single imageUrl
+    if (ref.images?.length) {
+      setImages(ref.images.map((img, i) => ({ url: img.url, alt: img.alt || ref.name, isPrimary: img.isPrimary ?? i === 0, order: img.order ?? i })));
+    } else if (ref.imageUrl) {
+      setImages([{ url: ref.imageUrl, alt: ref.name, isPrimary: true, order: 0 }]);
+    }
     setShowCatalogImport(false);
     notify("success", `"${ref.name}" importe du catalogue`);
   }
@@ -344,24 +384,28 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
       description: description.trim() || null,
       categoryId,
       unit,
-      priceCents: priceVal,
-      proPriceCents: proVal,
-      shopId,
       origin: origin || null,
       halalOrg: halalOrg || null,
       race: race.trim() || null,
       freshness: freshness || null,
       customerNote: customerNote.trim() || null,
       tags: [],
-      promoPct: promoEnabled ? promoPct : null,
-      promoType: promoEnabled && isFlash ? "FLASH" : promoEnabled ? "PERCENTAGE" : null,
-      promoEnd: promoEnabled && isFlash
-        ? new Date(Date.now() + flashHours * 3600_000).toISOString()
-        : null,
+      isActive,
     };
 
-    body.isActive = isActive;
-    body.unitLabel = unitLabel.trim() || null;
+    if (isReference) {
+      body.suggestedPrice = priceVal;
+    } else {
+      body.priceCents = priceVal;
+      body.proPriceCents = proVal;
+      body.shopId = shopId;
+      body.promoPct = promoEnabled ? promoPct : null;
+      body.promoType = promoEnabled && isFlash ? "FLASH" : promoEnabled ? "PERCENTAGE" : null;
+      body.promoEnd = promoEnabled && isFlash
+        ? new Date(Date.now() + flashHours * 3600_000).toISOString()
+        : null;
+      body.unitLabel = unitLabel.trim() || null;
+    }
 
     if (unit === "KG" || unit === "TRANCHE") {
       body.minWeightG = minWeightG;
@@ -401,8 +445,10 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
     body.labels = labels.map((l) => ({ name: l.name, color: l.color }));
 
     try {
-      const url = isEdit ? `/api/products/${product!.id}` : "/api/products";
-      const method = isEdit ? "PATCH" : "POST";
+      const url = isReference
+        ? (referenceProductId ? `/api/webmaster/catalog/reference/${referenceProductId}` : "/api/webmaster/catalog/reference")
+        : (isEdit ? `/api/products/${product!.id}` : "/api/products");
+      const method = (isReference ? !!referenceProductId : isEdit) ? "PATCH" : "POST";
 
       const res = await fetch(url, {
         method,
@@ -429,7 +475,10 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
     if (!product) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/products/${product.id}`, { method: "DELETE" });
+      const deleteUrl = isReference
+        ? `/api/webmaster/catalog/reference/${product.id}`
+        : `/api/products/${product.id}`;
+      const res = await fetch(deleteUrl, { method: "DELETE" });
       if (res.ok) {
         notify("success", "Produit supprime avec succes");
         onClose();
@@ -474,7 +523,9 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
         <div className="sticky top-0 bg-white dark:bg-[#141414] border-b border-[#ece8e3] dark:border-white/10 px-5 pt-4 pb-3 z-10">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-              {isEdit ? "Modifier le produit" : "Nouveau produit"}
+              {isReference
+                ? (referenceProductId ? "Modifier le produit reference" : "Nouveau produit reference")
+                : (isEdit ? "Modifier le produit" : "Nouveau produit")}
             </h2>
             <button
               onClick={onClose}
@@ -520,8 +571,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
           {/* ═══ STEP 0: Produit ═══ */}
           {step === 0 && (
             <div className="space-y-5">
-              {/* Import from catalog */}
-              {!isEdit && (
+              {/* Import from catalog (shop mode only) */}
+              {!isEdit && !isReference && (
                 <button
                   type="button"
                   onClick={openCatalogImport}
@@ -668,7 +719,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
             <div className="space-y-5">
               <div>
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Prix principal * {unit === "KG" ? "(au kg)" : unit === "PIECE" ? "(la piece)" : unit === "TRANCHE" ? "(au kg)" : "(la barquette)"}
+                  {isReference ? "Prix suggere *" : "Prix principal *"} {unit === "KG" ? "(au kg)" : unit === "PIECE" ? "(la piece)" : unit === "TRANCHE" ? "(au kg)" : "(la barquette)"}
                 </label>
                 <div className="relative">
                   <Input
@@ -684,6 +735,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                 </div>
               </div>
 
+              {/* PRO price + Promo (shop mode only) */}
+              {!isReference && (<>
               <div>
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
                   Prix PRO
@@ -773,6 +826,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   </>
                 )}
               </div>
+              </>)}
 
               {/* Weight config (for KG and TRANCHE) */}
               {(unit === "KG" || unit === "TRANCHE") && (

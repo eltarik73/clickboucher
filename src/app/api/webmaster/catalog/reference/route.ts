@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const [data, total] = await Promise.all([
       prisma.referenceProduct.findMany({
         where,
-        include: { category: true },
+        include: { category: true, images: true, labels: true },
         orderBy: [{ category: { order: "asc" } }, { name: "asc" }],
         skip: (query.page - 1) * query.perPage,
         take: query.perPage,
@@ -49,21 +49,41 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createReferenceProductSchema.parse(body);
 
+    const { images, labels, ...scalar } = data;
+
     const product = await prisma.referenceProduct.create({
       data: {
-        name: data.name,
-        description: data.description,
-        imageUrl: data.imageUrl,
-        suggestedPrice: data.suggestedPrice,
-        unit: data.unit,
-        categoryId: data.categoryId,
-        origin: data.origin,
-        pricePerKg: data.pricePerKg,
-        sliceWeights: data.sliceWeights,
-        tags: data.tags || [],
-        isActive: data.isActive ?? true,
+        name: scalar.name,
+        description: scalar.description,
+        imageUrl: scalar.imageUrl,
+        suggestedPrice: scalar.suggestedPrice,
+        unit: scalar.unit,
+        categoryId: scalar.categoryId,
+        origin: scalar.origin,
+        pricePerKg: scalar.pricePerKg,
+        sliceWeights: scalar.sliceWeights,
+        tags: scalar.tags || [],
+        isActive: scalar.isActive ?? true,
+        halalOrg: scalar.halalOrg ?? null,
+        freshness: scalar.freshness,
+        race: scalar.race ?? null,
+        customerNote: scalar.customerNote ?? null,
+        minWeightG: scalar.minWeightG,
+        weightStepG: scalar.weightStepG,
+        maxWeightG: scalar.maxWeightG,
+        sliceOptions: scalar.sliceOptions ?? undefined,
+        variants: scalar.variants || [],
+        weightPerPiece: scalar.weightPerPiece ?? null,
+        pieceLabel: scalar.pieceLabel ?? null,
+        weightMargin: scalar.weightMargin,
+        ...(images?.length && {
+          images: { create: images.map((img, i) => ({ url: img.url, alt: img.alt || null, order: img.order ?? i, isPrimary: img.isPrimary ?? i === 0 })) },
+        }),
+        ...(labels?.length && {
+          labels: { create: labels.map((l) => ({ name: l.name, color: l.color || null })) },
+        }),
       },
-      include: { category: true },
+      include: { category: true, images: true, labels: true },
     });
 
     return apiSuccess(product, 201);

@@ -22,14 +22,28 @@ export async function PATCH(
     const existing = await prisma.referenceProduct.findUnique({ where: { id } });
     if (!existing) return apiError("NOT_FOUND", "Produit de référence introuvable");
 
-    const { categoryId, ...rest } = data;
+    const { categoryId, images, labels, ...rest } = data;
     const updateData: Record<string, unknown> = { ...rest };
     if (categoryId) updateData.category = { connect: { id: categoryId } };
+
+    // Delete + recreate images/labels if provided
+    if (images !== undefined) {
+      await prisma.referenceProductImage.deleteMany({ where: { productId: id } });
+      if (images?.length) {
+        updateData.images = { create: images.map((img: { url: string; alt?: string | null; order?: number; isPrimary?: boolean }, i: number) => ({ url: img.url, alt: img.alt || null, order: img.order ?? i, isPrimary: img.isPrimary ?? i === 0 })) };
+      }
+    }
+    if (labels !== undefined) {
+      await prisma.referenceProductLabel.deleteMany({ where: { productId: id } });
+      if (labels?.length) {
+        updateData.labels = { create: labels.map((l: { name: string; color?: string | null }) => ({ name: l.name, color: l.color || null })) };
+      }
+    }
 
     const product = await prisma.referenceProduct.update({
       where: { id },
       data: updateData,
-      include: { category: true },
+      include: { category: true, images: true, labels: true },
     });
 
     return apiSuccess(product);

@@ -1251,12 +1251,69 @@ model ReferenceProduct {
   pricePerKg     Int?            @map("price_per_kg")
   sliceWeights   Json?           @map("slice_weights")
   tags           String[]        @default([])
+
+  // ── Qualite & certifications ──
+  halalOrg     String?    @map("halal_org")
+  freshness    Freshness  @default(FRAIS)
+  race         String?
+  customerNote String?    @map("customer_note")
+
+  // ── Config poids (KG) ──
+  minWeightG   Int        @default(200)  @map("min_weight_g")
+  weightStepG  Int        @default(50)   @map("weight_step_g")
+  maxWeightG   Int        @default(5000) @map("max_weight_g")
+
+  // ── Tranches ──
+  sliceOptions Json?      @map("slice_options")
+
+  // ── Variantes & calculateur pieces ──
+  variants       String[] @default([])
+  weightPerPiece Int?     @map("weight_per_piece")
+  pieceLabel     String?  @map("piece_label")
+  weightMargin   Int      @default(15) @map("weight_margin")
+
+  // ── Images & Labels ──
+  images  ReferenceProductImage[]
+  labels  ReferenceProductLabel[]
+
   isActive       Boolean         @default(true) @map("is_active")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
   @@index([categoryId])
   @@map("reference_products")
+}
+
+// ══════════════════════════════════════════
+// REFERENCE PRODUCT IMAGE
+// ══════════════════════════════════════════
+
+model ReferenceProductImage {
+  id        String           @id @default(cuid())
+  url       String
+  alt       String?
+  order     Int              @default(0)
+  isPrimary Boolean          @default(false) @map("is_primary")
+  productId String           @map("product_id")
+  product   ReferenceProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("reference_product_images")
+}
+
+// ══════════════════════════════════════════
+// REFERENCE PRODUCT LABEL
+// ══════════════════════════════════════════
+
+model ReferenceProductLabel {
+  id        String           @id @default(cuid())
+  name      String
+  color     String?
+  productId String           @map("product_id")
+  product   ReferenceProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("reference_product_labels")
 }
 
 // ══════════════════════════════════════════
