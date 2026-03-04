@@ -1,5 +1,4 @@
-// src/components/landing/HowItWorks.tsx
-"use client";
+// src/components/landing/HowItWorks.tsx — Server Component (no interactivity)
 
 const STEPS = [
   {

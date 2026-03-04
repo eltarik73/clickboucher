@@ -1,7 +1,5 @@
-// src/components/landing/CalendarBanner.tsx — Religious event banner for clients
-"use client";
+// src/components/landing/CalendarBanner.tsx — Religious event banner (Server Component)
 
-import { useMemo } from "react";
 import Link from "next/link";
 
 // Hardcoded upcoming events (same as boucher calendar)
@@ -15,22 +13,19 @@ const EVENTS = [
 ];
 
 export default function CalendarBanner() {
-  const upcoming = useMemo(() => {
-    const now = Date.now();
-    return EVENTS.filter((e) => {
-      const days = Math.ceil((new Date(e.date).getTime() - now) / (1000 * 60 * 60 * 24));
-      // Show banner 21 days before and during the event
-      const endDays = e.endDate
-        ? Math.ceil((new Date(e.endDate).getTime() - now) / (1000 * 60 * 60 * 24))
-        : days;
-      return days <= 21 && endDays >= 0;
-    }).slice(0, 1);
-  }, []);
+  const now = Date.now();
+  const upcoming = EVENTS.filter((e) => {
+    const days = Math.ceil((new Date(e.date).getTime() - now) / (1000 * 60 * 60 * 24));
+    const endDays = e.endDate
+      ? Math.ceil((new Date(e.endDate).getTime() - now) / (1000 * 60 * 60 * 24))
+      : days;
+    return days <= 21 && endDays >= 0;
+  }).slice(0, 1);
 
   if (upcoming.length === 0) return null;
 
   const event = upcoming[0];
-  const days = Math.ceil((new Date(event.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const days = Math.ceil((new Date(event.date).getTime() - now) / (1000 * 60 * 60 * 24));
   const isOngoing = days <= 0;
 
   const bgColor = event.type === "ramadan"

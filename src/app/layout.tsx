@@ -5,10 +5,12 @@ import { frFR } from "@clerk/localizations";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { NotificationProvider } from "@/components/ui/NotificationToast";
-import ServiceWorkerRegistration from "@/components/pwa/ServiceWorkerRegistration";
-import InstallPrompt from "@/components/pwa/InstallPrompt";
-import OfflineBanner from "@/components/pwa/OfflineBanner";
-import { TestRoleSwitcher } from "@/components/test/TestRoleSwitcher";
+import dynamic from "next/dynamic";
+
+const ServiceWorkerRegistration = dynamic(() => import("@/components/pwa/ServiceWorkerRegistration"), { ssr: false });
+const InstallPrompt = dynamic(() => import("@/components/pwa/InstallPrompt"), { ssr: false });
+const OfflineBanner = dynamic(() => import("@/components/pwa/OfflineBanner"), { ssr: false });
+const TestRoleSwitcher = dynamic(() => import("@/components/test/TestRoleSwitcher").then(m => m.TestRoleSwitcher), { ssr: false });
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
 import Script from "next/script";
 import "@/styles/globals.css";

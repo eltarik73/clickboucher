@@ -16,7 +16,9 @@ import { ActiveOrderBanner } from "@/components/order/ActiveOrderBanner";
 import { ReorderCarousel } from "@/components/order/ReorderCarousel";
 import { KlikLogo } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
-import { OfferPopup } from "@/components/client/OfferPopup";
+import dynamic from "next/dynamic";
+
+const OfferPopup = dynamic(() => import("@/components/client/OfferPopup").then(m => m.OfferPopup), { ssr: false });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
