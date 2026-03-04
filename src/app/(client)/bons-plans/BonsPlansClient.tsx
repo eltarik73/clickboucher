@@ -65,7 +65,7 @@ function fmtPromoValue(p: PlatformPromo) {
 
 function daysLeft(endsAt: string) {
   const diff = new Date(endsAt).getTime() - Date.now();
-  if (diff <= 0) return "Expir\u00e9e";
+  if (diff <= 0) return "Expirée";
   const days = Math.ceil(diff / 86_400_000);
   if (days === 1) return "Dernier jour";
   return `${days}j restants`;

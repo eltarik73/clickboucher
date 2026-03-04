@@ -22,6 +22,8 @@ import {
   Zap,
   Info,
   Star,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,17 +43,17 @@ type AudienceCounts = {
 };
 
 const OFFER_TYPES = [
-  { value: "BOGO", emoji: "\ud83c\udf81", label: "1+1 Offert", desc: "Achetez 1, recevez 1" },
-  { value: "PERCENT", emoji: "\ud83d\udcb0", label: "R\u00e9duction %", desc: "Pourcentage" },
-  { value: "AMOUNT", emoji: "\ud83c\udff7\ufe0f", label: "R\u00e9duction \u20ac", desc: "Montant fixe" },
-  { value: "FREE_DELIVERY", emoji: "\ud83d\ude80", label: "Frais offerts", desc: "0,99\u20ac offerts" },
-  { value: "BUNDLE", emoji: "\ud83d\udce6", label: "Pack", desc: "Offre group\u00e9e" },
+  { value: "BOGO", emoji: "🎁", label: "1+1 Offert", desc: "Achetez 1, recevez 1" },
+  { value: "PERCENT", emoji: "💰", label: "Réduction %", desc: "Pourcentage" },
+  { value: "AMOUNT", emoji: "🏷️", label: "Réduction €", desc: "Montant fixe" },
+  { value: "FREE_DELIVERY", emoji: "🚀", label: "Frais offerts", desc: "0,99€ offerts" },
+  { value: "BUNDLE", emoji: "📦", label: "Pack", desc: "Offre groupée" },
 ];
 
 const AUDIENCES = [
   { value: "ALL", icon: Globe, label: "Tous les clients", countKey: "total" as const, desc: null },
-  { value: "NEW", icon: UserCheck, label: "Nouveaux clients", countKey: "newClients" as const, desc: "0 \u00e0 1 commande" },
-  { value: "LOYAL", icon: Heart, label: "Fid\u00e8les", countKey: "loyal" as const, desc: "5+ commandes" },
+  { value: "NEW", icon: UserCheck, label: "Nouveaux clients", countKey: "newClients" as const, desc: "0 à 1 commande" },
+  { value: "LOYAL", icon: Heart, label: "Fidèles", countKey: "loyal" as const, desc: "5+ commandes" },
   { value: "VIP", icon: Crown, label: "VIP", countKey: "vip" as const, desc: "10+ commandes" },
 ];
 
@@ -83,23 +85,23 @@ function getBannerGradient(color: string) {
 function getBadgePreview(type: string, discountValue: string) {
   const v = parseFloat(discountValue) || 0;
   switch (type) {
-    case "FREE_DELIVERY": return "\ud83d\ude80 FRAIS OFFERTS";
-    case "PERCENT": return `\ud83d\udcb0 -${v}%`;
-    case "BOGO": return "\ud83c\udf81 1+1 OFFERT";
-    case "AMOUNT": return `\ud83c\udff7\ufe0f -${v}\u20ac`;
-    case "BUNDLE": return `\ud83d\udce6 PACK -${v}\u20ac`;
-    default: return "\ud83c\udff7\ufe0f PROMO";
+    case "FREE_DELIVERY": return "🚀 FRAIS OFFERTS";
+    case "PERCENT": return `💰 -${v}%`;
+    case "BOGO": return "🎁 1+1 OFFERT";
+    case "AMOUNT": return `🏷️ -${v}€`;
+    case "BUNDLE": return `📦 PACK -${v}€`;
+    default: return "🏷️ PROMO";
   }
 }
 
 function getAudienceValidationText(audience: string, minOrder: string) {
   const min = parseFloat(minOrder) || 0;
-  const minText = min > 0 ? ` et un panier minimum de ${min}\u20ac` : "";
+  const minText = min > 0 ? ` et un panier minimum de ${min}€` : "";
   switch (audience) {
     case "ALL": return `Tous les clients peuvent utiliser ce code${minText}.`;
-    case "NEW": return `R\u00e9serv\u00e9 aux clients avec 0 ou 1 commande${minText}.`;
-    case "LOYAL": return `R\u00e9serv\u00e9 aux clients fid\u00e8les (5+ commandes)${minText}.`;
-    case "VIP": return `R\u00e9serv\u00e9 aux clients VIP (10+ commandes)${minText}.`;
+    case "NEW": return `Réservé aux clients avec 0 ou 1 commande${minText}.`;
+    case "LOYAL": return `Réservé aux clients fidèles (5+ commandes)${minText}.`;
+    case "VIP": return `Réservé aux clients VIP (10+ commandes)${minText}.`;
     default: return "";
   }
 }
@@ -108,11 +110,11 @@ function autoGenerateName(type: string, discountValue: string) {
   const v = parseFloat(discountValue) || 0;
   switch (type) {
     case "PERCENT": return `Bienvenue -${v || 10}%`;
-    case "AMOUNT": return `R\u00e9duction ${v || 5}\u20ac`;
+    case "AMOUNT": return `Réduction ${v || 5}€`;
     case "FREE_DELIVERY": return "Frais offerts";
     case "BOGO": return "1+1 Offert";
-    case "BUNDLE": return `Pack sp\u00e9cial -${v || 5}\u20ac`;
-    default: return "Offre sp\u00e9ciale";
+    case "BUNDLE": return `Pack spécial -${v || 5}€`;
+    default: return "Offre spéciale";
   }
 }
 
@@ -141,12 +143,16 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerSubtitle, setBannerSubtitle] = useState("");
   const [bannerColor, setBannerColor] = useState("red");
+  const [bannerImageUrl, setBannerImageUrl] = useState("");
+  const [generatingBannerImg, setGeneratingBannerImg] = useState(false);
 
   // Popup
   const [popupTitle, setPopupTitle] = useState("");
   const [popupMessage, setPopupMessage] = useState("");
   const [popupColor, setPopupColor] = useState("red");
   const [popupFrequency, setPopupFrequency] = useState("once_user");
+  const [popupImageUrl, setPopupImageUrl] = useState("");
+  const [generatingPopupImg, setGeneratingPopupImg] = useState(false);
 
   useEffect(() => {
     fetch("/api/shops")
@@ -179,10 +185,48 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
     );
   }
 
+  async function generateImage(usage: "banner" | "popup") {
+    const setLoading = usage === "banner" ? setGeneratingBannerImg : setGeneratingPopupImg;
+    const setUrl = usage === "banner" ? setBannerImageUrl : setPopupImageUrl;
+    const title = usage === "banner" ? bannerTitle : popupTitle;
+    const subtitle = usage === "banner" ? bannerSubtitle : popupMessage;
+
+    setLoading(true);
+    try {
+      const prompt = `Professional marketing ${usage} for a halal butcher shop promotion. ${title ? `Title: ${title}.` : ""} ${subtitle ? `Subtitle: ${subtitle}.` : ""} High quality, appetizing meat display, warm colors, modern design.`;
+      const res = await fetch("/api/admin/images/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          width: usage === "banner" ? 1200 : 800,
+          height: usage === "banner" ? 400 : 600,
+          usage: "BANNER",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error?.message || "Erreur de génération");
+        return;
+      }
+      const url = json.data?.imageUrl || json.imageUrl;
+      if (url) {
+        setUrl(url);
+        toast.success("Image générée !");
+      } else {
+        toast.error("Pas d'image retournée");
+      }
+    } catch {
+      toast.error("Erreur réseau");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit() {
     if (!name.trim()) { toast.error("Nom requis"); return; }
     if (!code.trim()) { toast.error("Code requis"); return; }
-    if (type !== "FREE_DELIVERY" && !discountValue) { toast.error("Valeur de r\u00e9duction requise"); return; }
+    if (type !== "FREE_DELIVERY" && !discountValue) { toast.error("Valeur de réduction requise"); return; }
 
     setSaving(true);
     try {
@@ -204,10 +248,12 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
         bannerTitle: diffBanner ? bannerTitle : null,
         bannerSubtitle: diffBanner ? bannerSubtitle : null,
         bannerColor: diffBanner ? bannerColor : null,
+        bannerImageUrl: diffBanner ? bannerImageUrl || null : null,
         popupTitle: diffPopup ? popupTitle : null,
         popupMessage: diffPopup ? popupMessage : null,
         popupColor: diffPopup ? popupColor : null,
         popupFrequency: diffPopup ? popupFrequency : null,
+        popupImageUrl: diffPopup ? popupImageUrl || null : null,
       };
 
       const res = await fetch("/api/dashboard/offers", {
@@ -229,10 +275,10 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
         });
       }
 
-      toast.success("Offre cr\u00e9\u00e9e !");
+      toast.success("Offre créée !");
       onCreated();
     } catch {
-      toast.error("Erreur r\u00e9seau");
+      toast.error("Erreur réseau");
     } finally {
       setSaving(false);
     }
@@ -240,12 +286,12 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
 
   // ── Helpers for summary ──
   const discountBadgeText = type === "FREE_DELIVERY"
-    ? "0,99\u20ac"
+    ? "0,99€"
     : type === "PERCENT"
     ? `${discountValue || 0}%`
     : type === "BOGO"
     ? "1+1"
-    : `${discountValue || 0}\u20ac`;
+    : `${discountValue || 0}€`;
 
   const typeLabel = OFFER_TYPES.find((t) => t.value === type)?.label || type;
   const audienceLabel = AUDIENCES.find((a) => a.value === audience)?.label || audience;
@@ -266,7 +312,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Nouvelle offre</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Cr\u00e9ez une offre promotionnelle</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Créez une offre promotionnelle</p>
         </div>
       </div>
 
@@ -312,23 +358,23 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
             {payer === "KLIKGO" && (
               <div className="mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-lg p-3">
                 <Shield className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                <p className="text-xs text-red-700 dark:text-red-300">Le co\u00fbt est \u00e0 votre charge. La r\u00e9duction sera d\u00e9duite de vos revenus.</p>
+                <p className="text-xs text-red-700 dark:text-red-300">Le coût est à votre charge. La réduction sera déduite de vos revenus.</p>
               </div>
             )}
             {payer === "BUTCHER" && (
               <div className="mt-3 flex items-start gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-lg p-3">
                 <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                <p className="text-xs text-amber-700 dark:text-amber-300">Le boucher finance la r\u00e9duction. L&apos;offre lui sera propos\u00e9e pour acceptation.</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">Le boucher finance la réduction. L&apos;offre lui sera proposée pour acceptation.</p>
               </div>
             )}
           </div>
 
-          {/* ── Section 2: S\u00e9lection boucheries (BUTCHER only) ── */}
+          {/* ── Section 2: Sélection boucheries (BUTCHER only) ── */}
           {payer === "BUTCHER" && (
             <div className="bg-white dark:bg-[#141414] rounded-2xl border-2 border-amber-200 dark:border-amber-500/30 p-5">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                 <Store className="w-4 h-4" />
-                S\u00e9lection des boucheries
+                Sélection des boucheries
               </h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {shops.map((shop) => {
@@ -389,9 +435,9 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
             </div>
           </div>
 
-          {/* ── Section 4: D\u00e9tails ── */}
+          {/* ── Section 4: Détails ── */}
           <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">D\u00e9tails</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Détails</h3>
 
             {/* Name + auto-generate */}
             <div className="flex gap-2">
@@ -405,7 +451,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
               <button
                 onClick={() => setName(autoGenerateName(type, discountValue))}
                 className="px-3 py-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors"
-                title="G\u00e9n\u00e9rer un nom"
+                title="Générer un nom"
               >
                 <Sparkles className="w-4 h-4" />
               </button>
@@ -414,7 +460,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
             {/* 3-col: discount, code, min order */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">R\u00e9duction</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Réduction</label>
                 <input
                   type="number"
                   placeholder={type === "PERCENT" ? "10" : "5"}
@@ -426,7 +472,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                   }`}
                 />
                 {type === "FREE_DELIVERY" && (
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Fix\u00e9 \u00e0 0,99\u20ac</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Fixé à 0,99€</p>
                 )}
               </div>
               <div>
@@ -442,7 +488,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                   <button
                     onClick={generateCode}
                     className="px-2.5 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors shrink-0"
-                    title="G\u00e9n\u00e9rer un code"
+                    title="Générer un code"
                   >
                     <Wand2 className="w-4 h-4" />
                   </button>
@@ -458,7 +504,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                     onChange={(e) => setMinOrder(e.target.value)}
                     className="w-full px-3 py-2.5 pr-7 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">\u20ac</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€</span>
                 </div>
               </div>
             </div>
@@ -466,7 +512,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
             {/* 2-col: dates */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">D\u00e9but</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Début</label>
                 <input
                   type="date"
                   value={startDate}
@@ -490,12 +536,12 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
               <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Utilisations max</label>
               <input
                 type="number"
-                placeholder="Illimit\u00e9"
+                placeholder="Illimité"
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
               />
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Laisser vide = illimit\u00e9</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Laisser vide = illimité</p>
             </div>
           </div>
 
@@ -566,7 +612,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
               >
                 <PanelTop className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <p className="text-sm font-medium text-gray-900 dark:text-white flex-1 text-left">Banni\u00e8re</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white flex-1 text-left">Bannière</p>
                 <div
                   className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
                     diffBanner ? "bg-red-500" : "border-2 border-gray-300 dark:border-white/20"
@@ -580,7 +626,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                   <div className="grid grid-cols-2 gap-2 mt-3">
                     <input
                       type="text"
-                      placeholder="Titre de la banni\u00e8re"
+                      placeholder="Titre de la bannière"
                       value={bannerTitle}
                       onChange={(e) => setBannerTitle(e.target.value)}
                       className="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
@@ -603,16 +649,47 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                         }`}
                       />
                     ))}
+                    <div className="flex-1" />
+                    <button
+                      onClick={() => generateImage("banner")}
+                      disabled={generatingBannerImg}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors text-xs font-medium disabled:opacity-50"
+                    >
+                      {generatingBannerImg ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ImagePlus className="w-3.5 h-3.5" />
+                      )}
+                      {generatingBannerImg ? "Génération..." : "Générer image IA"}
+                    </button>
                   </div>
+                  {/* Banner image preview */}
+                  {bannerImageUrl && (
+                    <div className="relative rounded-xl overflow-hidden">
+                      <img src={bannerImageUrl} alt="Bannière" className="w-full h-32 object-cover rounded-xl" />
+                      <button
+                        onClick={() => setBannerImageUrl("")}
+                        className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  )}
                   {/* Live preview */}
-                  <div className={`bg-gradient-to-r ${getBannerGradient(bannerColor)} rounded-xl p-4 text-white`}>
-                    <p className="font-bold text-sm">{bannerTitle || "Titre de la banni\u00e8re"}</p>
-                    <p className="text-xs opacity-90 mt-0.5">{bannerSubtitle || "Sous-titre de la banni\u00e8re"}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-mono px-2 py-0.5 rounded">
-                        {code || "CODE"}
-                      </span>
-                      <span className="text-xs font-semibold underline">J&apos;en profite &rarr;</span>
+                  <div
+                    className={`${bannerImageUrl ? "" : `bg-gradient-to-r ${getBannerGradient(bannerColor)}`} rounded-xl p-4 text-white relative overflow-hidden`}
+                    style={bannerImageUrl ? { backgroundImage: `url(${bannerImageUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+                  >
+                    {bannerImageUrl && <div className="absolute inset-0 bg-black/40 rounded-xl" />}
+                    <div className="relative z-10">
+                      <p className="font-bold text-sm">{bannerTitle || "Titre de la bannière"}</p>
+                      <p className="text-xs opacity-90 mt-0.5">{bannerSubtitle || "Sous-titre de la bannière"}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-mono px-2 py-0.5 rounded">
+                          {code || "CODE"}
+                        </span>
+                        <span className="text-xs font-semibold underline">J&apos;en profite &rarr;</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -663,9 +740,34 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                         }`}
                       />
                     ))}
+                    <div className="flex-1" />
+                    <button
+                      onClick={() => generateImage("popup")}
+                      disabled={generatingPopupImg}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors text-xs font-medium disabled:opacity-50"
+                    >
+                      {generatingPopupImg ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ImagePlus className="w-3.5 h-3.5" />
+                      )}
+                      {generatingPopupImg ? "Génération..." : "Générer image IA"}
+                    </button>
                   </div>
+                  {/* Popup image preview */}
+                  {popupImageUrl && (
+                    <div className="relative rounded-xl overflow-hidden">
+                      <img src={popupImageUrl} alt="Popup" className="w-full h-32 object-cover rounded-xl" />
+                      <button
+                        onClick={() => setPopupImageUrl("")}
+                        className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70"
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  )}
                   <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Fr\u00e9quence</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Fréquence</label>
                     <select
                       value={popupFrequency}
                       onChange={(e) => setPopupFrequency(e.target.value)}
@@ -685,7 +787,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
               <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               <p className="text-sm font-medium text-gray-900 dark:text-white flex-1">Email</p>
               <span className="text-[10px] bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
-                Les emails se cr\u00e9ent dans une campagne
+                Les emails se créent dans une campagne
               </span>
             </div>
           </div>
@@ -708,7 +810,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
               ) : (
                 <Zap className="w-4 h-4" />
               )}
-              {saving ? "Cr\u00e9ation..." : "Publier l\u2019offre"}
+              {saving ? "Création..." : "Publier l'offre"}
             </button>
           </div>
         </div>
@@ -716,11 +818,11 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
         {/* ═══════════════ RIGHT COLUMN ═══════════════ */}
         <div className="space-y-4 lg:sticky lg:top-6 self-start">
 
-          {/* ── Card 1: R\u00e9sum\u00e9 ── */}
+          {/* ── Card 1: Résumé ── */}
           <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-5">
             <div className="flex items-center gap-2 mb-4">
               <Eye className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">R\u00e9sum\u00e9 de l&apos;offre</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Résumé de l&apos;offre</h3>
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -728,7 +830,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 <span className="text-xs font-medium text-gray-900 dark:text-white">{typeLabel}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">R\u00e9duction</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Réduction</span>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">
                   {discountBadgeText}
                 </span>
@@ -742,7 +844,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Financ\u00e9 par</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Financé par</span>
                 <span className="text-xs font-medium text-gray-900 dark:text-white">
                   {payer === "KLIKGO" ? "Klik&Go" : "Boucher"}
                 </span>
@@ -754,12 +856,12 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
               {min > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500 dark:text-gray-400">Cmd min</span>
-                  <span className="text-xs font-medium text-gray-900 dark:text-white">{min}\u20ac</span>
+                  <span className="text-xs font-medium text-gray-900 dark:text-white">{min}€</span>
                 </div>
               )}
               {(startDate || endDate) && (
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">P\u00e9riode</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Période</span>
                   <span className="text-xs font-medium text-gray-900 dark:text-white">
                     {startDate || "..."} &rarr; {endDate || "..."}
                   </span>
@@ -769,7 +871,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500 dark:text-gray-400">Boucheries</span>
                   <span className="text-xs font-medium text-gray-900 dark:text-white">
-                    {shopIds.length} s\u00e9lectionn\u00e9e{shopIds.length > 1 ? "s" : ""}
+                    {shopIds.length} sélectionnée{shopIds.length > 1 ? "s" : ""}
                   </span>
                 </div>
               )}
@@ -788,9 +890,9 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 "Dates valides",
                 "Utilisations restantes",
                 `Audience : ${audienceLabel.toLowerCase()}`,
-                ...(min > 0 ? [`Panier \u2265 ${min}\u20ac`] : []),
-                ...(type === "BOGO" ? ["Produit \u00e9ligible dans le panier"] : []),
-                "Pas d\u00e9j\u00e0 utilis\u00e9 par ce client",
+                ...(min > 0 ? [`Panier \u2265 ${min}€`] : []),
+                ...(type === "BOGO" ? ["Produit éligible dans le panier"] : []),
+                "Pas déjà utilisé par ce client",
               ].map((rule, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -799,13 +901,13 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
               ))}
             </div>
             <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-3">
-              Toutes ces v\u00e9rifications sont faites c\u00f4t\u00e9 serveur.
+              Toutes ces vérifications sont faites côté serveur.
             </p>
           </div>
 
-          {/* ── Card 3: Aper\u00e7u badge ── */}
+          {/* ── Card 3: Aperçu badge ── */}
           <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Aper\u00e7u badge client</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Aperçu badge client</p>
             <div className="flex items-center justify-center">
               <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
                 {getBadgePreview(type, discountValue)}
