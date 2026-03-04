@@ -3,14 +3,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import LocationPicker from "@/components/location/LocationPicker";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { StarRating } from "@/components/ui/StarRating";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { getShopImage } from "@/lib/product-images";
 import { MapPin, Loader2, Tag } from "lucide-react";
-
-const SHOP_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' fill='%23e5e7eb'%3E%3Crect width='600' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48' fill='%239ca3af'%3E🏪%3C/text%3E%3C/svg%3E";
 
 type ShopData = {
   id: string;
@@ -136,6 +134,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
             shop={shop}
             index={i}
             isFavorite={favSet.has(shop.id)}
+            priority={i < 2}
           />
         ))}
       </div>
@@ -147,10 +146,12 @@ function NearbyButcherCard({
   shop,
   index,
   isFavorite,
+  priority,
 }: {
   shop: ShopData;
   index: number;
   isFavorite: boolean;
+  priority: boolean;
 }) {
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
   const imgSrc = shop.imageUrl || getShopImage(index);
@@ -171,14 +172,15 @@ function NearbyButcherCard({
     >
       {/* Image */}
       <div className="relative h-36 sm:h-48 overflow-hidden">
-        <Image
+        <SafeImage
           src={imgSrc}
           alt={shop.name}
+          type="shop"
           fill
           sizes="(max-width: 640px) 100vw, 50vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
-          quality={75}
-          onError={(e) => { (e.target as HTMLImageElement).src = SHOP_PLACEHOLDER; }}
+          quality={60}
+          priority={priority}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 

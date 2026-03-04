@@ -110,6 +110,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
         <head>
+          <link rel="preconnect" href="https://busy-mutt-20.clerk.accounts.dev" />
+          <link rel="dns-prefetch" href="https://busy-mutt-20.clerk.accounts.dev" />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
             <Script
               defer
@@ -119,7 +123,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             />
           )}
         </head>
-        <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased transition-colors duration-300`}>
+        <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased`}>
           <OrganizationSchema />
           <ThemeProvider>
             <Toaster position="top-center" richColors />
