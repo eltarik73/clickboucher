@@ -1,4 +1,4 @@
-// src/components/landing/HowItWorks.tsx — Server Component (no interactivity)
+// src/components/landing/HowItWorks.tsx — Server Component (light bg with dark mode support)
 
 const STEPS = [
   {
@@ -38,38 +38,31 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-[#0A0A0A] text-white py-8 sm:py-16">
+    <section id="how-it-works" className="bg-white dark:bg-[#141414] border-y border-[#ece8e3] dark:border-white/[0.06] py-8 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <h2 className="text-center text-sm font-semibold text-[#DC2626] uppercase tracking-widest mb-2">
           Simple et rapide
         </h2>
-        <p className="text-center text-xl sm:text-3xl font-bold mb-6 sm:mb-12">
-          Comment &ccedil;a marche
+        <p className="text-center text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-12">
+          Comment ça marche
         </p>
 
         {/* Desktop: horizontal with separators */}
         <div className="hidden md:flex items-stretch justify-center">
           {STEPS.map((step, idx) => (
             <div key={step.number} className="flex items-stretch">
-              {/* Step */}
               <div className="flex flex-col items-center text-center px-8 lg:px-12 py-6">
-                {/* Number badge */}
                 <div className="w-12 h-12 rounded-full bg-[#DC2626] flex items-center justify-center mb-5 shadow-lg shadow-[#DC2626]/30">
                   <span className="text-xl font-bold text-white">{step.number}</span>
                 </div>
-                {/* Icon */}
-                <div className="mb-4 text-white/90">
+                <div className="mb-4 text-[#DC2626]">
                   {step.icon}
                 </div>
-                {/* Title */}
-                <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                {/* Description */}
-                <p className="text-sm text-[#A0A0A0] max-w-[180px]">{step.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{step.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-[180px]">{step.description}</p>
               </div>
-
-              {/* Separator (not after last) */}
               {idx < STEPS.length - 1 && (
-                <div className="w-px bg-gradient-to-b from-transparent via-[#333] to-transparent my-4" />
+                <div className="w-px bg-gradient-to-b from-transparent via-gray-200 dark:via-gray-700 to-transparent my-4" />
               )}
             </div>
           ))}
@@ -78,18 +71,16 @@ export function HowItWorks() {
         {/* Mobile: stacked cards */}
         <div className="md:hidden space-y-2.5">
           {STEPS.map(step => (
-            <div key={step.number} className="flex items-start gap-3 bg-[#151515] rounded-xl p-3.5 border border-[#222]">
-              {/* Number badge */}
+            <div key={step.number} className="flex items-start gap-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06]">
               <div className="w-8 h-8 rounded-full bg-[#DC2626] flex items-center justify-center shrink-0 shadow-lg shadow-[#DC2626]/30">
                 <span className="text-sm font-bold text-white">{step.number}</span>
               </div>
-              {/* Content */}
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
-                  <div className="text-white/80 scale-75 origin-left">{step.icon}</div>
-                  <h3 className="text-base font-semibold">{step.title}</h3>
+                  <div className="text-[#DC2626] scale-75 origin-left">{step.icon}</div>
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">{step.title}</h3>
                 </div>
-                <p className="text-sm text-[#A0A0A0]">{step.description}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{step.description}</p>
               </div>
             </div>
           ))}

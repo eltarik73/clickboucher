@@ -17,7 +17,7 @@ export function HeroButtons() {
         onClick={() => scrollTo("how-it-works")}
         className="px-8 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white text-base font-medium rounded-2xl transition-all border border-gray-200 dark:border-white/10"
       >
-        Comment ca marche
+        Comment ça marche
       </button>
     </div>
   );
