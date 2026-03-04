@@ -17,7 +17,7 @@ import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
 import dynamic from "next/dynamic";
 
 const OrderTracker = dynamic(() => import("@/components/order/OrderTracker").then(m => m.OrderTracker), { ssr: false });
-const QuickCategories = dynamic(() => import("@/components/landing/QuickCategories").then(m => m.QuickCategories), { ssr: false });
+
 const ReorderSection = dynamic(() => import("@/components/order/ReorderSection").then(m => m.ReorderSection), { ssr: false });
 const OfferPopup = dynamic(() => import("@/components/client/OfferPopup").then(m => m.OfferPopup), { ssr: false });
 
@@ -265,9 +265,6 @@ export default async function HomePage() {
 
         {/* Search bar */}
         <SearchBar />
-
-        {/* Quick categories chips */}
-        <QuickCategories />
 
         {/* Promo carousel (events + DB promos) */}
         <PromoCarousel livePromos={livePromos} />

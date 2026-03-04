@@ -1,31 +1,18 @@
-// src/components/landing/PromoCarousel.tsx — Compact horizontal promo cards (Server Component)
+// src/components/landing/PromoCarousel.tsx — 3-column promo grid (Server Component)
 
 import Link from "next/link";
 
-// Religious events
-const EVENTS = [
-  { name: "Ramadan", date: "2025-03-01", endDate: "2025-03-30", emoji: "🌙", type: "ramadan", link: "Préparez l'Iftar" },
-  { name: "Aïd el-Fitr", date: "2025-03-31", emoji: "🎉", type: "aid", link: "Commandez pour la fête" },
-  { name: "Aïd el-Adha", date: "2025-06-07", emoji: "🐑", type: "aid-adha", link: "Commandez votre mouton" },
-  { name: "Ramadan", date: "2026-02-18", endDate: "2026-03-19", emoji: "🌙", type: "ramadan", link: "Préparez l'Iftar" },
-  { name: "Aïd el-Fitr", date: "2026-03-20", emoji: "🎉", type: "aid", link: "Commandez pour la fête" },
-  { name: "Aïd el-Adha", date: "2026-05-27", emoji: "🐑", type: "aid-adha", link: "Commandez votre mouton" },
-];
-
-function getUpcomingEvent() {
-  const now = Date.now();
-  return EVENTS.find((e) => {
-    const days = Math.ceil((new Date(e.date).getTime() - now) / 86_400_000);
-    const endDays = e.endDate
-      ? Math.ceil((new Date(e.endDate).getTime() - now) / 86_400_000)
-      : days;
-    return days <= 21 && endDays >= 0;
-  }) || null;
-}
-
-// Static promo cards (always visible)
-const STATIC_PROMOS = [
+const PROMOS = [
   {
+    id: "ramadan",
+    emoji: "🌙",
+    title: "Ramadan",
+    subtitle: "Préparez l'Iftar",
+    bgClass: "bg-gradient-to-br from-slate-800 to-slate-900",
+    accentClass: "text-amber-400",
+  },
+  {
+    id: "bienvenue",
     emoji: "🔥",
     title: "-10%",
     subtitle: "1ère commande",
@@ -33,39 +20,14 @@ const STATIC_PROMOS = [
     accentClass: "text-amber-100",
   },
   {
+    id: "famille",
     emoji: "🥩",
     title: "Pack Famille",
-    subtitle: "5kg à prix réduit",
+    subtitle: "5kg prix réduit",
     bgClass: "bg-gradient-to-br from-emerald-800 to-emerald-900",
     accentClass: "text-emerald-300",
   },
-  {
-    emoji: "⚡",
-    title: "Express",
-    subtitle: "Prêt en 15 min",
-    bgClass: "bg-gradient-to-br from-violet-600 to-violet-800",
-    accentClass: "text-violet-200",
-  },
-  {
-    emoji: "🎁",
-    title: "Parrainage",
-    subtitle: "5€ offerts",
-    bgClass: "bg-gradient-to-br from-orange-600 to-orange-800",
-    accentClass: "text-orange-200",
-  },
 ];
-
-const EVENT_GRADIENTS: Record<string, string> = {
-  ramadan: "from-slate-800 to-slate-900",
-  aid: "from-amber-700 to-orange-800",
-  "aid-adha": "from-emerald-800 to-teal-900",
-};
-
-const EVENT_ACCENTS: Record<string, string> = {
-  ramadan: "text-amber-400",
-  aid: "text-amber-200",
-  "aid-adha": "text-emerald-300",
-};
 
 type LivePromo = {
   id: string;
@@ -78,84 +40,40 @@ type LivePromo = {
 };
 
 export function PromoCarousel({ livePromos }: { livePromos: LivePromo[] }) {
-  const event = getUpcomingEvent();
+  void livePromos; // DB promos handled via shop badges — grid shows static promos
 
   return (
-    <section className="mb-2">
+    <section className="mb-5">
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-1 h-5 bg-[#DC2626] rounded-full" />
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white font-display">
-          Offres du moment
-        </h2>
+        <div className="w-[3px] h-4 bg-red-600 rounded-full" />
+        <h2 className="font-bold text-base text-gray-900 dark:text-white">Offres du moment</h2>
       </div>
 
-      <div
-        className="flex gap-2.5 overflow-x-auto pb-1 snap-x snap-mandatory"
-        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
-      >
-        {/* Event card (Ramadan, Aïd, etc.) */}
-        {event && (
+      {/* 3-column grid — no scroll */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {PROMOS.map((p) => (
           <Link
+            key={p.id}
             href="/#butchers"
-            className={`min-w-[140px] max-w-[140px] bg-gradient-to-br ${EVENT_GRADIENTS[event.type] || "from-slate-800 to-slate-900"} rounded-[14px] p-4 snap-start flex-shrink-0 relative overflow-hidden cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform`}
+            className={`${p.bgClass} rounded-2xl p-4 relative overflow-hidden cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform min-h-[120px] flex flex-col justify-end`}
           >
-            <span className="absolute -bottom-2 -right-1.5 text-5xl opacity-[0.08] select-none">
-              {event.emoji}
-            </span>
-            <div className="text-xl mb-2.5">{event.emoji}</div>
-            <div className="text-white font-extrabold text-base leading-tight mb-0.5">
-              {event.name}
-            </div>
-            <div className={`${EVENT_ACCENTS[event.type] || "text-amber-400"} text-xs font-medium opacity-90`}>
-              {event.link}
-            </div>
-          </Link>
-        )}
+            {/* Glass overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.15] via-white/[0.03] to-transparent rounded-2xl pointer-events-none" />
 
-        {/* Static promo cards */}
-        {STATIC_PROMOS.map((p) => (
-          <Link
-            key={p.title}
-            href="/#butchers"
-            className={`min-w-[140px] max-w-[140px] ${p.bgClass} rounded-[14px] p-4 snap-start flex-shrink-0 relative overflow-hidden cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform`}
-          >
-            <span className="absolute -bottom-2 -right-1.5 text-5xl opacity-[0.08] select-none">{p.emoji}</span>
-            <div className="text-xl mb-2.5">{p.emoji}</div>
-            <div className="text-white font-extrabold text-base leading-tight mb-0.5">{p.title}</div>
-            <div className={`${p.accentClass} text-xs font-medium opacity-90`}>{p.subtitle}</div>
+            {/* Top light line */}
+            <div className="absolute top-0 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+
+            {/* Decorative emoji */}
+            <span className="absolute -bottom-1.5 -right-1 text-5xl opacity-[0.08] select-none pointer-events-none">{p.emoji}</span>
+
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="text-2xl mb-2.5">{p.emoji}</div>
+              <div className="text-white font-extrabold text-base leading-tight mb-0.5">{p.title}</div>
+              <div className={`${p.accentClass} text-[11px] font-medium`}>{p.subtitle}</div>
+            </div>
           </Link>
         ))}
-
-        {/* DB promo cards */}
-        {livePromos.map((promo) => {
-          const discountLabel =
-            promo.type === "PERCENT" && promo.valuePercent
-              ? `-${promo.valuePercent}%`
-              : promo.type === "AMOUNT" && promo.valueCents
-                ? `-${(promo.valueCents / 100).toFixed(0)}€`
-                : promo.type === "FREE_DELIVERY"
-                  ? "Gratuit"
-                  : promo.type === "BOGO"
-                    ? "1+1"
-                    : promo.type === "BUNDLE"
-                      ? "Pack"
-                      : "Offre";
-
-          const href = promo.shopSlug ? `/boutique/${promo.shopSlug}` : "/bons-plans";
-
-          return (
-            <Link
-              key={promo.id}
-              href={href}
-              className="min-w-[140px] max-w-[140px] bg-gradient-to-br from-[#DC2626] to-red-800 rounded-[14px] p-4 snap-start flex-shrink-0 relative overflow-hidden cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform"
-            >
-              <span className="absolute -bottom-2 -right-1.5 text-5xl opacity-[0.08] select-none">🏷️</span>
-              <div className="text-xl mb-2.5">🏷️</div>
-              <div className="text-white font-extrabold text-base leading-tight mb-0.5">{discountLabel}</div>
-              <div className="text-red-200 text-xs font-medium opacity-90 truncate">{promo.shopName}</div>
-            </Link>
-          );
-        })}
       </div>
     </section>
   );

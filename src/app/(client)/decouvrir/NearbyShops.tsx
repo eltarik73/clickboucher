@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import LocationPicker from "@/components/location/LocationPicker";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { StarRating } from "@/components/ui/StarRating";
 import { SafeImage } from "@/components/ui/SafeImage";
@@ -68,26 +67,25 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
     } catch {}
   }, [fetchNearby]);
 
-  const handleLocationChange = (lat: number | null, lng: number | null) => {
-    if (lat !== null && lng !== null) {
-      fetchNearby(lat, lng);
-    } else {
-      setShops(initialShops);
-      setGeoActive(false);
-    }
-  };
+  // Listen for location changes from LocationCard
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.lat != null && detail?.lng != null) {
+        fetchNearby(detail.lat, detail.lng);
+      } else {
+        setShops(initialShops);
+        setGeoActive(false);
+      }
+    };
+    window.addEventListener("klikgo-location", handler);
+    return () => window.removeEventListener("klikgo-location", handler);
+  }, [fetchNearby, initialShops]);
 
   const favSet = new Set(favoriteIds);
 
   return (
     <>
-      {/* Location picker */}
-      <div className="mb-6">
-        <LocationPicker
-          onLocationChange={(lat, lng) => handleLocationChange(lat, lng)}
-        />
-      </div>
-
       {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-8">

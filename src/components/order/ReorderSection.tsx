@@ -1,10 +1,11 @@
-// src/components/order/ReorderSection.tsx — "Commander à nouveau" single card for homepage
+// src/components/order/ReorderSection.tsx — Reorder + Location side by side grid
 "use client";
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { RotateCcw, ChevronRight } from "lucide-react";
+import { RotateCcw, ChevronRight, MapPin, Navigation, Loader2 } from "lucide-react";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 interface LastOrder {
   shopName: string;
@@ -22,6 +23,103 @@ function timeAgo(dateStr: string) {
   if (days < 7) return `Il y a ${days}j`;
   if (days < 30) return `Il y a ${Math.floor(days / 7)} sem.`;
   return `Il y a ${Math.floor(days / 30)} mois`;
+}
+
+function LocationCard() {
+  const geo = useGeolocation();
+  const [showInput, setShowInput] = useState(false);
+  const [manualInput, setManualInput] = useState("");
+
+  // Notify NearbyShops when location changes
+  const { latitude, longitude } = geo;
+  useEffect(() => {
+    if (latitude != null && longitude != null) {
+      window.dispatchEvent(new CustomEvent("klikgo-location", { detail: { lat: latitude, lng: longitude } }));
+    }
+  }, [latitude, longitude]);
+
+  const handleGPS = async () => {
+    await geo.requestGPS();
+  };
+
+  const handleManualSubmit = async () => {
+    if (!manualInput.trim()) return;
+    await geo.setManualCity(manualInput.trim());
+    setShowInput(false);
+    setManualInput("");
+  };
+
+  return (
+    <div className="bg-white dark:bg-white/[0.03] rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm">
+      <div className="flex items-center gap-2.5 mb-2">
+        <div className="w-9 h-9 rounded-[10px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+          <MapPin size={18} className="text-red-600" />
+        </div>
+        <div className="min-w-0">
+          <div className="font-bold text-[13px] text-gray-900 dark:text-white">Votre position</div>
+          <div className="text-[11px] text-gray-400">
+            {geo.city || "Activez pour voir les proches"}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
+        {geo.city ? (
+          <>
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">
+              <MapPin size={12} className="inline text-red-600 mr-1" />
+              {geo.city}
+            </span>
+            <button
+              onClick={() => { geo.clear(); window.dispatchEvent(new CustomEvent("klikgo-location", { detail: { lat: null, lng: null } })); }}
+              className="text-[11px] text-gray-400 hover:text-red-600 transition font-semibold"
+            >
+              Modifier
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleGPS}
+              disabled={geo.loading}
+              className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-[10px] transition-colors disabled:opacity-50"
+            >
+              {geo.loading ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
+              {geo.loading ? "..." : "Activer GPS"}
+            </button>
+            <button
+              onClick={() => setShowInput(!showInput)}
+              className="text-gray-500 text-[11px] font-semibold border border-gray-200 dark:border-white/[0.06] rounded-lg px-2.5 py-1.5 hover:border-gray-300 transition"
+            >
+              Saisir ville
+            </button>
+          </>
+        )}
+      </div>
+      {geo.error && (
+        <p className="text-[11px] text-red-500 mt-1.5">{geo.error}</p>
+      )}
+      {showInput && !geo.city && (
+        <div className="flex gap-2 mt-2">
+          <input
+            type="text"
+            value={manualInput}
+            onChange={(e) => setManualInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+            placeholder="Ex: Chambéry, Lyon..."
+            className="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-red-500"
+            autoFocus
+          />
+          <button
+            onClick={handleManualSubmit}
+            disabled={!manualInput.trim() || geo.loading}
+            className="px-3 py-1.5 bg-gray-900 dark:bg-white dark:text-gray-900 text-white text-xs font-medium rounded-lg hover:opacity-90 transition disabled:opacity-50"
+          >
+            OK
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ReorderSection() {
@@ -57,36 +155,44 @@ export function ReorderSection() {
     })();
   }, [isSignedIn]);
 
-  if (!lastOrder) return null;
-
   return (
-    <section className="mb-2">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-1 h-5 bg-[#DC2626] rounded-full" />
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white font-display">
-          Commander à nouveau
-        </h3>
-      </div>
-      <Link
-        href={`/boutique/${lastOrder.shopSlug}`}
-        className="flex items-center gap-3 bg-white dark:bg-white/[0.03] rounded-2xl p-4 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm hover:shadow-md transition-all group"
-      >
-        <div className="w-11 h-11 rounded-xl bg-[#DC2626]/10 flex items-center justify-center shrink-0">
-          <RotateCcw size={18} className="text-[#DC2626]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-[#DC2626] transition-colors">
-            {lastOrder.shopName}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-5">
+      {/* Reorder card */}
+      {lastOrder ? (
+        <Link
+          href={`/boutique/${lastOrder.shopSlug}`}
+          className="bg-white dark:bg-white/[0.03] rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+        >
+          <div className="flex items-center gap-2.5 mb-2">
+            <div className="w-9 h-9 rounded-[10px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+              <RotateCcw size={18} className="text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-[13px] text-gray-900 dark:text-white group-hover:text-[#DC2626] transition-colors">Commander à nouveau</div>
+              <div className="text-[11px] text-gray-400 truncate">{lastOrder.shopName} · {timeAgo(lastOrder.createdAt)}</div>
+            </div>
           </div>
-          <div className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
-            {lastOrder.summary} · {timeAgo(lastOrder.createdAt)}
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-white/5">
+            <span className="text-xs text-gray-400 truncate">{lastOrder.summary}</span>
+            <span className="flex items-center gap-0.5 text-red-600 text-[13px] font-bold flex-shrink-0">
+              {(lastOrder.totalCents / 100).toFixed(2).replace(".", ",")} € <ChevronRight size={14} />
+            </span>
+          </div>
+        </Link>
+      ) : (
+        <div className="bg-white dark:bg-white/[0.03] rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-[10px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+            <RotateCcw size={18} className="text-red-600" />
+          </div>
+          <div>
+            <div className="font-bold text-[13px] text-gray-900 dark:text-white">Commander à nouveau</div>
+            <div className="text-[11px] text-gray-400">Passez votre première commande</div>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-[#DC2626] text-sm font-bold shrink-0 group-hover:translate-x-0.5 transition-transform">
-          {(lastOrder.totalCents / 100).toFixed(2).replace(".", ",")} €
-          <ChevronRight size={16} />
-        </div>
-      </Link>
-    </section>
+      )}
+
+      {/* Location card */}
+      <LocationCard />
+    </div>
   );
 }

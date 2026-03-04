@@ -1,4 +1,4 @@
-// src/components/order/OrderTracker.tsx — Dismissible order tracker for homepage (Uber Eats style)
+// src/components/order/OrderTracker.tsx — Glass effect order tracker for homepage
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -81,55 +81,64 @@ export function OrderTracker() {
     : null;
 
   return (
-    <div className="relative bg-gradient-to-br from-[#DC2626] to-red-700 rounded-2xl p-3.5 px-4 shadow-lg shadow-red-600/20">
-      <button
-        onClick={(e) => { e.preventDefault(); setDismissed(true); }}
-        className="absolute top-2.5 right-2.5 bg-white/15 rounded-full w-6 h-6 flex items-center justify-center text-white hover:bg-white/25 transition"
-        aria-label="Fermer le suivi"
-      >
-        <X size={12} />
-      </button>
+    <div className="rounded-2xl relative overflow-hidden shadow-[0_8px_32px_rgba(220,38,38,0.25)]">
+      {/* Layer 1: gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-red-500 via-red-600 to-red-700" />
 
-      <Link href={`/suivi/${order.id}`} className="block">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="bg-white/20 rounded-xl w-9 h-9 flex items-center justify-center">
-            <Package size={16} className="text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-white font-bold text-sm">
-              {order.status === "PENDING" ? "Commande envoyée" : "Commande en cours"}
-            </div>
-            <div className="text-white/70 text-xs truncate">
-              {order.shopName} · #{order.orderNumber}
-            </div>
-          </div>
-          {timeLeft && (
-            <div className="flex items-center gap-1 text-white font-bold text-[13px] shrink-0">
-              <Timer size={14} />
-              {timeLeft}
-            </div>
-          )}
-        </div>
+      {/* Layer 2: glass shine */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.18] via-white/[0.05] to-transparent pointer-events-none" />
 
-        <div className="flex gap-1">
-          {STEPS.map((step, i) => (
-            <div key={step} className="flex-1">
-              <div
-                className={`h-1 rounded-full transition-all duration-500 ${
-                  i <= currentStep ? "bg-white" : "bg-white/25"
-                }`}
-              />
-              <div
-                className={`text-[10px] mt-1 text-center ${
-                  i <= currentStep ? "text-white font-semibold" : "text-white/40"
-                }`}
-              >
-                {step}
+      {/* Layer 3: top light line */}
+      <div className="absolute top-0 left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+
+      {/* Content */}
+      <div className="relative z-10 p-4">
+        <Link href={`/suivi/${order.id}`} className="block">
+          {/* Row 1: icon + text + ETA + dismiss */}
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-white/[0.18] backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+              <Package size={18} className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-bold text-[15px]">
+                {order.status === "PENDING" ? "Commande envoyée" : "Commande en cours"}
+              </div>
+              <div className="text-white/65 text-xs truncate">
+                {order.shopName} · #{order.orderNumber}
               </div>
             </div>
-          ))}
-        </div>
-      </Link>
+            {timeLeft && (
+              <div className="flex items-center gap-1 text-white font-bold text-[13px] flex-shrink-0">
+                <Timer size={14} />
+                <span>{timeLeft}</span>
+              </div>
+            )}
+            <button
+              onClick={(e) => { e.preventDefault(); setDismissed(true); }}
+              className="w-7 h-7 rounded-full bg-white/[0.12] backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/25 transition flex-shrink-0 ml-1"
+              aria-label="Fermer le suivi"
+            >
+              <X size={12} />
+            </button>
+          </div>
+
+          {/* Progress bar — thin segments */}
+          <div className="flex gap-1.5 mb-1.5">
+            {STEPS.map((step, i) => (
+              <div key={step} className={`flex-1 h-[3px] rounded-full ${i <= currentStep ? "bg-white" : "bg-white/20"} transition-all duration-500`} />
+            ))}
+          </div>
+
+          {/* Labels under bar */}
+          <div className="flex justify-between">
+            {STEPS.map((step, i) => (
+              <span key={step} className={`text-[11px] ${i <= currentStep ? "text-white font-semibold" : "text-white/35"}`}>
+                {step}
+              </span>
+            ))}
+          </div>
+        </Link>
+      </div>
     </div>
   );
 }
