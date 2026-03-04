@@ -6,6 +6,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
+import { put } from "@vercel/blob";
 
 const VALID_USAGES = ["CAMPAIGN", "PROMO", "PRODUCT", "SOCIAL", "BANNER"];
 
@@ -38,7 +39,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const imageUrl = Array.isArray(output) ? output[0] : String(output);
+    const replicateUrl = Array.isArray(output) ? String(output[0]) : String(output);
+
+    // Upload to Vercel Blob for permanent URL (Replicate URLs expire after ~1h)
+    const imageResponse = await fetch(replicateUrl);
+    const buffer = Buffer.from(await imageResponse.arrayBuffer());
+    const blob = await put(`generated/${Date.now()}.png`, buffer, {
+      access: 'public',
+      contentType: 'image/png',
+    });
+    const imageUrl = blob.url;
 
     const image = await prisma.generatedImage.create({
       data: {
