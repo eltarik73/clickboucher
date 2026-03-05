@@ -275,9 +275,18 @@ export async function POST(req: NextRequest) {
       const product = productMap.get(item.productId)!;
       let unitPrice = isPro && product.proPriceCents ? product.proPriceCents : product.priceCents;
 
-      // Apply promo if active
-      if (product.promoPct && product.promoEnd && new Date(product.promoEnd) > new Date()) {
+      // Override with cutPriceCents if client chose a specific cut
+      if (item.cutPriceCents) {
+        unitPrice = item.cutPriceCents;
+      }
+
+      // Apply percentage promo if active (with expiration)
+      if (product.promoPct && product.promoType !== "FIXED_AMOUNT" && product.promoEnd && new Date(product.promoEnd) > new Date()) {
         unitPrice = Math.round(unitPrice * (1 - product.promoPct / 100));
+      }
+      // Apply fixed amount promo (permanent, no promoEnd required)
+      if (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents) {
+        unitPrice = Math.max(0, unitPrice - product.promoFixedCents);
       }
 
       // Weight-based pricing for KG items
@@ -304,6 +313,8 @@ export async function POST(req: NextRequest) {
         variant: item.variant ?? null,
         pieceCount: item.pieceCount ?? null,
         pieceLabel: item.pieceLabel ?? null,
+        cutOption: item.cutOption ?? null,
+        cutPriceCents: item.cutPriceCents ?? null,
         estimatedPriceCents: itemTotal,
       };
     });

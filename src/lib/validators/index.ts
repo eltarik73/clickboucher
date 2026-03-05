@@ -140,7 +140,7 @@ export const createProductSchema = z.object({
   customerNote: z.string().max(500).nullable().optional(),
   promoPct: z.number().int().min(1).max(99).nullable().optional(),
   promoEnd: z.string().datetime().nullable().optional(),
-  promoType: z.enum(["PERCENTAGE","FLASH","BUY_X_GET_Y"]).nullable().optional(),
+  promoType: z.enum(["PERCENTAGE","FLASH","BUY_X_GET_Y","FIXED_AMOUNT"]).nullable().optional(),
   unitLabel: z.string().max(100).nullable().optional(),
   sliceOptions: z.object({
     defaultSlices: z.number().int().min(1).max(50),
@@ -152,6 +152,11 @@ export const createProductSchema = z.object({
   weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
   pieceLabel: z.string().max(100).nullable().optional(),
   weightMargin: z.number().int().min(1).max(50).optional(),
+  cutOptions: z.array(z.object({ name: z.string().min(1).max(100), priceCents: z.number().int().min(0) })).max(10).nullable().optional(),
+  promoFixedCents: z.number().int().min(1).max(100000).nullable().optional(),
+  packContent: z.string().max(500).nullable().optional(),
+  packWeight: z.string().max(100).nullable().optional(),
+  packOldPriceCents: z.number().int().min(0).nullable().optional(),
   images: z.array(productImageSchema).optional(),
   labels: z.array(productLabelInputSchema).optional(),
 });
@@ -181,7 +186,7 @@ export const updateProductSchema = z.object({
   customerNote: z.string().max(500).nullable().optional(),
   promoPct: z.number().int().min(1).max(99).nullable().optional(),
   promoEnd: z.string().datetime().nullable().optional(),
-  promoType: z.enum(["PERCENTAGE","FLASH","BUY_X_GET_Y"]).nullable().optional(),
+  promoType: z.enum(["PERCENTAGE","FLASH","BUY_X_GET_Y","FIXED_AMOUNT"]).nullable().optional(),
   unitLabel: z.string().max(100).nullable().optional(),
   sliceOptions: z.object({
     defaultSlices: z.number().int().min(1).max(50),
@@ -193,6 +198,11 @@ export const updateProductSchema = z.object({
   weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
   pieceLabel: z.string().max(100).nullable().optional(),
   weightMargin: z.number().int().min(1).max(50).optional(),
+  cutOptions: z.array(z.object({ name: z.string().min(1).max(100), priceCents: z.number().int().min(0) })).max(10).nullable().optional(),
+  promoFixedCents: z.number().int().min(1).max(100000).nullable().optional(),
+  packContent: z.string().max(500).nullable().optional(),
+  packWeight: z.string().max(100).nullable().optional(),
+  packOldPriceCents: z.number().int().min(0).nullable().optional(),
   images: z.array(productImageSchema).optional(),
   labels: z.array(productLabelInputSchema).optional(),
 });
@@ -221,6 +231,8 @@ const cartItemSchema = z.object({
   variant: z.string().max(50).optional(),
   pieceCount: z.number().int().min(1).optional(),
   pieceLabel: z.string().max(100).optional(),
+  cutOption: z.string().max(100).optional(),
+  cutPriceCents: z.number().int().min(0).optional(),
 });
 
 export const createOrderSchema = z.object({

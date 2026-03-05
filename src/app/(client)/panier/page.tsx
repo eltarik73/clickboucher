@@ -319,6 +319,8 @@ export default function PanierPage() {
         ...(i.variant && { variant: i.variant }),
         ...(i.pieceCount && { pieceCount: i.pieceCount }),
         ...(i.pieceLabel && { pieceLabel: i.pieceLabel }),
+        ...(i.cutOption && { cutOption: i.cutOption }),
+        ...(i.cutPriceCents && { cutPriceCents: i.cutPriceCents }),
       })),
       requestedTime,
       customerNote: customerNote.trim() || undefined,

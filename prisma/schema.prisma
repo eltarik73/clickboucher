@@ -98,6 +98,7 @@ enum PromoType {
   PERCENTAGE
   FLASH
   BUY_X_GET_Y
+  FIXED_AMOUNT
 }
 
 enum SubscriptionPlan {
@@ -562,6 +563,13 @@ model Product {
   weightPerPiece Int?              @map("weight_per_piece")
   pieceLabel     String?           @map("piece_label")
   weightMargin   Int     @default(15) @map("weight_margin")
+
+  // ── Découpe, promo fixe, pack ──
+  cutOptions        Json?    @map("cut_options")
+  promoFixedCents   Int?     @map("promo_fixed_cents")
+  packContent       String?  @map("pack_content")
+  packWeight        String?  @map("pack_weight")
+  packOldPriceCents Int?     @map("pack_old_price_cents")
 
   // ── Catalogue de référence (lien souple) ──
   referenceId  String?  @map("reference_id")
@@ -1050,6 +1058,10 @@ model OrderItem {
   variant    String?   @map("variant")
   pieceCount Int?      @map("piece_count")
   pieceLabel String?   @map("piece_label")
+
+  // ── Découpe ──
+  cutOption      String?  @map("cut_option")
+  cutPriceCents  Int?     @map("cut_price_cents")
 
   estimatedPriceCents Int?      @map("estimated_price_cents")
 

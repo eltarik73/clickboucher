@@ -14,7 +14,8 @@ export type ProductCardData = Pick<ProductV2,
   "id" | "shopId" | "name" | "description" | "imageUrl" | "priceCents" | "unit" |
   "inStock" | "tags" | "origin" | "halalOrg" | "race" | "popular" |
   "promoPct" | "promoEnd" | "promoType" | "freshness" | "customerNote" |
-  "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin"
+  "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin" |
+  "promoFixedCents" | "packOldPriceCents" | "packContent" | "packWeight" | "cutOptions"
 > & {
   category: { id: string; name: string; emoji: string | null };
   images: ProductImageType[];
@@ -55,7 +56,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
   const imgSrc = product.images.length > 0
     ? product.images[0].url
     : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
-  const hasPromo = product.promoPct != null && product.promoPct > 0;
+  const hasPromo = (product.promoPct != null && product.promoPct > 0) || (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
   const outOfStock = !product.inStock;
   const isEager = productIndex < 4;
   const isSheetUnit = product.unit === "KG" || product.unit === "TRANCHE";
@@ -113,7 +114,9 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
             className={`absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)]
               ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#EF4444]"}`}
           >
-            -{product.promoPct}%
+            {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+              ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
+              : `-${product.promoPct}%`}
           </div>
         )}
 
@@ -171,10 +174,21 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
             {hasPromo ? (
               <>
                 <span className="text-[13px] font-bold text-[#DC2626]">
-                  {fmtPrice(promoPrice(product.priceCents, product.promoPct!))}
+                  {fmtPrice(product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+                    ? Math.max(0, product.priceCents - product.promoFixedCents)
+                    : promoPrice(product.priceCents, product.promoPct!))}
                 </span>
                 <span className="text-[9px] text-gray-400 line-through">
                   {fmtPrice(product.priceCents)}
+                </span>
+              </>
+            ) : product.packOldPriceCents ? (
+              <>
+                <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
+                  {fmtPrice(product.priceCents)}
+                </span>
+                <span className="text-[9px] text-gray-400 line-through">
+                  {fmtPrice(product.packOldPriceCents)}
                 </span>
               </>
             ) : (

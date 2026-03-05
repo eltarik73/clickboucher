@@ -11,8 +11,11 @@ interface Props {
 }
 
 export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
-  const price = item.priceCents / 100;
-  const totalPrice = price * item.quantity;
+  const effectivePrice = item.cutPriceCents ?? item.priceCents;
+  const price = effectivePrice / 100;
+  const totalPrice = item.unit === "KG" && item.weightGrams
+    ? Math.round((item.weightGrams / 1000) * effectivePrice) / 100 * item.quantity
+    : price * item.quantity;
 
   return (
     <div className="flex gap-3 py-3 group">
@@ -44,6 +47,11 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
               {item.pieceCount && item.pieceLabel && (
                 <span className="ml-1 text-[10px] text-gray-400">
                   ({item.pieceCount} {item.pieceLabel})
+                </span>
+              )}
+              {item.cutOption && (
+                <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600">
+                  {item.cutOption}
                 </span>
               )}
             </p>

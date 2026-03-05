@@ -73,6 +73,11 @@ export type EditProduct = {
   weightPerPiece: number | null;
   pieceLabel: string | null;
   weightMargin: number;
+  cutOptions?: Array<{ name: string; priceCents: number }> | null;
+  promoFixedCents?: number | null;
+  packContent?: string | null;
+  packWeight?: string | null;
+  packOldPriceCents?: number | null;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
 };
@@ -227,6 +232,22 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [weightPerPiece, setWeightPerPiece] = useState<number | null>(product?.weightPerPiece ?? null);
   const [pieceLabel, setPieceLabel] = useState(product?.pieceLabel || "");
   const [weightMargin, setWeightMargin] = useState(product?.weightMargin ?? 15);
+
+  // Cut Options (decoupe)
+  const [cutEnabled, setCutEnabled] = useState(Array.isArray(product?.cutOptions) && product.cutOptions.length > 0);
+  const [cutOptionsList, setCutOptionsList] = useState<Array<{ name: string; priceCents: number }>>(
+    (product?.cutOptions as Array<{ name: string; priceCents: number }>) || []
+  );
+
+  // Promo mode (percent vs fixed)
+  const [promoMode, setPromoMode] = useState<"percent" | "fixed">(product?.promoType === "FIXED_AMOUNT" ? "fixed" : "percent");
+  const [promoFixedVal, setPromoFixedVal] = useState(product?.promoFixedCents ? (product.promoFixedCents / 100).toFixed(2) : "");
+
+  // Pack promo
+  const [packEnabled, setPackEnabled] = useState(!!product?.packContent);
+  const [packContent, setPackContent] = useState(product?.packContent || "");
+  const [packWeightVal, setPackWeightVal] = useState(product?.packWeight || "");
+  const [packOldPrice, setPackOldPrice] = useState(product?.packOldPriceCents ? (product.packOldPriceCents / 100).toFixed(2) : "");
 
   // ── Import from reference catalog ──
   async function openCatalogImport() {
@@ -399,12 +420,23 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
       body.priceCents = priceVal;
       body.proPriceCents = proVal;
       body.shopId = shopId;
-      body.promoPct = promoEnabled ? promoPct : null;
-      body.promoType = promoEnabled && isFlash ? "FLASH" : promoEnabled ? "PERCENTAGE" : null;
-      body.promoEnd = promoEnabled && isFlash
-        ? new Date(Date.now() + flashHours * 3600_000).toISOString()
-        : null;
+      if (promoEnabled && promoMode === "fixed") {
+        body.promoFixedCents = Math.round(parseFloat(promoFixedVal || "0") * 100);
+        body.promoType = "FIXED_AMOUNT";
+        body.promoPct = null;
+        body.promoEnd = null;
+      } else {
+        body.promoPct = promoEnabled ? promoPct : null;
+        body.promoType = promoEnabled && isFlash ? "FLASH" : promoEnabled ? "PERCENTAGE" : null;
+        body.promoEnd = promoEnabled && isFlash
+          ? new Date(Date.now() + flashHours * 3600_000).toISOString()
+          : null;
+        body.promoFixedCents = null;
+      }
       body.unitLabel = unitLabel.trim() || null;
+      body.packContent = packEnabled ? packContent.trim() || null : null;
+      body.packWeight = packEnabled ? packWeightVal.trim() || null : null;
+      body.packOldPriceCents = packEnabled && packOldPrice ? Math.round(parseFloat(packOldPrice) * 100) : null;
     }
 
     if (unit === "KG" || unit === "TRANCHE") {
@@ -420,6 +452,9 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
 
     // Variantes
     body.variants = variants;
+
+    // Cut options
+    body.cutOptions = cutEnabled && cutOptionsList.length > 0 ? cutOptionsList : null;
 
     // Calculateur pièces (KG only)
     if (unit === "KG" && weightPerPiece) {
@@ -711,6 +746,56 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   </Button>
                 </div>
               </div>
+
+              {/* ── Options de decoupe (KG only) ── */}
+              {unit === "KG" && (
+                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Options de decoupe</span>
+                    <button type="button" onClick={() => setCutEnabled(!cutEnabled)}
+                      className={`w-11 h-6 rounded-full transition-all relative ${cutEnabled ? "bg-[#DC2626]" : "bg-gray-300 dark:bg-white/15"}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${cutEnabled ? "left-[22px]" : "left-0.5"}`} />
+                    </button>
+                  </div>
+                  {cutEnabled && (
+                    <>
+                      {/* Presets */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { label: "Viande", options: [{ name: "Avec os", priceCents: 0 }, { name: "Sans os", priceCents: 0 }, { name: "Desossee", priceCents: 0 }] },
+                          { label: "Charcuterie", options: [{ name: "Entiere", priceCents: 0 }, { name: "Tranchee", priceCents: 0 }, { name: "En des", priceCents: 0 }] },
+                          { label: "Volaille", options: [{ name: "Entier", priceCents: 0 }, { name: "Filet", priceCents: 0 }, { name: "Cuisses", priceCents: 0 }] },
+                        ].map(preset => (
+                          <button key={preset.label} type="button"
+                            onClick={() => setCutOptionsList(preset.options.map(o => ({ ...o, priceCents: Math.round(parseFloat(priceCents || "0") * 100) })))}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Editable lines */}
+                      {cutOptionsList.map((opt, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Input value={opt.name} onChange={e => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], name: e.target.value }; setCutOptionsList(next); }}
+                            placeholder="Nom option" className="h-9 text-sm flex-1" />
+                          <div className="relative w-28">
+                            <Input type="number" step="0.01" min="0" value={(opt.priceCents / 100).toFixed(2)}
+                              onChange={e => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], priceCents: Math.round(parseFloat(e.target.value || "0") * 100) }; setCutOptionsList(next); }}
+                              className="h-9 text-sm pr-8" />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">{"\u20AC"}/kg</span>
+                          </div>
+                          <button type="button" onClick={() => setCutOptionsList(cutOptionsList.filter((_, i) => i !== idx))}
+                            className="text-gray-400 hover:text-red-500 transition-colors"><X size={16} /></button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setCutOptionsList([...cutOptionsList, { name: "", priceCents: Math.round(parseFloat(priceCents || "0") * 100) }])}
+                        className="flex items-center gap-1 text-xs font-medium text-[#DC2626] hover:underline">
+                        <Plus size={14} /> Ajouter une option
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -768,64 +853,112 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
 
                 {promoEnabled && (
                   <>
-                    <div className="flex flex-wrap gap-1.5">
-                      {PROMO_PCTS.map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => setPromoPct(pct)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] ${
-                            promoPct === pct
-                              ? "bg-[#DC2626] text-white"
-                              : "bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
-                          }`}
-                        >
-                          -{pct}%
+                    {/* Segmented control: Pourcentage | Montant fixe */}
+                    <div className="flex rounded-lg overflow-hidden border border-[#ece8e3] dark:border-white/10">
+                      {(["percent", "fixed"] as const).map(m => (
+                        <button key={m} type="button" onClick={() => setPromoMode(m)}
+                          className={`flex-1 py-2 text-xs font-bold transition-all ${promoMode === m ? "bg-[#DC2626] text-white" : "bg-white dark:bg-[#0a0a0a] text-gray-600 dark:text-gray-400"}`}>
+                          {m === "percent" ? "Pourcentage" : "Montant fixe"}
                         </button>
                       ))}
                     </div>
 
-                    {/* Preview */}
-                    {priceParsed > 0 && (
-                      <div className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] rounded-lg p-3 border border-[#ece8e3] dark:border-white/10">
-                        <span className="text-sm text-gray-400 line-through">{fmtPrice(priceParsed)}</span>
-                        <span className="text-lg font-bold text-[#DC2626]">{fmtPrice(promoPreviewPrice)}</span>
-                        <span className="px-2 py-0.5 bg-[#DC2626] text-white text-[10px] font-bold rounded">-{promoPct}%</span>
-                      </div>
-                    )}
-
-                    {/* Flash promo */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Promo Flash</span>
-                      <button
-                        type="button"
-                        onClick={() => setIsFlash(!isFlash)}
-                        className={`w-11 h-6 rounded-full transition-all relative ${isFlash ? "bg-orange-500" : "bg-gray-300 dark:bg-white/15"}`}
-                      >
-                        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${isFlash ? "left-[22px]" : "left-0.5"}`} />
-                      </button>
-                    </div>
-                    {isFlash && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {FLASH_DURATIONS.map((d) => (
-                          <button
-                            key={d.hours}
-                            type="button"
-                            onClick={() => setFlashHours(d.hours)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold min-h-[36px] transition-all ${
-                              flashHours === d.hours
-                                ? "bg-orange-500 text-white"
-                                : "bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
-                            }`}
-                          >
-                            {d.label}
+                    {promoMode === "percent" ? (
+                      <>
+                        <div className="flex flex-wrap gap-1.5">
+                          {PROMO_PCTS.map((pct) => (
+                            <button key={pct} type="button" onClick={() => setPromoPct(pct)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] ${
+                                promoPct === pct ? "bg-[#DC2626] text-white" : "bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
+                              }`}>
+                              -{pct}%
+                            </button>
+                          ))}
+                        </div>
+                        {priceParsed > 0 && (
+                          <div className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] rounded-lg p-3 border border-[#ece8e3] dark:border-white/10">
+                            <span className="text-sm text-gray-400 line-through">{fmtPrice(priceParsed)}</span>
+                            <span className="text-lg font-bold text-[#DC2626]">{fmtPrice(promoPreviewPrice)}</span>
+                            <span className="px-2 py-0.5 bg-[#DC2626] text-white text-[10px] font-bold rounded">-{promoPct}%</span>
+                          </div>
+                        )}
+                        {/* Flash promo */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Promo Flash</span>
+                          <button type="button" onClick={() => setIsFlash(!isFlash)}
+                            className={`w-11 h-6 rounded-full transition-all relative ${isFlash ? "bg-orange-500" : "bg-gray-300 dark:bg-white/15"}`}>
+                            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${isFlash ? "left-[22px]" : "left-0.5"}`} />
                           </button>
-                        ))}
-                      </div>
+                        </div>
+                        {isFlash && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {FLASH_DURATIONS.map((d) => (
+                              <button key={d.hours} type="button" onClick={() => setFlashHours(d.hours)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold min-h-[36px] transition-all ${
+                                  flashHours === d.hours ? "bg-orange-500 text-white" : "bg-white dark:bg-[#0a0a0a] border border-[#ece8e3] dark:border-white/10 text-gray-600 dark:text-gray-400"
+                                }`}>
+                                {d.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <Input type="number" step="0.01" min="0" value={promoFixedVal}
+                            onChange={(e) => setPromoFixedVal(e.target.value)}
+                            placeholder="Montant de la reduction" className="h-10 pr-8" />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{"\u20AC"}</span>
+                        </div>
+                        {priceParsed > 0 && parseFloat(promoFixedVal || "0") > 0 && (
+                          <div className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] rounded-lg p-3 border border-[#ece8e3] dark:border-white/10">
+                            <span className="text-sm text-gray-400 line-through">{fmtPrice(priceParsed)}</span>
+                            <span className="text-lg font-bold text-[#DC2626]">{fmtPrice(Math.max(0, priceParsed - Math.round(parseFloat(promoFixedVal) * 100)))}</span>
+                            <span className="px-2 py-0.5 bg-[#DC2626] text-white text-[10px] font-bold rounded">-{parseFloat(promoFixedVal).toFixed(2)}{"\u20AC"}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}
               </div>
+
+              {/* Pack promo (PIECE / BARQUETTE only) */}
+              {(unit === "PIECE" || unit === "BARQUETTE") && (
+                <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pack promo</span>
+                    <button type="button" onClick={() => setPackEnabled(!packEnabled)}
+                      className={`w-11 h-6 rounded-full transition-all relative ${packEnabled ? "bg-[#DC2626]" : "bg-gray-300 dark:bg-white/15"}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${packEnabled ? "left-[22px]" : "left-0.5"}`} />
+                    </button>
+                  </div>
+                  {packEnabled && (
+                    <>
+                      <Input value={packContent} onChange={e => setPackContent(e.target.value)}
+                        placeholder="Contenu du pack (ex: 4 steaks haches + 2 merguez)" className="h-9 text-sm" />
+                      <Input value={packWeightVal} onChange={e => setPackWeightVal(e.target.value)}
+                        placeholder="Poids total (ex: 1.2 kg)" className="h-9 text-sm" />
+                      <div className="relative">
+                        <Input type="number" step="0.01" min="0" value={packOldPrice}
+                          onChange={e => setPackOldPrice(e.target.value)}
+                          placeholder="Ancien prix (avant pack)" className="h-9 text-sm pr-8" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{"\u20AC"}</span>
+                      </div>
+                      {priceParsed > 0 && parseFloat(packOldPrice || "0") > 0 && (
+                        <div className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] rounded-lg p-3 border border-[#ece8e3] dark:border-white/10">
+                          <span className="text-sm text-gray-400 line-through">{fmtPrice(Math.round(parseFloat(packOldPrice) * 100))}</span>
+                          <span className="text-lg font-bold text-green-600">{fmtPrice(priceParsed)}</span>
+                          <span className="px-2 py-0.5 bg-green-600 text-white text-[10px] font-bold rounded">
+                            -{Math.round((1 - priceParsed / Math.round(parseFloat(packOldPrice) * 100)) * 100)}%
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
               </>)}
 
               {/* Weight config (for KG and TRANCHE) */}

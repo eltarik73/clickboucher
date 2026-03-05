@@ -36,6 +36,8 @@ export type KitchenOrder = {
     variant: string | null;
     pieceCount: number | null;
     pieceLabel: string | null;
+    cutOption: string | null;
+    cutPriceCents: number | null;
     itemNote: string | null;
     available: boolean;
     product?: { name: string; unit: string; vatRate?: number | null; imageUrl?: string | null };

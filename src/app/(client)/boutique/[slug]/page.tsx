@@ -225,6 +225,11 @@ export default async function BoutiquePage({
     weightPerPiece: p.weightPerPiece ?? null,
     pieceLabel: p.pieceLabel ?? null,
     weightMargin: p.weightMargin ?? 15,
+    cutOptions: (p.cutOptions as Array<{ name: string; priceCents: number }>) ?? null,
+    promoFixedCents: p.promoFixedCents ?? null,
+    packContent: p.packContent ?? null,
+    packWeight: p.packWeight ?? null,
+    packOldPriceCents: p.packOldPriceCents ?? null,
     category: {
       id: p.category.id,
       name: p.category.name,

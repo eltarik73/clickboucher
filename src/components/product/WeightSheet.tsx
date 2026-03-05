@@ -27,11 +27,12 @@ export interface WeightSheetProduct {
   weightPerPiece?: number | null;
   pieceLabel?: string | null;
   weightMargin?: number | null;
+  cutOptions?: Array<{ name: string; priceCents: number }> | null;
 }
 
 interface Props {
   product: WeightSheetProduct | null;
-  onConfirm: (weightG: number, options?: { variant?: string; pieceCount?: number; pieceLabel?: string }) => void;
+  onConfirm: (weightG: number, options?: { variant?: string; pieceCount?: number; pieceLabel?: string; cutOption?: string; cutPriceCents?: number }) => void;
   onClose: () => void;
 }
 
@@ -39,6 +40,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
   const [visible, setVisible] = useState(false);
   const [qty, setQty] = useState(500);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [selectedCut, setSelectedCut] = useState<{ name: string; priceCents: number } | null>(null);
   const [pieceMode, setPieceMode] = useState(false);
   const [pieceCount, setPieceCount] = useState(6);
 
@@ -56,6 +58,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
     const d = r.presetsG[1] ?? r.presetsG[0] ?? (product.minWeightG ?? r.minG);
     setQty(d);
     setSelectedVariant(null);
+    setSelectedCut(null);
     setPieceMode(false);
     setPieceCount(6);
   }
@@ -92,7 +95,8 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
     presetsG: rule.presetsG.filter((p) => p >= effectiveMin && p <= effectiveMax),
   };
 
-  const prixAuKg = product.priceCents / 100;
+  const effectivePriceCents = selectedCut ? selectedCut.priceCents : product.priceCents;
+  const prixAuKg = effectivePriceCents / 100;
 
   return (
     <>
@@ -199,6 +203,27 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
             </div>
           )}
 
+          {/* ── Cut options selector ── */}
+          {product.cutOptions && product.cutOptions.length > 0 && (
+            <div className="px-3.5 mt-2.5">
+              <p className="text-[10px] font-bold text-[#A08060] dark:text-neutral-500 uppercase tracking-[1px] mb-1.5">Decoupe</p>
+              <div className="space-y-1">
+                {(product.cutOptions as Array<{ name: string; priceCents: number }>).map(opt => (
+                  <button key={opt.name} type="button"
+                    onClick={() => setSelectedCut(selectedCut?.name === opt.name ? null : opt)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                      selectedCut?.name === opt.name
+                        ? "bg-[#DC2626] text-white"
+                        : "bg-white/80 dark:bg-white/5 border border-[#ece8e3] dark:border-white/10 text-gray-700 dark:text-gray-300"
+                    }`}>
+                    <span>{opt.name}</span>
+                    <span>{(opt.priceCents / 100).toFixed(2).replace(".", ",")} {"\u20AC"}/kg</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Weight/Pieces toggle ── */}
           {product.weightPerPiece && product.weightPerPiece > 0 && (
             <div className="px-3.5 mt-2">
@@ -254,6 +279,8 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
                   variant: selectedVariant || undefined,
                   pieceCount: pieceMode && product.weightPerPiece ? pieceCount : undefined,
                   pieceLabel: pieceMode && product.weightPerPiece ? (product.pieceLabel || undefined) : undefined,
+                  cutOption: selectedCut?.name,
+                  cutPriceCents: selectedCut?.priceCents,
                 });
               }}
               className="w-full h-10 rounded-[10px] flex items-center justify-center gap-2 text-white text-sm font-extrabold active:scale-[0.97] transition-transform bg-[#DC2626] shadow-[0_4px_12px_rgba(220,38,38,0.2)]"

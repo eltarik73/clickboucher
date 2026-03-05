@@ -62,9 +62,11 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
   const imgSrc = product.images.length > 0
     ? product.images[0].url
     : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
-  const hasPromo = product.promoPct != null && product.promoPct > 0;
+  const hasPromo = (product.promoPct != null && product.promoPct > 0) || (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
   const isKg = product.unit === "KG";
-  const effectivePrice = hasPromo ? promoPrice(product.priceCents, product.promoPct!) : product.priceCents;
+  const effectivePrice = product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+    ? Math.max(0, product.priceCents - product.promoFixedCents)
+    : hasPromo ? promoPrice(product.priceCents, product.promoPct!) : product.priceCents;
   const totalPrice = effectivePrice * qty;
 
   function handleAdd() {
@@ -131,7 +133,9 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
               {/* Promo badge */}
               {hasPromo && (
                 <span className="absolute -top-1.5 -right-1.5 bg-[#DC2626] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shadow">
-                  -{product.promoPct}%
+                  {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+                    ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
+                    : `-${product.promoPct}%`}
                 </span>
               )}
             </div>
@@ -229,6 +233,17 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
               >
                 ⚖️ ±10%
               </span>
+            )}
+
+            {/* Pack info */}
+            {product.packContent && (
+              <div className="mt-1.5 px-2 py-1.5 rounded-md text-[10px] font-medium" style={{ background: "#F0FDF4", color: "#16A34A" }}>
+                <span className="font-bold">Pack :</span> {product.packContent}
+                {product.packWeight && <span> — {product.packWeight}</span>}
+                {product.packOldPriceCents && (
+                  <span className="ml-1 line-through text-gray-400">{fmtPrice(product.packOldPriceCents)}</span>
+                )}
+              </div>
             )}
 
             {/* Variant selector */}

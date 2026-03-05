@@ -50,6 +50,11 @@ export type Product = {
   weightPerPiece: number | null;
   pieceLabel: string | null;
   weightMargin: number;
+  cutOptions: Array<{ name: string; priceCents: number }> | null;
+  promoFixedCents: number | null;
+  packContent: string | null;
+  packWeight: string | null;
+  packOldPriceCents: number | null;
   promoPct: number | null;
   promoEnd: string | null;
   promoType: string | null;

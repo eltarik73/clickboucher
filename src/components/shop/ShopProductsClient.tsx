@@ -48,6 +48,11 @@ export interface ProductData {
   weightPerPiece: number | null;
   pieceLabel: string | null;
   weightMargin: number;
+  cutOptions: Array<{ name: string; priceCents: number }> | null;
+  promoFixedCents: number | null;
+  packContent: string | null;
+  packWeight: string | null;
+  packOldPriceCents: number | null;
   category: CategoryData;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
@@ -119,6 +124,11 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       weightPerPiece: p.weightPerPiece,
       pieceLabel: p.pieceLabel,
       weightMargin: p.weightMargin,
+      cutOptions: p.cutOptions,
+      promoFixedCents: p.promoFixedCents,
+      packContent: p.packContent,
+      packWeight: p.packWeight,
+      packOldPriceCents: p.packOldPriceCents,
       category: p.category,
       images: p.images,
       labels: p.labels,
@@ -127,22 +137,19 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
   );
 
   // Separate promo products from non-promo
+  const isPromo = useCallback((p: ProductCardData) => {
+    if (p.promoType === "FIXED_AMOUNT" && p.promoFixedCents) return p.inStock;
+    return p.promoPct != null && p.promoPct > 0 && p.inStock && (!p.promoEnd || new Date(p.promoEnd) > new Date());
+  }, []);
+
   const promoProducts = useMemo(
-    () => cardProducts.filter((p) =>
-      p.promoPct != null && p.promoPct > 0 && p.inStock &&
-      (!p.promoEnd || new Date(p.promoEnd) > new Date())
-    ),
-    [cardProducts]
+    () => cardProducts.filter(isPromo),
+    [cardProducts, isPromo]
   );
 
   const nonPromoProducts = useMemo(
-    () => activeCat === "Tout"
-      ? cardProducts.filter((p) =>
-          !(p.promoPct != null && p.promoPct > 0 && p.inStock &&
-            (!p.promoEnd || new Date(p.promoEnd) > new Date()))
-        )
-      : cardProducts,
-    [cardProducts, activeCat]
+    () => activeCat === "Tout" ? cardProducts.filter(p => !isPromo(p)) : cardProducts,
+    [cardProducts, activeCat, isPromo]
   );
 
   /** Resolve the best image for a product — same logic as ProductCard */
@@ -175,6 +182,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           weightPerPiece: original?.weightPerPiece,
           pieceLabel: original?.pieceLabel,
           weightMargin: original?.weightMargin,
+          cutOptions: original?.cutOptions,
         });
         return;
       }
@@ -221,9 +229,14 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
   );
 
   const handleWeightConfirm = useCallback(
-    (weightG: number, options?: { variant?: string; pieceCount?: number; pieceLabel?: string }) => {
+    (weightG: number, options?: { variant?: string; pieceCount?: number; pieceLabel?: string; cutOption?: string; cutPriceCents?: number }) => {
       if (!selectedProduct) return;
-      const cartId = options?.variant ? `${selectedProduct.id}-${options.variant}` : selectedProduct.id;
+      const cartId = options?.variant
+        ? `${selectedProduct.id}-${options.variant}${options.cutOption ? `-${options.cutOption}` : ""}`
+        : options?.cutOption
+        ? `${selectedProduct.id}-${options.cutOption}`
+        : selectedProduct.id;
+      const effectivePrice = options?.cutPriceCents ?? selectedProduct.priceCents;
       addItem(
         {
           id: cartId,
@@ -236,10 +249,12 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           weightGrams: weightG,
           category: selectedProduct.category,
           quantiteG: weightG,
-          prixAuKg: selectedProduct.priceCents / 100,
+          prixAuKg: effectivePrice / 100,
           variant: options?.variant,
           pieceCount: options?.pieceCount,
           pieceLabel: options?.pieceLabel,
+          cutOption: options?.cutOption,
+          cutPriceCents: options?.cutPriceCents,
         },
         shopRef
       );

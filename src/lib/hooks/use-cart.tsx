@@ -23,6 +23,9 @@ export interface CartItem {
   variant?: string;
   pieceCount?: number;
   pieceLabel?: string;
+  // Cut options (découpe)
+  cutOption?: string;
+  cutPriceCents?: number;
   // Added for CartItem.tsx compatibility
   category?: string;
   quantiteG?: number;
@@ -268,10 +271,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const totalCents = useMemo(
     () =>
       state.items.reduce((sum, item) => {
+        const effectivePrice = item.cutPriceCents ?? item.priceCents;
         if ((item.unit === "KG" || item.unit === "TRANCHE") && item.weightGrams) {
-          return sum + Math.round((item.weightGrams / 1000) * item.priceCents) * item.quantity;
+          return sum + Math.round((item.weightGrams / 1000) * effectivePrice) * item.quantity;
         }
-        return sum + item.priceCents * item.quantity;
+        return sum + effectivePrice * item.quantity;
       }, 0),
     [state.items]
   );

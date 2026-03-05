@@ -405,6 +405,7 @@ export default function KitchenOrderCard({
                 {item.pieceCount && item.pieceLabel && (
                   <span className="ml-1 text-cyan-400 text-[10px]">({item.pieceCount} {item.pieceLabel})</span>
                 )}
+                {item.cutOption && <span className="ml-1 text-amber-400 text-[10px] font-bold">[{item.cutOption}]</span>}
               </span>
               <span className="text-gray-500 text-xs font-medium shrink-0 ml-1">
                 {formatPrice(item.totalCents || item.priceCents * item.quantity)}
