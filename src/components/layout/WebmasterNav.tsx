@@ -17,7 +17,6 @@ import {
   Shield,
   BarChart3,
   Crown,
-  Percent,
   Trophy,
   Megaphone,
   Users,
@@ -54,17 +53,17 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Catalogue",
     items: [
       { key: "catalogue",  label: "Produits",      href: "/webmaster/catalogue",    icon: Package },
-      { key: "reference",  label: "Reference",     href: "/webmaster/catalogue/reference", icon: Package },
-      { key: "marketing", label: "Marketing",    href: "/dashboard/marketing",    icon: Megaphone },
+      { key: "reference",  label: "Référence",     href: "/webmaster/catalogue/reference", icon: Package },
     ],
   },
   {
-    title: "Suivi",
+    title: "Pilotage",
     items: [
-      { key: "perf",       label: "Performance",   href: "/webmaster/performance",  icon: BarChart3 },
       { key: "analytics",  label: "Analytics",     href: "/webmaster/analytics",    icon: BarChart3 },
-      { key: "capacite",   label: "Capacite",      href: "/webmaster/capacite",     icon: Clock },
+      { key: "perf",       label: "Performance",   href: "/webmaster/performance",  icon: Trophy },
+      { key: "capacite",   label: "Capacité",      href: "/webmaster/capacite",     icon: Clock },
       { key: "facturation",label: "Facturation",   href: "/webmaster/facturation",  icon: Coins },
+      { key: "marketing",  label: "Marketing",     href: "/webmaster/marketing",    icon: Megaphone },
     ],
   },
   {
@@ -73,16 +72,16 @@ const NAV_SECTIONS: NavSection[] = [
       { key: "demandes",   label: "Demandes PRO",  href: "/webmaster/demandes",     icon: UserCheck },
       { key: "support",    label: "Support",       href: "/webmaster/support",      icon: Headphones },
       { key: "plans",      label: "Plans & Avis",  href: "/webmaster/plans",        icon: Crown },
-      { key: "staff",      label: "Equipe",        href: "/webmaster/staff",        icon: Users },
     ],
   },
   {
-    title: "Systeme",
+    title: "Système",
     items: [
+      { key: "staff",      label: "Équipe",        href: "/webmaster/staff",        icon: Users },
       { key: "flags",      label: "Feature Flags", href: "/webmaster/flags",        icon: Flag },
-      { key: "api-keys",   label: "Cles API",      href: "/webmaster/api-keys",     icon: KeyRound },
+      { key: "api-keys",   label: "Clés API",      href: "/webmaster/api-keys",     icon: KeyRound },
       { key: "audit",      label: "Audit Log",     href: "/webmaster/audit",        icon: Shield },
-      { key: "parametres", label: "Parametres",    href: "/webmaster/parametres",   icon: Settings },
+      { key: "parametres", label: "Paramètres",    href: "/webmaster/parametres",   icon: Settings },
     ],
   },
 ];
