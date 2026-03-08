@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,6 @@ import {
 } from "lucide-react";
 import { getFlag, getOriginCountry } from "@/lib/flags";
 import { resolveProductImage } from "@/lib/product-images";
-import { ProductForm, type EditProduct } from "./ProductForm";
 import { useNotify } from "@/components/ui/NotificationToast";
 
 // ─────────────────────────────────────────────
@@ -130,6 +130,7 @@ function SkeletonRow() {
 // Main Page
 // ─────────────────────────────────────────────
 export default function BoucherProduitsPage() {
+  const router = useRouter();
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,10 +142,6 @@ export default function BoucherProduitsPage() {
   const [sortMode, setSortMode] = useState<SortMode>("custom");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
-
-  // Form
-  const [showForm, setShowForm] = useState(false);
-  const [editProduct, setEditProduct] = useState<EditProduct | null>(null);
 
   // Notifications
   const { notify } = useNotify();
@@ -488,7 +485,7 @@ export default function BoucherProduitsPage() {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-white">Mes Produits</h1>
             <Button
-              onClick={() => setShowForm(true)}
+              onClick={() => router.push("/boucher/produits/nouveau")}
               size="sm"
               className="bg-[#DC2626] hover:bg-[#b91c1c] gap-1.5 h-9"
             >
@@ -774,7 +771,7 @@ export default function BoucherProduitsPage() {
                   onToggleStock={() => toggleStock(product)}
                   onToggleActive={() => toggleActive(product)}
                   onSnooze={(type) => snoozeProduct(product, type)}
-                  onEdit={() => { setEditProduct(product as unknown as EditProduct); setShowForm(true); }}
+                  onEdit={() => router.push(`/boucher/produits/${product.id}/modifier`)}
                   onDuplicate={() => duplicateProduct(product)}
                   isDraggable={isDraggable}
                 />
@@ -783,17 +780,7 @@ export default function BoucherProduitsPage() {
           </div>
         )}
 
-        {/* ── Product form (add / edit) ── */}
-        {showForm && shop && (
-          <ProductForm
-            shopId={shop.id}
-            categories={categories}
-            product={editProduct}
-            onClose={() => { setShowForm(false); setEditProduct(null); }}
-            onSaved={() => { setShowForm(false); setEditProduct(null); fetchData(); }}
-            onDeleted={() => { setShowForm(false); setEditProduct(null); fetchData(); }}
-          />
-        )}
+        {/* Product form is now at /boucher/produits/nouveau and /boucher/produits/[id]/modifier */}
       </div>
     </div>
   );
