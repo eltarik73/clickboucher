@@ -65,6 +65,14 @@ export type Product = {
   promoPct: number | null;
   promoEnd: string | null;
   promoType: string | null;
+  isAntiGaspi: boolean;
+  antiGaspiStock: number | null;
+  antiGaspiOrigPriceCents: number | null;
+  antiGaspiEndAt: string | null;
+  antiGaspiReason: string | null;
+  isFlashSale: boolean;
+  flashSaleEndAt: string | null;
+  flashSaleStock: number | null;
   category: CategoryInfo;
   images: ProductImage[];
   labels: ProductLabel[];

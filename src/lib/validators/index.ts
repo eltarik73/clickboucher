@@ -282,6 +282,24 @@ export const boucherActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("add_note"), note: z.string().min(1).max(500) }),
 ]);
 
+// -- Anti-Gaspi --
+
+export const enableAntiGaspiSchema = z.object({
+  productId: z.string().min(1),
+  discountPercent: z.number().min(5).max(80),
+  antiGaspiStock: z.number().int().min(1).optional(),
+  reason: z.string().max(50).optional(),
+  endAt: z.string().datetime().optional(),
+});
+
+export const updateAntiGaspiSchema = z.object({
+  antiGaspiStock: z.number().int().min(0).optional(),
+  discountPercent: z.number().min(5).max(80).optional(),
+  reason: z.string().max(50).optional(),
+  endAt: z.string().datetime().optional(),
+  disable: z.boolean().optional(),
+});
+
 // -- Client respond to modifications --
 
 export const respondModificationSchema = z.object({

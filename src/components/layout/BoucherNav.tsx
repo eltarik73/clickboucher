@@ -13,6 +13,7 @@ import {
   ChefHat,
   BarChart3,
   Gift,
+  Leaf,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { key: "dashboard",  label: "Dashboard",   href: "/boucher/dashboard",  icon: LayoutDashboard },
   { key: "commandes",  label: "Commandes",   href: "/boucher/commandes",  icon: ClipboardList, badge: "orders" as const },
   { key: "produits",   label: "Produits",    href: "/boucher/produits",   icon: Package },
+  { key: "antigaspi",  label: "Anti-Gaspi",  href: "/boucher/dashboard/anti-gaspi", icon: Leaf },
   { key: "offres",     label: "Offres",      href: "/shop/offers",        icon: Gift, badge: "promos" as const },
   { key: "clients",    label: "Clients",     href: "/boucher/clients",    icon: Users },
   { key: "performance",label: "Performance", href: "/boucher/performance",icon: BarChart3 },
@@ -69,12 +71,15 @@ export function BoucherNav() {
     <>
       {/* ── Desktop sidebar (md+) ── */}
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-[#141414] border-r border-gray-200 dark:border-white/10 flex-col z-40">
-        {/* Logo */}
-        <div className="px-5 py-5 border-b border-gray-100 dark:border-white/10">
-          <Link href="/boucher/dashboard" className="flex items-center gap-2.5">
-            <KlikLogo size={32} />
-            <div>
-              <KlikWordmark size="sm" />
+        {/* Logo — valorized with glow */}
+        <div className="px-5 py-6 border-b border-gray-100 dark:border-white/10">
+          <Link href="/boucher/dashboard" className="flex flex-col items-center gap-2">
+            <div className="relative">
+              <div className="absolute inset-0 blur-2xl opacity-15 dark:opacity-30 bg-[#DC2626] rounded-full scale-150" />
+              <KlikLogo size={48} className="relative z-10" />
+            </div>
+            <div className="text-center">
+              <KlikWordmark size="base" />
               <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Espace boucher</p>
             </div>
           </Link>

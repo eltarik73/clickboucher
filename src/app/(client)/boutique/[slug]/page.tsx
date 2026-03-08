@@ -23,6 +23,7 @@ import { ProductSchema } from "@/components/seo/ProductSchema";
 import { SEO_CITIES } from "@/lib/seo/cities";
 import { OfferBanner } from "@/components/client/OfferBanner";
 import { OfferProductSection } from "@/components/client/OfferProductSection";
+import { AntiGaspiBanner } from "@/components/client/AntiGaspiBanner";
 
 // ── Cached shop query with Redis (shared between generateMetadata & page) ──
 
@@ -237,6 +238,11 @@ export default async function BoutiquePage({
     packContent: p.packContent ?? null,
     packWeight: p.packWeight ?? null,
     packOldPriceCents: p.packOldPriceCents ?? null,
+    isAntiGaspi: p.isAntiGaspi ?? false,
+    antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
+    antiGaspiStock: p.antiGaspiStock ?? null,
+    antiGaspiEndAt: p.antiGaspiEndAt ? p.antiGaspiEndAt.toISOString() : null,
+    antiGaspiReason: p.antiGaspiReason ?? null,
     categories: p.categories.map((c) => ({
       id: c.id,
       name: c.name,
@@ -453,6 +459,18 @@ export default async function BoutiquePage({
         {/* LOYALTY BADGE */}
         {/* ═══════════════════════════════════════════ */}
         <LoyaltyBadge shopId={shop.id} />
+
+        {/* ═══════════════════════════════════════════ */}
+        {/* ANTI-GASPI BANNER */}
+        {/* ═══════════════════════════════════════════ */}
+        <AntiGaspiBanner products={products.filter(p => p.isAntiGaspi && p.inStock).map(p => ({
+          id: p.id, name: p.name, imageUrl: p.imageUrl, priceCents: p.priceCents,
+          antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
+          antiGaspiStock: p.antiGaspiStock ?? null,
+          antiGaspiReason: p.antiGaspiReason ?? null,
+          category: p.categories[0] || { name: "" },
+          images: p.images,
+        }))} />
 
         {/* ═══════════════════════════════════════════ */}
         {/* CLIENT-SIDE: categories, products, cart */}

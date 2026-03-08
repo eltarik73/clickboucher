@@ -252,6 +252,14 @@ export async function POST(req: NextRequest) {
       if (product.snoozeType !== "NONE") {
         unavailableProducts.push(product.name);
       }
+      // Anti-gaspi stock check
+      if (product.isAntiGaspi && product.antiGaspiStock !== null && item.quantity > product.antiGaspiStock) {
+        unavailableProducts.push(`${product.name} (stock limite: ${product.antiGaspiStock})`);
+      }
+      // Flash sale stock check
+      if (product.isFlashSale && product.flashSaleStock !== null && item.quantity > product.flashSaleStock) {
+        unavailableProducts.push(`${product.name} (stock limite: ${product.flashSaleStock})`);
+      }
     }
 
     if (missingProductIds.length > 0) {

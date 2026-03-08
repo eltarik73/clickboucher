@@ -17,7 +17,8 @@ export type ProductCardData = Pick<ProductV2,
   "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin" |
   "promoFixedCents" | "packOldPriceCents" | "packContent" | "packWeight" | "cutOptions" |
   "originRegion" | "raceDescription" | "elevageMode" | "elevageDetail" |
-  "halalMethod" | "freshDate" | "freshDetail"
+  "halalMethod" | "freshDate" | "freshDetail" |
+  "isAntiGaspi" | "antiGaspiOrigPriceCents" | "antiGaspiStock" | "antiGaspiReason"
 > & {
   category: { id: string; name: string; emoji: string | null };
   images: ProductImageType[];
@@ -59,6 +60,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
     ? product.images[0].url
     : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
   const hasPromo = (product.promoPct != null && product.promoPct > 0) || (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
+  const isAntiGaspi = product.isAntiGaspi && product.antiGaspiOrigPriceCents;
   const outOfStock = !product.inStock;
   const isEager = productIndex < 4;
   const isSheetUnit = product.unit === "KG" || product.unit === "TRANCHE";
@@ -92,6 +94,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
         transition-transform duration-200 ease-out
         hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)]
         ${outOfStock ? "opacity-50" : ""}
+        ${isAntiGaspi ? "ring-1 ring-emerald-300/50 dark:ring-emerald-700/50" : ""}
         ${onTap ? "cursor-pointer" : ""}`}
       style={style}
       onClick={onTap}
@@ -110,8 +113,12 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
           onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
         />
 
-        {/* Promo badge — top-left */}
-        {hasPromo && (
+        {/* Anti-gaspi badge — top-left (priority over promo) */}
+        {isAntiGaspi ? (
+          <div className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[9px] font-bold text-white bg-emerald-600 shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
+            Anti-Gaspi
+          </div>
+        ) : hasPromo ? (
           <div
             className={`absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)]
               ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#EF4444]"}`}
@@ -120,7 +127,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
               : `-${product.promoPct}%`}
           </div>
-        )}
+        ) : null}
 
         {/* Traçabilité shield — top-right */}
         {(product.originRegion || product.elevageMode || product.race) && !outOfStock && (
@@ -182,33 +189,49 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
 
         {/* Prix + bouton "+" */}
         <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-0.5 min-w-0">
-            {hasPromo ? (
-              <>
-                <span className="text-[13px] font-bold text-[#DC2626]">
-                  {fmtPrice(product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
-                    ? Math.max(0, product.priceCents - product.promoFixedCents)
-                    : promoPrice(product.priceCents, product.promoPct!))}
-                </span>
-                <span className="text-[9px] text-gray-400 line-through">
-                  {fmtPrice(product.priceCents)}
-                </span>
-              </>
-            ) : product.packOldPriceCents ? (
-              <>
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-baseline gap-0.5">
+              {isAntiGaspi ? (
+                <>
+                  <span className="text-[13px] font-bold text-emerald-600">
+                    {fmtPrice(product.priceCents)}
+                  </span>
+                  <span className="text-[9px] text-gray-400 line-through">
+                    {fmtPrice(product.antiGaspiOrigPriceCents!)}
+                  </span>
+                </>
+              ) : hasPromo ? (
+                <>
+                  <span className="text-[13px] font-bold text-[#DC2626]">
+                    {fmtPrice(product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+                      ? Math.max(0, product.priceCents - product.promoFixedCents)
+                      : promoPrice(product.priceCents, product.promoPct!))}
+                  </span>
+                  <span className="text-[9px] text-gray-400 line-through">
+                    {fmtPrice(product.priceCents)}
+                  </span>
+                </>
+              ) : product.packOldPriceCents ? (
+                <>
+                  <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
+                    {fmtPrice(product.priceCents)}
+                  </span>
+                  <span className="text-[9px] text-gray-400 line-through">
+                    {fmtPrice(product.packOldPriceCents)}
+                  </span>
+                </>
+              ) : (
                 <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
                   {fmtPrice(product.priceCents)}
                 </span>
-                <span className="text-[9px] text-gray-400 line-through">
-                  {fmtPrice(product.packOldPriceCents)}
-                </span>
-              </>
-            ) : (
-              <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
-                {fmtPrice(product.priceCents)}
+              )}
+              <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
+            </div>
+            {isAntiGaspi && product.antiGaspiStock !== null && product.antiGaspiStock <= 5 && (
+              <span className="text-[8px] font-semibold text-orange-600 dark:text-orange-400">
+                Plus que {product.antiGaspiStock} !
               </span>
             )}
-            <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
           </div>
 
           {/* Add / Stepper */}

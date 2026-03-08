@@ -75,6 +75,8 @@ export default async function HomePage() {
   let dbError = false;
   let favoriteIds: Set<string> = new Set();
   let livePromos: LivePromo[] = [];
+  let antiGaspiCount = 0;
+  let flashSaleCount = 0;
   let popupOffers: { id: string; name: string; code: string; type: string; discountValue: number; popupTitle: string | null; popupMessage: string | null; popupColor: string | null; popupFrequency: string | null; popupImageUrl: string | null }[] = [];
 
   // 1. Auth (non-blocking — page works without login)
@@ -141,11 +143,20 @@ export default async function HomePage() {
       take: 3,
     });
 
-    const [shopsResult, favResult, offersResult, popupOffersResult] = await Promise.all([shopsPromise, favPromise, offersPromise, popupOffersPromise]);
+    const antiGaspiCountPromise = prisma.product.count({
+      where: { isAntiGaspi: true, inStock: true, isActive: true },
+    });
+    const flashSaleCountPromise = prisma.product.count({
+      where: { isFlashSale: true, inStock: true, isActive: true },
+    });
+
+    const [shopsResult, favResult, offersResult, popupOffersResult, agCount, fsCount] = await Promise.all([shopsPromise, favPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise]);
 
     if (favResult?.favoriteShops) {
       favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
     }
+    antiGaspiCount = agCount;
+    flashSaleCount = fsCount;
     livePromos = offersResult.map((o) => ({
       id: o.id,
       label: o.name,
@@ -267,7 +278,7 @@ export default async function HomePage() {
         <SearchBar />
 
         {/* Promo carousel (events + DB promos) */}
-        <PromoCarousel livePromos={livePromos} />
+        <PromoCarousel livePromos={livePromos} antiGaspiCount={antiGaspiCount} flashSaleCount={flashSaleCount} />
 
         {/* Reorder last order */}
         <ReorderSection />

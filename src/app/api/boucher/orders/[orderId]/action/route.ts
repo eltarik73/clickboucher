@@ -114,6 +114,37 @@ export async function PATCH(
           include: { items: true },
         });
 
+        // ── Decrement anti-gaspi stock ──
+        const agItems = order.items.filter(i => i.product.isAntiGaspi && i.product.antiGaspiStock !== null);
+        for (const item of agItems) {
+          const newStock = Math.max(0, (item.product.antiGaspiStock ?? 0) - item.quantity);
+          await prisma.product.update({
+            where: { id: item.productId },
+            data: {
+              antiGaspiStock: newStock,
+              ...(newStock <= 0 ? {
+                isAntiGaspi: false,
+                priceCents: item.product.antiGaspiOrigPriceCents ?? item.product.priceCents,
+                antiGaspiOrigPriceCents: null, antiGaspiEndAt: null,
+                antiGaspiReason: null, antiGaspiStock: null,
+              } : {}),
+            },
+          });
+        }
+
+        // ── Decrement flash sale stock ──
+        const flashItems = order.items.filter(i => i.product.isFlashSale && i.product.flashSaleStock !== null);
+        for (const item of flashItems) {
+          const newStock = Math.max(0, (item.product.flashSaleStock ?? 0) - item.quantity);
+          await prisma.product.update({
+            where: { id: item.productId },
+            data: {
+              flashSaleStock: newStock,
+              ...(newStock <= 0 ? { isFlashSale: false, flashSaleEndAt: null, flashSaleStock: null } : {}),
+            },
+          });
+        }
+
         await logOrderEvent(orderId, order.shop.id, "ACCEPTED", userId, { estimatedMinutes, qrCode });
 
         await sendNotification("ORDER_ACCEPTED", {
@@ -139,6 +170,16 @@ export async function PATCH(
           where: { id: orderId },
           data: { status: "DENIED", denyReason: data.reason },
         });
+
+        // Restore anti-gaspi/flash stock on deny
+        for (const item of order.items) {
+          if (item.product.isAntiGaspi && item.product.antiGaspiStock !== null) {
+            await prisma.product.update({ where: { id: item.productId }, data: { antiGaspiStock: { increment: item.quantity } } });
+          }
+          if (item.product.isFlashSale && item.product.flashSaleStock !== null) {
+            await prisma.product.update({ where: { id: item.productId }, data: { flashSaleStock: { increment: item.quantity } } });
+          }
+        }
 
         await logOrderEvent(orderId, order.shop.id, "DENIED", userId, { reason: data.reason });
 
@@ -454,6 +495,16 @@ export async function PATCH(
             denyReason: data.reason || "Annulée par le boucher",
           },
         });
+
+        // Restore anti-gaspi/flash stock on cancel
+        for (const item of order.items) {
+          if (item.product.isAntiGaspi && item.product.antiGaspiStock !== null) {
+            await prisma.product.update({ where: { id: item.productId }, data: { antiGaspiStock: { increment: item.quantity } } });
+          }
+          if (item.product.isFlashSale && item.product.flashSaleStock !== null) {
+            await prisma.product.update({ where: { id: item.productId }, data: { flashSaleStock: { increment: item.quantity } } });
+          }
+        }
 
         await logOrderEvent(orderId, order.shop.id, "CANCELLED", userId, { reason: data.reason });
 

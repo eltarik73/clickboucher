@@ -1,31 +1,44 @@
-// src/components/landing/PromoCarousel.tsx — 3-column promo grid (Server Component)
+// src/components/landing/PromoCarousel.tsx — Dynamic + static 3-column promo grid (Server Component)
 
 import Link from "next/link";
 
-const PROMOS = [
+type Vignette = {
+  id: string;
+  emoji: string;
+  title: string;
+  subtitle: string;
+  bgClass: string;
+  accentClass: string;
+  href: string;
+};
+
+const STATIC_VIGNETTES: Vignette[] = [
   {
     id: "ramadan",
-    emoji: "🌙",
+    emoji: "\uD83C\uDF19",
     title: "Ramadan",
-    subtitle: "Préparez l'Iftar",
+    subtitle: "Preparez l'Iftar",
     bgClass: "bg-gradient-to-br from-slate-800 to-slate-900",
     accentClass: "text-amber-400",
+    href: "/bons-plans/ramadan",
   },
   {
     id: "bienvenue",
-    emoji: "🔥",
+    emoji: "\uD83D\uDD25",
     title: "-10%",
-    subtitle: "1ère commande",
+    subtitle: "1ere commande",
     bgClass: "bg-gradient-to-br from-red-600 to-red-800",
     accentClass: "text-amber-100",
+    href: "/bons-plans/promos",
   },
   {
     id: "famille",
-    emoji: "🥩",
+    emoji: "\uD83E\uDD69",
     title: "Pack Famille",
-    subtitle: "5kg prix réduit",
+    subtitle: "5kg prix reduit",
     bgClass: "bg-gradient-to-br from-emerald-800 to-emerald-900",
     accentClass: "text-emerald-300",
+    href: "/bons-plans/packs",
   },
 ];
 
@@ -39,8 +52,49 @@ type LivePromo = {
   shopSlug: string | null;
 };
 
-export function PromoCarousel({ livePromos }: { livePromos: LivePromo[] }) {
-  void livePromos; // DB promos handled via shop badges — grid shows static promos
+interface Props {
+  livePromos: LivePromo[];
+  antiGaspiCount?: number;
+  flashSaleCount?: number;
+}
+
+export function PromoCarousel({ livePromos, antiGaspiCount = 0, flashSaleCount = 0 }: Props) {
+  void livePromos;
+
+  // Build dynamic vignettes (priority order)
+  const vignettes: Vignette[] = [];
+
+  if (antiGaspiCount > 0) {
+    vignettes.push({
+      id: "anti-gaspi",
+      emoji: "\uD83C\uDF3F",
+      title: "Anti-Gaspi",
+      subtitle: `${antiGaspiCount} produit${antiGaspiCount > 1 ? "s" : ""} a prix reduit`,
+      bgClass: "bg-gradient-to-br from-emerald-600 to-emerald-800",
+      accentClass: "text-emerald-200",
+      href: "/bons-plans/anti-gaspi",
+    });
+  }
+
+  if (flashSaleCount > 0) {
+    vignettes.push({
+      id: "flash",
+      emoji: "\u26A1",
+      title: "Vente Flash",
+      subtitle: `${flashSaleCount} offre${flashSaleCount > 1 ? "s" : ""} limitee${flashSaleCount > 1 ? "s" : ""}`,
+      bgClass: "bg-gradient-to-br from-orange-500 to-red-600",
+      accentClass: "text-orange-200",
+      href: "/bons-plans/vente-flash",
+    });
+  }
+
+  // Fill with static vignettes up to 3
+  for (const sv of STATIC_VIGNETTES) {
+    if (vignettes.length >= 3) break;
+    if (!vignettes.some(v => v.id === sv.id)) {
+      vignettes.push(sv);
+    }
+  }
 
   return (
     <section className="mb-5">
@@ -49,12 +103,11 @@ export function PromoCarousel({ livePromos }: { livePromos: LivePromo[] }) {
         <h2 className="font-bold text-base text-gray-900 dark:text-white">Offres du moment</h2>
       </div>
 
-      {/* 3-column grid — no scroll */}
       <div className="grid grid-cols-3 gap-2.5">
-        {PROMOS.map((p) => (
+        {vignettes.map((p) => (
           <Link
             key={p.id}
-            href="/#butchers"
+            href={p.href}
             className={`${p.bgClass} rounded-2xl p-4 relative overflow-hidden cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-transform min-h-[120px] flex flex-col justify-end`}
           >
             {/* Glass overlay */}

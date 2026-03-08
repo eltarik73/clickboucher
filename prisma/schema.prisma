@@ -579,6 +579,18 @@ model Product {
   packWeight        String?  @map("pack_weight")
   packOldPriceCents Int?     @map("pack_old_price_cents")
 
+  // ── ANTI-GASPI ──
+  isAntiGaspi            Boolean   @default(false) @map("is_anti_gaspi")
+  antiGaspiStock         Int?      @map("anti_gaspi_stock")
+  antiGaspiOrigPriceCents Int?     @map("anti_gaspi_orig_price")
+  antiGaspiEndAt         DateTime? @map("anti_gaspi_end_at")
+  antiGaspiReason        String?   @map("anti_gaspi_reason")
+
+  // ── FLASH SALE ──
+  isFlashSale            Boolean   @default(false) @map("is_flash_sale")
+  flashSaleEndAt         DateTime? @map("flash_sale_end_at")
+  flashSaleStock         Int?      @map("flash_sale_stock")
+
   // ── Catalogue de référence (lien souple) ──
   referenceId  String?  @map("reference_id")
 
@@ -602,6 +614,8 @@ model Product {
   @@index([shopId, isActive, inStock])
   @@index([shopId, inStock, snoozeType])
   @@index([inStock, promoPct])
+  @@index([shopId, isAntiGaspi])
+  @@index([shopId, isFlashSale])
   @@map("products")
 }
 

@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Flame, ArrowLeft, MapPin, Tag, Copy, Check } from "lucide-react";
+import { MapPin, Tag, Copy, Check } from "lucide-react";
 import { FlashCountdown } from "@/components/product/FlashCountdown";
 import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
@@ -86,22 +86,10 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
   const totalCount = promos.length + platformPromos.length;
 
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-[#DC2626] to-[#ef4444] px-4 pt-12 pb-5">
-          <div className="flex items-center gap-3 mb-2">
-            <Link
-              href="/"
-              className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center"
-            >
-              <ArrowLeft size={15} className="text-white" />
-            </Link>
-            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <Flame size={20} /> Bons plans
-            </h1>
-          </div>
-          <p className="text-white/80 text-xs">
+    <div>
+        {/* Stats */}
+        <div className="px-4 py-2">
+          <p className="text-xs text-gray-500">
             {totalCount} offre{totalCount > 1 ? "s" : ""} active{totalCount > 1 ? "s" : ""}
             {flashPromos.length > 0 && (
               <span className="ml-1">dont {flashPromos.length} flash</span>
@@ -207,7 +195,6 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 }

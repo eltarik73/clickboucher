@@ -60,6 +60,11 @@ export interface ProductData {
   packContent: string | null;
   packWeight: string | null;
   packOldPriceCents: number | null;
+  isAntiGaspi: boolean;
+  antiGaspiOrigPriceCents: number | null;
+  antiGaspiStock: number | null;
+  antiGaspiEndAt: string | null;
+  antiGaspiReason: string | null;
   categories: CategoryData[];
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
@@ -143,6 +148,10 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       halalMethod: p.halalMethod,
       freshDate: p.freshDate,
       freshDetail: p.freshDetail,
+      isAntiGaspi: p.isAntiGaspi ?? false,
+      antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
+      antiGaspiStock: p.antiGaspiStock ?? null,
+      antiGaspiReason: p.antiGaspiReason ?? null,
       category: p.categories[0],
       images: p.images,
       labels: p.labels,
