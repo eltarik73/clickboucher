@@ -8,6 +8,7 @@ import { MapPin, Tag, Copy, Check } from "lucide-react";
 import { FlashCountdown } from "@/components/product/FlashCountdown";
 import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
+import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 
 // ── Types ──
 type PromoProduct = {
@@ -273,7 +274,20 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
   const imgSrc = product.images[0]?.url || resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.categories[0]?.name || "" });
 
   return (
-    <Link href={`/boutique/${product.shop.slug}`}>
+    <BonsPlansProductCard
+      product={{
+        id: product.id,
+        name: product.name,
+        imageUrl: imgSrc,
+        priceCents: product.priceCents,
+        unit: product.unit,
+        category: product.categories[0]?.name || "",
+        categoryEmoji: product.categories[0]?.emoji || undefined,
+        promoPct: product.promoPct,
+        promoType: product.promoType,
+      }}
+      shop={product.shop}
+    >
       <div className={`flex gap-2.5 p-2.5 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] transition-all hover:shadow-md ${
         isFlash ? "ring-1 ring-orange-300/50 dark:ring-orange-700/50" : ""
       }`}>
@@ -331,6 +345,6 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
           </div>
         </div>
       </div>
-    </Link>
+    </BonsPlansProductCard>
   );
 }

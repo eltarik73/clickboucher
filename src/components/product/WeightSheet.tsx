@@ -50,6 +50,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [selectedCut, setSelectedCut] = useState<{ name: string; priceCents: number } | null>(null);
   const [showFiche, setShowFiche] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [pieceMode, setPieceMode] = useState(false);
   const [pieceCount, setPieceCount] = useState(6);
 
@@ -68,6 +69,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
     setQty(d);
     setSelectedVariant(null);
     setSelectedCut(null);
+    setImgError(false);
     setPieceMode(false);
     setPieceCount(6);
   }
@@ -117,7 +119,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
         {/* Card */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`relative w-[340px] max-w-[calc(100vw-32px)] overflow-hidden transition-all duration-300 ease-out bg-[#FAF8F5] dark:bg-[#1a1a1a] rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
+          className={`relative w-[340px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] overflow-y-auto overflow-x-hidden transition-all duration-300 ease-out bg-[#FAF8F5] dark:bg-[#1a1a1a] rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
         >
           {/* ── Close button ── */}
           <button
@@ -132,13 +134,14 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
           <div className="flex items-center gap-3 px-3.5 pt-3.5">
             {/* Image square */}
             <div className="relative w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden">
-              {product.imageUrl ? (
+              {product.imageUrl && !imgError ? (
                 <Image
                   src={product.imageUrl}
                   alt={product.name}
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div

@@ -33,11 +33,13 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
   const [qty, setQty] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [showFiche, setShowFiche] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     if (product) {
       setQty(cartQty > 0 ? cartQty : 1);
       setSelectedVariant(null);
+      setImgError(false);
       requestAnimationFrame(() => setVisible(true));
     } else {
       setVisible(false);
@@ -60,7 +62,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
 
   if (!product) return null;
 
-  const hasImage = product.images.length > 0 || product.imageUrl;
+  const hasImage = (product.images.length > 0 || product.imageUrl) && !imgError;
   const imgSrc = product.images.length > 0
     ? product.images[0].url
     : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
@@ -89,7 +91,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
         {/* Card */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`relative w-[340px] max-w-[calc(100vw-32px)] overflow-hidden transition-all duration-300 ease-out ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
+          className={`relative w-[340px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] overflow-y-auto overflow-x-hidden transition-all duration-300 ease-out ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
           style={{
             background: "#FAF8F5",
             borderRadius: "20px",
@@ -118,6 +120,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                   height={56}
                   loading="eager"
                   className="w-full h-full object-cover"
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div

@@ -161,8 +161,10 @@ export function resolveProductImage(product: {
 }): string {
   // Si le produit a une image assignée → l'utiliser en priorité
   if (product.imageUrl) {
-    // Blob URL (https://...), local image (/img/...), or legacy upload (/api/uploads/...)
-    if (product.imageUrl.startsWith("https://") || product.imageUrl.startsWith("/")) {
+    // Skip expired Replicate URLs — they expire after ~1h
+    if (product.imageUrl.includes("replicate.delivery")) {
+      // Fall through to keyword matching
+    } else if (product.imageUrl.startsWith("https://") || product.imageUrl.startsWith("/")) {
       return product.imageUrl;
     }
   }

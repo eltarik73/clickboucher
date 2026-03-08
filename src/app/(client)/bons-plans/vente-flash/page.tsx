@@ -2,11 +2,11 @@
 export const revalidate = 60;
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { resolveProductImage } from "@/lib/product-images";
 import { FlashCountdown } from "@/components/product/FlashCountdown";
+import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -58,7 +58,21 @@ export default async function VenteFlashPage() {
         const discounted = p.promoPct ? Math.round(p.priceCents * (1 - p.promoPct / 100)) : p.priceCents;
         const endAt = p.flashSaleEndAt?.toISOString() || p.promoEnd?.toISOString() || null;
         return (
-          <Link key={p.id} href={`/boutique/${p.shop.slug}`}>
+          <BonsPlansProductCard
+            key={p.id}
+            product={{
+              id: p.id,
+              name: p.name,
+              imageUrl: imgSrc,
+              priceCents: p.priceCents,
+              unit: p.unit,
+              category: p.categories[0]?.name || "",
+              categoryEmoji: p.categories[0]?.emoji || undefined,
+              promoPct: p.promoPct,
+              promoType: p.promoType,
+            }}
+            shop={p.shop}
+          >
             <div className="flex gap-2.5 p-2.5 bg-white dark:bg-white/[0.03] rounded-2xl border border-orange-200/60 dark:border-orange-800/20 ring-1 ring-orange-300/30 dark:ring-orange-700/30 transition-all hover:shadow-md">
               <div className="relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
                 <Image src={imgSrc} alt={p.name} fill sizes="64px" className="object-cover" quality={70} />
@@ -80,7 +94,7 @@ export default async function VenteFlashPage() {
                 </div>
               </div>
             </div>
-          </Link>
+          </BonsPlansProductCard>
         );
       })}
     </div>

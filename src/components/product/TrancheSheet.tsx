@@ -121,7 +121,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
         {/* Card */}
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`relative w-[340px] max-w-[calc(100vw-32px)] overflow-hidden transition-all duration-300 ease-out ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
+          className={`relative w-[340px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-32px)] overflow-y-auto overflow-x-hidden transition-all duration-300 ease-out ${visible ? "scale-100 opacity-100" : "scale-90 opacity-0"}`}
           style={{
             background: "#FAF8F5",
             borderRadius: "20px",

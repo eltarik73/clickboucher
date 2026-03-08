@@ -2,10 +2,10 @@
 export const revalidate = 60;
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { resolveProductImage } from "@/lib/product-images";
+import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -53,7 +53,21 @@ export default async function PromosPage() {
         const imgSrc = p.images[0]?.url || resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.categories[0]?.name || "" });
         const discounted = Math.round(p.priceCents * (1 - (p.promoPct || 0) / 100));
         return (
-          <Link key={p.id} href={`/boutique/${p.shop.slug}`}>
+          <BonsPlansProductCard
+            key={p.id}
+            product={{
+              id: p.id,
+              name: p.name,
+              imageUrl: imgSrc,
+              priceCents: p.priceCents,
+              unit: p.unit,
+              category: p.categories[0]?.name || "",
+              categoryEmoji: p.categories[0]?.emoji || undefined,
+              promoPct: p.promoPct,
+              promoType: p.promoType,
+            }}
+            shop={p.shop}
+          >
             <div className="flex gap-2.5 p-2.5 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] transition-all hover:shadow-md">
               <div className="relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
                 <Image src={imgSrc} alt={p.name} fill sizes="64px" className="object-cover" quality={70} />
@@ -70,7 +84,7 @@ export default async function PromosPage() {
                 <span className="text-[10px] text-gray-400 mt-1 block">{p.shop.name}</span>
               </div>
             </div>
-          </Link>
+          </BonsPlansProductCard>
         );
       })}
     </div>
