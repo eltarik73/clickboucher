@@ -378,7 +378,7 @@ export default function PanierPage() {
             size="lg"
             asChild
           >
-            <Link href="/">Decouvrir les boucheries</Link>
+            <Link href="/">Découvrir les boucheries</Link>
           </Button>
         </div>
       </div>

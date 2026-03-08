@@ -309,12 +309,12 @@ export default function WebmasterCommandesPage() {
                     {/* Order meta */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
                       <div>
-                        <span className="text-gray-400 block">Cree le</span>
+                        <span className="text-gray-400 block">Créé le</span>
                         <span className="text-gray-700 dark:text-gray-300">{fmtDate(order.createdAt)}</span>
                       </div>
                       {order.estimatedReady && (
                         <div>
-                          <span className="text-gray-400 block">Estime pret</span>
+                          <span className="text-gray-400 block">Estimé prêt</span>
                           <span className="text-gray-700 dark:text-gray-300">{fmtDate(order.estimatedReady)}</span>
                         </div>
                       )}

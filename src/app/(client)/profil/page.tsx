@@ -308,7 +308,7 @@ export default function ProfilPage() {
             onClick={() => clerk.openUserProfile()}
             className="flex items-center justify-center gap-2 mt-4 w-full py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border border-[#ece8e3] dark:border-white/10 text-sm font-medium text-gray-900 dark:text-white transition-colors"
           >
-            Modifier sur Clerk
+            Modifier le profil
             <ExternalLink size={14} className="text-gray-500 dark:text-gray-400" />
           </button>
         </section>

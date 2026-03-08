@@ -196,14 +196,14 @@ export default function EspaceBoucherPage() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.15]">
-            Developpez votre boucherie
+            Développez votre boucherie
             <br />
             <span className="text-[#DC2626]">avec Klik&Go</span>
           </h1>
 
           <p className="mt-5 text-lg text-gray-400 max-w-2xl mx-auto">
-            Rejoignez les boucheries de Chambery qui ont supprime les files
-            d&apos;attente et augmente leur chiffre d&apos;affaires.
+            Rejoignez les boucheries de Chambéry qui ont supprimé les files
+            d&apos;attente et augmenté leur chiffre d&apos;affaires.
           </p>
 
           {/* Stats */}
@@ -253,7 +253,7 @@ export default function EspaceBoucherPage() {
           {/* ── PACK ESSENTIEL ── */}
           <div className="bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl p-7 relative">
             <span className="inline-block text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-[#0a0a0a] px-3 py-1 rounded-full mb-4">
-              Pour demarrer
+              Pour démarrer
             </span>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">
               Essentiel
@@ -265,10 +265,10 @@ export default function EspaceBoucherPage() {
               <span className="text-sm text-gray-400">/mois</span>
             </div>
             <ul className="mt-6 space-y-3 text-gray-700 dark:text-gray-300">
-              <Feature>Votre vitrine en ligne (page boucherie dediee)</Feature>
-              <Feature>Catalogue produits illimite avec photos</Feature>
+              <Feature>Votre vitrine en ligne (page boucherie dédiée)</Feature>
+              <Feature>Catalogue produits illimité avec photos</Feature>
               <Feature>Commandes click &amp; collect avec QR code</Feature>
-              <Feature>Systeme de tickets &amp; suivi en temps reel</Feature>
+              <Feature>Système de tickets &amp; suivi en temps réel</Feature>
               <Feature>Notifications clients automatiques</Feature>
               <Feature>Tableau de bord &amp; statistiques de base</Feature>
               <Feature>Support par email</Feature>
@@ -307,14 +307,14 @@ export default function EspaceBoucherPage() {
               </Feature>
               <Feature>
                 Assistant IA qui recommande vos produits et conseille les
-                quantites
+                quantités
               </Feature>
               <Feature>
                 Suggestions intelligentes d&apos;alternatives en cas de rupture
               </Feature>
-              <Feature>Programme de fidelite integre</Feature>
-              <Feature>Promotions &amp; offres flash automatisees</Feature>
-              <Feature>Statistiques avancees &amp; analytics</Feature>
+              <Feature>Programme de fidélité intégré</Feature>
+              <Feature>Promotions &amp; offres flash automatisées</Feature>
+              <Feature>Statistiques avancées &amp; analytics</Feature>
               <Feature>Support prioritaire 7j/7</Feature>
             </ul>
             <Link
@@ -328,7 +328,7 @@ export default function EspaceBoucherPage() {
           {/* ── PACK ENTREPRISE ── */}
           <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-7 relative">
             <span className="inline-block text-xs font-semibold text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full mb-4">
-              Solution complete
+              Solution complète
             </span>
             <h3 className="text-xl font-bold text-white">Entreprise</h3>
             <div className="flex items-baseline gap-1 mt-2">
@@ -339,16 +339,16 @@ export default function EspaceBoucherPage() {
               Tout le pack Premium, plus :
             </p>
             <ul className="mt-6 space-y-3 text-gray-300">
-              <Feature>Integration caisse enregistreuse (POS)</Feature>
+              <Feature>Intégration caisse enregistreuse (POS)</Feature>
               <Feature>
-                Synchronisation stock temps reel avec votre caisse
+                Synchronisation stock temps réel avec votre caisse
               </Feature>
-              <Feature>Developpements sur-mesure selon vos besoins</Feature>
-              <Feature>Prise en compte des demandes d&apos;evolution</Feature>
+              <Feature>Développements sur-mesure selon vos besoins</Feature>
+              <Feature>Prise en compte des demandes d&apos;évolution</Feature>
               <Feature>Multi-points de vente</Feature>
-              <Feature>API personnalisee</Feature>
-              <Feature>Account manager dedie</Feature>
-              <Feature>Formation equipe incluse</Feature>
+              <Feature>API personnalisée</Feature>
+              <Feature>Account manager dédié</Feature>
+              <Feature>Formation équipe incluse</Feature>
             </ul>
             <a
               href="mailto:contact@klikandgo.fr"
@@ -389,7 +389,7 @@ export default function EspaceBoucherPage() {
                 2. Configuration
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Ajoutez vos produits, definissez vos horaires et personnalisez
+                Ajoutez vos produits, définissez vos horaires et personnalisez
                 votre vitrine en ligne.
               </p>
             </div>
@@ -401,8 +401,8 @@ export default function EspaceBoucherPage() {
                 3. C&apos;est parti !
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Recevez vos premieres commandes click &amp; collect et
-                developpez votre activite.
+                Recevez vos premières commandes click &amp; collect et
+                développez votre activité.
               </p>
             </div>
           </div>
@@ -414,28 +414,28 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       <section className="max-w-3xl mx-auto px-5 py-16">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-display text-center mb-10">
-          Questions frequentes
+          Questions fréquentes
         </h2>
         <div className="space-y-3">
           <FaqItem
             question="Puis-je essayer gratuitement ?"
-            answer="Oui, tous nos packs incluent une periode d'essai gratuite de 30 jours. Aucune carte bancaire requise. Vous pouvez annuler a tout moment."
+            answer="Oui, tous nos packs incluent une période d'essai gratuite de 30 jours. Aucune carte bancaire requise. Vous pouvez annuler à tout moment."
           />
           <FaqItem
-            question="Ai-je besoin de materiel specifique ?"
-            answer="Non, un simple smartphone ou tablette suffit pour gerer vos commandes. L'application est accessible depuis n'importe quel navigateur web."
+            question="Ai-je besoin de matériel spécifique ?"
+            answer="Non, un simple smartphone ou tablette suffit pour gérer vos commandes. L'application est accessible depuis n'importe quel navigateur web."
           />
           <FaqItem
-            question="Combien de temps pour etre en ligne ?"
-            answer="Votre boucherie peut etre en ligne en moins de 24 heures. Notre equipe valide votre inscription et vous accompagne pour la mise en route."
+            question="Combien de temps pour être en ligne ?"
+            answer="Votre boucherie peut être en ligne en moins de 24 heures. Notre équipe valide votre inscription et vous accompagne pour la mise en route."
           />
           <FaqItem
             question="Puis-je changer de formule ?"
-            answer="Bien sur ! Vous pouvez passer d'un pack a un autre a tout moment. Le changement prend effet immediatement."
+            answer="Bien sûr ! Vous pouvez passer d'un pack à un autre à tout moment. Le changement prend effet immédiatement."
           />
           <FaqItem
-            question="Comment sont gerees les commandes ?"
-            answer="Vous recevez une notification pour chaque nouvelle commande. Vous pouvez accepter, preparer et signaler les commandes pretes depuis votre tableau de bord."
+            question="Comment sont gérées les commandes ?"
+            answer="Vous recevez une notification pour chaque nouvelle commande. Vous pouvez accepter, préparer et signaler les commandes prêtes depuis votre tableau de bord."
           />
         </div>
       </section>
@@ -455,14 +455,12 @@ export default function EspaceBoucherPage() {
             >
               contact@klikandgo.fr
             </a>
-            {" "}&middot;{" "}
-            <a
-              href="tel:+33600000000"
-              className="hover:text-white transition"
-            >
-              06 00 00 00 00
-            </a>
           </p>
+          <div className="flex justify-center gap-4 mt-6 text-xs text-gray-500">
+            <a href="/mentions-legales" className="hover:text-gray-300 transition">Mentions légales</a>
+            <a href="/cgv" className="hover:text-gray-300 transition">CGV</a>
+            <a href="/politique-de-confidentialite" className="hover:text-gray-300 transition">Confidentialité</a>
+          </div>
           <div className="mt-8 pt-8 border-t border-white/10">
             <p className="text-sm text-gray-500">
               &copy; 2026 Klik&amp;Go

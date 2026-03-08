@@ -202,7 +202,7 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
                 href="/"
                 className="inline-block mt-4 px-4 py-2 bg-[#DC2626] text-white text-xs font-semibold rounded-full hover:bg-[#b91c1c] transition-colors"
               >
-                Decouvrir les boutiques
+                Découvrir les boutiques
               </Link>
             </div>
           )}

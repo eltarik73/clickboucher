@@ -66,14 +66,14 @@ type Order = {
 // ─────────────────────────────────────────────
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   PENDING:          { label: "En attente",  color: "text-amber-700 dark:text-amber-300",   bg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800" },
-  ACCEPTED:         { label: "Acceptee",    color: "text-blue-700 dark:text-blue-300",    bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800" },
-  PREPARING:        { label: "En prepa",    color: "text-indigo-700 dark:text-indigo-300",  bg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800" },
-  READY:            { label: "Prete",       color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800" },
-  PICKED_UP:        { label: "Retiree",     color: "text-gray-600 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
-  COMPLETED:        { label: "Terminee",    color: "text-green-700 dark:text-green-300",   bg: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800" },
-  DENIED:           { label: "Refusee",     color: "text-red-700 dark:text-red-300",     bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800" },
-  CANCELLED:        { label: "Annulee",     color: "text-gray-500 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
-  AUTO_CANCELLED:   { label: "Expiree",     color: "text-gray-500 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
+  ACCEPTED:         { label: "Acceptée",   color: "text-blue-700 dark:text-blue-300",    bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800" },
+  PREPARING:        { label: "En prépa",   color: "text-indigo-700 dark:text-indigo-300",  bg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800" },
+  READY:            { label: "Prête",      color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800" },
+  PICKED_UP:        { label: "Retirée",    color: "text-gray-600 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
+  COMPLETED:        { label: "Terminée",   color: "text-green-700 dark:text-green-300",   bg: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800" },
+  DENIED:           { label: "Refusée",    color: "text-red-700 dark:text-red-300",     bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800" },
+  CANCELLED:        { label: "Annulée",    color: "text-gray-500 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
+  AUTO_CANCELLED:   { label: "Expirée",    color: "text-gray-500 dark:text-gray-400",    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700" },
   PARTIALLY_DENIED: { label: "Partielle",   color: "text-orange-700 dark:text-orange-300",  bg: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800" },
 };
 
@@ -105,11 +105,11 @@ function StatusBar({
   loading: boolean;
 }) {
   const configs: Record<string, { bg: string; text: string; label: string; icon: React.ReactNode }> = {
-    OPEN:        { bg: "bg-emerald-500", text: "text-white", label: "Vous etes en ligne", icon: <Play size={14} /> },
-    BUSY:        { bg: "bg-amber-500",   text: "text-white", label: `Mode occupe (+${shop.busyExtraMin}min)`, icon: <Flame size={14} /> },
+    OPEN:        { bg: "bg-emerald-500", text: "text-white", label: "Vous êtes en ligne", icon: <Play size={14} /> },
+    BUSY:        { bg: "bg-amber-500",   text: "text-white", label: `Mode occupé (+${shop.busyExtraMin}min)`, icon: <Flame size={14} /> },
     PAUSED:      { bg: "bg-red-500",     text: "text-white", label: "Commandes en pause", icon: <Pause size={14} /> },
-    AUTO_PAUSED: { bg: "bg-red-600",     text: "text-white", label: "Pause automatique — commandes manquees", icon: <AlertCircle size={14} /> },
-    CLOSED:      { bg: "bg-gray-500",    text: "text-white", label: "Ferme", icon: <Pause size={14} /> },
+    AUTO_PAUSED: { bg: "bg-red-600",     text: "text-white", label: "Pause automatique — commandes manquées", icon: <AlertCircle size={14} /> },
+    CLOSED:      { bg: "bg-gray-500",    text: "text-white", label: "Fermé", icon: <Pause size={14} /> },
     VACATION:    { bg: "bg-purple-500",  text: "text-white", label: `Vacances${shop.vacationEnd ? ` jusqu'au ${new Date(shop.vacationEnd).toLocaleDateString("fr-FR")}` : ""}`, icon: <Palmtree size={14} /> },
   };
 
@@ -159,7 +159,7 @@ function StatusBar({
               onClick={() => onAction("end_busy")}
               disabled={loading}
             >
-              Arreter busy
+              Arrêter busy
             </Button>
           )}
           {shop.status === "CLOSED" && (
@@ -191,7 +191,7 @@ function StatusBar({
                 onClick={() => onAction("busy", { extraMin: 15, durationMin: 60 })}
                 disabled={loading}
               >
-                <Flame size={12} className="mr-1" /> Occupe
+                <Flame size={12} className="mr-1" /> Occupé
               </Button>
               <Button
                 size="sm"
@@ -213,7 +213,7 @@ function StatusBar({
       )}
       {shop.busyModeEndsAt && isBusy && (
         <p className="text-xs text-white/70 mt-1">
-          Fin du mode occupe dans {timeRemaining(shop.busyModeEndsAt)}
+          Fin du mode occupé dans {timeRemaining(shop.busyModeEndsAt)}
         </p>
       )}
     </div>

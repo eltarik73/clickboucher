@@ -112,14 +112,14 @@ export default function FavorisPage() {
               Pas encore de favoris
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs">
-              Ajoutez vos boucheries preferees en appuyant sur le coeur pour les retrouver ici.
+              Ajoutez vos boucheries préférées en appuyant sur le cœur pour les retrouver ici.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <Link
                 href="/"
                 className="px-6 py-2.5 bg-[#DC2626] text-white font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors"
               >
-                Decouvrir les boucheries
+                Découvrir les boucheries
               </Link>
               <Link
                 href="/commandes"
@@ -155,7 +155,7 @@ export default function FavorisPage() {
                     />
                     {(shop.status === "CLOSED" || shop.status === "VACATION") && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">Ferme</span>
+                        <span className="text-white text-xs font-bold">Fermé</span>
                       </div>
                     )}
                   </div>

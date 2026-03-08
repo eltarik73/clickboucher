@@ -802,7 +802,7 @@ export default function CommandePage({
               className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]"
               asChild
             >
-              <Link href="/">Decouvrir les boucheries</Link>
+              <Link href="/">Découvrir les boucheries</Link>
             </Button>
           </div>
         )}

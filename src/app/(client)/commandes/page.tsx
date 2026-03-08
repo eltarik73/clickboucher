@@ -314,11 +314,11 @@ export default function CommandesPage() {
               Aucune commande
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-xs">
-              Passez votre premiere commande et retrouvez-la ici avec le suivi en temps reel.
+              Passez votre première commande et retrouvez-la ici avec le suivi en temps réel.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <Button className="bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
-                <Link href="/">Decouvrir les boucheries</Link>
+                <Link href="/">Découvrir les boucheries</Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
                 <Link href="/favoris">Mes favoris</Link>
@@ -350,7 +350,7 @@ export default function CommandesPage() {
           {([
             { key: "all" as const, label: "Toutes", count: orders.length },
             { key: "active" as const, label: "En cours", count: activeCount },
-            { key: "done" as const, label: "Terminees", count: orders.length - activeCount },
+            { key: "done" as const, label: "Terminées", count: orders.length - activeCount },
           ]).map((tab) => (
             <button
               key={tab.key}

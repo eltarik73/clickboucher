@@ -11,6 +11,7 @@ import {
   Users,
   ChefHat,
 } from "lucide-react";
+import Link from "next/link";
 import { ClientHeader } from "@/components/layout/client-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
@@ -77,9 +78,11 @@ export default function ProPage() {
               ))}
             </div>
 
-            <Button className="w-full" size="lg">
-              <span>Demander l&apos;accès PRO</span>
-              <ArrowRight size={18} className="ml-2" />
+            <Button className="w-full" size="lg" asChild>
+              <Link href="/inscription-pro">
+                <span>Demander l&apos;accès PRO</span>
+                <ArrowRight size={18} className="ml-2" />
+              </Link>
             </Button>
 
             <p className="text-micro text-muted-foreground text-center">
@@ -101,7 +104,7 @@ export default function ProPage() {
                 Vous êtes boucher ?
               </h2>
               <p className="text-caption text-muted-foreground">
-                Ajoutez votre commerce sur ClickBoucher
+                Ajoutez votre commerce sur Klik&amp;Go
               </p>
             </div>
           </div>
@@ -141,9 +144,11 @@ export default function ProPage() {
               ))}
             </div>
 
-            <Button variant="outline" className="w-full border-accent/30 text-accent hover:bg-accent/5" size="lg">
-              <span>Ajouter votre commerce</span>
-              <ArrowRight size={18} className="ml-2" />
+            <Button variant="outline" className="w-full border-accent/30 text-accent hover:bg-accent/5" size="lg" asChild>
+              <Link href="/inscription-boucher">
+                <span>Ajouter votre commerce</span>
+                <ArrowRight size={18} className="ml-2" />
+              </Link>
             </Button>
 
             <p className="text-micro text-muted-foreground text-center">

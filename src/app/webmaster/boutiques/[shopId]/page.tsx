@@ -348,10 +348,10 @@ export default function WebmasterShopDetailPage() {
         <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle size={16} className="text-amber-600" />
-            <span className="text-sm font-bold text-amber-800 dark:text-amber-300">Boutique non validee</span>
+            <span className="text-sm font-bold text-amber-800 dark:text-amber-300">Boutique non validée</span>
           </div>
           <p className="text-xs text-amber-700 dark:text-amber-300/80 mb-3">
-            Cette boutique n&apos;a pas encore ete validee. Approuvez-la pour la rendre visible sur la plateforme.
+            Cette boutique n&apos;a pas encore été validée. Approuvez-la pour la rendre visible sur la plateforme.
           </p>
           <div className="flex gap-2">
             <button
@@ -528,7 +528,7 @@ export default function WebmasterShopDetailPage() {
               )}
             </div>
             <p className="text-[10px] text-gray-400 mt-1.5">
-              {shop.commissionEnabled ? "Active" : "Desactivee"} · Total percu: {centsToEuro(shop.stats.totalCommission)}
+              {shop.commissionEnabled ? "Active" : "Désactivée"} · Total perçu : {centsToEuro(shop.stats.totalCommission)}
             </p>
           </div>
 

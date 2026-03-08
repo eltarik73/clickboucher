@@ -349,7 +349,7 @@ export default async function BoutiquePage({
               {/* Busy mode badge */}
               {shop.status === "BUSY" && (
                 <span className="px-3 py-1.5 bg-amber-500/80 backdrop-blur-xl text-white text-xs font-bold rounded-[10px]">
-                  Mode occupe
+                  Mode occupé
                 </span>
               )}
 

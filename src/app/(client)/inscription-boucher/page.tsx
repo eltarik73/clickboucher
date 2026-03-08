@@ -341,12 +341,12 @@ function InscriptionBoucherContent() {
               Inscription en cours...
             </span>
           ) : (
-            "Creer mon compte boucher"
+            "Créer mon compte boucher"
           )}
         </Button>
 
         <p className="text-[11px] text-center text-gray-400 dark:text-gray-500">
-          Votre boucherie sera validee par notre equipe sous 24h.
+          Votre boucherie sera validée par notre équipe sous 24h.
           <br />
           Essai gratuit de 30 jours, sans engagement.
         </p>

@@ -366,9 +366,9 @@ export default function KitchenModePage() {
         const json = await res.json();
         await refetch();
         if (json.data?.autoApproved) {
-          toast.success("Prix ajuste automatiquement (baisse)");
+          toast.success("Prix ajusté automatiquement (baisse)");
         } else {
-          toast.success("Ajustement envoye — en attente du client (5 min)");
+          toast.success("Ajustement envoyé — en attente du client (5 min)");
         }
       } else {
         const json = await res.json().catch(() => null);

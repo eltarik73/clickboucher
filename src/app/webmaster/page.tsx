@@ -127,7 +127,7 @@ export default function WebmasterDashboardPage() {
     {
       label: "Commission",
       value: shortEuro(stats.totalCommissionCents),
-      sub: "Total percues",
+      sub: "Total perçues",
       icon: Coins,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-500/10",

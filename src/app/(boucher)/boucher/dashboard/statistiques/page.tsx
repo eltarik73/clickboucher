@@ -692,10 +692,10 @@ export default function StatistiquesPage() {
                   <span className="text-sm font-bold text-white">Plan Pro</span>
                 </div>
                 <p className="text-white/90 text-sm leading-relaxed mb-3">
-                  Passez au plan Pro pour debloquer les statistiques avancees : graphiques de revenus, distribution horaire, top produits et clients.
+                  Passez au plan Pro pour débloquer les statistiques avancées : graphiques de revenus, distribution horaire, top produits et clients.
                 </p>
                 <div className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1.5 text-white text-sm font-medium">
-                  Decouvrir les offres
+                  Découvrir les offres
                   <ArrowLeft size={14} className="rotate-180" />
                 </div>
               </div>

@@ -325,8 +325,22 @@ export default async function HomePage() {
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />
-            <p className="text-sm text-gray-500 dark:text-gray-400">&copy; 2026 Klik&amp;Go</p>
+            <nav className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+              <Link href="/mentions-legales" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                Mentions légales
+              </Link>
+              <Link href="/cgv" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                CGV
+              </Link>
+              <Link href="/politique-de-confidentialite" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                Confidentialité
+              </Link>
+              <a href="mailto:contact@klikandgo.fr" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                Contact
+              </a>
+            </nav>
           </div>
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">&copy; 2026 Klik&amp;Go</p>
         </div>
       </footer>
 
