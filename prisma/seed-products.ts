@@ -166,7 +166,7 @@ async function main() {
           imageUrl: p.imageUrl,
           priceCents: p.priceCents,
           unit: Unit[p.unit],
-          categoryId,
+          categories: { set: [{ id: categoryId }] },
           inStock: true,
           tags: ["halal"],
         },
@@ -176,7 +176,7 @@ async function main() {
       await prisma.product.create({
         data: {
           shopId: shop.id,
-          categoryId,
+          categories: { connect: [{ id: categoryId }] },
           name: p.name,
           imageUrl: p.imageUrl,
           priceCents: p.priceCents,

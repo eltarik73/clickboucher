@@ -50,7 +50,7 @@ export async function PATCH(
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        items: { include: { product: { include: { category: true } } } },
+        items: { include: { product: { include: { categories: true } } } },
         shop: {
           select: {
             id: true, ownerId: true, name: true, prepTimeMin: true,
@@ -258,7 +258,7 @@ export async function PATCH(
           const alts = await prisma.product.findMany({
             where: {
               shopId: order.shop.id,
-              categoryId: item.product.categoryId,
+              categories: { some: { id: { in: item.product.categories.map((c: { id: string }) => c.id) } } },
               inStock: true,
               id: { notIn: data.itemIds },
             },

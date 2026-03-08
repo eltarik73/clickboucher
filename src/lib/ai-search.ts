@@ -103,7 +103,7 @@ export async function searchProducts(
       tags: true,
       imageUrl: true,
       shop: { select: { name: true, slug: true, prepTimeMin: true, busyMode: true, busyExtraMin: true } },
-      category: { select: { name: true } },
+      categories: { select: { name: true } },
     },
     take: limit * 3, // Fetch more for scoring
   });

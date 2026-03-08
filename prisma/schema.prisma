@@ -530,8 +530,7 @@ model Product {
   featured     Boolean @default(false)
   popular      Boolean @default(false)
 
-  categoryId String   @map("category_id")
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categories Category[]
 
   tags String[]
 
@@ -590,7 +589,7 @@ model Product {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([shopId, displayOrder])
-  @@index([shopId, categoryId])
+  @@index([shopId])
   @@index([shopId, isActive, inStock])
   @@index([shopId, inStock, snoozeType])
   @@index([inStock, promoPct])

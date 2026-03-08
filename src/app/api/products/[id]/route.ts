@@ -8,7 +8,7 @@ import { isAdmin } from "@/lib/roles";
 export const dynamic = "force-dynamic";
 
 const PRODUCT_INCLUDE = {
-  category: true,
+  categories: true,
   images: { orderBy: { order: "asc" as const } },
   labels: true,
   shop: { select: { id: true, name: true, slug: true } },
@@ -71,23 +71,26 @@ export async function PATCH(
     const body = await req.json();
     const data = updateProductSchema.parse(body);
 
-    // If categoryId is changed, verify it belongs to the same shop
-    if (data.categoryId) {
-      const category = await prisma.category.findUnique({
-        where: { id: data.categoryId },
-        select: { shopId: true },
+    // If categoryIds changed, verify all belong to the same shop
+    if (data.categoryIds) {
+      const cats = await prisma.category.findMany({
+        where: { id: { in: data.categoryIds }, shopId: product.shopId },
+        select: { id: true },
       });
-      if (!category || category.shopId !== product.shopId) {
-        return apiError("VALIDATION_ERROR", "La catégorie n'appartient pas à cette boucherie");
+      if (cats.length !== data.categoryIds.length) {
+        return apiError("VALIDATION_ERROR", "Une ou plusieurs catégories n'appartiennent pas à cette boucherie");
       }
     }
 
-    // Separate images/labels from scalar fields
-    const { images, labels, promoEnd, ...scalarData } = data;
+    // Separate images/labels/categoryIds from scalar fields
+    const { images, labels, promoEnd, categoryIds, ...scalarData } = data;
 
     const updateData: Record<string, unknown> = { ...scalarData };
     if (promoEnd !== undefined) {
       updateData.promoEnd = promoEnd ? new Date(promoEnd) : null;
+    }
+    if (categoryIds) {
+      updateData.categories = { set: categoryIds.map((cid: string) => ({ id: cid })) };
     }
 
     // Replace images if provided (delete old, create new)
@@ -125,7 +128,7 @@ export async function PATCH(
       where: { id },
       data: updateData,
       include: {
-        category: true,
+        categories: true,
         images: { orderBy: { order: "asc" } },
         labels: true,
       },

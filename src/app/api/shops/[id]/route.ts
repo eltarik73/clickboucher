@@ -25,7 +25,7 @@ export async function GET(
         },
         products: {
           where: { inStock: true },
-          include: { category: true },
+          include: { categories: true },
           orderBy: { name: "asc" },
         },
         _count: { select: { orders: true, products: true } },

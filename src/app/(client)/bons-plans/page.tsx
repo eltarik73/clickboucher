@@ -27,7 +27,7 @@ export default async function BonsPlansPage() {
     promoType: string | null;
     origin: string | null;
     halalOrg: string | null;
-    category: { id: string; name: string; emoji: string | null };
+    categories: { id: string; name: string; emoji: string | null }[];
     shop: { id: string; name: string; slug: string };
     images: { url: string; isPrimary: boolean }[];
   }[] = [];
@@ -60,7 +60,7 @@ export default async function BonsPlansPage() {
           ],
         },
         include: {
-          category: true,
+          categories: true,
           shop: { select: { id: true, name: true, slug: true } },
           images: { where: { isPrimary: true }, take: 1, select: { url: true, isPrimary: true } },
         },
@@ -91,7 +91,7 @@ export default async function BonsPlansPage() {
       promoType: p.promoType,
       origin: p.origin,
       halalOrg: p.halalOrg,
-      category: { id: p.category.id, name: p.category.name, emoji: p.category.emoji },
+      categories: p.categories.map((c) => ({ id: c.id, name: c.name, emoji: c.emoji })),
       shop: p.shop,
       images: p.images.map((i) => ({ url: i.url, isPrimary: i.isPrimary })),
     }));
@@ -115,8 +115,10 @@ export default async function BonsPlansPage() {
   // Extract unique categories
   const categorySet = new Map<string, { id: string; name: string; emoji: string | null }>();
   for (const p of promos) {
-    if (!categorySet.has(p.category.id)) {
-      categorySet.set(p.category.id, p.category);
+    for (const cat of p.categories) {
+      if (!categorySet.has(cat.id)) {
+        categorySet.set(cat.id, cat);
+      }
     }
   }
   const categories = Array.from(categorySet.values());

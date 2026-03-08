@@ -81,7 +81,7 @@ export function SearchBar() {
           unit: r.unit as string,
           shopName: (r.shop as Record<string, string>)?.name || "",
           shopSlug: (r.shop as Record<string, string>)?.slug || "",
-          category: (r.category as Record<string, string>)?.name,
+          category: ((r.categories as Record<string, string>[]) || [])[0]?.name,
           imageUrl: r.imageUrl as string | undefined,
           prepTime: r.prepTime as number | undefined,
         })));

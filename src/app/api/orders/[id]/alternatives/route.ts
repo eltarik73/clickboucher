@@ -22,7 +22,7 @@ export async function GET(
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        items: { include: { product: { select: { categoryId: true } } } },
+        items: { include: { product: { select: { categories: { select: { id: true } } } } } },
         user: { select: { clerkId: true } },
         shop: { select: { id: true } },
       },
@@ -50,11 +50,11 @@ export async function GET(
     const alternatives: Record<string, { id: string; name: string; priceCents: number; unit: string }[]> = {};
 
     for (const item of unavailableItems) {
-      const categoryId = item.product.categoryId;
+      const catIds = item.product.categories.map((c: { id: string }) => c.id);
       const alts = await prisma.product.findMany({
         where: {
           shopId: order.shop.id,
-          categoryId,
+          categories: { some: { id: { in: catIds } } },
           inStock: true,
           id: { notIn: productIds },
         },

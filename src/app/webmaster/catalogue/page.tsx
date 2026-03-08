@@ -49,7 +49,7 @@ interface Product {
   createdAt: string;
   shopId: string;
   shop: { id: string; name: string; slug: string };
-  category: { id: string; name: string; emoji: string | null };
+  categories: { id: string; name: string; emoji: string | null }[];
   labels: { id: string; name: string; color: string | null }[];
   _count: { orderItems: number };
 }
@@ -640,7 +640,7 @@ function ProductCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-lg">
-              {product.category?.emoji || "🥩"}
+              {product.categories?.[0]?.emoji || "🥩"}
             </div>
           )}
         </div>
@@ -678,7 +678,7 @@ function ProductCard({
             </span>
             <span>·</span>
             <span>
-              {product.category?.emoji} {product.category?.name}
+              {product.categories?.[0]?.emoji} {product.categories?.[0]?.name}
             </span>
             {product.origin && ORIGIN_FLAGS[product.origin] && (
               <>

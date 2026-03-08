@@ -436,7 +436,7 @@ async function main() {
       const product = await prisma.product.create({
         data: {
           shopId: shop.id,
-          categoryId,
+          categories: { connect: [{ id: categoryId }] },
           name: p.name,
           description: p.description,
           imageUrl: getProductImg(p.category, imgIdx),

@@ -22,7 +22,7 @@ type PromoProduct = {
   promoType: string | null;
   origin: string | null;
   halalOrg: string | null;
-  category: { id: string; name: string; emoji: string | null };
+  categories: { id: string; name: string; emoji: string | null }[];
   shop: { id: string; name: string; slug: string };
   images: { url: string; isPrimary: boolean }[];
 };
@@ -77,7 +77,7 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
 
   const filtered = activeCat === "Tout"
     ? promos
-    : promos.filter((p) => p.category.id === activeCat);
+    : promos.filter((p) => p.categories.some((c) => c.id === activeCat));
 
   // Separate flash from standard
   const flashPromos = filtered.filter((p) => p.promoType === "FLASH" && p.promoEnd);
@@ -138,7 +138,7 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
                 Tout ({promos.length})
               </button>
               {categories.map((cat) => {
-                const count = promos.filter((p) => p.category.id === cat.id).length;
+                const count = promos.filter((p) => p.categories.some((c) => c.id === cat.id)).length;
                 return (
                   <button
                     key={cat.id}
@@ -283,7 +283,7 @@ function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
 function ProductPromoCard({ product }: { product: PromoProduct }) {
   const isFlash = product.promoType === "FLASH" && product.promoEnd;
   const discountedPrice = Math.round(product.priceCents * (1 - product.promoPct / 100));
-  const imgSrc = product.images[0]?.url || resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
+  const imgSrc = product.images[0]?.url || resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.categories[0]?.name || "" });
 
   return (
     <Link href={`/boutique/${product.shop.slug}`}>
@@ -307,7 +307,7 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
               <h3 className="font-bold text-[12px] text-gray-900 dark:text-white truncate">{product.name}</h3>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                  {product.category.emoji ? `${product.category.emoji} ` : ""}{product.category.name}
+                  {product.categories.map((c) => `${c.emoji ? c.emoji + " " : ""}${c.name}`).join(", ")}
                 </span>
                 {product.origin && (
                   <span className="text-[10px]">

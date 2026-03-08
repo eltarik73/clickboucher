@@ -61,7 +61,6 @@ type Product = {
   unit: string;
   inStock: boolean;
   stockQty: number | null;
-  categoryId: string;
   shopId: string;
   tags: string[];
   displayOrder: number;
@@ -80,7 +79,7 @@ type Product = {
   isActive: boolean;
   unitLabel: string | null;
   sliceOptions: { defaultSlices: number; minSlices: number; maxSlices: number; thicknesses: string[] } | null;
-  category: Category;
+  categories: Category[];
   images: ProductImage[];
   labels: ProductLabel[];
 };
@@ -395,7 +394,7 @@ export default function BoucherProduitsPage() {
 
   // ── Filter & sort ──
   const filtered = products.filter((p) => {
-    if (selectedCategory && p.categoryId !== selectedCategory) return false;
+    if (selectedCategory && !p.categories.some((c) => c.id === selectedCategory)) return false;
     if (stockFilter === "inStock" && (!p.inStock || !p.isActive)) return false;
     if (stockFilter === "outOfStock" && (p.inStock || !p.isActive)) return false;
     if (stockFilter === "inactive" && p.isActive !== false) return false;
@@ -405,7 +404,7 @@ export default function BoucherProduitsPage() {
         !p.name.toLowerCase().includes(q) &&
         !(p.description || "").toLowerCase().includes(q) &&
         !(p.origin || "").toLowerCase().includes(q) &&
-        !p.category.name.toLowerCase().includes(q)
+        !p.categories.some((c) => c.name.toLowerCase().includes(q))
       )
         return false;
     }
@@ -617,7 +616,7 @@ export default function BoucherProduitsPage() {
               Tous ({totalCount})
             </button>
             {categories.map((cat) => {
-              const count = products.filter((p) => p.categoryId === cat.id).length;
+              const count = products.filter((p) => p.categories.some((c) => c.id === cat.id)).length;
               return (
                 <button
                   key={cat.id}
@@ -690,7 +689,7 @@ export default function BoucherProduitsPage() {
               {/* Category list */}
               <div className="space-y-1">
                 {categories.map((cat) => {
-                  const count = products.filter((p) => p.categoryId === cat.id).length;
+                  const count = products.filter((p) => p.categories.some((c) => c.id === cat.id)).length;
                   return (
                     <div
                       key={cat.id}
@@ -863,13 +862,13 @@ function ProductRow({
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
             onError={(e) => {
-              const fallback = resolveProductImage({ name: product.name, imageUrl: null, category: product.category.name });
+              const fallback = resolveProductImage({ name: product.name, imageUrl: null, category: product.categories[0].name });
               (e.target as HTMLImageElement).src = fallback;
             }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xl">
-            {product.category.emoji || "🥩"}
+            {product.categories[0].emoji || "🥩"}
           </div>
         )}
         {promoActive && (
@@ -910,9 +909,11 @@ function ProductRow({
 
         {/* Meta row */}
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-            {product.category.emoji ? `${product.category.emoji} ` : ""}{product.category.name}
-          </span>
+          {product.categories.map((cat, i) => (
+            <span key={cat.id} className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+              {cat.emoji ? `${cat.emoji} ` : ""}{cat.name}{i < product.categories.length - 1 ? " ·" : ""}
+            </span>
+          ))}
           {product.origin && (
             <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
               {getFlag(product.origin)} {getOriginCountry(product.origin)}

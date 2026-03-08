@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       where: { id: productId },
       include: {
         shop: { select: { ownerId: true } },
+        categories: { select: { id: true } },
         labels: true,
         images: true,
       },
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
         displayOrder: original.displayOrder + 1,
         featured: false,
         popular: false,
-        categoryId: original.categoryId,
+        categories: { connect: original.categories.map((c) => ({ id: c.id })) },
         shopId: original.shopId,
         tags: original.tags,
         origin: original.origin,
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
           : undefined,
       },
       include: {
-        category: true,
+        categories: true,
         labels: true,
         images: true,
       },

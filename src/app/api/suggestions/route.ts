@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     const products = await prisma.product.findMany({
       where: { id: { in: suggestedIds } },
       include: {
-        category: { select: { name: true } },
+        categories: { select: { name: true } },
       },
     });
 
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
         priceCents: p.priceCents,
         proPriceCents: p.proPriceCents,
         unit: p.unit,
-        category: p.category?.name,
+        category: p.categories?.[0]?.name,
         origin: p.origin,
         promoPct: p.promoPct,
         promoType: p.promoType,

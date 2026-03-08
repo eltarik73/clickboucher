@@ -29,7 +29,7 @@ export async function POST(
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
-        items: { include: { product: { include: { category: true } } } },
+        items: { include: { product: { include: { categories: true } } } },
         shop: { select: { id: true, name: true } },
       },
     });
@@ -73,11 +73,11 @@ export async function POST(
     const alternatives: Record<string, { id: string; name: string; priceCents: number; unit: string }[]> = {};
 
     for (const item of unavailableOrderItems) {
-      const categoryId = item.product.categoryId;
+      const catIds = item.product.categories.map((c: { id: string }) => c.id);
       const alts = await prisma.product.findMany({
         where: {
           shopId: order.shop.id,
-          categoryId,
+          categories: { some: { id: { in: catIds } } },
           inStock: true,
           id: { notIn: unavailableItems },
         },

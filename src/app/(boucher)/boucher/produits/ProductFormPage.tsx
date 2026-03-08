@@ -54,7 +54,7 @@ export type EditProduct = {
   suggestedPrice?: number | null;
   proPriceCents: number | null;
   unit: string;
-  categoryId: string;
+  categories: { id: string }[];
   tags: string[];
   origin: string | null;
   halalOrg: string | null;
@@ -197,7 +197,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
   // Informations
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
-  const [categoryId, setCategoryId] = useState(product?.categoryId || "");
+  const [categoryIds, setCategoryIds] = useState<string[]>(product?.categories?.map((c) => c.id) || []);
   const [unit, setUnit] = useState<"KG" | "PIECE" | "BARQUETTE" | "TRANCHE">(
     (product?.unit as "KG" | "PIECE" | "BARQUETTE" | "TRANCHE") || "KG"
   );
@@ -417,8 +417,8 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
 
   // ── Submit ──
   async function handleSubmit() {
-    if (!name.trim() || !categoryId || parseFloat(priceCents) <= 0) {
-      setApiError("Veuillez remplir le nom, la categorie et le prix");
+    if (!name.trim() || categoryIds.length === 0 || parseFloat(priceCents) <= 0) {
+      setApiError("Veuillez remplir le nom, au moins une categorie et le prix");
       return;
     }
 
@@ -431,7 +431,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
     const body: Record<string, unknown> = {
       name: name.trim(),
       description: description.trim() || null,
-      categoryId,
+      categoryIds,
       unit,
       origin: origin || null,
       halalOrg: halalOrg || null,
@@ -625,25 +625,48 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
             />
           </div>
 
-          {/* Categorie */}
+          {/* Categories (multi-select, max 3) */}
           <div>
-            <label className="text-xs font-semibold text-stone-400 mb-2 block">Categorie *</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-stone-400">Categories * <span className="text-stone-500 font-normal">(max 3)</span></label>
+              {categoryIds.length > 0 && (
+                <span className="text-[10px] font-bold text-red-500">{categoryIds.length}/3</span>
+              )}
+            </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setCategoryId(cat.id)}
-                  className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all min-h-[56px] ${
-                    categoryId === cat.id
-                      ? "bg-red-600/10 border-red-600 text-red-500"
-                      : "bg-stone-800 border-stone-700 text-stone-400 hover:border-stone-600"
-                  }`}
-                >
-                  <span className="text-lg">{cat.emoji || "\u{1F969}"}</span>
-                  <span className="text-[10px] font-medium leading-tight text-center">{cat.name}</span>
-                </button>
-              ))}
+              {categories.map((cat) => {
+                const isSelected = categoryIds.includes(cat.id);
+                const isMax = categoryIds.length >= 3 && !isSelected;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    disabled={isMax}
+                    onClick={() => {
+                      if (isSelected) {
+                        setCategoryIds(categoryIds.filter((id) => id !== cat.id));
+                      } else {
+                        setCategoryIds([...categoryIds, cat.id]);
+                      }
+                    }}
+                    className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all min-h-[56px] relative ${
+                      isSelected
+                        ? "bg-red-600/10 border-red-600 text-red-500"
+                        : isMax
+                        ? "bg-stone-900 border-stone-800 text-stone-600 cursor-not-allowed opacity-40"
+                        : "bg-stone-800 border-stone-700 text-stone-400 hover:border-stone-600"
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center">
+                        <Check size={10} className="text-white" />
+                      </div>
+                    )}
+                    <span className="text-lg">{cat.emoji || "\u{1F969}"}</span>
+                    <span className="text-[10px] font-medium leading-tight text-center">{cat.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1234,7 +1257,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                     <Image src={images[0].url} alt={name || "Produit"} fill className="object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-3xl text-stone-300">
-                      {categories.find((c) => c.id === categoryId)?.emoji || "🥩"}
+                      {categories.find((c) => categoryIds.includes(c.id))?.emoji || "🥩"}
                     </div>
                   )}
                   {/* Promo badge */}
@@ -1325,7 +1348,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || !categoryId || parseFloat(priceCents || "0") <= 0}
+            disabled={submitting || !name.trim() || categoryIds.length === 0 || parseFloat(priceCents || "0") <= 0}
             className="h-11 px-6 gap-1.5 bg-red-600 hover:bg-red-700 text-white disabled:opacity-40"
           >
             {submitting ? (

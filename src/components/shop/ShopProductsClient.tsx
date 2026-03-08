@@ -53,7 +53,7 @@ export interface ProductData {
   packContent: string | null;
   packWeight: string | null;
   packOldPriceCents: number | null;
-  category: CategoryData;
+  categories: CategoryData[];
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
 }
@@ -95,7 +95,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
   const filtered = useMemo(() =>
     activeCat === "Tout"
       ? products
-      : products.filter((p) => p.category.id === activeCat),
+      : products.filter((p) => p.categories.some((c) => c.id === activeCat)),
     [activeCat, products]
   );
 
@@ -129,7 +129,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       packContent: p.packContent,
       packWeight: p.packWeight,
       packOldPriceCents: p.packOldPriceCents,
-      category: p.category,
+      category: p.categories[0],
       images: p.images,
       labels: p.labels,
     })),

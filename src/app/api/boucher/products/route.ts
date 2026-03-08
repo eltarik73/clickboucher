@@ -19,14 +19,14 @@ export async function GET(req: NextRequest) {
     const search = url.searchParams.get("search") || undefined;
 
     const where: Record<string, unknown> = { shopId };
-    if (categoryId) where.categoryId = categoryId;
+    if (categoryId) where.categories = { some: { id: categoryId } };
     if (inStock === "true") where.inStock = true;
     if (inStock === "false") where.inStock = false;
     if (search) where.name = { contains: search, mode: "insensitive" };
 
     const products = await prisma.product.findMany({
       where,
-      include: { category: true, images: true, labels: true },
+      include: { categories: true, images: true, labels: true },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       take: 500,
     });

@@ -33,7 +33,6 @@ const PRODUCT_SELECT = {
   promoType: true,
   customerNote: true,
   shopId: true,
-  categoryId: true,
   displayOrder: true,
   minWeightG: true,
   weightStepG: true,
@@ -54,14 +53,14 @@ const PRODUCT_SELECT = {
   snoozedAt: true,
   snoozeEndsAt: true,
   snoozeReason: true,
-  category: { select: { id: true, name: true, emoji: true } },
+  categories: { select: { id: true, name: true, emoji: true } },
   images: { orderBy: { order: "asc" as const }, select: { id: true, url: true, alt: true, order: true, isPrimary: true } },
   labels: { select: { id: true, name: true, color: true } },
 };
 
 // Full include block for create/update
 const PRODUCT_INCLUDE = {
-  category: true,
+  categories: true,
   images: { orderBy: { order: "asc" as const } },
   labels: true,
 };
@@ -76,7 +75,7 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = { shopId: query.shopId };
 
     if (query.categoryId) {
-      where.categoryId = query.categoryId;
+      where.categories = { some: { id: query.categoryId } };
     }
     if (query.inStock === "true") {
       where.inStock = true;
@@ -109,7 +108,7 @@ export async function GET(req: NextRequest) {
     const products = await prisma.product.findMany({
       where,
       select: PRODUCT_SELECT,
-      orderBy: [{ displayOrder: "asc" }, { category: { order: "asc" } }, { name: "asc" }],
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       take: 200,
     });
 
@@ -172,13 +171,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Verify category belongs to the shop
-    const category = await prisma.category.findUnique({
-      where: { id: data.categoryId },
-      select: { shopId: true },
+    // Verify all categories belong to the shop
+    const cats = await prisma.category.findMany({
+      where: { id: { in: data.categoryIds }, shopId: data.shopId },
+      select: { id: true },
     });
-    if (!category || category.shopId !== data.shopId) {
-      return apiError("VALIDATION_ERROR", "La catégorie n'appartient pas à cette boucherie");
+    if (cats.length !== data.categoryIds.length) {
+      return apiError("VALIDATION_ERROR", "Une ou plusieurs catégories n'appartiennent pas à cette boucherie");
     }
 
     const product = await prisma.product.create({
@@ -197,7 +196,7 @@ export async function POST(req: NextRequest) {
         displayOrder: data.displayOrder ?? 0,
         featured: data.featured ?? false,
         popular: data.popular ?? false,
-        categoryId: data.categoryId,
+        categories: { connect: data.categoryIds.map((id) => ({ id })) },
         shopId: data.shopId,
         tags: data.tags ?? [],
         origin: data.origin,

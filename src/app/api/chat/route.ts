@@ -99,7 +99,7 @@ type MatchedProduct = {
   promoPct: number | null;
   shopId: string;
   shop: { name: string; slug: string; prepTimeMin: number };
-  category: { name: string };
+  categories: { name: string }[];
 };
 
 const PRODUCT_SELECT = {
@@ -110,7 +110,7 @@ const PRODUCT_SELECT = {
   promoPct: true,
   shopId: true,
   shop: { select: { name: true, slug: true, prepTimeMin: true } },
-  category: { select: { name: true } },
+  categories: { select: { name: true } },
 } as const;
 
 export async function POST(req: NextRequest) {
@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
               inStock: true,
               OR: keywords.flatMap((kw) => [
                 { name: { contains: kw, mode: "insensitive" as const } },
-                { category: { name: { contains: kw, mode: "insensitive" as const } } },
+                { categories: { some: { name: { contains: kw, mode: "insensitive" as const } } } },
               ]),
             },
             select: PRODUCT_SELECT,
@@ -267,7 +267,7 @@ export async function POST(req: NextRequest) {
             const price = (p.priceCents / 100).toFixed(2);
             const unit = p.unit === "KG" ? "kg" : p.unit === "PIECE" ? "pièce" : "barq.";
             const promo = p.promoPct ? ` (-${p.promoPct}%)` : "";
-            return `- ProductID:${p.id} | ${p.name} | ${p.category.name} | ${price}€/${unit}${promo} | priceCents:${p.priceCents} | unit:${p.unit} | ShopID:${p.shopId} | shopName:${p.shop.name} | shopSlug:${p.shop.slug}`;
+            return `- ProductID:${p.id} | ${p.name} | ${p.categories.map(c => c.name).join(", ")} | ${price}€/${unit}${promo} | priceCents:${p.priceCents} | unit:${p.unit} | ShopID:${p.shopId} | shopName:${p.shop.name} | shopSlug:${p.shop.slug}`;
           })
           .join("\n")
       : "Aucun produit en base.";

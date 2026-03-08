@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const products = await prisma.product.findMany({
-    include: { category: { select: { name: true } } },
+    include: { categories: { select: { name: true } } },
   });
 
   console.log(`Found ${products.length} products to update...\n`);
@@ -18,7 +18,7 @@ async function main() {
     const correctImage = resolveProductImage({
       name: product.name,
       imageUrl: null, // force recalcul
-      category: product.category.name,
+      category: product.categories[0]?.name || "",
     });
 
     if (product.imageUrl !== correctImage) {

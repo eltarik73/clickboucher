@@ -34,7 +34,7 @@ async function fetchShopFromDB(slug: string) {
       products: {
         where: { isActive: true },
         include: {
-          category: true,
+          categories: true,
           images: { orderBy: { order: "asc" } },
           labels: true,
         },
@@ -230,11 +230,11 @@ export default async function BoutiquePage({
     packContent: p.packContent ?? null,
     packWeight: p.packWeight ?? null,
     packOldPriceCents: p.packOldPriceCents ?? null,
-    category: {
-      id: p.category.id,
-      name: p.category.name,
-      emoji: p.category.emoji,
-    },
+    categories: p.categories.map((c) => ({
+      id: c.id,
+      name: c.name,
+      emoji: c.emoji,
+    })),
     images: p.images.map((img) => ({
       id: img.id,
       url: img.url,
@@ -270,7 +270,7 @@ export default async function BoutiquePage({
             priceCents: p.priceCents,
             imageUrl: p.imageUrl,
             inStock: p.inStock,
-            category: p.category,
+            category: p.categories[0],
           }}
           shop={{ name: shop.name, slug: shop.slug }}
         />

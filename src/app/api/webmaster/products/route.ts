@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
           createdAt: true,
           shopId: true,
           shop: { select: { id: true, name: true, slug: true } },
-          category: { select: { id: true, name: true, emoji: true } },
+          categories: { select: { id: true, name: true, emoji: true } },
           labels: { select: { id: true, name: true, color: true } },
           _count: { select: { orderItems: true } },
         },
