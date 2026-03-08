@@ -130,7 +130,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
         ) : null}
 
         {/* Traçabilité shield — top-right */}
-        {(product.originRegion || product.elevageMode || product.race) && !outOfStock && (
+        {(product.originRegion || product.elevageMode || product.raceDescription || product.halalMethod || product.freshDetail || product.origin || product.halalOrg) && !outOfStock && (
           <div className="absolute top-1 right-1 z-10 w-6 h-6 rounded-md bg-green-600/90 backdrop-blur flex items-center justify-center shadow-sm">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageCircle, Heart, ShoppingCart, ClipboardList, LogIn } from "lucide-react";
+import { Home, MessageCircle, BookOpen, ShoppingCart, ClipboardList, LogIn } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useCart } from "@/lib/hooks/use-cart";
 import { useNotifications } from "@/lib/hooks/use-notifications";
@@ -14,7 +14,7 @@ type NavItem =
 function getNavItems(): NavItem[] {
   return [
     { key: "accueil",   label: "Accueil",   href: "/",  icon: Home },
-    { key: "favoris",   label: "Favoris",    href: "/favoris",    icon: Heart },
+    { key: "recettes",  label: "Recettes",   href: "/recettes",   icon: BookOpen },
     // Center button is rendered separately as elevated
     { key: "panier",    label: "Panier",     href: "/panier",     icon: ShoppingCart, badge: "cart" as const },
     { key: "commandes", label: "Commandes",  href: "/commandes",  icon: ClipboardList, badge: "notif" as const },

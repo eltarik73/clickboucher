@@ -67,10 +67,14 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
     ? product.images[0].url
     : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
   const hasPromo = (product.promoPct != null && product.promoPct > 0) || (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
+  const isAntiGaspi = product.isAntiGaspi && product.antiGaspiOrigPriceCents;
   const isKg = product.unit === "KG";
-  const effectivePrice = product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+  const effectivePrice = isAntiGaspi
+    ? product.priceCents // Already reduced
+    : product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
     ? Math.max(0, product.priceCents - product.promoFixedCents)
     : hasPromo ? promoPrice(product.priceCents, product.promoPct!) : product.priceCents;
+  const maxStock = isAntiGaspi && product.antiGaspiStock != null ? product.antiGaspiStock : null;
   const totalPrice = effectivePrice * qty;
 
   function handleAdd() {
@@ -135,14 +139,18 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                   </span>
                 </div>
               )}
-              {/* Promo badge */}
-              {hasPromo && (
+              {/* Anti-gaspi / Promo badge */}
+              {isAntiGaspi ? (
+                <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shadow">
+                  Anti-Gaspi
+                </span>
+              ) : hasPromo ? (
                 <span className="absolute -top-1.5 -right-1.5 bg-[#DC2626] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shadow">
                   {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
                     ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
                     : `-${product.promoPct}%`}
                 </span>
-              )}
+              ) : null}
             </div>
 
             {/* Name + category */}
@@ -163,11 +171,16 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
 
             {/* Price */}
             <div className="flex-shrink-0 text-right">
-              <span className="text-[22px] font-black text-[#DC2626] block leading-none">
+              <span className={`text-[22px] font-black block leading-none ${isAntiGaspi ? "text-emerald-600" : "text-[#DC2626]"}`}>
                 {fmtPrice(effectivePrice)}
               </span>
               <div className="flex items-center gap-1 justify-end mt-0.5">
-                {hasPromo && (
+                {isAntiGaspi && (
+                  <span className="text-[11px] line-through" style={{ color: "#C4B5A3" }}>
+                    {fmtPrice(product.antiGaspiOrigPriceCents!)}
+                  </span>
+                )}
+                {hasPromo && !isAntiGaspi && (
                   <span className="text-[11px] line-through" style={{ color: "#C4B5A3" }}>
                     {fmtPrice(product.priceCents)}
                   </span>
@@ -227,6 +240,13 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                     {l.name}
                   </span>
                 ))}
+              </div>
+            )}
+
+            {/* Anti-gaspi stock info */}
+            {isAntiGaspi && maxStock != null && (
+              <div className="mt-1.5 px-2 py-1.5 rounded-md text-[10px] font-semibold" style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0" }}>
+                🌿 Anti-gaspi — Reste {maxStock} en stock
               </div>
             )}
 
@@ -387,9 +407,10 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                     {qty}
                   </span>
                   <button
-                    onClick={() => setQty((q) => Math.min(99, q + 1))}
-                    className="flex items-center justify-center text-[15px] font-extrabold text-[#DC2626] active:scale-90 transition-transform"
+                    onClick={() => setQty((q) => Math.min(maxStock ?? 99, q + 1))}
+                    className={`flex items-center justify-center text-[15px] font-extrabold active:scale-90 transition-transform ${maxStock != null && qty >= maxStock ? "text-gray-300" : "text-[#DC2626]"}`}
                     style={{ width: "34px", height: "38px" }}
+                    disabled={maxStock != null && qty >= maxStock}
                     aria-label="Augmenter la quantite"
                   >
                     +
