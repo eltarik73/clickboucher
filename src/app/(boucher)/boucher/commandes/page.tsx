@@ -412,7 +412,7 @@ export default function KitchenModePage() {
   const tabs: { key: Tab; label: string; shortLabel: string; count: number; icon: typeof Bell; color: string }[] = [
     { key: "nouvelles", label: "Nouvelles", shortLabel: "Nouv.", count: pendingCount, icon: Bell, color: "amber" },
     { key: "en-cours", label: "En cours", shortLabel: "En cours", count: inProgressCount, icon: ChefHat, color: "blue" },
-    { key: "pretes", label: "Pretes", shortLabel: "Pretes", count: readyCount, icon: CheckCircle, color: "emerald" },
+    { key: "pretes", label: "Prêtes", shortLabel: "Prêtes", count: readyCount, icon: CheckCircle, color: "emerald" },
     { key: "historique", label: "Historique", shortLabel: "Histo.", count: historyCount, icon: ScrollText, color: "gray" as string },
   ];
 
@@ -693,7 +693,7 @@ export default function KitchenModePage() {
         {!wakeLockSupported && (
           <div className="shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-center">
             <p className="text-[11px] text-amber-400">
-              Desactivez la mise en veille dans les parametres de votre tablette
+              Désactivez la mise en veille dans les paramètres de votre tablette
             </p>
           </div>
         )}
@@ -779,7 +779,7 @@ export default function KitchenModePage() {
               <div className="flex items-center gap-2 px-1 pt-1">
                 <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-gray-700"}`} />
                 <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}>
-                  A PREPARER MAINTENANT
+                  À PRÉPARER MAINTENANT
                 </span>
                 {prepareNowOrders.length > 0 && (
                   <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
@@ -799,7 +799,7 @@ export default function KitchenModePage() {
                   />
                 ))
               ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande a preparer</p>
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande à préparer</p>
               )}
 
               {/* Separator — always visible */}
@@ -813,7 +813,7 @@ export default function KitchenModePage() {
               <div className="flex items-center gap-2 px-1">
                 <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"} />
                 <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}>
-                  PRECOMMANDES
+                  PRÉCOMMANDES
                 </span>
                 {scheduledWaitingOrders.length > 0 && (
                   <span className="text-[10px] font-bold bg-amber-500/20 text-[#FBBF24] px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
@@ -832,7 +832,7 @@ export default function KitchenModePage() {
                   />
                 ))
               ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmee</p>
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmée</p>
               )}
             </div>
           </div>
@@ -843,7 +843,7 @@ export default function KitchenModePage() {
           {/* Column 3: Prêtes (20%) */}
           <div className="w-1/5 shrink-0">
             <KitchenColumn
-              title="Pretes"
+              title="Prêtes"
               count={readyCount}
               icon={<CheckCircle size={16} />}
               color="emerald"
@@ -853,7 +853,7 @@ export default function KitchenModePage() {
               onAction={handleAction}
               onStockIssue={setStockIssueOrder}
               onView={handleViewOrder}
-              emptyMessage="Aucune commande prete"
+              emptyMessage="Aucune commande prête"
               emptyIcon={<CheckCircle size={32} className="text-gray-700" />}
               extra={
                 readyCount > 0 ? (
@@ -904,7 +904,7 @@ export default function KitchenModePage() {
             activeOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <ScrollText size={40} className="text-gray-700" />
-                <p className="text-gray-600 text-sm">Aucune commande recente</p>
+                <p className="text-gray-600 text-sm">Aucune commande récente</p>
               </div>
             ) : (
               activeOrders.map((order) => (
@@ -918,7 +918,7 @@ export default function KitchenModePage() {
               <div className="flex items-center gap-2 px-1 pt-1">
                 <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-gray-700"}`} />
                 <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}>
-                  A PREPARER MAINTENANT
+                  À PRÉPARER MAINTENANT
                 </span>
                 {prepareNowOrders.length > 0 && (
                   <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
@@ -938,7 +938,7 @@ export default function KitchenModePage() {
                   />
                 ))
               ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande a preparer</p>
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande à préparer</p>
               )}
 
               {/* Separator */}
@@ -952,7 +952,7 @@ export default function KitchenModePage() {
               <div className="flex items-center gap-2 px-1">
                 <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"} />
                 <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}>
-                  PRECOMMANDES
+                  PRÉCOMMANDES
                 </span>
                 {scheduledWaitingOrders.length > 0 && (
                   <span className="text-[10px] font-bold bg-amber-500/20 text-[#FBBF24] px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
@@ -971,7 +971,7 @@ export default function KitchenModePage() {
                   />
                 ))
               ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmee</p>
+                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmée</p>
               )}
             </>
           ) : activeOrders.length === 0 ? (
@@ -980,7 +980,7 @@ export default function KitchenModePage() {
               {activeTab === "pretes" && <CheckCircle size={40} className="text-gray-700" />}
               <p className="text-gray-600 text-sm">
                 {activeTab === "nouvelles" && "Aucune nouvelle commande"}
-                {activeTab === "pretes" && "Aucune commande prete"}
+                {activeTab === "pretes" && "Aucune commande prête"}
               </p>
             </div>
           ) : (
@@ -1034,7 +1034,7 @@ export default function KitchenModePage() {
               {historyOrders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
                   <ScrollText size={32} className="text-gray-700" />
-                  <p className="text-gray-600 text-sm">Aucune commande recente</p>
+                  <p className="text-gray-600 text-sm">Aucune commande récente</p>
                 </div>
               ) : (
                 historyOrders.map((order) => (

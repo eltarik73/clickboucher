@@ -133,7 +133,7 @@ function StatusBar({
             <Button
               size="sm"
               variant="secondary"
-              className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+              className="h-9 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
               onClick={() => onAction("resume")}
               disabled={loading}
             >
@@ -144,7 +144,7 @@ function StatusBar({
             <Button
               size="sm"
               variant="secondary"
-              className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+              className="h-9 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
               onClick={() => onAction("end_vacation")}
               disabled={loading}
             >
@@ -155,7 +155,7 @@ function StatusBar({
             <Button
               size="sm"
               variant="secondary"
-              className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+              className="h-9 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
               onClick={() => onAction("end_busy")}
               disabled={loading}
             >
@@ -166,7 +166,7 @@ function StatusBar({
             <Button
               size="sm"
               variant="secondary"
-              className="h-7 text-xs bg-emerald-500/80 hover:bg-emerald-500 text-white border-0"
+              className="h-9 text-xs bg-emerald-500/80 hover:bg-emerald-500 text-white border-0"
               onClick={() => onAction("resume")}
               disabled={loading}
             >
@@ -178,7 +178,7 @@ function StatusBar({
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+                className="h-9 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
                 onClick={() => onAction("pause")}
                 disabled={loading}
               >
@@ -187,7 +187,7 @@ function StatusBar({
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+                className="h-9 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
                 onClick={() => onAction("busy", { extraMin: 15, durationMin: 60 })}
                 disabled={loading}
               >
@@ -196,7 +196,7 @@ function StatusBar({
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
+                className="h-9 text-xs bg-white/20 hover:bg-white/30 text-white border-0"
                 onClick={() => onAction("close")}
                 disabled={loading}
               >

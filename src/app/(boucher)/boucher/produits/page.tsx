@@ -26,6 +26,22 @@ import {
 import { getFlag, getOriginCountry } from "@/lib/flags";
 import { resolveProductImage } from "@/lib/product-images";
 import { useNotify } from "@/components/ui/NotificationToast";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // ─────────────────────────────────────────────
 // Types
@@ -145,9 +161,11 @@ export default function BoucherProduitsPage() {
   // Notifications
   const { notify } = useNotify();
 
-  // Drag & drop
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [overIdx, setOverIdx] = useState<number | null>(null);
+  // Drag & drop (dnd-kit with touch support)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  );
 
   // ── Fetch ──
   const fetchData = useCallback(async () => {
@@ -266,30 +284,17 @@ export default function BoucherProduitsPage() {
     }
   }
 
-  // ── Drag & drop handlers ──
-  function handleDragStart(idx: number) {
-    setDragIdx(idx);
-  }
+  // ── Drag & drop handler (dnd-kit) ──
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-  function handleDragOver(e: React.DragEvent, idx: number) {
-    e.preventDefault();
-    setOverIdx(idx);
-  }
+    const oldIndex = products.findIndex((p) => p.id === active.id);
+    const newIndex = products.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
 
-  function handleDragEnd() {
-    if (dragIdx === null || overIdx === null || dragIdx === overIdx) {
-      setDragIdx(null);
-      setOverIdx(null);
-      return;
-    }
-
-    // Reorder the filtered list
-    const newProducts = [...products];
-    const [moved] = newProducts.splice(dragIdx, 1);
-    newProducts.splice(overIdx, 0, moved);
+    const newProducts = arrayMove(products, oldIndex, newIndex);
     setProducts(newProducts);
-    setDragIdx(null);
-    setOverIdx(null);
 
     // Send to API
     if (shop) {
@@ -299,7 +304,6 @@ export default function BoucherProduitsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopId: shop.id, productIds: ids }),
       }).catch(() => {
-        // Revert on error — refetch
         fetchData();
       });
     }
@@ -314,7 +318,7 @@ export default function BoucherProduitsPage() {
         body: JSON.stringify({ productId: product.id }),
       });
       if (res.ok) {
-        notify("success", `"${product.name}" duplique`);
+        notify("success", `"${product.name}" dupliqué`);
         fetchData();
       } else {
         notify("error", "Erreur lors de la duplication");
@@ -754,33 +758,84 @@ export default function BoucherProduitsPage() {
                 Glissez-déposez pour réorganiser l&apos;ordre d&apos;affichage
               </p>
             )}
-            {sorted.map((product, idx) => (
-              <div
-                key={product.id}
-                draggable={isDraggable}
-                onDragStart={() => handleDragStart(idx)}
-                onDragOver={(e) => handleDragOver(e, idx)}
-                onDragEnd={handleDragEnd}
-                className={`transition-all ${
-                  dragIdx === idx ? "opacity-50 scale-[0.98]" : ""
-                } ${overIdx === idx && dragIdx !== null && dragIdx !== idx ? "border-t-2 border-[#DC2626]" : ""}`}
-              >
+            {isDraggable ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={sorted.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  {sorted.map((product) => (
+                    <SortableProductRow
+                      key={product.id}
+                      product={product}
+                      onToggleStock={() => toggleStock(product)}
+                      onToggleActive={() => toggleActive(product)}
+                      onSnooze={(type) => snoozeProduct(product, type)}
+                      onEdit={() => router.push(`/boucher/produits/${product.id}/modifier`)}
+                      onDuplicate={() => duplicateProduct(product)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            ) : (
+              sorted.map((product) => (
                 <ProductRow
+                  key={product.id}
                   product={product}
                   onToggleStock={() => toggleStock(product)}
                   onToggleActive={() => toggleActive(product)}
                   onSnooze={(type) => snoozeProduct(product, type)}
                   onEdit={() => router.push(`/boucher/produits/${product.id}/modifier`)}
                   onDuplicate={() => duplicateProduct(product)}
-                  isDraggable={isDraggable}
+                  isDraggable={false}
                 />
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
         {/* Product form is now at /boucher/produits/nouveau and /boucher/produits/[id]/modifier */}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Sortable Product Row wrapper (dnd-kit touch support)
+// ─────────────────────────────────────────────
+function SortableProductRow({
+  product,
+  onToggleStock,
+  onToggleActive,
+  onSnooze,
+  onEdit,
+  onDuplicate,
+}: {
+  product: Product;
+  onToggleStock: () => void;
+  onToggleActive: () => void;
+  onSnooze: (type: string) => void;
+  onEdit: () => void;
+  onDuplicate: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
+    position: "relative" as const,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <ProductRow
+        product={product}
+        onToggleStock={onToggleStock}
+        onToggleActive={onToggleActive}
+        onSnooze={onSnooze}
+        onEdit={onEdit}
+        onDuplicate={onDuplicate}
+        isDraggable
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
     </div>
   );
 }
@@ -796,6 +851,7 @@ function ProductRow({
   onEdit,
   onDuplicate,
   isDraggable,
+  dragHandleProps,
 }: {
   product: Product;
   onToggleStock: () => void;
@@ -804,6 +860,7 @@ function ProductRow({
   onEdit: () => void;
   onDuplicate: () => void;
   isDraggable: boolean;
+  dragHandleProps?: Record<string, unknown>;
 }) {
   const [showSnoozeMenu, setShowSnoozeMenu] = useState(false);
   const hasPromo = product.promoPct != null && product.promoPct > 0;
@@ -817,7 +874,7 @@ function ProductRow({
     if (!isSnoozed) return "";
     if (product.snoozeType === "INDEFINITE" || !product.snoozeEndsAt) return "Indisponible";
     const diff = new Date(product.snoozeEndsAt).getTime() - Date.now();
-    if (diff <= 0) return "Bientot dispo";
+    if (diff <= 0) return "Bientôt dispo";
     const min = Math.floor(diff / 60000);
     if (min < 60) return `Retour ${min}min`;
     const h = Math.floor(min / 60);
@@ -832,8 +889,8 @@ function ProductRow({
   const SNOOZE_OPTIONS = [
     { type: "ONE_HOUR", label: "1 heure" },
     { type: "TWO_HOURS", label: "2 heures" },
-    { type: "END_OF_DAY", label: "Fin de journee" },
-    { type: "INDEFINITE", label: "Indefini" },
+    { type: "END_OF_DAY", label: "Fin de journée" },
+    { type: "INDEFINITE", label: "Indéfini" },
   ];
 
   return (
@@ -846,7 +903,10 @@ function ProductRow({
     >
       {/* Drag handle */}
       {isDraggable && (
-        <div className="shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 touch-none">
+        <div
+          className="shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 touch-none p-1"
+          {...(dragHandleProps || {})}
+        >
           <GripVertical size={16} />
         </div>
       )}
