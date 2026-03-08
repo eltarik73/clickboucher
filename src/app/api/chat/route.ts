@@ -199,6 +199,23 @@ export async function POST(req: NextRequest) {
       // Auth/DB failed — non-blocking
     }
 
+    // ── Fetch recipes for context ──
+    let recipesContext = "";
+    try {
+      const recipes = await prisma.recipe.findMany({
+        where: { published: true },
+        select: { title: true, slug: true, meatQuantity: true, tags: true },
+        orderBy: { publishedAt: "desc" },
+        take: 10,
+      });
+      if (recipes.length > 0) {
+        recipesContext = "\n\nRECETTES DISPONIBLES :\n" +
+          recipes.map((r) => `- "${r.title}" (${r.meatQuantity}) — Tags: ${r.tags.join(", ")} — /recettes/${r.slug}`).join("\n");
+      }
+    } catch {
+      // Non-blocking
+    }
+
     // ── Extract keywords + search relevant products ──
     const keywords = extractKeywords(lastUserMsg);
 
@@ -327,6 +344,7 @@ ${shopsContext}
 
 PRODUITS DISPONIBLES (utilise UNIQUEMENT ces IDs) :
 ${productsContext}
+${recipesContext}
 
 POIDS : 1kg = 1000g, 500g = 500g, 250g = 250g, 2kg = 2000g. Adapte weightGrams selon ce que demande le client. Si "1kg de steak" → weightGrams:1000. Si "500g" → weightGrams:500. Par defaut 500g. Le prix au kg se calcule proportionnellement (priceCents est pour 1kg entier).
 
@@ -355,7 +373,8 @@ REGLES :
 - Si le client a deja des articles dans son panier, mentionne-le naturellement ("je vois que tu as deja X dans ton panier").
 - Si le client veut recommander une commande passee, propose les memes articles.
 - Si le client demande un conseil cuisson, une recette, ou combien commander : utilise l'EXPERTISE BOUCHERIE pour repondre ET propose les produits adaptes.
-- Pour les evenements (BBQ, couscous, Ramadan, Aid) : propose un pack complet avec quantites adaptees au nombre de personnes.`;
+- Pour les evenements (BBQ, couscous, Ramadan, Aid) : propose un pack complet avec quantites adaptees au nombre de personnes.
+- Si le client demande une recette, donne le lien vers /recettes/[slug] depuis les RECETTES DISPONIBLES.`;
 
     // ── Call Claude API with retry ───────────────
     const content = await callClaude(client, systemPrompt, messages);
