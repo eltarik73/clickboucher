@@ -20,7 +20,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
   return (
     <div className="flex gap-3 py-3 group">
       {/* Image */}
-      <div className="w-14 h-14 rounded-xl bg-[#F5F3F0] overflow-hidden shrink-0">
+      <div className="w-14 h-14 rounded-xl bg-[#F5F3F0] dark:bg-white/10 overflow-hidden shrink-0">
         {item.imageUrl ? (
           <Image src={item.imageUrl} alt={item.name} width={56} height={56} className="w-full h-full object-cover" />
         ) : (
@@ -32,8 +32,8 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
         {/* Name + price */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {item.quantity} x {price.toFixed(2)}€
               {item.unit === "KG" && item.weightGrams && ` (${item.weightGrams}g)`}
               {item.unit === "TRANCHE" && item.sliceCount && (
@@ -56,7 +56,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
               )}
             </p>
           </div>
-          <p className="text-sm font-semibold text-gray-900 shrink-0">{totalPrice.toFixed(2)}€</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white shrink-0">{totalPrice.toFixed(2)}€</p>
         </div>
 
         {/* Quantity controls */}
@@ -65,15 +65,15 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             <button 
               type="button" 
               onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-              className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors"
+              className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
             >
               −
             </button>
-            <span className="text-sm font-medium text-gray-900 min-w-[32px] text-center">{item.quantity}</span>
-            <button 
-              type="button" 
+            <span className="text-sm font-medium text-gray-900 dark:text-white min-w-[32px] text-center">{item.quantity}</span>
+            <button
+              type="button"
               onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-              className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors"
+              className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
             >
               +
             </button>
@@ -82,7 +82,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             type="button"
             aria-label="Supprimer"
             onClick={() => onRemove(item.id)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

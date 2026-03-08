@@ -25,6 +25,7 @@ export default async function BonsPlansPage() {
     promoPct: number;
     promoEnd: string | null;
     promoType: string | null;
+    promoFixedCents: number | null;
     origin: string | null;
     halalOrg: string | null;
     categories: { id: string; name: string; emoji: string | null }[];
@@ -52,11 +53,11 @@ export default async function BonsPlansPage() {
       // 1. Product-level promos (boucher discounts on products)
       prisma.product.findMany({
         where: {
-          promoPct: { gt: 0 },
           inStock: true,
           OR: [
-            { promoEnd: null },
-            { promoEnd: { gt: now } },
+            { promoPct: { gt: 0 }, promoEnd: null },
+            { promoPct: { gt: 0 }, promoEnd: { gt: now } },
+            { promoType: "FIXED_AMOUNT", promoFixedCents: { gt: 0 } },
           ],
         },
         include: {
@@ -86,9 +87,10 @@ export default async function BonsPlansPage() {
       imageUrl: p.imageUrl,
       priceCents: p.priceCents,
       unit: p.unit,
-      promoPct: p.promoPct!,
+      promoPct: p.promoPct ?? 0,
       promoEnd: p.promoEnd?.toISOString() ?? null,
       promoType: p.promoType,
+      promoFixedCents: p.promoFixedCents ?? null,
       origin: p.origin,
       halalOrg: p.halalOrg,
       categories: p.categories.map((c) => ({ id: c.id, name: c.name, emoji: c.emoji })),

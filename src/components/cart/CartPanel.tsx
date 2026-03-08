@@ -12,16 +12,16 @@ export function CartPanel() {
 
   if (items.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
-        <p className="text-gray-500">Votre panier est vide</p>
+      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200 dark:border-white/10 p-6 text-center">
+        <p className="text-gray-500 dark:text-gray-400">Votre panier est vide</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold">Panier ({count})</h3>
+    <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+      <div className="flex items-center justify-between p-4 border-b dark:border-white/10">
+        <h3 className="font-semibold dark:text-white">Panier ({count})</h3>
         <button type="button" onClick={clear} className="text-sm text-red-500 hover:underline">
           Vider
         </button>
@@ -38,8 +38,8 @@ export function CartPanel() {
         ))}
       </div>
       
-      <div className="border-t p-4 space-y-3">
-        <div className="flex justify-between font-semibold">
+      <div className="border-t dark:border-white/10 p-4 space-y-3">
+        <div className="flex justify-between font-semibold dark:text-white">
           <span>Total</span>
           <span>{total.toFixed(2)}€</span>
         </div>

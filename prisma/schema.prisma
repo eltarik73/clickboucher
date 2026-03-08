@@ -909,7 +909,7 @@ model Review {
 
 model LoyaltyRule {
   id             String  @id @default(cuid())
-  shopId         String  @map("shop_id")
+  shopId         String  @unique @map("shop_id")
   shop           Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
   ordersRequired Int     @default(10) @map("orders_required")
   rewardPct      Int     @default(10) @map("reward_pct")

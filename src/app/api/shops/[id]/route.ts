@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateShopSchema } from "@/lib/validators";
@@ -59,9 +58,12 @@ export async function PATCH(
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    // Read role from publicMetadata (reliable, no JWT template dependency)
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    // Check role via DB lookup (not Clerk publicMetadata)
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { id: true, role: true },
+    });
+    const role = dbUser?.role;
 
     // Check ownership or admin/webmaster
     if (!isAdmin(role)) {
@@ -74,7 +76,7 @@ export async function PATCH(
         return apiError("NOT_FOUND", "Boucherie introuvable");
       }
 
-      if (shop.ownerId !== userId) {
+      if (shop.ownerId !== userId && shop.ownerId !== dbUser?.id) {
         return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
       }
     }
@@ -113,10 +115,12 @@ export async function DELETE(
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    const delUser = await currentUser();
-    const delRole = (delUser?.publicMetadata as Record<string, string>)?.role;
+    const delDbUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { role: true },
+    });
 
-    if (!isAdmin(delRole)) {
+    if (!isAdmin(delDbUser?.role)) {
       return apiError("FORBIDDEN", "Réservé aux administrateurs");
     }
 

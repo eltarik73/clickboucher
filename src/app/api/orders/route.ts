@@ -301,7 +301,7 @@ export async function POST(req: NextRequest) {
       const weightGrams = item.weightGrams ?? null;
       let itemTotal: number;
       if (product.unit === "KG" && weightGrams) {
-        itemTotal = Math.round(unitPrice * (weightGrams / 1000));
+        itemTotal = Math.round(unitPrice * (weightGrams / 1000) * item.quantity);
       } else {
         itemTotal = Math.round(unitPrice * item.quantity);
       }

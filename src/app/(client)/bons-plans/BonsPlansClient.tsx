@@ -21,6 +21,7 @@ type PromoProduct = {
   promoPct: number;
   promoEnd: string | null;
   promoType: string | null;
+  promoFixedCents: number | null;
   origin: string | null;
   halalOrg: string | null;
   categories: { id: string; name: string; emoji: string | null }[];
@@ -270,7 +271,10 @@ function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
 // ── Product Promo Card ──
 function ProductPromoCard({ product }: { product: PromoProduct }) {
   const isFlash = product.promoType === "FLASH" && product.promoEnd;
-  const discountedPrice = Math.round(product.priceCents * (1 - product.promoPct / 100));
+  const isFixedAmount = product.promoType === "FIXED_AMOUNT" && product.promoFixedCents;
+  const discountedPrice = isFixedAmount
+    ? Math.max(0, product.priceCents - (product.promoFixedCents || 0))
+    : Math.round(product.priceCents * (1 - product.promoPct / 100));
   const imgSrc = product.images[0]?.url || resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.categories[0]?.name || "" });
 
   return (
@@ -297,7 +301,7 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
           <div className={`absolute top-0 left-0 px-1.5 py-0.5 text-white text-[9px] font-extrabold rounded-br-lg ${
             isFlash ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#DC2626]"
           }`}>
-            -{product.promoPct}%
+            {isFixedAmount ? `-${((product.promoFixedCents || 0) / 100).toFixed(0)}€` : `-${product.promoPct}%`}
           </div>
         </div>
 
