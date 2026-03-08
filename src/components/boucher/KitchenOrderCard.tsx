@@ -18,12 +18,11 @@ import {
   DollarSign,
   Phone,
   CalendarClock,
-  Ban,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
 import { printOrderTicket } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
-import { ORDER_STATUS_BORDER } from "@/lib/design-tokens";
+// ORDER_STATUS_BORDER removed in v3 — tickets use uniform border style
 import { toast } from "sonner";
 
 type Props = {
@@ -84,10 +83,14 @@ function getCountdownColor(ms: number): string {
   const min = ms / 60_000;
   if (min <= 30) return "bg-red-500/20 text-red-400 border-red-500/30";
   if (min <= 60) return "bg-amber-500/20 text-amber-400 border-amber-500/30";
-  return "bg-purple-500/20 text-purple-400 border-purple-500/30";
+  return "bg-amber-500/10 text-amber-400 border-amber-500/20";
 }
 
-// Status border colors imported from design-tokens
+// v3 ticket design constants
+const CARD_BG = "bg-[#151515]";
+const CARD_BORDER = "border border-[#222]";
+const CARD_HOVER = "hover:border-[#333]";
+const CARD_RADIUS = "rounded-xl"; // 12px
 
 export default function KitchenOrderCard({
   order,
@@ -182,7 +185,7 @@ export default function KitchenOrderCard({
   if (isScheduledFuture) {
     const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
     return (
-      <div className="bg-[#1a1a1a] rounded-xl border-l-4 border-l-purple-500 border border-white/5 px-3 py-2 opacity-75">
+      <div className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} border-l-4 border-l-amber-500 px-3 py-2 opacity-70 transition-colors`}>
         {/* Main row: #number  Name  |  Retrait HH:MM  countdown  🖨 */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -196,7 +199,7 @@ export default function KitchenOrderCard({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm font-bold text-purple-300">
+            <span className="text-sm font-bold text-[#FBBF24]">
               <CalendarClock size={13} className="inline mr-1" />
               {pickupTime}
             </span>
@@ -228,7 +231,7 @@ export default function KitchenOrderCard({
   if (order.status === "PENDING" && !expanded) {
     return (
       <div
-        className={`bg-[#1a1a1a] rounded-2xl border-t-4 ${isScheduled ? "border-t-amber-500" : ORDER_STATUS_BORDER["PENDING"]} border border-white/5 overflow-hidden`}
+        className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} overflow-hidden transition-colors`}
       >
         {/* Orange banner for scheduled orders */}
         {isScheduled && pickupTime && (
@@ -242,10 +245,10 @@ export default function KitchenOrderCard({
         <div className="px-3 py-2.5 flex items-center justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-black text-xl leading-none text-white tracking-tight">
+              <span className="font-[800] text-lg leading-none text-white tracking-tight">
                 {ticketNumber}
               </span>
-              <span className="text-sm font-bold text-gray-300 leading-none truncate">
+              <span className="text-xs text-[#78716C] leading-none truncate">
                 {clientName}
               </span>
               {order.isPro && (
@@ -284,7 +287,7 @@ export default function KitchenOrderCard({
 
   return (
     <div
-      className={`bg-[#1a1a1a] rounded-2xl border-t-4 ${ORDER_STATUS_BORDER[order.status] || "border-t-gray-600"} border border-white/5 overflow-hidden ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
+      className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} overflow-hidden transition-colors ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
     >
       {/* ── Scheduled banner (expanded PENDING) ── */}
       {order.status === "PENDING" && isScheduled && pickupTime && (
@@ -296,11 +299,10 @@ export default function KitchenOrderCard({
         </div>
       )}
 
-      {/* ── Late badge ── */}
+      {/* ── Late banner (v3) ── */}
       {isLate && (
-        <div className="mx-3 mt-2 mb-1 px-3 py-2 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center gap-1.5">
-          <Timer size={14} className="text-red-400" />
-          <span className="text-xs font-bold text-red-400">
+        <div className="px-3 py-1.5 flex items-center justify-center gap-1.5" style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.15)" }}>
+          <span className="text-[10px] font-bold text-[#EF4444]">
             EN RETARD de {lateMinutes} min
           </span>
         </div>
@@ -310,10 +312,10 @@ export default function KitchenOrderCard({
       <div className="px-3 pt-2.5 pb-1.5 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-black text-lg leading-none text-white tracking-tight">
+            <span className="font-[800] text-lg leading-none text-white tracking-tight">
               {ticketNumber}
             </span>
-            <span className="text-sm font-bold text-gray-300 leading-none">
+            <span className="text-xs text-[#78716C] leading-none">
               {clientName}
             </span>
             {order.isPro && (
@@ -327,13 +329,13 @@ export default function KitchenOrderCard({
           </div>
           <div className="flex items-center gap-3 mt-1">
             {isScheduledSoon && pickupTime && (
-              <span className="text-xs font-bold bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded flex items-center gap-1">
-                <CalendarClock size={12} /> {pickupTime}
+              <span className="text-[11px] font-bold bg-amber-500/10 text-[#FBBF24] px-2 py-0.5 rounded flex items-center gap-1">
+                <CalendarClock size={11} /> {pickupTime}
               </span>
             )}
             {!isScheduledSoon && (pickupTime || isAsap) && (
-              <span className="text-xs font-bold text-amber-400">
-                <Clock size={12} className="inline mr-0.5" /> {pickupTime ? `Retrait ${pickupTime}` : "Dès que possible"}
+              <span className="text-[11px] font-bold text-[#FBBF24]">
+                <Clock size={11} className="inline mr-0.5" /> {pickupTime ? `Retrait ${pickupTime}` : "Des que possible"}
               </span>
             )}
             {customerNum && (
@@ -347,12 +349,12 @@ export default function KitchenOrderCard({
           </div>
         </div>
         <div className="text-right flex flex-col items-end gap-0.5">
-          <span className="text-xs text-gray-500">
-            <Clock size={11} className="inline mr-0.5" />
+          <span className="text-[11px] text-[#57534E]">
+            <Clock size={10} className="inline mr-0.5" />
             {formatTime(order.createdAt)}
           </span>
           {order.status === "PENDING" && (
-            <span className="text-[10px] text-gray-600">
+            <span className="text-[10px] text-[#57534E]">
               {timeSince(order.createdAt)}
             </span>
           )}
@@ -371,26 +373,28 @@ export default function KitchenOrderCard({
         </div>
       )}
 
-      {/* ── Items list ── */}
+      {/* ── Items list (v3) ── */}
       <div className="px-3 pb-1.5">
-        <div className="bg-white/5 rounded-lg p-2 space-y-1.5">
+        <div className="space-y-1">
           {order.items.map((item) => (
             <div
               key={item.id}
-              className={`flex items-center gap-2 text-sm ${!item.available ? "opacity-40 line-through" : ""}`}
+              className={`flex items-center gap-2 ${!item.available ? "opacity-40 line-through" : ""}`}
             >
-              {item.product?.imageUrl && (
+              {item.product?.imageUrl ? (
                 <img
                   src={item.product.imageUrl}
                   alt=""
-                  className="w-7 h-7 rounded-md object-cover shrink-0"
+                  className="w-7 h-7 rounded-[6px] object-cover shrink-0"
                 />
+              ) : (
+                <div className="w-7 h-7 rounded-[6px] bg-white/5 shrink-0" />
               )}
-              <span className="text-gray-300 flex-1 min-w-0">
-                <span className="text-white font-bold text-base">
+              <span className="flex-1 min-w-0 text-xs text-[#A8A29E]">
+                <span className="text-white font-bold text-sm">
                   {item.quantity}
                 </span>{" "}
-                {formatUnit(item.product?.unit || item.unit)} — <span className="font-medium text-white">{item.product?.name || item.name}</span>
+                {formatUnit(item.product?.unit || item.unit)} — <span className="text-[#A8A29E]">{item.product?.name || item.name}</span>
                 {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") && item.sliceCount && (
                   <span className="ml-1 text-amber-400 text-[10px]">
                     ({item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""})
@@ -407,7 +411,7 @@ export default function KitchenOrderCard({
                 )}
                 {item.cutOption && <span className="ml-1 text-amber-400 text-[10px] font-bold">[{item.cutOption}]</span>}
               </span>
-              <span className="text-gray-500 text-xs font-medium shrink-0 ml-1">
+              <span className="text-[#57534E] text-xs shrink-0 ml-1">
                 {formatPrice(item.totalCents || item.priceCents * item.quantity)}
               </span>
             </div>
@@ -451,9 +455,9 @@ export default function KitchenOrderCard({
         </div>
       )}
 
-      {/* ── Total ── */}
-      <div className="px-3 pb-1.5 flex justify-between items-center">
-        <span className="text-xs text-gray-500">Total</span>
+      {/* ── Total (v3 — subtle bg) ── */}
+      <div className="mx-3 mb-1.5 px-3 py-1.5 flex justify-between items-center rounded-lg" style={{ background: "rgba(255,255,255,0.02)", borderTop: "1px solid #1A1A1A" }}>
+        <span className="text-xs text-[#57534E]">Total</span>
         <span className="text-sm font-bold text-white">{formatPrice(order.totalCents)}</span>
       </div>
 
@@ -482,39 +486,37 @@ export default function KitchenOrderCard({
       {/* ══════════════════════════════════════════ */}
       <div className="px-3 pb-3 pt-1 space-y-1.5">
 
-        {/* ── PENDING (expanded): Accept / Deny ── */}
+        {/* ── PENDING (expanded): Accept / Deny (v3 buttons) ── */}
         {order.status === "PENDING" && !showAcceptForm && !showDenyForm && (
-          <div className="space-y-1.5">
-            <div className="grid grid-cols-3 gap-1.5">
-              <button
-                onClick={silentPrint}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[40px] py-2 rounded-xl text-xs font-medium transition-all"
-              >
-                <Printer size={14} /> Ticket
-              </button>
-              <button
-                onClick={() => setShowDenyForm(true)}
-                disabled={loading}
-                className="flex items-center justify-center gap-1 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold py-2 rounded-xl transition-all text-xs disabled:opacity-50"
-              >
-                <XCircle size={14} /> Refuser
-              </button>
-              <button
-                onClick={() => {
-                  if (isScheduled) {
-                    doAction("accept", { estimatedMinutes: 0 });
-                  } else {
-                    setShowAcceptForm(true);
-                    setAcceptMinutes(shopPrepTime);
-                  }
-                }}
-                disabled={loading}
-                className="flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2 rounded-xl transition-all text-xs disabled:opacity-50"
-              >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                Accepter
-              </button>
-            </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={silentPrint}
+              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+            >
+              <Printer size={13} />
+            </button>
+            <button
+              onClick={() => setShowDenyForm(true)}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-1 bg-[#1C1C1E] hover:bg-[#262626] border border-[#333] text-[#EF4444] font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+            >
+              <XCircle size={13} /> Refuser
+            </button>
+            <button
+              onClick={() => {
+                if (isScheduled) {
+                  doAction("accept", { estimatedMinutes: 0 });
+                } else {
+                  setShowAcceptForm(true);
+                  setAcceptMinutes(shopPrepTime);
+                }
+              }}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-1 bg-[#16A34A] hover:bg-[#15803D] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+              Accepter
+            </button>
           </div>
         )}
 
@@ -618,106 +620,113 @@ export default function KitchenOrderCard({
           </div>
         )}
 
-        {/* ── ACCEPTED: Start preparing / Mark ready / Adjust price ── */}
+        {/* ── ACCEPTED: Ajuster + Prête (v3 buttons) ── */}
         {order.status === "ACCEPTED" && (
           <div className="space-y-1.5">
-            {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
+            <div className="flex gap-1.5">
               <button
-                onClick={() => onAdjustPrice(order)}
-                className="w-full flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-2 rounded-xl transition-all text-xs"
+                onClick={silentPrint}
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
               >
-                <DollarSign size={14} /> Ajuster le prix
+                <Printer size={13} />
               </button>
-            )}
-            <div className="grid grid-cols-2 gap-1.5">
+              {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
+                <button
+                  onClick={() => onAdjustPrice(order)}
+                  className="flex-1 flex items-center justify-center gap-1 bg-[#92400E] hover:bg-[#78350F] text-[#FDE68A] font-bold p-[9px] rounded-[9px] transition-all text-xs"
+                >
+                  <DollarSign size={13} /> Ajuster
+                </button>
+              )}
               <button
                 onClick={() => doAction("start_preparing")}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
-                className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-2 rounded-xl transition-all text-xs disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-300 font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
               >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <ChefHat size={14} />}
-                En préparation
+                <ChefHat size={13} /> Preparer
               </button>
               <button
                 onClick={() => doAction("mark_ready")}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
-                className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2 rounded-xl transition-all text-xs disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-1 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
               >
-                <CheckCircle size={14} /> Prête !
+                <CheckCircle size={13} /> Prete
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="flex gap-1.5">
               <button
                 onClick={() => doAction("add_time", { addMinutes: 5 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[36px] py-1.5 rounded-lg text-[11px] font-medium transition-all"
+                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
               >
-                <Timer size={12} /> +5 min
+                <Timer size={11} /> +5 min
               </button>
               <button
                 onClick={() => doAction("add_time", { addMinutes: 10 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[36px] py-1.5 rounded-lg text-[11px] font-medium transition-all"
+                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
               >
-                <Timer size={12} /> +10 min
-              </button>
-              <button
-                onClick={silentPrint}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[36px] py-1.5 rounded-lg text-[11px] font-medium transition-all"
-              >
-                <Printer size={12} /> Ticket
+                <Timer size={11} /> +10 min
               </button>
             </div>
           </div>
         )}
 
-        {/* ── PREPARING: Mark ready / Add time / Adjust price ── */}
+        {/* ── PREPARING: Ajuster + Prête (v3 buttons) ── */}
         {order.status === "PREPARING" && (
           <div className="space-y-1.5">
-            {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
+            <div className="flex gap-1.5">
               <button
-                onClick={() => onAdjustPrice(order)}
-                className="w-full flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold py-2 rounded-xl transition-all text-xs"
+                onClick={silentPrint}
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
               >
-                <DollarSign size={14} /> Ajuster le prix
+                <Printer size={13} />
               </button>
-            )}
-            <button
-              onClick={() => doAction("mark_ready")}
-              disabled={loading || order.priceAdjustment?.status === "PENDING"}
-              className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-sm disabled:opacity-50"
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-              Commande prête !
-            </button>
-            <div className="grid grid-cols-3 gap-1.5">
+              {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
+                <button
+                  onClick={() => onAdjustPrice(order)}
+                  className="flex-1 flex items-center justify-center gap-1 bg-[#92400E] hover:bg-[#78350F] text-[#FDE68A] font-bold p-[9px] rounded-[9px] transition-all text-xs"
+                >
+                  <DollarSign size={13} /> Ajuster
+                </button>
+              )}
+              <button
+                onClick={() => doAction("mark_ready")}
+                disabled={loading || order.priceAdjustment?.status === "PENDING"}
+                className="flex-[2] flex items-center justify-center gap-1 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+              >
+                {loading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                Prete !
+              </button>
+            </div>
+            <div className="flex gap-1.5">
               <button
                 onClick={() => doAction("add_time", { addMinutes: 5 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[36px] py-1.5 rounded-lg text-[11px] font-medium transition-all"
+                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
               >
-                <Timer size={12} /> +5 min
+                <Timer size={11} /> +5 min
               </button>
               <button
                 onClick={() => doAction("add_time", { addMinutes: 10 })}
                 disabled={loading}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[36px] py-1.5 rounded-lg text-[11px] font-medium transition-all"
+                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
               >
-                <Timer size={12} /> +10 min
-              </button>
-              <button
-                onClick={silentPrint}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[36px] py-1.5 rounded-lg text-[11px] font-medium transition-all"
-              >
-                <Printer size={12} /> Ticket
+                <Timer size={11} /> +10 min
               </button>
             </div>
           </div>
         )}
 
-        {/* ── READY: Remis au client ── */}
+        {/* ── READY: Récupérée (v3 button) ── */}
         {order.status === "READY" && (
-          <div className="space-y-1.5">
+          <div className="flex gap-1.5">
+            <button
+              onClick={silentPrint}
+              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+            >
+              <Printer size={13} />
+            </button>
             <button
               onClick={() => {
                 if (!order.qrCode) {
@@ -727,16 +736,10 @@ export default function KitchenOrderCard({
                 doAction("confirm_pickup", { qrCode: order.qrCode });
               }}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-2.5 rounded-xl transition-all text-sm disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#16A34A] hover:bg-[#15803D] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
             >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Package size={16} />}
-              Remis au client
-            </button>
-            <button
-              onClick={silentPrint}
-              className="w-full flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 min-h-[36px] py-1.5 rounded-lg text-[11px] font-medium transition-all"
-            >
-              <Printer size={12} /> Imprimer le ticket
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+              Recuperee
             </button>
           </div>
         )}

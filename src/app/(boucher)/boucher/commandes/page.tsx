@@ -1,8 +1,8 @@
-// /boucher/commandes — MODE CUISINE (v9)
+// /boucher/commandes — MODE CUISINE (v10 — maquette v3)
 // Full-screen tablet kitchen interface — dark theme, big buttons, audio alerts
 // Tabs: Nouvelles | En cours | Prêtes | Historique
-// "En cours" is split into 2 sections: "À préparer maintenant" + "Programmées (en attente)"
-// Scheduled orders arrive in Nouvelles as PENDING, after accept go to En cours > Programmées section
+// "En cours" is split into 2 sections: "À préparer maintenant" + "Précommandes"
+// Scheduled orders arrive in Nouvelles as PENDING, after accept go to En cours > Précommandes section
 // 30 min before pickup → move up to "À préparer maintenant" section + sound + notification
 "use client";
 
@@ -14,7 +14,6 @@ import {
   Loader2,
   Wifi,
   WifiOff,
-  ArrowLeft,
   ScanLine,
   Volume2,
   VolumeX,
@@ -24,10 +23,10 @@ import {
   XCircle,
   Ban,
   Clock,
-  Monitor,
-  MonitorOff,
+  Settings,
+  Pause,
 } from "lucide-react";
-import Link from "next/link";
+// Logo uses <a> tag for dashboard navigation (no client-side nav needed)
 import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
 import { soundManager } from "@/lib/notification-sound";
 import { startOrderAlert, stopOrderAlert } from "@/lib/sounds";
@@ -143,6 +142,17 @@ export default function KitchenModePage() {
   // Connected indicator
   const [connected, setConnected] = useState(true);
   const lastFetchRef = useRef(Date.now());
+
+  // Live clock (ticks every second)
+  const [clockStr, setClockStr] = useState(() =>
+    new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+  );
+  useEffect(() => {
+    const tick = () =>
+      setClockStr(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, []);
 
   // Wake Lock — keep screen on in kitchen mode
   const { active: wakeLockActive, supported: wakeLockSupported } = useWakeLock();
@@ -467,51 +477,52 @@ export default function KitchenModePage() {
         </div>
       )}
 
-      {/* ── Pause modal ── */}
+      {/* ── Pause modal (v3 — cards sélectionnables) ── */}
       {showPauseModal && (
-        <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4" onClick={() => setShowPauseModal(false)}>
-          <div className="bg-[#1a1a1a] rounded-2xl max-w-sm w-full p-5 space-y-4 border border-white/10" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-white font-bold text-base">Mettre en pause</h3>
-            <p className="text-sm text-gray-400">Les clients ne pourront pas passer de commande pendant la pause.</p>
-            <div className="grid grid-cols-3 gap-2">
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPauseModal(false)}>
+          <div className="bg-[#1C1C1E] rounded-2xl max-w-sm w-full p-6 space-y-5 border border-[#3F3F46]" onClick={(e) => e.stopPropagation()} style={{ fontFamily: "Outfit, sans-serif" }}>
+            <div>
+              <h3 className="text-white font-bold text-lg">Suspendre les commandes</h3>
+              <p className="text-sm text-[#78716C] mt-1">Les clients verront que votre boutique est temporairement indisponible.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
               {[15, 30, 60].map((min) => (
                 <button
                   key={min}
                   onClick={() => setSelectedPauseDuration(min)}
-                  className={`py-3 rounded-xl text-sm font-bold transition-all ${
+                  className={`py-4 rounded-xl text-center transition-all border ${
                     selectedPauseDuration === min
-                      ? "bg-amber-500 text-white"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10"
+                      ? "bg-[#F59E0B]/10 border-[#F59E0B] text-[#F59E0B]"
+                      : "bg-white/5 border-[#3F3F46] text-gray-400 hover:bg-white/10"
                   }`}
                 >
-                  {min} min
+                  <span className="text-2xl font-bold block">{min}</span>
+                  <span className="text-xs mt-0.5 block opacity-70">minutes</span>
                 </button>
               ))}
             </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={async () => {
-                  setShowPauseModal(false);
-                  try {
-                    const res = await fetch("/api/boucher/shop/status", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: selectedPauseDuration }),
-                    });
-                    if (res.ok) { fetchShopInfo(); toast.success(`Pause ${selectedPauseDuration} min`); }
-                  } catch { toast.error("Erreur"); }
-                }}
-                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-colors text-sm"
-              >
-                Lancer la pause
-              </button>
-              <button
-                onClick={() => setShowPauseModal(false)}
-                className="px-4 py-3 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-colors text-sm"
-              >
-                Annuler
-              </button>
-            </div>
+            <button
+              onClick={async () => {
+                setShowPauseModal(false);
+                try {
+                  const res = await fetch("/api/boucher/shop/status", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: selectedPauseDuration }),
+                  });
+                  if (res.ok) { fetchShopInfo(); toast.success(`Pause ${selectedPauseDuration} min`); }
+                } catch { toast.error("Erreur"); }
+              }}
+              className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-black font-bold py-3.5 rounded-xl transition-colors text-sm"
+            >
+              Suspendre pendant {selectedPauseDuration} min
+            </button>
+            <button
+              onClick={() => setShowPauseModal(false)}
+              className="w-full py-2.5 rounded-xl text-[#78716C] hover:text-white transition-colors text-sm"
+            >
+              Annuler
+            </button>
           </div>
         </div>
       )}
@@ -520,128 +531,145 @@ export default function KitchenModePage() {
       {/* ── KITCHEN INTERFACE ── */}
       {/* ══════════════════════════════════════════ */}
       <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col">
-        {/* ── Top bar ── */}
-        <header className="shrink-0 bg-[#111] border-b border-white/5 px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/boucher/dashboard"
-              className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm min-h-[44px] min-w-[44px] justify-center"
-            >
-              <ArrowLeft size={18} />
-              <span className="hidden sm:inline">Dashboard</span>
-            </Link>
-            <div className="w-px h-5 bg-white/10" />
-            <div>
-              <h1 className="text-sm font-bold text-white leading-none">
-                Mode Cuisine
-              </h1>
-              {shopName && (
-                <p className="text-[10px] text-gray-500 mt-0.5">{shopName}</p>
-              )}
-            </div>
+        {/* ── Top bar (v3) ── */}
+        <header className="shrink-0 bg-[#111] border-b border-white/5 px-4 py-2 flex items-center justify-between gap-3">
+          {/* Section gauche — Logo + Nom boutique */}
+          <div className="flex items-center gap-3 min-w-0">
+            <a href="/boucher/dashboard" className="flex items-center gap-2 shrink-0">
+              <div className="w-[26px] h-[26px] rounded-md bg-[#DC2626] flex items-center justify-center">
+                <span className="text-white font-black text-xs leading-none">K</span>
+              </div>
+              <span className="text-sm font-bold text-white hidden sm:inline">
+                Klik<span className="text-[#DC2626]">&amp;</span>Go
+              </span>
+            </a>
+            {shopName && (
+              <>
+                <div className="w-px h-5 bg-white/10 shrink-0" />
+                <span className="text-xs text-[#78716C] truncate hidden sm:inline">{shopName}</span>
+              </>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* ── Toggle En ligne / Hors ligne ── */}
-            <button
-              onClick={async () => {
-                try {
-                  const isOnline = shopStatus === "OPEN" || shopStatus === "BUSY";
-                  const action = isOnline ? "close" : "resume";
-                  const res = await fetch("/api/boucher/shop/status", {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action }),
-                  });
-                  if (res.ok) {
-                    fetchShopInfo();
-                    toast.success(isOnline ? "Boutique hors ligne" : "Boutique en ligne");
-                  }
-                } catch { toast.error("Erreur"); }
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all min-h-[36px] ${
-                shopStatus === "OPEN" || shopStatus === "BUSY"
-                  ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                  : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-              }`}
-            >
-              <div className={`w-2 h-2 rounded-full ${
-                shopStatus === "OPEN" || shopStatus === "BUSY" ? "bg-emerald-400 animate-pulse" : "bg-red-400"
-              }`} />
-              {shopStatus === "OPEN" || shopStatus === "BUSY" ? "En ligne" : "Hors ligne"}
-            </button>
+          {/* Section centre — Contrôles */}
+          <div className="flex items-center gap-3">
+            {/* Toggle En ligne / Hors ligne */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const isOnline = shopStatus === "OPEN" || shopStatus === "BUSY";
+                    const action = isOnline ? "close" : "resume";
+                    const res = await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action }),
+                    });
+                    if (res.ok) {
+                      fetchShopInfo();
+                      toast.success(isOnline ? "Boutique hors ligne" : "Boutique en ligne");
+                    }
+                  } catch { toast.error("Erreur"); }
+                }}
+                className="relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+                style={{ backgroundColor: shopStatus === "OPEN" || shopStatus === "BUSY" ? "#16A34A" : "#3F3F46" }}
+              >
+                <span
+                  className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
+                  style={{ transform: shopStatus === "OPEN" || shopStatus === "BUSY" ? "translateX(20px)" : "translateX(0)" }}
+                />
+              </button>
+              <div className="hidden sm:block">
+                <span className={`text-xs font-bold ${shopStatus === "OPEN" || shopStatus === "BUSY" ? "text-[#16A34A]" : "text-[#78716C]"}`}>
+                  {shopStatus === "OPEN" || shopStatus === "BUSY" ? "En ligne" : "Hors ligne"}
+                </span>
+                <span className="block text-[10px] text-[#57534E]">Auto 8h-19h</span>
+              </div>
+            </div>
 
-            {/* ── Pause button (only when online) ── */}
-            {(shopStatus === "OPEN" || shopStatus === "BUSY") && (
+            {/* Séparateur */}
+            <div className="w-px h-6 bg-[#262626] shrink-0" />
+
+            {/* Bouton Pause */}
+            {shopStatus === "PAUSED" ? (
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "resume" }),
+                    });
+                    if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
+                  } catch { toast.error("Erreur"); }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 hover:bg-[#F59E0B]/30 transition-all min-h-[36px] animate-pulse"
+              >
+                <Pause size={12} /> {pauseCountdownStr || "En pause"}
+              </button>
+            ) : (
               <button
                 onClick={() => { setSelectedPauseDuration(15); setShowPauseModal(true); }}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 transition-all min-h-[36px]"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#1C1C1E] text-[#F59E0B] border border-[#3F3F46] hover:bg-[#262626] transition-all min-h-[36px]"
               >
-                <Clock size={12} /> Pause
+                <Pause size={12} /> Pause
               </button>
             )}
+          </div>
 
-            {/* Time */}
-            <span className="text-xs text-gray-500 font-mono hidden sm:block">
-              {formatTime(new Date().toISOString())}
+          {/* Section droite — Horloge + icônes */}
+          <div className="flex items-center gap-2">
+            {/* Horloge */}
+            <span className="text-xl font-bold text-white tabular-nums hidden sm:block">
+              {clockStr}
             </span>
 
             {/* Sound toggle */}
             <button
               onClick={() => setMuted(!muted)}
-              className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg transition-colors ${
-                muted
-                  ? "bg-red-500/20 text-red-400"
-                  : "bg-white/5 text-gray-400 hover:text-white"
+              className={`min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg transition-colors ${
+                muted ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-400 hover:text-white"
               }`}
               title={muted ? "Son desactive" : "Son active"}
             >
-              {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
 
             {/* QR Scanner */}
             <button
               onClick={() => setShowScanner(true)}
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Scanner QR"
             >
-              <ScanLine size={18} />
+              <ScanLine size={16} />
             </button>
 
-            {/* Wake Lock indicator */}
-            <div
-              className="flex items-center gap-1 min-h-[44px] min-w-[44px] justify-center"
-              title={
-                !wakeLockSupported
-                  ? "Wake Lock non supporte — desactivez la mise en veille manuellement"
-                  : wakeLockActive
-                  ? "Ecran maintenu allume"
-                  : "Ecran peut se mettre en veille"
-              }
-            >
-              {wakeLockActive ? (
-                <Monitor size={16} className="text-emerald-400" />
+            {/* Connection status */}
+            <div className="min-h-[36px] min-w-[36px] flex items-center justify-center">
+              {connected ? (
+                <Wifi size={14} className="text-emerald-400" />
               ) : (
-                <MonitorOff size={16} className="text-gray-600" />
+                <WifiOff size={14} className="text-red-400 animate-pulse" />
               )}
             </div>
 
-            {/* Connection status */}
-            <div className="flex items-center gap-1 min-h-[44px] min-w-[44px] justify-center">
-              {connected ? (
-                <Wifi size={16} className="text-emerald-400" />
-              ) : (
-                <WifiOff size={16} className="text-red-400 animate-pulse" />
-              )}
-            </div>
+            {/* Settings */}
+            <a
+              href="/boucher/dashboard/parametres"
+              className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              title="Parametres"
+            >
+              <Settings size={16} />
+            </a>
           </div>
         </header>
 
-        {/* ── PAUSE BANNER (amber, countdown MM:SS) ── */}
+        {/* ── PAUSE BANNER (v3 — fond discret, countdown) ── */}
         {shopStatus === "PAUSED" && (
-          <div className="shrink-0 bg-amber-500/15 border-b border-amber-500/20 px-4 py-2.5 flex items-center justify-between gap-3">
-            <p className="text-sm font-bold text-amber-400">
-              ⏸ Pause{pauseCountdownStr ? ` — Reprise dans ${pauseCountdownStr}` : ""}
+          <div className="shrink-0 px-4 py-2 flex items-center justify-between gap-3" style={{ background: "rgba(245,158,11,0.1)", borderBottom: "1px solid rgba(245,158,11,0.2)" }}>
+            <p className="text-sm font-bold text-[#F59E0B]">
+              <Pause size={14} className="inline mr-1.5" />
+              Commandes suspendues{pauseCountdownStr ? ` — reprise dans ${pauseCountdownStr}` : ""}
             </p>
             <button
               onClick={async () => {
@@ -654,7 +682,7 @@ export default function KitchenModePage() {
                   if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
                 } catch { toast.error("Erreur"); }
               }}
-              className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-sm min-h-[40px]"
+              className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 bg-[#F59E0B] hover:bg-[#D97706] text-black font-bold rounded-lg transition-colors text-xs"
             >
               Reprendre
             </button>
@@ -749,12 +777,12 @@ export default function KitchenModePage() {
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
               {/* Section 1: À préparer maintenant — always visible */}
               <div className="flex items-center gap-2 px-1 pt-1">
-                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-blue-400 animate-pulse" : "bg-gray-700"}`} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-blue-400" : "text-gray-600"}`}>
-                  A preparer maintenant
+                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-gray-700"}`} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}>
+                  A PREPARER MAINTENANT
                 </span>
                 {prepareNowOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
+                  <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
                 )}
               </div>
               {prepareNowOrders.length > 0 ? (
@@ -775,20 +803,20 @@ export default function KitchenModePage() {
               )}
 
               {/* Separator — always visible */}
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-white/10" />
-                <CalendarClock size={14} className="text-purple-400/60" />
-                <div className="flex-1 h-px bg-white/10" />
+              <div className="flex items-center gap-3 py-1.5">
+                <div className="flex-1 h-px bg-[#1A1A1A]" />
+                <CalendarClock size={13} className="text-[#F59E0B]/50" />
+                <div className="flex-1 h-px bg-[#1A1A1A]" />
               </div>
 
-              {/* Section 2: Programmées — always visible */}
+              {/* Section 2: Précommandes — always visible */}
               <div className="flex items-center gap-2 px-1">
-                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-700"} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-600"}`}>
-                  Programmees (en attente)
+                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}>
+                  PRECOMMANDES
                 </span>
                 {scheduledWaitingOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
+                  <span className="text-[10px] font-bold bg-amber-500/20 text-[#FBBF24] px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
                 )}
               </div>
               {scheduledWaitingOrders.length > 0 ? (
@@ -884,16 +912,16 @@ export default function KitchenModePage() {
               ))
             )
           ) : activeTab === "en-cours" ? (
-            /* En cours tab — always split: À préparer + Programmées */
+            /* En cours tab — always split: À préparer + Précommandes */
             <>
               {/* Section 1: À préparer maintenant */}
               <div className="flex items-center gap-2 px-1 pt-1">
-                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-blue-400 animate-pulse" : "bg-gray-700"}`} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-blue-400" : "text-gray-600"}`}>
-                  A preparer maintenant
+                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-gray-700"}`} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}>
+                  A PREPARER MAINTENANT
                 </span>
                 {prepareNowOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
+                  <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
                 )}
               </div>
               {prepareNowOrders.length > 0 ? (
@@ -914,20 +942,20 @@ export default function KitchenModePage() {
               )}
 
               {/* Separator */}
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-white/10" />
-                <CalendarClock size={14} className="text-purple-400/60" />
-                <div className="flex-1 h-px bg-white/10" />
+              <div className="flex items-center gap-3 py-1.5">
+                <div className="flex-1 h-px bg-[#1A1A1A]" />
+                <CalendarClock size={13} className="text-[#F59E0B]/50" />
+                <div className="flex-1 h-px bg-[#1A1A1A]" />
               </div>
 
-              {/* Section 2: Programmées */}
+              {/* Section 2: Précommandes */}
               <div className="flex items-center gap-2 px-1">
-                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-700"} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-purple-400" : "text-gray-600"}`}>
-                  Programmees (en attente)
+                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"} />
+                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}>
+                  PRECOMMANDES
                 </span>
                 {scheduledWaitingOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
+                  <span className="text-[10px] font-bold bg-amber-500/20 text-[#FBBF24] px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
                 )}
               </div>
               {scheduledWaitingOrders.length > 0 ? (
