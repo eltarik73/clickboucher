@@ -655,7 +655,7 @@ export default function KitchenModePage() {
 
             {/* Settings */}
             <a
-              href="/boucher/dashboard/parametres"
+              href="/boucher/parametres"
               className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Parametres"
             >
