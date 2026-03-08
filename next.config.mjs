@@ -18,6 +18,7 @@ const nextConfig = {
   async redirects() {
     return [
       { source: "/decouvrir", destination: "/", permanent: true },
+      { source: "/boucheries", destination: "/", permanent: true },
     ];
   },
   async headers() {

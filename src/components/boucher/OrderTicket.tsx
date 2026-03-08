@@ -157,7 +157,7 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
     ${pickupCode ? `<div class="code-section">\uD83D\uDD11 Code retrait : ${pickupCode}</div>` : ""}
 
     <div class="divider"></div>
-    <div class="footer">Merci &mdash; www.klikandgo.app</div>
+    <div class="footer">Merci &mdash; klikandgo.app</div>
     <div class="double-line"></div>
   </div>`;
 }

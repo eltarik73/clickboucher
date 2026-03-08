@@ -17,7 +17,7 @@ Click & Collect pour boucheries artisanales, style Uber Eats / Deliveroo.
 - **Charts** : Recharts (dashboard boucher)
 - **Hébergement** : Vercel (frontend + serverless, auto-deploy on push to main) + Railway (PostgreSQL)
 - **Repo** : https://github.com/eltarik73/clickboucher
-- **Production** : https://klikandgo.app / https://www.klikandgo.app
+- **Production** : https://klikandgo.app (canonical, sans www)
 
 ## Commandes
 
@@ -309,7 +309,8 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 
 ### Redirections
 - `/decouvrir` → `/` (301 permanent, next.config.mjs + server redirect)
-- `klikandgo.app` → `www.klikandgo.app` (301 DNS-level) — seule redirection en prod
+- `www.klikandgo.app` → `klikandgo.app` (301 Vercel-level) — le domaine canonique est SANS www
+- `/boucheries` → `/` (301 permanent, next.config.mjs)
 
 ## Conventions
 
