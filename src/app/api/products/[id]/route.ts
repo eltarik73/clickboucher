@@ -83,11 +83,14 @@ export async function PATCH(
     }
 
     // Separate images/labels/categoryIds from scalar fields
-    const { images, labels, promoEnd, categoryIds, ...scalarData } = data;
+    const { images, labels, promoEnd, freshDate, categoryIds, ...scalarData } = data;
 
     const updateData: Record<string, unknown> = { ...scalarData };
     if (promoEnd !== undefined) {
       updateData.promoEnd = promoEnd ? new Date(promoEnd) : null;
+    }
+    if (freshDate !== undefined) {
+      updateData.freshDate = freshDate ? new Date(freshDate) : null;
     }
     if (categoryIds) {
       updateData.categories = { set: categoryIds.map((cid: string) => ({ id: cid })) };

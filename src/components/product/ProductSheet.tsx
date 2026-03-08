@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 import type { ProductCardData } from "./ProductCard";
@@ -31,6 +32,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
   const [visible, setVisible] = useState(false);
   const [qty, setQty] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [showFiche, setShowFiche] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -242,6 +244,78 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                 {product.packWeight && <span> — {product.packWeight}</span>}
                 {product.packOldPriceCents && (
                   <span className="ml-1 line-through text-gray-400">{fmtPrice(product.packOldPriceCents)}</span>
+                )}
+              </div>
+            )}
+
+            {/* ── Fiche Confiance teaser ── */}
+            {(product.originRegion || product.elevageMode || product.raceDescription || product.halalMethod || product.freshDetail) && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowFiche(!showFiche)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-colors"
+                  style={{ background: "#F0FDF4", border: "1px solid #BBF7D0" }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" className="flex-shrink-0">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                  </svg>
+                  <span className="flex-1 text-[10px] font-bold text-[#16A34A] uppercase tracking-wide">Fiche Confiance — Tracabilite</span>
+                  <ChevronDown size={14} className={`text-[#16A34A] transition-transform ${showFiche ? "rotate-180" : ""}`} />
+                </button>
+
+                {showFiche && (
+                  <div className="mt-1.5 px-2.5 py-2 rounded-lg space-y-1.5" style={{ background: "#F7FDF9", border: "1px solid #D1FAE5" }}>
+                    {product.originRegion && (
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[10px]">📍</span>
+                        <div>
+                          <p className="text-[9px] font-bold text-[#166534] uppercase">Region</p>
+                          <p className="text-[11px] text-[#1C1512]">{product.originRegion}{product.origin ? ` (${product.origin})` : ""}</p>
+                        </div>
+                      </div>
+                    )}
+                    {product.raceDescription && (
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[10px]">🐄</span>
+                        <div>
+                          <p className="text-[9px] font-bold text-[#166534] uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
+                          <p className="text-[11px] text-[#1C1512]">{product.raceDescription}</p>
+                        </div>
+                      </div>
+                    )}
+                    {product.elevageMode && (
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[10px]">🌿</span>
+                        <div>
+                          <p className="text-[9px] font-bold text-[#166534] uppercase">Elevage</p>
+                          <p className="text-[11px] text-[#1C1512]">{product.elevageMode.replace(/_/g, " ").toLowerCase().replace(/^\w/, c => c.toUpperCase())}{product.elevageDetail ? ` — ${product.elevageDetail}` : ""}</p>
+                        </div>
+                      </div>
+                    )}
+                    {product.halalMethod && (
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[10px]">☪</span>
+                        <div>
+                          <p className="text-[9px] font-bold text-[#166534] uppercase">Abattage halal</p>
+                          <p className="text-[11px] text-[#1C1512]">{product.halalMethod}</p>
+                        </div>
+                      </div>
+                    )}
+                    {(product.freshDate || product.freshDetail) && (
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-[10px]">❄</span>
+                        <div>
+                          <p className="text-[9px] font-bold text-[#166534] uppercase">Fraicheur</p>
+                          <p className="text-[11px] text-[#1C1512]">
+                            {product.freshDetail || ""}
+                            {product.freshDate && <span className="text-[10px] text-[#6B7280]"> — {new Date(product.freshDate).toLocaleDateString("fr-FR")}</span>}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}

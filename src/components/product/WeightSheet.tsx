@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
+import { ChevronDown } from "lucide-react";
 import { QuantitySelector } from "@/components/product/QuantitySelector";
 import { getConversionRule } from "@/lib/conversion-config";
 import { computePrice, formatPrice } from "@/lib/estimate";
@@ -28,6 +29,13 @@ export interface WeightSheetProduct {
   pieceLabel?: string | null;
   weightMargin?: number | null;
   cutOptions?: Array<{ name: string; priceCents: number }> | null;
+  originRegion?: string | null;
+  raceDescription?: string | null;
+  elevageMode?: string | null;
+  elevageDetail?: string | null;
+  halalMethod?: string | null;
+  freshDate?: string | null;
+  freshDetail?: string | null;
 }
 
 interface Props {
@@ -41,6 +49,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
   const [qty, setQty] = useState(500);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [selectedCut, setSelectedCut] = useState<{ name: string; priceCents: number } | null>(null);
+  const [showFiche, setShowFiche] = useState(false);
   const [pieceMode, setPieceMode] = useState(false);
   const [pieceCount, setPieceCount] = useState(6);
 
@@ -184,6 +193,77 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#F0FDF4] dark:bg-green-950/40 text-[#16A34A] dark:text-green-400 border border-[#BBF7D0] dark:border-green-800">
                   {product.freshness === "SURGELE" ? "❄ Surgele" : product.freshness === "SOUS_VIDE" ? "🫙 Sous vide" : product.freshness}
                 </span>
+              )}
+            </div>
+          )}
+
+          {/* ── Fiche Confiance teaser ── */}
+          {(product.originRegion || product.elevageMode || product.raceDescription || product.halalMethod || product.freshDetail) && (
+            <div className="px-3.5 mt-2">
+              <button
+                type="button"
+                onClick={() => setShowFiche(!showFiche)}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-colors bg-[#F0FDF4] dark:bg-green-950/30 border border-[#BBF7D0] dark:border-green-800"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" className="flex-shrink-0">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <polyline points="9 12 11 14 15 10"/>
+                </svg>
+                <span className="flex-1 text-[10px] font-bold text-[#16A34A] dark:text-green-400 uppercase tracking-wide">Fiche Confiance — Tracabilite</span>
+                <ChevronDown size={14} className={`text-[#16A34A] dark:text-green-400 transition-transform ${showFiche ? "rotate-180" : ""}`} />
+              </button>
+
+              {showFiche && (
+                <div className="mt-1.5 px-2.5 py-2 rounded-lg space-y-1.5 bg-[#F7FDF9] dark:bg-green-950/20 border border-[#D1FAE5] dark:border-green-800/50">
+                  {product.originRegion && (
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px]">📍</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Region</p>
+                        <p className="text-[11px] text-[#1C1512] dark:text-white">{product.originRegion}{product.origin ? ` (${product.origin})` : ""}</p>
+                      </div>
+                    </div>
+                  )}
+                  {product.raceDescription && (
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px]">🐄</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
+                        <p className="text-[11px] text-[#1C1512] dark:text-white">{product.raceDescription}</p>
+                      </div>
+                    </div>
+                  )}
+                  {product.elevageMode && (
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px]">🌿</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Elevage</p>
+                        <p className="text-[11px] text-[#1C1512] dark:text-white">{product.elevageMode.replace(/_/g, " ").toLowerCase().replace(/^\w/, c => c.toUpperCase())}{product.elevageDetail ? ` — ${product.elevageDetail}` : ""}</p>
+                      </div>
+                    </div>
+                  )}
+                  {product.halalMethod && (
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px]">☪</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Abattage halal</p>
+                        <p className="text-[11px] text-[#1C1512] dark:text-white">{product.halalMethod}</p>
+                      </div>
+                    </div>
+                  )}
+                  {(product.freshDate || product.freshDetail) && (
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px]">❄</span>
+                      <div>
+                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Fraicheur</p>
+                        <p className="text-[11px] text-[#1C1512] dark:text-white">
+                          {product.freshDetail || ""}
+                          {product.freshDate && <span className="text-[10px] text-[#6B7280] dark:text-neutral-500"> — {new Date(product.freshDate).toLocaleDateString("fr-FR")}</span>}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

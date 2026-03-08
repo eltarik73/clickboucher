@@ -46,6 +46,13 @@ export type Product = {
   race: string | null;
   freshness: string;
   customerNote: string | null;
+  originRegion: string | null;
+  raceDescription: string | null;
+  elevageMode: string | null;
+  elevageDetail: string | null;
+  halalMethod: string | null;
+  freshDate: string | null;
+  freshDetail: string | null;
   variants: string[];
   weightPerPiece: number | null;
   pieceLabel: string | null;

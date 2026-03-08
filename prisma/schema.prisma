@@ -544,6 +544,15 @@ model Product {
   freshness    Freshness @default(FRAIS)
   customerNote String?   @map("customer_note")
 
+  // ── TRAÇABILITÉ ──
+  originRegion    String?   @map("origin_region")
+  raceDescription String?   @map("race_description")
+  elevageMode     String?   @map("elevage_mode")
+  elevageDetail   String?   @map("elevage_detail")
+  halalMethod     String?   @map("halal_method")
+  freshDate       DateTime? @map("fresh_date")
+  freshDetail     String?   @map("fresh_detail")
+
   // ── SNOOZE DELIVEROO-STYLE ──
   snoozeType   SnoozeType @default(NONE) @map("snooze_type")
   snoozedAt    DateTime?  @map("snoozed_at")

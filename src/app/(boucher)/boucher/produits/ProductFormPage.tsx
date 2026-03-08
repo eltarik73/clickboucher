@@ -80,6 +80,13 @@ export type EditProduct = {
   packContent?: string | null;
   packWeight?: string | null;
   packOldPriceCents?: number | null;
+  originRegion?: string | null;
+  raceDescription?: string | null;
+  elevageMode?: string | null;
+  elevageDetail?: string | null;
+  halalMethod?: string | null;
+  freshDate?: string | null;
+  freshDetail?: string | null;
   images: { id: string; url: string; alt: string | null; order: number; isPrimary: boolean }[];
   labels: { id: string; name: string; color: string | null }[];
 };
@@ -142,6 +149,15 @@ const CUT_PRESETS: Record<string, CutOption[]> = {
     { name: "Desosse", priceCents: 0 },
   ],
 };
+
+const ELEVAGE_MODES = [
+  { label: "Plein air", value: "PLEIN_AIR" },
+  { label: "Paturage", value: "PATURAGE" },
+  { label: "Extensif", value: "EXTENSIF" },
+  { label: "Label Rouge", value: "LABEL_ROUGE" },
+  { label: "Bio", value: "BIO" },
+  { label: "Conventionnel", value: "CONVENTIONNEL" },
+];
 
 const PROMO_PCTS = [5, 10, 15, 20, 25, 30];
 const MIN_WEIGHTS = [100, 200, 250, 300, 500];
@@ -231,6 +247,15 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
   const [freshness, setFreshness] = useState(product?.freshness || "FRAIS");
   const [race, setRace] = useState(product?.race || "");
   const [customerNote, setCustomerNote] = useState(product?.customerNote || "");
+
+  // Tracabilite
+  const [originRegion, setOriginRegion] = useState(product?.originRegion || "");
+  const [raceDescription, setRaceDescription] = useState(product?.raceDescription || "");
+  const [elevageMode, setElevageMode] = useState(product?.elevageMode || "");
+  const [elevageDetail, setElevageDetail] = useState(product?.elevageDetail || "");
+  const [halalMethod, setHalalMethod] = useState(product?.halalMethod || "");
+  const [freshDate, setFreshDate] = useState(product?.freshDate ? product.freshDate.split("T")[0] : "");
+  const [freshDetail, setFreshDetail] = useState(product?.freshDetail || "");
 
   // Labels
   const [labels, setLabels] = useState<LabelItem[]>(
@@ -438,6 +463,13 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
       race: race.trim() || null,
       freshness: freshness || null,
       customerNote: customerNote.trim() || null,
+      originRegion: originRegion.trim() || null,
+      raceDescription: raceDescription.trim() || null,
+      elevageMode: elevageMode || null,
+      elevageDetail: elevageDetail.trim() || null,
+      halalMethod: halalMethod.trim() || null,
+      freshDate: freshDate ? new Date(freshDate).toISOString() : null,
+      freshDetail: freshDetail.trim() || null,
       tags: [],
       isActive,
       priceCents: priceVal,
@@ -939,6 +971,136 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
               })}
             </div>
           )}
+        </div>
+
+        {/* ═══════════════════════════════════════════ */}
+        {/* SECTION 3b: Tracabilite                     */}
+        {/* ═══════════════════════════════════════════ */}
+        <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 space-y-4">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <span className="text-base">🛡️</span> Fiche Confiance — Tracabilite
+          </h2>
+          <p className="text-[11px] text-stone-500">
+            Ces informations apparaissent sur la fiche produit cote client. Plus vous remplissez, plus votre score de transparence augmente.
+          </p>
+
+          {/* Origine region */}
+          <div>
+            <label className="text-xs text-stone-400 mb-1 block">Region d&apos;origine</label>
+            <input
+              value={originRegion}
+              onChange={(e) => setOriginRegion(e.target.value)}
+              placeholder="Ex: Auvergne, Limousin, Galice..."
+              className="w-full bg-stone-800 border border-stone-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-stone-500"
+            />
+          </div>
+
+          {/* Race description */}
+          {race && (
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Description de la race ({race})</label>
+              <textarea
+                value={raceDescription}
+                onChange={(e) => setRaceDescription(e.target.value)}
+                placeholder="Ex: Race rustique elevee en montagne, chair persilee et gout prononce..."
+                rows={2}
+                className="w-full bg-stone-800 border border-stone-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-stone-500 resize-none"
+              />
+            </div>
+          )}
+
+          {/* Elevage mode */}
+          <div>
+            <label className="text-xs text-stone-400 mb-1.5 block">Mode d&apos;elevage</label>
+            <div className="flex flex-wrap gap-1.5">
+              {ELEVAGE_MODES.map((em) => (
+                <button
+                  key={em.value}
+                  type="button"
+                  onClick={() => setElevageMode(elevageMode === em.value ? "" : em.value)}
+                  className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+                    elevageMode === em.value
+                      ? "border-green-600 bg-green-600/10 text-green-400"
+                      : "border-stone-700 bg-stone-800 text-stone-500"
+                  }`}
+                >
+                  {elevageMode === em.value && <Check size={12} className="inline mr-1" />}
+                  {em.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Elevage detail */}
+          {elevageMode && (
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Detail elevage</label>
+              <input
+                value={elevageDetail}
+                onChange={(e) => setElevageDetail(e.target.value)}
+                placeholder="Ex: Ferme familiale depuis 3 generations, nourri a l'herbe..."
+                className="w-full bg-stone-800 border border-stone-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-stone-500"
+              />
+            </div>
+          )}
+
+          {/* Halal method */}
+          {halalOrg && (
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Methode d&apos;abattage halal</label>
+              <textarea
+                value={halalMethod}
+                onChange={(e) => setHalalMethod(e.target.value)}
+                placeholder="Ex: Abattage rituel certifie, sans etourdissement prealable..."
+                rows={2}
+                className="w-full bg-stone-800 border border-stone-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-stone-500 resize-none"
+              />
+            </div>
+          )}
+
+          {/* Freshness date + detail */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Date de fraicheur</label>
+              <input
+                type="date"
+                value={freshDate}
+                onChange={(e) => setFreshDate(e.target.value)}
+                className="w-full bg-stone-800 border border-stone-700 rounded-xl px-3.5 py-2 text-sm text-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Detail fraicheur</label>
+              <input
+                value={freshDetail}
+                onChange={(e) => setFreshDetail(e.target.value)}
+                placeholder="Ex: Arrivage du jour"
+                className="w-full bg-stone-800 border border-stone-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-stone-500"
+              />
+            </div>
+          </div>
+
+          {/* Transparency score preview */}
+          {(() => {
+            const fields = [origin, originRegion, race, raceDescription, elevageMode, elevageDetail, halalOrg, halalMethod, freshDate, freshDetail];
+            const filled = fields.filter(Boolean).length;
+            const score = Math.round((filled / fields.length) * 100);
+            return filled > 0 ? (
+              <div className="flex items-center gap-3 mt-2 p-3 rounded-xl bg-stone-800/50 border border-stone-700/50">
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <svg viewBox="0 0 36 36" className="w-10 h-10 -rotate-90">
+                    <circle cx="18" cy="18" r="15" fill="none" stroke="#292524" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15" fill="none" stroke={score >= 70 ? "#16A34A" : score >= 40 ? "#CA8A04" : "#DC2626"} strokeWidth="3" strokeDasharray={`${score * 0.94} 100`} strokeLinecap="round" />
+                  </svg>
+                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{score}%</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white">Score transparence : {score}%</p>
+                  <p className="text-[10px] text-stone-500">{filled}/{fields.length} champs remplis — {score >= 70 ? "Excellent !" : score >= 40 ? "Bien, continuez !" : "Ajoutez plus de details"}</p>
+                </div>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         {/* ═══════════════════════════════════════════ */}

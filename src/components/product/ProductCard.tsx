@@ -15,7 +15,9 @@ export type ProductCardData = Pick<ProductV2,
   "inStock" | "tags" | "origin" | "halalOrg" | "race" | "popular" |
   "promoPct" | "promoEnd" | "promoType" | "freshness" | "customerNote" |
   "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin" |
-  "promoFixedCents" | "packOldPriceCents" | "packContent" | "packWeight" | "cutOptions"
+  "promoFixedCents" | "packOldPriceCents" | "packContent" | "packWeight" | "cutOptions" |
+  "originRegion" | "raceDescription" | "elevageMode" | "elevageDetail" |
+  "halalMethod" | "freshDate" | "freshDetail"
 > & {
   category: { id: string; name: string; emoji: string | null };
   images: ProductImageType[];
@@ -117,6 +119,16 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
             {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
               ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
               : `-${product.promoPct}%`}
+          </div>
+        )}
+
+        {/* Traçabilité shield — top-right */}
+        {(product.originRegion || product.elevageMode || product.race) && !outOfStock && (
+          <div className="absolute top-1 right-1 z-10 w-6 h-6 rounded-md bg-green-600/90 backdrop-blur flex items-center justify-center shadow-sm">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
           </div>
         )}
 

@@ -40,6 +40,13 @@ export interface ProductData {
   promoEnd: string | null;
   promoType: string | null;
   customerNote: string | null;
+  originRegion: string | null;
+  raceDescription: string | null;
+  elevageMode: string | null;
+  elevageDetail: string | null;
+  halalMethod: string | null;
+  freshDate: string | null;
+  freshDetail: string | null;
   minWeightG: number;
   weightStepG: number;
   maxWeightG: number;
@@ -129,6 +136,13 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       packContent: p.packContent,
       packWeight: p.packWeight,
       packOldPriceCents: p.packOldPriceCents,
+      originRegion: p.originRegion,
+      raceDescription: p.raceDescription,
+      elevageMode: p.elevageMode,
+      elevageDetail: p.elevageDetail,
+      halalMethod: p.halalMethod,
+      freshDate: p.freshDate,
+      freshDetail: p.freshDetail,
       category: p.categories[0],
       images: p.images,
       labels: p.labels,
@@ -178,6 +192,13 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           halalOrg: p.halalOrg,
           race: p.race,
           freshness: p.freshness,
+          originRegion: p.originRegion,
+          raceDescription: p.raceDescription,
+          elevageMode: p.elevageMode,
+          elevageDetail: p.elevageDetail,
+          halalMethod: p.halalMethod,
+          freshDate: p.freshDate,
+          freshDetail: p.freshDetail,
           variants: original?.variants,
           weightPerPiece: original?.weightPerPiece,
           pieceLabel: original?.pieceLabel,
@@ -199,6 +220,13 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
           halalOrg: p.halalOrg,
           race: p.race,
           freshness: p.freshness,
+          originRegion: p.originRegion,
+          raceDescription: p.raceDescription,
+          elevageMode: p.elevageMode,
+          elevageDetail: p.elevageDetail,
+          halalMethod: p.halalMethod,
+          freshDate: p.freshDate,
+          freshDetail: p.freshDetail,
           sliceOptions: (original?.sliceOptions as TrancheSheetProduct["sliceOptions"]) ?? null,
         });
         return;
