@@ -532,12 +532,12 @@ export default function KitchenModePage() {
       {/* ══════════════════════════════════════════ */}
       <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col">
         {/* ── Top bar (v3) ── */}
-        <header className="shrink-0 bg-[#111] border-b border-white/5 px-4 py-2 flex items-center justify-between gap-3">
+        <header className="shrink-0 bg-[#111] border-b border-white/5 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1.5 sm:gap-3">
           {/* Section gauche — Logo + Nom boutique */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <a href="/boucher/dashboard" className="flex items-center gap-2 shrink-0">
-              <div className="w-[26px] h-[26px] rounded-md bg-[#DC2626] flex items-center justify-center">
-                <span className="text-white font-black text-xs leading-none">K</span>
+              <div className="w-[24px] h-[24px] sm:w-[26px] sm:h-[26px] rounded-md bg-[#DC2626] flex items-center justify-center">
+                <span className="text-white font-black text-[10px] sm:text-xs leading-none">K</span>
               </div>
               <span className="text-sm font-bold text-white hidden sm:inline">
                 Klik<span className="text-[#DC2626]">&amp;</span>Go
@@ -545,16 +545,16 @@ export default function KitchenModePage() {
             </a>
             {shopName && (
               <>
-                <div className="w-px h-5 bg-white/10 shrink-0" />
+                <div className="w-px h-5 bg-white/10 shrink-0 hidden sm:block" />
                 <span className="text-xs text-[#78716C] truncate hidden sm:inline">{shopName}</span>
               </>
             )}
           </div>
 
           {/* Section centre — Contrôles */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             {/* Toggle En ligne / Hors ligne */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={async () => {
                   try {
@@ -571,12 +571,12 @@ export default function KitchenModePage() {
                     }
                   } catch { toast.error("Erreur"); }
                 }}
-                className="relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none"
+                className="relative w-9 h-5 sm:w-11 sm:h-6 rounded-full transition-colors duration-200 focus:outline-none"
                 style={{ backgroundColor: shopStatus === "OPEN" || shopStatus === "BUSY" ? "#16A34A" : "#3F3F46" }}
               >
                 <span
-                  className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
-                  style={{ transform: shopStatus === "OPEN" || shopStatus === "BUSY" ? "translateX(20px)" : "translateX(0)" }}
+                  className="absolute top-0.5 left-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full shadow transition-transform duration-200"
+                  style={{ transform: shopStatus === "OPEN" || shopStatus === "BUSY" ? "translateX(16px)" : "translateX(0)" }}
                 />
               </button>
               <div className="hidden sm:block">
@@ -588,7 +588,7 @@ export default function KitchenModePage() {
             </div>
 
             {/* Séparateur */}
-            <div className="w-px h-6 bg-[#262626] shrink-0" />
+            <div className="w-px h-5 sm:h-6 bg-[#262626] shrink-0" />
 
             {/* Bouton Pause */}
             {shopStatus === "PAUSED" ? (
@@ -603,60 +603,60 @@ export default function KitchenModePage() {
                     if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
                   } catch { toast.error("Erreur"); }
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 hover:bg-[#F59E0B]/30 transition-all min-h-[36px] animate-pulse"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 hover:bg-[#F59E0B]/30 transition-all min-h-[32px] sm:min-h-[36px] animate-pulse"
               >
-                <Pause size={12} /> {pauseCountdownStr || "En pause"}
+                <Pause size={10} className="sm:w-3 sm:h-3" /> <span className="hidden sm:inline">{pauseCountdownStr || "En pause"}</span><span className="sm:hidden">{pauseCountdownStr || "Pause"}</span>
               </button>
             ) : (
               <button
                 onClick={() => { setSelectedPauseDuration(15); setShowPauseModal(true); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#1C1C1E] text-[#F59E0B] border border-[#3F3F46] hover:bg-[#262626] transition-all min-h-[36px]"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold bg-[#1C1C1E] text-[#F59E0B] border border-[#3F3F46] hover:bg-[#262626] transition-all min-h-[32px] sm:min-h-[36px]"
               >
-                <Pause size={12} /> Pause
+                <Pause size={10} className="sm:w-3 sm:h-3" /> Pause
               </button>
             )}
           </div>
 
           {/* Section droite — Horloge + icônes */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Horloge */}
-            <span className="text-sm font-bold text-white tabular-nums sm:text-xl">
+            <span className="text-xs sm:text-sm font-bold text-white tabular-nums lg:text-xl">
               {clockStr}
             </span>
 
             {/* Sound toggle */}
             <button
               onClick={() => setMuted(!muted)}
-              className={`min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg transition-colors ${
+              className={`min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center rounded-lg transition-colors ${
                 muted ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-400 hover:text-white"
               }`}
               title={muted ? "Son désactivé" : "Son activé"}
             >
-              {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
             </button>
 
-            {/* QR Scanner */}
+            {/* QR Scanner — hidden on small phones, visible on tablets+ */}
             <button
               onClick={() => setShowScanner(true)}
-              className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Scanner QR"
             >
               <ScanLine size={16} />
             </button>
 
             {/* Connection status */}
-            <div className="min-h-[36px] min-w-[36px] flex items-center justify-center">
+            <div className="min-h-[32px] min-w-[24px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center">
               {connected ? (
-                <Wifi size={14} className="text-emerald-400" />
+                <Wifi size={12} className="text-emerald-400 sm:w-[14px] sm:h-[14px]" />
               ) : (
-                <WifiOff size={14} className="text-red-400 animate-pulse" />
+                <WifiOff size={12} className="text-red-400 animate-pulse sm:w-[14px] sm:h-[14px]" />
               )}
             </div>
 
-            {/* Settings */}
+            {/* Settings — hidden on small phones */}
             <a
               href="/boucher/parametres"
-              className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Parametres"
             >
               <Settings size={16} />
