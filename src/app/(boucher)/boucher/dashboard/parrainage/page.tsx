@@ -27,10 +27,10 @@ export default function ParrainagePage() {
 
   const handleCopy = useCallback(() => {
     if (!info?.code) return;
-    const msg = `Rejoins Klik&Go pour ta boucherie ! Utilise mon code ${info.code} et on gagne chacun 1 mois gratuit. https://klikandgo.fr/inscription-boucher?ref=${info.code}`;
+    const msg = `Rejoins Klik&Go pour ta boucherie ! Utilise mon code ${info.code} et on gagne chacun 1 mois gratuit. https://klikandgo.app/inscription-boucher?ref=${info.code}`;
     navigator.clipboard.writeText(msg).then(() => {
       setCopied(true);
-      toast.success("Message copie !");
+      toast.success("Message copié !");
       setTimeout(() => setCopied(false), 2000);
     });
   }, [info?.code]);
@@ -38,7 +38,7 @@ export default function ParrainagePage() {
   const handleShare = useCallback(() => {
     if (!info?.code) return;
     const text = `Rejoins Klik&Go pour ta boucherie ! Utilise mon code ${info.code} et on gagne chacun 1 mois gratuit.`;
-    const url = `https://klikandgo.fr/inscription-boucher?ref=${info.code}`;
+    const url = `https://klikandgo.app/inscription-boucher?ref=${info.code}`;
 
     if (navigator.share) {
       navigator.share({ title: "Parrainage Klik&Go", text, url }).catch(() => {});

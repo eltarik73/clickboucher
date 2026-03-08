@@ -90,7 +90,7 @@ function InscriptionBoucherContent() {
         toast.error(data.error?.message || "Erreur lors de l'inscription");
       }
     } catch {
-      toast.error("Erreur reseau, reessayez");
+      toast.error("Erreur réseau, réessayez");
     } finally {
       setSubmitting(false);
     }
@@ -114,14 +114,14 @@ function InscriptionBoucherContent() {
               de confirmation sous 24h.
             </p>
             <p className="text-xs text-gray-400 mt-2">
-              Pack selectionne : {pack.name} — {pack.price}
+              Pack sélectionné : {pack.name} — {pack.price}
             </p>
             <Button
               className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]"
               size="lg"
               asChild
             >
-              <Link href="/">Retour a l&apos;accueil</Link>
+              <Link href="/">Retour à l&apos;accueil</Link>
             </Button>
           </div>
         </main>
@@ -141,7 +141,7 @@ function InscriptionBoucherContent() {
               Connexion requise
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Connectez-vous ou creez un compte pour inscrire votre boucherie.
+              Connectez-vous ou créez un compte pour inscrire votre boucherie.
             </p>
             <Button
               className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]"
@@ -175,7 +175,7 @@ function InscriptionBoucherContent() {
             </h2>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            30 jours d&apos;essai gratuit inclus. Changez de formule a tout
+            30 jours d&apos;essai gratuit inclus. Changez de formule à tout
             moment.
           </p>
         </div>
@@ -202,7 +202,7 @@ function InscriptionBoucherContent() {
           {/* Address */}
           <div>
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
-              Adresse complete <span className="text-red-500">*</span>
+              Adresse complète <span className="text-red-500">*</span>
             </label>
             <Input
               value={address}
@@ -220,7 +220,7 @@ function InscriptionBoucherContent() {
             <Input
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="Chambery"
+              placeholder="Votre ville"
               className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
@@ -228,7 +228,7 @@ function InscriptionBoucherContent() {
           {/* Phone */}
           <div>
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
-              Telephone <span className="text-red-500">*</span>
+              Téléphone <span className="text-red-500">*</span>
             </label>
             <Input
               type="tel"
@@ -309,7 +309,7 @@ function InscriptionBoucherContent() {
               className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626] font-mono"
             />
             <p className="text-[10px] text-gray-400 mt-1">
-              Un boucher vous a recommande ? Entrez son code pour gagner chacun 1 mois gratuit.
+              Un boucher vous a recommandé ? Entrez son code pour gagner chacun 1 mois gratuit.
             </p>
           </div>
 
@@ -322,7 +322,7 @@ function InscriptionBoucherContent() {
               className="mt-1 w-4 h-4 accent-[#DC2626] rounded"
             />
             <span className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              J&apos;accepte les conditions generales de vente et la periode
+              J&apos;accepte les conditions générales de vente et la période
               d&apos;essai gratuite de 30 jours.
             </span>
           </label>

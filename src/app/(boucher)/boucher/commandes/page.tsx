@@ -91,11 +91,11 @@ function formatDate(dateStr: string) {
 // Status badge for history
 // ─────────────────────────────────────────────
 const STATUS_BADGE: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
-  PICKED_UP: { label: "Recuperee", color: "bg-emerald-500/20 text-emerald-400", icon: Package },
-  COMPLETED: { label: "Terminee", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
-  DENIED: { label: "Refusee", color: "bg-red-500/20 text-red-400", icon: XCircle },
-  CANCELLED: { label: "Annulee", color: "bg-red-500/20 text-red-400", icon: Ban },
-  AUTO_CANCELLED: { label: "Expiree", color: "bg-gray-500/20 text-gray-400", icon: Ban },
+  PICKED_UP: { label: "Récupérée", color: "bg-emerald-500/20 text-emerald-400", icon: Package },
+  COMPLETED: { label: "Terminée", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
+  DENIED: { label: "Refusée", color: "bg-red-500/20 text-red-400", icon: XCircle },
+  CANCELLED: { label: "Annulée", color: "bg-red-500/20 text-red-400", icon: Ban },
+  AUTO_CANCELLED: { label: "Expirée", color: "bg-gray-500/20 text-gray-400", icon: Ban },
   PARTIALLY_DENIED: { label: "Partielle", color: "bg-orange-500/20 text-orange-400", icon: XCircle },
 };
 

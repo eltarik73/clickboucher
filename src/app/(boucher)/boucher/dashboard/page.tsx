@@ -487,7 +487,7 @@ export default function BoucherDashboardPage() {
         {/* ── Recent orders ── */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dernieres commandes</h2>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dernières commandes</h2>
             <Link href="/boucher/historique" className="text-xs text-[#DC2626] font-medium hover:underline">
               Tout voir
             </Link>
