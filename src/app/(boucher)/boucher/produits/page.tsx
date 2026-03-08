@@ -862,13 +862,13 @@ function ProductRow({
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
             onError={(e) => {
-              const fallback = resolveProductImage({ name: product.name, imageUrl: null, category: product.categories[0].name });
+              const fallback = resolveProductImage({ name: product.name, imageUrl: null, category: product.categories[0]?.name || "" });
               (e.target as HTMLImageElement).src = fallback;
             }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xl">
-            {product.categories[0].emoji || "🥩"}
+            {product.categories[0]?.emoji || "🥩"}
           </div>
         )}
         {promoActive && (

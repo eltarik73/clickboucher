@@ -472,7 +472,7 @@ export default function BoucherDashboardPage() {
               </Button>
             </Link>
 
-            <Link href="/boucher/dashboard/images">
+            <Link href="/boucher/produits">
               <Button
                 variant="outline"
                 className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-white/5 border-gray-200 dark:border-white/10"
