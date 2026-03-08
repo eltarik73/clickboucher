@@ -905,5 +905,18 @@ export function startCronJobs() {
     }
   });
 
+  // ═══════════════════════════════════════════
+  // RECIPE — Generate daily AI recipe at 6:00 AM
+  // ═══════════════════════════════════════════
+  cron.schedule("0 6 * * *", async () => {
+    try {
+      const { generateDailyRecipe } = await import("@/lib/recipe-generator");
+      const recipe = await generateDailyRecipe();
+      console.log(`[CRON][recipe] Generated: "${recipe.title}" (${recipe.slug})`);
+    } catch (error) {
+      console.error("[CRON][recipe] Error:", error);
+    }
+  });
+
   console.log("[CRON] All cron jobs scheduled successfully");
 }

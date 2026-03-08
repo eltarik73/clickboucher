@@ -7,11 +7,17 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const shops = await prisma.shop.findMany({
+  const [shops, recipes] = await Promise.all([
+    prisma.shop.findMany({
     where: { visible: true },
     select: { slug: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
-  });
+  }),
+    prisma.recipe.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+  ]);
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -55,6 +61,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.6,
+    },
+    {
+      url: `${BASE_URL}/recettes`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.7,
     },
     {
       url: `${BASE_URL}/espace-boucher`,
@@ -108,5 +120,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...shopPages, ...cityPages];
+  const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
+    url: `${BASE_URL}/recettes/${r.slug}`,
+    lastModified: r.updatedAt,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  return [...staticPages, ...shopPages, ...cityPages, ...recipePages];
 }

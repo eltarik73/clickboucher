@@ -78,6 +78,7 @@ export default async function HomePage() {
   let antiGaspiCount = 0;
   let flashSaleCount = 0;
   let popupOffers: { id: string; name: string; code: string; type: string; discountValue: number; popupTitle: string | null; popupMessage: string | null; popupColor: string | null; popupFrequency: string | null; popupImageUrl: string | null }[] = [];
+  let latestRecipes: { id: string; slug: string; title: string; imageUrl: string | null; meatQuantity: string; totalTime: number }[] = [];
 
   // 1. Auth (non-blocking — page works without login)
   let clerkId: string | null = null;
@@ -143,6 +144,13 @@ export default async function HomePage() {
       take: 3,
     });
 
+    const latestRecipesPromise = prisma.recipe.findMany({
+      where: { published: true },
+      orderBy: { publishedAt: "desc" },
+      select: { id: true, slug: true, title: true, imageUrl: true, meatQuantity: true, totalTime: true },
+      take: 4,
+    });
+
     const antiGaspiCountPromise = prisma.product.count({
       where: { isAntiGaspi: true, inStock: true, isActive: true },
     });
@@ -150,13 +158,14 @@ export default async function HomePage() {
       where: { isFlashSale: true, inStock: true, isActive: true },
     });
 
-    const [shopsResult, favResult, offersResult, popupOffersResult, agCount, fsCount] = await Promise.all([shopsPromise, favPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise]);
+    const [shopsResult, favResult, offersResult, popupOffersResult, agCount, fsCount, latestRecipesResult] = await Promise.all([shopsPromise, favPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, latestRecipesPromise]);
 
     if (favResult?.favoriteShops) {
       favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
     }
     antiGaspiCount = agCount;
     flashSaleCount = fsCount;
+    latestRecipes = latestRecipesResult;
     livePromos = offersResult.map((o) => ({
       id: o.id,
       label: o.name,
@@ -298,6 +307,54 @@ export default async function HomePage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════ */}
+      {/* RECIPES */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {latestRecipes.length > 0 && (
+        <section className="max-w-6xl mx-auto px-5 py-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+              <span className="w-1 h-5 bg-[#DC2626] rounded-full" />
+              Nos recettes
+            </h2>
+            <Link
+              href="/recettes"
+              className="text-xs font-semibold text-[#DC2626] hover:text-[#b91c1c] transition"
+            >
+              Tout voir →
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+            {latestRecipes.map((recipe) => (
+              <Link
+                key={recipe.id}
+                href={`/recettes/${recipe.slug}`}
+                className="min-w-[200px] flex-shrink-0 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden hover:shadow-md transition"
+              >
+                <div className="h-28 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
+                  {recipe.imageUrl ? (
+                    <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl">🍖</div>
+                  )}
+                  <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur text-white px-2 py-0.5 rounded text-[10px] font-semibold">
+                    ⏱ {recipe.totalTime} min
+                  </div>
+                </div>
+                <div className="p-3">
+                  <div className="font-bold text-sm text-gray-900 dark:text-white line-clamp-2">
+                    {recipe.title}
+                  </div>
+                  <div className="text-xs text-[#DC2626] font-semibold mt-1">
+                    🥩 {recipe.meatQuantity}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════ */}
       {/* HOW IT WORKS */}
       {/* ═══════════════════════════════════════════════════════════ */}
       <HowItWorks />
@@ -337,6 +394,9 @@ export default async function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />
             <nav className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+              <Link href="/recettes" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                Recettes
+              </Link>
               <Link href="/mentions-legales" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 Mentions légales
               </Link>
