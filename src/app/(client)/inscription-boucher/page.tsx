@@ -194,7 +194,7 @@ function InscriptionBoucherContent() {
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Boucherie El Fath"
+              placeholder="Ex: Ma Boucherie"
               className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]"
             />
           </div>
@@ -287,7 +287,7 @@ function InscriptionBoucherContent() {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Boucherie halal artisanale, viandes fraiches du jour..."
+              placeholder="Boucherie artisanale, viandes fraîches du jour..."
               rows={3}
               maxLength={500}
               className="flex w-full rounded-xl border border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors resize-none"

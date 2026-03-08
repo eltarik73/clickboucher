@@ -28,8 +28,9 @@ export default function MentionsLegales() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">1. Éditeur du site</h2>
             <p>
               Le site <strong>klikandgo.app</strong> est édité par :<br />
-              Klik&amp;Go<br />
-              Adresse : Chambéry, France<br />
+              Klik&amp;Go — Tarik El Ouardi (Entrepreneur individuel)<br />
+              SIRET : en cours d&apos;immatriculation<br />
+              Adresse : Chambéry, 73000, France<br />
               Email : <a href="mailto:contact@klikandgo.fr" className="text-[#DC2626]">contact@klikandgo.fr</a><br />
               Directeur de la publication : Tarik El Ouardi
             </p>

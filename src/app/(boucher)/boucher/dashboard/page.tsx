@@ -435,7 +435,7 @@ export default function BoucherDashboardPage() {
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Actions rapides</h2>
           <div className="grid grid-cols-3 gap-2">
-            <Link href="/boucher/historique">
+            <Link href="/boucher/commandes">
               <Button
                 variant="outline"
                 className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-white/5 border-gray-200 dark:border-white/10"
@@ -472,13 +472,13 @@ export default function BoucherDashboardPage() {
               </Button>
             </Link>
 
-            <Link href="/boucher/produits">
+            <Link href="/boucher/dashboard/parrainage">
               <Button
                 variant="outline"
                 className="w-full h-auto py-3 flex flex-col items-center gap-1.5 bg-white dark:bg-[#141414] hover:bg-gray-50 dark:hover:bg-white/5 border-gray-200 dark:border-white/10"
               >
                 <Sparkles className="w-5 h-5 text-[#DC2626]" />
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Images IA</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Parrainage</span>
               </Button>
             </Link>
           </div>
@@ -488,7 +488,7 @@ export default function BoucherDashboardPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Dernières commandes</h2>
-            <Link href="/boucher/historique" className="text-xs text-[#DC2626] font-medium hover:underline">
+            <Link href="/boucher/commandes" className="text-xs text-[#DC2626] font-medium hover:underline">
               Tout voir
             </Link>
           </div>

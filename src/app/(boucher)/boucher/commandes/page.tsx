@@ -620,7 +620,7 @@ export default function KitchenModePage() {
           {/* Section droite — Horloge + icônes */}
           <div className="flex items-center gap-2">
             {/* Horloge */}
-            <span className="text-xl font-bold text-white tabular-nums hidden sm:block">
+            <span className="text-sm font-bold text-white tabular-nums sm:text-xl">
               {clockStr}
             </span>
 
@@ -630,7 +630,7 @@ export default function KitchenModePage() {
               className={`min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg transition-colors ${
                 muted ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-400 hover:text-white"
               }`}
-              title={muted ? "Son desactive" : "Son active"}
+              title={muted ? "Son désactivé" : "Son activé"}
             >
               {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
