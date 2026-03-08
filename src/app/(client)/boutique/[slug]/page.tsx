@@ -463,14 +463,18 @@ export default async function BoutiquePage({
         {/* ═══════════════════════════════════════════ */}
         {/* ANTI-GASPI BANNER */}
         {/* ═══════════════════════════════════════════ */}
-        <AntiGaspiBanner products={products.filter(p => p.isAntiGaspi && p.inStock).map(p => ({
-          id: p.id, name: p.name, imageUrl: p.imageUrl, priceCents: p.priceCents,
-          antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
-          antiGaspiStock: p.antiGaspiStock ?? null,
-          antiGaspiReason: p.antiGaspiReason ?? null,
-          category: p.categories[0] || { name: "" },
-          images: p.images,
-        }))} />
+        <AntiGaspiBanner
+          shop={{ id: shop.id, name: shop.name, slug: shop.slug }}
+          products={products.filter(p => p.isAntiGaspi && p.inStock).map(p => ({
+            id: p.id, name: p.name, imageUrl: p.imageUrl, priceCents: p.priceCents,
+            unit: p.unit,
+            antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
+            antiGaspiStock: p.antiGaspiStock ?? null,
+            antiGaspiReason: p.antiGaspiReason ?? null,
+            category: p.categories[0] || { name: "" },
+            images: p.images,
+          }))}
+        />
 
         {/* ═══════════════════════════════════════════ */}
         {/* CLIENT-SIDE: categories, products, cart */}

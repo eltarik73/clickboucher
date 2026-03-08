@@ -40,6 +40,8 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
       setQty(cartQty > 0 ? cartQty : 1);
       setSelectedVariant(null);
       setImgError(false);
+      // Auto-expand Fiche Confiance if product has traceability data
+      setShowFiche(!!(product.originRegion || product.elevageMode || product.raceDescription || product.halalMethod || product.freshDetail));
       requestAnimationFrame(() => setVisible(true));
     } else {
       setVisible(false);
@@ -62,10 +64,13 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
 
   if (!product) return null;
 
-  const hasImage = (product.images.length > 0 || product.imageUrl) && !imgError;
-  const imgSrc = product.images.length > 0
-    ? product.images[0].url
+  // Use product images but skip expired Replicate URLs
+  const rawImgUrl = product.images.length > 0 ? product.images[0].url : null;
+  const isReplicateUrl = rawImgUrl?.includes("replicate.delivery");
+  const imgSrc = rawImgUrl && !isReplicateUrl
+    ? rawImgUrl
     : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
+  const hasImage = !!imgSrc && !imgError;
   const hasPromo = (product.promoPct != null && product.promoPct > 0) || (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
   const isAntiGaspi = product.isAntiGaspi && product.antiGaspiOrigPriceCents;
   const isKg = product.unit === "KG";

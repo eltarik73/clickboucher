@@ -240,6 +240,18 @@ export default async function HomePage() {
             <KlikGoLogo />
             <div className="flex items-center gap-3">
               <Link
+                href="/recettes"
+                className="hidden sm:inline text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
+              >
+                Recettes
+              </Link>
+              <Link
+                href="/bons-plans"
+                className="hidden sm:inline text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
+              >
+                Bons Plans
+              </Link>
+              <Link
                 href="/espace-boucher"
                 className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
               >

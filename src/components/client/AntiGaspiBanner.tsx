@@ -1,12 +1,17 @@
 // src/components/client/AntiGaspiBanner.tsx — Anti-gaspi horizontal scroll banner for boutique page
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { resolveProductImage } from "@/lib/product-images";
+import { ProductQuickAdd, type QuickAddProduct, type QuickAddShop } from "./ProductQuickAdd";
 
 interface AntiGaspiProduct {
   id: string;
   name: string;
   imageUrl: string | null;
   priceCents: number;
+  unit: string;
   antiGaspiOrigPriceCents: number | null;
   antiGaspiStock: number | null;
   antiGaspiReason: string | null;
@@ -18,7 +23,9 @@ function fmtPrice(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
-export function AntiGaspiBanner({ products }: { products: AntiGaspiProduct[] }) {
+export function AntiGaspiBanner({ products, shop }: { products: AntiGaspiProduct[]; shop: QuickAddShop }) {
+  const [selectedProduct, setSelectedProduct] = useState<QuickAddProduct | null>(null);
+
   if (products.length === 0) return null;
 
   return (
@@ -39,9 +46,21 @@ export function AntiGaspiBanner({ products }: { products: AntiGaspiProduct[] }) 
               : resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name });
 
             return (
-              <div
+              <button
                 key={p.id}
-                className="flex-shrink-0 w-[120px] bg-white dark:bg-[#1a1a1a] rounded-xl overflow-hidden border border-emerald-200/50 dark:border-emerald-800/20"
+                type="button"
+                onClick={() => setSelectedProduct({
+                  id: p.id,
+                  name: p.name,
+                  imageUrl: imgSrc,
+                  priceCents: p.priceCents,
+                  unit: p.unit,
+                  category: p.category.name,
+                  isAntiGaspi: true,
+                  antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents,
+                  antiGaspiStock: p.antiGaspiStock,
+                })}
+                className="flex-shrink-0 w-[120px] bg-white dark:bg-[#1a1a1a] rounded-xl overflow-hidden border border-emerald-200/50 dark:border-emerald-800/20 text-left hover:shadow-md transition-shadow active:scale-[0.97]"
               >
                 <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-white/5">
                   <Image
@@ -67,11 +86,21 @@ export function AntiGaspiBanner({ products }: { products: AntiGaspiProduct[] }) 
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
+
+      {/* Purchase modal */}
+      {selectedProduct && (
+        <ProductQuickAdd
+          product={selectedProduct}
+          shop={shop}
+          isOpen={!!selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
     </div>
   );
 }
