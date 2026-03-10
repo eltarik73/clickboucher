@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MapPin, Star, Clock, ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ShopSchema } from "@/components/seo/ShopSchema";
-import { getShopImage } from "@/lib/product-images";
+import { ShopCard } from "@/components/shop/ShopCard";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -77,6 +77,7 @@ export default async function CityPage({
       prepTimeMin: true,
       busyMode: true,
       busyExtraMin: true,
+      status: true,
       phone: true,
       latitude: true,
       longitude: true,
@@ -190,55 +191,14 @@ export default async function CityPage({
 
           {shops.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {shops.map((shop, idx) => {
-                const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-                return (
-                  <Link
-                    key={shop.id}
-                    href={`/boutique/${shop.slug}`}
-                    className="group bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="relative h-40">
-                      <Image
-                        src={shop.imageUrl || getShopImage(idx)}
-                        alt={shop.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, 50vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <h3 className="text-white font-bold text-lg group-hover:text-[#fca5a5] transition-colors">
-                          {shop.name}
-                        </h3>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <MapPin size={11} />
-                          {shop.address}, {shop.city}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
-                          <Star size={11} className="text-yellow-500 fill-yellow-500" />
-                          {shop.rating.toFixed(1)} ({shop.ratingCount})
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <Clock size={11} />
-                          {effectiveTime} min
-                        </span>
-                      </div>
-                      {shop.description && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">
-                          {shop.description}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
+              {shops.map((shop, idx) => (
+                <ShopCard
+                  key={shop.id}
+                  shop={shop}
+                  index={idx}
+                  showFavorite={false}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">

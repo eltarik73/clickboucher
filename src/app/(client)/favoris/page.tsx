@@ -2,30 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Heart, MapPin, Clock, ArrowLeft } from "lucide-react";
+import { Heart, ArrowLeft } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
-import { FavoriteButton } from "@/components/ui/FavoriteButton";
-import { getShopImage } from "@/lib/product-images";
-
-type FavoriteShop = {
-  id: string;
-  slug: string;
-  name: string;
-  address: string;
-  city: string;
-  imageUrl: string | null;
-  prepTimeMin: number;
-  busyMode: boolean;
-  busyExtraMin: number;
-  status: string;
-  rating: number;
-  ratingCount: number;
-};
+import { ShopCard, type ShopCardData } from "@/components/shop/ShopCard";
 
 export default function FavorisPage() {
   const { userId } = useAuth();
-  const [shops, setShops] = useState<FavoriteShop[]>([]);
+  const [shops, setShops] = useState<ShopCardData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchFavorites = useCallback(async () => {
@@ -131,84 +114,18 @@ export default function FavorisPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {shops.map((shop) => {
-              const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-              const imgSrc = shop.imageUrl || getShopImage(0);
-
-              return (
-                <Link
-                  key={shop.id}
-                  href={`/boutique/${shop.slug}`}
-                  className={`flex gap-4 p-3 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-all ${
-                    (shop.status === "CLOSED" || shop.status === "VACATION") ? "opacity-60" : ""
-                  }`}
-                >
-                  {/* Image */}
-                  <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0">
-                    <Image
-                      src={imgSrc}
-                      alt={shop.name}
-                      fill
-                      sizes="96px"
-                      className="object-cover"
-                      quality={75}
-                    />
-                    {(shop.status === "CLOSED" || shop.status === "VACATION") && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">Fermé</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0 py-0.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold text-gray-900 dark:text-white truncate font-display">
-                        {shop.name}
-                      </h3>
-                      <FavoriteButton
-                        shopId={shop.id}
-                        initialFavorite={true}
-                        size={18}
-                        className="shrink-0"
-                        onToggle={(isFav) => {
-                          if (!isFav) setShops((prev) => prev.filter((s) => s.id !== shop.id));
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      <MapPin size={11} />
-                      <span className="truncate">{shop.address}, {shop.city}</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 mt-2">
-                      <div className="flex items-center gap-1 text-xs">
-                        <span>&#11088;</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">
-                          {shop.rating.toFixed(1)}
-                        </span>
-                        <span className="text-gray-500 dark:text-gray-400">({shop.ratingCount})</span>
-                      </div>
-                      {(shop.status === "OPEN" || shop.status === "BUSY") && (
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                          <Clock size={11} />
-                          <span className={
-                            effectiveTime <= 15
-                              ? "text-emerald-600 font-semibold"
-                              : effectiveTime <= 30
-                                ? "text-amber-600 font-semibold"
-                                : "text-red-600 font-semibold"
-                          }>
-                            {effectiveTime} min
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {shops.map((shop, i) => (
+              <ShopCard
+                key={shop.id}
+                shop={shop}
+                variant="compact"
+                index={i}
+                isFavorite={true}
+                onFavoriteToggle={(isFav) => {
+                  if (!isFav) setShops((prev) => prev.filter((s) => s.id !== shop.id));
+                }}
+              />
+            ))}
           </div>
         )}
       </div>

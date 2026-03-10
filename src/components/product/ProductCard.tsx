@@ -86,6 +86,13 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
     if (onDecrement) onDecrement();
   }, [onDecrement]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (onTap && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onTap();
+    }
+  }, [onTap]);
+
   return (
     <div
       className={`group relative overflow-hidden rounded-xl
@@ -95,9 +102,11 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
         hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)]
         ${outOfStock ? "opacity-50" : ""}
         ${isAntiGaspi ? "ring-1 ring-emerald-300/50 dark:ring-emerald-700/50" : ""}
-        ${onTap ? "cursor-pointer" : ""}`}
+        ${onTap ? "cursor-pointer" : ""}
+        focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none`}
       style={style}
       onClick={onTap}
+      {...(onTap ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown, "aria-label": `Voir ${product.name}` } : {})}
     >
       {/* ── Image 4:3 ── */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">

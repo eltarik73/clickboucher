@@ -2,37 +2,16 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import { FavoriteButton } from "@/components/ui/FavoriteButton";
-import { StarRating } from "@/components/ui/StarRating";
-import { SafeImage } from "@/components/ui/SafeImage";
-import { getShopImage } from "@/lib/product-images";
-import { MapPin, Loader2, Tag } from "lucide-react";
-
-type ShopData = {
-  id: string;
-  slug: string;
-  name: string;
-  address: string;
-  city: string;
-  imageUrl: string | null;
-  prepTimeMin: number;
-  busyMode: boolean;
-  busyExtraMin: number;
-  status: string;
-  rating: number;
-  ratingCount: number;
-  distance: number | null;
-  activePromo: string | null;
-};
+import { ShopCard, type ShopCardData } from "@/components/shop/ShopCard";
+import { MapPin, Loader2 } from "lucide-react";
 
 type Props = {
-  initialShops: ShopData[];
+  initialShops: ShopCardData[];
   favoriteIds: string[];
 };
 
 export default function NearbyShops({ initialShops, favoriteIds }: Props) {
-  const [shops, setShops] = useState<ShopData[]>(initialShops);
+  const [shops, setShops] = useState<ShopCardData[]>(initialShops);
   const [loading, setLoading] = useState(false);
   const [geoActive, setGeoActive] = useState(false);
 
@@ -138,7 +117,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
             {openShops.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {openShops.map((shop, i) => (
-                  <NearbyButcherCard
+                  <ShopCard
                     key={shop.id}
                     shop={shop}
                     index={i}
@@ -163,7 +142,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 opacity-60 grayscale">
                   {closedShops.map((shop, i) => (
-                    <NearbyButcherCard
+                    <ShopCard
                       key={shop.id}
                       shop={shop}
                       index={openShops.length + i}
@@ -181,122 +160,3 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
   );
 }
 
-function NearbyButcherCard({
-  shop,
-  index,
-  isFavorite,
-  priority,
-}: {
-  shop: ShopData;
-  index: number;
-  isFavorite: boolean;
-  priority: boolean;
-}) {
-  const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-  const imgSrc = shop.imageUrl || getShopImage(index);
-
-  const prepBadgeClasses =
-    effectiveTime <= 15
-      ? "bg-emerald-500/90 text-white"
-      : effectiveTime <= 30
-        ? "bg-amber-500/90 text-white"
-        : "bg-red-500/90 text-white";
-
-  return (
-    <Link
-      href={`/boutique/${shop.slug}`}
-      className={`group bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
-        shop.status === "CLOSED" || shop.status === "VACATION" ? "opacity-60" : ""
-      }`}
-    >
-      {/* Image */}
-      <div className="relative h-36 sm:h-48 overflow-hidden">
-        <SafeImage
-          src={imgSrc}
-          alt={shop.name}
-          type="shop"
-          fill
-          sizes="(max-width: 640px) 100vw, 50vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          quality={60}
-          priority={priority}
-          {...(priority ? { fetchPriority: "high" as const } : {})}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-
-        {/* Top-left badges */}
-        <div className="absolute top-3 left-3 flex flex-col items-start gap-1.5">
-          {/* Promo badge */}
-          {shop.activePromo && (
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-[#DC2626] text-white text-xs font-bold rounded-lg shadow-md">
-              <Tag className="w-3 h-3" />
-              {shop.activePromo}
-            </span>
-          )}
-          <div className="flex items-center gap-2">
-            {shop.status === "OPEN" || shop.status === "BUSY" ? (
-              <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${prepBadgeClasses}`}>
-                {effectiveTime <= 15 && (
-                  <span className="w-1.5 h-1.5 bg-white dark:bg-gray-900 rounded-full animate-pulse" />
-                )}
-                {effectiveTime} min
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 bg-gray-600/90 text-white text-xs font-semibold rounded-lg">
-                Fermé
-              </span>
-            )}
-            {shop.status === "BUSY" && (
-              <span className="px-2 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-lg">
-                Occupé
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Top-right: favorite + distance or city */}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
-          <FavoriteButton shopId={shop.id} initialFavorite={isFavorite} size={22} />
-          {shop.distance !== null && isFinite(shop.distance) ? (
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-white/90 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white text-xs font-semibold rounded-lg">
-              <MapPin className="w-3 h-3 text-red-600" />
-              {shop.distance} km
-            </span>
-          ) : (
-            <span className="px-2.5 py-1 bg-white/90 dark:bg-black/60 backdrop-blur-sm text-gray-800 dark:text-white text-xs font-semibold rounded-lg">
-              {shop.city}
-            </span>
-          )}
-        </div>
-
-        {/* Hover CTA */}
-        {(shop.status === "OPEN" || shop.status === "BUSY") && (
-          <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="block w-full py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
-              Voir la boutique
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Card body */}
-      <div className="p-4">
-        <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-[#DC2626] transition-colors font-display">
-          {shop.name}
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          {shop.address}, {shop.city}
-        </p>
-        <div className="flex items-center gap-3 mt-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg">
-            <StarRating value={Math.round(shop.rating)} size="sm" />
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              {shop.rating.toFixed(1)}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">({shop.ratingCount})</span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}

@@ -40,7 +40,11 @@ const nextConfig = {
           },
           {
             key: "Referrer-Policy",
-            value: "no-referrer-when-downgrade",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(self)",
           },
           {
             key: "Content-Security-Policy",
@@ -49,9 +53,9 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://img.clerk.com https://*.clerk.com https://*.public.blob.vercel-storage.com https://*.replicate.delivery",
-              "connect-src 'self' https://*.clerk.accounts.dev https://api.anthropic.com https://clerk.busy-mutt-20.clerk.accounts.dev wss://*.clerk.accounts.dev",
-              "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+              "img-src 'self' data: blob: https: http:",
+              "connect-src 'self' https://*.clerk.accounts.dev https://api.anthropic.com https://clerk.busy-mutt-20.clerk.accounts.dev wss://*.clerk.accounts.dev https://api.stripe.com https://*.sentry.io",
+              "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com",
               "worker-src 'self' blob:",
             ].join("; "),
           },
