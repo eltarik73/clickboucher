@@ -10,8 +10,8 @@ import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
-  title: "Anti-Gaspi — Produits a prix reduit",
-  description: "Produits anti-gaspi des boucheries halal pres de chez vous. Prix reduits sur les produits en fin de journee ou proches DLC.",
+  title: "Anti-Gaspi — Produits à prix réduit",
+  description: "Produits anti-gaspi des boucheries halal près de chez vous. Prix réduits sur les produits en fin de journée ou proches DLC. Achetez malin et réduisez le gaspillage.",
   alternates: { canonical: `${SITE_URL}/bons-plans/anti-gaspi` },
 };
 

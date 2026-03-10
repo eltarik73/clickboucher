@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Mentions légales",
+  description: "Mentions légales de Klik&Go. Informations sur l'éditeur, l'hébergeur et les conditions d'utilisation du service de click & collect pour boucheries halal.",
   robots: { index: true, follow: true },
 };
 

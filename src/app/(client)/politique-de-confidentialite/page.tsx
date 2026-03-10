@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
+  description: "Politique de confidentialité de Klik&Go. Découvrez comment nous protégeons vos données personnelles conformément au RGPD et à la loi Informatique et Libertés.",
   robots: { index: true, follow: true },
 };
 

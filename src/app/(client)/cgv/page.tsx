@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Conditions Générales de Vente",
+  description: "Conditions Générales de Vente de Klik&Go. Modalités de commande, retrait en boutique, paiement, remboursement et responsabilités pour le click & collect.",
   robots: { index: true, follow: true },
 };
 

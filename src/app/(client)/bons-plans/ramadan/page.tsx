@@ -12,7 +12,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
   title: "Offres Ramadan — Boucherie Halal",
-  description: "Offres speciales Ramadan dans les boucheries halal. Preparez l'Iftar avec des produits de qualite a prix reduit.",
+  description: "Offres spéciales Ramadan dans les boucheries halal. Préparez l'Iftar avec des produits de qualité à prix réduit. Commandez en click & collect et récupérez sans attendre.",
   alternates: { canonical: `${SITE_URL}/bons-plans/ramadan` },
 };
 

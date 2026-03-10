@@ -12,7 +12,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
   title: "Ventes Flash Boucherie Halal",
-  description: "Offres flash limitees dans les boucheries halal. Profitez vite des prix reduits !",
+  description: "Offres flash limitées dans les boucheries halal près de chez vous. Profitez rapidement des prix réduits sur la viande halal fraîche avant épuisement des stocks.",
   alternates: { canonical: `${SITE_URL}/bons-plans/vente-flash` },
 };
 

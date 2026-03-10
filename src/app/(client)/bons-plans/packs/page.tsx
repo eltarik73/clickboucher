@@ -11,7 +11,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
   title: "Packs Boucherie Halal",
-  description: "Packs famille et lots a prix reduit dans les boucheries halal pres de chez vous.",
+  description: "Packs famille et lots à prix réduit dans les boucheries halal près de chez vous. Commandez vos assortiments de viande halal en click & collect et économisez.",
   alternates: { canonical: `${SITE_URL}/bons-plans/packs` },
 };
 

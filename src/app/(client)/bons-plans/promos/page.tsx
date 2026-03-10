@@ -11,7 +11,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
   title: "Promotions Boucherie Halal",
-  description: "Toutes les promotions en cours dans les boucheries halal pres de chez vous.",
+  description: "Découvrez toutes les promotions en cours dans les boucheries halal près de chez vous. Profitez des meilleures réductions sur la viande halal fraîche en click & collect.",
   alternates: { canonical: `${SITE_URL}/bons-plans/promos` },
 };
 
