@@ -1,0 +1,7 @@
+{
+  "name": "klikgo-code-review",
+  "version": "1.0.0",
+  "description": "Code review multi-agent pour Klik&Go. 6 agents spécialisés Next.js/Prisma/Clerk/Stripe avec scoring de confiance et filtrage faux positifs. Adapté du système Code Review d'Anthropic.",
+  "author": "Tarik - Klik&Go",
+  "homepage": "https://github.com/eltarik73/clickboucher"
+}
