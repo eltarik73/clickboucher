@@ -231,6 +231,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                           setQuantities({ ...quantities, [item.id]: val });
                         }}
                         className="w-20 bg-[#0a0a0a] border border-white/10 rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                        aria-label={`Quantité pour ${item.product?.name || item.name}`}
                       />
                       <span className="text-xs text-gray-500 w-6">{isKg ? "kg" : "pc"}</span>
                     </div>
@@ -270,6 +271,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                         setPrices({ ...prices, [item.id]: cents });
                       }}
                       className="w-24 bg-[#0a0a0a] border border-white/10 rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                      aria-label={`Prix unitaire pour ${item.product?.name || item.name}`}
                     />
                     <span className="text-xs text-gray-500">EUR</span>
                   </div>
@@ -298,6 +300,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                     setManualTotal(cents);
                   }}
                   className="w-40 bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white text-xl text-center font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                  aria-label="Nouveau montant total"
                 />
                 <span className="text-lg text-gray-400 font-bold">EUR</span>
               </div>

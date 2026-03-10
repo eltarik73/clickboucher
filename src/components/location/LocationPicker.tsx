@@ -103,6 +103,7 @@ export default function LocationPicker({ onLocationChange }: Props) {
             onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
             placeholder="Ex: Chambéry, Lyon, Paris..."
             className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-red-500"
+            aria-label="Saisir une ville"
             autoFocus
           />
           <button

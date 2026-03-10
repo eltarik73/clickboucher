@@ -35,6 +35,9 @@ export default function OrderAlertOverlay({ order, onDismiss }: Props) {
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center cursor-pointer animate-pulse-slow"
+      role="button"
+      tabIndex={0}
+      aria-label="Fermer l'alerte de commande"
       style={{
         background: "radial-gradient(ellipse at center, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0.08) 70%, transparent 100%)",
         backdropFilter: "blur(2px)",
@@ -42,6 +45,12 @@ export default function OrderAlertOverlay({ order, onDismiss }: Props) {
       onClick={() => {
         setVisible(false);
         onDismiss();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          setVisible(false);
+          onDismiss();
+        }
       }}
     >
       {/* Alert card */}

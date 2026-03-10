@@ -137,6 +137,7 @@ export function SearchBar() {
             onChange={(e) => handleChange(e.target.value)}
             onFocus={() => setOpen(true)}
             placeholder="Rechercher un produit, une viande..."
+            aria-label="Rechercher un produit"
             className="w-full pl-10 pr-20 py-3 rounded-2xl bg-white dark:bg-[#141414] border border-gray-200/80 dark:border-white/10 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-all shadow-sm"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">

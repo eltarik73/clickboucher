@@ -63,6 +63,7 @@ export function QuantitySelector({ rule, initialG, onChange, compact = false }: 
         </button>
         <div className="flex-1 relative">
           <input ref={inputRef} type="text" inputMode="numeric" pattern="[0-9]*"
+            aria-label="Quantité"
             value={inputValue}
             onChange={e => setInputValue(e.target.value.replace(/[^0-9]/g, ""))}
             onBlur={commitInput}

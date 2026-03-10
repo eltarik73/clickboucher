@@ -79,6 +79,7 @@ export function StockIssueWizard({ orderId: _orderId, orderNumber, items, onReso
                       value={replacementNames[item.id] || ""}
                       onChange={(e) => setReplacementNames({ ...replacementNames, [item.id]: e.target.value })}
                       className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm"
+                      aria-label={`Nom du produit de remplacement pour ${item.name}`}
                     />
                   </div>
                   <Button

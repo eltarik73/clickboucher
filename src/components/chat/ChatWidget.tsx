@@ -549,6 +549,7 @@ export function ChatWidget() {
                 }
               }}
               placeholder="Ex: 1kg d'entrecôte..."
+              aria-label="Votre message"
               className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1a] rounded-full text-sm text-gray-900 dark:text-white outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <button

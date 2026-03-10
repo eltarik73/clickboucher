@@ -432,7 +432,9 @@ export default function AdminOrdersPage() {
                     <tr
                       key={order.id}
                       className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                      tabIndex={0}
                       onClick={() => setDetail(order)}
+                      onKeyDown={(e) => { if (e.key === "Enter") setDetail(order); }}
                     >
                       <td className="px-5 py-3">
                         <span className="font-mono font-semibold text-gray-900 dark:text-[#f8f6f3]">

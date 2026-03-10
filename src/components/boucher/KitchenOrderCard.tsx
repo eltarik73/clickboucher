@@ -384,7 +384,7 @@ export default function KitchenOrderCard({
               {item.product?.imageUrl ? (
                 <img
                   src={item.product.imageUrl}
-                  alt=""
+                  alt={item.product?.name || item.name}
                   className="w-7 h-7 rounded-[6px] object-cover shrink-0"
                 />
               ) : (
@@ -547,6 +547,7 @@ export default function KitchenOrderCard({
                 className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center"
                 min={1}
                 max={480}
+                aria-label="Délai de préparation en minutes"
               />
               <span className="text-xs text-gray-500">min</span>
             </div>

@@ -557,7 +557,7 @@ export default function BoucherProduitsPage() {
             </Button>
             {showSortMenu && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowSortMenu(false)} />
+                <div className="fixed inset-0 z-30" role="presentation" onClick={() => setShowSortMenu(false)} />
                 <div className="absolute right-0 top-full mt-1 z-40 bg-white dark:bg-[#1a1a1a] border border-[#ece8e3] dark:border-white/10 rounded-xl shadow-lg overflow-hidden min-w-[160px]">
                   {(["custom", "name", "price", "date"] as SortMode[]).map((mode) => (
                     <button
@@ -946,7 +946,7 @@ function ProductRow({
       </div>
 
       {/* Info (clickable to edit) */}
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onEdit}>
+      <div className="flex-1 min-w-0 cursor-pointer" role="button" tabIndex={0} onClick={onEdit} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onEdit(); }}>
         <div className="flex items-center gap-1.5">
           <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate">
             {product.name}
@@ -1088,7 +1088,7 @@ function ProductRow({
         {/* Snooze dropdown (Deliveroo style) */}
         {showSnoozeMenu && (
           <>
-            <div className="fixed inset-0 z-30" onClick={() => setShowSnoozeMenu(false)} />
+            <div className="fixed inset-0 z-30" role="presentation" onClick={() => setShowSnoozeMenu(false)} />
             <div className="absolute right-0 top-full mt-1 z-40 bg-white dark:bg-[#1a1a1a] border border-[#ece8e3] dark:border-white/10 rounded-xl shadow-lg overflow-hidden min-w-[150px]">
               <div className="px-3 py-1.5 border-b border-gray-100 dark:border-white/5">
                 <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Mettre en pause</p>

@@ -552,7 +552,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" role="presentation" onClick={onClose} />
       <div className="relative w-full max-w-lg bg-white dark:bg-[#141414] rounded-t-2xl sm:rounded-2xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* ── Header ── */}
         <div className="sticky top-0 bg-white dark:bg-[#141414] border-b border-[#ece8e3] dark:border-white/10 px-5 pt-4 pb-3 z-10">
@@ -1499,7 +1499,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
         {/* ── Delete confirmation dialog ── */}
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-20 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/40 rounded-t-2xl sm:rounded-2xl" onClick={() => setShowDeleteConfirm(false)} />
+            <div className="absolute inset-0 bg-black/40 rounded-t-2xl sm:rounded-2xl" role="presentation" onClick={() => setShowDeleteConfirm(false)} />
             <div className="relative bg-white dark:bg-[#1a1a1a] rounded-2xl p-6 mx-6 max-w-sm w-full shadow-2xl space-y-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">

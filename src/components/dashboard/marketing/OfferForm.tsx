@@ -666,7 +666,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                   {/* Banner image preview */}
                   {bannerImageUrl && (
                     <div className="relative rounded-xl overflow-hidden">
-                      <img src={bannerImageUrl} alt="Bannière" className="w-full h-32 object-cover rounded-xl" />
+                      <img src={bannerImageUrl} alt="Aperçu bannière promotionnelle" className="w-full h-32 object-cover rounded-xl" />
                       <button
                         onClick={() => setBannerImageUrl("")}
                         className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70"
@@ -757,7 +757,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                   {/* Popup image preview */}
                   {popupImageUrl && (
                     <div className="relative rounded-xl overflow-hidden">
-                      <img src={popupImageUrl} alt="Popup" className="w-full h-32 object-cover rounded-xl" />
+                      <img src={popupImageUrl} alt="Aperçu popup promotionnelle" className="w-full h-32 object-cover rounded-xl" />
                       <button
                         onClick={() => setPopupImageUrl("")}
                         className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg hover:bg-black/70"

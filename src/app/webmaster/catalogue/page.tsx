@@ -538,7 +538,7 @@ export default function WebmasterCataloguePage() {
       )}
       {/* Promote dialog */}
       {promoteProduct && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setPromoteProduct(null)}>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="presentation" onClick={() => setPromoteProduct(null)}>
           <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 shadow-xl w-full max-w-md p-5 space-y-4">
             <h3 className="font-display font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <ArrowUpRight size={18} className="text-red-600" />

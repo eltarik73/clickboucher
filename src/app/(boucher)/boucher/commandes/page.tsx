@@ -479,7 +479,7 @@ export default function KitchenModePage() {
 
       {/* ── Pause modal (v3 — cards sélectionnables) ── */}
       {showPauseModal && (
-        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowPauseModal(false)}>
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="presentation" onClick={() => setShowPauseModal(false)}>
           <div className="bg-[#1C1C1E] rounded-2xl max-w-sm w-full p-6 space-y-5 border border-[#3F3F46]" onClick={(e) => e.stopPropagation()} style={{ fontFamily: "Outfit, sans-serif" }}>
             <div>
               <h3 className="text-white font-bold text-lg">Suspendre les commandes</h3>
@@ -1006,7 +1006,7 @@ export default function KitchenModePage() {
       {/* ── HISTORY DRAWER (slide-up) ── */}
       {/* ══════════════════════════════════════════ */}
       {showHistory && (
-        <div className="fixed inset-0 z-[70]" onClick={() => setShowHistory(false)}>
+        <div className="fixed inset-0 z-[70]" role="presentation" onClick={() => setShowHistory(false)}>
           <div className="absolute inset-0 bg-black/60" />
           <div
             className="absolute bottom-0 inset-x-0 h-[70vh] bg-[#111] border-t border-white/10 rounded-t-2xl flex flex-col animate-slide-up"

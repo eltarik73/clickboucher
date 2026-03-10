@@ -214,7 +214,7 @@ export function WebmasterNav() {
       {showMoreMenu && (
         <div className="md:hidden fixed inset-0 z-[60] flex flex-col">
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMoreMenu(false)} />
+          <div className="absolute inset-0 bg-black/50" role="presentation" onClick={() => setShowMoreMenu(false)} />
           {/* Panel */}
           <div className="relative mt-auto bg-white dark:bg-[#141414] rounded-t-2xl max-h-[80vh] overflow-y-auto pb-safe-bottom animate-slide-up">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-[#141414] z-10">

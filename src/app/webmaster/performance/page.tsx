@@ -161,7 +161,7 @@ export default function PerformanceOverviewPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 overflow-hidden flex-shrink-0">
                           {shop.imageUrl ? (
-                            <Image src={shop.imageUrl} alt="" width={36} height={36} className="w-full h-full object-cover" />
+                            <Image src={shop.imageUrl} alt={shop.name} width={36} height={36} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <Store size={16} className="text-gray-400 dark:text-gray-500" />
