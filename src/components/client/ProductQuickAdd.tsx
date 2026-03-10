@@ -191,7 +191,7 @@ export function ProductQuickAdd({ product, shop, isOpen, onClose }: Props) {
             </h2>
             <Link
               href={`/boutique/${shop.slug}`}
-              className="text-[11px] text-gray-500 hover:text-[#DC2626] transition-colors"
+              className="text-[11px] text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               {shop.name} →
@@ -206,22 +206,22 @@ export function ProductQuickAdd({ product, shop, isOpen, onClose }: Props) {
               </span>
               <div className="flex items-center gap-1 justify-end mt-0.5">
                 {(product.isAntiGaspi && product.antiGaspiOrigPriceCents) && (
-                  <span className="text-[10px] text-gray-400 line-through">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 line-through">
                     {fmtPrice(product.antiGaspiOrigPriceCents)}
                   </span>
                 )}
                 {(product.promoPct && product.promoPct > 0 && !product.isAntiGaspi) && (
-                  <span className="text-[10px] text-gray-400 line-through">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 line-through">
                     {fmtPrice(product.priceCents)}
                   </span>
                 )}
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500">
                   /{isKg ? "kg" : product.unit === "BARQUETTE" ? "barq." : "pce"}
                 </span>
               </div>
             </div>
             <button onClick={handleClose} className="p-1 -mt-0.5" aria-label="Fermer">
-              <X size={18} className="text-gray-400" />
+              <X size={18} className="text-gray-400 dark:text-gray-500" />
             </button>
           </div>
         </div>
@@ -239,7 +239,7 @@ export function ProductQuickAdd({ product, shop, isOpen, onClose }: Props) {
         <div className="px-4 pb-3">
           {isKg ? (
             <>
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-2">Choisir le poids</p>
+              <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Choisir le poids</p>
               {/* Presets */}
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {WEIGHT_PRESETS.map((w) => (
@@ -279,13 +279,13 @@ export function ProductQuickAdd({ product, shop, isOpen, onClose }: Props) {
                   <Plus size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
-              <p className="text-center text-[10px] text-gray-400 mt-1.5">
+              <p className="text-center text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
                 ⚖️ ±10% — ajustement au poids réel
               </p>
             </>
           ) : (
             <>
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-2">Quantité</p>
+              <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Quantité</p>
               <div className="flex items-center justify-center gap-4">
                 <button
                   type="button"
@@ -312,7 +312,7 @@ export function ProductQuickAdd({ product, shop, isOpen, onClose }: Props) {
         {/* Total + CTA */}
         <div className="px-4 pb-8 pt-2 border-t border-gray-200/50 dark:border-white/[0.06]">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[12px] text-gray-500">Total estimé</span>
+            <span className="text-[12px] text-gray-500 dark:text-gray-400">Total estimé</span>
             <span className="text-lg font-black text-[#1C1512] dark:text-white">{formatPrice(totalEstimate)}</span>
           </div>
           <button

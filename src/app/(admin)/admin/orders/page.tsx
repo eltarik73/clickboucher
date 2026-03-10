@@ -82,7 +82,7 @@ const STATUS_LABELS: Record<string, string> = {
 function statusBadge(status: string) {
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[status] || "bg-gray-100 text-gray-600"}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[status] || "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400"}`}
     >
       {STATUS_LABELS[status] || status}
     </span>
@@ -337,7 +337,7 @@ export default function AdminOrdersPage() {
         <div className="relative flex-1">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
           />
           <input
             type="text"
@@ -363,7 +363,7 @@ export default function AdminOrdersPage() {
             </select>
             <ChevronDown
               size={14}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
             />
           </div>
           <input
@@ -518,7 +518,7 @@ export default function AdminOrdersPage() {
                   <span className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                     {fmt(order.totalCents)} €
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
                     {fmtDateTime(order.createdAt)}
                   </span>
                 </div>

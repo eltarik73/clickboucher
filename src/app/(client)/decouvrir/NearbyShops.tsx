@@ -90,7 +90,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
       {loading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin text-red-600" />
-          <span className="ml-2 text-sm text-gray-500">Recherche des boucheries proches...</span>
+          <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Recherche des boucheries proches...</span>
         </div>
       )}
 
@@ -237,7 +237,7 @@ function NearbyButcherCard({
             {shop.status === "OPEN" || shop.status === "BUSY" ? (
               <span className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${prepBadgeClasses}`}>
                 {effectiveTime <= 15 && (
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                  <span className="w-1.5 h-1.5 bg-white dark:bg-gray-900 rounded-full animate-pulse" />
                 )}
                 {effectiveTime} min
               </span>
@@ -293,7 +293,7 @@ function NearbyButcherCard({
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {shop.rating.toFixed(1)}
             </span>
-            <span className="text-xs text-gray-400">({shop.ratingCount})</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">({shop.ratingCount})</span>
           </div>
         </div>
       </div>

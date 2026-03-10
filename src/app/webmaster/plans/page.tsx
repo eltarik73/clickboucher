@@ -219,7 +219,7 @@ export default function WebmasterPlansPage() {
       <Section title="Répartition des plans" icon={Crown}>
         {loadingPlans ? (
           <div className="flex justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-gray-400" />
+            <Loader2 size={20} className="animate-spin text-gray-400 dark:text-gray-500" />
           </div>
         ) : (
           <>
@@ -232,17 +232,17 @@ export default function WebmasterPlansPage() {
                 const pct = totalShops > 0 ? ((count / totalShops) * 100).toFixed(0) : "0";
                 return (
                   <div key={plan} className="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 text-center">
-                    <PlanIcon size={20} className={`mx-auto mb-1 ${cfg.color.includes("text-") ? "" : "text-gray-500"}`} />
+                    <PlanIcon size={20} className={`mx-auto mb-1 ${cfg.color.includes("text-") ? "" : "text-gray-500 dark:text-gray-400"}`} />
                     <div className="text-lg font-bold text-gray-900 dark:text-white">{count}</div>
                     <div className={`text-xs font-semibold px-2 py-0.5 rounded-md inline-block ${cfg.color}`}>
                       {cfg.label}
                     </div>
-                    <div className="text-[10px] text-gray-400 mt-1">{pct}%</div>
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{pct}%</div>
                   </div>
                 );
               })}
               <div className="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 text-center">
-                <Users size={20} className="mx-auto mb-1 text-gray-400" />
+                <Users size={20} className="mx-auto mb-1 text-gray-400 dark:text-gray-500" />
                 <div className="text-lg font-bold text-gray-900 dark:text-white">{totalShops}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Total</div>
               </div>
@@ -254,7 +254,7 @@ export default function WebmasterPlansPage() {
                 .filter(([, c]) => c > 0)
                 .sort((a, b) => b[1] - a[1])
                 .map(([status, count]) => {
-                  const cfg = STATUS_CONFIG[status] || { label: status, color: "bg-gray-100 text-gray-500" };
+                  const cfg = STATUS_CONFIG[status] || { label: status, color: "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400" };
                   return (
                     <div key={status} className={`px-3 py-1.5 rounded-full text-xs font-semibold ${cfg.color}`}>
                       {cfg.label} : {count}
@@ -287,7 +287,7 @@ export default function WebmasterPlansPage() {
                     />
                   ))}
                 </div>
-                <div className="text-xs text-gray-400 mt-0.5">
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                   {reviewStats.totalReviews} avis
                 </div>
               </div>
@@ -309,7 +309,7 @@ export default function WebmasterPlansPage() {
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-gray-400 w-8">{count}</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 w-8">{count}</span>
                   </div>
                 );
               })}
@@ -360,7 +360,7 @@ export default function WebmasterPlansPage() {
 
           {/* Sort */}
           <div className="relative ml-auto">
-            <ArrowUpDown size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <ArrowUpDown size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -370,12 +370,12 @@ export default function WebmasterPlansPage() {
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
           </div>
         </div>
 
         {/* Count */}
-        <div className="text-xs text-gray-400 mb-2">
+        <div className="text-xs text-gray-400 dark:text-gray-500 mb-2">
           {reviewTotal} avis · Page {reviewPage}/{reviewTotalPages || 1}
         </div>
 
@@ -387,7 +387,7 @@ export default function WebmasterPlansPage() {
             ))}
           </div>
         ) : reviews.length === 0 ? (
-          <div className="text-center py-8 text-sm text-gray-400">Aucun avis trouvé.</div>
+          <div className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">Aucun avis trouvé.</div>
         ) : (
           <div className="space-y-2">
             {reviews.map((review) => (
@@ -410,7 +410,7 @@ export default function WebmasterPlansPage() {
                     <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                       {review.user.firstName} {review.user.lastName.charAt(0)}.
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">
                       {timeAgo(review.createdAt)}
                     </span>
                   </div>
@@ -419,7 +419,7 @@ export default function WebmasterPlansPage() {
                       {review.comment}
                     </p>
                   )}
-                  <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-400">
+                  <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-400 dark:text-gray-500">
                     <Store size={10} />
                     {review.shop.name}
                   </div>
@@ -429,7 +429,7 @@ export default function WebmasterPlansPage() {
                 <button
                   onClick={() => deleteReview(review.id)}
                   disabled={deletingId === review.id}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition flex-shrink-0"
+                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition flex-shrink-0"
                   title="Supprimer cet avis"
                 >
                   {deletingId === review.id ? (
@@ -449,7 +449,7 @@ export default function WebmasterPlansPage() {
             <button
               onClick={() => setReviewPage((p) => Math.max(1, p - 1))}
               disabled={reviewPage <= 1}
-              className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 transition"
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 transition"
             >
               <ChevronLeft size={16} />
             </button>
@@ -476,7 +476,7 @@ export default function WebmasterPlansPage() {
             <button
               onClick={() => setReviewPage((p) => Math.min(reviewTotalPages, p + 1))}
               disabled={reviewPage >= reviewTotalPages}
-              className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 transition"
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 transition"
             >
               <ChevronRight size={16} />
             </button>

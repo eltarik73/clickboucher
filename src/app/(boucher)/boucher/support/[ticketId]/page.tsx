@@ -104,7 +104,7 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
   if (!ticket) {
     return (
       <div className="text-center py-32">
-        <p className="text-gray-500">Ticket introuvable</p>
+        <p className="text-gray-500 dark:text-gray-400">Ticket introuvable</p>
       </div>
     );
   }

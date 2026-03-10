@@ -338,7 +338,7 @@ export default function CalendrierPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {!isPast && (
-                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${days <= 7 ? "bg-red-100 text-red-700" : days <= 21 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"}`}>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${days <= 7 ? "bg-red-100 text-red-700" : days <= 21 ? "bg-amber-100 text-amber-700" : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400"}`}>
                         J-{days}
                       </span>
                     )}

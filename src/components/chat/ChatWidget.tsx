@@ -113,7 +113,7 @@ function TypingDots({ text }: { text?: string }) {
     <div className="flex justify-start">
       <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/10 rounded-2xl rounded-bl-sm px-4 py-3">
         {text ? (
-          <span className="text-sm text-gray-500">{text}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{text}</span>
         ) : (
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
@@ -195,7 +195,7 @@ function RecapActions({
       </button>
       <button
         onClick={onModify}
-        className="text-sm text-gray-400 underline cursor-pointer hover:text-gray-600 transition-colors"
+        className="text-sm text-gray-400 dark:text-gray-500 underline cursor-pointer hover:text-gray-600 transition-colors"
       >
         &#9999;&#65039; Modifier ma commande
       </button>

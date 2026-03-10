@@ -43,14 +43,14 @@ export default async function AntiGaspiPage() {
       <div className="text-center py-16 px-4">
         <span className="text-4xl mb-4 block">🌿</span>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucun produit anti-gaspi</h2>
-        <p className="text-sm text-gray-500">Les offres anti-gaspi apparaitront ici des qu&apos;un boucher en lancera</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Les offres anti-gaspi apparaitront ici des qu&apos;un boucher en lancera</p>
       </div>
     );
   }
 
   return (
     <div className="px-3 py-2 space-y-2">
-      <p className="text-xs text-gray-500 px-1">{products.length} produit{products.length > 1 ? "s" : ""} a prix reduit</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 px-1">{products.length} produit{products.length > 1 ? "s" : ""} a prix reduit</p>
       {products.map((p) => {
         const imgSrc = p.images[0]?.url || resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.categories[0]?.name || "" });
         return (
@@ -82,11 +82,11 @@ export default async function AntiGaspiPage() {
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[13px] font-extrabold text-emerald-600">{fmtPrice(p.priceCents)}</span>
                   {p.antiGaspiOrigPriceCents && (
-                    <span className="text-[9px] text-gray-400 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-gray-400">{p.shop.name}</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">{p.shop.name}</span>
                   {p.antiGaspiStock !== null && p.antiGaspiStock <= 5 && (
                     <span className="text-[9px] font-semibold text-orange-600">Plus que {p.antiGaspiStock} !</span>
                   )}

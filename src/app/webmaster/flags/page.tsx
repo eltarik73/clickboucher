@@ -94,7 +94,7 @@ export default function WebmasterFlagsPage() {
         ))}
 
         {flags.length === 0 && (
-          <p className="text-center text-gray-400 py-12">Aucun feature flag configure</p>
+          <p className="text-center text-gray-400 dark:text-gray-500 py-12">Aucun feature flag configure</p>
         )}
       </div>
     </div>

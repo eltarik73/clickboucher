@@ -39,14 +39,14 @@ export default async function PacksPage() {
       <div className="text-center py-16 px-4">
         <span className="text-4xl mb-4 block">📦</span>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucun pack disponible</h2>
-        <p className="text-sm text-gray-500">Les packs apparaitront ici</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Les packs apparaitront ici</p>
       </div>
     );
   }
 
   return (
     <div className="px-3 py-2 space-y-2">
-      <p className="text-xs text-gray-500 px-1">{products.length} pack{products.length > 1 ? "s" : ""}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 px-1">{products.length} pack{products.length > 1 ? "s" : ""}</p>
       {products.map((p) => {
         const imgSrc = p.images[0]?.url || resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.categories[0]?.name || "" });
         return (
@@ -72,17 +72,17 @@ export default async function PacksPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{p.name}</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5 truncate">{p.packContent}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.packContent}</p>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[13px] font-extrabold text-[#1A1A1A] dark:text-white">{fmtPrice(p.priceCents)}</span>
                   {p.packOldPriceCents && (
-                    <span className="text-[9px] text-gray-400 line-through">{fmtPrice(p.packOldPriceCents)}</span>
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(p.packOldPriceCents)}</span>
                   )}
                   {p.packWeight && (
-                    <span className="text-[9px] text-gray-400">{p.packWeight}</span>
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500">{p.packWeight}</span>
                   )}
                 </div>
-                <span className="text-[10px] text-gray-400 mt-1 block">{p.shop.name}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">{p.shop.name}</span>
               </div>
             </div>
           </BonsPlansProductCard>

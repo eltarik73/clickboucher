@@ -147,7 +147,7 @@ export default function AdminTicketDetailPage({ params }: { params: { ticketId: 
                     <span className={`${info.bg} text-white text-[10px] font-bold px-1.5 py-0.5 rounded`}>
                       {info.name}
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">
                       {new Date(msg.createdAt).toLocaleString("fr-FR")}
                     </span>
                   </div>

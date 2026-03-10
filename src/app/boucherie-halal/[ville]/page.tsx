@@ -225,7 +225,7 @@ export default async function CityPage({
                           <Star size={11} className="text-yellow-500 fill-yellow-500" />
                           {shop.rating.toFixed(1)} ({shop.ratingCount})
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Clock size={11} />
                           {effectiveTime} min
                         </span>
@@ -268,7 +268,7 @@ export default async function CityPage({
               >
                 <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
                   {faq.question}
-                  <span className="text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="text-gray-400 dark:text-gray-500 group-open:rotate-180 transition-transform ml-3 shrink-0">
                     ▼
                   </span>
                 </summary>
@@ -291,7 +291,7 @@ export default async function CityPage({
             </p>
             <Link
               href="/"
-              className="inline-block px-8 py-3 bg-white text-[#DC2626] font-semibold rounded-full hover:bg-gray-50 transition"
+              className="inline-block px-8 py-3 bg-white dark:bg-gray-900 text-[#DC2626] font-semibold rounded-full hover:bg-gray-50 transition"
             >
               Voir les boucheries
             </Link>

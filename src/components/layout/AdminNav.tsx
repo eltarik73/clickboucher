@@ -160,7 +160,7 @@ export function AdminMobileHeader({
                 onClick={onToggle}
                 className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10"
               >
-                <X size={20} className="text-gray-500" />
+                <X size={20} className="text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             <nav className="space-y-1">

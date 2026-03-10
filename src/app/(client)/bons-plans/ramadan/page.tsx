@@ -55,7 +55,7 @@ export default async function RamadanPage() {
       <div className="text-center py-16 px-4">
         <span className="text-4xl mb-4 block">🌙</span>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Ramadan</h2>
-        <p className="text-sm text-gray-500">Les offres speciales Ramadan apparaitront ici pendant le mois sacre</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Les offres speciales Ramadan apparaitront ici pendant le mois sacre</p>
       </div>
     );
   }
@@ -77,7 +77,7 @@ export default async function RamadanPage() {
             <Link key={o.id} href={o.shop?.slug ? `/boutique/${o.shop.slug}` : "/bons-plans/ramadan"}>
               <div className="p-3 bg-white dark:bg-white/[0.03] rounded-2xl border border-amber-200/60 dark:border-amber-800/20">
                 <p className="text-sm font-bold text-gray-900 dark:text-white">{o.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{o.shop?.name || "Klik&Go"}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{o.shop?.name || "Klik&Go"}</p>
                 {o.code && (
                   <span className="inline-block mt-1 text-[10px] font-mono bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded">
                     {o.code}
@@ -125,10 +125,10 @@ export default async function RamadanPage() {
                         {fmtPrice(discounted ?? p.priceCents)}
                       </span>
                       {discounted && (
-                        <span className="text-[9px] text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
+                        <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(p.priceCents)}</span>
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400 mt-1 block">{p.shop.name}</span>
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">{p.shop.name}</span>
                   </div>
                 </div>
               </BonsPlansProductCard>

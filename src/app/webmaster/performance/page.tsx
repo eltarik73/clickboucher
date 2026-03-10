@@ -37,7 +37,7 @@ function pct(v: number | null) {
 }
 
 function scoreColor(score: number | null) {
-  if (score === null) return "text-gray-400";
+  if (score === null) return "text-gray-400 dark:text-gray-500";
   if (score >= 80) return "text-green-600 dark:text-green-400";
   if (score >= 60) return "text-amber-600 dark:text-amber-400";
   if (score >= 40) return "text-orange-600 dark:text-orange-400";
@@ -80,7 +80,7 @@ export default function PerformanceOverviewPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <RefreshCw size={24} className="animate-spin text-gray-400" />
+        <RefreshCw size={24} className="animate-spin text-gray-400 dark:text-gray-500" />
       </div>
     );
   }
@@ -99,7 +99,7 @@ export default function PerformanceOverviewPage() {
         </div>
         <button
           onClick={fetchData}
-          className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors"
+          className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 transition-colors"
         >
           <RefreshCw size={18} />
         </button>
@@ -109,25 +109,25 @@ export default function PerformanceOverviewPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-4 text-center">
           <p className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">{shops.length}</p>
-          <p className="text-xs text-gray-400 mt-1">Boutiques</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Boutiques</p>
         </div>
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-4 text-center">
           <p className="text-2xl font-bold text-green-600">
             {shops.filter((s) => (s.performanceScore ?? 0) >= 80).length}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Score 80+</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Score 80+</p>
         </div>
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-4 text-center">
           <p className="text-2xl font-bold text-amber-600">
             {shops.filter((s) => (s.performanceScore ?? 0) >= 40 && (s.performanceScore ?? 0) < 80).length}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Score 40-79</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Score 40-79</p>
         </div>
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-4 text-center">
           <p className="text-2xl font-bold text-red-600">
             {shops.reduce((sum, s) => sum + s._count.alerts, 0)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Alertes actives</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Alertes actives</p>
         </div>
       </div>
 
@@ -143,14 +143,14 @@ export default function PerformanceOverviewPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/10">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Boutique</th>
-                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 uppercase">Score</th>
-                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Accept.</th>
-                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Annul.</th>
-                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Réponse</th>
-                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Retard</th>
-                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 uppercase">Note</th>
-                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 uppercase">Alertes</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Boutique</th>
+                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Score</th>
+                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">Accept.</th>
+                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">Annul.</th>
+                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase hidden lg:table-cell">Réponse</th>
+                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase hidden lg:table-cell">Retard</th>
+                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Note</th>
+                  <th className="text-center px-3 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Alertes</th>
                   <th className="px-3 py-3"></th>
                 </tr>
               </thead>
@@ -164,13 +164,13 @@ export default function PerformanceOverviewPage() {
                             <Image src={shop.imageUrl} alt="" width={36} height={36} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Store size={16} className="text-gray-400" />
+                              <Store size={16} className="text-gray-400 dark:text-gray-500" />
                             </div>
                           )}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900 dark:text-[#f8f6f3]">{shop.name}</p>
-                          <p className="text-xs text-gray-400">{shop.city}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{shop.city}</p>
                         </div>
                       </div>
                     </td>
@@ -212,7 +212,7 @@ export default function PerformanceOverviewPage() {
                     <td className="px-3 py-3">
                       <button
                         onClick={() => recalculate(shop.id)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 transition-colors"
                         title="Recalculer"
                       >
                         <RefreshCw size={14} />

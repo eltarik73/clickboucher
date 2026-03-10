@@ -63,8 +63,8 @@ export default function OrderReceipt({
         {/* Header */}
         <div className="text-center mb-6 border-b border-dashed border-gray-300 dark:border-white/20 pb-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">{shopName}</h2>
-          {shopAddress && <p className="text-xs text-gray-500 mt-1">{shopAddress}</p>}
-          {shopPhone && <p className="text-xs text-gray-500">{shopPhone}</p>}
+          {shopAddress && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{shopAddress}</p>}
+          {shopPhone && <p className="text-xs text-gray-500 dark:text-gray-400">{shopPhone}</p>}
           <div className="mt-3 bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2 inline-block">
             <p className="text-sm font-mono font-bold text-gray-900 dark:text-white">{orderNumber}</p>
           </div>
@@ -73,16 +73,16 @@ export default function OrderReceipt({
         {/* Info */}
         <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400 mb-4">
           <div>
-            <span className="text-gray-400">Client:</span>
+            <span className="text-gray-400 dark:text-gray-500">Client:</span>
             <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{customerName}</span>
           </div>
           <div>
-            <span className="text-gray-400">Date:</span>
+            <span className="text-gray-400 dark:text-gray-500">Date:</span>
             <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">{formatDate(createdAt)}</span>
           </div>
           {estimatedReady && (
             <div>
-              <span className="text-gray-400">Retrait:</span>
+              <span className="text-gray-400 dark:text-gray-500">Retrait:</span>
               <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">
                 ~{formatDate(estimatedReady)}
               </span>
@@ -90,7 +90,7 @@ export default function OrderReceipt({
           )}
           {paymentMethod && (
             <div>
-              <span className="text-gray-400">Paiement:</span>
+              <span className="text-gray-400 dark:text-gray-500">Paiement:</span>
               <span className="ml-1 font-medium text-gray-700 dark:text-gray-300">
                 {paymentMethod === "ONLINE" ? "En ligne" : "Au retrait"}
               </span>
@@ -110,7 +110,7 @@ export default function OrderReceipt({
         <div className="border-t border-dashed border-gray-300 dark:border-white/20 pt-4">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-gray-400 border-b border-gray-100 dark:border-white/5">
+              <tr className="text-xs text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-white/5">
                 <th className="text-left pb-2">Article</th>
                 <th className="text-center pb-2">Qté</th>
                 <th className="text-right pb-2">Prix</th>
@@ -122,12 +122,12 @@ export default function OrderReceipt({
                   <td className="py-2 text-gray-700 dark:text-gray-300">
                     {item.name}
                     {item.weightGrams && (
-                      <span className="text-xs text-gray-400 ml-1">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">
                         ({(item.weightGrams / 1000).toFixed(2)}kg)
                       </span>
                     )}
                   </td>
-                  <td className="py-2 text-center text-gray-500">
+                  <td className="py-2 text-center text-gray-500 dark:text-gray-400">
                     {item.weightGrams ? "" : `×${item.quantity}`}
                   </td>
                   <td className="py-2 text-right font-medium text-gray-700 dark:text-gray-300">
@@ -148,7 +148,7 @@ export default function OrderReceipt({
             </span>
           </div>
           {commissionCents !== undefined && commissionCents > 0 && (
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
               <span>Commission plateforme</span>
               <span>{formatPrice(commissionCents)}</span>
             </div>
@@ -157,8 +157,8 @@ export default function OrderReceipt({
 
         {/* Footer */}
         <div className="text-center mt-6 pt-4 border-t border-dashed border-gray-300 dark:border-white/20">
-          <p className="text-xs text-gray-400">Merci pour votre commande !</p>
-          <p className="text-xs text-gray-400 mt-1">klikandgo.fr</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Merci pour votre commande !</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">klikandgo.fr</p>
         </div>
       </div>
     </div>

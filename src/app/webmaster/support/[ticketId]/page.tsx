@@ -155,7 +155,7 @@ export default function WebmasterTicketDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 size={24} className="animate-spin text-gray-400" />
+        <Loader2 size={24} className="animate-spin text-gray-400 dark:text-gray-500" />
       </div>
     );
   }
@@ -179,7 +179,7 @@ export default function WebmasterTicketDetailPage() {
       <div className="flex items-start gap-3">
         <Link
           href="/webmaster/support"
-          className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition mt-0.5"
+          className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition mt-0.5"
         >
           <ArrowLeft size={16} />
         </Link>
@@ -280,7 +280,7 @@ export default function WebmasterTicketDetailPage() {
                   <span className={`text-xs font-semibold ${roleCfg.color}`}>
                     {roleCfg.label}
                   </span>
-                  <span className="text-[10px] text-gray-400 ml-auto">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto">
                     {formatDate(msg.createdAt)}
                   </span>
                 </div>
@@ -333,7 +333,7 @@ export default function WebmasterTicketDetailPage() {
                 </button>
               </div>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1.5">
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
               Ctrl+Entrée pour envoyer · Bouton vert = envoyer + résoudre
             </p>
           </div>

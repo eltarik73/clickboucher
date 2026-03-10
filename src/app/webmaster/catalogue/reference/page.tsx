@@ -254,7 +254,7 @@ export default function ReferenceCatalogPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Rechercher un produit..."
@@ -264,7 +264,7 @@ export default function ReferenceCatalogPage() {
           />
         </div>
         <div className="relative">
-          <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <select
             value={categoryFilter}
             onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
@@ -301,7 +301,7 @@ export default function ReferenceCatalogPage() {
 
       {/* Products list */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Chargement...</div>
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">Chargement...</div>
       ) : products.length === 0 ? (
         <div className="text-center py-12">
           <Package size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
@@ -324,7 +324,7 @@ export default function ReferenceCatalogPage() {
                 {p.imageUrl ? (
                   <Image src={p.imageUrl} alt={p.name} width={56} height={56} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
                     <Package size={20} />
                   </div>
                 )}
@@ -346,7 +346,7 @@ export default function ReferenceCatalogPage() {
                   <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400">
                     {p.category.emoji} {p.category.name}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
                     {p.unit}
                   </span>
                   {p.variants?.length > 0 && (
@@ -367,10 +367,10 @@ export default function ReferenceCatalogPage() {
                 {p.suggestedPrice ? (
                   <span className="font-bold text-gray-900 dark:text-[#f8f6f3]">
                     {fmt(p.suggestedPrice)}
-                    <span className="text-xs font-normal text-gray-400">{UNIT_LABELS[p.unit]}</span>
+                    <span className="text-xs font-normal text-gray-400 dark:text-gray-500">{UNIT_LABELS[p.unit]}</span>
                   </span>
                 ) : (
-                  <span className="text-sm text-gray-400">&mdash;</span>
+                  <span className="text-sm text-gray-400 dark:text-gray-500">&mdash;</span>
                 )}
               </div>
 
@@ -378,21 +378,21 @@ export default function ReferenceCatalogPage() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => handleToggleActive(p)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors"
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 transition-colors"
                   title={p.isActive ? "D\u00e9sactiver" : "Activer"}
                 >
                   {p.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
                 </button>
                 <button
                   onClick={() => openEdit(p)}
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors"
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 transition-colors"
                   title="Modifier"
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => handleDelete(p.id)}
-                  className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors"
+                  className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
                   title="Supprimer"
                 >
                   <Trash2 size={16} />
@@ -413,7 +413,7 @@ export default function ReferenceCatalogPage() {
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
             {page} / {totalPages}
           </span>
           <button

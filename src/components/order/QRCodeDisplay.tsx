@@ -41,7 +41,7 @@ export default function QRCodeDisplay({ qrCode, orderNumber, size = 200 }: Props
         <span className="text-sm font-medium">QR Code de retrait</span>
       </div>
 
-      <div className="bg-white p-3 rounded-lg">
+      <div className="bg-white dark:bg-gray-900 p-3 rounded-lg">
         <canvas ref={canvasRef} />
       </div>
 

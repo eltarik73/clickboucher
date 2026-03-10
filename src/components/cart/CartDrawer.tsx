@@ -39,7 +39,7 @@ export function CartDrawer({ open, onClose }: Props) {
         
         <div className="flex-1 overflow-y-auto p-4">
           {items.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">Votre panier est vide</div>
+            <div className="text-center py-10 text-gray-500 dark:text-gray-400">Votre panier est vide</div>
           ) : (
             <div className="space-y-2">
               {items.map((item) => (

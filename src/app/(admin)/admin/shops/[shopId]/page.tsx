@@ -89,7 +89,7 @@ function subStatusBadge(status: string) {
     PENDING: { label: "En attente", cls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400" },
     EXPIRED: { label: "Expiré", cls: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-400" },
   };
-  const s = m[status] || { label: status, cls: "bg-gray-100 text-gray-700" };
+  const s = m[status] || { label: status, cls: "bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300" };
   return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.cls}`}>{s.label}</span>;
 }
 
@@ -326,7 +326,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
                     <span className="text-sm font-medium text-gray-900 dark:text-[#f8f6f3]">
                       #{o.orderNumber}
                     </span>
-                    <span className="text-xs text-gray-400 ml-2">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
                       {new Date(o.createdAt).toLocaleDateString("fr-FR")}
                     </span>
                   </div>

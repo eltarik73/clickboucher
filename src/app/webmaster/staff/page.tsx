@@ -257,7 +257,7 @@ export default function WebmasterStaffPage() {
                 setPromoteError("");
                 setPromoteSuccess("");
               }}
-              className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X size={16} />
             </button>
@@ -321,7 +321,7 @@ export default function WebmasterStaffPage() {
       <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm overflow-hidden">
         {/* Toolbar */}
         <div className="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-          <Shield size={16} className="text-gray-500" />
+          <Shield size={16} className="text-gray-500 dark:text-gray-400" />
           <h2 className="text-sm font-bold text-gray-900 dark:text-white flex-1">
             Administrateurs
           </h2>
@@ -329,7 +329,7 @@ export default function WebmasterStaffPage() {
             <div className="relative max-w-[200px]">
               <Search
                 size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
               />
               <input
                 type="text"
@@ -344,12 +344,12 @@ export default function WebmasterStaffPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 size={20} className="animate-spin text-gray-400" />
+            <Loader2 size={20} className="animate-spin text-gray-400 dark:text-gray-500" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
             <Users size={32} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 dark:text-gray-500">
               {search ? "Aucun résultat" : "Aucun administrateur"}
             </p>
           </div>
@@ -376,7 +376,7 @@ export default function WebmasterStaffPage() {
                       ADMIN
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
+                  <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400 dark:text-gray-500">
                     <span className="flex items-center gap-1 truncate">
                       <Mail size={11} /> {m.email}
                     </span>
@@ -394,7 +394,7 @@ export default function WebmasterStaffPage() {
                     {m.auditCount} action{m.auditCount > 1 ? "s" : ""}
                   </span>
                   {m.lastActivity ? (
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">
                       Dernière : {timeAgo(m.lastActivity.createdAt)}
                     </span>
                   ) : (
@@ -421,7 +421,7 @@ export default function WebmasterStaffPage() {
                     </button>
                     <button
                       onClick={() => setConfirmRevoke(null)}
-                      className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                     >
                       <X size={14} />
                     </button>
@@ -429,7 +429,7 @@ export default function WebmasterStaffPage() {
                 ) : (
                   <button
                     onClick={() => setConfirmRevoke(m.id)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition flex-shrink-0"
+                    className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition flex-shrink-0"
                     title="Révoquer l'accès admin"
                   >
                     <UserMinus size={16} />
@@ -442,7 +442,7 @@ export default function WebmasterStaffPage() {
 
         {/* Join date */}
         {!loading && filtered.length > 0 && (
-          <div className="px-4 py-2 border-t border-gray-50 dark:border-white/[0.03] text-[10px] text-gray-400">
+          <div className="px-4 py-2 border-t border-gray-50 dark:border-white/[0.03] text-[10px] text-gray-400 dark:text-gray-500">
             Premier admin ajouté le{" "}
             {new Date(
               staff.reduce(
@@ -463,17 +463,17 @@ export default function WebmasterStaffPage() {
             onClick={() => setShowActivity((v) => !v)}
             className="w-full px-4 py-3 flex items-center gap-2 text-left hover:bg-gray-50 dark:hover:bg-white/[0.02] transition"
           >
-            <Activity size={16} className="text-gray-500" />
+            <Activity size={16} className="text-gray-500 dark:text-gray-400" />
             <span className="text-sm font-bold text-gray-900 dark:text-white flex-1">
               Activité récente
             </span>
-            <span className="text-xs text-gray-400 mr-2">
+            <span className="text-xs text-gray-400 dark:text-gray-500 mr-2">
               {recentAudit.length} action{recentAudit.length > 1 ? "s" : ""}
             </span>
             {showActivity ? (
-              <ChevronUp size={16} className="text-gray-400" />
+              <ChevronUp size={16} className="text-gray-400 dark:text-gray-500" />
             ) : (
-              <ChevronDown size={16} className="text-gray-400" />
+              <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />
             )}
           </button>
 
@@ -495,13 +495,13 @@ export default function WebmasterStaffPage() {
                         {actionLabel(a.action)}
                       </span>
                       {a.target && (
-                        <span className="text-gray-400 text-xs ml-1">
+                        <span className="text-gray-400 dark:text-gray-500 text-xs ml-1">
                           ({a.target}
                           {a.targetId ? ` #${a.targetId.slice(0, 8)}` : ""})
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-gray-400 flex-shrink-0">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
                       {timeAgo(a.createdAt)}
                     </span>
                   </div>

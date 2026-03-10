@@ -86,7 +86,7 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
 
   if (!stats) {
     return (
-      <p className="text-sm text-gray-400 text-center py-12">
+      <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-12">
         Impossible de charger les ajustements.
       </p>
     );
@@ -143,7 +143,7 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
         </div>
 
         {adjustments.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-12">Aucun ajustement pour cette boutique.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-12">Aucun ajustement pour cette boutique.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -165,7 +165,7 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
                     ? ((adj.newTotal - adj.originalTotal) / adj.originalTotal * 100).toFixed(1)
                     : "0";
                   const isIncrease = adj.newTotal > adj.originalTotal;
-                  const statusInfo = STATUS_LABELS[adj.status] || { label: adj.status, color: "bg-gray-100 text-gray-600" };
+                  const statusInfo = STATUS_LABELS[adj.status] || { label: adj.status, color: "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400" };
                   const tierColor = TIER_COLORS[adj.tier] || "";
 
                   return (
@@ -187,7 +187,7 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
                           {statusInfo.label}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-right text-gray-400">
+                      <td className="px-3 py-2.5 text-right text-gray-400 dark:text-gray-500">
                         {new Date(adj.createdAt).toLocaleDateString("fr-FR", {
                           day: "2-digit",
                           month: "2-digit",

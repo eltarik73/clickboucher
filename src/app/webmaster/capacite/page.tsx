@@ -328,7 +328,7 @@ export default function WebmasterCapacitePage() {
                   <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {formatDate(evt.date)}
                   </div>
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-[10px] text-gray-400 dark:text-gray-500">
                     {relativeDate(evt.date)}
                   </div>
                 </div>
@@ -439,7 +439,7 @@ function ShopCapacityCard({ shop }: { shop: ShopCapacity }) {
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="w-24">
             <div className="flex items-center justify-between text-[10px] mb-0.5">
-              <span className="text-gray-400">Charge</span>
+              <span className="text-gray-400 dark:text-gray-500">Charge</span>
               <span className="font-bold text-gray-700 dark:text-gray-300">
                 {shop.capacityPct}%
               </span>
@@ -451,7 +451,7 @@ function ShopCapacityCard({ shop }: { shop: ShopCapacity }) {
               />
             </div>
           </div>
-          {expanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+          {expanded ? <ChevronUp size={16} className="text-gray-400 dark:text-gray-500" /> : <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />}
         </div>
       </button>
 
@@ -590,7 +590,7 @@ function ShopCapacityCard({ shop }: { shop: ShopCapacity }) {
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 italic">
+                <p className="text-xs text-gray-400 dark:text-gray-500 italic">
                   Non configuré
                 </p>
               )}

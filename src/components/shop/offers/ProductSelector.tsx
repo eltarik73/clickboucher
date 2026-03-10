@@ -151,7 +151,7 @@ export function ProductSelector({
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={24} className="animate-spin text-gray-400" />
+          <Loader2 size={24} className="animate-spin text-gray-400 dark:text-gray-500" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-12 text-center">

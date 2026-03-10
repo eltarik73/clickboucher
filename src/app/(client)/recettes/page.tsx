@@ -105,8 +105,8 @@ export default async function RecettesPage({
                 <h2 className="text-xl font-extrabold text-[#1C1512] dark:text-white">
                   {featured.title}
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">{featured.description}</p>
-                <div className="flex gap-3 mt-3 text-xs text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{featured.description}</p>
+                <div className="flex gap-3 mt-3 text-xs text-gray-400 dark:text-gray-500">
                   <span>👤 {featured.servings} pers.</span>
                   <span>📊 {featured.difficulty}</span>
                 </div>
@@ -115,7 +115,7 @@ export default async function RecettesPage({
                   <div className="text-xs font-bold text-[#DC2626]">
                     🥩 {featured.meatQuantity}
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5">
+                  <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                     Disponible chez nos boucheries partenaires
                   </div>
                 </div>
@@ -153,14 +153,14 @@ export default async function RecettesPage({
                   🥩 {recipe.meatQuantity}
                 </div>
                 <div className="flex gap-2 mt-1">
-                  <span className="text-[10px] text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
                     ⏱ {recipe.totalTime} min
                   </span>
-                  <span className="text-[10px] text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
                     {recipe.difficulty}
                   </span>
                   {recipe.tags[0] && (
-                    <span className="text-[10px] text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
                       {recipe.tags[0]}
                     </span>
                   )}

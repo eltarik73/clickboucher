@@ -57,7 +57,7 @@ function LocationCard() {
         </div>
         <div className="min-w-0">
           <div className="font-bold text-[13px] text-gray-900 dark:text-white">Votre position</div>
-          <div className="text-[11px] text-gray-400">
+          <div className="text-[11px] text-gray-400 dark:text-gray-500">
             {geo.city || "Activez pour voir les proches"}
           </div>
         </div>
@@ -71,7 +71,7 @@ function LocationCard() {
             </span>
             <button
               onClick={() => { geo.clear(); window.dispatchEvent(new CustomEvent("klikgo-location", { detail: { lat: null, lng: null } })); }}
-              className="text-[11px] text-gray-400 hover:text-red-600 transition font-semibold"
+              className="text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-600 transition font-semibold"
             >
               Modifier
             </button>
@@ -88,7 +88,7 @@ function LocationCard() {
             </button>
             <button
               onClick={() => setShowInput(!showInput)}
-              className="text-gray-500 text-[11px] font-semibold border border-gray-200 dark:border-white/[0.06] rounded-lg px-2.5 py-1.5 hover:border-gray-300 transition"
+              className="text-gray-500 dark:text-gray-400 text-[11px] font-semibold border border-gray-200 dark:border-white/[0.06] rounded-lg px-2.5 py-1.5 hover:border-gray-300 transition"
             >
               Saisir ville
             </button>
@@ -169,11 +169,11 @@ export function ReorderSection() {
             </div>
             <div className="min-w-0">
               <div className="font-bold text-[13px] text-gray-900 dark:text-white group-hover:text-[#DC2626] transition-colors">Commander à nouveau</div>
-              <div className="text-[11px] text-gray-400 truncate">{lastOrder.shopName} · {timeAgo(lastOrder.createdAt)}</div>
+              <div className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{lastOrder.shopName} · {timeAgo(lastOrder.createdAt)}</div>
             </div>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-white/5">
-            <span className="text-xs text-gray-400 truncate">{lastOrder.summary}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 truncate">{lastOrder.summary}</span>
             <span className="flex items-center gap-0.5 text-red-600 text-[13px] font-bold flex-shrink-0">
               {(lastOrder.totalCents / 100).toFixed(2).replace(".", ",")} € <ChevronRight size={14} />
             </span>
@@ -186,7 +186,7 @@ export function ReorderSection() {
           </div>
           <div>
             <div className="font-bold text-[13px] text-gray-900 dark:text-white">Commander à nouveau</div>
-            <div className="text-[11px] text-gray-400">Passez votre première commande</div>
+            <div className="text-[11px] text-gray-400 dark:text-gray-500">Passez votre première commande</div>
           </div>
         </div>
       )}

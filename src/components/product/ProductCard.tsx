@@ -196,7 +196,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                   <span className="text-[13px] font-bold text-emerald-600">
                     {fmtPrice(product.priceCents)}
                   </span>
-                  <span className="text-[9px] text-gray-400 line-through">
+                  <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">
                     {fmtPrice(product.antiGaspiOrigPriceCents!)}
                   </span>
                 </>
@@ -207,7 +207,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                       ? Math.max(0, product.priceCents - product.promoFixedCents)
                       : promoPrice(product.priceCents, product.promoPct!))}
                   </span>
-                  <span className="text-[9px] text-gray-400 line-through">
+                  <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">
                     {fmtPrice(product.priceCents)}
                   </span>
                 </>
@@ -216,7 +216,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                   <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
                     {fmtPrice(product.priceCents)}
                   </span>
-                  <span className="text-[9px] text-gray-400 line-through">
+                  <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">
                     {fmtPrice(product.packOldPriceCents)}
                   </span>
                 </>

@@ -350,7 +350,7 @@ export default function AdminAnalyticsPage() {
                       className="w-full bg-[#DC2626]/80 rounded-t transition-all"
                       style={{ height: `${Math.max(h, 4)}%` }}
                     />
-                    <span className="text-[9px] text-gray-400">
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500">
                       {shortDate(w.week)}
                     </span>
                   </div>

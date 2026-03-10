@@ -45,14 +45,14 @@ export default async function VenteFlashPage() {
       <div className="text-center py-16 px-4">
         <span className="text-4xl mb-4 block">⚡</span>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucune vente flash</h2>
-        <p className="text-sm text-gray-500">Les ventes flash apparaitront ici</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Les ventes flash apparaitront ici</p>
       </div>
     );
   }
 
   return (
     <div className="px-3 py-2 space-y-2">
-      <p className="text-xs text-gray-500 px-1">{products.length} offre{products.length > 1 ? "s" : ""} flash</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 px-1">{products.length} offre{products.length > 1 ? "s" : ""} flash</p>
       {products.map((p) => {
         const imgSrc = p.images[0]?.url || resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.categories[0]?.name || "" });
         const discounted = p.promoPct ? Math.round(p.priceCents * (1 - p.promoPct / 100)) : p.priceCents;
@@ -85,11 +85,11 @@ export default async function VenteFlashPage() {
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[13px] font-extrabold text-[#DC2626]">{fmtPrice(discounted)}</span>
                   {p.promoPct && p.promoPct > 0 && (
-                    <span className="text-[9px] text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(p.priceCents)}</span>
                   )}
                 </div>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-[10px] text-gray-400">{p.shop.name}</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">{p.shop.name}</span>
                   {endAt && <FlashCountdown promoEnd={endAt} />}
                 </div>
               </div>

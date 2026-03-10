@@ -358,7 +358,7 @@ export default function BoucherClientsPage() {
           <div className="space-y-3">
             {/* Search */}
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <Input
                 placeholder="Rechercher un client..."
                 value={searchQuery}
@@ -394,7 +394,7 @@ export default function BoucherClientsPage() {
 
               {/* Sort */}
               <div className="flex items-center gap-1 overflow-x-auto">
-                <ArrowUpDown size={12} className="text-gray-400 shrink-0" />
+                <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 shrink-0" />
                 {([
                   { key: "lastOrder", label: "Récent" },
                   { key: "totalSpent", label: "Dépensé" },

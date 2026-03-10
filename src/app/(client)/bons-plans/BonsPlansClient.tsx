@@ -91,7 +91,7 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
     <div>
         {/* Stats */}
         <div className="px-4 py-2">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {totalCount} offre{totalCount > 1 ? "s" : ""} active{totalCount > 1 ? "s" : ""}
             {flashPromos.length > 0 && (
               <span className="ml-1">dont {flashPromos.length} flash</span>
@@ -244,7 +244,7 @@ function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-white/10 border border-[#DC2626]/20 rounded-lg hover:bg-[#DC2626]/5 transition-colors"
               >
                 <code className="text-xs font-mono font-bold text-[#DC2626]">{promo.code}</code>
-                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-400" />}
+                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-400 dark:text-gray-500" />}
               </button>
             ) : (
               <span className="text-[10px] text-[#DC2626] font-semibold bg-[#DC2626]/10 px-2 py-1 rounded-full">
@@ -331,8 +331,8 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
             <div className="text-right shrink-0">
               <span className="text-[13px] font-extrabold text-[#DC2626]">{fmtPrice(discountedPrice)}</span>
               <div className="flex items-center gap-1">
-                <span className="text-[9px] text-gray-400 line-through">{fmtPrice(product.priceCents)}</span>
-                <span className="text-[9px] text-gray-400">{unitLabel(product.unit)}</span>
+                <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(product.priceCents)}</span>
+                <span className="text-[9px] text-gray-400 dark:text-gray-500">{unitLabel(product.unit)}</span>
               </div>
             </div>
           </div>

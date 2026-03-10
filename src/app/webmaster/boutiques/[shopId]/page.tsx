@@ -238,7 +238,7 @@ export default function WebmasterShopDetailPage() {
   if (!shop) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-400">Boutique introuvable</p>
+        <p className="text-gray-400 dark:text-gray-500">Boutique introuvable</p>
         <Link href="/webmaster/boutiques" className="text-sm text-[#DC2626] mt-3 inline-block">
           Retour aux boutiques
         </Link>
@@ -260,7 +260,7 @@ export default function WebmasterShopDetailPage() {
           onClick={() => router.push("/webmaster/boutiques")}
           className="w-9 h-9 rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 flex items-center justify-center shrink-0 mt-0.5"
         >
-          <ArrowLeft size={16} className="text-gray-500" />
+          <ArrowLeft size={16} className="text-gray-500 dark:text-gray-400" />
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -291,7 +291,7 @@ export default function WebmasterShopDetailPage() {
             className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
               shop.featured
                 ? "bg-amber-500/20 text-amber-600"
-                : "bg-gray-100 dark:bg-white/5 text-gray-400"
+                : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
             }`}
             title={shop.featured ? "Retirer mise en avant" : "Mettre en avant"}
           >
@@ -430,27 +430,27 @@ export default function WebmasterShopDetailPage() {
           {shop.subscription ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Plan actuel</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Plan actuel</span>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${PLAN_COLORS[shop.subscription.plan] || ""}`}>
                   {shop.subscription.plan}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Statut</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Statut</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${SUB_STATUS_COLORS[shop.subscription.status] || ""}`}>
                   {shop.subscription.status}
                 </span>
               </div>
               {shop.subscription.trialEndsAt && (
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Fin essai</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Fin essai</span>
                   <span className="text-xs text-gray-700 dark:text-gray-300">
                     {new Date(shop.subscription.trialEndsAt).toLocaleDateString("fr-FR")}
                   </span>
                 </div>
               )}
               {shop.subscription.adminNote && (
-                <p className="text-[11px] text-gray-400 italic">Note: {shop.subscription.adminNote}</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 italic">Note: {shop.subscription.adminNote}</p>
               )}
 
               {/* Change plan */}
@@ -488,7 +488,7 @@ export default function WebmasterShopDetailPage() {
                     </button>
                     <button
                       onClick={() => setShowPlanModal(false)}
-                      className="py-2 px-3 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      className="py-2 px-3 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                     >
                       Annuler
                     </button>
@@ -497,7 +497,7 @@ export default function WebmasterShopDetailPage() {
               )}
             </div>
           ) : (
-            <p className="text-xs text-gray-400">Aucun abonnement</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Aucun abonnement</p>
           )}
         </div>
 
@@ -516,7 +516,7 @@ export default function WebmasterShopDetailPage() {
                 onChange={(e) => { setCommissionPct(parseFloat(e.target.value) || 0); setCommissionDirty(true); }}
                 className="w-20 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-center text-gray-900 dark:text-white"
               />
-              <span className="text-sm text-gray-500">%</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
               {commissionDirty && (
                 <button
                   onClick={handleCommission}
@@ -527,7 +527,7 @@ export default function WebmasterShopDetailPage() {
                 </button>
               )}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1.5">
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
               {shop.commissionEnabled ? "Active" : "Désactivée"} · Total perçu : {centsToEuro(shop.stats.totalCommission)}
             </p>
           </div>
@@ -535,7 +535,7 @@ export default function WebmasterShopDetailPage() {
           {/* Mode occupé — durée par défaut */}
           <div className="border-t border-gray-100 dark:border-white/5 pt-4">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Mode occupé</h3>
-            <p className="text-xs text-gray-400 mb-3">Durée par défaut quand le boucher active le mode occupé</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Durée par défaut quand le boucher active le mode occupé</p>
             <div className="flex items-center gap-3">
               <input
                 type="number"
@@ -548,7 +548,7 @@ export default function WebmasterShopDetailPage() {
                 }}
                 className="w-20 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white text-center"
               />
-              <span className="text-xs text-gray-500">minutes</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">minutes</span>
               <button
                 onClick={async () => {
                   try {
@@ -608,7 +608,7 @@ export default function WebmasterShopDetailPage() {
                   </button>
                   <button
                     onClick={() => { setShowSuspendConfirm(false); setSuspendReason(""); }}
-                    className="py-2 px-3 text-xs text-gray-500"
+                    className="py-2 px-3 text-xs text-gray-500 dark:text-gray-400"
                   >
                     Annuler
                   </button>
@@ -622,7 +622,7 @@ export default function WebmasterShopDetailPage() {
       {/* Shop photo management */}
       <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-          <Camera size={15} className="text-gray-400" /> Photo de la boutique
+          <Camera size={15} className="text-gray-400 dark:text-gray-500" /> Photo de la boutique
         </h3>
 
         {/* Current photo */}
@@ -639,7 +639,7 @@ export default function WebmasterShopDetailPage() {
               {shop.imageUrl ? "Photo actuelle" : "Aucune photo"}
             </p>
             {shop.imageUrl && (
-              <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px]">{shop.imageUrl}</p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate max-w-[200px]">{shop.imageUrl}</p>
             )}
           </div>
         </div>
@@ -689,15 +689,15 @@ export default function WebmasterShopDetailPage() {
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Proprietaire</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <div>
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Nom</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Nom</span>
               <span className="text-gray-900 dark:text-white font-medium">{shop.owner.name}</span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Email</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Email</span>
               <span className="text-gray-700 dark:text-gray-300">{shop.owner.email}</span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Telephone</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Telephone</span>
               <span className="text-gray-700 dark:text-gray-300">{shop.owner.phone || "Non renseigne"}</span>
             </div>
           </div>
@@ -724,7 +724,7 @@ export default function WebmasterShopDetailPage() {
                   <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                     {centsToEuro(order.totalCents)}
                   </span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
                     {new Date(order.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>

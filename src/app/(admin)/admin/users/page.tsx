@@ -58,7 +58,7 @@ function roleBadge(role: string) {
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${styles[role] || "bg-gray-100 text-gray-600"}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${styles[role] || "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400"}`}
     >
       {labels[role] || role}
     </span>
@@ -250,7 +250,7 @@ export default function AdminUsersPage() {
         <div className="relative flex-1">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
           />
           <input
             type="text"
@@ -273,7 +273,7 @@ export default function AdminUsersPage() {
           </select>
           <ChevronDown
             size={14}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
           />
         </div>
       </div>
@@ -390,19 +390,19 @@ export default function AdminUsersPage() {
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {user.orderCount}
                     </p>
-                    <p className="text-[10px] text-gray-400">Commandes</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Commandes</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {fmt(user.totalSpent)} €
                     </p>
-                    <p className="text-[10px] text-gray-400">Dépensé</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Dépensé</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {fmtDate(user.createdAt)}
                     </p>
-                    <p className="text-[10px] text-gray-400">Inscrit</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Inscrit</p>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-white/10">
@@ -453,7 +453,7 @@ export default function AdminUsersPage() {
                 </select>
                 <ChevronDown
                   size={14}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
                 />
               </div>
             </div>

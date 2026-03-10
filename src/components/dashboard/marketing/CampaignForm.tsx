@@ -486,7 +486,7 @@ export function CampaignForm({
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-[#141414]">
             <label className="mb-3 block text-sm font-semibold text-gray-900 dark:text-white">
               Visuel d&apos;en-t\u00EAte{" "}
-              <span className="font-normal text-gray-400">(optionnel)</span>
+              <span className="font-normal text-gray-400 dark:text-gray-500">(optionnel)</span>
             </label>
 
             {/* Upload zone */}
@@ -581,7 +581,7 @@ export function CampaignForm({
                   type="checkbox"
                   checked={includePromo}
                   onChange={(e) => setIncludePromo(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-red-600 focus:ring-red-500"
                 />
                 <Gift className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -917,14 +917,14 @@ export function CampaignForm({
                 {/* Promo code preview */}
                 {includePromo && previewCode && (
                   <div className="rounded-xl bg-gray-50 p-4 text-center dark:bg-white/5">
-                    <p className="mb-1 text-xs text-gray-400">
+                    <p className="mb-1 text-xs text-gray-400 dark:text-gray-500">
                       Votre code promo
                     </p>
                     <p className="font-mono text-2xl font-bold text-red-600 dark:text-red-400">
                       {previewCode}
                     </p>
                     {(previewMinOrder > 0 || selectedOffer?.endDate) && (
-                      <p className="mt-1 text-[11px] text-gray-400">
+                      <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
                         {previewMinOrder > 0 && `Minimum ${previewMinOrder}\u20AC`}
                         {previewMinOrder > 0 && selectedOffer?.endDate && " \u00B7 "}
                         {selectedOffer?.endDate &&

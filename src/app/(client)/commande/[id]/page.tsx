@@ -212,7 +212,7 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
 
   return (
     <div className="flex flex-col items-center mt-5">
-      <div className="bg-white p-4 rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
         <QRCodeSVG value={qrCode} size={size} level="M" />
       </div>
       <button

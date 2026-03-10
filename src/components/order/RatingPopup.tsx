@@ -75,7 +75,7 @@ export default function RatingPopup({ orderId, shopName, onClose, onSubmitted }:
         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/10">
           <h3 className="font-semibold text-gray-900 dark:text-white">Comment était votre commande ?</h3>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10">
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 

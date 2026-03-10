@@ -285,7 +285,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
                   className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
                     sliceCount === n
                       ? "bg-[#DC2626] text-white shadow-[0_2px_8px_rgba(220,38,38,0.3)]"
-                      : "bg-white text-gray-700 border border-gray-200 hover:border-[#DC2626]/40"
+                      : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-[#DC2626]/40"
                   }`}
                 >
                   {n}
@@ -296,7 +296,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
             <div className="flex items-center gap-2 mt-2">
               <button
                 onClick={() => setSliceCount(Math.max(minSlices, sliceCount - 1))}
-                className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center text-lg font-bold hover:bg-gray-200 transition-colors"
+                className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 flex items-center justify-center text-lg font-bold hover:bg-gray-200 transition-colors"
               >
                 −
               </button>
@@ -305,7 +305,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
               </span>
               <button
                 onClick={() => setSliceCount(Math.min(maxSlices, sliceCount + 1))}
-                className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center text-lg font-bold hover:bg-gray-200 transition-colors"
+                className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 flex items-center justify-center text-lg font-bold hover:bg-gray-200 transition-colors"
               >
                 +
               </button>
@@ -327,7 +327,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
                     className={`px-3 py-2 rounded-xl text-[12px] font-bold transition-all flex items-center gap-1 ${
                       thickness === t
                         ? "bg-[#DC2626] text-white shadow-[0_2px_8px_rgba(220,38,38,0.3)]"
-                        : "bg-white text-gray-700 border border-gray-200 hover:border-[#DC2626]/40"
+                        : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-[#DC2626]/40"
                     }`}
                   >
                     <span>{cfg.emoji}</span>

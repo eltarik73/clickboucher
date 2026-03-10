@@ -212,7 +212,7 @@ export default function HistoriquePage() {
         <div className="relative flex-1 max-w-xs">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
           />
           <input
             type="text"
@@ -345,7 +345,7 @@ export default function HistoriquePage() {
                       <span className="font-bold text-gray-900 dark:text-white">
                         {ticket}
                       </span>
-                      <span className="text-sm text-gray-400">
+                      <span className="text-sm text-gray-400 dark:text-gray-500">
                         {anonymizeName(order.user)}
                       </span>
                     </div>

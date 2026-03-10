@@ -127,7 +127,7 @@ export default function CGV() {
             </p>
           </section>
 
-          <p className="text-xs text-gray-400 mt-8">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-8">
             Dernière mise à jour : mars 2026
           </p>
         </div>

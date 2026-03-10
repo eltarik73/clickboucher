@@ -182,7 +182,7 @@ export default function AbonnementPage() {
             onClick={() => setYearly(!yearly)}
             className={`relative w-14 h-7 rounded-full transition-colors ${yearly ? "bg-[#DC2626]" : "bg-gray-300 dark:bg-gray-600"}`}
           >
-            <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform ${yearly ? "translate-x-7" : ""}`} />
+            <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white dark:bg-gray-900 rounded-full transition-transform ${yearly ? "translate-x-7" : ""}`} />
           </button>
           <span className={`text-sm ${yearly ? "font-bold text-gray-900 dark:text-white" : "text-gray-500"}`}>
             Annuel <span className="text-[#DC2626] font-bold">-20%</span>
@@ -210,18 +210,18 @@ export default function AbonnementPage() {
                   </span>
                 )}
 
-                <plan.icon className={`w-6 h-6 mb-2 ${plan.popular ? "text-[#DC2626]" : "text-gray-400"}`} />
+                <plan.icon className={`w-6 h-6 mb-2 ${plan.popular ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"}`} />
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h3>
 
                 <div className="mt-2">
                   <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
                     {yearly ? Math.round(plan.yearlyPrice / 12) : plan.monthlyPrice}&euro;
                   </span>
-                  <span className="text-xs text-gray-500">/mois</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">/mois</span>
                 </div>
 
                 {yearly && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                     {price}&euro;/an <span className="text-[#DC2626] font-bold">(économie {savings}&euro;)</span>
                   </p>
                 )}

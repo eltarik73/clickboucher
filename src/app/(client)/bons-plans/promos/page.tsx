@@ -41,14 +41,14 @@ export default async function PromosPage() {
       <div className="text-center py-16 px-4">
         <span className="text-4xl mb-4 block">🏷️</span>
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Aucune promotion</h2>
-        <p className="text-sm text-gray-500">Les promotions apparaitront ici</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Les promotions apparaitront ici</p>
       </div>
     );
   }
 
   return (
     <div className="px-3 py-2 space-y-2">
-      <p className="text-xs text-gray-500 px-1">{products.length} promotion{products.length > 1 ? "s" : ""}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 px-1">{products.length} promotion{products.length > 1 ? "s" : ""}</p>
       {products.map((p) => {
         const imgSrc = p.images[0]?.url || resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.categories[0]?.name || "" });
         const discounted = Math.round(p.priceCents * (1 - (p.promoPct || 0) / 100));
@@ -79,9 +79,9 @@ export default async function PromosPage() {
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{p.name}</h3>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[13px] font-extrabold text-[#DC2626]">{fmtPrice(discounted)}</span>
-                  <span className="text-[9px] text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
+                  <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(p.priceCents)}</span>
                 </div>
-                <span className="text-[10px] text-gray-400 mt-1 block">{p.shop.name}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">{p.shop.name}</span>
               </div>
             </div>
           </BonsPlansProductCard>

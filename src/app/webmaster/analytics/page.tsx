@@ -230,7 +230,7 @@ export default function WebmasterAnalyticsPage() {
               />
             ))}
           </div>
-          <div className="flex justify-between text-[9px] text-gray-400 mt-1">
+          <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-1">
             <span>{shortDate(revenueByDay[0]?.date || "")}</span>
             <span>{shortDate(revenueByDay[revenueByDay.length - 1]?.date || "")}</span>
           </div>
@@ -248,7 +248,7 @@ export default function WebmasterAnalyticsPage() {
               />
             ))}
           </div>
-          <div className="flex justify-between text-[9px] text-gray-400 mt-1">
+          <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-1">
             <span>{shortDate(ordersByDay[0]?.date || "")}</span>
             <span>{shortDate(ordersByDay[ordersByDay.length - 1]?.date || "")}</span>
           </div>
@@ -277,7 +277,7 @@ export default function WebmasterAnalyticsPage() {
                     <div className="w-20 h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden flex-shrink-0">
                       <div className={`h-full rounded-full ${cfg.color}`} style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="text-[10px] text-gray-400 w-8 text-right">
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500 w-8 text-right">
                       {pct.toFixed(0)}%
                     </span>
                   </div>
@@ -295,7 +295,7 @@ export default function WebmasterAnalyticsPage() {
                   className="w-full bg-emerald-400 dark:bg-emerald-500 rounded-t-md"
                   style={{ height: `${Math.max(4, (w.count / userMax) * 100)}%` }}
                 />
-                <span className="text-[9px] text-gray-400">{shortWeek(w.week)}</span>
+                <span className="text-[9px] text-gray-400 dark:text-gray-500">{shortWeek(w.week)}</span>
               </div>
             ))}
           </div>
@@ -309,11 +309,11 @@ export default function WebmasterAnalyticsPage() {
           <div className="space-y-2">
             {topProducts.map((p, i) => (
               <div key={p.name} className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-400 w-4">{i + 1}</span>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-500 w-4">{i + 1}</span>
                 <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">
                   {p.name}
                 </span>
-                <span className="text-[10px] text-gray-400">{p.count} ventes</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500">{p.count} ventes</span>
                 <span className="text-xs font-semibold text-gray-900 dark:text-white w-16 text-right">
                   {fmtShort(p.revenue)}
                 </span>
@@ -327,14 +327,14 @@ export default function WebmasterAnalyticsPage() {
           <div className="space-y-2">
             {topShops.map((s, i) => (
               <div key={s.name} className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-400 w-4">{i + 1}</span>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-500 w-4">{i + 1}</span>
                 <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">
                   {s.name}
                 </span>
                 <span className="flex items-center gap-0.5 text-[10px] text-amber-500">
                   <Star size={10} fill="currentColor" /> {s.rating.toFixed(1)}
                 </span>
-                <span className="text-[10px] text-gray-400">{s.orders} cmd</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500">{s.orders} cmd</span>
                 <span className="text-xs font-semibold text-gray-900 dark:text-white w-16 text-right">
                   {fmtShort(s.revenue)}
                 </span>
@@ -372,7 +372,7 @@ export default function WebmasterAnalyticsPage() {
                       className="w-full bg-purple-400 dark:bg-purple-500 rounded-t-md"
                       style={{ height: `${Math.max(4, ((d.count || 0) / notifDayMax) * 100)}%` }}
                     />
-                    <span className="text-[9px] text-gray-400">
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500">
                       {shortDate(d.date)}
                     </span>
                   </div>
@@ -384,7 +384,7 @@ export default function WebmasterAnalyticsPage() {
             <ChartCard title="Par canal (30j)" icon={Mail}>
               <div className="space-y-2">
                 {notifStats.byChannel.map((c) => {
-                  const cfg = CHANNEL_CONFIG[c.channel] || { label: c.channel, icon: Bell, color: "text-gray-500" };
+                  const cfg = CHANNEL_CONFIG[c.channel] || { label: c.channel, icon: Bell, color: "text-gray-500 dark:text-gray-400" };
                   const ChannelIcon = cfg.icon;
                   const pct = notifChannelTotal > 0 ? (c.count / notifChannelTotal) * 100 : 0;
                   return (
@@ -417,7 +417,7 @@ export default function WebmasterAnalyticsPage() {
                   <div className="text-lg font-bold text-gray-900 dark:text-white">
                     {t.count}
                   </div>
-                  <div className="text-[10px] text-gray-400 truncate" title={t.type}>
+                  <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate" title={t.type}>
                     {t.type.replace(/_/g, " ").toLowerCase()}
                   </div>
                 </div>
@@ -435,9 +435,9 @@ export default function WebmasterAnalyticsPage() {
                 <Bell size={14} /> Dernières notifications
               </h3>
               {showRecentNotifs ? (
-                <ChevronUp size={16} className="text-gray-400" />
+                <ChevronUp size={16} className="text-gray-400 dark:text-gray-500" />
               ) : (
-                <ChevronDown size={16} className="text-gray-400" />
+                <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />
               )}
             </button>
             {showRecentNotifs && (
@@ -450,7 +450,7 @@ export default function WebmasterAnalyticsPage() {
                         <div className="text-xs font-medium text-gray-900 dark:text-white truncate">
                           {n.message}
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                           {n.user ? `${n.user.firstName} ${n.user.lastName}` : "—"} ·{" "}
                           {n.type.replace(/_/g, " ").toLowerCase()} ·{" "}
                           {new Date(n.createdAt).toLocaleDateString("fr-FR", {

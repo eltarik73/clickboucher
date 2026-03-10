@@ -419,7 +419,7 @@ export default function StatistiquesPage() {
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Chiffre d&apos;affaires
                   </h3>
-                  <TrendingUp size={14} className="text-gray-400" />
+                  <TrendingUp size={14} className="text-gray-400 dark:text-gray-500" />
                 </div>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
@@ -460,7 +460,7 @@ export default function StatistiquesPage() {
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Commandes
                   </h3>
-                  <ShoppingBag size={14} className="text-gray-400" />
+                  <ShoppingBag size={14} className="text-gray-400 dark:text-gray-500" />
                 </div>
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
@@ -495,7 +495,7 @@ export default function StatistiquesPage() {
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       R&eacute;partition horaire
                     </h3>
-                    <Clock size={14} className="text-gray-400" />
+                    <Clock size={14} className="text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
@@ -530,7 +530,7 @@ export default function StatistiquesPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Top produits</h3>
-                    <BarChart3 size={14} className="text-gray-400" />
+                    <BarChart3 size={14} className="text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="space-y-3">
                     {stats.topProducts.map((product, i) => {
@@ -569,7 +569,7 @@ export default function StatistiquesPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Top clients</h3>
-                    <Users size={14} className="text-gray-400" />
+                    <Users size={14} className="text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="space-y-2.5">
                     {stats.topClients.map((client, i) => (

@@ -50,11 +50,11 @@ export function OrderTicketBubble({ data }: { data: TicketData }) {
         >
           {data.displayNumber}
         </div>
-        <div className="mt-1.5 text-[20px] font-bold text-gray-900 leading-tight">
+        <div className="mt-1.5 text-[20px] font-bold text-gray-900 dark:text-gray-100 leading-tight">
           {data.customerFirstName}
         </div>
         {data.customerNumber && (
-          <div className="mt-0.5 text-[13px] text-gray-400">
+          <div className="mt-0.5 text-[13px] text-gray-400 dark:text-gray-500">
             Client {data.customerNumber}
           </div>
         )}
@@ -67,10 +67,10 @@ export function OrderTicketBubble({ data }: { data: TicketData }) {
       <div className="px-5 py-3 space-y-1.5">
         {data.items.map((item, i) => (
           <div key={i} className="flex justify-between text-[13px]">
-            <span className="text-gray-700">
+            <span className="text-gray-700 dark:text-gray-300">
               {fmtQty(item)} {item.name}
             </span>
-            <span className="font-semibold text-gray-900 shrink-0 ml-2">
+            <span className="font-semibold text-gray-900 dark:text-gray-100 shrink-0 ml-2">
               {fmtPrice(item.totalCents)}
             </span>
           </div>
@@ -80,18 +80,18 @@ export function OrderTicketBubble({ data }: { data: TicketData }) {
       {/* Separator + Total */}
       <div className="mx-5 h-px bg-[#F0F0F0]" />
       <div className="px-5 py-2.5 flex justify-between">
-        <span className="text-[13px] font-bold text-gray-900">Total</span>
-        <span className="text-[15px] font-extrabold text-gray-900">
+        <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">Total</span>
+        <span className="text-[15px] font-extrabold text-gray-900 dark:text-gray-100">
           {fmtPrice(data.totalCents)}
         </span>
       </div>
 
       {/* Shop + time */}
       <div className="px-5 py-2.5 bg-[#FAFAFA] space-y-1">
-        <p className="text-[12px] text-gray-500">
+        <p className="text-[12px] text-gray-500 dark:text-gray-400">
           📍 {data.shopName}
         </p>
-        <p className="text-[12px] text-gray-500">
+        <p className="text-[12px] text-gray-500 dark:text-gray-400">
           🕐 Retrait estimé : {data.prepTimeMin} min
         </p>
       </div>

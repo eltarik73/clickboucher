@@ -18,7 +18,7 @@ const PLAN_COLORS: Record<string, { bg: string; border: string; text: string; ic
     bg: "bg-gray-50 dark:bg-white/5",
     border: "border-gray-200 dark:border-white/10",
     text: "text-gray-700 dark:text-gray-300",
-    icon: "text-gray-400",
+    icon: "text-gray-400 dark:text-gray-500",
   },
   PRO: {
     bg: "bg-blue-50 dark:bg-blue-500/5",
@@ -172,7 +172,7 @@ export default function AdminFormulesPage() {
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
               Annuler
             </button>
             <button type="submit" disabled={creating} className="px-5 py-2 bg-[#DC2626] text-white text-sm font-semibold rounded-lg hover:bg-[#b91c1c] disabled:opacity-50 transition-colors">
@@ -192,7 +192,7 @@ export default function AdminFormulesPage() {
               <div className={`px-5 py-4 ${colors.bg} flex items-center gap-2`}>
                 <Crown size={18} className={colors.icon} />
                 <h2 className={`font-bold ${colors.text}`}>{plan}</h2>
-                <span className="ml-auto text-xs text-gray-400">{planFeatures.length} feature(s)</span>
+                <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{planFeatures.length} feature(s)</span>
               </div>
               <div className="bg-white dark:bg-[#141414]">
                 {planFeatures.length === 0 ? (
@@ -228,7 +228,7 @@ export default function AdminFormulesPage() {
                         </div>
                         <button
                           onClick={() => deleteFeature(f.id)}
-                          className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors"
+                          className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
                         >
                           <Trash2 size={14} />
                         </button>

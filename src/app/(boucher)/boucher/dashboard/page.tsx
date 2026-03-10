@@ -334,7 +334,7 @@ export default function BoucherDashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-5">
         <AlertCircle className="w-10 h-10 text-red-400" />
-        <p className="text-sm text-gray-500 text-center">{error}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 text-center">{error}</p>
       </div>
     );
   }

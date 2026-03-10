@@ -142,7 +142,7 @@ export default function AdminCommissionPage() {
               onChange={(e) => setGlobalPct(parseFloat(e.target.value))}
               className="w-full accent-[#DC2626]"
             />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
               <span>0%</span>
               <span className="font-semibold text-gray-900 dark:text-[#f8f6f3] text-sm">
                 {globalPct}%

@@ -139,19 +139,19 @@ export default async function RecettePage({
               <div className="text-lg font-extrabold text-[#1C1512] dark:text-white">
                 {recipe.totalTime} min
               </div>
-              <div className="text-[10px] text-gray-400">Temps total</div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500">Temps total</div>
             </div>
             <div className="text-center flex-1">
               <div className="text-lg font-extrabold text-[#1C1512] dark:text-white">
                 {recipe.servings}
               </div>
-              <div className="text-[10px] text-gray-400">Personnes</div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500">Personnes</div>
             </div>
             <div className="text-center flex-1">
               <div className="text-lg font-extrabold text-[#1C1512] dark:text-white">
                 {recipe.difficulty}
               </div>
-              <div className="text-[10px] text-gray-400">Difficulté</div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500">Difficulté</div>
             </div>
           </div>
 
@@ -177,7 +177,7 @@ export default async function RecettePage({
                   <div className="text-sm font-bold text-[#1C1512] dark:text-white">
                     {ing.name}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     {ing.quantity} {ing.unit}
                   </div>
                   {shops.length > 0 && (
@@ -199,7 +199,7 @@ export default async function RecettePage({
             ))}
 
             {shops.length > 1 && (
-              <div className="text-xs text-gray-400 mt-2 text-center">
+              <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
                 Également disponible chez :{" "}
                 {shops
                   .slice(1)
@@ -256,7 +256,7 @@ export default async function RecettePage({
           </div>
 
           {/* Badge IA */}
-          <div className="mt-6 inline-flex items-center gap-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-gray-500">
+          <div className="mt-6 inline-flex items-center gap-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
             Recette créée par l&apos;IA Klik&Go ·{" "}
             {new Date(recipe.publishedAt).toLocaleDateString("fr-FR", {
               day: "numeric",

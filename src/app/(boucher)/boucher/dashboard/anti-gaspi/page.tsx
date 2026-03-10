@@ -131,7 +131,7 @@ export default function AntiGaspiPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
         <Input
           placeholder="Rechercher un produit..."
           value={search}
@@ -143,7 +143,7 @@ export default function AntiGaspiPage() {
       {/* Product list */}
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <p className="text-center text-sm text-gray-500 py-8">Aucun produit trouve</p>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-8">Aucun produit trouve</p>
         )}
         {filtered.map((p) => {
           const form = getForm(p.id);
@@ -170,7 +170,7 @@ export default function AntiGaspiPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.name}</h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {p.isAntiGaspi && p.antiGaspiOrigPriceCents ? (
                       <>
                         <span className="text-emerald-600 font-bold">{fmtPrice(p.priceCents)}</span>
@@ -184,7 +184,7 @@ export default function AntiGaspiPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isProcessing && <Loader2 size={14} className="animate-spin text-gray-400" />}
+                  {isProcessing && <Loader2 size={14} className="animate-spin text-gray-400 dark:text-gray-500" />}
                   <Switch
                     checked={p.isAntiGaspi}
                     onCheckedChange={() => toggleAntiGaspi(p)}
@@ -197,7 +197,7 @@ export default function AntiGaspiPage() {
               {!p.isAntiGaspi && (
                 <div className="mt-3 flex flex-wrap gap-2 items-end">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Remise %</label>
+                    <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Remise %</label>
                     <Input
                       type="number"
                       min={5}
@@ -208,7 +208,7 @@ export default function AntiGaspiPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Stock</label>
+                    <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Stock</label>
                     <Input
                       type="number"
                       min={1}
@@ -219,7 +219,7 @@ export default function AntiGaspiPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-gray-500 uppercase">Raison</label>
+                    <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Raison</label>
                     <select
                       value={form.reason}
                       onChange={(e) => setForm(p.id, { reason: e.target.value })}
@@ -230,7 +230,7 @@ export default function AntiGaspiPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="text-xs text-gray-400 ml-auto">
+                  <div className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
                     Prix apres remise : <span className="font-bold text-emerald-600">{fmtPrice(discountedPrice)}</span>
                   </div>
                 </div>
@@ -238,7 +238,7 @@ export default function AntiGaspiPage() {
 
               {/* Active info */}
               {p.isAntiGaspi && (
-                <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                   {p.antiGaspiStock !== null && (
                     <span className="bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full font-semibold">
                       Stock: {p.antiGaspiStock}

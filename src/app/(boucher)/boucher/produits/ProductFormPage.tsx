@@ -785,7 +785,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                   {MIN_WEIGHTS.map((w) => (
                     <button key={w} type="button" onClick={() => setMinWeightG(w)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        minWeightG === w ? "bg-white text-stone-900" : "bg-stone-800 border border-stone-700 text-stone-400"
+                        minWeightG === w ? "bg-white dark:bg-gray-900 text-stone-900" : "bg-stone-800 border border-stone-700 text-stone-400"
                       }`}>
                       {w}g
                     </button>
@@ -798,7 +798,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                   {WEIGHT_STEPS.map((w) => (
                     <button key={w} type="button" onClick={() => setWeightStepG(w)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        weightStepG === w ? "bg-white text-stone-900" : "bg-stone-800 border border-stone-700 text-stone-400"
+                        weightStepG === w ? "bg-white dark:bg-gray-900 text-stone-900" : "bg-stone-800 border border-stone-700 text-stone-400"
                       }`}>
                       {w}g
                     </button>
@@ -1413,7 +1413,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
             {/* Live preview (client card) */}
             <div className="space-y-2">
               <p className="text-[10px] text-stone-500">Apercu client</p>
-              <div className="bg-white rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
                 <div className="aspect-[4/3] bg-stone-100 relative overflow-hidden">
                   {images.length > 0 && !images[0].uploading ? (
                     <Image src={images[0].url} alt={name || "Produit"} fill className="object-cover" />
@@ -1430,7 +1430,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                   )}
                 </div>
                 <div className="p-2.5">
-                  <p className="text-[11px] font-semibold text-gray-900 truncate">{name || "Nom du produit"}</p>
+                  <p className="text-[11px] font-semibold text-gray-900 dark:text-gray-100 truncate">{name || "Nom du produit"}</p>
                   {/* Labels preview */}
                   {labels.length > 0 && (
                     <div className="flex flex-wrap gap-0.5 mt-1">
@@ -1444,20 +1444,20 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                         );
                       })}
                       {labels.length > 3 && (
-                        <span className="px-1 py-0.5 rounded text-[7px] font-bold bg-gray-100 text-gray-500">+{labels.length - 3}</span>
+                        <span className="px-1 py-0.5 rounded text-[7px] font-bold bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">+{labels.length - 3}</span>
                       )}
                     </div>
                   )}
                   <div className="flex items-baseline gap-1.5 mt-1">
                     {promoEnabled && priceParsed > 0 ? (
                       <>
-                        <span className="text-xs text-gray-400 line-through">{fmtPrice(priceParsed)}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 line-through">{fmtPrice(priceParsed)}</span>
                         <span className="text-sm font-bold text-red-600">{fmtPrice(promoPreviewPrice)}</span>
                       </>
                     ) : (
-                      <span className="text-sm font-bold text-gray-900">{priceParsed > 0 ? fmtPrice(priceParsed) : "—"}</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{priceParsed > 0 ? fmtPrice(priceParsed) : "—"}</span>
                     )}
-                    <span className="text-[9px] text-gray-400">
+                    <span className="text-[9px] text-gray-400 dark:text-gray-500">
                       /{unit === "KG" ? "kg" : unit === "PIECE" ? "pce" : unit === "TRANCHE" ? "kg" : "barq."}
                     </span>
                   </div>
@@ -1621,7 +1621,7 @@ function ToggleSwitch({
       onClick={() => onChange(!checked)}
       className={`w-11 h-6 rounded-full transition-all relative flex-shrink-0 ${checked ? bgActive : "bg-stone-700"}`}
     >
-      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
+      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white dark:bg-gray-900 shadow transition-all ${checked ? "left-[22px]" : "left-0.5"}`} />
     </button>
   );
 }

@@ -144,7 +144,7 @@ export function SearchBar() {
               <button
                 type="button"
                 onClick={() => { setQuery(""); setResults([]); inputRef.current?.focus(); }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"
               >
                 <X size={16} />
               </button>
@@ -176,7 +176,7 @@ export function SearchBar() {
                   onClick={() => handleRecentClick(term)}
                   className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left"
                 >
-                  <Clock size={13} className="text-gray-400 shrink-0" />
+                  <Clock size={13} className="text-gray-400 dark:text-gray-500 shrink-0" />
                   <span className="truncate">{term}</span>
                 </button>
               ))}
@@ -231,7 +231,7 @@ export function SearchBar() {
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
                       {fmtPrice(r.priceCents)}
                     </p>
-                    <p className="text-[10px] text-gray-400">
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500">
                       /{r.unit === "KG" ? "kg" : r.unit === "PIECE" ? "pièce" : "barq."}
                     </p>
                   </div>

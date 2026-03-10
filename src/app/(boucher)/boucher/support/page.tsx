@@ -117,7 +117,7 @@ export default function BoucherSupportPage() {
           </h2>
           <div className="flex items-center gap-2 mt-3">
             <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 value={faqSearch}
@@ -157,7 +157,7 @@ export default function BoucherSupportPage() {
                   </p>
                   <ChevronDown
                     size={14}
-                    className={`text-gray-400 shrink-0 transition-transform ${expandedFaq === faq.id ? "rotate-180" : ""}`}
+                    className={`text-gray-400 dark:text-gray-500 shrink-0 transition-transform ${expandedFaq === faq.id ? "rotate-180" : ""}`}
                   />
                 </div>
                 {expandedFaq === faq.id && (

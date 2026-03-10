@@ -45,7 +45,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
                 </span>
               )}
               {item.pieceCount && item.pieceLabel && (
-                <span className="ml-1 text-[10px] text-gray-400">
+                <span className="ml-1 text-[10px] text-gray-400 dark:text-gray-500">
                   ({item.pieceCount} {item.pieceLabel})
                 </span>
               )}
@@ -82,7 +82,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             type="button"
             aria-label="Supprimer"
             onClick={() => onRemove(item.id)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+            className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

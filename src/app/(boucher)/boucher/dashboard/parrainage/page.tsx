@@ -116,7 +116,7 @@ export default function ParrainagePage() {
         {/* Referrals list */}
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Users size={16} className="text-gray-400" />
+            <Users size={16} className="text-gray-400 dark:text-gray-500" />
             <h3 className="text-sm font-bold text-gray-900 dark:text-white">
               Mes filleuls ({info?.referrals?.length || 0}/10)
             </h3>

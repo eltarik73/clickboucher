@@ -63,7 +63,7 @@ export default function InstallPrompt() {
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold">Installez Klik&Go</p>
-          <p className="text-xs text-gray-400 truncate">Commandez plus vite depuis votre écran d&apos;accueil</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 truncate">Commandez plus vite depuis votre écran d&apos;accueil</p>
         </div>
 
         <button
@@ -78,7 +78,7 @@ export default function InstallPrompt() {
           className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white/10 transition"
           aria-label="Fermer"
         >
-          <X className="w-4 h-4 text-gray-400" />
+          <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </button>
       </div>
     </div>

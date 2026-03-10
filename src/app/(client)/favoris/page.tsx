@@ -188,7 +188,7 @@ export default function FavorisPage() {
                         <span className="font-semibold text-gray-900 dark:text-white">
                           {shop.rating.toFixed(1)}
                         </span>
-                        <span className="text-gray-400">({shop.ratingCount})</span>
+                        <span className="text-gray-400 dark:text-gray-500">({shop.ratingCount})</span>
                       </div>
                       {(shop.status === "OPEN" || shop.status === "BUSY") && (
                         <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">

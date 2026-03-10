@@ -363,7 +363,7 @@ export default function CommandesPage() {
             >
               {tab.label}
               {tab.count > 0 && (
-                <span className={`ml-1 ${filter === tab.key ? "text-white/70" : "text-gray-400"}`}>
+                <span className={`ml-1 ${filter === tab.key ? "text-white/70" : "text-gray-400 dark:text-gray-500"}`}>
                   {tab.count}
                 </span>
               )}

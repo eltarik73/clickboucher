@@ -500,23 +500,23 @@ export default function BoucherProduitsPage() {
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-white">{totalCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">Produits</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">Produits</p>
             </div>
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-emerald-400">{inStockCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">En stock</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">En stock</p>
             </div>
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-amber-400">{promoCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">Promos</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">Promos</p>
             </div>
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className={`text-lg font-bold ${snoozedCount > 0 ? "text-orange-400" : "text-white"}`}>{snoozedCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">En pause</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">En pause</p>
             </div>
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className={`text-lg font-bold ${outCount > 0 ? "text-red-400" : "text-white"}`}>{outCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">Ruptures</p>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">Ruptures</p>
             </div>
           </div>
         </div>
@@ -526,7 +526,7 @@ export default function BoucherProduitsPage() {
         {/* ══════════════════════════════════════ */}
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -538,7 +538,7 @@ export default function BoucherProduitsPage() {
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 dark:bg-white/10 flex items-center justify-center"
               >
-                <X size={10} className="text-gray-500" />
+                <X size={10} className="text-gray-500 dark:text-gray-400" />
               </button>
             )}
           </div>
@@ -703,10 +703,10 @@ export default function BoucherProduitsPage() {
                       <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                         {cat.name}
                       </span>
-                      <span className="text-xs text-gray-400">{count} produit{count > 1 ? "s" : ""}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{count} produit{count > 1 ? "s" : ""}</span>
                       <button
                         onClick={() => { setEditCatId(cat.id); setCatName(cat.name); setCatEmoji(cat.emoji || ""); }}
-                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-blue-600 transition-colors"
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-blue-600 transition-colors"
                       >
                         <Pencil size={12} />
                       </button>
@@ -718,7 +718,7 @@ export default function BoucherProduitsPage() {
                           }
                           deleteCategory(cat.id);
                         }}
-                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 hover:text-red-600 transition-colors"
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 hover:text-red-600 transition-colors"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -726,7 +726,7 @@ export default function BoucherProduitsPage() {
                   );
                 })}
                 {categories.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-2">Aucune categorie</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">Aucune categorie</p>
                 )}
               </div>
             </CardContent>
@@ -1021,7 +1021,7 @@ function ProductRow({
             <span className="text-sm font-bold text-[#DC2626]">
               {fmtPrice(Math.round(product.priceCents * (1 - (product.promoPct || 0) / 100)))}
             </span>
-            <span className="block text-[10px] text-gray-400 line-through">
+            <span className="block text-[10px] text-gray-400 dark:text-gray-500 line-through">
               {fmtPrice(product.priceCents)}
             </span>
           </div>
@@ -1030,7 +1030,7 @@ function ProductRow({
             {fmtPrice(product.priceCents)}
           </span>
         )}
-        <span className="text-[9px] text-gray-400 font-medium">{UNIT_LABELS[product.unit] || ""}</span>
+        <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">{UNIT_LABELS[product.unit] || ""}</span>
       </div>
 
       {/* Stock / Snooze controls */}
@@ -1078,7 +1078,7 @@ function ProductRow({
           </button>
           <button
             onClick={onDuplicate}
-            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-colors text-[8px] font-semibold bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-900/10"
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-colors text-[8px] font-semibold bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-gray-500 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-900/10"
             title="Dupliquer ce produit"
           >
             <Copy size={9} />
@@ -1091,7 +1091,7 @@ function ProductRow({
             <div className="fixed inset-0 z-30" onClick={() => setShowSnoozeMenu(false)} />
             <div className="absolute right-0 top-full mt-1 z-40 bg-white dark:bg-[#1a1a1a] border border-[#ece8e3] dark:border-white/10 rounded-xl shadow-lg overflow-hidden min-w-[150px]">
               <div className="px-3 py-1.5 border-b border-gray-100 dark:border-white/5">
-                <p className="text-[10px] font-semibold text-gray-500">Mettre en pause</p>
+                <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Mettre en pause</p>
               </div>
               {SNOOZE_OPTIONS.map((opt) => (
                 <button
@@ -1115,7 +1115,7 @@ function ProductRow({
               <div className="border-t border-gray-100 dark:border-white/5">
                 <button
                   onClick={() => setShowSnoozeMenu(false)}
-                  className="w-full text-left px-3 py-2 text-xs font-medium text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
+                  className="w-full text-left px-3 py-2 text-xs font-medium text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5"
                 >
                   Annuler
                 </button>

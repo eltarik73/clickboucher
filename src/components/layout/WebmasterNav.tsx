@@ -166,7 +166,7 @@ export function WebmasterNav() {
                     </span>
                     <ChevronDown
                       size={12}
-                      className={`text-gray-400 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                      className={`text-gray-400 dark:text-gray-500 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
                     />
                   </button>
                 )}
@@ -219,7 +219,7 @@ export function WebmasterNav() {
           <div className="relative mt-auto bg-white dark:bg-[#141414] rounded-t-2xl max-h-[80vh] overflow-y-auto pb-safe-bottom animate-slide-up">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-[#141414] z-10">
               <span className="text-sm font-bold text-gray-900 dark:text-white">Menu complet</span>
-              <button onClick={() => setShowMoreMenu(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500">
+              <button onClick={() => setShowMoreMenu(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400">
                 <X size={18} />
               </button>
             </div>

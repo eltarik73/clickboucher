@@ -396,7 +396,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                       >
                         {selected && <Check className="w-3 h-3 text-white" />}
                       </div>
-                      <Store className="w-4 h-4 text-gray-400 shrink-0" />
+                      <Store className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
                       <div className="text-left flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{shop.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -504,7 +504,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                     onChange={(e) => setMinOrder(e.target.value)}
                     className="w-full px-3 py-2.5 pr-7 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">€</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">€</span>
                 </div>
               </div>
             </div>
