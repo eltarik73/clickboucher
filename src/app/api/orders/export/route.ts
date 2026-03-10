@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { handleApiError } from "@/lib/api/errors";
 
 // ── GET /api/orders/export?format=csv ──
 // Boucher: exports their shop orders as CSV
@@ -131,7 +132,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[orders/export]", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return handleApiError(error, "orders/export");
   }
 }

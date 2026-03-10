@@ -19,7 +19,8 @@ export async function GET() {
     });
 
     return NextResponse.json({ user });
-  } catch {
+  } catch (error) {
+    console.error("[auth/me]", error);
     return NextResponse.json({ user: null }, { status: 500 });
   }
 }

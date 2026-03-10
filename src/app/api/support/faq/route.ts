@@ -1,6 +1,7 @@
 // GET /api/support/faq — Search FAQ entries
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
+import { apiSuccess, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -41,11 +42,11 @@ export async function GET(req: NextRequest) {
         .sort((a, b) => b.score - a.score)
         .slice(0, 10);
 
-      return NextResponse.json({ data: results });
+      return apiSuccess(results);
     }
 
-    return NextResponse.json({ data: faqs });
-  } catch {
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    return apiSuccess(faqs);
+  } catch (error) {
+    return handleApiError(error, "support/faq");
   }
 }

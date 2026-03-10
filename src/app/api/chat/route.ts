@@ -374,24 +374,23 @@ REGLES :
 
     return NextResponse.json({ role: "assistant", content });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-
     if (error instanceof Anthropic.RateLimitError) {
       return NextResponse.json(
-        { error: "Je suis un peu débordé, réessaie dans 5 secondes 🙏" },
+        { error: "Je suis un peu débordé, réessaie dans 5 secondes" },
         { status: 429 }
       );
     }
 
     if (error instanceof Anthropic.AuthenticationError) {
       return NextResponse.json(
-        { error: "Clé API Anthropic invalide." },
+        { error: "Service IA temporairement indisponible" },
         { status: 503 }
       );
     }
 
+    console.error("[chat]", error);
     return NextResponse.json(
-      { error: `Erreur du service IA : ${message}` },
+      { error: "Erreur du service IA" },
       { status: 500 }
     );
   }

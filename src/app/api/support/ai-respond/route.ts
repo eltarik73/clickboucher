@@ -154,7 +154,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, escalated: isEscalated });
   } catch (error) {
-    void error;
-    return NextResponse.json({ error: "AI response failed" }, { status: 500 });
+    console.error("[support/ai-respond]", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Données invalides" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Erreur du service IA" }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchProducts } from "@/lib/ai-search";
-import { apiCached } from "@/lib/api/errors";
+import { apiCached, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +21,6 @@ export async function GET(req: NextRequest) {
 
     return apiCached({ query: q, count: results.length, results }, 30);
   } catch (error) {
-    void error;
-    return NextResponse.json(
-      { error: "Erreur de recherche" },
-      { status: 500 }
-    );
+    return handleApiError(error, "search");
   }
 }

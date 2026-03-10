@@ -35,9 +35,15 @@ export async function POST(req: NextRequest) {
       item: { shopId, productId, qty },
     });
   } catch (error) {
-    console.error("[CART] Error:", error);
+    console.error("[cart/add]", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Données invalides", details: error.flatten() },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Erreur serveur" },
       { status: 500 }
     );
   }

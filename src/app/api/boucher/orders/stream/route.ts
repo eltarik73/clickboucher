@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
+  try {
   const authResult = await getAuthenticatedBoucher();
   if (authResult.error) return authResult.error;
   const { shopId } = authResult;
@@ -129,4 +130,8 @@ export async function GET() {
       Connection: "keep-alive",
     },
   });
+  } catch (error) {
+    console.error("[boucher/orders/stream]", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
 }

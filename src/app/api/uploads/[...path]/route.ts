@@ -49,7 +49,8 @@ export async function GET(
         "Content-Length": buffer.length.toString(),
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("[uploads/path]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

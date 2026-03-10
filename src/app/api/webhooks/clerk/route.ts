@@ -21,8 +21,9 @@ export async function POST(req: NextRequest) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
+    console.error("[webhooks/clerk] CLERK_WEBHOOK_SECRET not configured");
     return NextResponse.json(
-      { error: "CLERK_WEBHOOK_SECRET not configured" },
+      { error: "Webhook configuration error" },
       { status: 500 }
     );
   }

@@ -9,6 +9,7 @@ export async function GET(
   _req: Request,
   { params }: { params: { id: string } }
 ) {
+  try {
   const userId = await getServerUserId();
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
@@ -122,4 +123,8 @@ export async function GET(
       Connection: "keep-alive",
     },
   });
+  } catch (error) {
+    console.error("[orders/stream]", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
 }

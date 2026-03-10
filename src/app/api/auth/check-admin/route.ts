@@ -35,7 +35,8 @@ export async function GET() {
     }
 
     return NextResponse.json({ admin: false }, { status: 403 });
-  } catch {
+  } catch (error) {
+    console.error("[auth/check-admin]", error);
     return NextResponse.json({ admin: false }, { status: 500 });
   }
 }
