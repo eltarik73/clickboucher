@@ -714,7 +714,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
               {/* Variantes / Saveurs (optionnel) */}
               <div>
                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
-                  Variantes / Saveurs <span className="text-gray-400 dark:text-gray-500 font-normal text-xs">(optionnel)</span>
+                  Variantes / Saveurs <span className="text-gray-500 dark:text-gray-400 font-normal text-xs">(optionnel)</span>
                 </label>
                 {variants.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-2">
@@ -782,10 +782,10 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                             <Input type="number" step="0.01" min="0" value={(opt.priceCents / 100).toFixed(2)}
                               onChange={e => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], priceCents: Math.round(parseFloat(e.target.value || "0") * 100) }; setCutOptionsList(next); }}
                               className="h-9 text-sm pr-8" />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">{"\u20AC"}/kg</span>
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">{"\u20AC"}/kg</span>
                           </div>
                           <button type="button" onClick={() => setCutOptionsList(cutOptionsList.filter((_, i) => i !== idx))}
-                            className="text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"><X size={16} /></button>
+                            className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"><X size={16} /></button>
                         </div>
                       ))}
                       <button type="button" onClick={() => setCutOptionsList([...cutOptionsList, { name: "", priceCents: Math.round(parseFloat(priceCents || "0") * 100) }])}
@@ -816,7 +816,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                     placeholder="0,00"
                     className="h-14 text-2xl font-bold text-center pr-12"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-400 dark:text-gray-500">{"\u20AC"}</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-gray-500 dark:text-gray-400">{"\u20AC"}</span>
                 </div>
               </div>
 
@@ -835,7 +835,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   placeholder="Optionnel"
                   className="h-10"
                 />
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Visible uniquement par les clients professionnels</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Visible uniquement par les clients professionnels</p>
               </div>
 
               {/* Promo toggle */}
@@ -877,7 +877,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                         </div>
                         {priceParsed > 0 && (
                           <div className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] rounded-lg p-3 border border-[#ece8e3] dark:border-white/10">
-                            <span className="text-sm text-gray-400 dark:text-gray-500 line-through">{fmtPrice(priceParsed)}</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{fmtPrice(priceParsed)}</span>
                             <span className="text-lg font-bold text-[#DC2626]">{fmtPrice(promoPreviewPrice)}</span>
                             <span className="px-2 py-0.5 bg-[#DC2626] text-white text-[10px] font-bold rounded">-{promoPct}%</span>
                           </div>
@@ -909,11 +909,11 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                           <Input type="number" step="0.01" min="0" value={promoFixedVal}
                             onChange={(e) => setPromoFixedVal(e.target.value)}
                             placeholder="Montant de la reduction" className="h-10 pr-8" />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-gray-500">{"\u20AC"}</span>
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400">{"\u20AC"}</span>
                         </div>
                         {priceParsed > 0 && parseFloat(promoFixedVal || "0") > 0 && (
                           <div className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] rounded-lg p-3 border border-[#ece8e3] dark:border-white/10">
-                            <span className="text-sm text-gray-400 dark:text-gray-500 line-through">{fmtPrice(priceParsed)}</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{fmtPrice(priceParsed)}</span>
                             <span className="text-lg font-bold text-[#DC2626]">{fmtPrice(Math.max(0, priceParsed - Math.round(parseFloat(promoFixedVal) * 100)))}</span>
                             <span className="px-2 py-0.5 bg-[#DC2626] text-white text-[10px] font-bold rounded">-{parseFloat(promoFixedVal).toFixed(2)}{"\u20AC"}</span>
                           </div>
@@ -944,11 +944,11 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                         <Input type="number" step="0.01" min="0" value={packOldPrice}
                           onChange={e => setPackOldPrice(e.target.value)}
                           placeholder="Ancien prix (avant pack)" className="h-9 text-sm pr-8" />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-gray-500">{"\u20AC"}</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">{"\u20AC"}</span>
                       </div>
                       {priceParsed > 0 && parseFloat(packOldPrice || "0") > 0 && (
                         <div className="flex items-center gap-2 bg-white dark:bg-[#0a0a0a] rounded-lg p-3 border border-[#ece8e3] dark:border-white/10">
-                          <span className="text-sm text-gray-400 dark:text-gray-500 line-through">{fmtPrice(Math.round(parseFloat(packOldPrice) * 100))}</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{fmtPrice(Math.round(parseFloat(packOldPrice) * 100))}</span>
                           <span className="text-lg font-bold text-green-600">{fmtPrice(priceParsed)}</span>
                           <span className="px-2 py-0.5 bg-green-600 text-white text-[10px] font-bold rounded">
                             -{Math.round((1 - priceParsed / Math.round(parseFloat(packOldPrice) * 100)) * 100)}%
@@ -1116,7 +1116,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
               <div className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-xl px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Visible par les clients</p>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
                     Desactive = le produit n&apos;apparait pas dans la boutique
                   </p>
                 </div>
@@ -1162,7 +1162,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">Le drapeau s&apos;affiche automatiquement sur la fiche produit</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5">Le drapeau s&apos;affiche automatiquement sur la fiche produit</p>
               </div>
 
               {/* Halal org */}
@@ -1312,7 +1312,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                     <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#ece8e3] dark:border-white/10 bg-gray-100 dark:bg-white/5">
                       {img.uploading ? (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500" />
+                          <Loader2 className="w-6 h-6 animate-spin text-gray-500 dark:text-gray-400" />
                         </div>
                       ) : (
                         <Image src={img.url} alt={img.alt} width={120} height={120} className="w-full h-full object-cover" />
@@ -1352,7 +1352,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-gray-500 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
+                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
                     >
                       <Camera size={20} />
                       <span className="text-[10px] font-medium">Ajouter</span>
@@ -1561,11 +1561,11 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
               {catalogLoading ? (
-                <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <Loader2 size={20} className="animate-spin mx-auto" />
                 </div>
               ) : filteredCatalog.length === 0 ? (
-                <p className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">Aucun produit trouve</p>
+                <p className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">Aucun produit trouve</p>
               ) : (
                 filteredCatalog.map((ref) => (
                   <button
@@ -1584,7 +1584,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{ref.name}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         {ref.category.emoji} {ref.category.name}
                         {ref.suggestedPrice ? ` • ${(ref.suggestedPrice / 100).toFixed(2)} €` : ""}
                       </p>

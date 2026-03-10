@@ -337,7 +337,7 @@ export default function AdminOrdersPage() {
         <div className="relative flex-1">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
           />
           <input
             type="text"
@@ -363,7 +363,7 @@ export default function AdminOrdersPage() {
             </select>
             <ChevronDown
               size={14}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
             />
           </div>
           <input
@@ -404,7 +404,7 @@ export default function AdminOrdersPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
-          <p className="text-gray-400 dark:text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Aucune commande trouvée.
           </p>
         </div>
@@ -466,7 +466,7 @@ export default function AdminOrdersPage() {
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
                         {fmtDate(order.createdAt)}
                         <br />
-                        <span className="text-gray-400 dark:text-gray-500">
+                        <span className="text-gray-500 dark:text-gray-400">
                           {fmtTime(order.createdAt)}
                         </span>
                       </td>
@@ -520,7 +520,7 @@ export default function AdminOrdersPage() {
                   <span className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                     {fmt(order.totalCents)} €
                   </span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {fmtDateTime(order.createdAt)}
                   </span>
                 </div>
@@ -578,7 +578,7 @@ export default function AdminOrdersPage() {
                     PRO
                   </span>
                 )}
-                <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
                   {fmtDateTime(detail.createdAt)}
                 </span>
               </div>
@@ -647,7 +647,7 @@ export default function AdminOrdersPage() {
                         >
                           {item.name}
                         </span>
-                        <span className="text-gray-400 dark:text-gray-500 ml-1.5">
+                        <span className="text-gray-500 dark:text-gray-400 ml-1.5">
                           x{item.quantity}{" "}
                           {item.unit === "KG"
                             ? "kg"
@@ -705,7 +705,7 @@ export default function AdminOrdersPage() {
               {/* QR Code */}
               {detail.qrCode && (
                 <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#0a0a0a] text-center">
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1">
                     QR Code
                   </p>
                   <p className="font-mono text-xs font-semibold text-gray-700 dark:text-gray-300 break-all">

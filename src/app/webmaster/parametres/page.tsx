@@ -376,7 +376,7 @@ export default function WebmasterParametresPage() {
       <Section icon={Database} title="Configuration plateforme">
         {loadingConfigs ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-gray-400 dark:text-gray-500" />
+            <Loader2 size={20} className="animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : (
           <div className="space-y-4">
@@ -392,7 +392,7 @@ export default function WebmasterParametresPage() {
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {meta.label}
                     </label>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{meta.description}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{meta.description}</p>
                     <input
                       type={meta.type}
                       value={current}
@@ -410,7 +410,7 @@ export default function WebmasterParametresPage() {
                         ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                         : changed
                           ? "bg-red-600 text-white hover:bg-red-700"
-                          : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                          : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                     }`}
                   >
                     {savingKey === key ? (
@@ -494,10 +494,10 @@ export default function WebmasterParametresPage() {
         {/* Event list */}
         {loadingEvents ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-gray-400 dark:text-gray-500" />
+            <Loader2 size={20} className="animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : events.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">Aucun événement configuré.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">Aucun événement configuré.</p>
         ) : (
           <div className="space-y-2 mb-4">
             {events.map((evt) => (
@@ -543,7 +543,7 @@ export default function WebmasterParametresPage() {
                 <button
                   onClick={() => deleteEvent(evt.id)}
                   disabled={deletingEvent === evt.id}
-                  className="p-1.5 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                  className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
                 >
                   {deletingEvent === evt.id ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -565,7 +565,7 @@ export default function WebmasterParametresPage() {
               </h3>
               <button
                 onClick={() => setShowNewEvent(false)}
-                className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <X size={16} />
               </button>
@@ -679,7 +679,7 @@ export default function WebmasterParametresPage() {
       <Section icon={Scale} title="Politique d'ajustement des prix">
         {loadingPaConfig ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-gray-400 dark:text-gray-500" />
+            <Loader2 size={20} className="animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : (
           <div className="space-y-6">
@@ -754,7 +754,7 @@ export default function WebmasterParametresPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Motif obligatoire</span>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">Le boucher doit fournir un motif pour chaque ajustement</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Le boucher doit fournir un motif pour chaque ajustement</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -788,7 +788,7 @@ export default function WebmasterParametresPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-approbation</span>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">Activer l&apos;auto-validation pour les paliers 1 et 2</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Activer l&apos;auto-validation pour les paliers 1 et 2</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -848,7 +848,7 @@ export default function WebmasterParametresPage() {
                     <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{reason}</span>
                     <button
                       onClick={() => removeReason(idx)}
-                      className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                      className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
                     >
                       <X size={14} />
                     </button>
@@ -924,7 +924,7 @@ function PaField({
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">{description}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{description}</p>
       <div className="flex items-center gap-2">
         <input
           type={type}

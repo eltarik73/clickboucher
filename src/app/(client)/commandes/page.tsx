@@ -133,7 +133,7 @@ function OrderCard({
           </div>
         )}
         {order.priceAdjustment?.status === "AUTO_APPROVED" && (
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1">
             Prix ajuste (variation de poids)
           </p>
         )}
@@ -363,7 +363,7 @@ export default function CommandesPage() {
             >
               {tab.label}
               {tab.count > 0 && (
-                <span className={`ml-1 ${filter === tab.key ? "text-white/70" : "text-gray-400 dark:text-gray-500"}`}>
+                <span className={`ml-1 ${filter === tab.key ? "text-white/70" : "text-gray-500 dark:text-gray-400"}`}>
                   {tab.count}
                 </span>
               )}
@@ -373,7 +373,7 @@ export default function CommandesPage() {
 
         {filteredOrders.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-gray-400 dark:text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {filter === "active" ? "Aucune commande en cours" : filter === "done" ? "Aucune commande terminee" : "Aucune commande"}
             </p>
           </div>

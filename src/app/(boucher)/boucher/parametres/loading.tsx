@@ -14,7 +14,7 @@ export default function BoucherParametresLoading() {
           {[1, 2].map((j) => (
             <div key={j}>
               <div className="h-3 bg-gray-100 dark:bg-white/[0.04] rounded w-28 mb-2" />
-              <div className="h-10 bg-gray-50 dark:bg-white/[0.03] rounded-lg" />
+              <div className="h-10 bg-gray-50 dark:bg-gray-800 rounded-lg" />
             </div>
           ))}
         </div>

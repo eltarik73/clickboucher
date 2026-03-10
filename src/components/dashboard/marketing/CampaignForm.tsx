@@ -486,7 +486,7 @@ export function CampaignForm({
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-[#141414]">
             <label className="mb-3 block text-sm font-semibold text-gray-900 dark:text-white">
               Visuel d&apos;en-t\u00EAte{" "}
-              <span className="font-normal text-gray-400 dark:text-gray-500">(optionnel)</span>
+              <span className="font-normal text-gray-500 dark:text-gray-400">(optionnel)</span>
             </label>
 
             {/* Upload zone */}
@@ -510,7 +510,7 @@ export function CampaignForm({
                     Template
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Image ou template color\u00E9
                 </p>
                 <input
@@ -917,14 +917,14 @@ export function CampaignForm({
                 {/* Promo code preview */}
                 {includePromo && previewCode && (
                   <div className="rounded-xl bg-gray-50 p-4 text-center dark:bg-white/5">
-                    <p className="mb-1 text-xs text-gray-400 dark:text-gray-500">
+                    <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
                       Votre code promo
                     </p>
                     <p className="font-mono text-2xl font-bold text-red-600 dark:text-red-400">
                       {previewCode}
                     </p>
                     {(previewMinOrder > 0 || selectedOffer?.endDate) && (
-                      <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                      <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                         {previewMinOrder > 0 && `Minimum ${previewMinOrder}\u20AC`}
                         {previewMinOrder > 0 && selectedOffer?.endDate && " \u00B7 "}
                         {selectedOffer?.endDate &&
@@ -957,7 +957,7 @@ export function CampaignForm({
 
               {/* Footer */}
               <div className="border-t border-gray-100 p-3 text-center dark:border-white/10">
-                <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">
                   Klik&Go \u2014 Boucherie Halal Click &amp; Collect
                 </p>
               </div>
@@ -1028,7 +1028,7 @@ function AudienceRadio({
           {label}
         </p>
         {count !== undefined && (
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             {count} destinataire{count !== 1 ? "s" : ""}
           </p>
         )}

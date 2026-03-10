@@ -238,7 +238,7 @@ export default function WebmasterShopDetailPage() {
   if (!shop) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-400 dark:text-gray-500">Boutique introuvable</p>
+        <p className="text-gray-500 dark:text-gray-400">Boutique introuvable</p>
         <Link href="/webmaster/boutiques" className="text-sm text-[#DC2626] mt-3 inline-block">
           Retour aux boutiques
         </Link>
@@ -291,7 +291,7 @@ export default function WebmasterShopDetailPage() {
             className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
               shop.featured
                 ? "bg-amber-500/20 text-amber-600"
-                : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
+                : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400"
             }`}
             title={shop.featured ? "Retirer mise en avant" : "Mettre en avant"}
           >
@@ -450,7 +450,7 @@ export default function WebmasterShopDetailPage() {
                 </div>
               )}
               {shop.subscription.adminNote && (
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 italic">Note: {shop.subscription.adminNote}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 italic">Note: {shop.subscription.adminNote}</p>
               )}
 
               {/* Change plan */}
@@ -497,7 +497,7 @@ export default function WebmasterShopDetailPage() {
               )}
             </div>
           ) : (
-            <p className="text-xs text-gray-400 dark:text-gray-500">Aucun abonnement</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Aucun abonnement</p>
           )}
         </div>
 
@@ -527,7 +527,7 @@ export default function WebmasterShopDetailPage() {
                 </button>
               )}
             </div>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5">
               {shop.commissionEnabled ? "Active" : "Désactivée"} · Total perçu : {centsToEuro(shop.stats.totalCommission)}
             </p>
           </div>
@@ -535,7 +535,7 @@ export default function WebmasterShopDetailPage() {
           {/* Mode occupé — durée par défaut */}
           <div className="border-t border-gray-100 dark:border-white/5 pt-4">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Mode occupé</h3>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Durée par défaut quand le boucher active le mode occupé</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Durée par défaut quand le boucher active le mode occupé</p>
             <div className="flex items-center gap-3">
               <input
                 type="number"
@@ -622,7 +622,7 @@ export default function WebmasterShopDetailPage() {
       {/* Shop photo management */}
       <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-          <Camera size={15} className="text-gray-400 dark:text-gray-500" /> Photo de la boutique
+          <Camera size={15} className="text-gray-500 dark:text-gray-400" /> Photo de la boutique
         </h3>
 
         {/* Current photo */}
@@ -639,7 +639,7 @@ export default function WebmasterShopDetailPage() {
               {shop.imageUrl ? "Photo actuelle" : "Aucune photo"}
             </p>
             {shop.imageUrl && (
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate max-w-[200px]">{shop.imageUrl}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[200px]">{shop.imageUrl}</p>
             )}
           </div>
         </div>
@@ -689,15 +689,15 @@ export default function WebmasterShopDetailPage() {
           <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Proprietaire</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <div>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Nom</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Nom</span>
               <span className="text-gray-900 dark:text-white font-medium">{shop.owner.name}</span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Email</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Email</span>
               <span className="text-gray-700 dark:text-gray-300">{shop.owner.email}</span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Telephone</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Telephone</span>
               <span className="text-gray-700 dark:text-gray-300">{shop.owner.phone || "Non renseigne"}</span>
             </div>
           </div>
@@ -724,7 +724,7 @@ export default function WebmasterShopDetailPage() {
                   <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                     {centsToEuro(order.totalCents)}
                   </span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">
                     {new Date(order.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>

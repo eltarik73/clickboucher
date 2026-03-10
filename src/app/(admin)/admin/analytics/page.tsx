@@ -350,7 +350,7 @@ export default function AdminAnalyticsPage() {
                       className="w-full bg-[#DC2626]/80 rounded-t transition-all"
                       style={{ height: `${Math.max(h, 4)}%` }}
                     />
-                    <span className="text-[9px] text-gray-400 dark:text-gray-500">
+                    <span className="text-[9px] text-gray-500 dark:text-gray-400">
                       {shortDate(w.week)}
                     </span>
                   </div>
@@ -369,7 +369,7 @@ export default function AdminAnalyticsPage() {
           </h2>
         </div>
         {data.topProducts.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+          <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Aucune donnée disponible.
           </div>
         ) : (
@@ -389,7 +389,7 @@ export default function AdminAnalyticsPage() {
               <tbody className="divide-y divide-gray-50 dark:divide-white/10">
                 {data.topProducts.map((p, i) => (
                   <tr key={p.name}>
-                    <td className="px-5 py-3 text-gray-400 dark:text-gray-500 font-medium">
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400 font-medium">
                       {i + 1}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-[#f8f6f3]">
@@ -427,7 +427,7 @@ export default function AdminAnalyticsPage() {
           </h2>
         </div>
         {data.topShops.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+          <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Aucune donnée disponible.
           </div>
         ) : (
@@ -448,7 +448,7 @@ export default function AdminAnalyticsPage() {
               <tbody className="divide-y divide-gray-50 dark:divide-white/10">
                 {data.topShops.map((s, i) => (
                   <tr key={s.name}>
-                    <td className="px-5 py-3 text-gray-400 dark:text-gray-500 font-medium">
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400 font-medium">
                       {i + 1}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-[#f8f6f3]">

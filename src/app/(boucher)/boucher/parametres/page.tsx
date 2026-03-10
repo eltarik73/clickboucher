@@ -512,7 +512,7 @@ export default function BoucherParametresPage() {
                       }
                       className="h-9 w-24 sm:w-28"
                     />
-                    <span className="text-xs text-gray-400 dark:text-gray-500">a</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">a</span>
                     <Input
                       type="time"
                       value={slot.end}
@@ -719,7 +719,7 @@ export default function BoucherParametresPage() {
                 }}
                 className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-amber-600"
               />
-              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                 <span>5%</span>
                 <span>10%</span>
                 <span>15%</span>
@@ -881,7 +881,7 @@ export default function BoucherParametresPage() {
                 rows={3}
                 className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
               />
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{infoDescription.length}/1000</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{infoDescription.length}/1000</p>
             </div>
 
             {/* Welcome message */}
@@ -895,7 +895,7 @@ export default function BoucherParametresPage() {
                 placeholder="Bienvenue ! Commandez en ligne et retirez en boutique."
                 maxLength={500}
               />
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Affiché sur votre page boutique</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Affiché sur votre page boutique</p>
             </div>
 
             {/* Closed message */}
@@ -909,7 +909,7 @@ export default function BoucherParametresPage() {
                 placeholder="Nous sommes actuellement fermés. Revenez bientot !"
                 maxLength={500}
               />
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Affiché quand la boutique est fermée</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Affiché quand la boutique est fermée</p>
             </div>
 
             {/* Min order */}
@@ -929,7 +929,7 @@ export default function BoucherParametresPage() {
                 />
                 <span className="text-sm text-gray-500 dark:text-gray-400">&euro;</span>
               </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">0 = pas de minimum</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">0 = pas de minimum</p>
             </div>
 
             {/* Opening hours */}
@@ -954,7 +954,7 @@ export default function BoucherParametresPage() {
                         }
                         className="h-9 w-24 sm:w-28"
                       />
-                      <span className="text-xs text-gray-400 dark:text-gray-500">a</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">a</span>
                       <Input
                         type="time"
                         value={h.close}
@@ -1096,7 +1096,7 @@ export default function BoucherParametresPage() {
                 }}
                 className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-600"
               />
-              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                 <span>5 km</span>
                 <span>30 km</span>
               </div>

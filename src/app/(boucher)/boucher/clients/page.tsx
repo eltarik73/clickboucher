@@ -255,7 +255,7 @@ export default function BoucherClientsPage() {
               <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
                 <CardContent className="py-12 flex flex-col items-center gap-2">
                   <Bell className="w-10 h-10 text-gray-300 dark:text-gray-600" />
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Aucune demande Pro en attente</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Aucune demande Pro en attente</p>
                 </CardContent>
               </Card>
             ) : (
@@ -279,20 +279,20 @@ export default function BoucherClientsPage() {
                     {/* Details */}
                     <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg p-3 space-y-2">
                       <div className="flex items-center gap-2">
-                        <Building2 size={14} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                        <Building2 size={14} className="text-gray-500 dark:text-gray-400 shrink-0" />
                         <span className="text-sm text-gray-700 dark:text-gray-300">{req.companyName}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 dark:text-gray-500 w-14 shrink-0">SIRET</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0">SIRET</span>
                         <span className="text-sm font-mono text-gray-700 dark:text-gray-300">{req.siret}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 dark:text-gray-500 w-14 shrink-0">Secteur</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0">Secteur</span>
                         <span className="text-sm text-gray-700 dark:text-gray-300">{req.sector}</span>
                       </div>
                       {req.phone && (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 dark:text-gray-500 w-14 shrink-0">Tél</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0">Tél</span>
                           <span className="text-sm text-gray-700 dark:text-gray-300">{req.phone}</span>
                         </div>
                       )}
@@ -358,7 +358,7 @@ export default function BoucherClientsPage() {
           <div className="space-y-3">
             {/* Search */}
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
               <Input
                 placeholder="Rechercher un client..."
                 value={searchQuery}
@@ -394,7 +394,7 @@ export default function BoucherClientsPage() {
 
               {/* Sort */}
               <div className="flex items-center gap-1 overflow-x-auto">
-                <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                <ArrowUpDown size={12} className="text-gray-500 dark:text-gray-400 shrink-0" />
                 {([
                   { key: "lastOrder", label: "Récent" },
                   { key: "totalSpent", label: "Dépensé" },
@@ -406,7 +406,7 @@ export default function BoucherClientsPage() {
                     className={`shrink-0 px-2 py-1 rounded-full text-[11px] font-medium transition-all ${
                       sortBy === opt.key
                         ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900"
-                        : "text-gray-400 dark:text-gray-500"
+                        : "text-gray-500 dark:text-gray-400"
                     }`}
                   >
                     {opt.label}
@@ -419,7 +419,7 @@ export default function BoucherClientsPage() {
               <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
                 <CardContent className="py-12 flex flex-col items-center gap-2">
                   <Users className="w-10 h-10 text-gray-300 dark:text-gray-600" />
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Aucun client trouvé</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Aucun client trouvé</p>
                 </CardContent>
               </Card>
             ) : (
@@ -440,19 +440,19 @@ export default function BoucherClientsPage() {
                             <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 shrink-0">Particulier</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{client.email?.replace(/^(.{3}).*@/, "$1***@")}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{client.email?.replace(/^(.{3}).*@/, "$1***@")}</p>
                       </div>
                       <div className="text-right shrink-0 ml-3">
                         <p className="text-sm font-bold text-gray-900 dark:text-white">
                           {formatPrice(client.totalSpent)}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           {client.orderCount} cmd{client.orderCount > 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
                     {client.lastOrderDate && (
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
                         Dernière commande : {formatDate(client.lastOrderDate)}
                       </p>
                     )}

@@ -56,7 +56,7 @@ function colorClasses(color: string, selected: boolean) {
 }
 
 function iconColor(color: string, selected: boolean) {
-  if (!selected) return "text-gray-400 dark:text-gray-500";
+  if (!selected) return "text-gray-500 dark:text-gray-400";
   switch (color) {
     case "blue":
       return "text-blue-600 dark:text-blue-400";
@@ -334,7 +334,7 @@ export function ButcherOfferForm({
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             Utilisations max
-            <span className="ml-1 text-xs text-gray-400 dark:text-gray-500 font-normal">
+            <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 font-normal">
               (laisser vide = illimité)
             </span>
           </label>
@@ -372,7 +372,7 @@ export function ButcherOfferForm({
                     className={
                       selected
                         ? "text-red-600 dark:text-red-400"
-                        : "text-gray-400 dark:text-gray-500"
+                        : "text-gray-500 dark:text-gray-400"
                     }
                   />
                   <span

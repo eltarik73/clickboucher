@@ -1451,13 +1451,13 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                   <div className="flex items-baseline gap-1.5 mt-1">
                     {promoEnabled && priceParsed > 0 ? (
                       <>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 line-through">{fmtPrice(priceParsed)}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 line-through">{fmtPrice(priceParsed)}</span>
                         <span className="text-sm font-bold text-red-600">{fmtPrice(promoPreviewPrice)}</span>
                       </>
                     ) : (
                       <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{priceParsed > 0 ? fmtPrice(priceParsed) : "—"}</span>
                     )}
-                    <span className="text-[9px] text-gray-400 dark:text-gray-500">
+                    <span className="text-[9px] text-gray-500 dark:text-gray-400">
                       /{unit === "KG" ? "kg" : unit === "PIECE" ? "pce" : unit === "TRANCHE" ? "kg" : "barq."}
                     </span>
                   </div>

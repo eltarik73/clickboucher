@@ -128,7 +128,7 @@ export function SearchBar() {
         <div className="relative">
           <Search
             size={16}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
           />
           <input
             ref={inputRef}
@@ -145,7 +145,7 @@ export function SearchBar() {
               <button
                 type="button"
                 onClick={() => { setQuery(""); setResults([]); inputRef.current?.focus(); }}
-                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
               >
                 <X size={16} />
               </button>
@@ -168,7 +168,7 @@ export function SearchBar() {
           {/* Recent searches */}
           {showRecent && (
             <div className="p-3">
-              <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 px-1">
                 Recherches récentes
               </p>
               {recentSearches.map((term) => (
@@ -177,7 +177,7 @@ export function SearchBar() {
                   onClick={() => handleRecentClick(term)}
                   className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left"
                 >
-                  <Clock size={13} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                  <Clock size={13} className="text-gray-500 dark:text-gray-400 shrink-0" />
                   <span className="truncate">{term}</span>
                 </button>
               ))}
@@ -195,7 +195,7 @@ export function SearchBar() {
 
               {!loading && results.length === 0 && query.length >= 2 && (
                 <div className="py-8 text-center">
-                  <p className="text-sm text-gray-400 dark:text-gray-500">Aucun résultat pour &quot;{query}&quot;</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Aucun résultat pour &quot;{query}&quot;</p>
                 </div>
               )}
 
@@ -217,7 +217,7 @@ export function SearchBar() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{r.name}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                       <span className="truncate">{r.shopName}</span>
                       {r.category && <><span>·</span><span>{r.category}</span></>}
                       {r.prepTime && (
@@ -232,7 +232,7 @@ export function SearchBar() {
                     <p className="text-sm font-bold text-gray-900 dark:text-white">
                       {fmtPrice(r.priceCents)}
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
                       /{r.unit === "KG" ? "kg" : r.unit === "PIECE" ? "pièce" : "barq."}
                     </p>
                   </div>

@@ -13,7 +13,7 @@ export default function BoucherLoading() {
           <div key={i} className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200/60 dark:border-white/[0.06] p-4">
             <div className="h-3 bg-gray-100 dark:bg-white/[0.04] rounded w-16 mb-3" />
             <div className="h-6 bg-gray-200 dark:bg-white/[0.06] rounded w-12 mb-1" />
-            <div className="h-3 bg-gray-50 dark:bg-white/[0.03] rounded w-24" />
+            <div className="h-3 bg-gray-50 dark:bg-gray-800 rounded w-24" />
           </div>
         ))}
       </div>

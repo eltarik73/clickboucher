@@ -31,7 +31,7 @@ export default async function AdminLoginPage() {
         <div className="bg-[#141414] border border-white/10 rounded-2xl p-8 text-center max-w-sm w-full">
           <div className="text-3xl mb-3">🔒</div>
           <h1 className="text-lg font-bold text-white mb-2">Accès refusé</h1>
-          <p className="text-sm text-gray-400 dark:text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Vous n&apos;avez pas les droits d&apos;administration.
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Redirection dans 3 secondes...</p>

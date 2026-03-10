@@ -80,7 +80,7 @@ export default async function RecettesPage({
         {/* Recette du jour (featured) */}
         {featured && (
           <Link href={`/recettes/${featured.slug}`} className="block mb-6">
-            <div className="bg-white dark:bg-white/[0.03] rounded-3xl overflow-hidden shadow-md hover:shadow-lg transition border border-[#ece8e3]/60 dark:border-white/[0.06]">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-md hover:shadow-lg transition border border-[#ece8e3]/60 dark:border-white/[0.06]">
               <div className="h-52 bg-gray-200 dark:bg-white/5 relative">
                 {featured.imageUrl && (
                   <img
@@ -106,7 +106,7 @@ export default async function RecettesPage({
                   {featured.title}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{featured.description}</p>
-                <div className="flex gap-3 mt-3 text-xs text-gray-400 dark:text-gray-500">
+                <div className="flex gap-3 mt-3 text-xs text-gray-500 dark:text-gray-400">
                   <span>👤 {featured.servings} pers.</span>
                   <span>📊 {featured.difficulty}</span>
                 </div>
@@ -115,7 +115,7 @@ export default async function RecettesPage({
                   <div className="text-xs font-bold text-[#DC2626]">
                     🥩 {featured.meatQuantity}
                   </div>
-                  <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
                     Disponible chez nos boucheries partenaires
                   </div>
                 </div>
@@ -130,7 +130,7 @@ export default async function RecettesPage({
             <Link
               key={recipe.id}
               href={`/recettes/${recipe.slug}`}
-              className="flex gap-3 bg-white dark:bg-white/[0.03] rounded-2xl p-3 border border-[#ece8e3]/60 dark:border-white/[0.06] hover:shadow-sm transition"
+              className="flex gap-3 bg-white dark:bg-gray-800 rounded-2xl p-3 border border-[#ece8e3]/60 dark:border-white/[0.06] hover:shadow-sm transition"
             >
               <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-white/5 overflow-hidden flex-shrink-0">
                 {recipe.imageUrl ? (
@@ -153,14 +153,14 @@ export default async function RecettesPage({
                   🥩 {recipe.meatQuantity}
                 </div>
                 <div className="flex gap-2 mt-1">
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
                     ⏱ {recipe.totalTime} min
                   </span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
                     {recipe.difficulty}
                   </span>
                   {recipe.tags[0] && (
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
                       {recipe.tags[0]}
                     </span>
                   )}
@@ -177,7 +177,7 @@ export default async function RecettesPage({
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Aucune recette pour le moment
             </p>
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
               De nouvelles recettes sont ajoutées chaque jour !
             </p>
             <Link

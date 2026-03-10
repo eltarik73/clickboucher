@@ -58,7 +58,7 @@ function ShopAvatar({ src, name, size = 44 }: { src?: string | null; name: strin
       {src ? (
         <Image src={src} alt={name} width={size} height={size} className="w-full h-full object-cover" />
       ) : (
-        <span className="text-gray-400 dark:text-gray-500 font-bold" style={{ fontSize: size * 0.3 }}>
+        <span className="text-gray-500 dark:text-gray-400 font-bold" style={{ fontSize: size * 0.3 }}>
           {name?.slice(0, 2).toUpperCase()}
         </span>
       )}
@@ -187,7 +187,7 @@ export default function WebmasterBoutiquesPage() {
       <div className="flex flex-wrap gap-2">
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
           <input
             type="text"
             placeholder="Rechercher par nom, ville, proprietaire..."
@@ -238,7 +238,7 @@ export default function WebmasterBoutiquesPage() {
 
       {/* Results count */}
       {search || statusFilter !== "all" || subFilter !== "all" ? (
-        <p className="text-[11px] text-gray-400 dark:text-gray-500">{filtered.length} resultat{filtered.length > 1 ? "s" : ""}</p>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">{filtered.length} resultat{filtered.length > 1 ? "s" : ""}</p>
       ) : null}
 
       {/* Shop cards */}
@@ -289,7 +289,7 @@ export default function WebmasterBoutiquesPage() {
                 </p>
 
                 {/* Row 3: Owner */}
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                   {s.ownerName}
                   {s.ownerEmail ? ` · ${s.ownerEmail}` : ""}
                 </p>
@@ -302,7 +302,7 @@ export default function WebmasterBoutiquesPage() {
                   className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center transition-all ${
                     s.featured
                       ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                      : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10"
+                      : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10"
                   }`}
                   title={s.featured ? "Retirer la mise en avant" : "Mettre en avant"}
                 >
@@ -321,7 +321,7 @@ export default function WebmasterBoutiquesPage() {
                 </button>
                 <Link
                   href={`/webmaster/boutiques/${s.id}`}
-                  className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-all"
+                  className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-all"
                   title="Voir le detail"
                 >
                   <ChevronRight size={14} />
@@ -332,7 +332,7 @@ export default function WebmasterBoutiquesPage() {
         ))}
 
         {filtered.length === 0 && (
-          <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-12">Aucune boucherie trouvee</p>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-12">Aucune boucherie trouvee</p>
         )}
       </div>
     </div>

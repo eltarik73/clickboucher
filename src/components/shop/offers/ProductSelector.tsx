@@ -138,7 +138,7 @@ export function ProductSelector({
       <div className="relative mb-5">
         <Search
           size={16}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
         />
         <input
           type="text"
@@ -151,12 +151,12 @@ export function ProductSelector({
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={24} className="animate-spin text-gray-400 dark:text-gray-500" />
+          <Loader2 size={24} className="animate-spin text-gray-500 dark:text-gray-400" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-12 text-center">
           <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
-            <Package size={24} className="text-gray-400 dark:text-gray-500" />
+            <Package size={24} className="text-gray-500 dark:text-gray-400" />
           </div>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
             {search ? "Aucun produit trouvé" : "Aucun produit disponible"}

@@ -199,7 +199,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
             {shop.address}, {shop.city} &middot; {shop.phone}
           </p>
           {shop.owner && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Propriétaire : {shop.owner.name} ({shop.owner.email})
             </p>
           )}
@@ -315,7 +315,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
             </h2>
           </div>
           {shop.recentOrders.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+            <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
               Aucune commande
             </div>
           ) : (
@@ -326,7 +326,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
                     <span className="text-sm font-medium text-gray-900 dark:text-[#f8f6f3]">
                       #{o.orderNumber}
                     </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
                       {new Date(o.createdAt).toLocaleDateString("fr-FR")}
                     </span>
                   </div>

@@ -141,7 +141,7 @@ export function OffersList({
         <p className="text-sm font-semibold text-gray-900 dark:text-white">
           Aucune offre
         </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Cr\u00E9ez votre premi\u00E8re offre pour booster vos ventes
         </p>
       </div>
@@ -208,7 +208,7 @@ export function OffersList({
               </div>
 
               {/* Line 2 */}
-              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" />
                   {getAudienceLabel(offer.audience)}

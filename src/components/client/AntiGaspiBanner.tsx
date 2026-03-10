@@ -82,7 +82,7 @@ export function AntiGaspiBanner({ products, shop }: { products: AntiGaspiProduct
                   <div className="flex items-baseline gap-1 mt-0.5">
                     <span className="text-[11px] font-bold text-emerald-600">{fmtPrice(p.priceCents)}</span>
                     {p.antiGaspiOrigPriceCents && (
-                      <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
+                      <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
                     )}
                   </div>
                 </div>

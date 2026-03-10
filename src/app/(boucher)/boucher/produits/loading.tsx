@@ -19,7 +19,7 @@ export default function BoucherProduitsLoading() {
             <div className="flex-1">
               <div className="h-4 bg-gray-200 dark:bg-white/[0.06] rounded w-28 mb-2" />
               <div className="h-3 bg-gray-100 dark:bg-white/[0.04] rounded w-20 mb-1" />
-              <div className="h-3 bg-gray-50 dark:bg-white/[0.03] rounded w-16" />
+              <div className="h-3 bg-gray-50 dark:bg-gray-800 rounded w-16" />
             </div>
           </div>
         ))}

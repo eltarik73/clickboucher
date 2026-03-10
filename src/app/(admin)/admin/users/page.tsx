@@ -250,7 +250,7 @@ export default function AdminUsersPage() {
         <div className="relative flex-1">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
           />
           <input
             type="text"
@@ -273,7 +273,7 @@ export default function AdminUsersPage() {
           </select>
           <ChevronDown
             size={14}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
           />
         </div>
       </div>
@@ -281,7 +281,7 @@ export default function AdminUsersPage() {
       {/* Results */}
       {filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
-          <p className="text-gray-400 dark:text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Aucun utilisateur trouvé.
           </p>
         </div>
@@ -319,7 +319,7 @@ export default function AdminUsersPage() {
                             <p className="font-medium text-gray-900 dark:text-[#f8f6f3] truncate">
                               {user.firstName} {user.lastName}
                             </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {user.email}
                             </p>
                           </div>
@@ -375,7 +375,7 @@ export default function AdminUsersPage() {
                       </p>
                       {roleBadge(user.role)}
                     </div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                       {user.email}
                     </p>
                     {user.companyName && (
@@ -390,19 +390,19 @@ export default function AdminUsersPage() {
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {user.orderCount}
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Commandes</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Commandes</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {fmt(user.totalSpent)} €
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Dépensé</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Dépensé</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {fmtDate(user.createdAt)}
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Inscrit</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Inscrit</p>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-white/10">
@@ -453,7 +453,7 @@ export default function AdminUsersPage() {
                 </select>
                 <ChevronDown
                   size={14}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
                 />
               </div>
             </div>

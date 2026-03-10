@@ -76,7 +76,7 @@ export default function WebmasterFlagsPage() {
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 dark:text-white">{flag.key}</p>
               {flag.description && (
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{flag.description}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{flag.description}</p>
               )}
             </div>
             <button
@@ -94,7 +94,7 @@ export default function WebmasterFlagsPage() {
         ))}
 
         {flags.length === 0 && (
-          <p className="text-center text-gray-400 dark:text-gray-500 py-12">Aucun feature flag configure</p>
+          <p className="text-center text-gray-500 dark:text-gray-400 py-12">Aucun feature flag configure</p>
         )}
       </div>
     </div>

@@ -139,19 +139,19 @@ export default async function RecettePage({
               <div className="text-lg font-extrabold text-[#1C1512] dark:text-white">
                 {recipe.totalTime} min
               </div>
-              <div className="text-[10px] text-gray-400 dark:text-gray-500">Temps total</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">Temps total</div>
             </div>
             <div className="text-center flex-1">
               <div className="text-lg font-extrabold text-[#1C1512] dark:text-white">
                 {recipe.servings}
               </div>
-              <div className="text-[10px] text-gray-400 dark:text-gray-500">Personnes</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">Personnes</div>
             </div>
             <div className="text-center flex-1">
               <div className="text-lg font-extrabold text-[#1C1512] dark:text-white">
                 {recipe.difficulty}
               </div>
-              <div className="text-[10px] text-gray-400 dark:text-gray-500">Difficulté</div>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">Difficulté</div>
             </div>
           </div>
 
@@ -168,7 +168,7 @@ export default async function RecettePage({
             {meatIngredients.map((ing, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 p-3 bg-white dark:bg-white/[0.03] rounded-xl mb-2 border border-red-50 dark:border-white/[0.06]"
+                className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl mb-2 border border-red-50 dark:border-white/[0.06]"
               >
                 <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-lg">
                   🥩
@@ -199,7 +199,7 @@ export default async function RecettePage({
             ))}
 
             {shops.length > 1 && (
-              <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-center">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
                 Également disponible chez :{" "}
                 {shops
                   .slice(1)
@@ -279,7 +279,7 @@ export default async function RecettePage({
                   <Link
                     key={r.id}
                     href={`/recettes/${r.slug}`}
-                    className="min-w-[140px] flex-shrink-0 bg-white dark:bg-white/[0.03] rounded-xl border border-[#ece8e3]/60 dark:border-white/[0.06] overflow-hidden hover:shadow-sm transition"
+                    className="min-w-[140px] flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3]/60 dark:border-white/[0.06] overflow-hidden hover:shadow-sm transition"
                   >
                     <div className="h-20 bg-gray-200 dark:bg-white/5 overflow-hidden">
                       {r.imageUrl ? (

@@ -420,7 +420,7 @@ export default function PanierPage() {
           )}
           <button
             onClick={() => setShowClearConfirm(true)}
-            className="ml-auto text-xs text-gray-400 dark:text-gray-500 hover:text-[#DC2626] transition-colors flex items-center gap-1"
+            className="ml-auto text-xs text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors flex items-center gap-1"
           >
             <X size={12} />
             Vider
@@ -654,9 +654,9 @@ export default function PanierPage() {
 
                     {/* Slots grid */}
                     {slotsLoading ? (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">Chargement...</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Chargement...</p>
                     ) : slots.length === 0 ? (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">Aucun creneau disponible ce jour</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Aucun creneau disponible ce jour</p>
                     ) : (
                       <div className="grid grid-cols-3 gap-2">
                         {slots.map((slot) => {
@@ -676,7 +676,7 @@ export default function PanierPage() {
                             >
                               {slot.start}
                               {slot.available && (
-                                <span className={`block text-[10px] mt-0.5 ${isSelected ? "text-white/70" : "text-gray-400 dark:text-gray-500"}`}>
+                                <span className={`block text-[10px] mt-0.5 ${isSelected ? "text-white/70" : "text-gray-500 dark:text-gray-400"}`}>
                                   {slot.remaining} place{slot.remaining > 1 ? "s" : ""}
                                 </span>
                               )}

@@ -210,7 +210,7 @@ export default function AbonnementPage() {
                   </span>
                 )}
 
-                <plan.icon className={`w-6 h-6 mb-2 ${plan.popular ? "text-[#DC2626]" : "text-gray-400 dark:text-gray-500"}`} />
+                <plan.icon className={`w-6 h-6 mb-2 ${plan.popular ? "text-[#DC2626]" : "text-gray-500 dark:text-gray-400"}`} />
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h3>
 
                 <div className="mt-2">
@@ -221,7 +221,7 @@ export default function AbonnementPage() {
                 </div>
 
                 {yearly && (
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
                     {price}&euro;/an <span className="text-[#DC2626] font-bold">(économie {savings}&euro;)</span>
                   </p>
                 )}

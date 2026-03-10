@@ -139,7 +139,7 @@ export default function FavorisPage() {
                 <Link
                   key={shop.id}
                   href={`/boutique/${shop.slug}`}
-                  className={`flex gap-4 p-3 bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-all ${
+                  className={`flex gap-4 p-3 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-all ${
                     (shop.status === "CLOSED" || shop.status === "VACATION") ? "opacity-60" : ""
                   }`}
                 >
@@ -188,7 +188,7 @@ export default function FavorisPage() {
                         <span className="font-semibold text-gray-900 dark:text-white">
                           {shop.rating.toFixed(1)}
                         </span>
-                        <span className="text-gray-400 dark:text-gray-500">({shop.ratingCount})</span>
+                        <span className="text-gray-500 dark:text-gray-400">({shop.ratingCount})</span>
                       </div>
                       {(shop.status === "OPEN" || shop.status === "BUSY") && (
                         <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">

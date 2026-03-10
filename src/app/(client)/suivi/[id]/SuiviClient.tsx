@@ -198,11 +198,11 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
                 {customerName}
               </div>
               {order.user.customerNumber && (
-                <div className="mt-1 text-[14px] text-gray-400 dark:text-gray-500">
+                <div className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
                   Client {order.user.customerNumber}
                 </div>
               )}
-              <p className="mt-4 text-[13px] text-gray-400 dark:text-gray-500 leading-relaxed">
+              <p className="mt-4 text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
                 Présentez ce numéro au comptoir<br />pour retirer votre commande.
               </p>
             </>
@@ -288,7 +288,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
                       {step.label}
                     </span>
                     {time && (
-                      <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">{time}</span>
+                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">{time}</span>
                     )}
                   </div>
                 </div>
@@ -307,7 +307,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
               <div key={item.id} className="flex justify-between text-sm">
                 <div className="min-w-0">
                   <span className="text-gray-900 dark:text-white">{item.name}</span>
-                  <span className="text-gray-400 dark:text-gray-500 ml-1.5">{fmtQty(item)}</span>
+                  <span className="text-gray-500 dark:text-gray-400 ml-1.5">{fmtQty(item)}</span>
                 </div>
                 <span className="font-semibold text-gray-900 dark:text-white shrink-0">
                   {fmtPrice(item.totalCents)}
@@ -373,7 +373,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         )}
 
         {/* Date */}
-        <p className="text-center text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-center text-xs text-gray-500 dark:text-gray-400">
           Commande passée le{" "}
           {new Date(order.createdAt).toLocaleDateString("fr-FR", {
             day: "numeric",

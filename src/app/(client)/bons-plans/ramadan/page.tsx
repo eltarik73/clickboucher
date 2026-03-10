@@ -75,7 +75,7 @@ export default async function RamadanPage() {
           <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider px-1">Offres Ramadan</p>
           {ramadanOffers.map((o) => (
             <Link key={o.id} href={o.shop?.slug ? `/boutique/${o.shop.slug}` : "/bons-plans/ramadan"}>
-              <div className="p-3 bg-white dark:bg-white/[0.03] rounded-2xl border border-amber-200/60 dark:border-amber-800/20">
+              <div className="p-3 bg-white dark:bg-gray-800 rounded-2xl border border-amber-200/60 dark:border-amber-800/20">
                 <p className="text-sm font-bold text-gray-900 dark:text-white">{o.name}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{o.shop?.name || "Klik&Go"}</p>
                 {o.code && (
@@ -114,7 +114,7 @@ export default async function RamadanPage() {
                 }}
                 shop={p.shop}
               >
-                <div className="flex gap-2.5 p-2.5 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] transition-all hover:shadow-md">
+                <div className="flex gap-2.5 p-2.5 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] transition-all hover:shadow-md">
                   <div className="relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
                     <Image src={imgSrc} alt={p.name} fill sizes="64px" className="object-cover" quality={70} />
                   </div>
@@ -125,10 +125,10 @@ export default async function RamadanPage() {
                         {fmtPrice(discounted ?? p.priceCents)}
                       </span>
                       {discounted && (
-                        <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(p.priceCents)}</span>
+                        <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 block">{p.shop.name}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 block">{p.shop.name}</span>
                   </div>
                 </div>
               </BonsPlansProductCard>

@@ -56,7 +56,7 @@ export default function WebmasterAuditPage() {
           <Loader2 className="w-6 h-6 animate-spin text-[#DC2626]" />
         </div>
       ) : logs.length === 0 ? (
-        <p className="text-center text-gray-400 dark:text-gray-500 py-12">Aucune action enregistree</p>
+        <p className="text-center text-gray-500 dark:text-gray-400 py-12">Aucune action enregistree</p>
       ) : (
         <>
           <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm overflow-hidden">
@@ -86,7 +86,7 @@ export default function WebmasterAuditPage() {
                       </td>
                       <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
                         {log.target && <span>{log.target}</span>}
-                        {log.targetId && <span className="text-gray-400 dark:text-gray-500"> #{log.targetId.slice(-6)}</span>}
+                        {log.targetId && <span className="text-gray-500 dark:text-gray-400"> #{log.targetId.slice(-6)}</span>}
                       </td>
                     </tr>
                   ))}

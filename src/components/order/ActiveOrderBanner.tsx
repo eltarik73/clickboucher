@@ -99,7 +99,7 @@ export function ActiveOrderBanner() {
         </div>
 
         {/* Arrow */}
-        <ChevronRight size={18} className="text-gray-400 dark:text-gray-500 shrink-0" />
+        <ChevronRight size={18} className="text-gray-500 dark:text-gray-400 shrink-0" />
       </div>
 
       {/* Mini progress bar */}

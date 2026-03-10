@@ -131,7 +131,7 @@ export default function AntiGaspiPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
         <Input
           placeholder="Rechercher un produit..."
           value={search}
@@ -184,7 +184,7 @@ export default function AntiGaspiPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isProcessing && <Loader2 size={14} className="animate-spin text-gray-400 dark:text-gray-500" />}
+                  {isProcessing && <Loader2 size={14} className="animate-spin text-gray-500 dark:text-gray-400" />}
                   <Switch
                     checked={p.isAntiGaspi}
                     onCheckedChange={() => toggleAntiGaspi(p)}
@@ -230,7 +230,7 @@ export default function AntiGaspiPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
                     Prix apres remise : <span className="font-bold text-emerald-600">{fmtPrice(discountedPrice)}</span>
                   </div>
                 </div>

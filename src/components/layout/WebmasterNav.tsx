@@ -140,7 +140,7 @@ export function WebmasterNav() {
             <KlikLogo size={32} />
             <div>
               <KlikWordmark size="sm" />
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Espace webmaster</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Espace webmaster</p>
             </div>
           </Link>
         </div>
@@ -158,7 +158,7 @@ export function WebmasterNav() {
                     onClick={() => toggleSection(section.title!)}
                     className="flex items-center justify-between w-full px-3 py-1.5 mt-1 mb-0.5"
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                       {section.title}
                       {isCollapsed && hasActiveItem && (
                         <span className="ml-1.5 w-1.5 h-1.5 inline-block rounded-full bg-primary" />
@@ -166,7 +166,7 @@ export function WebmasterNav() {
                     </span>
                     <ChevronDown
                       size={12}
-                      className={`text-gray-400 dark:text-gray-500 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                      className={`text-gray-500 dark:text-gray-400 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
                     />
                   </button>
                 )}
@@ -206,7 +206,7 @@ export function WebmasterNav() {
 
         {/* Version footer */}
         <div className="px-5 py-3 border-t border-gray-100 dark:border-white/10">
-          <p className="text-[10px] text-gray-400 dark:text-gray-500">Klik&Go Admin v2</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400">Klik&Go Admin v2</p>
         </div>
       </aside>
 
@@ -227,7 +227,7 @@ export function WebmasterNav() {
               {NAV_SECTIONS.map((section, idx) => (
                 <div key={idx} className={idx > 0 ? "mt-3" : ""}>
                   {section.title && (
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 px-3 mb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-3 mb-1">
                       {section.title}
                     </p>
                   )}
@@ -276,7 +276,7 @@ export function WebmasterNav() {
                 key={item.key}
                 href={item.href}
                 className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
-                  active ? "text-primary dark:text-primary" : "text-gray-400 dark:text-gray-500"
+                  active ? "text-primary dark:text-primary" : "text-gray-500 dark:text-gray-400"
                 }`}
               >
                 <div className="relative">
@@ -298,7 +298,7 @@ export function WebmasterNav() {
           <button
             onClick={() => setShowMoreMenu(true)}
             className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
-              showMoreMenu ? "text-primary" : "text-gray-400 dark:text-gray-500"
+              showMoreMenu ? "text-primary" : "text-gray-500 dark:text-gray-400"
             }`}
           >
             <MoreHorizontal size={20} strokeWidth={1.8} />

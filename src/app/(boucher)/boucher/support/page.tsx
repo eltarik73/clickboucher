@@ -117,7 +117,7 @@ export default function BoucherSupportPage() {
           </h2>
           <div className="flex items-center gap-2 mt-3">
             <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
               <input
                 type="text"
                 value={faqSearch}
@@ -157,7 +157,7 @@ export default function BoucherSupportPage() {
                   </p>
                   <ChevronDown
                     size={14}
-                    className={`text-gray-400 dark:text-gray-500 shrink-0 transition-transform ${expandedFaq === faq.id ? "rotate-180" : ""}`}
+                    className={`text-gray-500 dark:text-gray-400 shrink-0 transition-transform ${expandedFaq === faq.id ? "rotate-180" : ""}`}
                   />
                 </div>
                 {expandedFaq === faq.id && (
@@ -169,7 +169,7 @@ export default function BoucherSupportPage() {
             ))}
           </div>
         ) : (
-          <div className="px-5 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+          <div className="px-5 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
             Aucun résultat pour cette recherche
           </div>
         )}
@@ -182,7 +182,7 @@ export default function BoucherSupportPage() {
           <p className="text-gray-500 dark:text-gray-400 font-medium">
             Aucun ticket de support
           </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Créez un ticket pour obtenir de l&apos;aide
           </p>
         </div>
@@ -199,13 +199,13 @@ export default function BoucherSupportPage() {
                   className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors"
                 >
                   <div className="shrink-0">
-                    <MessageSquare size={20} className="text-gray-400 dark:text-gray-500" />
+                    <MessageSquare size={20} className="text-gray-500 dark:text-gray-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-[#f8f6f3] truncate">
                       {ticket.subject}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {new Date(ticket.createdAt).toLocaleDateString("fr-FR")} &middot;{" "}
                       {ticket._count.messages} message(s)
                     </p>

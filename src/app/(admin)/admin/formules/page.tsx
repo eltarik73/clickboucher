@@ -18,7 +18,7 @@ const PLAN_COLORS: Record<string, { bg: string; border: string; text: string; ic
     bg: "bg-gray-50 dark:bg-white/5",
     border: "border-gray-200 dark:border-white/10",
     text: "text-gray-700 dark:text-gray-300",
-    icon: "text-gray-400 dark:text-gray-500",
+    icon: "text-gray-500 dark:text-gray-400",
   },
   PRO: {
     bg: "bg-blue-50 dark:bg-blue-500/5",
@@ -192,11 +192,11 @@ export default function AdminFormulesPage() {
               <div className={`px-5 py-4 ${colors.bg} flex items-center gap-2`}>
                 <Crown size={18} className={colors.icon} />
                 <h2 className={`font-bold ${colors.text}`}>{plan}</h2>
-                <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{planFeatures.length} feature(s)</span>
+                <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{planFeatures.length} feature(s)</span>
               </div>
               <div className="bg-white dark:bg-[#141414]">
                 {planFeatures.length === 0 ? (
-                  <p className="px-5 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+                  <p className="px-5 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                     Aucune feature configurée
                   </p>
                 ) : (
@@ -214,21 +214,21 @@ export default function AdminFormulesPage() {
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${f.enabled ? "text-gray-900 dark:text-[#f8f6f3]" : "text-gray-400 dark:text-gray-500 line-through"}`}>
+                          <p className={`text-sm font-medium ${f.enabled ? "text-gray-900 dark:text-[#f8f6f3]" : "text-gray-500 dark:text-gray-400 line-through"}`}>
                             {f.featureName}
                           </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">
                             {f.featureKey}
                           </p>
                           {f.description && (
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                               {f.description}
                             </p>
                           )}
                         </div>
                         <button
                           onClick={() => deleteFeature(f.id)}
-                          className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+                          className="shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
                         >
                           <Trash2 size={14} />
                         </button>

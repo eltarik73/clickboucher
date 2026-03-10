@@ -106,7 +106,7 @@ export default function OnboardingChecklist() {
           />
         </div>
         <div className="flex items-center justify-between mt-1.5">
-          <span className="text-xs text-gray-400 dark:text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {data.progress}% complété
           </span>
           {data.progress >= 80 && (
@@ -144,7 +144,7 @@ export default function OnboardingChecklist() {
               <p
                 className={`text-sm font-medium ${
                   step.completed
-                    ? "text-gray-400 dark:text-gray-500 line-through"
+                    ? "text-gray-500 dark:text-gray-400 line-through"
                     : "text-gray-900 dark:text-[#f8f6f3]"
                 }`}
               >

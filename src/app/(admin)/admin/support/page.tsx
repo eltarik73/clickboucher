@@ -97,7 +97,7 @@ export default function AdminSupportPage() {
       ) : tickets.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
           <Headphones size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400 dark:text-gray-500">Aucun ticket</p>
+          <p className="text-gray-500 dark:text-gray-400">Aucun ticket</p>
         </div>
       ) : (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
@@ -115,7 +115,7 @@ export default function AdminSupportPage() {
                     <p className="text-sm font-medium text-gray-900 dark:text-[#f8f6f3] truncate">
                       {ticket.subject}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {ticket.shop.name} &middot; {new Date(ticket.createdAt).toLocaleDateString("fr-FR")}
                       &middot; {ticket._count.messages} message(s)
                     </p>

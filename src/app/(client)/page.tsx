@@ -338,7 +338,7 @@ export default async function HomePage() {
               <Link
                 key={recipe.id}
                 href={`/recettes/${recipe.slug}`}
-                className="min-w-[200px] flex-shrink-0 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden hover:shadow-md transition"
+                className="min-w-[200px] flex-shrink-0 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden hover:shadow-md transition"
               >
                 <div className="h-28 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
                   {recipe.imageUrl ? (
@@ -391,7 +391,7 @@ export default async function HomePage() {
             <Link
               key={city.slug}
               href={`/boucherie-halal/${city.slug}`}
-              className="px-4 py-2 bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626] transition"
+              className="px-4 py-2 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626] transition"
             >
               {city.name}
             </Link>
@@ -403,7 +403,7 @@ export default async function HomePage() {
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />
-            <nav className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+            <nav className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500 dark:text-gray-400">
               <Link href="/recettes" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 Recettes
               </Link>
@@ -421,7 +421,7 @@ export default async function HomePage() {
               </a>
             </nav>
           </div>
-          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">&copy; 2026 Klik&amp;Go</p>
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">&copy; 2026 Klik&amp;Go</p>
         </div>
       </footer>
 

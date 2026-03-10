@@ -12,14 +12,14 @@ export function CartPanel() {
 
   if (items.length === 0) {
     return (
-      <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200 dark:border-white/10 p-6 text-center">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/10 p-6 text-center">
         <p className="text-gray-500 dark:text-gray-400">Votre panier est vide</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b dark:border-white/10">
         <h3 className="font-semibold dark:text-white">Panier ({count})</h3>
         <button type="button" onClick={clear} className="text-sm text-red-500 hover:underline">

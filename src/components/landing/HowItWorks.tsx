@@ -71,7 +71,7 @@ export function HowItWorks() {
         {/* Mobile: stacked cards */}
         <div className="md:hidden space-y-2.5">
           {STEPS.map(step => (
-            <div key={step.number} className="flex items-start gap-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06]">
+            <div key={step.number} className="flex items-start gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06]">
               <div className="w-8 h-8 rounded-full bg-[#DC2626] flex items-center justify-center shrink-0 shadow-lg shadow-[#DC2626]/30">
                 <span className="text-sm font-bold text-white">{step.number}</span>
               </div>

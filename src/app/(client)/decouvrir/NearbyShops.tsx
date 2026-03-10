@@ -124,12 +124,12 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
             </div>
 
             {openShops.length === 0 && !loading && (
-              <div className="text-center py-12 bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-200 dark:border-white/[0.06] mb-10">
+              <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-white/[0.06] mb-10">
                 <MapPin className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-600 dark:text-gray-400 font-medium">
                   Aucune boucherie ouverte en ce moment
                 </p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Revenez bientôt ou consultez les boucheries ci-dessous
                 </p>
               </div>
@@ -154,10 +154,10 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
               <div className="mt-12">
                 <div className="flex items-center gap-2 mb-6">
                   <div className="w-1 h-6 bg-gray-300 dark:bg-gray-600 rounded-full" />
-                  <h2 className="text-xl font-bold text-gray-400 dark:text-gray-500 font-display">
+                  <h2 className="text-xl font-bold text-gray-500 dark:text-gray-400 font-display">
                     Actuellement fermées
                   </h2>
-                  <span className="ml-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 text-xs font-bold rounded-full">
+                  <span className="ml-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold rounded-full">
                     {closedShops.length}
                   </span>
                 </div>
@@ -205,7 +205,7 @@ function NearbyButcherCard({
   return (
     <Link
       href={`/boutique/${shop.slug}`}
-      className={`group bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
+      className={`group bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
         shop.status === "CLOSED" || shop.status === "VACATION" ? "opacity-60" : ""
       }`}
     >
@@ -272,7 +272,7 @@ function NearbyButcherCard({
         {/* Hover CTA */}
         {(shop.status === "OPEN" || shop.status === "BUSY") && (
           <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-            <span className="block w-full py-2.5 bg-white dark:bg-white/[0.03] text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
+            <span className="block w-full py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
               Voir la boutique
             </span>
           </div>
@@ -293,7 +293,7 @@ function NearbyButcherCard({
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {shop.rating.toFixed(1)}
             </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500">({shop.ratingCount})</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">({shop.ratingCount})</span>
           </div>
         </div>
       </div>

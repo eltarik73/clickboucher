@@ -185,7 +185,7 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Aucune promo active
               </p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
                 Les offres apparaitront ici des qu&apos;un boucher en lancera
               </p>
               <Link
@@ -226,7 +226,7 @@ function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{promo.description}</p>
               )}
               {promo.shopName && (
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-400 dark:text-gray-500">
+                <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500 dark:text-gray-400">
                   <MapPin size={9} />
                   <span>{promo.shopName}</span>
                 </div>
@@ -244,14 +244,14 @@ function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-white/10 border border-[#DC2626]/20 rounded-lg hover:bg-[#DC2626]/5 transition-colors"
               >
                 <code className="text-xs font-mono font-bold text-[#DC2626]">{promo.code}</code>
-                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-400 dark:text-gray-500" />}
+                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-500 dark:text-gray-400" />}
               </button>
             ) : (
               <span className="text-[10px] text-[#DC2626] font-semibold bg-[#DC2626]/10 px-2 py-1 rounded-full">
                 Automatique
               </span>
             )}
-            <span className="text-[10px] text-gray-400 dark:text-gray-500">
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">
               {daysLeft(promo.endsAt)}
             </span>
           </div>
@@ -292,7 +292,7 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
       }}
       shop={product.shop}
     >
-      <div className={`flex gap-2.5 p-2.5 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] transition-all hover:shadow-md ${
+      <div className={`flex gap-2.5 p-2.5 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] transition-all hover:shadow-md ${
         isFlash ? "ring-1 ring-orange-300/50 dark:ring-orange-700/50" : ""
       }`}>
         {/* Image */}
@@ -311,7 +311,7 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
             <div className="min-w-0">
               <h3 className="font-bold text-[12px] text-gray-900 dark:text-white truncate">{product.name}</h3>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                <span className="text-[10px] text-gray-500 dark:text-gray-400">
                   {product.categories.map((c) => `${c.emoji ? c.emoji + " " : ""}${c.name}`).join(", ")}
                 </span>
                 {product.origin && (
@@ -331,15 +331,15 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
             <div className="text-right shrink-0">
               <span className="text-[13px] font-extrabold text-[#DC2626]">{fmtPrice(discountedPrice)}</span>
               <div className="flex items-center gap-1">
-                <span className="text-[9px] text-gray-400 dark:text-gray-500 line-through">{fmtPrice(product.priceCents)}</span>
-                <span className="text-[9px] text-gray-400 dark:text-gray-500">{unitLabel(product.unit)}</span>
+                <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(product.priceCents)}</span>
+                <span className="text-[9px] text-gray-500 dark:text-gray-400">{unitLabel(product.unit)}</span>
               </div>
             </div>
           </div>
 
           {/* Bottom row: shop + countdown */}
           <div className="flex items-center justify-between mt-1">
-            <div className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+            <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
               <MapPin size={9} />
               <span className="truncate">{product.shop.name}</span>
             </div>

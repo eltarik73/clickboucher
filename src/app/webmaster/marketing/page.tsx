@@ -136,7 +136,7 @@ export default function MarketingHubPage() {
         {/* Stats card */}
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 size={18} className="text-gray-400 dark:text-gray-500" />
+            <BarChart3 size={18} className="text-gray-500 dark:text-gray-400" />
             <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Ce mois</span>
           </div>
           {loading ? (
@@ -149,25 +149,25 @@ export default function MarketingHubPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stats?.conversions ?? 0}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Conversions offres</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Conversions offres</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-blue-600">
                   {stats?.emailsSent ?? 0}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">Emails envoyés</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Emails envoyés</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-emerald-600">
                   {(stats?.revenueViaOffers ?? 0).toFixed(0)}€
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">CA via offres</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">CA via offres</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-purple-600">
                   {(stats?.roi ?? 0).toFixed(1)}x
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">ROI offres</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">ROI offres</p>
               </div>
             </div>
           )}

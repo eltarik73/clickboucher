@@ -122,12 +122,12 @@ export function CampaignsList({
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-white/5">
-          <Mail className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+          <Mail className="h-6 w-6 text-gray-500 dark:text-gray-400" />
         </div>
         <p className="text-sm font-semibold text-gray-900 dark:text-white">
           Aucune campagne
         </p>
-        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Cr&eacute;ez votre premi&egrave;re campagne email
         </p>
       </div>
@@ -180,7 +180,7 @@ export function CampaignsList({
                 </span>
                 <AudienceBadge audience={campaign.audience} />
               </div>
-              <div className="mt-1 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+              <div className="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                 <Send className="h-3 w-3" />
                 <span>{campaign.sentCount} envoy&eacute;s</span>
                 {campaign.sentCount > 0 && (
@@ -193,7 +193,7 @@ export function CampaignsList({
 
             {/* Right */}
             <div className="flex shrink-0 items-center gap-2">
-              <span className="text-xs text-gray-400 dark:text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 {formatDate(displayDate)}
               </span>
               <ChevronRight className="h-4 w-4 text-gray-300 dark:text-gray-600" />

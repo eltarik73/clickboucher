@@ -19,7 +19,7 @@ export default function StatistiquesLoading() {
       {/* Chart area */}
       <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200/60 dark:border-white/[0.06] p-6">
         <div className="h-4 bg-gray-200 dark:bg-white/[0.06] rounded w-40 mb-4" />
-        <div className="h-48 bg-gray-50 dark:bg-white/[0.03] rounded-lg" />
+        <div className="h-48 bg-gray-50 dark:bg-gray-800 rounded-lg" />
       </div>
     </div>
   );

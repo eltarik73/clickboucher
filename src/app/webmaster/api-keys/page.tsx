@@ -263,7 +263,7 @@ export default function WebmasterApiKeysPage() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Total", value: stats.totalKeys, icon: Key, bg: "bg-gray-50 dark:bg-white/[0.03]", color: "text-gray-600 dark:text-gray-400" },
+            { label: "Total", value: stats.totalKeys, icon: Key, bg: "bg-gray-50 dark:bg-gray-800", color: "text-gray-600 dark:text-gray-400" },
             { label: "Actives", value: stats.activeKeys, icon: Shield, bg: "bg-emerald-50 dark:bg-emerald-500/10", color: "text-emerald-600 dark:text-emerald-400" },
             { label: "Expirées", value: stats.expiredKeys, icon: Clock, bg: "bg-amber-50 dark:bg-amber-500/10", color: "text-amber-600 dark:text-amber-400" },
             { label: "Appels total", value: stats.totalUsage.toLocaleString("fr-FR"), icon: Activity, bg: "bg-blue-50 dark:bg-blue-500/10", color: "text-blue-600 dark:text-blue-400" },
@@ -341,7 +341,7 @@ export default function WebmasterApiKeysPage() {
             </h2>
             <button
               onClick={() => setShowCreate(false)}
-              className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+              className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X size={16} />
             </button>
@@ -469,20 +469,20 @@ export default function WebmasterApiKeysPage() {
           <h2 className="text-sm font-bold text-gray-900 dark:text-white flex-1">
             Clés existantes
           </h2>
-          <span className="text-xs text-gray-400 dark:text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {keys.length} clé{keys.length > 1 ? "s" : ""}
           </span>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 size={20} className="animate-spin text-gray-400 dark:text-gray-500" />
+            <Loader2 size={20} className="animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : keys.length === 0 ? (
           <div className="text-center py-12">
             <Key size={32} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-            <p className="text-sm text-gray-400 dark:text-gray-500">Aucune clé API créée</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Aucune clé API créée</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Créez votre première clé pour les intégrations externes.
             </p>
           </div>
@@ -507,7 +507,7 @@ export default function WebmasterApiKeysPage() {
                         className={
                           active
                             ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-gray-400 dark:text-gray-500"
+                            : "text-gray-500 dark:text-gray-400"
                         }
                       />
                     </div>
@@ -517,7 +517,7 @@ export default function WebmasterApiKeysPage() {
                         <span className="text-sm font-semibold text-gray-900 dark:text-white">
                           {k.name}
                         </span>
-                        <code className="text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded">
+                        <code className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded">
                           {k.keyPrefix}...
                         </code>
                         {/* Status badges */}
@@ -542,7 +542,7 @@ export default function WebmasterApiKeysPage() {
                       </div>
 
                       {/* Details */}
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                         <span>{(k.scopes as string[]).length} scope{(k.scopes as string[]).length > 1 ? "s" : ""}</span>
                         <span>{k.rateLimit} req/min</span>
                         <span>{k.usageCount.toLocaleString("fr-FR")} appels</span>
@@ -574,7 +574,7 @@ export default function WebmasterApiKeysPage() {
                         className={`p-2 rounded-lg transition ${
                           k.isActive
                             ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
-                            : "text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5"
+                            : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5"
                         }`}
                         title={k.isActive ? "Désactiver" : "Activer"}
                       >
@@ -604,7 +604,7 @@ export default function WebmasterApiKeysPage() {
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                           >
                             <X size={14} />
                           </button>
@@ -612,7 +612,7 @@ export default function WebmasterApiKeysPage() {
                       ) : (
                         <button
                           onClick={() => setConfirmDeleteId(k.id)}
-                          className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                          className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
                           title="Supprimer"
                         >
                           <Trash2 size={16} />
@@ -623,7 +623,7 @@ export default function WebmasterApiKeysPage() {
 
                   {/* Expiry info */}
                   {k.expiresAt && (
-                    <div className="mt-2 ml-13 text-xs text-gray-400 dark:text-gray-500">
+                    <div className="mt-2 ml-13 text-xs text-gray-500 dark:text-gray-400">
                       <Clock size={11} className="inline mr-1" />
                       Expire le{" "}
                       {new Date(k.expiresAt).toLocaleDateString("fr-FR", {

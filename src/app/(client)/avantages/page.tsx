@@ -150,7 +150,7 @@ export default function AvantagesPage() {
                   style={{ width: `${Math.min(progressPct, 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">{loyalty.nextTier.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{loyalty.nextTier.label}</p>
             </div>
           ) : (
             <p className="text-sm text-green-600 font-medium mb-3">Tous les paliers atteints !</p>
@@ -168,7 +168,7 @@ export default function AvantagesPage() {
                 }`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  tier.reached ? "bg-green-500 text-white" : "bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500"
+                  tier.reached ? "bg-green-500 text-white" : "bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-gray-400"
                 }`}>
                   {tier.reached ? <Check size={16} /> : tier.minOrders}
                 </div>
@@ -213,7 +213,7 @@ export default function AvantagesPage() {
                     onClick={() => copyCode(r.code)}
                     className="p-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10"
                   >
-                    {copiedCode === r.code ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-400 dark:text-gray-500" />}
+                    {copiedCode === r.code ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-500 dark:text-gray-400" />}
                   </button>
                 </div>
               );
@@ -239,7 +239,7 @@ export default function AvantagesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm truncate">{p.label}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {p.code ? `Code : ${p.code}` : "Appliquée automatiquement"}
                     {p.minOrderCents ? ` · Min. ${formatEuro(p.minOrderCents)}` : ""}
                   </p>
@@ -249,7 +249,7 @@ export default function AvantagesPage() {
                     onClick={() => copyCode(p.code!)}
                     className="p-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10"
                   >
-                    {copiedCode === p.code ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-400 dark:text-gray-500" />}
+                    {copiedCode === p.code ? <Check size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-500 dark:text-gray-400" />}
                   </button>
                 )}
               </div>

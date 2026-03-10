@@ -194,7 +194,7 @@ export default function BannersPage() {
           <Loader2 className="animate-spin text-red-600" size={24} />
         </div>
       ) : banners.length === 0 ? (
-        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
           <p>Aucune bannière créée</p>
         </div>
@@ -218,7 +218,7 @@ export default function BannersPage() {
 
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm truncate">{b.title}</p>
-                {b.subtitle && <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{b.subtitle}</p>}
+                {b.subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{b.subtitle}</p>}
                 {b.linkUrl && <p className="text-xs text-blue-500 truncate">{b.linkUrl}</p>}
               </div>
 

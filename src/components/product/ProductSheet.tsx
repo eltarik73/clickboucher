@@ -271,7 +271,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                 <span className="font-bold">Pack :</span> {product.packContent}
                 {product.packWeight && <span> — {product.packWeight}</span>}
                 {product.packOldPriceCents && (
-                  <span className="ml-1 line-through text-gray-400 dark:text-gray-500">{fmtPrice(product.packOldPriceCents)}</span>
+                  <span className="ml-1 line-through text-gray-500 dark:text-gray-400">{fmtPrice(product.packOldPriceCents)}</span>
                 )}
               </div>
             )}

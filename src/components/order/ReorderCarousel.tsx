@@ -94,13 +94,13 @@ export function ReorderCarousel() {
           <Link
             key={order.id}
             href={`/boutique/${order.shopSlug}`}
-            className="group min-w-[240px] shrink-0 bg-white dark:bg-white/[0.03] rounded-xl border border-[#ece8e3] dark:border-white/[0.06] p-4 hover:shadow-md transition-all"
+            className="group min-w-[240px] shrink-0 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] p-4 hover:shadow-md transition-all"
           >
             <div className="flex items-start justify-between mb-2">
               <div className="w-9 h-9 rounded-lg bg-[#DC2626]/10 flex items-center justify-center">
                 <RotateCcw size={16} className="text-[#DC2626]" />
               </div>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+              <span className="text-[10px] text-gray-500 dark:text-gray-400">
                 {timeAgo(order.createdAt)}
               </span>
             </div>
@@ -109,7 +109,7 @@ export function ReorderCarousel() {
               {order.shopName}
             </h4>
 
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 truncate">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
               {order.firstItems.join(", ")}
               {order.itemCount > 3 && ` +${order.itemCount - 3}`}
             </p>

@@ -31,7 +31,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   STOCK_ISSUE: { label: "Rupture", color: "text-red-700", bg: "bg-red-50 dark:bg-red-950/30 border-red-200" },
   READY: { label: "Prête", color: "text-emerald-700", bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200" },
   PICKED_UP: { label: "Retirée", color: "text-gray-500 dark:text-gray-400", bg: "bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700" },
-  CANCELLED: { label: "Annulée", color: "text-gray-400 dark:text-gray-500", bg: "bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700" },
+  CANCELLED: { label: "Annulée", color: "text-gray-500 dark:text-gray-400", bg: "bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700" },
 };
 
 const NEXT_ACTION: Record<string, { label: string; status: string; variant: "default" | "destructive" | "outline" | "secondary" }> = {

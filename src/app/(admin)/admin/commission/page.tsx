@@ -142,7 +142,7 @@ export default function AdminCommissionPage() {
               onChange={(e) => setGlobalPct(parseFloat(e.target.value))}
               className="w-full accent-[#DC2626]"
             />
-            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
               <span>0%</span>
               <span className="font-semibold text-gray-900 dark:text-[#f8f6f3] text-sm">
                 {globalPct}%
@@ -177,7 +177,7 @@ export default function AdminCommissionPage() {
                   <p className="text-sm font-medium text-gray-900 dark:text-[#f8f6f3] truncate">
                     {shop.name}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {shop.commissionEnabled ? "Activée" : "Désactivée"} — {shop.commissionPct}% actuel
                   </p>
                 </div>
@@ -210,7 +210,7 @@ export default function AdminCommissionPage() {
             );
           })}
           {data.shops.length === 0 && (
-            <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+            <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
               Aucune boucherie visible
             </div>
           )}

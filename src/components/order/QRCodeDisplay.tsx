@@ -49,7 +49,7 @@ export default function QRCodeDisplay({ qrCode, orderNumber, size = 200 }: Props
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Présentez ce code au boucher
         </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
           {orderNumber}
         </p>
       </div>

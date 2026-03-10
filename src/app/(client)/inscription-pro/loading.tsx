@@ -22,7 +22,7 @@ export default function InscriptionProLoading() {
           {[1, 2, 3, 4].map((i) => (
             <div key={i}>
               <div className="h-3 bg-gray-100 dark:bg-white/[0.04] rounded w-32 mb-2" />
-              <div className="h-12 bg-gray-50 dark:bg-white/[0.03] rounded-xl" />
+              <div className="h-12 bg-gray-50 dark:bg-gray-800 rounded-xl" />
             </div>
           ))}
         </div>

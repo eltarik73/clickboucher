@@ -88,7 +88,7 @@ export default function CartSuggestions() {
                   {product.name}
                 </p>
                 {product.category && (
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                     {product.category}
                   </p>
                 )}

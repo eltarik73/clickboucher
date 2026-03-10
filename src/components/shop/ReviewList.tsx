@@ -44,7 +44,7 @@ export function ReviewList({ shopId, rating, ratingCount }: Props) {
             <span className="text-sm font-bold text-gray-900 dark:text-white">
               {rating.toFixed(1)}
             </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               ({ratingCount})
             </span>
           </div>
@@ -84,7 +84,7 @@ export function ReviewList({ shopId, rating, ratingCount }: Props) {
       {/* Empty */}
       {!loading && reviews.length === 0 && (
         <div className="text-center py-6">
-          <p className="text-xs text-gray-400 dark:text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Aucun avis pour le moment
           </p>
         </div>

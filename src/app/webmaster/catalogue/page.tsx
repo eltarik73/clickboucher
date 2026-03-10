@@ -319,7 +319,7 @@ export default function WebmasterCataloguePage() {
           <div className="relative flex-1">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
             />
             <input
               type="text"
@@ -334,7 +334,7 @@ export default function WebmasterCataloguePage() {
           <div className="relative">
             <ArrowUpDown
               size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
             />
             <select
               value={sortBy}
@@ -349,7 +349,7 @@ export default function WebmasterCataloguePage() {
             </select>
             <ChevronDown
               size={14}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
             />
           </div>
 
@@ -716,12 +716,12 @@ function ProductCard({
           <div className="text-right">
             {promoPrice ? (
               <>
-                <span className="text-xs text-gray-400 dark:text-gray-500 line-through">
+                <span className="text-xs text-gray-500 dark:text-gray-400 line-through">
                   {fmt(product.priceCents)}
                 </span>
                 <div className="text-sm font-bold text-red-600">
                   {fmt(promoPrice)}
-                  <span className="text-[10px] font-normal text-gray-400 dark:text-gray-500">
+                  <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">
                     {UNIT_LABELS[product.unit] || ""}
                   </span>
                 </div>
@@ -729,7 +729,7 @@ function ProductCard({
             ) : (
               <div className="text-sm font-bold text-gray-900 dark:text-white">
                 {fmt(product.priceCents)}
-                <span className="text-[10px] font-normal text-gray-400 dark:text-gray-500">
+                <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">
                   {UNIT_LABELS[product.unit] || ""}
                 </span>
               </div>
@@ -746,7 +746,7 @@ function ProductCard({
             <div className="text-sm font-bold text-gray-900 dark:text-white">
               {product._count.orderItems}
             </div>
-            <div className="text-[10px] text-gray-400 dark:text-gray-500">ventes</div>
+            <div className="text-[10px] text-gray-500 dark:text-gray-400">ventes</div>
           </div>
 
           {/* Toggle visibility */}
@@ -755,7 +755,7 @@ function ProductCard({
             className={`p-2 rounded-xl transition ${
               product.isActive
                 ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
-                : "text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10"
+                : "text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10"
             }`}
             title={product.isActive ? "Masquer le produit" : "Rendre visible"}
           >
@@ -774,7 +774,7 @@ function ProductCard({
           {/* Link to shop */}
           <a
             href={`/webmaster/boutiques/${product.shopId}`}
-            className="p-2 rounded-xl text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition"
+            className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition"
             title="Voir la boutique"
           >
             <ExternalLink size={16} />

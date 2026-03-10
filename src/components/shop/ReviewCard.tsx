@@ -56,7 +56,7 @@ export function ReviewCard({ review }: { review: ReviewData }) {
             </div>
           </div>
         </div>
-        <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0">
+        <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0">
           {timeAgo(review.createdAt)}
         </span>
       </div>

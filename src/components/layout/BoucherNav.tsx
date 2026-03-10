@@ -80,7 +80,7 @@ export function BoucherNav() {
             </div>
             <div className="text-center">
               <KlikWordmark size="base" />
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Espace boucher</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Espace boucher</p>
             </div>
           </Link>
         </div>
@@ -144,7 +144,7 @@ export function BoucherNav() {
                 key={item.key}
                 href={item.href}
                 className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
-                  isActive ? "text-primary dark:text-primary" : "text-gray-400 dark:text-gray-500"
+                  isActive ? "text-primary dark:text-primary" : "text-gray-500 dark:text-gray-400"
                 }`}
               >
                 <div className="relative">

@@ -419,7 +419,7 @@ export default function StatistiquesPage() {
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Chiffre d&apos;affaires
                   </h3>
-                  <TrendingUp size={14} className="text-gray-400 dark:text-gray-500" />
+                  <TrendingUp size={14} className="text-gray-500 dark:text-gray-400" />
                 </div>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
@@ -460,7 +460,7 @@ export default function StatistiquesPage() {
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Commandes
                   </h3>
-                  <ShoppingBag size={14} className="text-gray-400 dark:text-gray-500" />
+                  <ShoppingBag size={14} className="text-gray-500 dark:text-gray-400" />
                 </div>
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
@@ -495,7 +495,7 @@ export default function StatistiquesPage() {
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       R&eacute;partition horaire
                     </h3>
-                    <Clock size={14} className="text-gray-400 dark:text-gray-500" />
+                    <Clock size={14} className="text-gray-500 dark:text-gray-400" />
                   </div>
                   <div className="h-44">
                     <ResponsiveContainer width="100%" height="100%">
@@ -530,7 +530,7 @@ export default function StatistiquesPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Top produits</h3>
-                    <BarChart3 size={14} className="text-gray-400 dark:text-gray-500" />
+                    <BarChart3 size={14} className="text-gray-500 dark:text-gray-400" />
                   </div>
                   <div className="space-y-3">
                     {stats.topProducts.map((product, i) => {
@@ -569,7 +569,7 @@ export default function StatistiquesPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Top clients</h3>
-                    <Users size={14} className="text-gray-400 dark:text-gray-500" />
+                    <Users size={14} className="text-gray-500 dark:text-gray-400" />
                   </div>
                   <div className="space-y-2.5">
                     {stats.topClients.map((client, i) => (
@@ -584,7 +584,7 @@ export default function StatistiquesPage() {
                           <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                             {client.name}
                           </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {client.orderCount} commande{client.orderCount > 1 ? "s" : ""}
                           </p>
                         </div>
@@ -656,7 +656,7 @@ export default function StatistiquesPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Pas assez de donnees pour identifier les heures creuses.
                 </p>
               )}

@@ -1,5 +1,5 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
 
 // @security: test-only — Bypass Clerk ONLY if secret was validated (cookie present)
 function isTestActivatedMiddleware(req: NextRequest): boolean {
@@ -49,6 +49,7 @@ async function getUserRole(userId: string): Promise<string | undefined> {
 
 const isOnboardingRoute = createRouteMatcher(["/onboarding"]);
 
+// ── Public routes: bypass Clerk ENTIRELY (no JWT verification, no cookie processing) ──
 const isPublicRoute = createRouteMatcher([
   "/",
   "/boutique/(.*)",
@@ -56,10 +57,6 @@ const isPublicRoute = createRouteMatcher([
   "/bons-plans(.*)",
   "/inscription-boucher",
   "/inscription-pro",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/suivi/(.*)",
-  "/validation/(.*)",
   "/boucherie-halal/(.*)",
   "/recettes(.*)",
   "/avantages",
@@ -68,17 +65,14 @@ const isPublicRoute = createRouteMatcher([
   "/cgv",
   "/politique-de-confidentialite",
   "/favoris",
+  "/admin-login",
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  // @security: test-only — Bypass Clerk only if secret was validated
-  if (isTestActivatedMiddleware(req)) {
-    return NextResponse.next();
-  }
-  // Skip auth() call on known public routes for faster response
-  if (isPublicRoute(req)) {
-    return;
-  }
+// ── Clerk middleware: only for auth-required routes ──
+const handleClerkAuth = clerkMiddleware(async (auth, req) => {
+  // sign-in/sign-up: Clerk handles natively, no extra logic needed
+  const isSignRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+  if (isSignRoute(req)) return;
 
   const { userId } = await auth();
 
@@ -87,7 +81,6 @@ export default clerkMiddleware(async (auth, req) => {
     if (!userId) {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
-    // If user already has a role in Clerk metadata, skip onboarding
     const role = await getUserRole(userId);
     const roleLower = role?.toLowerCase();
     if (roleLower === "boucher") {
@@ -96,12 +89,10 @@ export default clerkMiddleware(async (auth, req) => {
     if (roleLower && ADMIN_ROLES.includes(roleLower)) {
       return NextResponse.redirect(new URL("/admin", req.url));
     }
-    // role === "client" or no role → allow onboarding page
-    // We check DB in the page itself to decide if onboarding is needed
     return;
   }
 
-  // Admin routes (except admin-login): admin/webmaster only
+  // Admin routes: admin/webmaster only
   if (isAdminRoute(req) && !isAdminLoginRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL("/admin-login", req.url));
@@ -114,7 +105,7 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
 
-  // Webmaster routes: admin/webmaster only (same as admin routes)
+  // Webmaster routes: admin/webmaster only
   if (isWebmasterRoute(req)) {
     if (!userId) {
       return NextResponse.redirect(new URL("/admin-login", req.url));
@@ -150,6 +141,22 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Everything else is public
 });
+
+// ── Main middleware: skip Clerk entirely for public routes ──
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  // Test mode bypass
+  if (isTestActivatedMiddleware(req)) {
+    return NextResponse.next();
+  }
+
+  // Public routes: zero Clerk overhead (no JWT verification, no redirections)
+  if (isPublicRoute(req)) {
+    return NextResponse.next();
+  }
+
+  // Auth-required routes: delegate to Clerk
+  return handleClerkAuth(req, event);
+}
 
 export const config = {
   matcher: [

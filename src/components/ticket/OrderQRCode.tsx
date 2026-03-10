@@ -26,7 +26,7 @@ export default function OrderQRCode({ orderId, qrCodeEnabled, size = 120 }: Prop
       <div className="bg-white dark:bg-gray-900 p-3 rounded-xl">
         <QRCodeSVG value={url} size={size} />
       </div>
-      <p className="text-[10px] text-gray-400 dark:text-gray-500">Scanner pour le suivi</p>
+      <p className="text-[10px] text-gray-500 dark:text-gray-400">Scanner pour le suivi</p>
     </div>
   );
 }

@@ -54,7 +54,7 @@ export function OrderTicketBubble({ data }: { data: TicketData }) {
           {data.customerFirstName}
         </div>
         {data.customerNumber && (
-          <div className="mt-0.5 text-[13px] text-gray-400 dark:text-gray-500">
+          <div className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">
             Client {data.customerNumber}
           </div>
         )}

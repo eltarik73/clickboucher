@@ -16,7 +16,7 @@ export default function HomeLoading() {
         <div className="h-3.5 bg-gray-100 dark:bg-white/[0.04] rounded-lg w-32 mb-5 animate-pulse" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] overflow-hidden animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] overflow-hidden animate-pulse">
               <div className="h-40 bg-gray-200 dark:bg-white/[0.06]" />
               <div className="p-3.5">
                 <div className="h-4 bg-gray-200 dark:bg-white/[0.06] rounded w-36 mb-2" />

@@ -37,7 +37,7 @@ export function AdminSidebar() {
       <div className="px-6 py-5 border-b border-gray-100 dark:border-white/10">
         <Link href="/admin/dashboard" className="flex items-center gap-2">
           <span className="text-lg font-bold text-[#DC2626]">Klik&Go</span>
-          <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
+          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
             Admin
           </span>
         </Link>
@@ -71,7 +71,7 @@ export function AdminSidebar() {
       <div className="px-6 py-4 border-t border-gray-100 dark:border-white/10">
         <Link
           href="/"
-          className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#DC2626] transition-colors"
+          className="text-xs text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors"
         >
           ← Retour au site
         </Link>
@@ -99,7 +99,7 @@ export function AdminMobileNav() {
               className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
                 isActive
                   ? "text-[#DC2626]"
-                  : "text-gray-400 dark:text-gray-500"
+                  : "text-gray-500 dark:text-gray-400"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.4 : 1.8} />
@@ -132,13 +132,13 @@ export function AdminMobileHeader({
       <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-[#141414] border-b border-gray-100 dark:border-white/10 sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-[#DC2626]">Klik&Go</span>
-          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
             Admin
           </span>
         </div>
         <Link
           href="/"
-          className="text-xs text-gray-400 dark:text-gray-500 hover:text-[#DC2626] transition-colors"
+          className="text-xs text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors"
         >
           ← Site
         </Link>

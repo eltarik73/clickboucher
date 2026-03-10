@@ -344,7 +344,7 @@ export default function AdminShopsPage() {
         <div className="relative flex-1">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
           />
           <input
             type="text"
@@ -370,7 +370,7 @@ export default function AdminShopsPage() {
             </select>
             <ChevronDown
               size={14}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
             />
           </div>
           <div className="relative">
@@ -386,7 +386,7 @@ export default function AdminShopsPage() {
             </select>
             <ChevronDown
               size={14}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
             />
           </div>
         </div>
@@ -395,7 +395,7 @@ export default function AdminShopsPage() {
       {/* Table (desktop) / Cards (mobile) */}
       {filtered.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
-          <p className="text-gray-400 dark:text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Aucune boucherie trouvée.
           </p>
         </div>
@@ -444,7 +444,7 @@ export default function AdminShopsPage() {
                             {shop.ownerName}
                           </p>
                           {shop.ownerEmail && (
-                            <p className="text-gray-400 dark:text-gray-500 text-[11px]">
+                            <p className="text-gray-500 dark:text-gray-400 text-[11px]">
                               {shop.ownerEmail}
                             </p>
                           )}
@@ -510,7 +510,7 @@ export default function AdminShopsPage() {
                           </button>
                           <button
                             onClick={() => setDeleteTarget(shop)}
-                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
                             title="Supprimer"
                           >
                             <Trash2 size={14} />
@@ -550,25 +550,25 @@ export default function AdminShopsPage() {
                         {shop.rating.toFixed(1)}
                       </span>
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Note</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Note</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {shop.productCount}
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Produits</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Produits</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {shop.orderCount}
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Commandes</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Commandes</p>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {shop.commissionPct}%
                     </p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">Com.</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Com.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-white/10">
@@ -594,7 +594,7 @@ export default function AdminShopsPage() {
                   </button>
                   <button
                     onClick={() => setDeleteTarget(shop)}
-                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -762,7 +762,7 @@ export default function AdminShopsPage() {
                     </select>
                     <ChevronDown
                       size={14}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
                     />
                   </div>
                 </div>

@@ -97,7 +97,7 @@ export function OfferProposalCard({
               <Crown size={14} className="text-amber-600 dark:text-amber-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Qui paie
               </p>
               <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
@@ -112,7 +112,7 @@ export function OfferProposalCard({
               <Calendar size={14} className="text-blue-600 dark:text-blue-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Période
               </p>
               <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
@@ -127,7 +127,7 @@ export function OfferProposalCard({
               <Tag size={14} className="text-purple-600 dark:text-purple-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Type
               </p>
               <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
@@ -147,7 +147,7 @@ export function OfferProposalCard({
               <ShoppingCart size={14} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Cmd min
               </p>
               <p className="text-xs font-medium text-gray-900 dark:text-white truncate">

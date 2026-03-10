@@ -212,7 +212,7 @@ export default function HistoriquePage() {
         <div className="relative flex-1 max-w-xs">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
           />
           <input
             type="text"
@@ -248,22 +248,22 @@ export default function HistoriquePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/5">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     N°
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Client
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Montant
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Statut
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Retrait
                   </th>
                 </tr>
@@ -345,7 +345,7 @@ export default function HistoriquePage() {
                       <span className="font-bold text-gray-900 dark:text-white">
                         {ticket}
                       </span>
-                      <span className="text-sm text-gray-400 dark:text-gray-500">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
                         {anonymizeName(order.user)}
                       </span>
                     </div>
@@ -375,7 +375,7 @@ export default function HistoriquePage() {
 
       {/* Summary */}
       {!loading && filtered.length > 0 && (
-        <div className="mt-4 text-center text-xs text-gray-400 dark:text-gray-500">
+        <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
           {filtered.length} commande{filtered.length > 1 ? "s" : ""}
         </div>
       )}

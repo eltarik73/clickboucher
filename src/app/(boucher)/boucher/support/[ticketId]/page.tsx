@@ -146,7 +146,7 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
         <h1 className="text-lg font-bold text-gray-900 dark:text-[#f8f6f3]">
           {ticket.subject}
         </h1>
-        <p className="text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
           {ticket.shop.name} &middot;{" "}
           {ticket.status === "ESCALATED"
             ? "Un admin va vous répondre"
@@ -176,7 +176,7 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
                   <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
                     {cfg.name}
                   </span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">
                     {new Date(msg.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
@@ -237,7 +237,7 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
 
       {!isOpen && (
         <div className="shrink-0 pt-4 text-center">
-          <p className="text-sm text-gray-400 dark:text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Ce ticket est {ticket.status === "RESOLVED" ? "résolu" : "fermé"}
           </p>
         </div>

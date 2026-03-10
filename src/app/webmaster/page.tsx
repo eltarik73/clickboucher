@@ -78,7 +78,7 @@ export default function WebmasterDashboardPage() {
 
   if (!stats) {
     return (
-      <p className="text-center text-gray-400 dark:text-gray-500 py-12">
+      <p className="text-center text-gray-500 dark:text-gray-400 py-12">
         Impossible de charger les statistiques
       </p>
     );
@@ -205,7 +205,7 @@ export default function WebmasterDashboardPage() {
                 </span>
               </div>
               <p className={`text-xl font-extrabold ${kpi.color}`}>{kpi.value}</p>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{kpi.sub}</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">{kpi.sub}</p>
             </div>
           );
         })}
@@ -237,7 +237,7 @@ export default function WebmasterDashboardPage() {
                         animationDelay: `${i * 70}ms`,
                       }}
                     />
-                    <span className="text-[9px] text-gray-400 dark:text-gray-500 capitalize">{dayLabel}</span>
+                    <span className="text-[9px] text-gray-500 dark:text-gray-400 capitalize">{dayLabel}</span>
                   </div>
                 );
               })}
@@ -276,7 +276,7 @@ export default function WebmasterDashboardPage() {
             })}
           </div>
           {stats.totalShops > 0 && (
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-3">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-3">
               {stats.totalShops} boutique{stats.totalShops > 1 ? "s" : ""} au total
             </p>
           )}
@@ -301,13 +301,13 @@ export default function WebmasterDashboardPage() {
                     i === 0 ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
                     : i === 1 ? "bg-gray-300/30 text-gray-500 dark:text-gray-400"
                     : i === 2 ? "bg-orange-300/20 text-orange-600 dark:text-orange-400"
-                    : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500"
+                    : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400"
                   }`}>
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{shop.name}</p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
                       {shop.orderCount} cmd &middot; {centsToEuro(shop.revenue)} &middot; {shop.rating.toFixed(1)}&#9733;
                     </p>
                   </div>
@@ -342,7 +342,7 @@ export default function WebmasterDashboardPage() {
                       {action.count}
                     </span>
                   )}
-                  <ArrowRight size={14} className="text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
+                  <ArrowRight size={14} className="text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
                 </div>
               </Link>
             ))}

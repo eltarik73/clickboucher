@@ -36,7 +36,7 @@ export function BottomNav() {
           const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;
           const Icon = item.icon;
           return (
-            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-primary" : "text-gray-400 dark:text-gray-500"}`}>
+            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-primary" : "text-gray-500 dark:text-gray-400"}`}>
               <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
               <span className={`text-[10px] leading-none ${isActive ? "font-bold" : "font-medium"}`}>{item.label}</span>
             </Link>
@@ -60,7 +60,7 @@ export function BottomNav() {
           const isActive = item.href ? (pathname === item.href || pathname.startsWith(item.href + "/")) : false;
           const Icon = item.icon;
           return (
-            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-primary" : "text-gray-400 dark:text-gray-500"}`}>
+            <Link key={item.key} href={item.href!} className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${isActive ? "text-primary" : "text-gray-500 dark:text-gray-400"}`}>
               <div className="relative">
                 <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
                 {item.badge === "cart" && itemCount > 0 && (
@@ -84,21 +84,21 @@ export function BottomNav() {
         {process.env.NEXT_PUBLIC_TEST_MODE === "true" ? (
           <div className="relative z-10 flex flex-col items-center gap-0.5 py-2 px-3">
             <div className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white text-[10px] font-bold">T</div>
-            <span className="text-[10px] leading-none font-medium text-gray-400 dark:text-gray-500">Test</span>
+            <span className="text-[10px] leading-none font-medium text-gray-500 dark:text-gray-400">Test</span>
           </div>
         ) : (
           <>
             <SignedIn>
               <div className="relative z-10 flex flex-col items-center gap-0.5 py-2 px-3">
                 <UserButton afterSignOutUrl="/" />
-                <span className="text-[10px] leading-none font-medium text-gray-400 dark:text-gray-500">Profil</span>
+                <span className="text-[10px] leading-none font-medium text-gray-500 dark:text-gray-400">Profil</span>
               </div>
             </SignedIn>
             <SignedOut>
               <Link
                 href="/sign-in"
                 className={`relative z-10 flex flex-col items-center gap-0.5 py-2 px-3 text-xs transition-colors ${
-                  pathname === "/sign-in" ? "text-primary" : "text-gray-400 dark:text-gray-500"
+                  pathname === "/sign-in" ? "text-primary" : "text-gray-500 dark:text-gray-400"
                 }`}
               >
                 <LogIn size={22} strokeWidth={1.8} />

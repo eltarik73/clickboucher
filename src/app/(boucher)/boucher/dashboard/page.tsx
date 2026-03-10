@@ -426,7 +426,7 @@ export default function BoucherDashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {shop?.rating?.toFixed(1) || "—"}
                 </p>
-                <span className="text-xs text-gray-400 dark:text-gray-500">/5 ({shop?.ratingCount || 0})</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">/5 ({shop?.ratingCount || 0})</span>
               </div>
             </CardContent>
           </Card>
@@ -507,7 +507,7 @@ export default function BoucherDashboardPage() {
           {recentOrders.length === 0 ? (
             <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
               <CardContent className="py-8 text-center">
-                <p className="text-sm text-gray-400 dark:text-gray-500">Aucune commande pour le moment</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Aucune commande pour le moment</p>
               </CardContent>
             </Card>
           ) : (
@@ -533,7 +533,7 @@ export default function BoucherDashboardPage() {
                               <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
                                 {clientName}
                               </p>
-                              <p className="text-xs text-gray-400 dark:text-gray-500">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {order.items.length} article{order.items.length > 1 ? "s" : ""} · {formatTime(order.createdAt)}
                               </p>
                             </div>

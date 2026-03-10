@@ -41,7 +41,7 @@ export default function LocationPicker({ onLocationChange }: Props) {
         <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{city}</span>
         <button
           onClick={() => { geo.clear(); onLocationChange?.(null, null, null); }}
-          className="ml-auto text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 transition flex items-center gap-1"
+          className="ml-auto text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 transition flex items-center gap-1"
         >
           Modifier <ChevronDown className="w-3 h-3" />
         </button>

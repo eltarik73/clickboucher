@@ -171,7 +171,7 @@ export default async function CityPage({
               { emoji: "💳", title: "Commandez", desc: "Payez en ligne ou sur place, en toute sécurité" },
               { emoji: "🛍️", title: "Récupérez", desc: "Retrait en boutique au créneau choisi" },
             ].map((step, i) => (
-              <div key={i} className="text-center p-6 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
+              <div key={i} className="text-center p-6 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
                 <div className="text-4xl mb-3">{step.emoji}</div>
                 <h3 className="font-bold text-gray-900 dark:text-white mb-1">{i + 1}. {step.title}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{step.desc}</p>
@@ -196,7 +196,7 @@ export default async function CityPage({
                   <Link
                     key={shop.id}
                     href={`/boutique/${shop.slug}`}
-                    className="group bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden hover:shadow-lg transition-shadow"
+                    className="group bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden hover:shadow-lg transition-shadow"
                   >
                     <div className="relative h-40">
                       <Image
@@ -231,7 +231,7 @@ export default async function CityPage({
                         </span>
                       </div>
                       {shop.description && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 line-clamp-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">
                           {shop.description}
                         </p>
                       )}
@@ -241,7 +241,7 @@ export default async function CityPage({
               })}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white dark:bg-white/[0.03] rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
               <p className="text-gray-500 dark:text-gray-400 mb-4">
                 Klik&amp;Go arrive bientôt à {city.name}.
               </p>
@@ -264,11 +264,11 @@ export default async function CityPage({
             {faqs.map((faq, i) => (
               <details
                 key={i}
-                className="group bg-white dark:bg-white/[0.03] rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
               >
                 <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
                   {faq.question}
-                  <span className="text-gray-400 dark:text-gray-500 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
                     ▼
                   </span>
                 </summary>
@@ -308,7 +308,7 @@ export default async function CityPage({
               <Link
                 key={c.slug}
                 href={`/boucherie-halal/${c.slug}`}
-                className="px-4 py-2 bg-white dark:bg-white/[0.03] border border-[#ece8e3] dark:border-white/[0.06] rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626] transition"
+                className="px-4 py-2 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626] transition"
               >
                 {c.name}
               </Link>
@@ -320,7 +320,7 @@ export default async function CityPage({
       {/* ── Footer ── */}
       <footer className="border-t border-[#ece8e3] dark:border-white/[0.06] bg-white dark:bg-white/[0.02] py-8">
         <div className="max-w-4xl mx-auto px-5 text-center">
-          <p className="text-sm text-gray-400 dark:text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             &copy; 2026 Klik&amp;Go — Click &amp; Collect Boucherie Halal
           </p>
         </div>

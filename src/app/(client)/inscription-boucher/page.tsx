@@ -113,7 +113,7 @@ function InscriptionBoucherContent() {
               Votre boucherie est en cours de validation. Vous recevrez un email
               de confirmation sous 24h.
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               Pack sélectionné : {pack.name} — {pack.price}
             </p>
             <Button
@@ -280,7 +280,7 @@ function InscriptionBoucherContent() {
           <div>
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
               Description courte
-              <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">
+              <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">
                 (optionnel)
               </span>
             </label>
@@ -298,7 +298,7 @@ function InscriptionBoucherContent() {
           <div>
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 block">
               Code de parrainage
-              <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">
+              <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">
                 (optionnel)
               </span>
             </label>
@@ -308,7 +308,7 @@ function InscriptionBoucherContent() {
               placeholder="CODE-PARRAIN"
               className="border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626] font-mono"
             />
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
               Un boucher vous a recommandé ? Entrez son code pour gagner chacun 1 mois gratuit.
             </p>
           </div>
@@ -345,7 +345,7 @@ function InscriptionBoucherContent() {
           )}
         </Button>
 
-        <p className="text-[11px] text-center text-gray-400 dark:text-gray-500">
+        <p className="text-[11px] text-center text-gray-500 dark:text-gray-400">
           Votre boucherie sera validée par notre équipe sous 24h.
           <br />
           Essai gratuit de 30 jours, sans engagement.

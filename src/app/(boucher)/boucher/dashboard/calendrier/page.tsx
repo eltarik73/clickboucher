@@ -357,7 +357,7 @@ export default function CalendrierPage() {
                 {/* Suggested products */}
                 {event.suggestedProducts && event.suggestedProducts.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-[#ece8e3] dark:border-white/10">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-1">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
                       <Sparkles size={10} /> Produits suggérés
                     </p>
                     <div className="flex flex-wrap gap-1.5">
@@ -374,7 +374,7 @@ export default function CalendrierPage() {
           })}
 
           {filtered.length === 0 && (
-            <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-12">
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-12">
               Aucun événement pour {year}
             </p>
           )}

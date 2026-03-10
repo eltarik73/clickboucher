@@ -50,7 +50,7 @@ function ScoreGauge({ score }: { score: number | null }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-3xl font-bold" style={{ color }}>{s}</span>
-        <span className="text-xs text-gray-400 dark:text-gray-500">/100</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">/100</span>
       </div>
     </div>
   );
@@ -79,7 +79,7 @@ function MetricCard({
       </div>
       <div className="flex items-baseline gap-1">
         <span className="text-xl font-bold text-gray-900 dark:text-[#f8f6f3]">{value}</span>
-        {suffix && <span className="text-xs text-gray-400 dark:text-gray-500">{suffix}</span>}
+        {suffix && <span className="text-xs text-gray-500 dark:text-gray-400">{suffix}</span>}
       </div>
     </div>
   );
@@ -110,7 +110,7 @@ export default function PerformancePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <RefreshCw size={24} className="animate-spin text-gray-400 dark:text-gray-500" />
+        <RefreshCw size={24} className="animate-spin text-gray-500 dark:text-gray-400" />
       </div>
     );
   }
@@ -130,7 +130,7 @@ export default function PerformancePage() {
         </div>
         <button
           onClick={fetchData}
-          className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 transition-colors"
+          className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
         >
           <RefreshCw size={18} />
         </button>
@@ -168,7 +168,7 @@ export default function PerformancePage() {
       <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 p-6 text-center">
         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Score Global</h2>
         <ScoreGauge score={metrics?.performanceScore ?? null} />
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
           {(metrics?.performanceScore ?? 0) >= 80
             ? "Excellent ! Continuez comme ça"
             : (metrics?.performanceScore ?? 0) >= 60

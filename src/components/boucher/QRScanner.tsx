@@ -151,7 +151,7 @@ export function QRScanner({
       {!scanning && !result && !processing && (
         <div className="flex flex-col items-center gap-4 py-6">
           <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center">
-            <Camera size={32} className="text-gray-400 dark:text-gray-500" />
+            <Camera size={32} className="text-gray-500 dark:text-gray-400" />
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
             Scannez le QR code sur le t&eacute;l&eacute;phone du client pour
@@ -181,7 +181,7 @@ export function QRScanner({
           </p>
           {scannedCode && (
             <div className="bg-gray-50 dark:bg-[#0a0a0a] rounded-lg px-4 py-2 mt-1">
-              <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 Code scann&eacute;
               </p>
               <p className="font-mono text-sm text-gray-700 dark:text-gray-300 text-center break-all">

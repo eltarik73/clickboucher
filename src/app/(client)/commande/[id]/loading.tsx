@@ -20,7 +20,7 @@ export default function CommandeDetailLoading() {
           </div>
           <div className="h-6 bg-gray-200 dark:bg-white/[0.06] rounded-lg w-48 mx-auto mb-3" />
           <div className="h-4 bg-gray-100 dark:bg-white/[0.04] rounded w-56 mx-auto mb-2" />
-          <div className="h-4 bg-gray-50 dark:bg-white/[0.03] rounded w-40 mx-auto" />
+          <div className="h-4 bg-gray-50 dark:bg-gray-800 rounded w-40 mx-auto" />
         </div>
 
         {/* Order recap */}

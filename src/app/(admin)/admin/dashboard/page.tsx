@@ -295,7 +295,7 @@ export default function AdminDashboardPage() {
             </h2>
           </div>
           {stats.topShops.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+            <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
               Aucune commande finalisée pour le moment.
             </div>
           ) : (
@@ -354,7 +354,7 @@ export default function AdminDashboardPage() {
                 className={
                   hasAlerts
                     ? "text-orange-500"
-                    : "text-gray-400 dark:text-gray-500"
+                    : "text-gray-500 dark:text-gray-400"
                 }
               />
               Alertes
@@ -367,7 +367,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="p-5 space-y-4">
             {!hasAlerts && (
-              <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
                 Aucune alerte pour le moment.
               </p>
             )}

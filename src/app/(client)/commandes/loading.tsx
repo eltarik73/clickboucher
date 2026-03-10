@@ -12,7 +12,7 @@ export default function CommandesLoading() {
               </div>
               <div className="h-3 bg-gray-100 dark:bg-white/[0.04] rounded w-48 mb-2" />
               <div className="flex justify-between items-center">
-                <div className="h-3 bg-gray-50 dark:bg-white/[0.03] rounded w-32" />
+                <div className="h-3 bg-gray-50 dark:bg-gray-800 rounded w-32" />
                 <div className="h-4 bg-gray-200 dark:bg-white/[0.06] rounded w-16" />
               </div>
             </div>

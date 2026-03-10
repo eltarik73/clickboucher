@@ -195,7 +195,7 @@ function RecapActions({
       </button>
       <button
         onClick={onModify}
-        className="text-sm text-gray-400 dark:text-gray-500 underline cursor-pointer hover:text-gray-600 transition-colors"
+        className="text-sm text-gray-500 dark:text-gray-400 underline cursor-pointer hover:text-gray-600 transition-colors"
       >
         &#9999;&#65039; Modifier ma commande
       </button>

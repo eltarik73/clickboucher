@@ -50,14 +50,14 @@ function LocationCard() {
   };
 
   return (
-    <div className="bg-white dark:bg-white/[0.03] rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm">
       <div className="flex items-center gap-2.5 mb-2">
         <div className="w-9 h-9 rounded-[10px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
           <MapPin size={18} className="text-red-600" />
         </div>
         <div className="min-w-0">
           <div className="font-bold text-[13px] text-gray-900 dark:text-white">Votre position</div>
-          <div className="text-[11px] text-gray-400 dark:text-gray-500">
+          <div className="text-[11px] text-gray-500 dark:text-gray-400">
             {geo.city || "Activez pour voir les proches"}
           </div>
         </div>
@@ -71,7 +71,7 @@ function LocationCard() {
             </span>
             <button
               onClick={() => { geo.clear(); window.dispatchEvent(new CustomEvent("klikgo-location", { detail: { lat: null, lng: null } })); }}
-              className="text-[11px] text-gray-400 dark:text-gray-500 hover:text-red-600 transition font-semibold"
+              className="text-[11px] text-gray-500 dark:text-gray-400 hover:text-red-600 transition font-semibold"
             >
               Modifier
             </button>
@@ -162,7 +162,7 @@ export function ReorderSection() {
       {lastOrder ? (
         <Link
           href={`/boutique/${lastOrder.shopSlug}`}
-          className="bg-white dark:bg-white/[0.03] rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
         >
           <div className="flex items-center gap-2.5 mb-2">
             <div className="w-9 h-9 rounded-[10px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
@@ -170,24 +170,24 @@ export function ReorderSection() {
             </div>
             <div className="min-w-0">
               <div className="font-bold text-[13px] text-gray-900 dark:text-white group-hover:text-[#DC2626] transition-colors">Commander à nouveau</div>
-              <div className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{lastOrder.shopName} · {timeAgo(lastOrder.createdAt)}</div>
+              <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{lastOrder.shopName} · {timeAgo(lastOrder.createdAt)}</div>
             </div>
           </div>
           <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-white/5">
-            <span className="text-xs text-gray-400 dark:text-gray-500 truncate">{lastOrder.summary}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{lastOrder.summary}</span>
             <span className="flex items-center gap-0.5 text-red-600 text-[13px] font-bold flex-shrink-0">
               {(lastOrder.totalCents / 100).toFixed(2).replace(".", ",")} € <ChevronRight size={14} />
             </span>
           </div>
         </Link>
       ) : (
-        <div className="bg-white dark:bg-white/[0.03] rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm flex items-center gap-2.5">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-3.5 border border-[#ece8e3] dark:border-white/[0.06] shadow-sm flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-[10px] bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
             <RotateCcw size={18} className="text-red-600" />
           </div>
           <div>
             <div className="font-bold text-[13px] text-gray-900 dark:text-white">Commander à nouveau</div>
-            <div className="text-[11px] text-gray-400 dark:text-gray-500">Passez votre première commande</div>
+            <div className="text-[11px] text-gray-500 dark:text-gray-400">Passez votre première commande</div>
           </div>
         </div>
       )}

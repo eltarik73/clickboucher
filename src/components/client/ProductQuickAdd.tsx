@@ -206,22 +206,22 @@ export function ProductQuickAdd({ product, shop, isOpen, onClose }: Props) {
               </span>
               <div className="flex items-center gap-1 justify-end mt-0.5">
                 {(product.isAntiGaspi && product.antiGaspiOrigPriceCents) && (
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 line-through">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 line-through">
                     {fmtPrice(product.antiGaspiOrigPriceCents)}
                   </span>
                 )}
                 {(product.promoPct && product.promoPct > 0 && !product.isAntiGaspi) && (
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 line-through">
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400 line-through">
                     {fmtPrice(product.priceCents)}
                   </span>
                 )}
-                <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                <span className="text-[10px] text-gray-500 dark:text-gray-400">
                   /{isKg ? "kg" : product.unit === "BARQUETTE" ? "barq." : "pce"}
                 </span>
               </div>
             </div>
             <button onClick={handleClose} className="p-1 -mt-0.5" aria-label="Fermer">
-              <X size={18} className="text-gray-400 dark:text-gray-500" />
+              <X size={18} className="text-gray-500 dark:text-gray-400" />
             </button>
           </div>
         </div>
@@ -279,7 +279,7 @@ export function ProductQuickAdd({ product, shop, isOpen, onClose }: Props) {
                   <Plus size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
-              <p className="text-center text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
+              <p className="text-center text-[10px] text-gray-500 dark:text-gray-400 mt-1.5">
                 ⚖️ ±10% — ajustement au poids réel
               </p>
             </>

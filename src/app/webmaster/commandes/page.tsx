@@ -166,7 +166,7 @@ export default function WebmasterCommandesPage() {
         <div className="flex items-center gap-2 bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/[0.06] px-4 py-2.5 shadow-sm">
           <TrendingUp size={16} className="text-[#DC2626]" />
           <div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">CA filtre</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">CA filtre</p>
             <p className="text-sm font-extrabold text-[#DC2626]">{fmtPrice(revenue)}</p>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function WebmasterCommandesPage() {
       <div className="flex flex-wrap gap-2">
         {/* Search */}
         <div className="relative flex-1 min-w-[180px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
           <input
             type="text"
             placeholder="N° commande, client, email..."
@@ -212,14 +212,14 @@ export default function WebmasterCommandesPage() {
 
         {/* Date from */}
         <div className="flex items-center gap-1">
-          <Calendar size={12} className="text-gray-400 dark:text-gray-500" />
+          <Calendar size={12} className="text-gray-500 dark:text-gray-400" />
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             className="px-2 py-2 text-xs bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-gray-700 dark:text-gray-300"
           />
-          <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+          <span className="text-gray-500 dark:text-gray-400 text-xs">-</span>
           <input
             type="date"
             value={dateTo}
@@ -237,7 +237,7 @@ export default function WebmasterCommandesPage() {
       ) : orders.length === 0 ? (
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-12 text-center">
           <ClipboardList size={32} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
-          <p className="text-sm text-gray-400 dark:text-gray-500">Aucune commande trouvee</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Aucune commande trouvee</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -285,20 +285,20 @@ export default function WebmasterCommandesPage() {
 
                   {/* Items + Price + Time */}
                   <div className="flex items-center gap-4 shrink-0">
-                    <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
+                    <div className="hidden md:flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
                       <Package size={10} />
                       {order.items.length} art. ({itemCount})
                     </div>
                     <span className="text-sm font-bold text-gray-900 dark:text-white min-w-[70px] text-right">
                       {fmtPrice(order.totalCents)}
                     </span>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 min-w-[40px] text-right">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 min-w-[40px] text-right">
                       {relTime(order.createdAt)}
                     </span>
                     {expanded ? (
-                      <ChevronUp size={14} className="text-gray-400 dark:text-gray-500" />
+                      <ChevronUp size={14} className="text-gray-500 dark:text-gray-400" />
                     ) : (
-                      <ChevronDown size={14} className="text-gray-400 dark:text-gray-500" />
+                      <ChevronDown size={14} className="text-gray-500 dark:text-gray-400" />
                     )}
                   </div>
                 </button>
@@ -309,33 +309,33 @@ export default function WebmasterCommandesPage() {
                     {/* Order meta */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
                       <div>
-                        <span className="text-gray-400 dark:text-gray-500 block">Créé le</span>
+                        <span className="text-gray-500 dark:text-gray-400 block">Créé le</span>
                         <span className="text-gray-700 dark:text-gray-300">{fmtDate(order.createdAt)}</span>
                       </div>
                       {order.estimatedReady && (
                         <div>
-                          <span className="text-gray-400 dark:text-gray-500 block">Estimé prêt</span>
+                          <span className="text-gray-500 dark:text-gray-400 block">Estimé prêt</span>
                           <span className="text-gray-700 dark:text-gray-300">{fmtDate(order.estimatedReady)}</span>
                         </div>
                       )}
                       {order.actualReady && (
                         <div>
-                          <span className="text-gray-400 dark:text-gray-500 block">Pret a</span>
+                          <span className="text-gray-500 dark:text-gray-400 block">Pret a</span>
                           <span className="text-gray-700 dark:text-gray-300">{fmtDate(order.actualReady)}</span>
                         </div>
                       )}
                       {order.pickedUpAt && (
                         <div>
-                          <span className="text-gray-400 dark:text-gray-500 block">Retire a</span>
+                          <span className="text-gray-500 dark:text-gray-400 block">Retire a</span>
                           <span className="text-gray-700 dark:text-gray-300">{fmtDate(order.pickedUpAt)}</span>
                         </div>
                       )}
                       <div>
-                        <span className="text-gray-400 dark:text-gray-500 block">Client</span>
+                        <span className="text-gray-500 dark:text-gray-400 block">Client</span>
                         <span className="text-gray-700 dark:text-gray-300">{order.user.email}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400 dark:text-gray-500 block">Boutique</span>
+                        <span className="text-gray-500 dark:text-gray-400 block">Boutique</span>
                         <span className="text-gray-700 dark:text-gray-300">{order.shop.name}</span>
                       </div>
                     </div>
@@ -362,7 +362,7 @@ export default function WebmasterCommandesPage() {
 
                     {/* Items table */}
                     <div>
-                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Articles</span>
+                      <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Articles</span>
                       <div className="mt-1.5 space-y-1">
                         {order.items.map((item) => (
                           <div
@@ -407,7 +407,7 @@ export default function WebmasterCommandesPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
             Page {page} / {totalPages} ({total} resultats)
           </p>
           <div className="flex items-center gap-2">
