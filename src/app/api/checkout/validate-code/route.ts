@@ -4,6 +4,13 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { validatePromoCode } from "@/lib/marketing/validate-code";
+import { z } from "zod";
+
+const validateCheckoutCodeSchema = z.object({
+  code: z.string().min(1).max(50),
+  cartTotal: z.number().min(0),
+  cartProductIds: z.array(z.string()),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -26,18 +33,11 @@ export async function POST(req: NextRequest) {
     });
     const userId = dbUser?.id || clerkId;
 
-    const body = await req.json();
-    const { code, cartTotal, cartProductIds } = body;
-
-    if (!code || typeof code !== "string") {
-      return apiError("VALIDATION_ERROR", "Code promo requis");
+    const parsed = validateCheckoutCodeSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides");
     }
-    if (typeof cartTotal !== "number" || cartTotal < 0) {
-      return apiError("VALIDATION_ERROR", "Montant du panier invalide");
-    }
-    if (!Array.isArray(cartProductIds)) {
-      return apiError("VALIDATION_ERROR", "Liste des produits requise");
-    }
+    const { code, cartTotal, cartProductIds } = parsed.data;
 
     const result = await validatePromoCode({
       code,

@@ -5,10 +5,21 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
 const VALID_FREQUENCIES = ["WEEKLY", "BIWEEKLY", "MONTHLY"] as const;
+
+const createRecurringSchema = z.object({
+  orderId: z.string().min(1),
+  frequency: z.string().min(1),
+  dayOfWeek: z.number().int().min(0).max(6).optional(),
+});
+
+const deleteRecurringSchema = z.object({
+  id: z.string().min(1),
+});
 type Frequency = (typeof VALID_FREQUENCIES)[number];
 
 function getNextRunDate(frequency: Frequency, dayOfWeek: number): Date {
@@ -77,21 +88,15 @@ export async function POST(req: NextRequest) {
     const user = await getOrCreateUser(userId);
     if (!user) return apiError("NOT_FOUND", "Utilisateur introuvable");
 
-    const { orderId, frequency, dayOfWeek } = await req.json();
+    const parsed = createRecurringSchema.parse(await req.json());
 
-    if (!orderId || !frequency) {
-      return apiError("VALIDATION_ERROR", "orderId et frequency requis");
-    }
-
-    const freq = frequency.toUpperCase();
+    const freq = parsed.frequency.toUpperCase();
     if (!VALID_FREQUENCIES.includes(freq as Frequency)) {
       return apiError("VALIDATION_ERROR", "Fréquence invalide (WEEKLY, BIWEEKLY, MONTHLY)");
     }
 
-    const dow = typeof dayOfWeek === "number" ? dayOfWeek : 1; // Default Monday
-    if (dow < 0 || dow > 6) {
-      return apiError("VALIDATION_ERROR", "Jour de la semaine invalide (0-6)");
-    }
+    const orderId = parsed.orderId;
+    const dow = parsed.dayOfWeek ?? 1; // Default Monday
 
     // Fetch original order
     const original = await prisma.order.findUnique({
@@ -142,8 +147,7 @@ export async function DELETE(req: NextRequest) {
     const user = await getOrCreateUser(userId);
     if (!user) return apiError("NOT_FOUND", "Utilisateur introuvable");
 
-    const { id } = await req.json();
-    if (!id) return apiError("VALIDATION_ERROR", "id requis");
+    const { id } = deleteRecurringSchema.parse(await req.json());
 
     const existing = await prisma.recurringOrder.findUnique({ where: { id } });
     if (!existing) return apiError("NOT_FOUND", "Récurrence introuvable");

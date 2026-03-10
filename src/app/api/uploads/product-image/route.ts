@@ -4,6 +4,11 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import crypto from "crypto";
 import { getServerUserId } from "@/lib/auth/server-auth";
+import { z } from "zod";
+
+const deleteImageSchema = z.object({
+  url: z.string().min(1).max(500),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -108,11 +113,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const body = await req.json();
-    const url = body?.url as string;
-
-    if (!url || typeof url !== "string") {
-      return apiError("VALIDATION_ERROR", "Champ 'url' requis");
-    }
+    const { url } = deleteImageSchema.parse(body);
 
     // Only allow deletion of blob URLs or legacy filesystem URLs
     const isBlobUrl = url.includes(".public.blob.vercel-storage.com");

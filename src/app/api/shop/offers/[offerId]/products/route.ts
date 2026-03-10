@@ -3,6 +3,11 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { z } from "zod";
+
+const addProductsSchema = z.object({
+  productIds: z.array(z.string().min(1)).min(1),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -56,11 +61,7 @@ export async function POST(
 
     const { offerId } = params;
     const body = await req.json();
-    const productIds: string[] = body.productIds;
-
-    if (!Array.isArray(productIds) || productIds.length === 0) {
-      return apiError("VALIDATION_ERROR", "productIds requis (tableau non vide)");
-    }
+    const { productIds } = addProductsSchema.parse(body);
 
     // Verify the offer exists and belongs to or is proposed to this shop
     const offer = await prisma.offer.findFirst({

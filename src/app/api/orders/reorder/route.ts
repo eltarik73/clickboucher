@@ -6,6 +6,11 @@ import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { z } from "zod";
+
+const reorderSchema = z.object({
+  orderId: z.string().min(1),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,8 +20,7 @@ export async function POST(req: NextRequest) {
     const user = await getOrCreateUser(userId);
     if (!user) return apiError("NOT_FOUND", "Utilisateur introuvable");
 
-    const { orderId } = await req.json();
-    if (!orderId) return apiError("VALIDATION_ERROR", "orderId requis");
+    const { orderId } = reorderSchema.parse(await req.json());
 
     // Fetch original order
     const original = await prisma.order.findUnique({

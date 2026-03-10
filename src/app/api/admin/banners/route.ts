@@ -5,6 +5,33 @@ import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import prisma from "@/lib/prisma";
+import { z } from "zod";
+
+const createBannerSchema = z.object({
+  title: z.string().min(1).max(200),
+  subtitle: z.string().max(300).optional(),
+  imageUrl: z.string().url(),
+  linkUrl: z.string().url().optional(),
+  position: z.number().int().min(0).max(100).optional(),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().optional(),
+});
+
+const updateBannerSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1).max(200).optional(),
+  subtitle: z.string().max(300).nullable().optional(),
+  imageUrl: z.string().url().optional(),
+  linkUrl: z.string().url().nullable().optional(),
+  position: z.number().int().min(0).max(100).optional(),
+  isActive: z.boolean().optional(),
+  startsAt: z.string().datetime().nullable().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
+});
+
+const deleteBannerSchema = z.object({
+  id: z.string().min(1),
+});
 
 // GET — List all banners
 export async function GET() {
@@ -28,21 +55,17 @@ export async function POST(req: NextRequest) {
     if (admin.error) return admin.error;
 
     const body = await req.json();
-    const { title, subtitle, imageUrl, linkUrl, position, startsAt, endsAt } = body;
-
-    if (!title || !imageUrl) {
-      return apiError("VALIDATION_ERROR", "Titre et image requis");
-    }
+    const data = createBannerSchema.parse(body);
 
     const banner = await prisma.siteBanner.create({
       data: {
-        title,
-        subtitle: subtitle || null,
-        imageUrl,
-        linkUrl: linkUrl || null,
-        position: position ?? 0,
-        startsAt: startsAt ? new Date(startsAt) : null,
-        endsAt: endsAt ? new Date(endsAt) : null,
+        title: data.title,
+        subtitle: data.subtitle || null,
+        imageUrl: data.imageUrl,
+        linkUrl: data.linkUrl || null,
+        position: data.position ?? 0,
+        startsAt: data.startsAt ? new Date(data.startsAt) : null,
+        endsAt: data.endsAt ? new Date(data.endsAt) : null,
         createdBy: admin.userId,
       },
     });
@@ -60,9 +83,7 @@ export async function PATCH(req: NextRequest) {
     if (admin.error) return admin.error;
 
     const body = await req.json();
-    const { id, ...updates } = body;
-
-    if (!id) return apiError("VALIDATION_ERROR", "ID requis");
+    const { id, ...updates } = updateBannerSchema.parse(body);
 
     const banner = await prisma.siteBanner.update({
       where: { id },
@@ -90,8 +111,7 @@ export async function DELETE(req: NextRequest) {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const { id } = await req.json();
-    if (!id) return apiError("VALIDATION_ERROR", "ID requis");
+    const { id } = deleteBannerSchema.parse(await req.json());
 
     await prisma.siteBanner.delete({ where: { id } });
     return apiSuccess({ deleted: true });

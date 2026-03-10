@@ -7,8 +7,17 @@ import prisma from "@/lib/prisma";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
 import { put } from "@vercel/blob";
+import { z } from "zod";
 
-const VALID_USAGES = ["CAMPAIGN", "PROMO", "PRODUCT", "SOCIAL", "BANNER"];
+const VALID_USAGES = ["CAMPAIGN", "PROMO", "PRODUCT", "SOCIAL", "BANNER"] as const;
+
+const generateImageSchema = z.object({
+  prompt: z.string().min(5).max(1000),
+  width: z.number().int().min(256).max(2048).optional(),
+  height: z.number().int().min(256).max(2048).optional(),
+  usage: z.enum(VALID_USAGES),
+  shopId: z.string().min(1).optional(),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,14 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { prompt, width, height, usage, shopId } = body;
-
-    if (!prompt || typeof prompt !== "string" || prompt.length < 5) {
-      return apiError("VALIDATION_ERROR", "Prompt requis (min 5 caractères)");
-    }
-    if (!usage || !VALID_USAGES.includes(usage)) {
-      return apiError("VALIDATION_ERROR", `Usage requis. Valides : ${VALID_USAGES.join(", ")}`);
-    }
+    const { prompt, width, height, usage, shopId } = generateImageSchema.parse(body);
 
     const replicate = getReplicateClient();
     const output = await replicate.run("black-forest-labs/flux-schnell", {

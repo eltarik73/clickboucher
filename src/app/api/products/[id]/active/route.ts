@@ -3,6 +3,11 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { z } from "zod";
+
+const toggleActiveSchema = z.object({
+  isActive: z.boolean(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +37,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const isActive = typeof body.isActive === "boolean" ? body.isActive : !product;
+    const { isActive } = toggleActiveSchema.parse(body);
 
     const updated = await prisma.product.update({
       where: { id },

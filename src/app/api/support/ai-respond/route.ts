@@ -3,6 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import Anthropic from "@anthropic-ai/sdk";
 import prisma from "@/lib/prisma";
+import { z } from "zod";
+
+const aiRespondSchema = z.object({
+  ticketId: z.string().min(1),
+  userMessage: z.string().min(1).max(5000),
+  shopName: z.string().max(200).optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +35,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Authentification requise" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { ticketId, userMessage, shopName } = body;
-
-    if (!ticketId || !userMessage) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const parsed = aiRespondSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Champs invalides" }, { status: 400 });
     }
+    const { ticketId, userMessage, shopName } = parsed.data;
 
     // Verify ticket belongs to a shop owned by this user
     const ticket = await prisma.supportTicket.findUnique({

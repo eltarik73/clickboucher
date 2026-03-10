@@ -3,6 +3,11 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { z } from "zod";
+
+const respondSchema = z.object({
+  accept: z.boolean(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +26,7 @@ export async function POST(
 
     const { offerId } = params;
     const body = await req.json();
-    const accept = body.accept === true;
+    const { accept } = respondSchema.parse(body);
 
     // Find the proposal for this offer + this boucher's shop
     const proposal = await prisma.offerProposal.findFirst({

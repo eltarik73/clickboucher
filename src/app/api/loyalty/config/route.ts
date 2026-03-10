@@ -3,6 +3,13 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { z } from "zod";
+
+const updateConfigSchema = z.object({
+  active: z.boolean().optional(),
+  ordersRequired: z.number().int().min(1).max(100).optional(),
+  rewardPct: z.number().int().min(1).max(50).optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +42,7 @@ export async function PATCH(req: NextRequest) {
     const { shopId } = authResult;
 
     const body = await req.json();
-    const { active, ordersRequired, rewardPct } = body;
+    const { active, ordersRequired, rewardPct } = updateConfigSchema.parse(body);
 
     const rule = await prisma.loyaltyRule.upsert({
       where: { shopId },

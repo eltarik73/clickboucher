@@ -2,6 +2,11 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getServerUserId } from "@/lib/auth/server-auth";
+import { z } from "zod";
+
+const toggleFavoriteSchema = z.object({
+  shopId: z.string().min(1),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +17,12 @@ export async function POST(req: Request) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    let shopId: string | undefined;
+    let shopId: string;
     try {
       const body = await req.json();
-      shopId = body.shopId;
+      const parsed = toggleFavoriteSchema.parse(body);
+      shopId = parsed.shopId;
     } catch {
-      return apiError("VALIDATION_ERROR", "Corps de requête JSON invalide");
-    }
-    if (!shopId) {
       return apiError("VALIDATION_ERROR", "shopId requis");
     }
 

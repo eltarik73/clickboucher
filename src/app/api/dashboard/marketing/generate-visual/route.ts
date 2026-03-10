@@ -5,6 +5,15 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
 import { put } from "@vercel/blob";
+import { z } from "zod";
+
+const generateVisualSchema = z.object({
+  type: z.enum(["template", "ai"]),
+  title: z.string().max(200).optional(),
+  subtitle: z.string().max(300).optional(),
+  color: z.string().max(50).optional(),
+  context: z.string().max(500).optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +24,7 @@ export async function POST(req: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await req.json();
-    const { type, title, subtitle, color, context } = body as {
-      type: "template" | "ai";
-      title?: string;
-      subtitle?: string;
-      color?: string;
-      context?: string;
-    };
-
-    if (!type) {
-      return apiError("VALIDATION_ERROR", "Le champ 'type' est requis (template | ai)");
-    }
+    const { type, title, subtitle, color, context } = generateVisualSchema.parse(body);
 
     // ── Template mode: pass-through for client-side rendering ──
     if (type === "template") {

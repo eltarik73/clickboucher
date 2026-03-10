@@ -2,6 +2,26 @@ import Anthropic from "@anthropic-ai/sdk";
 import prisma from "@/lib/prisma";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const chatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(5000),
+});
+
+const chatBodySchema = z.object({
+  messages: z.array(chatMessageSchema).min(1).max(50),
+  cart: z.array(z.object({
+    name: z.string(),
+    unit: z.string(),
+    quantity: z.number(),
+    weightGrams: z.number().optional(),
+    priceCents: z.number(),
+    sliceCount: z.number().optional(),
+    thickness: z.string().optional(),
+  })).optional(),
+  cartShopName: z.string().max(200).nullable().optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -123,43 +143,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const allMessages: { role: "user" | "assistant"; content: string }[] =
-      body.messages;
-    const cartItems: { name: string; unit: string; quantity: number; weightGrams?: number; priceCents: number; sliceCount?: number; thickness?: string }[] =
-      body.cart || [];
-    const cartShopName: string | null = body.cartShopName || null;
-
-    if (!allMessages || !Array.isArray(allMessages) || allMessages.length === 0) {
+    const parsed = chatBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Messages requis" },
+        { error: "Format de message invalide" },
         { status: 400 }
       );
     }
-
-    // Validate message size to prevent DoS
-    const MAX_MESSAGE_LENGTH = 5000;
-    const MAX_MESSAGES = 50;
-    if (allMessages.length > MAX_MESSAGES) {
-      return NextResponse.json(
-        { error: "Trop de messages" },
-        { status: 400 }
-      );
-    }
-    for (const msg of allMessages) {
-      if (typeof msg.content !== "string" || typeof msg.role !== "string") {
-        return NextResponse.json(
-          { error: "Format de message invalide" },
-          { status: 400 }
-        );
-      }
-      if (msg.content.length > MAX_MESSAGE_LENGTH) {
-        return NextResponse.json(
-          { error: `Message trop long (max ${MAX_MESSAGE_LENGTH} caractères)` },
-          { status: 400 }
-        );
-      }
-    }
+    const allMessages = parsed.data.messages;
+    const cartItems = parsed.data.cart || [];
+    const cartShopName = parsed.data.cartShopName || null;
 
     // Keep only last 6 messages to reduce tokens
     const messages = allMessages.slice(-6);

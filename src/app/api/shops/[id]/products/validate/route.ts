@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { z } from "zod";
+
+const validateProductsSchema = z.object({
+  productIds: z.array(z.string().min(1)).min(1).max(50),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +18,7 @@ export async function POST(
   try {
     const { id: shopId } = await params;
     const body = await req.json();
-    const productIds: string[] = body.productIds;
-
-    if (!Array.isArray(productIds) || productIds.length === 0) {
-      return apiError("VALIDATION_ERROR", "productIds requis");
-    }
-
-    // Cap at 50 to prevent abuse
-    const ids = productIds.slice(0, 50);
+    const { productIds: ids } = validateProductsSchema.parse(body);
 
     const existing = await prisma.product.findMany({
       where: { id: { in: ids }, shopId },

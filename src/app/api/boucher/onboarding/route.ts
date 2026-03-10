@@ -4,6 +4,12 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { z } from "zod";
+
+const patchOnboardingSchema = z.object({
+  complete: z.boolean().optional(),
+  setVisible: z.boolean().optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -119,7 +125,7 @@ export async function PATCH(req: NextRequest) {
     const { shopId } = authResult;
 
     const body = await req.json();
-    const { complete, setVisible } = body;
+    const { complete, setVisible } = patchOnboardingSchema.parse(body);
 
     if (setVisible) {
       await prisma.shop.update({

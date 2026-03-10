@@ -4,6 +4,13 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { validatePromoCode } from "@/lib/marketing/validate-code";
+import { z } from "zod";
+
+const validateCodeSchema = z.object({
+  code: z.string().min(1).max(50),
+  orderTotalCents: z.number().int().min(0).optional(),
+  shopId: z.string().min(1).optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -21,11 +28,11 @@ export async function POST(req: NextRequest) {
     const userId = dbUser?.id || clerkId;
 
     const body = await req.json();
-    const { code, orderTotalCents, shopId } = body;
-
-    if (!code || typeof code !== "string") {
+    const parsed = validateCodeSchema.safeParse(body);
+    if (!parsed.success) {
       return apiError("VALIDATION_ERROR", "Code promo requis");
     }
+    const { code, orderTotalCents, shopId } = parsed.data;
 
     const trimmedCode = code.trim().toUpperCase();
 
