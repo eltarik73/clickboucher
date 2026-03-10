@@ -48,6 +48,7 @@ export async function GET(_req: NextRequest) {
           where: { actorId: { in: adminClerkIds } },
           orderBy: { createdAt: "desc" },
           select: { actorId: true, action: true, createdAt: true },
+          take: 1000,
         })
       : [];
     const lastActivityMap: Record<string, { action: string; createdAt: Date } | null> = {};

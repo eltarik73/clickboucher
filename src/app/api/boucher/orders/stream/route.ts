@@ -42,6 +42,7 @@ export async function GET() {
           const [pendingOrders, currentShop] = await Promise.all([
             prisma.order.findMany({
               where: { shopId, status: "PENDING" },
+              take: 200,
               select: {
                 id: true,
                 orderNumber: true,

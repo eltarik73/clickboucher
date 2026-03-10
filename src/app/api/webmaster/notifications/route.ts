@@ -75,6 +75,7 @@ export async function GET() {
     const notifs7d = await prisma.notification.findMany({
       where: { createdAt: { gte: sevenDaysAgo } },
       select: { createdAt: true },
+      take: 50000,
     });
     const dailyMap = new Map<string, number>();
     for (let i = 6; i >= 0; i--) {

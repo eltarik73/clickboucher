@@ -96,6 +96,7 @@ export async function GET(req: NextRequest) {
         status: { in: [...completedStatuses] },
         createdAt: { gte: sixMonthsAgo },
       },
+      take: 50000,
       select: {
         totalCents: true,
         commissionCents: true,
