@@ -114,8 +114,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <head>
           <link rel="preconnect" href="https://busy-mutt-20.clerk.accounts.dev" />
           <link rel="dns-prefetch" href="https://busy-mutt-20.clerk.accounts.dev" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
             <Script
               defer

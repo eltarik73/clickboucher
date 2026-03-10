@@ -2,6 +2,7 @@ export const revalidate = 60; // ISR — rebuild every 60s
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { HowItWorks } from "@/components/landing/HowItWorks";
@@ -80,17 +81,10 @@ export default async function HomePage() {
   let popupOffers: { id: string; name: string; code: string; type: string; discountValue: number; popupTitle: string | null; popupMessage: string | null; popupColor: string | null; popupFrequency: string | null; popupImageUrl: string | null }[] = [];
   let latestRecipes: { id: string; slug: string; title: string; imageUrl: string | null; meatQuantity: string; totalTime: number }[] = [];
 
-  // 1. Auth (non-blocking — page works without login)
-  let clerkId: string | null = null;
+  // 1. Auth + DB queries in parallel (auth is non-blocking — page works without login)
   try {
-    const authResult = await auth();
-    clerkId = authResult.userId;
-  } catch (authErr) {
-    void authErr;
-  }
+    const authPromise = auth().catch(() => ({ userId: null as string | null }));
 
-  // 2. Fetch shops + favorites in parallel
-  try {
     const shopsPromise = prisma.shop.findMany({
       where: { visible: true },
       orderBy: { rating: "desc" },
@@ -109,13 +103,6 @@ export default async function HomePage() {
         ratingCount: true,
       },
     });
-
-    const favPromise = clerkId
-      ? prisma.user.findUnique({
-          where: { clerkId },
-          select: { favoriteShops: { select: { id: true } } },
-        })
-      : Promise.resolve(null);
 
     const offersPromise = prisma.offer.findMany({
       where: {
@@ -158,7 +145,18 @@ export default async function HomePage() {
       where: { isFlashSale: true, inStock: true, isActive: true },
     });
 
-    const [shopsResult, favResult, offersResult, popupOffersResult, agCount, fsCount, latestRecipesResult] = await Promise.all([shopsPromise, favPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, latestRecipesPromise]);
+    // Run auth + ALL DB queries in parallel (auth no longer blocks DB queries)
+    const [authResult, shopsResult, offersResult, popupOffersResult, agCount, fsCount, latestRecipesResult] = await Promise.all([authPromise, shopsPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, latestRecipesPromise]);
+
+    const clerkId = authResult.userId;
+
+    // Favorites query depends on auth — runs after auth resolves (only if logged in)
+    const favResult = clerkId
+      ? await prisma.user.findUnique({
+          where: { clerkId },
+          select: { favoriteShops: { select: { id: true } } },
+        })
+      : null;
 
     if (favResult?.favoriteShops) {
       favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
@@ -344,7 +342,7 @@ export default async function HomePage() {
               >
                 <div className="h-28 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
                   {recipe.imageUrl ? (
-                    <img src={recipe.imageUrl} alt={recipe.title} className="w-full h-full object-cover" />
+                    <Image src={recipe.imageUrl} alt={recipe.title} fill className="object-cover" sizes="200px" loading="lazy" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-3xl">🍖</div>
                   )}

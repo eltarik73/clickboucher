@@ -3,7 +3,7 @@ const nextConfig = {
   output: process.env.VERCEL ? undefined : "standalone",
   experimental: {
     instrumentationHook: true,
-    optimizePackageImports: ["lucide-react", "recharts"],
+    optimizePackageImports: ["lucide-react", "recharts", "sonner", "zod", "class-variance-authority", "clsx"],
   },
   images: {
     formats: ["image/webp", "image/avif"],
@@ -26,6 +26,18 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: [
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
           {
             key: "Referrer-Policy",
             value: "no-referrer-when-downgrade",
