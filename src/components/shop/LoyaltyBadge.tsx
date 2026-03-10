@@ -58,7 +58,7 @@ export function LoyaltyBadge({ shopId }: Props) {
             {orderCount} / {ordersRequired} commandes
             {rewardsEarned! > 0 && (
               <span className="ml-1.5 font-semibold">
-                ({rewardsEarned} recompense{rewardsEarned! > 1 ? "s" : ""} gagnee{rewardsEarned! > 1 ? "s" : ""})
+                ({rewardsEarned} récompense{rewardsEarned! > 1 ? "s" : ""} gagnée{rewardsEarned! > 1 ? "s" : ""})
               </span>
             )}
           </p>

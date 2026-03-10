@@ -78,6 +78,9 @@ export default async function HomePage() {
   let livePromos: LivePromo[] = [];
   let antiGaspiCount = 0;
   let flashSaleCount = 0;
+  let promoCount = 0;
+  let packCount = 0;
+  let recipeCount = 0;
   let popupOffers: { id: string; name: string; code: string; type: string; discountValue: number; popupTitle: string | null; popupMessage: string | null; popupColor: string | null; popupFrequency: string | null; popupImageUrl: string | null }[] = [];
   let latestRecipes: { id: string; slug: string; title: string; imageUrl: string | null; meatQuantity: string; totalTime: number }[] = [];
 
@@ -144,9 +147,24 @@ export default async function HomePage() {
     const flashSaleCountPromise = prisma.product.count({
       where: { isFlashSale: true, inStock: true, isActive: true },
     });
+    const promoCountPromise = prisma.product.count({
+      where: {
+        inStock: true, isActive: true,
+        OR: [
+          { promoPct: { gt: 0 } },
+          { promoType: "FIXED_AMOUNT", promoFixedCents: { gt: 0 } },
+        ],
+      },
+    });
+    const packCountPromise = prisma.product.count({
+      where: { inStock: true, isActive: true, packContent: { not: null } },
+    });
+    const recipeCountPromise = prisma.recipe.count({
+      where: { published: true },
+    });
 
     // Run auth + ALL DB queries in parallel (auth no longer blocks DB queries)
-    const [authResult, shopsResult, offersResult, popupOffersResult, agCount, fsCount, latestRecipesResult] = await Promise.all([authPromise, shopsPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, latestRecipesPromise]);
+    const [authResult, shopsResult, offersResult, popupOffersResult, agCount, fsCount, pmCount, pkCount, rcCount, latestRecipesResult] = await Promise.all([authPromise, shopsPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, promoCountPromise, packCountPromise, recipeCountPromise, latestRecipesPromise]);
 
     const clerkId = authResult.userId;
 
@@ -163,6 +181,9 @@ export default async function HomePage() {
     }
     antiGaspiCount = agCount;
     flashSaleCount = fsCount;
+    promoCount = pmCount;
+    packCount = pkCount;
+    recipeCount = rcCount;
     latestRecipes = latestRecipesResult;
     livePromos = offersResult.map((o) => ({
       id: o.id,
@@ -297,7 +318,7 @@ export default async function HomePage() {
         <SearchBar />
 
         {/* Promo carousel (events + DB promos) */}
-        <PromoCarousel livePromos={livePromos} antiGaspiCount={antiGaspiCount} flashSaleCount={flashSaleCount} />
+        <PromoCarousel livePromos={livePromos} antiGaspiCount={antiGaspiCount} flashSaleCount={flashSaleCount} promoCount={promoCount} packCount={packCount} recipeCount={recipeCount} />
 
         {/* Reorder last order */}
         <ReorderSection />

@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: "Packs Boucherie Halal",
   description: "Packs famille et lots à prix réduit dans les boucheries halal près de chez vous. Commandez vos assortiments de viande halal en click & collect et économisez.",
   alternates: { canonical: `${SITE_URL}/bons-plans/packs` },
+  robots: { index: false, follow: true },
 };
 
 function fmtPrice(cents: number) {

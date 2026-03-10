@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: "Ventes Flash Boucherie Halal",
   description: "Offres flash limitées dans les boucheries halal près de chez vous. Profitez rapidement des prix réduits sur la viande halal fraîche avant épuisement des stocks.",
   alternates: { canonical: `${SITE_URL}/bons-plans/vente-flash` },
+  robots: { index: false, follow: true },
 };
 
 function fmtPrice(cents: number) {

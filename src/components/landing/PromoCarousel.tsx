@@ -12,36 +12,6 @@ type Vignette = {
   href: string;
 };
 
-const STATIC_VIGNETTES: Vignette[] = [
-  {
-    id: "ramadan",
-    emoji: "\uD83C\uDF19",
-    title: "Ramadan",
-    subtitle: "Préparez l'Iftar",
-    bgClass: "bg-gradient-to-br from-slate-800 to-slate-900",
-    accentClass: "text-amber-400",
-    href: "/bons-plans/ramadan",
-  },
-  {
-    id: "bienvenue",
-    emoji: "\uD83D\uDD25",
-    title: "-10%",
-    subtitle: "1ere commande",
-    bgClass: "bg-gradient-to-br from-red-600 to-red-800",
-    accentClass: "text-amber-100",
-    href: "/bons-plans/promos",
-  },
-  {
-    id: "famille",
-    emoji: "\uD83E\uDD69",
-    title: "Pack Famille",
-    subtitle: "5kg prix réduit",
-    bgClass: "bg-gradient-to-br from-emerald-800 to-emerald-900",
-    accentClass: "text-emerald-300",
-    href: "/bons-plans/packs",
-  },
-];
-
 type LivePromo = {
   id: string;
   label: string;
@@ -56,12 +26,22 @@ interface Props {
   livePromos: LivePromo[];
   antiGaspiCount?: number;
   flashSaleCount?: number;
+  promoCount?: number;
+  packCount?: number;
+  recipeCount?: number;
 }
 
-export function PromoCarousel({ livePromos, antiGaspiCount = 0, flashSaleCount = 0 }: Props) {
+export function PromoCarousel({
+  livePromos,
+  antiGaspiCount = 0,
+  flashSaleCount = 0,
+  promoCount = 0,
+  packCount = 0,
+  recipeCount = 0,
+}: Props) {
   void livePromos;
 
-  // Build dynamic vignettes (priority order)
+  // Build dynamic vignettes (priority order) — only show vignettes that link to pages with content
   const vignettes: Vignette[] = [];
 
   if (antiGaspiCount > 0) {
@@ -88,13 +68,71 @@ export function PromoCarousel({ livePromos, antiGaspiCount = 0, flashSaleCount =
     });
   }
 
-  // Fill with static vignettes up to 3
-  for (const sv of STATIC_VIGNETTES) {
-    if (vignettes.length >= 3) break;
-    if (!vignettes.some(v => v.id === sv.id)) {
-      vignettes.push(sv);
-    }
+  // Static vignettes — only shown when their target page has content
+  if (promoCount > 0) {
+    vignettes.push({
+      id: "bienvenue",
+      emoji: "\uD83D\uDD25",
+      title: "-10%",
+      subtitle: "1ere commande",
+      bgClass: "bg-gradient-to-br from-red-600 to-red-800",
+      accentClass: "text-amber-100",
+      href: "/bons-plans/promos",
+    });
   }
+
+  if (packCount > 0 && vignettes.length < 3) {
+    vignettes.push({
+      id: "famille",
+      emoji: "\uD83E\uDD69",
+      title: "Pack Famille",
+      subtitle: "5kg prix réduit",
+      bgClass: "bg-gradient-to-br from-emerald-800 to-emerald-900",
+      accentClass: "text-emerald-300",
+      href: "/bons-plans/packs",
+    });
+  }
+
+  if (recipeCount > 0 && vignettes.length < 3) {
+    vignettes.push({
+      id: "recettes",
+      emoji: "\uD83C\uDF73",
+      title: "Recettes",
+      subtitle: `${recipeCount} recette${recipeCount > 1 ? "s" : ""}`,
+      bgClass: "bg-gradient-to-br from-amber-600 to-orange-700",
+      accentClass: "text-amber-200",
+      href: "/recettes",
+    });
+  }
+
+  // Always show the welcome vignette as fallback
+  if (vignettes.length < 3 && !vignettes.some(v => v.id === "bienvenue")) {
+    vignettes.push({
+      id: "bienvenue",
+      emoji: "\uD83D\uDD25",
+      title: "Bienvenue",
+      subtitle: "Commandez en 2 min",
+      bgClass: "bg-gradient-to-br from-red-600 to-red-800",
+      accentClass: "text-amber-100",
+      href: "/",
+    });
+  }
+
+  // If still not enough, add a generic fallback
+  if (vignettes.length < 3) {
+    vignettes.push({
+      id: "decouvrir",
+      emoji: "\uD83E\uDD69",
+      title: "Nos boucheries",
+      subtitle: "Viande halal fraîche",
+      bgClass: "bg-gradient-to-br from-slate-700 to-slate-900",
+      accentClass: "text-gray-300",
+      href: "/",
+    });
+  }
+
+  // Only keep 3 max
+  const display = vignettes.slice(0, 3);
 
   return (
     <section className="mb-5">
@@ -104,7 +142,7 @@ export function PromoCarousel({ livePromos, antiGaspiCount = 0, flashSaleCount =
       </div>
 
       <div className="grid grid-cols-3 gap-2.5">
-        {vignettes.map((p) => (
+        {display.map((p) => (
           <Link
             key={p.id}
             href={p.href}

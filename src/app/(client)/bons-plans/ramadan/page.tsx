@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: "Offres Ramadan — Boucherie Halal",
   description: "Offres spéciales Ramadan dans les boucheries halal. Préparez l'Iftar avec des produits de qualité à prix réduit. Commandez en click & collect et récupérez sans attendre.",
   alternates: { canonical: `${SITE_URL}/bons-plans/ramadan` },
+  robots: { index: false, follow: true },
 };
 
 function fmtPrice(cents: number) {

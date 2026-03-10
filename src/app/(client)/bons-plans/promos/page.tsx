@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: "Promotions Boucherie Halal",
   description: "Découvrez toutes les promotions en cours dans les boucheries halal près de chez vous. Profitez des meilleures réductions sur la viande halal fraîche en click & collect.",
   alternates: { canonical: `${SITE_URL}/bons-plans/promos` },
+  robots: { index: false, follow: true },
 };
 
 function fmtPrice(cents: number) {
