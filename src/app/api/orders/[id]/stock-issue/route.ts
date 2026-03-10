@@ -59,9 +59,9 @@ export async function POST(
       data: { available: false },
     });
 
-    // 3. Auto-toggle product stock to false
+    // 3. Auto-toggle product stock to false (scoped by shopId)
     await prisma.product.updateMany({
-      where: { id: { in: unavailableItems } },
+      where: { id: { in: unavailableItems }, shopId },
       data: { inStock: false },
     });
 

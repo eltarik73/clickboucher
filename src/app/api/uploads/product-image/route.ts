@@ -51,6 +51,11 @@ export async function POST(req: NextRequest) {
       if (!product) {
         return apiError("NOT_FOUND", "Produit introuvable");
       }
+      // Verify ownership
+      const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true } });
+      if (product.shop.ownerId !== userId && product.shop.ownerId !== dbUser?.id) {
+        return apiError("FORBIDDEN", "Ce produit ne vous appartient pas");
+      }
       if (product._count.images >= MAX_IMAGES_PER_PRODUCT) {
         return apiError("VALIDATION_ERROR", `Maximum ${MAX_IMAGES_PER_PRODUCT} images par produit`);
       }

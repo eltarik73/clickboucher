@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
       // Fallback: if no keyword matches, load popular products
       if (matchedProducts.length === 0) {
         const popular = await prisma.product.findMany({
-          where: { inStock: true },
+          where: { inStock: true, shop: { visible: true } },
           select: PRODUCT_SELECT,
           take: 15,
           orderBy: { name: "asc" },

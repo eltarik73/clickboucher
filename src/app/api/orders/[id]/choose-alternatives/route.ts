@@ -67,9 +67,9 @@ export async function POST(
           data: { replacement: "removed" },
         });
       } else if (decision.action === "replace" && decision.replacementProductId) {
-        // Fetch the replacement product
-        const newProduct = await prisma.product.findUnique({
-          where: { id: decision.replacementProductId },
+        // Fetch the replacement product (must belong to same shop)
+        const newProduct = await prisma.product.findFirst({
+          where: { id: decision.replacementProductId, shopId: order.shop.id },
           select: { id: true, name: true, priceCents: true, unit: true },
         });
 

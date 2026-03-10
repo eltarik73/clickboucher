@@ -87,6 +87,8 @@ export async function searchProducts(
 
   if (shopId) {
     where.shopId = shopId;
+  } else {
+    where.shop = { visible: true };
   }
 
   const products = await prisma.product.findMany({

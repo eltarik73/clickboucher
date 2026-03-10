@@ -35,11 +35,11 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // Update displayOrder for each product
+    // Update displayOrder for each product (scoped by shopId)
     await prisma.$transaction(
       productIds.map((id, index) =>
         prisma.product.update({
-          where: { id },
+          where: { id, shopId },
           data: { displayOrder: index },
         })
       )

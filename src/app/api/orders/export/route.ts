@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       if (shopId) where.shopId = shopId;
     } else if (role === "BOUCHER") {
       const shops = await prisma.shop.findMany({
-        where: { ownerId: userId },
+        where: { OR: [{ ownerId: userId }, { ownerId: user.id }] },
         select: { id: true },
       });
       const shopIds = shops.map((s) => s.id);

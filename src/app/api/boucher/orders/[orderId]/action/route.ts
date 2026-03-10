@@ -283,9 +283,9 @@ export async function PATCH(
           data: { available: false },
         });
 
-        // Auto-toggle product stock
+        // Auto-toggle product stock (scoped by shopId)
         await prisma.product.updateMany({
-          where: { id: { in: data.itemIds } },
+          where: { id: { in: data.itemIds }, shopId },
           data: { inStock: false },
         });
 

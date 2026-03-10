@@ -55,8 +55,8 @@ export async function POST(
         if (snap.newPriceCents !== undefined) updateData.priceCents = snap.newPriceCents;
         if (snap.newTotalCents !== undefined) updateData.totalCents = snap.newTotalCents;
         if (Object.keys(updateData).length > 0 && snap.orderItemId) {
-          await prisma.orderItem.update({
-            where: { id: snap.orderItemId as string },
+          await prisma.orderItem.updateMany({
+            where: { id: snap.orderItemId as string, orderId },
             data: updateData,
           });
         }

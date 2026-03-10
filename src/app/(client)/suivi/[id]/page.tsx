@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import SuiviClient from "./SuiviClient";
 
@@ -10,6 +11,17 @@ export default async function SuiviPage({
   params: { id: string };
 }) {
   const { id } = params;
+
+  // Auth check — only order owner can view tracking
+  const clerkId = await getServerUserId();
+  if (!clerkId) {
+    redirect(`/sign-in?redirect_url=/suivi/${id}`);
+  }
+
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId },
+    select: { id: true },
+  });
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -38,7 +50,8 @@ export default async function SuiviPage({
         },
       },
       shop: { select: { id: true, name: true, address: true, city: true, phone: true } },
-      user: { select: { firstName: true, lastName: true, customerNumber: true } },
+      userId: true,
+      user: { select: { firstName: true, lastName: true, customerNumber: true, clerkId: true } },
       priceAdjustment: {
         select: {
           id: true,
@@ -57,6 +70,11 @@ export default async function SuiviPage({
   });
 
   if (!order) notFound();
+
+  // Verify order belongs to authenticated user
+  if (order.user.clerkId !== clerkId && order.userId !== dbUser?.id) {
+    notFound();
+  }
 
   return (
     <SuiviClient

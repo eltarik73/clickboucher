@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = pickupByQrSchema.parse(body);
 
-    // Find the order by QR code
+    // Find the order by QR code (scoped to this shop for defense-in-depth)
     const order = await prisma.order.findFirst({
-      where: { qrCode: data.qrCode },
+      where: { qrCode: data.qrCode, shopId },
       select: {
         id: true,
         status: true,
@@ -47,12 +47,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      return apiError("NOT_FOUND", "Aucune commande trouvee avec ce QR code");
-    }
-
-    // Verify the boucher owns this shop
-    if (order.shop.id !== shopId) {
-      return apiError("FORBIDDEN", "Cette commande n'appartient pas a votre boucherie");
+      return apiError("NOT_FOUND", "Aucune commande trouvee avec ce QR code pour votre boucherie");
     }
 
     // Verify order is READY

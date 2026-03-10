@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const cartProductIds: string[] = [];
     if (shopId) {
       const cartItems = await prisma.cartItem.findMany({
-        where: { cart: { userId: clerkId, shopId } },
+        where: { cart: { userId, shopId } },
         select: { productId: true },
       });
       cartProductIds.push(...cartItems.map((ci) => ci.productId));
