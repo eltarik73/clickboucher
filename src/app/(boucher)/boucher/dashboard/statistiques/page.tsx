@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft,
   TrendingUp,
+  TrendingDown,
   ShoppingBag,
   Users,
   Clock,
@@ -20,6 +21,8 @@ import {
   CheckCircle,
   Percent,
   Download,
+  XCircle,
+  CalendarDays,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
@@ -78,10 +81,17 @@ type StatsData = {
   ratingCount: number;
   completionRate: number;
   ordersToday: number;
+  denialRate: number;
+  // Previous period comparison
+  prevTotalRevenue: number;
+  prevTotalOrders: number;
+  prevAvgOrderValue: number;
+  prevCompletionRate: number;
   // Advanced (PRO+)
   revenueChart?: { date: string; revenue: number }[];
   ordersChart?: { date: string; orders: number }[];
   hourlyDistribution?: { hour: number; orders: number }[];
+  weekdayDistribution?: { day: string; orders: number; revenue: number }[];
   topProducts?: { name: string; quantity: number; revenue: number }[];
   topClients?: { name: string; orderCount: number; totalSpent: number }[];
   avgPrepTime?: number;
@@ -100,6 +110,19 @@ function centsToEuroShort(cents: number): string {
   const eur = cents / 100;
   if (eur >= 1000) return (eur / 1000).toFixed(1).replace(".", ",") + "k\u20AC";
   return eur.toFixed(0) + " \u20AC";
+}
+
+function DeltaBadge({ current, previous, suffix = "" }: { current: number; previous: number; suffix?: string }) {
+  if (previous === 0 && current === 0) return null;
+  const delta = previous === 0 ? 100 : Math.round(((current - previous) / previous) * 100);
+  if (delta === 0) return null;
+  const positive = delta > 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold ${positive ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+      {positive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+      {positive ? "+" : ""}{delta}%{suffix}
+    </span>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -303,13 +326,22 @@ export default function StatistiquesPage() {
           <div className="flex-1">
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Statistiques</h1>
           </div>
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-[#DC2626] hover:border-[#DC2626]/30 transition-colors"
-            title="Exporter les commandes en CSV"
-          >
-            <Download size={13} /> CSV
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-[#DC2626] hover:border-[#DC2626]/30 transition-colors"
+              title="Exporter les commandes en CSV"
+            >
+              <Download size={13} /> CSV
+            </button>
+            <Link
+              href="/boucher/dashboard/export"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-[#DC2626] hover:border-[#DC2626]/30 transition-colors"
+              title="Page d'export avancee"
+            >
+              <Download size={13} /> Plus
+            </Link>
+          </div>
           <Badge
             variant="outline"
             className={`text-[10px] font-semibold uppercase ${
@@ -351,61 +383,93 @@ export default function StatistiquesPage() {
 
         {/* ── Basic Stats Grid 2x2 ── */}
         {stats && (
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">CA total</span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">CA total</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {centsToEuro(stats.totalRevenue)}
-                </p>
-              </CardContent>
-            </Card>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {centsToEuro(stats.totalRevenue)}
+                  </p>
+                  <DeltaBadge current={stats.totalRevenue} previous={stats.prevTotalRevenue} />
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <ShoppingBag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <ShoppingBag className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Commandes</span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Commandes</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalOrders}</p>
-              </CardContent>
-            </Card>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalOrders}</p>
+                  <DeltaBadge current={stats.totalOrders} previous={stats.prevTotalOrders} />
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Panier moyen</span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Panier moyen</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {centsToEuro(stats.avgOrderValue)}
-                </p>
-              </CardContent>
-            </Card>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {centsToEuro(stats.avgOrderValue)}
+                  </p>
+                  <DeltaBadge current={stats.avgOrderValue} previous={stats.prevAvgOrderValue} />
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Taux completion</span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Taux completion</span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {stats.completionRate}%
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.completionRate}%
+                  </p>
+                  <DeltaBadge current={stats.completionRate} previous={stats.prevCompletionRate} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* ── Secondary KPIs row ── */}
+            <div className="grid grid-cols-4 gap-2">
+              <div className="bg-white dark:bg-[#141414] rounded-xl p-3 text-center shadow-sm">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Aujourd&apos;hui</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white mt-0.5">{stats.ordersToday}</p>
+              </div>
+              <div className="bg-white dark:bg-[#141414] rounded-xl p-3 text-center shadow-sm">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Note</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white mt-0.5">
+                  {Number(stats.rating).toFixed(1)}
                 </p>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+              <div className="bg-white dark:bg-[#141414] rounded-xl p-3 text-center shadow-sm">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Prep. moy.</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white mt-0.5">
+                  {stats.avgPrepTime || "-"}<span className="text-xs font-normal text-gray-400">min</span>
+                </p>
+              </div>
+              <div className="bg-white dark:bg-[#141414] rounded-xl p-3 text-center shadow-sm">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Refus</p>
+                <p className={`text-lg font-bold mt-0.5 ${stats.denialRate > 10 ? "text-red-500" : "text-gray-900 dark:text-white"}`}>
+                  {stats.denialRate}%
+                </p>
+              </div>
+            </div>
+          </>
         )}
 
         {/* ── Advanced Stats (PRO / PREMIUM) ── */}
@@ -517,6 +581,42 @@ export default function StatistiquesPage() {
                         />
                         <Tooltip content={<OrdersTooltip />} />
                         <Bar dataKey="orders" fill="#DC2626" radius={[3, 3, 0, 0]} maxBarSize={24} opacity={0.85} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ── Weekday Distribution ── */}
+            {stats.weekdayDistribution && (
+              <Card className="bg-white dark:bg-[#141414] border-0 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      R&eacute;partition par jour
+                    </h3>
+                    <CalendarDays size={14} className="text-gray-500 dark:text-gray-400" />
+                  </div>
+                  <div className="h-44">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.weekdayDistribution}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.5} />
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fill: "#9ca3af", fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fill: "#9ca3af", fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          allowDecimals={false}
+                          width={25}
+                        />
+                        <Tooltip content={<OrdersTooltip />} />
+                        <Bar dataKey="orders" fill="#DC2626" radius={[4, 4, 0, 0]} maxBarSize={40} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

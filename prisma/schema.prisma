@@ -230,6 +230,14 @@ enum CampaignStatus {
   PAUSED
 }
 
+// ── Roles equipe boutique ──
+enum ShopRole {
+  OWNER
+  MANAGER
+  STAFF
+  ANALYST
+}
+
 // ══════════════════════════════════════════
 // USER
 // ══════════════════════════════════════════
@@ -289,7 +297,8 @@ model User {
   carts           Cart[]
   recurringOrders RecurringOrder[]
   supportTickets  SupportTicket[]
-  proAccesses     ProAccess[]
+  proAccesses      ProAccess[]
+  shopMemberships  ShopMember[]
 
   @@map("users")
 }
@@ -455,6 +464,7 @@ model Shop {
   offers            Offer[]
   offerProposals    OfferProposal[]
   offerProducts     OfferProduct[]
+  members           ShopMember[]
 
   @@index([latitude, longitude])
   @@index([city])
@@ -462,6 +472,26 @@ model Shop {
   @@index([status, rating])
   @@index([ownerId])
   @@map("shops")
+}
+
+// ══════════════════════════════════════════
+// SHOP MEMBER (Team management)
+// ══════════════════════════════════════════
+
+model ShopMember {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ShopRole @default(STAFF)
+  invitedBy String?  @map("invited_by")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+
+  @@unique([shopId, userId])
+  @@index([shopId])
+  @@index([userId])
+  @@map("shop_members")
 }
 
 // ══════════════════════════════════════════

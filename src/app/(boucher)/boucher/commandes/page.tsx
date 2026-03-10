@@ -25,6 +25,7 @@ import {
   Clock,
   Settings,
   Pause,
+  LayoutGrid,
 } from "lucide-react";
 // Logo uses <a> tag for dashboard navigation (no client-side nav needed)
 import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
@@ -138,6 +139,14 @@ export default function KitchenModePage() {
   const [muted, setMuted] = useState(false);
   const mutedRef = useRef(false);
   mutedRef.current = muted;
+
+  // Simple mode (2 columns: Nouvelles | Pretes, no En cours)
+  const [simpleMode, setSimpleMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("klikgo-simple-mode") === "true";
+    }
+    return false;
+  });
 
   // Connected indicator
   const [connected, setConnected] = useState(true);
@@ -635,6 +644,21 @@ export default function KitchenModePage() {
               {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
             </button>
 
+            {/* Simple mode toggle */}
+            <button
+              onClick={() => {
+                const next = !simpleMode;
+                setSimpleMode(next);
+                localStorage.setItem("klikgo-simple-mode", String(next));
+              }}
+              className={`hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-colors ${
+                simpleMode ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-400 hover:text-white"
+              }`}
+              title={simpleMode ? "Mode simple actif" : "Passer en mode simple"}
+            >
+              <LayoutGrid size={14} />
+            </button>
+
             {/* QR Scanner — hidden on small phones, visible on tablets+ */}
             <button
               onClick={() => setShowScanner(true)}
@@ -739,8 +763,8 @@ export default function KitchenModePage() {
         {/* ── DESKTOP: 3-column layout (40% / flex / 20%) ── */}
         {/* ══════════════════════════════════════════ */}
         <div className="flex-1 overflow-hidden hidden lg:flex pb-14">
-          {/* Column 1: Nouvelles (40%) */}
-          <div className="w-[40%] shrink-0">
+          {/* Column 1: Nouvelles */}
+          <div className={simpleMode ? "w-[50%] shrink-0" : "w-[40%] shrink-0"}>
             <KitchenColumn
               title="Nouvelles"
               count={pendingCount}
@@ -758,10 +782,11 @@ export default function KitchenModePage() {
           </div>
 
           {/* Divider */}
-          <div className="w-px bg-white/5 shrink-0" />
+          {!simpleMode && <div className="w-px bg-white/5 shrink-0" />}
 
           {/* Column 2: En cours (flex-1) — split: À préparer + Programmées en attente */}
-          <div className="flex-1 min-w-0 flex flex-col h-full">
+          {/* Hidden in simple mode */}
+          {!simpleMode && <div className="flex-1 min-w-0 flex flex-col h-full">
             {/* Column header */}
             <div className="shrink-0 px-3 py-2 bg-[#111] border-b border-white/5 flex items-center gap-1.5">
               <div className="text-blue-400 bg-blue-500/20 p-1 rounded-md"><ChefHat size={16} /></div>
@@ -835,19 +860,19 @@ export default function KitchenModePage() {
                 <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmée</p>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Divider */}
-          <div className="w-px bg-white/5 shrink-0" />
+          {!simpleMode && <div className="w-px bg-white/5 shrink-0" />}
 
-          {/* Column 3: Prêtes (20%) */}
-          <div className="w-1/5 shrink-0">
+          {/* Column 3: Prêtes (+ En cours in simple mode) */}
+          <div className={simpleMode ? "w-[50%] shrink-0" : "w-1/5 shrink-0"}>
             <KitchenColumn
-              title="Prêtes"
-              count={readyCount}
+              title={simpleMode ? "En cours / Prêtes" : "Prêtes"}
+              count={simpleMode ? inProgressCount + readyCount : readyCount}
               icon={<CheckCircle size={16} />}
               color="emerald"
-              orders={readyOrders}
+              orders={simpleMode ? [...inProgressOrders, ...readyOrders] : readyOrders}
               shopName={shopName}
               shopPrepTime={shopPrepTime}
               onAction={handleAction}

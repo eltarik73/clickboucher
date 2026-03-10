@@ -20,6 +20,10 @@ import {
   CreditCard,
   CalendarClock,
   DollarSign,
+  BellRing,
+  Volume2,
+  Smartphone,
+  Monitor,
 } from "lucide-react";
 
 // ─────────────────────────────────────────────
@@ -56,6 +60,9 @@ type Shop = {
   acceptOnline: boolean;
   acceptOnPickup: boolean;
   priceAdjustmentThreshold: number;
+  soundNotif?: boolean;
+  flashNotif?: boolean;
+  vibrateNotif?: boolean;
 };
 
 const DAYS = [
@@ -128,6 +135,12 @@ export default function BoucherParametresPage() {
   const [acceptOnline, setAcceptOnline] = useState(false);
   const [acceptOnPickup, setAcceptOnPickup] = useState(true);
   const [paymentSaving, setPaymentSaving] = useState(false);
+
+  // Notification state
+  const [soundNotif, setSoundNotif] = useState(true);
+  const [flashNotif, setFlashNotif] = useState(true);
+  const [vibrateNotif, setVibrateNotif] = useState(true);
+  const [notifSaving, setNotifSaving] = useState(false);
 
   // Loyalty state
   const [loyaltyActive, setLoyaltyActive] = useState(false);
@@ -212,6 +225,9 @@ export default function BoucherParametresPage() {
       }
       setAcceptOnline(data.acceptOnline ?? false);
       setAcceptOnPickup(data.acceptOnPickup ?? true);
+      setSoundNotif(data.soundNotif ?? true);
+      setFlashNotif(data.flashNotif ?? true);
+      setVibrateNotif(data.vibrateNotif ?? true);
     } catch {
       setError("Erreur de connexion");
     } finally {
@@ -1100,6 +1116,98 @@ export default function BoucherParametresPage() {
                 <span>5 km</span>
                 <span>30 km</span>
               </div>
+            </div>
+          </div>
+        </SettingCard>
+      </div>
+
+      {/* ── Notifications ── */}
+      <div className="space-y-3 mt-5">
+        <SettingCard
+          icon={<BellRing className="w-5 h-5 text-[#DC2626]" />}
+          title="Notifications"
+          accent="border-l-[#DC2626]"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Volume2 size={16} className="text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Son</p>
+                  <p className="text-[11px] text-gray-400">Alerte sonore pour les nouvelles commandes</p>
+                </div>
+              </div>
+              <Switch
+                checked={soundNotif}
+                onCheckedChange={async (v) => {
+                  setSoundNotif(v);
+                  setNotifSaving(true);
+                  try {
+                    await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_settings", soundNotif: v }),
+                    });
+                    toast.success(v ? "Son active" : "Son desactive");
+                  } catch { toast.error("Erreur"); }
+                  finally { setNotifSaving(false); }
+                }}
+                disabled={notifSaving}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Monitor size={16} className="text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Flash ecran</p>
+                  <p className="text-[11px] text-gray-400">Flash visuel sur la tablette</p>
+                </div>
+              </div>
+              <Switch
+                checked={flashNotif}
+                onCheckedChange={async (v) => {
+                  setFlashNotif(v);
+                  setNotifSaving(true);
+                  try {
+                    await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_settings", flashNotif: v }),
+                    });
+                    toast.success(v ? "Flash active" : "Flash desactive");
+                  } catch { toast.error("Erreur"); }
+                  finally { setNotifSaving(false); }
+                }}
+                disabled={notifSaving}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone size={16} className="text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Vibration</p>
+                  <p className="text-[11px] text-gray-400">Vibration sur mobile/tablette</p>
+                </div>
+              </div>
+              <Switch
+                checked={vibrateNotif}
+                onCheckedChange={async (v) => {
+                  setVibrateNotif(v);
+                  setNotifSaving(true);
+                  try {
+                    await fetch("/api/boucher/shop/status", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_settings", vibrateNotif: v }),
+                    });
+                    toast.success(v ? "Vibration activee" : "Vibration desactivee");
+                  } catch { toast.error("Erreur"); }
+                  finally { setNotifSaving(false); }
+                }}
+                disabled={notifSaving}
+              />
             </div>
           </div>
         </SettingCard>

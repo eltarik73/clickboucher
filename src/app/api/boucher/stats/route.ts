@@ -96,45 +96,52 @@ export async function GET(req: NextRequest) {
     const period = periodParam as Period;
     const { start, end } = getDateRange(period);
 
-    // ── 4. Fetch orders for the period ──
+    // ── 4. Fetch orders for current + previous period ──
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    const [periodOrders, ordersToday] = await Promise.all([
-      prisma.order.findMany({
-        where: {
-          shopId: shop.id,
-          createdAt: { gte: start, lte: end },
+    // Previous period (same duration, just before)
+    const durationMs = end.getTime() - start.getTime();
+    const prevEnd = new Date(start.getTime() - 1);
+    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    prevStart.setHours(0, 0, 0, 0);
+
+    const orderSelect = {
+      id: true,
+      status: true,
+      totalCents: true,
+      createdAt: true,
+      estimatedReady: true,
+      items: {
+        select: {
+          productId: true,
+          name: true,
+          quantity: true,
+          totalCents: true,
         },
+      },
+      user: {
         select: {
           id: true,
-          status: true,
-          totalCents: true,
-          createdAt: true,
-          estimatedReady: true,
-          items: {
-            select: {
-              productId: true,
-              name: true,
-              quantity: true,
-              totalCents: true,
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
+          firstName: true,
+          lastName: true,
         },
+      },
+    };
+
+    const [periodOrders, prevPeriodOrders, ordersToday] = await Promise.all([
+      prisma.order.findMany({
+        where: { shopId: shop.id, createdAt: { gte: start, lte: end } },
+        select: orderSelect,
+        take: 5000,
+      }),
+      prisma.order.findMany({
+        where: { shopId: shop.id, createdAt: { gte: prevStart, lte: prevEnd } },
+        select: { id: true, status: true, totalCents: true },
         take: 5000,
       }),
       prisma.order.count({
-        where: {
-          shopId: shop.id,
-          createdAt: { gte: todayStart },
-        },
+        where: { shopId: shop.id, createdAt: { gte: todayStart } },
       }),
     ]);
 
@@ -155,6 +162,27 @@ export async function GET(req: NextRequest) {
       ? Math.round((completedCount / totalOrders) * 100)
       : 0;
 
+    // Denial rate
+    const deniedOrders = periodOrders.filter((o) =>
+      ["DENIED", "PARTIALLY_DENIED"].includes(o.status)
+    );
+    const denialRate = totalOrders > 0
+      ? Math.round((deniedOrders.length / totalOrders) * 100)
+      : 0;
+
+    // Previous period comparison
+    const prevCompleted = prevPeriodOrders.filter((o) =>
+      (completedStatuses as readonly string[]).includes(o.status)
+    );
+    const prevTotalRevenue = prevCompleted.reduce((sum, o) => sum + o.totalCents, 0);
+    const prevTotalOrders = prevPeriodOrders.length;
+    const prevAvgOrderValue = prevCompleted.length > 0
+      ? Math.round(prevTotalRevenue / prevCompleted.length)
+      : 0;
+    const prevCompletionRate = prevTotalOrders > 0
+      ? Math.round((prevCompleted.length / prevTotalOrders) * 100)
+      : 0;
+
     const basicStats = {
       totalRevenue,
       totalOrders,
@@ -163,8 +191,14 @@ export async function GET(req: NextRequest) {
       ratingCount: shop.ratingCount,
       completionRate,
       ordersToday,
+      denialRate,
       period,
       plan,
+      // Previous period for comparison
+      prevTotalRevenue,
+      prevTotalOrders,
+      prevAvgOrderValue,
+      prevCompletionRate,
     };
 
     // ── STARTER plan: return basic stats only ──
@@ -282,11 +316,36 @@ export async function GET(req: NextRequest) {
       avgPrepTime = Math.round(totalPrepMs / ordersWithPrepTime.length / 60_000); // in minutes
     }
 
+    // Weekday distribution
+    const WEEKDAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+    const weekdayOrdersMap = new Map<number, number>();
+    const weekdayRevenueMap = new Map<number, number>();
+    for (let d = 0; d < 7; d++) {
+      weekdayOrdersMap.set(d, 0);
+      weekdayRevenueMap.set(d, 0);
+    }
+    for (const order of periodOrders) {
+      const day = order.createdAt.getDay();
+      weekdayOrdersMap.set(day, (weekdayOrdersMap.get(day) || 0) + 1);
+    }
+    for (const order of completedOrders) {
+      const day = order.createdAt.getDay();
+      weekdayRevenueMap.set(day, (weekdayRevenueMap.get(day) || 0) + order.totalCents);
+    }
+    // Reorder to start from Monday (1,2,3,4,5,6,0)
+    const weekdayOrder = [1, 2, 3, 4, 5, 6, 0];
+    const weekdayDistribution = weekdayOrder.map((d) => ({
+      day: WEEKDAY_LABELS[d],
+      orders: weekdayOrdersMap.get(d) || 0,
+      revenue: weekdayRevenueMap.get(d) || 0,
+    }));
+
     const advancedStats = {
       ...basicStats,
       revenueChart,
       ordersChart,
       hourlyDistribution,
+      weekdayDistribution,
       topProducts,
       topClients,
       avgPrepTime,
