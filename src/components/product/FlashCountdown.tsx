@@ -35,7 +35,7 @@ export function FlashCountdown({ promoEnd, compact = false }: Props) {
 
   if (compact) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-orange-600 dark:text-orange-400">
+      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-orange-600 dark:text-orange-400">
         {remaining.hours > 0 && `${remaining.hours}h `}
         {remaining.minutes}min
       </span>

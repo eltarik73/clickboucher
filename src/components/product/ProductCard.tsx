@@ -115,12 +115,12 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
 
         {/* Anti-gaspi badge — top-left (priority over promo) */}
         {isAntiGaspi ? (
-          <div className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[9px] font-bold text-white bg-emerald-600 shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
+          <div className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[11px] font-bold text-white bg-emerald-600 shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
             Anti-Gaspi
           </div>
         ) : hasPromo ? (
           <div
-            className={`absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)]
+            className={`absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[11px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)]
               ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#EF4444]"}`}
           >
             {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
@@ -142,7 +142,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
         {/* Out of stock overlay */}
         {outOfStock && (
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-            <span className="text-white text-[9px] font-bold bg-black/60 px-2 py-0.5 rounded-full">Indisponible</span>
+            <span className="text-white text-[11px] font-bold bg-black/60 px-2 py-0.5 rounded-full">Indisponible</span>
           </div>
         )}
       </div>
@@ -158,24 +158,24 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
         {(product.origin || product.halalOrg || product.unit === "TRANCHE") && (
           <div className="flex items-center gap-[3px] mb-1">
             {product.unit === "TRANCHE" && (
-              <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-[5px] py-px rounded-[3px] bg-amber-500/[0.12] dark:bg-amber-500/[0.12] text-amber-600 dark:text-amber-400 shrink-0">
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] bg-amber-500/[0.12] dark:bg-amber-500/[0.12] text-amber-600 dark:text-amber-400 shrink-0">
                 A la tranche
               </span>
             )}
             {product.origin && (
-              <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-[5px] py-px rounded-[3px] bg-blue-500/[0.12] dark:bg-blue-500/[0.12] text-blue-500 dark:text-blue-400 shrink-0">
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] bg-blue-500/[0.12] dark:bg-blue-500/[0.12] text-blue-500 dark:text-blue-400 shrink-0">
                 {getFlag(product.origin)}<span className="hidden md:inline lg:hidden"> {product.origin}</span>
               </span>
             )}
             {product.halalOrg && (
-              <span className="inline-flex items-center gap-0.5 text-[8px] font-semibold px-[5px] py-px rounded-[3px] bg-emerald-500/[0.12] dark:bg-emerald-500/[0.12] text-emerald-500 dark:text-emerald-400 shrink-0">
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] bg-emerald-500/[0.12] dark:bg-emerald-500/[0.12] text-emerald-500 dark:text-emerald-400 shrink-0">
                 ☪<span className="hidden md:inline lg:hidden"> {product.halalOrg}</span>
               </span>
             )}
             {product.labels.slice(0, 1).map((l) => (
               <span
                 key={l.id}
-                className="text-[8px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
+                className="text-[10px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
                 style={{
                   backgroundColor: l.color ? `${l.color}1F` : "rgba(251,191,36,0.12)",
                   color: l.color || "#FBBF24",
@@ -196,7 +196,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                   <span className="text-[13px] font-bold text-emerald-600">
                     {fmtPrice(product.priceCents)}
                   </span>
-                  <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">
                     {fmtPrice(product.antiGaspiOrigPriceCents!)}
                   </span>
                 </>
@@ -207,7 +207,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                       ? Math.max(0, product.priceCents - product.promoFixedCents)
                       : promoPrice(product.priceCents, product.promoPct!))}
                   </span>
-                  <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">
                     {fmtPrice(product.priceCents)}
                   </span>
                 </>
@@ -216,7 +216,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                   <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
                     {fmtPrice(product.priceCents)}
                   </span>
-                  <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">
                     {fmtPrice(product.packOldPriceCents)}
                   </span>
                 </>
@@ -228,7 +228,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
             </div>
             {isAntiGaspi && product.antiGaspiStock !== null && product.antiGaspiStock <= 5 && (
-              <span className="text-[8px] font-semibold text-orange-600 dark:text-orange-400">
+              <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400">
                 Plus que {product.antiGaspiStock} !
               </span>
             )}
@@ -242,7 +242,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                 <button
                   onClick={handleDecrement}
                   aria-label="Diminuer la quantité"
-                  className="w-[32px] h-[32px] flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
+                  className="w-[36px] h-[36px] flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
                 >
                   <Minus size={14} strokeWidth={2.5} />
                 </button>
@@ -252,7 +252,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                 <button
                   onClick={handleIncrement}
                   aria-label="Augmenter la quantité"
-                  className="w-[32px] h-[32px] flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
+                  className="w-[36px] h-[36px] flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
                 >
                   <Plus size={14} strokeWidth={2.5} />
                 </button>
@@ -262,7 +262,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               <button
                 onClick={handleAdd}
                 aria-label="Ajouter au panier"
-                className={`w-[32px] h-[32px] rounded-xl flex items-center justify-center
+                className={`w-[36px] h-[36px] rounded-xl flex items-center justify-center
                   transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
                   ${animating
                     ? "bg-emerald-500 text-white"

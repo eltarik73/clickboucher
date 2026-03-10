@@ -188,12 +188,12 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
           {(product.origin || product.halalOrg) && (
             <div className="flex gap-1 px-3.5 mt-2 flex-wrap">
               {product.origin && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">
                   {getFlag(product.origin)} {product.origin}
                 </span>
               )}
               {product.halalOrg && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]">
                   ☪ Halal {product.halalOrg}
                 </span>
               )}
@@ -223,7 +223,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">📍</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] uppercase">Region</p>
+                        <p className="text-[11px] font-bold text-[#166534] uppercase">Region</p>
                         <p className="text-[11px] text-[#1C1512]">{product.originRegion}{product.origin ? ` (${product.origin})` : ""}</p>
                       </div>
                     </div>
@@ -232,7 +232,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">🐄</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
+                        <p className="text-[11px] font-bold text-[#166534] uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
                         <p className="text-[11px] text-[#1C1512]">{product.raceDescription}</p>
                       </div>
                     </div>
@@ -241,7 +241,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">🌿</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] uppercase">Elevage</p>
+                        <p className="text-[11px] font-bold text-[#166534] uppercase">Elevage</p>
                         <p className="text-[11px] text-[#1C1512]">{product.elevageMode.replace(/_/g, " ").toLowerCase().replace(/^\w/, c => c.toUpperCase())}{product.elevageDetail ? ` — ${product.elevageDetail}` : ""}</p>
                       </div>
                     </div>
@@ -250,7 +250,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">☪</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] uppercase">Abattage halal</p>
+                        <p className="text-[11px] font-bold text-[#166534] uppercase">Abattage halal</p>
                         <p className="text-[11px] text-[#1C1512]">{product.halalMethod}</p>
                       </div>
                     </div>
@@ -259,7 +259,7 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">❄</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] uppercase">Fraicheur</p>
+                        <p className="text-[11px] font-bold text-[#166534] uppercase">Fraicheur</p>
                         <p className="text-[11px] text-[#1C1512]">
                           {product.freshDetail || ""}
                           {product.freshDate && <span className="text-[10px] text-[#6B7280]"> — {new Date(product.freshDate).toLocaleDateString("fr-FR")}</span>}

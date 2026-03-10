@@ -72,7 +72,7 @@ export function AntiGaspiBanner({ products, shop }: { products: AntiGaspiProduct
                     quality={60}
                   />
                   {p.antiGaspiStock !== null && p.antiGaspiStock <= 5 && (
-                    <div className="absolute bottom-1 left-1 text-[8px] font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded">
+                    <div className="absolute bottom-1 left-1 text-[10px] font-bold bg-orange-500 text-white px-1.5 py-0.5 rounded">
                       Plus que {p.antiGaspiStock}
                     </div>
                   )}
@@ -82,7 +82,7 @@ export function AntiGaspiBanner({ products, shop }: { products: AntiGaspiProduct
                   <div className="flex items-baseline gap-1 mt-0.5">
                     <span className="text-[11px] font-bold text-emerald-600">{fmtPrice(p.priceCents)}</span>
                     {p.antiGaspiOrigPriceCents && (
-                      <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
                     )}
                   </div>
                 </div>

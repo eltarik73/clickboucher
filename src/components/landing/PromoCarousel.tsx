@@ -17,7 +17,7 @@ const STATIC_VIGNETTES: Vignette[] = [
     id: "ramadan",
     emoji: "\uD83C\uDF19",
     title: "Ramadan",
-    subtitle: "Preparez l'Iftar",
+    subtitle: "Préparez l'Iftar",
     bgClass: "bg-gradient-to-br from-slate-800 to-slate-900",
     accentClass: "text-amber-400",
     href: "/bons-plans/ramadan",
@@ -35,7 +35,7 @@ const STATIC_VIGNETTES: Vignette[] = [
     id: "famille",
     emoji: "\uD83E\uDD69",
     title: "Pack Famille",
-    subtitle: "5kg prix reduit",
+    subtitle: "5kg prix réduit",
     bgClass: "bg-gradient-to-br from-emerald-800 to-emerald-900",
     accentClass: "text-emerald-300",
     href: "/bons-plans/packs",
@@ -69,7 +69,7 @@ export function PromoCarousel({ livePromos, antiGaspiCount = 0, flashSaleCount =
       id: "anti-gaspi",
       emoji: "\uD83C\uDF3F",
       title: "Anti-Gaspi",
-      subtitle: `${antiGaspiCount} produit${antiGaspiCount > 1 ? "s" : ""} a prix reduit`,
+      subtitle: `${antiGaspiCount} produit${antiGaspiCount > 1 ? "s" : ""} à prix réduit`,
       bgClass: "bg-gradient-to-br from-emerald-600 to-emerald-800",
       accentClass: "text-emerald-200",
       href: "/bons-plans/anti-gaspi",
@@ -81,7 +81,7 @@ export function PromoCarousel({ livePromos, antiGaspiCount = 0, flashSaleCount =
       id: "flash",
       emoji: "\u26A1",
       title: "Vente Flash",
-      subtitle: `${flashSaleCount} offre${flashSaleCount > 1 ? "s" : ""} limitee${flashSaleCount > 1 ? "s" : ""}`,
+      subtitle: `${flashSaleCount} offre${flashSaleCount > 1 ? "s" : ""} limitée${flashSaleCount > 1 ? "s" : ""}`,
       bgClass: "bg-gradient-to-br from-orange-500 to-red-600",
       accentClass: "text-orange-200",
       href: "/bons-plans/vente-flash",
@@ -123,7 +123,7 @@ export function PromoCarousel({ livePromos, antiGaspiCount = 0, flashSaleCount =
             <div className="relative z-10">
               <div className="text-2xl mb-2.5">{p.emoji}</div>
               <div className="text-white font-extrabold text-base leading-tight mb-0.5">{p.title}</div>
-              <div className={`${p.accentClass} text-[11px] font-medium`}>{p.subtitle}</div>
+              <div className={`${p.accentClass} text-xs font-medium`}>{p.subtitle}</div>
             </div>
           </Link>
         ))}

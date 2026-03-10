@@ -364,7 +364,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
         >
           <button
             onClick={() => setActiveCat("Tout")}
-            className={`shrink-0 px-3 py-1.5 rounded-[20px] text-[12px] font-semibold whitespace-nowrap transition-all ${
+            className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all min-h-[36px] ${
               activeCat === "Tout"
                 ? "bg-[#DC2626] text-white border border-[#DC2626]"
                 : "border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400"
@@ -376,7 +376,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
             <button
               key={c.id}
               onClick={() => setActiveCat(c.id)}
-              className={`shrink-0 px-3 py-1.5 rounded-[20px] text-[12px] font-semibold whitespace-nowrap transition-all ${
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all min-h-[36px] ${
                 activeCat === c.id
                   ? "bg-[#DC2626] text-white border border-[#DC2626]"
                   : "border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400"
@@ -391,7 +391,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       {/* ── Promo section ── */}
       {activeCat === "Tout" && promoProducts.length > 0 && (
         <div className="px-3 pt-2 mb-1">
-          <p className="text-[11px] font-bold text-[#DC2626] uppercase tracking-wider mb-1.5">
+          <p className="text-xs font-bold text-[#DC2626] uppercase tracking-wider mb-1.5">
             Promos
           </p>
           <ProductGrid products={promoProducts} onAdd={handleAdd} onTap={setDetailProduct} cartItems={cartItems} onIncrement={handleIncrement} onDecrement={handleDecrement} />
@@ -404,28 +404,29 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       {/* ── Bottom cart bar — sticky, glassmorphism, slide-up entrance ── */}
       {cartCount > 0 && (
         <div
-          className="fixed bottom-0 inset-x-0 z-50 border-t border-gray-200/50 dark:border-white/[0.08] animate-[slideUp_0.3s_ease-out]"
+          className="fixed bottom-16 md:bottom-0 inset-x-0 z-50 border-t border-gray-200/50 dark:border-white/[0.08] animate-[slideUp_0.3s_ease-out]"
           style={{
             background: "rgba(20,20,20,0.95)",
             backdropFilter: "blur(16px)",
             WebkitBackdropFilter: "blur(16px)",
             padding: "10px 16px",
+            paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
           }}
         >
           <div className="flex items-center justify-between max-w-5xl mx-auto">
             {/* Left: badge + "Panier" + total */}
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-6 h-6 rounded-lg bg-[#DC2626] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+              <span className="w-6 h-6 rounded-lg bg-[#DC2626] text-white text-xs font-bold flex items-center justify-center shrink-0">
                 {cartCount}
               </span>
-              <span className="text-[13px] font-semibold text-white">Panier</span>
-              <span className="text-[13px] font-bold text-[#DC2626]">{fmtPrice(totalCents)}</span>
+              <span className="text-sm font-semibold text-white">Panier</span>
+              <span className="text-sm font-bold text-[#DC2626]">{fmtPrice(totalCents)}</span>
             </div>
 
             {/* Right: "Commander →" button */}
             <Link
               href="/panier"
-              className="flex items-center gap-1.5 bg-[#DC2626] hover:bg-[#b91c1c] text-white text-[13px] font-semibold px-5 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-1.5 bg-[#DC2626] hover:bg-[#b91c1c] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
             >
               Commander <ArrowRight size={14} />
             </Link>

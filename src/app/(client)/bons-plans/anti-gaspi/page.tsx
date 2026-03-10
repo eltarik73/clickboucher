@@ -73,7 +73,7 @@ export default async function AntiGaspiPage() {
             <div className="flex gap-2.5 p-2.5 bg-white dark:bg-gray-800 rounded-2xl border border-emerald-200/60 dark:border-emerald-800/20 ring-1 ring-emerald-300/30 dark:ring-emerald-700/30 transition-all hover:shadow-md">
               <div className="relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
                 <Image src={imgSrc} alt={p.name} fill sizes="64px" className="object-cover" quality={70} />
-                <div className="absolute top-0 left-0 px-1.5 py-0.5 text-white text-[9px] font-extrabold rounded-br-lg bg-emerald-600">
+                <div className="absolute top-0 left-0 px-1.5 py-0.5 text-white text-[11px] font-extrabold rounded-br-lg bg-emerald-600">
                   Anti-Gaspi
                 </div>
               </div>
@@ -82,16 +82,16 @@ export default async function AntiGaspiPage() {
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[13px] font-extrabold text-emerald-600">{fmtPrice(p.priceCents)}</span>
                   {p.antiGaspiOrigPriceCents && (
-                    <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.antiGaspiOrigPriceCents)}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[10px] text-gray-500 dark:text-gray-400">{p.shop.name}</span>
                   {p.antiGaspiStock !== null && p.antiGaspiStock <= 5 && (
-                    <span className="text-[9px] font-semibold text-orange-600">Plus que {p.antiGaspiStock} !</span>
+                    <span className="text-[11px] font-semibold text-orange-600">Plus que {p.antiGaspiStock} !</span>
                   )}
                   {p.antiGaspiReason && (
-                    <span className="text-[9px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-full">
+                    <span className="text-[11px] bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-full">
                       {p.antiGaspiReason.replace(/_/g, " ").toLowerCase().replace(/^\w/, c => c.toUpperCase())}
                     </span>
                   )}

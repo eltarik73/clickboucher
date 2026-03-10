@@ -71,7 +71,7 @@ export default async function PromosPage() {
             <div className="flex gap-2.5 p-2.5 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3]/60 dark:border-white/[0.06] transition-all hover:shadow-md">
               <div className="relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
                 <Image src={imgSrc} alt={p.name} fill sizes="64px" className="object-cover" quality={70} />
-                <div className="absolute top-0 left-0 px-1.5 py-0.5 text-white text-[9px] font-extrabold rounded-br-lg bg-[#EF4444]">
+                <div className="absolute top-0 left-0 px-1.5 py-0.5 text-white text-[11px] font-extrabold rounded-br-lg bg-[#EF4444]">
                   -{p.promoPct}%
                 </div>
               </div>
@@ -79,7 +79,7 @@ export default async function PromosPage() {
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{p.name}</h3>
                 <div className="flex items-baseline gap-1.5 mt-0.5">
                   <span className="text-[13px] font-extrabold text-[#DC2626]">{fmtPrice(discounted)}</span>
-                  <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
                 </div>
                 <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 block">{p.shop.name}</span>
               </div>

@@ -65,6 +65,7 @@ const isPublicRoute = createRouteMatcher([
   "/cgv",
   "/politique-de-confidentialite",
   "/favoris",
+  "/recherche",
   "/admin-login",
 ]);
 

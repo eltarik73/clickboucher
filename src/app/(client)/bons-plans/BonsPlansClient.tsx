@@ -298,7 +298,7 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
         {/* Image */}
         <div className="relative w-[64px] h-[64px] rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
           <Image src={imgSrc} alt={product.name} fill sizes="64px" className="object-cover" quality={70} />
-          <div className={`absolute top-0 left-0 px-1.5 py-0.5 text-white text-[9px] font-extrabold rounded-br-lg ${
+          <div className={`absolute top-0 left-0 px-1.5 py-0.5 text-white text-[11px] font-extrabold rounded-br-lg ${
             isFlash ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#DC2626]"
           }`}>
             {isFixedAmount ? `-${((product.promoFixedCents || 0) / 100).toFixed(0)}€` : `-${product.promoPct}%`}
@@ -331,8 +331,8 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
             <div className="text-right shrink-0">
               <span className="text-[13px] font-extrabold text-[#DC2626]">{fmtPrice(discountedPrice)}</span>
               <div className="flex items-center gap-1">
-                <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(product.priceCents)}</span>
-                <span className="text-[9px] text-gray-500 dark:text-gray-400">{unitLabel(product.unit)}</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(product.priceCents)}</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">{unitLabel(product.unit)}</span>
               </div>
             </div>
           </div>

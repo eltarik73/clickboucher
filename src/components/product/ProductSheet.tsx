@@ -146,11 +146,11 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
               )}
               {/* Anti-gaspi / Promo badge */}
               {isAntiGaspi ? (
-                <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shadow">
+                <span className="absolute -top-1.5 -right-1.5 bg-emerald-600 text-white text-[11px] font-extrabold px-1.5 py-0.5 rounded-md shadow">
                   Anti-Gaspi
                 </span>
               ) : hasPromo ? (
-                <span className="absolute -top-1.5 -right-1.5 bg-[#DC2626] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shadow">
+                <span className="absolute -top-1.5 -right-1.5 bg-[#DC2626] text-white text-[11px] font-extrabold px-1.5 py-0.5 rounded-md shadow">
                   {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
                     ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
                     : `-${product.promoPct}%`}
@@ -213,29 +213,29 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
             {(product.origin || product.halalOrg || product.race || (product.freshness && product.freshness !== "STANDARD") || product.labels.length > 0) && (
               <div className="flex gap-1 mt-1.5 flex-wrap">
                 {product.origin && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE]">
                     {getFlag(product.origin)} {product.origin}
                   </span>
                 )}
                 {product.halalOrg && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]">
                     ☪ Halal {product.halalOrg}
                   </span>
                 )}
                 {product.freshness && product.freshness !== "STANDARD" && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]">
                     {product.freshness === "EXTRA_FRESH" ? "❄ Extra frais" : product.freshness === "FROZEN" ? "❄ Surgele" : product.freshness === "FRAIS" ? "❄ Frais" : product.freshness}
                   </span>
                 )}
                 {product.race && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FFFBEB] text-[#92400E] border border-[#FEF3C7]">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#FFFBEB] text-[#92400E] border border-[#FEF3C7]">
                     🐄 {product.race}
                   </span>
                 )}
                 {product.labels.map((l) => (
                   <span
                     key={l.id}
-                    className="px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold border"
+                    className="px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold border"
                     style={{
                       backgroundColor: l.color ? `${l.color}1F` : "#FFF7ED",
                       color: l.color || "#C2410C",
@@ -299,7 +299,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                       <div className="flex items-start gap-1.5">
                         <span className="text-[10px]">📍</span>
                         <div>
-                          <p className="text-[9px] font-bold text-[#166534] uppercase">Region</p>
+                          <p className="text-[11px] font-bold text-[#166534] uppercase">Region</p>
                           <p className="text-[11px] text-[#1C1512]">{product.originRegion}{product.origin ? ` (${product.origin})` : ""}</p>
                         </div>
                       </div>
@@ -308,7 +308,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                       <div className="flex items-start gap-1.5">
                         <span className="text-[10px]">🐄</span>
                         <div>
-                          <p className="text-[9px] font-bold text-[#166534] uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
+                          <p className="text-[11px] font-bold text-[#166534] uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
                           <p className="text-[11px] text-[#1C1512]">{product.raceDescription}</p>
                         </div>
                       </div>
@@ -317,7 +317,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                       <div className="flex items-start gap-1.5">
                         <span className="text-[10px]">🌿</span>
                         <div>
-                          <p className="text-[9px] font-bold text-[#166534] uppercase">Elevage</p>
+                          <p className="text-[11px] font-bold text-[#166534] uppercase">Elevage</p>
                           <p className="text-[11px] text-[#1C1512]">{product.elevageMode.replace(/_/g, " ").toLowerCase().replace(/^\w/, c => c.toUpperCase())}{product.elevageDetail ? ` — ${product.elevageDetail}` : ""}</p>
                         </div>
                       </div>
@@ -326,7 +326,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                       <div className="flex items-start gap-1.5">
                         <span className="text-[10px]">☪</span>
                         <div>
-                          <p className="text-[9px] font-bold text-[#166534] uppercase">Abattage halal</p>
+                          <p className="text-[11px] font-bold text-[#166534] uppercase">Abattage halal</p>
                           <p className="text-[11px] text-[#1C1512]">{product.halalMethod}</p>
                         </div>
                       </div>
@@ -335,7 +335,7 @@ export function ProductSheet({ product, cartQty = 0, onAdd, onIncrement, onDecre
                       <div className="flex items-start gap-1.5">
                         <span className="text-[10px]">❄</span>
                         <div>
-                          <p className="text-[9px] font-bold text-[#166534] uppercase">Fraicheur</p>
+                          <p className="text-[11px] font-bold text-[#166534] uppercase">Fraicheur</p>
                           <p className="text-[11px] text-[#1C1512]">
                             {product.freshDetail || ""}
                             {product.freshDate && <span className="text-[10px] text-[#6B7280]"> — {new Date(product.freshDate).toLocaleDateString("fr-FR")}</span>}

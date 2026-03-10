@@ -178,22 +178,22 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
           {(product.origin || product.halalOrg || product.freshness) && (
             <div className="flex gap-1 px-3.5 mt-2 flex-wrap">
               {product.origin && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#EFF6FF] dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-400 border border-[#DBEAFE] dark:border-blue-800">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#EFF6FF] dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-400 border border-[#DBEAFE] dark:border-blue-800">
                   {getFlag(product.origin)} {product.origin}
                 </span>
               )}
               {product.halalOrg && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FEF2F2] dark:bg-red-950/40 text-[#DC2626] dark:text-red-400 border border-[#FECACA] dark:border-red-800">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#FEF2F2] dark:bg-red-950/40 text-[#DC2626] dark:text-red-400 border border-[#FECACA] dark:border-red-800">
                   ☪ Halal {product.halalOrg}
                 </span>
               )}
               {product.race && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#FFFBEB] dark:bg-amber-950/40 text-[#92400E] dark:text-amber-400 border border-[#FEF3C7] dark:border-amber-800">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#FFFBEB] dark:bg-amber-950/40 text-[#92400E] dark:text-amber-400 border border-[#FEF3C7] dark:border-amber-800">
                   🐄 {product.race}
                 </span>
               )}
               {product.freshness && product.freshness !== "FRAIS" && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[9px] font-bold bg-[#F0FDF4] dark:bg-green-950/40 text-[#16A34A] dark:text-green-400 border border-[#BBF7D0] dark:border-green-800">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-[5px] text-[11px] font-bold bg-[#F0FDF4] dark:bg-green-950/40 text-[#16A34A] dark:text-green-400 border border-[#BBF7D0] dark:border-green-800">
                   {product.freshness === "SURGELE" ? "❄ Surgele" : product.freshness === "SOUS_VIDE" ? "🫙 Sous vide" : product.freshness}
                 </span>
               )}
@@ -222,7 +222,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">📍</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Region</p>
+                        <p className="text-[11px] font-bold text-[#166534] dark:text-green-400 uppercase">Region</p>
                         <p className="text-[11px] text-[#1C1512] dark:text-white">{product.originRegion}{product.origin ? ` (${product.origin})` : ""}</p>
                       </div>
                     </div>
@@ -231,7 +231,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">🐄</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
+                        <p className="text-[11px] font-bold text-[#166534] dark:text-green-400 uppercase">Race{product.race ? ` — ${product.race}` : ""}</p>
                         <p className="text-[11px] text-[#1C1512] dark:text-white">{product.raceDescription}</p>
                       </div>
                     </div>
@@ -240,7 +240,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">🌿</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Elevage</p>
+                        <p className="text-[11px] font-bold text-[#166534] dark:text-green-400 uppercase">Elevage</p>
                         <p className="text-[11px] text-[#1C1512] dark:text-white">{product.elevageMode.replace(/_/g, " ").toLowerCase().replace(/^\w/, c => c.toUpperCase())}{product.elevageDetail ? ` — ${product.elevageDetail}` : ""}</p>
                       </div>
                     </div>
@@ -249,7 +249,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">☪</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Abattage halal</p>
+                        <p className="text-[11px] font-bold text-[#166534] dark:text-green-400 uppercase">Abattage halal</p>
                         <p className="text-[11px] text-[#1C1512] dark:text-white">{product.halalMethod}</p>
                       </div>
                     </div>
@@ -258,7 +258,7 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
                     <div className="flex items-start gap-1.5">
                       <span className="text-[10px]">❄</span>
                       <div>
-                        <p className="text-[9px] font-bold text-[#166534] dark:text-green-400 uppercase">Fraicheur</p>
+                        <p className="text-[11px] font-bold text-[#166534] dark:text-green-400 uppercase">Fraicheur</p>
                         <p className="text-[11px] text-[#1C1512] dark:text-white">
                           {product.freshDetail || ""}
                           {product.freshDate && <span className="text-[10px] text-[#6B7280] dark:text-neutral-500"> — {new Date(product.freshDate).toLocaleDateString("fr-FR")}</span>}

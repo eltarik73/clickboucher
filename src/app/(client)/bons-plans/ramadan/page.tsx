@@ -125,7 +125,7 @@ export default async function RamadanPage() {
                         {fmtPrice(discounted ?? p.priceCents)}
                       </span>
                       {discounted && (
-                        <span className="text-[9px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">{fmtPrice(p.priceCents)}</span>
                       )}
                     </div>
                     <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 block">{p.shop.name}</span>

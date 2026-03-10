@@ -40,17 +40,17 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
                 <> — {item.sliceCount} tr.{item.thickness ? ` ${item.thickness}` : ""}</>
               )}
               {item.variant && (
-                <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#DC2626]/10 text-[#DC2626]">
+                <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#DC2626]/10 text-[#DC2626]">
                   {item.variant}
                 </span>
               )}
               {item.pieceCount && item.pieceLabel && (
-                <span className="ml-1 text-[10px] text-gray-500 dark:text-gray-400">
+                <span className="ml-1 text-[11px] text-gray-500 dark:text-gray-400">
                   ({item.pieceCount} {item.pieceLabel})
                 </span>
               )}
               {item.cutOption && (
-                <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600">
+                <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] font-bold bg-amber-500/10 text-amber-600">
                   {item.cutOption}
                 </span>
               )}
@@ -65,7 +65,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             <button 
               type="button" 
               onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-              className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+              className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
             >
               −
             </button>
@@ -73,7 +73,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             <button
               type="button"
               onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-              className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+              className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
             >
               +
             </button>
@@ -82,7 +82,7 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             type="button"
             aria-label="Supprimer"
             onClick={() => onRemove(item.id)}
-            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
