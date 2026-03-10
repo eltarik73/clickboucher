@@ -131,6 +131,7 @@ export async function PATCH(
     // Helper: apply item-level changes immediately
     const applyItemChanges = async () => {
       if (!data.items) return;
+      const itemUpdates = [];
       for (const adj of data.items) {
         const snap = itemsSnapshot.find((s) => (s as { orderItemId: string }).orderItemId === adj.orderItemId);
         if (!snap) continue;
@@ -143,9 +144,10 @@ export async function PATCH(
           updateData.totalCents = (snap as { newTotalCents: number }).newTotalCents;
         }
         if (Object.keys(updateData).length > 0) {
-          await prisma.orderItem.update({ where: { id: adj.orderItemId }, data: updateData });
+          itemUpdates.push(prisma.orderItem.update({ where: { id: adj.orderItemId }, data: updateData }));
         }
       }
+      if (itemUpdates.length > 0) await prisma.$transaction(itemUpdates);
     };
 
     const snapshotJson = itemsSnapshot.length > 0

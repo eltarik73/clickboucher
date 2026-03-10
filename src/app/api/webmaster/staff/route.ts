@@ -42,20 +42,23 @@ export async function GET(_req: NextRequest) {
       auditCounts.map((a) => [a.actorId, a._count])
     );
 
-    // Last activity per admin (most recent audit entry)
-    const lastActivities = await Promise.all(
-      adminClerkIds.map(async (clerkId) => {
-        const last = await prisma.auditLog.findFirst({
-          where: { actorId: clerkId },
+    // Last activity per admin — single query with ordering (instead of N findFirst)
+    const allAdminLogs = adminClerkIds.length > 0
+      ? await prisma.auditLog.findMany({
+          where: { actorId: { in: adminClerkIds } },
           orderBy: { createdAt: "desc" },
-          select: { action: true, createdAt: true },
-        });
-        return { clerkId, last };
-      })
-    );
-    const lastActivityMap = Object.fromEntries(
-      lastActivities.map((a) => [a.clerkId, a.last])
-    );
+          select: { actorId: true, action: true, createdAt: true },
+        })
+      : [];
+    const lastActivityMap: Record<string, { action: string; createdAt: Date } | null> = {};
+    for (const log of allAdminLogs) {
+      if (!lastActivityMap[log.actorId]) {
+        lastActivityMap[log.actorId] = { action: log.action, createdAt: log.createdAt };
+      }
+    }
+    for (const clerkId of adminClerkIds) {
+      if (!lastActivityMap[clerkId]) lastActivityMap[clerkId] = null;
+    }
 
     // Recent global audit entries (last 20)
     const recentAudit = await prisma.auditLog.findMany({

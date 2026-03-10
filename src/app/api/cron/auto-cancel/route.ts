@@ -22,21 +22,22 @@ export async function GET(req: NextRequest) {
       select: { id: true, shopId: true, orderNumber: true },
     });
 
-    let cancelledCount = 0;
-
-    for (const order of expiredOrders) {
-      await prisma.order.update({
-        where: { id: order.id },
+    if (expiredOrders.length > 0) {
+      // Batch update all expired orders at once
+      await prisma.order.updateMany({
+        where: { id: { in: expiredOrders.map(o => o.id) } },
         data: { status: "AUTO_CANCELLED", autoCancelledAt: now },
       });
-      cancelledCount++;
 
-      // Check if shop should be auto-paused
-      await checkAutoPause(order.shopId);
+      // Check auto-pause for each unique shop
+      const uniqueShopIds = [...new Set(expiredOrders.map(o => o.shopId))];
+      for (const shopId of uniqueShopIds) {
+        await checkAutoPause(shopId);
+      }
     }
 
     return apiSuccess({
-      cancelledCount,
+      cancelledCount: expiredOrders.length,
       timestamp: now.toISOString(),
     });
   } catch (error) {

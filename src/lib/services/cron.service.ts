@@ -14,10 +14,17 @@ export async function autoCancelStaleOrders(): Promise<{ cancelled: number }> {
     where: { status: "PENDING", createdAt: { lt: staleCutoff } },
     select: { id: true, orderNumber: true },
   });
-  for (const order of staleOrders) {
-    await prisma.order.update({ where: { id: order.id }, data: { status: "CANCELLED" } });
-    console.log(`[CRON] Auto-cancelled stale order ${order.orderNumber}`);
+
+  if (staleOrders.length > 0) {
+    await prisma.order.updateMany({
+      where: { id: { in: staleOrders.map(o => o.id) } },
+      data: { status: "CANCELLED" },
+    });
+    for (const order of staleOrders) {
+      console.log(`[CRON] Auto-cancelled stale order ${order.orderNumber}`);
+    }
   }
+
   return { cancelled: staleOrders.length };
 }
 
@@ -28,19 +35,31 @@ export async function generateDailyStats(): Promise<{
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const shops = await prisma.shop.findMany({ select: { id: true } });
-  const results = [];
-  for (const shop of shops) {
-    const orders = await prisma.order.findMany({
-      where: { shopId: shop.id, status: "COMPLETED", createdAt: { gte: today, lt: tomorrow } },
-      select: { totalCents: true },
-    });
-    const revenue = orders.reduce((s, o) => s + o.totalCents, 0);
-    results.push({
-      shopId: shop.id, date: today.toISOString().slice(0, 10),
-      ordersTotal: orders.length, revenue,
-      avgOrderValue: orders.length > 0 ? Math.round(revenue / orders.length) : 0,
-    });
+
+  // Single query for all shops' completed orders today
+  const allOrders = await prisma.order.findMany({
+    where: { status: "COMPLETED", createdAt: { gte: today, lt: tomorrow } },
+    select: { shopId: true, totalCents: true },
+  });
+
+  // Group by shopId in JS
+  const byShop = new Map<string, number[]>();
+  for (const o of allOrders) {
+    if (!byShop.has(o.shopId)) byShop.set(o.shopId, []);
+    byShop.get(o.shopId)!.push(o.totalCents);
   }
-  return results;
+
+  // Also include shops with 0 orders
+  const shops = await prisma.shop.findMany({ select: { id: true } });
+  const dateStr = today.toISOString().slice(0, 10);
+
+  return shops.map(shop => {
+    const totals = byShop.get(shop.id) || [];
+    const revenue = totals.reduce((s, v) => s + v, 0);
+    return {
+      shopId: shop.id, date: dateStr,
+      ordersTotal: totals.length, revenue,
+      avgOrderValue: totals.length > 0 ? Math.round(revenue / totals.length) : 0,
+    };
+  });
 }

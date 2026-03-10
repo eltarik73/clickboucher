@@ -140,16 +140,18 @@ export async function autoApproveExpiredAdjustment(orderId: string) {
  */
 async function applyItemSnapshot(itemsSnapshot: unknown) {
   if (!itemsSnapshot || !Array.isArray(itemsSnapshot)) return;
+  const updates = [];
   for (const snap of itemsSnapshot as Record<string, unknown>[]) {
     const updateData: Record<string, unknown> = {};
     if (snap.newQuantity !== undefined) updateData.quantity = snap.newQuantity;
     if (snap.newPriceCents !== undefined) updateData.priceCents = snap.newPriceCents;
     if (snap.newTotalCents !== undefined) updateData.totalCents = snap.newTotalCents;
     if (Object.keys(updateData).length > 0 && snap.orderItemId) {
-      await prisma.orderItem.update({
+      updates.push(prisma.orderItem.update({
         where: { id: snap.orderItemId as string },
         data: updateData,
-      });
+      }));
     }
   }
+  if (updates.length > 0) await prisma.$transaction(updates);
 }

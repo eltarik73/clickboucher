@@ -231,30 +231,29 @@ export async function generateAlerts(
     }
   }
 
-  // Only create new alerts (avoid duplicates for same type)
-  for (const alert of alerts) {
-    const existing = await prisma.shopAlert.findFirst({
-      where: { shopId, type: alert.type, resolved: false },
-    });
-    if (!existing) {
-      await prisma.shopAlert.create({
-        data: { shopId, ...alert },
-      });
-    }
-  }
-
-  // Auto-resolve alerts that are no longer relevant
-  const activeAlerts = await prisma.shopAlert.findMany({
+  // Batch fetch existing unresolved alerts (instead of N findFirst calls)
+  const alertTypes = alerts.map(a => a.type);
+  const existingAlerts = await prisma.shopAlert.findMany({
     where: { shopId, resolved: false },
   });
-  const newAlertTypes = new Set(alerts.map((a) => a.type));
-  for (const active of activeAlerts) {
-    if (!newAlertTypes.has(active.type)) {
-      await prisma.shopAlert.update({
-        where: { id: active.id },
-        data: { resolved: true },
-      });
-    }
+  const existingTypes = new Set(existingAlerts.map(a => a.type));
+
+  // Create only missing alerts
+  const newAlerts = alerts.filter(a => !existingTypes.has(a.type));
+  if (newAlerts.length > 0) {
+    await prisma.shopAlert.createMany({
+      data: newAlerts.map(a => ({ shopId, ...a })),
+    });
+  }
+
+  // Auto-resolve alerts that are no longer relevant (batch updateMany)
+  const newAlertTypes = new Set(alertTypes);
+  const toResolve = existingAlerts.filter(a => !newAlertTypes.has(a.type));
+  if (toResolve.length > 0) {
+    await prisma.shopAlert.updateMany({
+      where: { id: { in: toResolve.map(a => a.id) } },
+      data: { resolved: true },
+    });
   }
 }
 

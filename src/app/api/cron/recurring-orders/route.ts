@@ -15,21 +15,20 @@ export async function GET(req: NextRequest) {
 
     const dueRecurring = await prisma.recurringOrder.findMany({
       where: { active: true, nextRunAt: { lte: today } },
-      include: { user: { select: { id: true, firstName: true } } },
+      include: {
+        user: { select: { id: true, firstName: true } },
+        shop: { select: { name: true } }, // Include shop to avoid N+1 lookup
+      },
     });
 
     let sentCount = 0;
+    const nextRunUpdates: { id: string; nextRunAt: Date }[] = [];
 
     for (const rec of dueRecurring) {
       try {
-        const shop = await prisma.shop.findUnique({
-          where: { id: rec.shopId },
-          select: { name: true },
-        });
-
         await sendNotification("RECURRING_REMINDER", {
           userId: rec.userId,
-          shopName: shop?.name || "votre boucherie",
+          shopName: rec.shop?.name || "votre boucherie",
           message: `Votre commande récurrente est prête à être confirmée.`,
         });
 
@@ -38,14 +37,23 @@ export async function GET(req: NextRequest) {
         else if (rec.frequency === "BIWEEKLY") next.setDate(next.getDate() + 14);
         else if (rec.frequency === "MONTHLY") next.setMonth(next.getMonth() + 1);
 
-        await prisma.recurringOrder.update({
-          where: { id: rec.id },
-          data: { nextRunAt: next },
-        });
+        nextRunUpdates.push({ id: rec.id, nextRunAt: next });
         sentCount++;
       } catch {
         // Continue
       }
+    }
+
+    // Batch update nextRunAt via $transaction
+    if (nextRunUpdates.length > 0) {
+      await prisma.$transaction(
+        nextRunUpdates.map(u =>
+          prisma.recurringOrder.update({
+            where: { id: u.id },
+            data: { nextRunAt: u.nextRunAt },
+          })
+        )
+      );
     }
 
     return apiSuccess({ sentCount, timestamp: new Date().toISOString() });

@@ -55,29 +55,35 @@ export async function POST(
     const body = await req.json();
     const { decisions } = choiceSchema.parse(body);
 
-    // Process each decision
+    // Batch fetch all replacement products at once (instead of N findFirst)
+    const replacementIds = decisions
+      .filter(d => d.action === "replace" && d.replacementProductId)
+      .map(d => d.replacementProductId!);
+    const replacementProducts = replacementIds.length > 0
+      ? await prisma.product.findMany({
+          where: { id: { in: replacementIds }, shopId: order.shop.id },
+          select: { id: true, name: true, priceCents: true, unit: true },
+        })
+      : [];
+    const productMap = new Map(replacementProducts.map(p => [p.id, p]));
+
+    // Build all updates, then execute via $transaction
+    const itemUpdates = [];
     for (const decision of decisions) {
       const orderItem = order.items.find((i) => i.id === decision.orderItemId);
       if (!orderItem || orderItem.available) continue;
 
       if (decision.action === "remove") {
-        // Mark as removed — keep available=false, no replacement
-        await prisma.orderItem.update({
+        itemUpdates.push(prisma.orderItem.update({
           where: { id: decision.orderItemId },
           data: { replacement: "removed" },
-        });
+        }));
       } else if (decision.action === "replace" && decision.replacementProductId) {
-        // Fetch the replacement product (must belong to same shop)
-        const newProduct = await prisma.product.findFirst({
-          where: { id: decision.replacementProductId, shopId: order.shop.id },
-          select: { id: true, name: true, priceCents: true, unit: true },
-        });
+        const newProduct = productMap.get(decision.replacementProductId);
+        if (!newProduct) continue;
 
-        if (!newProduct || !newProduct.id) continue;
-
-        // Update the order item with the replacement
         const newTotalCents = newProduct.priceCents * orderItem.quantity;
-        await prisma.orderItem.update({
+        itemUpdates.push(prisma.orderItem.update({
           where: { id: decision.orderItemId },
           data: {
             productId: newProduct.id,
@@ -87,9 +93,10 @@ export async function POST(
             available: true,
             replacement: `Remplace: ${orderItem.name}`,
           },
-        });
+        }));
       }
     }
+    if (itemUpdates.length > 0) await prisma.$transaction(itemUpdates);
 
     // Recalculate total (only available items)
     const updatedItems = await prisma.orderItem.findMany({

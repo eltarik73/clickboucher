@@ -27,12 +27,17 @@ export function startCronJobs() {
         select: { id: true, shopId: true, orderNumber: true },
       });
 
-      for (const order of expiredOrders) {
-        await prisma.order.update({
-          where: { id: order.id },
+      if (expiredOrders.length > 0) {
+        // Batch update all expired orders at once
+        await prisma.order.updateMany({
+          where: { id: { in: expiredOrders.map(o => o.id) } },
           data: { status: "AUTO_CANCELLED", autoCancelledAt: now },
         });
-        await checkAutoPause(order.shopId);
+        // Check auto-pause for each unique shop
+        const uniqueShopIds = [...new Set(expiredOrders.map(o => o.shopId))];
+        for (const shopId of uniqueShopIds) {
+          await checkAutoPause(shopId);
+        }
       }
 
       if (expiredOrders.length > 0) {
@@ -250,32 +255,6 @@ export function startCronJobs() {
         },
       });
 
-      for (const sub of expiredSubs) {
-        await prisma.subscription.update({
-          where: { id: sub.id },
-          data: { status: "EXPIRED" },
-        });
-
-        // Hide the shop
-        await prisma.shop.update({
-          where: { id: sub.shopId },
-          data: { visible: false },
-        });
-
-        // Notify the boucher
-        const owner = await prisma.user.findUnique({
-          where: { clerkId: sub.shop.ownerId },
-          select: { id: true },
-        });
-        if (owner) {
-          await sendNotification("TRIAL_EXPIRING", {
-            userId: owner.id,
-            shopName: sub.shop.name,
-            message: `Votre essai gratuit pour ${sub.shop.name} a expiré. Passez au paiement pour réactiver votre boutique.`,
-          });
-        }
-      }
-
       // Send 7-day warning for trials expiring soon
       const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       const sixDays = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
@@ -290,14 +269,52 @@ export function startCronJobs() {
         },
       });
 
-      for (const sub of warningSubs) {
-        const owner = await prisma.user.findUnique({
-          where: { clerkId: sub.shop.ownerId },
-          select: { id: true },
-        });
-        if (owner) {
+      // Batch fetch ALL owners at once (instead of N queries)
+      const allOwnerIds = [
+        ...expiredSubs.map(s => s.shop.ownerId),
+        ...warningSubs.map(s => s.shop.ownerId),
+      ].filter(Boolean);
+      const uniqueOwnerIds = [...new Set(allOwnerIds)];
+      const owners = uniqueOwnerIds.length > 0
+        ? await prisma.user.findMany({
+            where: { clerkId: { in: uniqueOwnerIds } },
+            select: { id: true, clerkId: true },
+          })
+        : [];
+      const ownerMap = new Map(owners.map(u => [u.clerkId, u.id]));
+
+      // Batch update expired subs + hide shops
+      if (expiredSubs.length > 0) {
+        await prisma.$transaction([
+          prisma.subscription.updateMany({
+            where: { id: { in: expiredSubs.map(s => s.id) } },
+            data: { status: "EXPIRED" },
+          }),
+          prisma.shop.updateMany({
+            where: { id: { in: expiredSubs.map(s => s.shopId) } },
+            data: { visible: false },
+          }),
+        ]);
+      }
+
+      // Notify expired owners
+      for (const sub of expiredSubs) {
+        const ownerId = ownerMap.get(sub.shop.ownerId);
+        if (ownerId) {
           await sendNotification("TRIAL_EXPIRING", {
-            userId: owner.id,
+            userId: ownerId,
+            shopName: sub.shop.name,
+            message: `Votre essai gratuit pour ${sub.shop.name} a expiré. Passez au paiement pour réactiver votre boutique.`,
+          });
+        }
+      }
+
+      // Notify warning owners
+      for (const sub of warningSubs) {
+        const ownerId = ownerMap.get(sub.shop.ownerId);
+        if (ownerId) {
+          await sendNotification("TRIAL_EXPIRING", {
+            userId: ownerId,
             shopName: sub.shop.name,
             message: `Votre essai se termine dans 7 jours. Passez au paiement pour continuer à recevoir des commandes.`,
           });
@@ -344,45 +361,65 @@ export function startCronJobs() {
         select: { id: true, name: true, ownerId: true, rating: true },
       });
 
+      const shopIds = shops.map(s => s.id);
       let sentCount = 0;
+
+      // Batch: order stats + revenue stats + item data + owners (instead of 4*N queries)
+      const [orderStats, revenueStats, allItems] = await Promise.all([
+        prisma.order.groupBy({
+          by: ["shopId"],
+          where: { shopId: { in: shopIds }, status: { in: ["COMPLETED", "PICKED_UP"] }, createdAt: { gte: weekAgo } },
+          _count: true,
+        }),
+        prisma.order.groupBy({
+          by: ["shopId"],
+          where: { shopId: { in: shopIds }, status: { in: ["COMPLETED", "PICKED_UP"] }, createdAt: { gte: weekAgo } },
+          _sum: { totalCents: true },
+        }),
+        prisma.orderItem.findMany({
+          where: { order: { shopId: { in: shopIds }, status: { in: ["COMPLETED", "PICKED_UP"] }, createdAt: { gte: weekAgo } } },
+          select: { name: true, totalCents: true, order: { select: { shopId: true } } },
+        }),
+      ]);
+
+      const countMap = new Map(orderStats.map(c => [c.shopId, c._count]));
+      const revenueMap = new Map(revenueStats.map(r => [r.shopId, r._sum.totalCents || 0]));
+
+      // Compute top product per shop in JS
+      const productTotals = new Map<string, Map<string, number>>();
+      for (const item of allItems) {
+        const sid = item.order.shopId;
+        if (!productTotals.has(sid)) productTotals.set(sid, new Map());
+        const shopMap = productTotals.get(sid)!;
+        shopMap.set(item.name, (shopMap.get(item.name) || 0) + item.totalCents);
+      }
+      const topByShop = new Map<string, string>();
+      for (const [sid, map] of productTotals) {
+        const top = [...map.entries()].sort((a, b) => b[1] - a[1])[0];
+        if (top) topByShop.set(sid, top[0]);
+      }
+
+      // Batch fetch owners
+      const ownerIds = [...new Set(shops.map(s => s.ownerId).filter(Boolean))];
+      const owners = ownerIds.length > 0
+        ? await prisma.user.findMany({
+            where: { clerkId: { in: ownerIds } },
+            select: { id: true, clerkId: true },
+          })
+        : [];
+      const ownerMap = new Map(owners.map(u => [u.clerkId, u.id]));
 
       for (const shop of shops) {
         try {
-          const shopOrders = await prisma.order.findMany({
-            where: {
-              shopId: shop.id,
-              status: { in: ["COMPLETED", "PICKED_UP"] },
-              createdAt: { gte: weekAgo },
-            },
-            select: {
-              totalCents: true,
-              items: { select: { name: true, totalCents: true } },
-            },
-          });
-
-          const weeklyRevenue = shopOrders.reduce((s, o) => s + o.totalCents, 0);
-          const weeklyOrders = shopOrders.length;
+          const weeklyOrders = countMap.get(shop.id) || 0;
+          const weeklyRevenue = revenueMap.get(shop.id) || 0;
           const weeklyAvgOrder = weeklyOrders > 0 ? Math.round(weeklyRevenue / weeklyOrders) : 0;
+          const topProduct = topByShop.get(shop.id);
 
-          // Top product
-          const productMap = new Map<string, number>();
-          for (const order of shopOrders) {
-            for (const item of order.items) {
-              productMap.set(item.name, (productMap.get(item.name) || 0) + item.totalCents);
-            }
-          }
-          const topProduct = [...productMap.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .map((e) => e[0])[0] || undefined;
-
-          const owner = await prisma.user.findUnique({
-            where: { clerkId: shop.ownerId },
-            select: { id: true },
-          });
-
-          if (owner) {
+          const ownerId = ownerMap.get(shop.ownerId);
+          if (ownerId) {
             await sendNotification("WEEKLY_REPORT", {
-              userId: owner.id,
+              userId: ownerId,
               shopName: shop.name,
               weeklyRevenue,
               weeklyOrders,
@@ -415,27 +452,32 @@ export function startCronJobs() {
         where: { active: true },
       });
 
+      // Hoist shop + owner queries OUTSIDE the event loop
+      const shops = await prisma.shop.findMany({
+        where: { visible: true },
+        select: { ownerId: true, name: true },
+      });
+      const calOwnerIds = [...new Set(shops.map(s => s.ownerId).filter(Boolean))];
+      const calOwners = calOwnerIds.length > 0
+        ? await prisma.user.findMany({
+            where: { clerkId: { in: calOwnerIds } },
+            select: { id: true, clerkId: true },
+          })
+        : [];
+      const calOwnerMap = new Map(calOwners.map(u => [u.clerkId, u.id]));
+
       for (const event of events) {
         const eventDate = new Date(event.date);
         eventDate.setHours(0, 0, 0, 0);
         const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
         if (diffDays === event.alertDaysBefore) {
-          // Notify all bouchers
-          const shops = await prisma.shop.findMany({
-            where: { visible: true },
-            select: { ownerId: true, name: true },
-          });
-
           for (const shop of shops) {
             try {
-              const owner = await prisma.user.findUnique({
-                where: { clerkId: shop.ownerId },
-                select: { id: true },
-              });
-              if (owner) {
+              const ownerId = calOwnerMap.get(shop.ownerId);
+              if (ownerId) {
                 await sendNotification("CALENDAR_ALERT", {
-                  userId: owner.id,
+                  userId: ownerId,
                   shopName: shop.name,
                   message: `${event.name} dans ${diffDays} jours ! Préparez vos stocks et vos produits saisonniers.`,
                 });
@@ -468,37 +510,42 @@ export function startCronJobs() {
         },
         include: {
           user: { select: { id: true, firstName: true } },
+          shop: { select: { name: true } }, // Include shop to avoid N+1
         },
       });
 
+      const nextRunUpdates: { id: string; nextRunAt: Date }[] = [];
+
       for (const rec of dueRecurring) {
         try {
-          const shop = await prisma.shop.findUnique({
-            where: { id: rec.shopId },
-            select: { name: true },
-          });
-
-          // Send reminder notification (user must confirm)
           await sendNotification("RECURRING_REMINDER", {
             userId: rec.userId,
-            shopName: shop?.name || "votre boucherie",
-            message: `Votre commande récurrente chez ${shop?.name} est prête à être confirmée.`,
+            shopName: rec.shop?.name || "votre boucherie",
+            message: `Votre commande récurrente chez ${rec.shop?.name} est prête à être confirmée.`,
           });
 
-          // Calculate next run date
           const freq = rec.frequency;
           const next = new Date(rec.nextRunAt || today);
           if (freq === "WEEKLY") next.setDate(next.getDate() + 7);
           else if (freq === "BIWEEKLY") next.setDate(next.getDate() + 14);
           else if (freq === "MONTHLY") next.setMonth(next.getMonth() + 1);
 
-          await prisma.recurringOrder.update({
-            where: { id: rec.id },
-            data: { nextRunAt: next },
-          });
+          nextRunUpdates.push({ id: rec.id, nextRunAt: next });
         } catch {
           // Continue with next recurring order
         }
+      }
+
+      // Batch update nextRunAt via $transaction
+      if (nextRunUpdates.length > 0) {
+        await prisma.$transaction(
+          nextRunUpdates.map(u =>
+            prisma.recurringOrder.update({
+              where: { id: u.id },
+              data: { nextRunAt: u.nextRunAt },
+            })
+          )
+        );
       }
 
       if (dueRecurring.length > 0) {
@@ -528,22 +575,34 @@ export function startCronJobs() {
 
       if (premiumFeatures.length === 0) return;
 
+      // Batch fetch all recent orders for all premium shops at once
+      const premiumShopIds = premiumFeatures.map(f => f.featureKey.replace("auto_promos_", ""));
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const allRecentOrders = premiumShopIds.length > 0
+        ? await prisma.order.findMany({
+            where: { shopId: { in: premiumShopIds }, createdAt: { gte: weekAgo } },
+            select: { shopId: true, createdAt: true },
+          })
+        : [];
+      // Group orders by shopId
+      const ordersByShop = new Map<string, Date[]>();
+      for (const o of allRecentOrders) {
+        if (!ordersByShop.has(o.shopId)) ordersByShop.set(o.shopId, []);
+        ordersByShop.get(o.shopId)!.push(o.createdAt);
+      }
+
       for (const feature of premiumFeatures) {
         try {
           const shopId = feature.featureKey.replace("auto_promos_", "");
 
-          // Determine off-peak hours for this shop
-          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-          const recentOrders = await prisma.order.findMany({
-            where: { shopId, createdAt: { gte: weekAgo } },
-            select: { createdAt: true },
-          });
+          // Use pre-fetched orders
+          const recentDates = ordersByShop.get(shopId) || [];
 
           // Calculate hourly distribution
           const hourCounts = new Map<number, number>();
           for (let h = 0; h < 24; h++) hourCounts.set(h, 0);
-          for (const o of recentOrders) {
-            const h = o.createdAt.getHours();
+          for (const d of recentDates) {
+            const h = d.getHours();
             hourCounts.set(h, (hourCounts.get(h) || 0) + 1);
           }
 
@@ -668,8 +727,33 @@ export function startCronJobs() {
         select: { id: true, orderId: true, newTotal: true, itemsSnapshot: true },
       });
 
+      // Batch fetch ALL orders for tier2 + tier3 at once (instead of N findUnique)
+      const tier2OrderIds = expiredTier2.map(a => a.orderId);
+
+      // ── Tier 3: escalate after 10 min ──
+      const expiredTier3 = await prisma.priceAdjustment.findMany({
+        where: {
+          status: "PENDING",
+          tier: 3,
+          escalateAt: { not: null, lte: now },
+        },
+        select: { id: true, orderId: true, originalTotal: true, newTotal: true },
+      });
+
+      const tier3OrderIds = expiredTier3.map(a => a.orderId);
+      const allAdjOrderIds = [...new Set([...tier2OrderIds, ...tier3OrderIds])];
+      const adjOrders = allAdjOrderIds.length > 0
+        ? await prisma.order.findMany({
+            where: { id: { in: allAdjOrderIds } },
+            select: { id: true, userId: true, orderNumber: true, shop: { select: { name: true } } },
+          })
+        : [];
+      const adjOrderMap = new Map(adjOrders.map(o => [o.id, o]));
+
+      // Process tier 2
       for (const adj of expiredTier2) {
         try {
+          // Transaction for adjustment + order total update
           await prisma.$transaction([
             prisma.priceAdjustment.update({
               where: { id: adj.id },
@@ -681,27 +765,27 @@ export function startCronJobs() {
             }),
           ]);
 
-          // Apply item snapshot
+          // Apply item snapshot via $transaction
           if (adj.itemsSnapshot && Array.isArray(adj.itemsSnapshot)) {
-            for (const snap of adj.itemsSnapshot as Record<string, unknown>[]) {
-              const updateData: Record<string, unknown> = {};
-              if (snap.newQuantity !== undefined) updateData.quantity = snap.newQuantity;
-              if (snap.newPriceCents !== undefined) updateData.priceCents = snap.newPriceCents;
-              if (snap.newTotalCents !== undefined) updateData.totalCents = snap.newTotalCents;
-              if (Object.keys(updateData).length > 0 && snap.orderItemId) {
-                await prisma.orderItem.update({
+            const snapUpdates = (adj.itemsSnapshot as Record<string, unknown>[])
+              .filter(snap => snap.orderItemId && (snap.newQuantity !== undefined || snap.newPriceCents !== undefined || snap.newTotalCents !== undefined))
+              .map(snap => {
+                const updateData: Record<string, unknown> = {};
+                if (snap.newQuantity !== undefined) updateData.quantity = snap.newQuantity;
+                if (snap.newPriceCents !== undefined) updateData.priceCents = snap.newPriceCents;
+                if (snap.newTotalCents !== undefined) updateData.totalCents = snap.newTotalCents;
+                return prisma.orderItem.update({
                   where: { id: snap.orderItemId as string },
                   data: updateData,
                 });
-              }
+              });
+            if (snapUpdates.length > 0) {
+              await prisma.$transaction(snapUpdates);
             }
           }
 
-          // Notify client
-          const order = await prisma.order.findUnique({
-            where: { id: adj.orderId },
-            select: { userId: true, orderNumber: true, shop: { select: { name: true } } },
-          });
+          // Notify client (using pre-fetched order)
+          const order = adjOrderMap.get(adj.orderId);
           if (order) {
             await sendNotification("PRICE_ADJUSTMENT_AUTO_VALIDATED", {
               userId: order.userId,
@@ -715,28 +799,17 @@ export function startCronJobs() {
         }
       }
 
-      // ── Tier 3: escalate after 10 min ──
-      const expiredTier3 = await prisma.priceAdjustment.findMany({
-        where: {
-          status: "PENDING",
-          tier: 3,
-          escalateAt: { not: null, lte: now },
-        },
-        select: { id: true, orderId: true, originalTotal: true, newTotal: true },
-      });
+      // Process tier 3 — batch update status
+      if (expiredTier3.length > 0) {
+        await prisma.priceAdjustment.updateMany({
+          where: { id: { in: expiredTier3.map(a => a.id) } },
+          data: { status: "ESCALATED", respondedAt: now },
+        });
+      }
 
       for (const adj of expiredTier3) {
         try {
-          await prisma.priceAdjustment.update({
-            where: { id: adj.id },
-            data: { status: "ESCALATED", respondedAt: now },
-          });
-
-          // Notify admin/webmaster
-          const order = await prisma.order.findUnique({
-            where: { id: adj.orderId },
-            select: { orderNumber: true, shop: { select: { name: true } } },
-          });
+          const order = adjOrderMap.get(adj.orderId);
           if (order) {
             await sendNotification("PRICE_ADJUSTMENT_ESCALATED", {
               orderId: adj.orderId,
@@ -791,6 +864,10 @@ export function startCronJobs() {
       let opened = 0;
       let closed = 0;
 
+      // Collect shops to open and close (instead of N individual updates)
+      const toOpen: string[] = [];
+      const toClose: string[] = [];
+
       for (const shop of shops) {
         const hours = shop.openingHours as Record<string, { open: string; close: string }> | null;
         if (!hours || !hours[dayKey]) continue;
@@ -801,24 +878,26 @@ export function startCronJobs() {
         const isWithinHours = currentTime >= open && currentTime < close;
 
         if (isWithinHours && shop.status === "CLOSED") {
-          // Auto-open: only if CLOSED (not PAUSED, not VACATION)
-          await prisma.shop.update({
-            where: { id: shop.id },
-            data: { status: "OPEN" },
-          });
-          opened++;
+          toOpen.push(shop.id);
         } else if (!isWithinHours && (shop.status === "OPEN" || shop.status === "BUSY")) {
-          // Auto-close: only if OPEN or BUSY (not PAUSED, not VACATION)
-          await prisma.shop.update({
-            where: { id: shop.id },
-            data: {
-              status: "CLOSED",
-              busyMode: false,
-              busyModeEndsAt: null,
-            },
-          });
-          closed++;
+          toClose.push(shop.id);
         }
+      }
+
+      // Batch update
+      if (toOpen.length > 0) {
+        await prisma.shop.updateMany({
+          where: { id: { in: toOpen } },
+          data: { status: "OPEN" },
+        });
+        opened = toOpen.length;
+      }
+      if (toClose.length > 0) {
+        await prisma.shop.updateMany({
+          where: { id: { in: toClose } },
+          data: { status: "CLOSED", busyMode: false, busyModeEndsAt: null },
+        });
+        closed = toClose.length;
       }
 
       if (opened > 0 || closed > 0) {

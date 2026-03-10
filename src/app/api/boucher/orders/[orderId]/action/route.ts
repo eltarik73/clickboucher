@@ -114,11 +114,12 @@ export async function PATCH(
           include: { items: true },
         });
 
-        // ── Decrement anti-gaspi stock ──
+        // ── Decrement anti-gaspi + flash sale stock via $transaction ──
+        const stockUpdates = [];
         const agItems = order.items.filter(i => i.product.isAntiGaspi && i.product.antiGaspiStock !== null);
         for (const item of agItems) {
           const newStock = Math.max(0, (item.product.antiGaspiStock ?? 0) - item.quantity);
-          await prisma.product.update({
+          stockUpdates.push(prisma.product.update({
             where: { id: item.productId },
             data: {
               antiGaspiStock: newStock,
@@ -129,20 +130,21 @@ export async function PATCH(
                 antiGaspiReason: null, antiGaspiStock: null,
               } : {}),
             },
-          });
+          }));
         }
-
-        // ── Decrement flash sale stock ──
         const flashItems = order.items.filter(i => i.product.isFlashSale && i.product.flashSaleStock !== null);
         for (const item of flashItems) {
           const newStock = Math.max(0, (item.product.flashSaleStock ?? 0) - item.quantity);
-          await prisma.product.update({
+          stockUpdates.push(prisma.product.update({
             where: { id: item.productId },
             data: {
               flashSaleStock: newStock,
               ...(newStock <= 0 ? { isFlashSale: false, flashSaleEndAt: null, flashSaleStock: null } : {}),
             },
-          });
+          }));
+        }
+        if (stockUpdates.length > 0) {
+          await prisma.$transaction(stockUpdates);
         }
 
         await logOrderEvent(orderId, order.shop.id, "ACCEPTED", userId, { estimatedMinutes, qrCode });
@@ -171,15 +173,17 @@ export async function PATCH(
           data: { status: "DENIED", denyReason: data.reason },
         });
 
-        // Restore anti-gaspi/flash stock on deny
+        // Restore anti-gaspi/flash stock on deny (batched)
+        const denyStockRestores = [];
         for (const item of order.items) {
           if (item.product.isAntiGaspi && item.product.antiGaspiStock !== null) {
-            await prisma.product.update({ where: { id: item.productId }, data: { antiGaspiStock: { increment: item.quantity } } });
+            denyStockRestores.push(prisma.product.update({ where: { id: item.productId }, data: { antiGaspiStock: { increment: item.quantity } } }));
           }
           if (item.product.isFlashSale && item.product.flashSaleStock !== null) {
-            await prisma.product.update({ where: { id: item.productId }, data: { flashSaleStock: { increment: item.quantity } } });
+            denyStockRestores.push(prisma.product.update({ where: { id: item.productId }, data: { flashSaleStock: { increment: item.quantity } } }));
           }
         }
+        if (denyStockRestores.length > 0) await prisma.$transaction(denyStockRestores);
 
         await logOrderEvent(orderId, order.shop.id, "DENIED", userId, { reason: data.reason });
 
@@ -294,20 +298,30 @@ export async function PATCH(
           (item) => data.itemIds.includes(item.productId)
         );
 
+        // Single query for all alternatives (instead of N queries per unavailable item)
+        const allCatIds = unavailableOrderItems.flatMap(item =>
+          item.product.categories.map((c: { id: string }) => c.id)
+        );
+        const allAlts = allCatIds.length > 0
+          ? await prisma.product.findMany({
+              where: {
+                shopId: order.shop.id,
+                categories: { some: { id: { in: allCatIds } } },
+                inStock: true,
+                id: { notIn: data.itemIds },
+              },
+              select: { id: true, name: true, priceCents: true, categories: { select: { id: true } } },
+              orderBy: { priceCents: "asc" },
+            })
+          : [];
+
         const alternatives: Record<string, { id: string; name: string; priceCents: number }[]> = {};
         for (const item of unavailableOrderItems) {
-          const alts = await prisma.product.findMany({
-            where: {
-              shopId: order.shop.id,
-              categories: { some: { id: { in: item.product.categories.map((c: { id: string }) => c.id) } } },
-              inStock: true,
-              id: { notIn: data.itemIds },
-            },
-            select: { id: true, name: true, priceCents: true },
-            take: 3,
-            orderBy: { priceCents: "asc" },
-          });
-          alternatives[item.productId] = alts;
+          const itemCatIds = new Set(item.product.categories.map((c: { id: string }) => c.id));
+          alternatives[item.productId] = allAlts
+            .filter(alt => alt.categories.some(c => itemCatIds.has(c.id)))
+            .slice(0, 3)
+            .map(({ id, name, priceCents }) => ({ id, name, priceCents }));
         }
 
         // Recalculate total
@@ -353,6 +367,7 @@ export async function PATCH(
         }
 
         let totalDiff = 0;
+        const weightUpdates = [];
         for (const adj of data.items) {
           const item = order.items.find((i) => i.id === adj.orderItemId);
           if (!item) continue;
@@ -363,11 +378,12 @@ export async function PATCH(
 
           totalDiff += newTotal - item.totalCents;
 
-          await prisma.orderItem.update({
+          weightUpdates.push(prisma.orderItem.update({
             where: { id: adj.orderItemId },
             data: { weightGrams: adj.actualWeightGrams, totalCents: newTotal },
-          });
+          }));
         }
+        if (weightUpdates.length > 0) await prisma.$transaction(weightUpdates);
 
         const updated = await prisma.order.update({
           where: { id: orderId },
@@ -390,6 +406,7 @@ export async function PATCH(
         }
 
         let totalDiff = 0;
+        const priceUpdates = [];
         for (const adj of data.items) {
           const item = order.items.find((i) => i.id === adj.orderItemId);
           if (!item) continue;
@@ -397,11 +414,12 @@ export async function PATCH(
           const newTotal = Math.round(adj.newPriceCents * item.quantity);
           totalDiff += newTotal - item.totalCents;
 
-          await prisma.orderItem.update({
+          priceUpdates.push(prisma.orderItem.update({
             where: { id: adj.orderItemId },
             data: { priceCents: adj.newPriceCents, totalCents: newTotal },
-          });
+          }));
         }
+        if (priceUpdates.length > 0) await prisma.$transaction(priceUpdates);
 
         const updated = await prisma.order.update({
           where: { id: orderId },
@@ -496,15 +514,17 @@ export async function PATCH(
           },
         });
 
-        // Restore anti-gaspi/flash stock on cancel
+        // Restore anti-gaspi/flash stock on cancel (batched)
+        const cancelStockRestores = [];
         for (const item of order.items) {
           if (item.product.isAntiGaspi && item.product.antiGaspiStock !== null) {
-            await prisma.product.update({ where: { id: item.productId }, data: { antiGaspiStock: { increment: item.quantity } } });
+            cancelStockRestores.push(prisma.product.update({ where: { id: item.productId }, data: { antiGaspiStock: { increment: item.quantity } } }));
           }
           if (item.product.isFlashSale && item.product.flashSaleStock !== null) {
-            await prisma.product.update({ where: { id: item.productId }, data: { flashSaleStock: { increment: item.quantity } } });
+            cancelStockRestores.push(prisma.product.update({ where: { id: item.productId }, data: { flashSaleStock: { increment: item.quantity } } }));
           }
         }
+        if (cancelStockRestores.length > 0) await prisma.$transaction(cancelStockRestores);
 
         await logOrderEvent(orderId, order.shop.id, "CANCELLED", userId, { reason: data.reason });
 

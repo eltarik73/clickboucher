@@ -47,27 +47,30 @@ export async function GET(
       (i) => productIds.includes(i.productId) && !i.available
     );
 
-    const alternatives: Record<string, { id: string; name: string; priceCents: number; unit: string }[]> = {};
+    // Single query for all alternatives (instead of N per unavailable item)
+    const allCatIds = unavailableItems.flatMap(item =>
+      item.product.categories.map((c: { id: string }) => c.id)
+    );
+    const allAlts = allCatIds.length > 0
+      ? await prisma.product.findMany({
+          where: {
+            shopId: order.shop.id,
+            categories: { some: { id: { in: allCatIds } } },
+            inStock: true,
+            id: { notIn: productIds },
+          },
+          select: { id: true, name: true, priceCents: true, unit: true, categories: { select: { id: true } } },
+          orderBy: { priceCents: "asc" },
+        })
+      : [];
 
+    const alternatives: Record<string, { id: string; name: string; priceCents: number; unit: string }[]> = {};
     for (const item of unavailableItems) {
-      const catIds = item.product.categories.map((c: { id: string }) => c.id);
-      const alts = await prisma.product.findMany({
-        where: {
-          shopId: order.shop.id,
-          categories: { some: { id: { in: catIds } } },
-          inStock: true,
-          id: { notIn: productIds },
-        },
-        select: {
-          id: true,
-          name: true,
-          priceCents: true,
-          unit: true,
-        },
-        take: 3,
-        orderBy: { priceCents: "asc" },
-      });
-      alternatives[item.productId] = alts;
+      const itemCatIds = new Set(item.product.categories.map((c: { id: string }) => c.id));
+      alternatives[item.productId] = allAlts
+        .filter(alt => alt.categories.some(c => itemCatIds.has(c.id)))
+        .slice(0, 3)
+        .map(({ id, name, priceCents, unit }) => ({ id, name, priceCents, unit }));
     }
 
     return apiSuccess(alternatives);
