@@ -103,7 +103,6 @@ export default async function RecettePage({
               className="w-full h-full object-cover"
               loading="eager"
               referrerPolicy="no-referrer"
-              crossOrigin="anonymous"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/20 dark:to-orange-900/20">
@@ -294,8 +293,7 @@ export default async function RecettePage({
                           className="w-full h-full object-cover"
                           loading="lazy"
                           referrerPolicy="no-referrer"
-                          crossOrigin="anonymous"
-                        />
+                                    />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xl">
                           🍖
