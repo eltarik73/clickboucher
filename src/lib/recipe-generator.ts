@@ -1,31 +1,27 @@
 // src/lib/recipe-generator.ts — AI recipe generation using Anthropic API
 import prisma from "@/lib/prisma";
 
-// ── Pool d'images food Unsplash CDN (URLs permanentes) ──
+// ── Pool d'images food Unsplash CDN (URLs permanentes, visuellement verifiees) ──
 const MEAT_IMAGES: Record<string, string[]> = {
   boeuf: [
-    "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1592412544617-7c962b8b7271?w=1024&h=680&fit=crop&q=80", // kefta/galettes viande sur grill
+    "https://images.unsplash.com/photo-1765036741062-1184a3834c7a?w=1024&h=680&fit=crop&q=80", // brochettes viande sur charbon
+    "https://images.unsplash.com/photo-1763480005787-67c0fe4ee8f2?w=1024&h=680&fit=crop&q=80", // brochettes sur flamme BBQ
   ],
   agneau: [
-    "https://images.unsplash.com/photo-1574484284002-952d92456975?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1457460866886-40ef8d4b42a0?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1669542795386-e794632a231f?w=1024&h=680&fit=crop&q=80", // tajine ouvert avec vapeur
+    "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=1024&h=680&fit=crop&q=80", // couscous marocain viande legumes
+    "https://images.unsplash.com/photo-1737210235283-7675f83efc59?w=1024&h=680&fit=crop&q=80", // tajine terre cuite legumes
   ],
   volaille: [
-    "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1561651188-d207bbec4ec3?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1598103442097-8b74f5ef00ad?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1760888548893-bc2f7e09e972?w=1024&h=680&fit=crop&q=80", // shawarma wrap poulet
+    "https://images.unsplash.com/photo-1711633648859-1eac3e5969b9?w=1024&h=680&fit=crop&q=80", // poulet saute legumes wok
+    "https://images.unsplash.com/photo-1679279726937-122c49626802?w=1024&h=680&fit=crop&q=80", // bol eminces viande oignons verts
   ],
   veau: [
-    "https://images.unsplash.com/photo-1544025162-d76694265947?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1024&h=680&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1669542795386-e794632a231f?w=1024&h=680&fit=crop&q=80", // tajine ouvert avec vapeur
+    "https://images.unsplash.com/photo-1592412544617-7c962b8b7271?w=1024&h=680&fit=crop&q=80", // kefta/galettes viande sur grill
+    "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=1024&h=680&fit=crop&q=80", // couscous marocain viande legumes
   ],
 };
 
