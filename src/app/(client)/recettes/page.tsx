@@ -82,14 +82,17 @@ export default async function RecettesPage({
           <Link href={`/recettes/${featured.slug}`} className="block mb-6">
             <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-md hover:shadow-lg transition border border-[#ece8e3]/60 dark:border-white/[0.06]">
               <div className="h-52 bg-gray-200 dark:bg-white/5 relative">
-                {featured.imageUrl && (
+                {featured.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={featured.imageUrl}
                     alt={featured.title}
                     className="w-full h-full object-cover"
+                    loading="eager"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                   />
-                )}
-                {!featured.imageUrl && (
+                ) : (
                   <div className="w-full h-full flex items-center justify-center text-5xl">
                     🍖
                   </div>
@@ -134,10 +137,14 @@ export default async function RecettesPage({
             >
               <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-white/5 overflow-hidden flex-shrink-0">
                 {recipe.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={recipe.imageUrl}
                     alt={recipe.title}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl">

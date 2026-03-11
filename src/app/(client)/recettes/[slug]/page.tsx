@@ -96,10 +96,14 @@ export default async function RecettePage({
         {/* Image */}
         <div className="h-60 bg-gray-200 dark:bg-white/5 relative">
           {recipe.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={recipe.imageUrl}
               alt={recipe.title}
               className="w-full h-full object-cover"
+              loading="eager"
+              referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/20 dark:to-orange-900/20">
@@ -283,10 +287,14 @@ export default async function RecettePage({
                   >
                     <div className="h-20 bg-gray-200 dark:bg-white/5 overflow-hidden">
                       {r.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={r.imageUrl}
                           alt={r.title}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xl">
