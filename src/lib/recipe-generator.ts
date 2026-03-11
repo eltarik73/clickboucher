@@ -1,6 +1,39 @@
 // src/lib/recipe-generator.ts — AI recipe generation using Anthropic API
 import prisma from "@/lib/prisma";
 
+// ── Pool d'images food Unsplash CDN (URLs permanentes) ──
+const MEAT_IMAGES: Record<string, string[]> = {
+  boeuf: [
+    "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1024&h=680&fit=crop&q=80",
+  ],
+  agneau: [
+    "https://images.unsplash.com/photo-1511690743698-d9d18f7e20f1?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1574484284002-952d92456975?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1457460866886-40ef8d4b42a0?w=1024&h=680&fit=crop&q=80",
+  ],
+  volaille: [
+    "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1561651188-d207bbec4ec3?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1598103442097-8b74f5ef00ad?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=1024&h=680&fit=crop&q=80",
+  ],
+  veau: [
+    "https://images.unsplash.com/photo-1544025162-d76694265947?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1024&h=680&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?w=1024&h=680&fit=crop&q=80",
+  ],
+};
+
+function pickRecipeImage(meatType: string): string {
+  const pool = MEAT_IMAGES[meatType] || MEAT_IMAGES.boeuf;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 const MEAT_TYPES = ["boeuf", "agneau", "volaille", "veau"];
 const OCCASIONS = ["quotidien", "ramadan", "bbq", "famille", "rapide", "fête"];
 const SEASONS: Record<number, string> = {
@@ -119,12 +152,16 @@ Réponds UNIQUEMENT en JSON valide, sans backticks, sans preamble :
   const existing = await prisma.recipe.findUnique({ where: { slug } });
   const finalSlug = existing ? `${slug}-${Date.now().toString(36)}` : slug;
 
+  // Image pour la recette (pool Unsplash CDN)
+  const imageUrl = pickRecipeImage(meatType);
+
   // Sauvegarder en DB
   const recipe = await prisma.recipe.create({
     data: {
       slug: finalSlug,
       title: recipeData.title,
       description: recipeData.description,
+      imageUrl,
       prepTime: recipeData.prepTime,
       cookTime: recipeData.cookTime,
       totalTime: recipeData.prepTime + recipeData.cookTime,
