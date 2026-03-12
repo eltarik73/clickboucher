@@ -1,27 +1,25 @@
 // src/lib/recipe-generator.ts — AI recipe generation using Anthropic API
 import prisma from "@/lib/prisma";
 
-// ── Pool d'images food Unsplash CDN (URLs permanentes, visuellement verifiees) ──
+// ── Pool d'images recettes (locales, servies depuis /public) ──
 const MEAT_IMAGES: Record<string, string[]> = {
   boeuf: [
-    "https://images.unsplash.com/photo-1592412544617-7c962b8b7271?w=1024&h=680&fit=crop&q=80", // kefta/galettes viande sur grill
-    "https://images.unsplash.com/photo-1765036741062-1184a3834c7a?w=1024&h=680&fit=crop&q=80", // brochettes viande sur charbon
-    "https://images.unsplash.com/photo-1763480005787-67c0fe4ee8f2?w=1024&h=680&fit=crop&q=80", // brochettes sur flamme BBQ
+    "/img/recipes/kefta-grillee.jpg",
+    "/img/recipes/brochettes-merguez.jpg",
   ],
   agneau: [
-    "https://images.unsplash.com/photo-1669542795386-e794632a231f?w=1024&h=680&fit=crop&q=80", // tajine ouvert avec vapeur
-    "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=1024&h=680&fit=crop&q=80", // couscous marocain viande legumes
-    "https://images.unsplash.com/photo-1737210235283-7675f83efc59?w=1024&h=680&fit=crop&q=80", // tajine terre cuite legumes
+    "/img/recipes/tajine-agneau.jpg",
+    "/img/recipes/couscous-royal.jpg",
+    "/img/recipes/epaule-agneau.jpg",
   ],
   volaille: [
-    "https://images.unsplash.com/photo-1760888548893-bc2f7e09e972?w=1024&h=680&fit=crop&q=80", // shawarma wrap poulet
-    "https://images.unsplash.com/photo-1711633648859-1eac3e5969b9?w=1024&h=680&fit=crop&q=80", // poulet saute legumes wok
-    "https://images.unsplash.com/photo-1679279726937-122c49626802?w=1024&h=680&fit=crop&q=80", // bol eminces viande oignons verts
+    "/img/recipes/shawarma-poulet.jpg",
+    "/img/recipes/eminces-poulet.jpg",
   ],
   veau: [
-    "https://images.unsplash.com/photo-1669542795386-e794632a231f?w=1024&h=680&fit=crop&q=80", // tajine ouvert avec vapeur
-    "https://images.unsplash.com/photo-1592412544617-7c962b8b7271?w=1024&h=680&fit=crop&q=80", // kefta/galettes viande sur grill
-    "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=1024&h=680&fit=crop&q=80", // couscous marocain viande legumes
+    "/img/recipes/tajine-agneau.jpg",
+    "/img/recipes/kefta-grillee.jpg",
+    "/img/recipes/couscous-royal.jpg",
   ],
 };
 
