@@ -17,6 +17,12 @@
   background: transparent;
 }
 
+/* ─── iOS Safe Area ────────────────────────── */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
 /* ─── CSS Variables ─────────────────────────── */
 :root {
   --burgundy: 350 77% 27%;
@@ -99,6 +105,25 @@ body {
   font-family: var(--font-body-stack);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* iOS Safari: use dvh for min-h-screen so dynamic toolbar is accounted for */
+@supports (min-height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh !important;
+  }
+}
+
+/* iOS Safari: With viewport-fit=cover, the page extends behind the notch/dynamic island.
+   Sticky headers need to sit below the safe area, not behind it. */
+@supports (top: env(safe-area-inset-top)) {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* All sticky top-0 elements: shift down by safe-area-inset-top */
+  .sticky.top-0 {
+    top: env(safe-area-inset-top, 0px) !important;
+  }
 }
 
 ::selection {

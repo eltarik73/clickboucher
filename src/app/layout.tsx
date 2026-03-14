@@ -131,7 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NotificationProvider>
               <ServiceWorkerRegistration />
               <OfflineBanner />
-              <main>{children}</main>
+              <main style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>{children}</main>
               <InstallPrompt />
               <TestRoleSwitcher />
             </NotificationProvider>

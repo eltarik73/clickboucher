@@ -17,7 +17,7 @@ export function BonsPlansNav() {
   const pathname = usePathname();
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto py-3 sticky top-14 z-20 bg-[#f8f6f3] dark:bg-[#0a0a0a] -mx-4 px-4" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+    <div className="flex gap-1.5 overflow-x-auto py-3 sticky top-0 z-20 bg-[#f8f6f3] dark:bg-[#0a0a0a] -mx-4 px-4" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
       {TABS.map((tab) => {
         const isActive = pathname === tab.href || (tab.href !== "/bons-plans" && pathname.startsWith(tab.href));
         const isAllActive = tab.href === "/bons-plans" && pathname === "/bons-plans";
