@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { SafeImage } from "@/components/ui/SafeImage";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -94,15 +95,15 @@ export default async function RecettePage({
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="max-w-2xl mx-auto">
         {/* Image */}
-        <div className="h-60 bg-gray-200 dark:bg-white/5 relative">
+        <div className="h-60 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
           {recipe.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <SafeImage
               src={recipe.imageUrl}
               alt={recipe.title}
-              className="w-full h-full object-cover"
-              loading="eager"
-
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 672px"
+              priority
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/20 dark:to-orange-900/20">
@@ -284,16 +285,15 @@ export default async function RecettePage({
                     href={`/recettes/${r.slug}`}
                     className="min-w-[140px] flex-shrink-0 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3]/60 dark:border-white/[0.06] overflow-hidden hover:shadow-sm transition"
                   >
-                    <div className="h-20 bg-gray-200 dark:bg-white/5 overflow-hidden">
+                    <div className="h-20 bg-gray-200 dark:bg-white/5 overflow-hidden relative">
                       {r.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <SafeImage
                           src={r.imageUrl}
                           alt={r.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-            
-                                    />
+                          fill
+                          className="object-cover"
+                          sizes="140px"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xl">
                           🍖
