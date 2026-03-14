@@ -152,6 +152,21 @@ function OrdersTooltip({ active, payload, label }: { active?: boolean; payload?:
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function WeekdayTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 shadow-lg">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+      {payload.map((p: { dataKey: string; value: number }, i: number) => (
+        <p key={i} className="text-sm font-semibold text-gray-900 dark:text-white">
+          {p.dataKey === "revenue" ? centsToEuro(p.value) : `${p.value} commande${p.value > 1 ? "s" : ""}`}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────
 // Period Tabs
 // ─────────────────────────────────────────────
@@ -212,9 +227,12 @@ export default function StatistiquesPage() {
       if (res.ok) {
         const json = await res.json();
         setAutoPromos(json.data);
+        toast.success(enabled ? "Promos automatiques activées" : "Promos automatiques désactivées");
+      } else {
+        toast.error("Erreur lors de la mise à jour");
       }
     } catch {
-      // silent
+      toast.error("Erreur de connexion");
     } finally {
       setAutoPromosLoading(false);
     }
@@ -337,7 +355,7 @@ export default function StatistiquesPage() {
             <Link
               href="/boucher/dashboard/export"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-[#DC2626] hover:border-[#DC2626]/30 transition-colors"
-              title="Page d'export avancee"
+              title="Page d'export avancée"
             >
               <Download size={13} /> Plus
             </Link>
@@ -615,8 +633,9 @@ export default function StatistiquesPage() {
                           allowDecimals={false}
                           width={25}
                         />
-                        <Tooltip content={<OrdersTooltip />} />
-                        <Bar dataKey="orders" fill="#DC2626" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        <Tooltip content={<WeekdayTooltip />} />
+                        <Bar dataKey="orders" fill="#DC2626" radius={[4, 4, 0, 0]} maxBarSize={20} />
+                        <Bar dataKey="revenue" fill="#9ca3af" radius={[4, 4, 0, 0]} maxBarSize={20} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -707,7 +726,7 @@ export default function StatistiquesPage() {
                       <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Temps de preparation moyen</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Temps de préparation moyen</p>
                       <p className="text-lg font-bold text-gray-900 dark:text-white">{stats.avgPrepTime} min</p>
                     </div>
                   </div>
@@ -741,7 +760,7 @@ export default function StatistiquesPage() {
               {stats.offPeakHours.length > 0 ? (
                 <div className="mb-4">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    Heures creuses identifiees :
+                    Heures creuses identifiées :
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {stats.offPeakHours.map((hour) => (
@@ -757,7 +776,7 @@ export default function StatistiquesPage() {
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Pas assez de donnees pour identifier les heures creuses.
+                  Pas assez de données pour identifier les heures creuses.
                 </p>
               )}
 

@@ -7,15 +7,15 @@ import { ArrowLeft, Download, Printer, Loader2, FileSpreadsheet } from "lucide-r
 import { toast } from "sonner";
 
 const STATUS_OPTIONS = [
-  { value: "COMPLETED", label: "Terminee" },
-  { value: "PICKED_UP", label: "Recuperee" },
-  { value: "CANCELLED", label: "Annulee" },
-  { value: "DENIED", label: "Refusee" },
-  { value: "AUTO_CANCELLED", label: "Auto-annulee" },
+  { value: "COMPLETED", label: "Terminée" },
+  { value: "PICKED_UP", label: "Récupérée" },
+  { value: "CANCELLED", label: "Annulée" },
+  { value: "DENIED", label: "Refusée" },
+  { value: "AUTO_CANCELLED", label: "Auto-annulée" },
   { value: "PENDING", label: "En attente" },
-  { value: "ACCEPTED", label: "Acceptee" },
-  { value: "PREPARING", label: "En preparation" },
-  { value: "READY", label: "Prete" },
+  { value: "ACCEPTED", label: "Acceptée" },
+  { value: "PREPARING", label: "En préparation" },
+  { value: "READY", label: "Prête" },
 ] as const;
 
 type PreviewData = {
@@ -122,7 +122,7 @@ export default function ExportPage() {
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success("CSV telecharge");
+      toast.success("CSV téléchargé");
     } catch {
       toast.error("Erreur export");
     } finally {
@@ -170,7 +170,7 @@ export default function ExportPage() {
         {/* Date filters */}
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 p-5">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-            Periode
+            Période
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -312,7 +312,7 @@ export default function ExportPage() {
               </div>
             ) : (
               <div className="py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
-                Aucune commande pour cette periode et ces filtres
+                Aucune commande pour cette période et ces filtres
               </div>
             )}
 

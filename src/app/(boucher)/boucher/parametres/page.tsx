@@ -1106,7 +1106,7 @@ export default function BoucherParametresPage() {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ deliveryRadius: geoRadius }),
                     });
-                    if (res.ok) toast.success("Rayon sauvegarde");
+                    if (res.ok) toast.success("Rayon sauvegardé");
                     else toast.error(await extractError(res));
                   } catch { toast.error("Erreur de connexion"); }
                 }}
@@ -1148,7 +1148,7 @@ export default function BoucherParametresPage() {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "update_settings", soundNotif: v }),
                     });
-                    toast.success(v ? "Son active" : "Son desactive");
+                    toast.success(v ? "Son activé" : "Son désactivé");
                   } catch { toast.error("Erreur"); }
                   finally { setNotifSaving(false); }
                 }}
@@ -1160,7 +1160,7 @@ export default function BoucherParametresPage() {
               <div className="flex items-center gap-2">
                 <Monitor size={16} className="text-gray-500" />
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Flash ecran</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Flash écran</p>
                   <p className="text-[11px] text-gray-400">Flash visuel sur la tablette</p>
                 </div>
               </div>
@@ -1175,7 +1175,7 @@ export default function BoucherParametresPage() {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "update_settings", flashNotif: v }),
                     });
-                    toast.success(v ? "Flash active" : "Flash desactive");
+                    toast.success(v ? "Flash activé" : "Flash désactivé");
                   } catch { toast.error("Erreur"); }
                   finally { setNotifSaving(false); }
                 }}
@@ -1202,7 +1202,7 @@ export default function BoucherParametresPage() {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "update_settings", vibrateNotif: v }),
                     });
-                    toast.success(v ? "Vibration activee" : "Vibration desactivee");
+                    toast.success(v ? "Vibration activée" : "Vibration désactivée");
                   } catch { toast.error("Erreur"); }
                   finally { setNotifSaving(false); }
                 }}
