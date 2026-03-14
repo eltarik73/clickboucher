@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { NotificationProvider } from "@/components/ui/NotificationToast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import dynamic from "next/dynamic";
 
 const ServiceWorkerRegistration = dynamic(() => import("@/components/pwa/ServiceWorkerRegistration"), { ssr: false });
@@ -134,6 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <OfflineBanner />
               <main style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>{children}</main>
               <SpeedInsights />
+              <Analytics />
               <InstallPrompt />
               <TestRoleSwitcher />
             </NotificationProvider>
