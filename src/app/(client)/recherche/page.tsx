@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, X, MapPin, ShoppingBag } from "lucide-react";
+import { Search, X, MapPin, ShoppingBag, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { SafeImage } from "@/components/ui/SafeImage";
@@ -84,7 +84,15 @@ export default function RecherchePage() {
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* Search bar */}
       <div className="sticky top-0 z-30 bg-white dark:bg-[#141414] border-b border-gray-200 dark:border-white/[0.08] px-4 py-3">
-        <div className="relative max-w-2xl mx-auto">
+        <div className="relative max-w-2xl mx-auto flex items-center gap-2">
+          <Link
+            href="/"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors shrink-0"
+            aria-label="Retour"
+          >
+            <ArrowLeft size={18} className="text-gray-700 dark:text-gray-300" />
+          </Link>
+          <div className="relative flex-1">
           <Search
             size={20}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
@@ -106,6 +114,7 @@ export default function RecherchePage() {
               <X size={16} className="text-gray-400" />
             </button>
           )}
+          </div>
         </div>
       </div>
 

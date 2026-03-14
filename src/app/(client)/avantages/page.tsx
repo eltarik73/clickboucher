@@ -13,6 +13,7 @@ import {
   Loader2,
   Tag,
   Star,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -113,12 +114,21 @@ export default function AvantagesPage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Trophy size={24} className="text-red-600" />
-          Mes avantages
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Programme de fidélité et promotions</p>
+      <div className="flex items-center gap-3">
+        <Link
+          href="/"
+          className="w-11 h-11 flex items-center justify-center rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shrink-0"
+          aria-label="Retour"
+        >
+          <ArrowLeft size={18} className="text-gray-700 dark:text-gray-300" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Trophy size={24} className="text-red-600" />
+            Mes avantages
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Programme de fidélité et promotions</p>
+        </div>
       </div>
 
       {/* Loyalty progress */}

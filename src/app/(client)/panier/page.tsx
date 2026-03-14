@@ -237,7 +237,18 @@ export default function PanierPage() {
     try {
       const res = await fetch(`/api/shops/${state.shopId}/available-slots?date=${selectedDate}`);
       const json = await res.json();
-      setSlots(json.data?.slots || []);
+      let fetchedSlots: PickupSlot[] = json.data?.slots || [];
+      // Client-side filter: hide slots whose start time has already passed (+ 10 min margin)
+      const today = new Date().toISOString().slice(0, 10);
+      if (selectedDate === today) {
+        const now = new Date();
+        const nowMin = now.getHours() * 60 + now.getMinutes() + 10;
+        fetchedSlots = fetchedSlots.filter((s) => {
+          const [h, m] = s.start.split(":").map(Number);
+          return h * 60 + m >= nowMin;
+        });
+      }
+      setSlots(fetchedSlots);
     } catch {
       setSlots([]);
     } finally {

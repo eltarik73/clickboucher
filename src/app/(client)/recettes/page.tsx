@@ -3,7 +3,9 @@ export const revalidate = 60;
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import prisma from "@/lib/prisma";
+import { SafeImage } from "@/components/ui/SafeImage";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -48,11 +50,20 @@ export default async function RecettesPage({
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Hero */}
-        <h1 className="text-3xl font-black text-[#1C1512] dark:text-white">
-          Nos recettes 🍖
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        {/* Back + Hero */}
+        <div className="flex items-center gap-3 mb-1">
+          <Link
+            href="/"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shrink-0"
+            aria-label="Retour"
+          >
+            <ArrowLeft size={18} className="text-gray-700 dark:text-gray-300" />
+          </Link>
+          <h1 className="text-3xl font-black text-[#1C1512] dark:text-white">
+            Nos recettes 🍖
+          </h1>
+        </div>
+        <p className="text-gray-500 dark:text-gray-400 mt-1 pl-14">
           Des idées de plats avec les viandes de vos boucheries halal préférées.
         </p>
 
@@ -81,14 +92,15 @@ export default async function RecettesPage({
         {featured && (
           <Link href={`/recettes/${featured.slug}`} className="block mb-6">
             <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-md hover:shadow-lg transition border border-[#ece8e3]/60 dark:border-white/[0.06]">
-              <div className="h-52 bg-gray-200 dark:bg-white/5 relative">
+              <div className="h-52 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
                 {featured.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SafeImage
                     src={featured.imageUrl}
                     alt={featured.title}
-                    className="w-full h-full object-cover"
-                    loading="eager"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 896px"
+                    priority
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-5xl">
@@ -133,14 +145,14 @@ export default async function RecettesPage({
               href={`/recettes/${recipe.slug}`}
               className="flex gap-3 bg-white dark:bg-gray-800 rounded-2xl p-3 border border-[#ece8e3]/60 dark:border-white/[0.06] hover:shadow-sm transition"
             >
-              <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-white/5 overflow-hidden flex-shrink-0">
+              <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-white/5 overflow-hidden flex-shrink-0 relative">
                 {recipe.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SafeImage
                     src={recipe.imageUrl}
                     alt={recipe.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
+                    fill
+                    className="object-cover"
+                    sizes="96px"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl">

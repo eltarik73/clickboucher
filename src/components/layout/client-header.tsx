@@ -40,7 +40,7 @@ export function ClientHeader({ title, showLocation = true, showCart = true, cart
         </div>
 
         <div className="flex items-center gap-1.5">
-          <ThemeToggle />
+          <span className="hidden md:block"><ThemeToggle /></span>
           <NotificationBell />
           {showCart && (
             <Link href="/panier" aria-label="Panier" className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/15 transition-colors tap-scale">
