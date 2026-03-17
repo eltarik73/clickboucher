@@ -437,7 +437,7 @@ export default async function HomePage() {
               <Link href="/politique-de-confidentialite" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 Confidentialité
               </Link>
-              <a href="mailto:contact@klikandgo.fr" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <a href="mailto:contact@klikandgo.app" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 Contact
               </a>
             </nav>

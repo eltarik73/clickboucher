@@ -30,7 +30,7 @@ export default function PolitiqueConfidentialite() {
             <p>
               Le responsable du traitement des données personnelles collectées sur
               klikandgo.app est Klik&amp;Go, joignable à l&apos;adresse{" "}
-              <a href="mailto:contact@klikandgo.fr" className="text-[#DC2626]">contact@klikandgo.fr</a>.
+              <a href="mailto:contact@klikandgo.app" className="text-[#DC2626]">contact@klikandgo.app</a>.
             </p>
           </section>
 
@@ -108,7 +108,7 @@ export default function PolitiqueConfidentialite() {
             </ul>
             <p>
               Pour exercer ces droits, contactez-nous à{" "}
-              <a href="mailto:contact@klikandgo.fr" className="text-[#DC2626]">contact@klikandgo.fr</a>.
+              <a href="mailto:contact@klikandgo.app" className="text-[#DC2626]">contact@klikandgo.app</a>.
             </p>
           </section>
 

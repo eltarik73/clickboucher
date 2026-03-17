@@ -32,7 +32,7 @@ export default function MentionsLegales() {
               Klik&amp;Go — Tarik El Ouardi (Entrepreneur individuel)<br />
               SIRET : en cours d&apos;immatriculation<br />
               Adresse : Chambéry, 73000, France<br />
-              Email : <a href="mailto:contact@klikandgo.fr" className="text-[#DC2626]">contact@klikandgo.fr</a><br />
+              Email : <a href="mailto:contact@klikandgo.app" className="text-[#DC2626]">contact@klikandgo.app</a><br />
               Directeur de la publication : Tarik El Ouardi
             </p>
           </section>

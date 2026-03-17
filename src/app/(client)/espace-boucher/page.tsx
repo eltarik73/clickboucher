@@ -349,7 +349,7 @@ export default function EspaceBoucherPage() {
               <Feature>Formation équipe incluse</Feature>
             </ul>
             <a
-              href="mailto:contact@klikandgo.fr"
+              href="mailto:contact@klikandgo.app"
               className="mt-8 block w-full text-center bg-white text-[#1a1a1a] rounded-xl py-3 font-bold hover:bg-gray-100 transition-colors"
             >
               Nous contacter
@@ -448,10 +448,10 @@ export default function EspaceBoucherPage() {
           </h3>
           <p className="text-gray-400 text-sm">
             <a
-              href="mailto:contact@klikandgo.fr"
+              href="mailto:contact@klikandgo.app"
               className="hover:text-white transition"
             >
-              contact@klikandgo.fr
+              contact@klikandgo.app
             </a>
           </p>
           <div className="flex justify-center gap-4 mt-6 text-xs text-gray-500">
