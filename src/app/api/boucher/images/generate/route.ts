@@ -1,5 +1,6 @@
-// POST /api/boucher/images/generate — Boucher AI image generation (scoped to shop)
+// POST /api/boucher/images/generate — Mode 1 (pure AI generation, up to 4 variations)
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
@@ -8,16 +9,52 @@ import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
 import { put } from "@vercel/blob";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { z } from "zod";
+import {
+  GEN_PRESETS,
+  BACKGROUNDS,
+  ANGLES,
+  buildGenPrompt,
+} from "@/lib/image-prompts";
 
 const VALID_USAGES = ["CAMPAIGN", "PROMO", "PRODUCT", "SOCIAL", "BANNER"] as const;
 
-const generateImageSchema = z.object({
-  prompt: z.string().min(5).max(1000),
+const generateSchema = z.object({
+  prompt: z.string().min(3).max(500),
+  preset: z.enum(GEN_PRESETS).default("NONE"),
+  background: z.enum(BACKGROUNDS).default("WHITE"),
+  angle: z.enum(ANGLES).default("45"),
+  variations: z.number().int().min(1).max(4).default(4),
+  usage: z.enum(VALID_USAGES).default("PRODUCT"),
   width: z.number().int().min(256).max(2048).optional(),
   height: z.number().int().min(256).max(2048).optional(),
-  usage: z.enum(VALID_USAGES),
+  finalPromptOverride: z.string().min(3).max(2000).optional(),
 });
+
+async function runOneGeneration(
+  client: ReturnType<typeof getReplicateClient>,
+  args: { prompt: string; width: number; height: number; shopId: string; variationIndex: number }
+): Promise<string> {
+  const output = await client.run("black-forest-labs/flux-schnell", {
+    input: {
+      prompt: args.prompt,
+      width: args.width,
+      height: args.height,
+      num_outputs: 1,
+    },
+  });
+  const replicateUrl = Array.isArray(output) ? String(output[0]) : String(output);
+  const resp = await fetch(replicateUrl);
+  if (!resp.ok) throw new Error(`Replicate fetch failed: ${resp.status}`);
+  const buffer = Buffer.from(await resp.arrayBuffer());
+  const blob = await put(
+    `shops/${args.shopId}/generated/${Date.now()}-v${args.variationIndex}.png`,
+    buffer,
+    { access: "public", contentType: "image/png" }
+  );
+  return blob.url;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,43 +71,80 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { prompt, width, height, usage } = generateImageSchema.parse(body);
+    const parsed = generateSchema.parse(body);
+    const { prompt, preset, background, angle, variations, usage, finalPromptOverride } = parsed;
+    const width = parsed.width ?? 1024;
+    const height = parsed.height ?? 1024;
 
-    const replicate = getReplicateClient();
-    const output = await replicate.run("black-forest-labs/flux-schnell", {
-      input: {
-        prompt,
-        width: width || 1024,
-        height: height || 1024,
-        num_outputs: 1,
+    const finalPrompt =
+      finalPromptOverride && finalPromptOverride.trim().length > 0
+        ? finalPromptOverride.trim()
+        : buildGenPrompt({ userPrompt: prompt, preset, background, angle });
+
+    const client = getReplicateClient();
+
+    const results = await Promise.all(
+      Array.from({ length: variations }).map((_, i) =>
+        runOneGeneration(client, {
+          prompt: finalPrompt,
+          width,
+          height,
+          shopId: auth.shopId,
+          variationIndex: i,
+        }).catch((err: unknown) => {
+          logger.error("[images/generate] variation failed", { i, err });
+          return null;
+        })
+      )
+    );
+
+    const successful = results
+      .map((url, i) => (url ? { url, i } : null))
+      .filter((v): v is { url: string; i: number } => v !== null);
+
+    if (successful.length === 0) {
+      return apiError("INTERNAL_ERROR", "Toutes les générations ont échoué");
+    }
+
+    const images = await Promise.all(
+      successful.map(({ url, i }) =>
+        prisma.generatedImage.create({
+          data: {
+            prompt,
+            model: "FLUX_SCHNELL",
+            imageUrl: url,
+            width,
+            height,
+            usage,
+            shopId: auth.shopId,
+            createdBy: auth.userId,
+            metadata: {
+              preset,
+              background,
+              angle,
+              variationIndex: i,
+              totalVariations: variations,
+              userPrompt: prompt,
+              finalPrompt,
+            },
+          },
+          select: { id: true, imageUrl: true, metadata: true },
+        })
+      )
+    );
+
+    return apiSuccess(
+      {
+        finalPrompt,
+        images: images.map((img) => ({
+          id: img.id,
+          url: img.imageUrl,
+          finalPrompt,
+          metadata: img.metadata,
+        })),
       },
-    });
-
-    const replicateUrl = Array.isArray(output) ? String(output[0]) : String(output);
-
-    // Upload to Vercel Blob for permanent URL (Replicate URLs expire after ~1h)
-    const imageResponse = await fetch(replicateUrl);
-    const buffer = Buffer.from(await imageResponse.arrayBuffer());
-    const blob = await put(`generated/${Date.now()}.png`, buffer, {
-      access: 'public',
-      contentType: 'image/png',
-    });
-    const imageUrl = blob.url;
-
-    const image = await prisma.generatedImage.create({
-      data: {
-        prompt,
-        model: "FLUX_SCHNELL",
-        imageUrl,
-        width: width || 1024,
-        height: height || 1024,
-        usage,
-        shopId: auth.shopId,
-        createdBy: auth.userId,
-      },
-    });
-
-    return apiSuccess(image, 201);
+      201
+    );
   } catch (err) {
     return handleApiError(err, "boucher/images/generate");
   }

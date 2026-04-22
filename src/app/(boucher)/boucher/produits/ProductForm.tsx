@@ -18,10 +18,14 @@ import {
   AlertTriangle,
   Package,
   Search,
+  Sparkles,
+  ImageIcon,
 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
 import { useNotify } from "@/components/ui/NotificationToast";
 import ImageSearchModal from "@/components/boucher/ImageSearchModal";
+import ImageGenerateModal from "@/components/boucher/ImageGenerateModal";
+import ImageRetouchModal from "@/components/boucher/ImageRetouchModal";
 
 // ─────────────────────────────────────────────
 // Types
@@ -226,6 +230,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [customerNote, setCustomerNote] = useState(product?.customerNote || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const [retouchOpen, setRetouchOpen] = useState(false);
 
   // Variantes (saveurs)
   const [variants, setVariants] = useState<string[]>(product?.variants || []);
@@ -1373,6 +1379,30 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                       <span className="text-[10px] font-medium text-center leading-tight px-1">🔍 Chercher<br />en ligne</span>
                     </button>
                   )}
+
+                  {/* Generate AI button */}
+                  {images.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setGenerateOpen(true)}
+                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
+                    >
+                      <Sparkles size={20} />
+                      <span className="text-[10px] font-medium text-center leading-tight px-1">✨ Générer<br />IA</span>
+                    </button>
+                  )}
+
+                  {/* Retouch button */}
+                  {images.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setRetouchOpen(true)}
+                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
+                    >
+                      <ImageIcon size={20} />
+                      <span className="text-[10px] font-medium text-center leading-tight px-1">🖼️ Retoucher</span>
+                    </button>
+                  )}
                 </div>
                 <input
                   ref={fileInputRef}
@@ -1401,6 +1431,47 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                     return [...prev, newImg];
                   });
                   notify("success", "Image ajoutée depuis la recherche web");
+                }}
+              />
+
+              <ImageGenerateModal
+                open={generateOpen}
+                onClose={() => setGenerateOpen(false)}
+                defaultQuery={name}
+                usage="PRODUCT"
+                onSelect={(url, alt) => {
+                  setImages((prev) => {
+                    if (prev.length >= 5) return prev;
+                    const newImg: ImageItem = {
+                      url,
+                      alt: alt || name,
+                      isPrimary: prev.length === 0,
+                      order: prev.length,
+                    };
+                    return [...prev, newImg];
+                  });
+                  notify("success", "Image IA ajoutée");
+                }}
+              />
+
+              <ImageRetouchModal
+                open={retouchOpen}
+                onClose={() => setRetouchOpen(false)}
+                defaultQuery={name}
+                usage="PRODUCT"
+                sourceImageUrl={images[0]?.url}
+                onSelect={(url, alt) => {
+                  setImages((prev) => {
+                    if (prev.length >= 5) return prev;
+                    const newImg: ImageItem = {
+                      url,
+                      alt: alt || name,
+                      isPrimary: prev.length === 0,
+                      order: prev.length,
+                    };
+                    return [...prev, newImg];
+                  });
+                  notify("success", "Image retouchée ajoutée");
                 }}
               />
 
