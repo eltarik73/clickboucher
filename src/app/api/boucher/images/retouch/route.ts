@@ -133,19 +133,23 @@ export async function POST(req: NextRequest) {
 
     const client = getReplicateClient();
 
-    const results = await Promise.all(
-      Array.from({ length: params.variations }).map((_, i) =>
-        runOneRetouch(client, {
+    // Sequential to stay within Replicate's concurrency limits.
+    const results: (string | null)[] = [];
+    for (let i = 0; i < params.variations; i++) {
+      try {
+        const url = await runOneRetouch(client, {
           prompt: finalPrompt,
           sourceUrl,
           shopId: auth.shopId,
           variationIndex: i,
-        }).catch((err: unknown) => {
-          logger.error("[images/retouch] variation failed", { i, err });
-          return null;
-        })
-      )
-    );
+        });
+        results.push(url);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error("[images/retouch] variation failed", { i, msg });
+        results.push(null);
+      }
+    }
 
     const successful = results
       .map((url, i) => (url ? { url, i } : null))

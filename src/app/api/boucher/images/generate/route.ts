@@ -83,20 +83,25 @@ export async function POST(req: NextRequest) {
 
     const client = getReplicateClient();
 
-    const results = await Promise.all(
-      Array.from({ length: variations }).map((_, i) =>
-        runOneGeneration(client, {
+    // Sequential to stay within Replicate's free-tier concurrency (1 prediction at a time).
+    // Total time: ~3-5s per variation × N, stays under maxDuration=60.
+    const results: (string | null)[] = [];
+    for (let i = 0; i < variations; i++) {
+      try {
+        const url = await runOneGeneration(client, {
           prompt: finalPrompt,
           width,
           height,
           shopId: auth.shopId,
           variationIndex: i,
-        }).catch((err: unknown) => {
-          logger.error("[images/generate] variation failed", { i, err });
-          return null;
-        })
-      )
-    );
+        });
+        results.push(url);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error("[images/generate] variation failed", { i, msg });
+        results.push(null);
+      }
+    }
 
     const successful = results
       .map((url, i) => (url ? { url, i } : null))
