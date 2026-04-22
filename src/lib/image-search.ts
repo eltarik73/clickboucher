@@ -47,7 +47,7 @@ export async function searchPexels(query: string, perPage = 16): Promise<SearchR
     return (data.photos || []).map((p) => ({
       id: `pexels-${p.id}`,
       url: p.src.large2x || p.src.large || p.src.original,
-      thumbUrl: p.src.medium || p.src.large,
+      thumbUrl: `/api/boucher/images/proxy?url=${encodeURIComponent(p.src.medium || p.src.large)}`,
       author: p.photographer,
       authorUrl: p.photographer_url,
       source: "pexels" as const,
@@ -84,7 +84,7 @@ export async function searchUnsplash(query: string, perPage = 16): Promise<Searc
     return (data.results || []).map((p) => ({
       id: `unsplash-${p.id}`,
       url: p.urls.regular,
-      thumbUrl: p.urls.small,
+      thumbUrl: `/api/boucher/images/proxy?url=${encodeURIComponent(p.urls.small)}`,
       author: p.user.name,
       authorUrl: p.user.links.html,
       source: "unsplash" as const,
