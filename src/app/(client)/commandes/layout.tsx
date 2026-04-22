@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mes commandes | Klik&Go",
+  title: "Mes commandes",
   description:
     "Suivez l'historique de vos commandes click & collect et recommandez facilement.",
   robots: { index: false, follow: false },

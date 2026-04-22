@@ -13,7 +13,7 @@ export function CartFAB() {
   return (
     <Link
       href="/panier"
-      className="fixed bottom-6 right-6 z-40 hidden md:flex items-center gap-3 px-5 py-3 bg-primary text-white rounded-full shadow-lg shadow-red-500/30 hover:bg-primary transition-all"
+      className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-3 px-5 py-3 bg-primary text-white rounded-full shadow-lg shadow-red-500/30 hover:bg-primary transition-all"
       aria-label={`Panier, ${count} article${count > 1 ? "s" : ""}, ${total.toFixed(2)}€`}
     >
       <div className="relative">

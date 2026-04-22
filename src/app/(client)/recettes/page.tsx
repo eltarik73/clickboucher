@@ -10,7 +10,7 @@ import { SafeImage } from "@/components/ui/SafeImage";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
-  title: "Recettes halal — Idées de plats avec viande halal | Klik&Go",
+  title: "Recettes halal — Idées de plats avec viande halal",
   description:
     "Découvrez nos recettes halal avec des quantités de viande précises. Tajine, couscous, grillades, kefta et plus. Commandez les ingrédients en click & collect.",
   alternates: { canonical: `${SITE_URL}/recettes` },

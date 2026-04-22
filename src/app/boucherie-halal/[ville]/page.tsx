@@ -30,7 +30,7 @@ export async function generateMetadata({
     title,
     description: city.description,
     openGraph: {
-      title: `${title} | Klik&Go`,
+      title,
       description: city.description,
       url: `${SITE_URL}/boucherie-halal/${city.slug}`,
       images: [{ url: "/og-image.png", width: 1200, height: 630, alt: `Boucherie halal ${city.name}` }],

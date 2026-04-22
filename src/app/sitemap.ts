@@ -7,7 +7,7 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [shops, recipes] = await Promise.all([
+  const [shops, recipes, shopCities] = await Promise.all([
     prisma.shop.findMany({
     where: { visible: true },
     select: { slug: true, updatedAt: true },
@@ -17,7 +17,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { published: true },
       select: { slug: true, updatedAt: true },
     }),
+    // Only list SEO cities that have at least one visible shop — otherwise
+    // the page is thin/empty and hurts E-E-A-T + crawl budget.
+    prisma.shop.findMany({
+      where: { visible: true },
+      select: { city: true },
+    }),
   ]);
+
+  const populatedCitySlugs = new Set(
+    shopCities
+      .map((s) => s.city?.toLowerCase().trim())
+      .filter(Boolean)
+      .flatMap((c) =>
+        SEO_CITIES.filter((city) =>
+          c!.includes(city.name.toLowerCase())
+        ).map((city) => city.slug)
+      )
+  );
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -113,7 +130,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.map((city) => ({
+  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.filter((city) =>
+    populatedCitySlugs.has(city.slug)
+  ).map((city) => ({
     url: `${BASE_URL}/boucherie-halal/${city.slug}`,
     lastModified: new Date(),
     changeFrequency: "weekly" as const,

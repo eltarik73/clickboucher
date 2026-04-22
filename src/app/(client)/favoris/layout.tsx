@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mes favoris | Klik&Go",
+  title: "Mes favoris",
   description:
     "Retrouvez vos boucheries favorites et commandez rapidement sur Klik&Go.",
 };

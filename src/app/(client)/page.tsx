@@ -25,11 +25,11 @@ const OfferPopup = dynamic(() => import("@/components/client/OfferPopup").then(m
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
-  title: "Klik&Go — Click & Collect Boucherie Halal | Commandez en ligne",
+  title: "Click & Collect Boucherie Halal — Commandez en ligne",
   description:
     "Commandez en ligne chez votre boucherie halal de proximité. Retrait rapide en boutique à Chambéry, Grenoble, Lyon. Frais de service 0,99€ seulement.",
   openGraph: {
-    title: "Boucheries Halal près de chez vous — Click & Collect | Klik&Go",
+    title: "Boucheries Halal près de chez vous — Click & Collect",
     description: "Trouvez votre boucherie halal et commandez en click & collect. Retrait rapide en boutique.",
     url: SITE_URL,
   },
@@ -240,6 +240,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
+      <h1 className="sr-only">Klik&amp;Go — Click &amp; Collect de boucheries halal</h1>
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER */}
       {/* ═══════════════════════════════════════════════════════════ */}

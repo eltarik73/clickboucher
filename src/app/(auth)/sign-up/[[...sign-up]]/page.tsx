@@ -3,7 +3,7 @@ import { SignUp } from "@clerk/nextjs";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 export const metadata: Metadata = {
-  title: "Inscription | Klik&Go",
+  title: "Inscription",
   description:
     "Créez votre compte Klik&Go pour commander facilement chez votre boucher halal à Chambéry.",
 };

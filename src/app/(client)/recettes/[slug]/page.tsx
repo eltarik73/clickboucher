@@ -31,7 +31,7 @@ export async function generateMetadata({
   const recipe = await prisma.recipe.findUnique({ where: { slug } });
   if (!recipe) return {};
   return {
-    title: `${recipe.title} — Recette halal | Klik&Go`,
+    title: `${recipe.title} — Recette halal`,
     description: `${recipe.description} ${recipe.meatQuantity}. Commandez la viande halal en click & collect.`,
     alternates: { canonical: `${SITE_URL}/recettes/${slug}` },
   };

@@ -5,7 +5,7 @@ import { isAdmin } from "@/lib/roles";
 import { logger } from "@/lib/logger";
 
 export const metadata = {
-  title: "Administration — Klik&Go",
+  title: "Administration",
   robots: { index: false, follow: false },
 };
 

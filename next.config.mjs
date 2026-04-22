@@ -23,6 +23,11 @@ const nextConfig = {
       { source: "/boucheries", destination: "/", permanent: true },
     ];
   },
+  async rewrites() {
+    return [
+      { source: "/manifest.webmanifest", destination: "/manifest.json" },
+    ];
+  },
   async headers() {
     return [
       {

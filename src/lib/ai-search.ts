@@ -23,38 +23,39 @@ const SYNONYMS: Record<string, string[]> = {
   "mijoté": ["tajine", "ragoût", "mijoté", "bourguignon"],
 };
 
+function stripAccents(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function expandTokens(query: string): string[] {
-  const raw = query
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .split(/\s+/)
-    .filter((t) => t.length >= 2);
+  // Keep BOTH accented and non-accented versions to match against DB data
+  // that may have either form. Prisma `mode: insensitive` doesn't strip accents,
+  // so "côte" and "cote" need to both be queried. Extension `unaccent` would be
+  // cleaner but requires a migration — this is the pragmatic fallback.
+  const originalTokens = query.toLowerCase().split(/\s+/).filter((t) => t.length >= 2);
+  const normalizedTokens = originalTokens.map(stripAccents);
 
   const expanded = new Set<string>();
 
-  for (const token of raw) {
-    expanded.add(token);
-    // Also add the original (with accents) if present in synonyms
-    const originalTokens = query.toLowerCase().split(/\s+/).filter((t) => t.length >= 2);
-    for (const orig of originalTokens) {
-      if (SYNONYMS[orig]) {
-        // Limit to first 2 synonyms to reduce OR conditions
-        for (const syn of SYNONYMS[orig].slice(0, 2)) {
-          expanded.add(syn);
-        }
-      }
+  for (const orig of originalTokens) {
+    expanded.add(orig);
+    const norm = stripAccents(orig);
+    if (norm !== orig) expanded.add(norm);
+
+    if (SYNONYMS[orig]) {
+      for (const syn of SYNONYMS[orig].slice(0, 2)) expanded.add(syn);
     }
-    // Check normalized token too
-    if (SYNONYMS[token]) {
-      for (const syn of SYNONYMS[token].slice(0, 2)) {
-        expanded.add(syn);
-      }
+    if (SYNONYMS[norm]) {
+      for (const syn of SYNONYMS[norm].slice(0, 2)) expanded.add(syn);
     }
   }
+  // Also fall-through on normalized tokens
+  for (const norm of normalizedTokens) {
+    expanded.add(norm);
+  }
 
-  // Hard cap: max 6 tokens total to avoid excessive OR conditions
-  return Array.from(expanded).slice(0, 6);
+  // Hard cap: max 8 tokens total to avoid excessive OR conditions
+  return Array.from(expanded).slice(0, 8);
 }
 
 export async function searchProducts(

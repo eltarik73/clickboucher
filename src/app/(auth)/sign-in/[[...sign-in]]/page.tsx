@@ -3,7 +3,7 @@ import { SignIn } from "@clerk/nextjs";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
 export const metadata: Metadata = {
-  title: "Connexion | Klik&Go",
+  title: "Connexion",
   description:
     "Connectez-vous à votre compte Klik&Go pour commander chez votre boucher halal et suivre vos commandes.",
 };
