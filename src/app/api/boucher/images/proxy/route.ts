@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 
 const ALLOWED_HOSTS = new Set(["images.pexels.com", "images.unsplash.com"]);
+const ALLOWED_HOST_SUFFIXES = [".public.blob.vercel-storage.com", ".replicate.delivery"];
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export async function GET(req: NextRequest) {
@@ -20,7 +21,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid url" }, { status: 400 });
   }
 
-  if (target.protocol !== "https:" || !ALLOWED_HOSTS.has(target.hostname)) {
+  const isExact = ALLOWED_HOSTS.has(target.hostname);
+  const isSuffix = ALLOWED_HOST_SUFFIXES.some((s) => target.hostname.endsWith(s));
+  if (target.protocol !== "https:" || (!isExact && !isSuffix)) {
     return NextResponse.json({ error: "Host not allowed" }, { status: 400 });
   }
 
