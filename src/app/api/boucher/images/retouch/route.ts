@@ -45,26 +45,50 @@ async function uploadOriginal(
   return blob.url;
 }
 
+function parseRetryAfterRetouch(msg: string): number | null {
+  const m = msg.match(/retry_after["\s:]*([0-9]+)/i);
+  if (m) return Math.min(30, Number(m[1])) * 1000;
+  const m2 = msg.match(/resets in ~(\d+)s/i);
+  if (m2) return Math.min(30, Number(m2[1])) * 1000;
+  return null;
+}
+
+async function runModelWithRetry(
+  client: ReturnType<typeof getReplicateClient>,
+  model: `${string}/${string}`,
+  input: Record<string, unknown>
+): Promise<unknown> {
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await client.run(model, { input });
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("429") && !msg.includes("Too Many Requests")) throw err;
+      const waitMs = parseRetryAfterRetouch(msg) ?? 10000;
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
 async function runOneRetouch(
   client: ReturnType<typeof getReplicateClient>,
   args: { prompt: string; sourceUrl: string; shopId: string; variationIndex: number }
 ): Promise<string> {
   let output: unknown;
   try {
-    output = await client.run(PRIMARY_MODEL, {
-      input: {
-        prompt: args.prompt,
-        input_image: args.sourceUrl,
-      },
+    output = await runModelWithRetry(client, PRIMARY_MODEL, {
+      prompt: args.prompt,
+      input_image: args.sourceUrl,
     });
   } catch (err) {
     logger.warn("[images/retouch] primary model failed, falling back", err);
-    output = await client.run(FALLBACK_MODEL, {
-      input: {
-        prompt: args.prompt,
-        image: args.sourceUrl,
-        num_outputs: 1,
-      },
+    output = await runModelWithRetry(client, FALLBACK_MODEL, {
+      prompt: args.prompt,
+      image: args.sourceUrl,
+      num_outputs: 1,
     });
   }
 

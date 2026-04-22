@@ -32,28 +32,49 @@ const generateSchema = z.object({
   finalPromptOverride: z.string().min(3).max(2000).optional(),
 });
 
+function parseRetryAfter(msg: string): number | null {
+  const m = msg.match(/retry_after["\s:]*([0-9]+)/i);
+  if (m) return Math.min(30, Number(m[1])) * 1000;
+  const m2 = msg.match(/resets in ~(\d+)s/i);
+  if (m2) return Math.min(30, Number(m2[1])) * 1000;
+  return null;
+}
+
 async function runOneGeneration(
   client: ReturnType<typeof getReplicateClient>,
   args: { prompt: string; width: number; height: number; shopId: string; variationIndex: number }
 ): Promise<string> {
-  const output = await client.run("black-forest-labs/flux-schnell", {
-    input: {
-      prompt: args.prompt,
-      width: args.width,
-      height: args.height,
-      num_outputs: 1,
-    },
-  });
-  const replicateUrl = Array.isArray(output) ? String(output[0]) : String(output);
-  const resp = await fetch(replicateUrl);
-  if (!resp.ok) throw new Error(`Replicate fetch failed: ${resp.status}`);
-  const buffer = Buffer.from(await resp.arrayBuffer());
-  const blob = await put(
-    `shops/${args.shopId}/generated/${Date.now()}-v${args.variationIndex}.png`,
-    buffer,
-    { access: "public", contentType: "image/png" }
-  );
-  return blob.url;
+  // Retry up to 3 times on 429 (Replicate throttling — especially strict when account has low credit)
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const output = await client.run("black-forest-labs/flux-schnell", {
+        input: {
+          prompt: args.prompt,
+          width: args.width,
+          height: args.height,
+          num_outputs: 1,
+        },
+      });
+      const replicateUrl = Array.isArray(output) ? String(output[0]) : String(output);
+      const resp = await fetch(replicateUrl);
+      if (!resp.ok) throw new Error(`Replicate fetch failed: ${resp.status}`);
+      const buffer = Buffer.from(await resp.arrayBuffer());
+      const blob = await put(
+        `shops/${args.shopId}/generated/${Date.now()}-v${args.variationIndex}.png`,
+        buffer,
+        { access: "public", contentType: "image/png" }
+      );
+      return blob.url;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("429") && !msg.includes("Too Many Requests")) throw err;
+      const waitMs = parseRetryAfter(msg) ?? 10000;
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 export async function POST(req: NextRequest) {
