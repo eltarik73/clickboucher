@@ -14,6 +14,28 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
   const [shops, setShops] = useState<ShopCardData[]>(initialShops);
   const [loading, setLoading] = useState(false);
   const [geoActive, setGeoActive] = useState(false);
+  // Hydrate favorites client-side so the homepage stays ISR-cacheable (no auth() on server)
+  const [hydratedFavorites, setHydratedFavorites] = useState<string[]>(favoriteIds);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/favorites", { credentials: "include" });
+        if (!res.ok) return;
+        const json = await res.json();
+        const ids = Array.isArray(json?.data)
+          ? json.data.map((s: { id: string }) => s.id)
+          : [];
+        if (!cancelled) setHydratedFavorites(ids);
+      } catch {
+        // Keep initial favorites on error
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const fetchNearby = useCallback(async (lat: number, lng: number) => {
     setLoading(true);
@@ -61,7 +83,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
     return () => window.removeEventListener("klikgo-location", handler);
   }, [fetchNearby, initialShops]);
 
-  const favSet = new Set(favoriteIds);
+  const favSet = new Set(hydratedFavorites);
 
   return (
     <>

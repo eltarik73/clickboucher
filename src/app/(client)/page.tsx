@@ -3,7 +3,6 @@ export const revalidate = 60; // ISR — rebuild every 60s
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PromoCarousel } from "@/components/landing/PromoCarousel";
@@ -74,7 +73,8 @@ type LivePromo = {
 export default async function HomePage() {
   let shops: ShopData[] = [];
   let dbError = false;
-  let favoriteIds: Set<string> = new Set();
+  // Favorites are now hydrated client-side (NearbyShops) so the homepage can be ISR-cached by the CDN.
+  const favoriteIds: Set<string> = new Set();
   let livePromos: LivePromo[] = [];
   let antiGaspiCount = 0;
   let flashSaleCount = 0;
@@ -84,10 +84,9 @@ export default async function HomePage() {
   let popupOffers: { id: string; name: string; code: string; type: string; discountValue: number; popupTitle: string | null; popupMessage: string | null; popupColor: string | null; popupFrequency: string | null; popupImageUrl: string | null }[] = [];
   let latestRecipes: { id: string; slug: string; title: string; imageUrl: string | null; meatQuantity: string; totalTime: number }[] = [];
 
-  // 1. Auth + DB queries in parallel (auth is non-blocking — page works without login)
+  // 1. DB queries in parallel. Auth is handled client-side via NearbyShops (favorites hydrate after mount)
+  //    so this page stays static/ISR-cacheable and Vercel CDN can serve it with `s-maxage=60`.
   try {
-    const authPromise = auth().catch(() => ({ userId: null as string | null }));
-
     const shopsPromise = prisma.shop.findMany({
       where: { visible: true },
       orderBy: { rating: "desc" },
@@ -163,22 +162,9 @@ export default async function HomePage() {
       where: { published: true },
     });
 
-    // Run auth + ALL DB queries in parallel (auth no longer blocks DB queries)
-    const [authResult, shopsResult, offersResult, popupOffersResult, agCount, fsCount, pmCount, pkCount, rcCount, latestRecipesResult] = await Promise.all([authPromise, shopsPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, promoCountPromise, packCountPromise, recipeCountPromise, latestRecipesPromise]);
+    // Run ALL DB queries in parallel — no auth() here (page is ISR-cached, favorites hydrate client-side)
+    const [shopsResult, offersResult, popupOffersResult, agCount, fsCount, pmCount, pkCount, rcCount, latestRecipesResult] = await Promise.all([shopsPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, promoCountPromise, packCountPromise, recipeCountPromise, latestRecipesPromise]);
 
-    const clerkId = authResult.userId;
-
-    // Favorites query depends on auth — runs after auth resolves (only if logged in)
-    const favResult = clerkId
-      ? await prisma.user.findUnique({
-          where: { clerkId },
-          select: { favoriteShops: { select: { id: true } } },
-        })
-      : null;
-
-    if (favResult?.favoriteShops) {
-      favoriteIds = new Set(favResult.favoriteShops.map((s) => s.id));
-    }
     antiGaspiCount = agCount;
     flashSaleCount = fsCount;
     promoCount = pmCount;

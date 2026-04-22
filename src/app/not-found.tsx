@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+// Render the 404 page statically — avoids rebuilds and lets the CDN serve it cold-fast.
+export const dynamic = "force-static";
+
 export default function NotFoundPage() {
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex items-center justify-center px-5">

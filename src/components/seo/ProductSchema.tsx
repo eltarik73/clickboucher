@@ -17,12 +17,19 @@ interface ProductSchemaProps {
 }
 
 export function ProductSchema({ product, shop }: ProductSchemaProps) {
+  // Normalize image URL → absolute (schema.org recommends absolute URLs for rich results)
+  const absoluteImage = product.imageUrl
+    ? product.imageUrl.startsWith("http")
+      ? product.imageUrl
+      : `${SITE_URL}${product.imageUrl.startsWith("/") ? "" : "/"}${product.imageUrl}`
+    : null;
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     ...(product.description && { description: product.description }),
-    ...(product.imageUrl && { image: product.imageUrl }),
+    ...(absoluteImage && { image: absoluteImage }),
     sku: product.id,
     brand: {
       "@type": "Brand",
