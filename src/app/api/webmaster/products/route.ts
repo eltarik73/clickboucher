@@ -1,5 +1,6 @@
 // GET /api/webmaster/products — Global product catalogue for webmaster
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
@@ -21,8 +22,7 @@ export async function GET(req: NextRequest) {
     const promoFilter = sp.get("promo") || ""; // "yes" | ""
     const sortBy = sp.get("sort") || "newest"; // newest | name | price_asc | price_desc | shop
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: Prisma.ProductWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -52,8 +52,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Sort
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let orderBy: any;
+    let orderBy: Prisma.ProductOrderByWithRelationInput;
     switch (sortBy) {
       case "name":
         orderBy = { name: "asc" };

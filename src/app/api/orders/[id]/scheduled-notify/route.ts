@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
@@ -57,10 +58,13 @@ export async function POST(
     }
 
     // Check not already notified
-    const notifSent = Array.isArray(order.notifSent) ? order.notifSent : [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const notifSent: Prisma.JsonValue[] = Array.isArray(order.notifSent) ? order.notifSent : [];
     const alreadySent = notifSent.some(
-      (n: any) => n && typeof n === "object" && n.event === "SCHEDULED_PREPARE"
+      (n) =>
+        n !== null &&
+        typeof n === "object" &&
+        !Array.isArray(n) &&
+        (n as { event?: string }).event === "SCHEDULED_PREPARE"
     );
     if (alreadySent) {
       return apiSuccess({ notified: false, reason: "already_sent" });
@@ -88,7 +92,7 @@ export async function POST(
         notifSent: [
           ...notifSent,
           { event: "SCHEDULED_PREPARE", at: new Date().toISOString() },
-        ],
+        ] as Prisma.InputJsonValue,
       },
     });
 

@@ -2,7 +2,7 @@
 import prisma from "@/lib/prisma";
 import { apiCached, handleApiError } from "@/lib/api/errors";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function GET() {
   try {

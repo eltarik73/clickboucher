@@ -1,5 +1,6 @@
 // GET /api/webmaster/reviews — All reviews with filters for webmaster
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
@@ -18,13 +19,11 @@ export async function GET(req: NextRequest) {
     const rating = sp.get("rating") || ""; // "1" | "2" | "3" | "4" | "5" | ""
     const sortBy = sp.get("sort") || "newest"; // "newest" | "oldest" | "rating_asc" | "rating_desc"
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: Prisma.ReviewWhereInput = {};
     if (shopId) where.shopId = shopId;
     if (rating) where.rating = Number(rating);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let orderBy: any;
+    let orderBy: Prisma.ReviewOrderByWithRelationInput;
     switch (sortBy) {
       case "oldest":
         orderBy = { createdAt: "asc" };

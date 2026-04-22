@@ -10,7 +10,7 @@ import { canTransition } from "@/lib/order-state-machine";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { sendOrderReceiptEmail } from "@/lib/emails/order-receipt";
 
-import type { OrderStatus } from "@prisma/client";
+import { Prisma, type OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ async function logOrderEvent(
         shopId,
         type,
         actorId,
-        ...(payload ? { payloadJson: payload as unknown as import("@prisma/client").Prisma.InputJsonValue } : {}),
+        ...(payload ? { payloadJson: payload as unknown as Prisma.InputJsonValue } : {}),
       },
     });
   } catch (e) {
@@ -573,8 +573,22 @@ export async function PATCH(
 }
 
 // ── Receipt email helper ─────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function sendReceiptForOrder(order: any, pickedUpAt: Date) {
+type OrderWithDetails = Prisma.OrderGetPayload<{
+  include: {
+    items: { include: { product: { include: { categories: true } } } };
+    shop: {
+      select: {
+        id: true; ownerId: true; name: true; prepTimeMin: true;
+        busyMode: true; busyExtraMin: true;
+        address: true; city: true; siret: true; fullAddress: true;
+        vatRate: true;
+      };
+    };
+    user: { select: { id: true; firstName: true; lastName: true; email: true; clerkId: true; customerNumber: true } };
+  };
+}>;
+
+async function sendReceiptForOrder(order: OrderWithDetails, pickedUpAt: Date) {
   try {
     await sendOrderReceiptEmail(order.user.email, {
       orderId: order.id,
@@ -582,7 +596,7 @@ async function sendReceiptForOrder(order: any, pickedUpAt: Date) {
       customerFirstName: order.user.firstName,
       customerLastName: order.user.lastName,
       customerNumber: order.user.customerNumber || null,
-      items: order.items.map((item: any) => ({
+      items: order.items.map((item) => ({
         name: item.name,
         quantity: item.quantity,
         unit: item.unit,
