@@ -1,0 +1,299 @@
+- generic [active] [ref=e1]:
+  - region "Notifications alt+T"
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - link "Klik&Go Klik&Go Espace boucher" [ref=e6] [cursor=pointer]:
+          - /url: /boucher/dashboard
+          - img "Klik&Go" [ref=e9]
+          - generic [ref=e15]:
+            - generic [ref=e16]: Klik&Go
+            - paragraph [ref=e17]: Espace boucher
+        - link "Mode Cuisine" [ref=e19] [cursor=pointer]:
+          - /url: /boucher/commandes
+          - img [ref=e20]
+          - text: Mode Cuisine
+        - navigation [ref=e22]:
+          - link "Dashboard" [ref=e23] [cursor=pointer]:
+            - /url: /boucher/dashboard
+            - img [ref=e24]
+            - generic [ref=e29]: Dashboard
+          - link "Commandes" [ref=e30] [cursor=pointer]:
+            - /url: /boucher/commandes
+            - img [ref=e31]
+            - generic [ref=e34]: Commandes
+          - link "Produits" [ref=e35] [cursor=pointer]:
+            - /url: /boucher/produits
+            - img [ref=e36]
+            - generic [ref=e40]: Produits
+          - link "Anti-Gaspi" [ref=e41] [cursor=pointer]:
+            - /url: /boucher/dashboard/anti-gaspi
+            - img [ref=e42]
+            - generic [ref=e45]: Anti-Gaspi
+          - link "Offres" [ref=e46] [cursor=pointer]:
+            - /url: /shop/offers
+            - img [ref=e47]
+            - generic [ref=e51]: Offres
+          - link "Clients" [ref=e52] [cursor=pointer]:
+            - /url: /boucher/clients
+            - img [ref=e53]
+            - generic [ref=e58]: Clients
+          - link "Performance" [ref=e59] [cursor=pointer]:
+            - /url: /boucher/performance
+            - img [ref=e60]
+            - generic [ref=e62]: Performance
+          - link "Support" [ref=e63] [cursor=pointer]:
+            - /url: /boucher/support
+            - img [ref=e64]
+            - generic [ref=e66]: Support
+          - link "Paramètres" [ref=e67] [cursor=pointer]:
+            - /url: /boucher/parametres
+            - img [ref=e68]
+            - generic [ref=e71]: Paramètres
+      - main [ref=e72]:
+        - generic [ref=e100]:
+          - generic [ref=e102]:
+            - button [ref=e103] [cursor=pointer]:
+              - img [ref=e104]
+            - heading "Nouveau produit" [level=1] [ref=e106]
+          - generic [ref=e107]:
+            - button "Importer depuis le catalogue" [ref=e108] [cursor=pointer]:
+              - img [ref=e109]
+              - text: Importer depuis le catalogue
+            - generic [ref=e113]:
+              - heading "Informations" [level=2] [ref=e114]:
+                - img [ref=e115]
+                - text: Informations
+              - generic [ref=e119]:
+                - generic [ref=e120]: Nom du produit *
+                - 'textbox "Ex: Entrecote maturee" [ref=e121]'
+              - generic [ref=e122]:
+                - generic [ref=e123]:
+                  - text: Description
+                  - generic [ref=e124]: (0/120)
+                - textbox "Description courte du produit..." [ref=e125]
+              - generic [ref=e126]:
+                - generic [ref=e128]: Categories * (max 3)
+                - generic [ref=e129]:
+                  - button "🥩 Bœuf" [ref=e130] [cursor=pointer]:
+                    - generic [ref=e131]: 🥩
+                    - generic [ref=e132]: Bœuf
+                  - button "🐑 Agneau" [ref=e133] [cursor=pointer]:
+                    - generic [ref=e134]: 🐑
+                    - generic [ref=e135]: Agneau
+                  - button "🐔 Volaille" [ref=e136] [cursor=pointer]:
+                    - generic [ref=e137]: 🐔
+                    - generic [ref=e138]: Volaille
+                  - button "🫕 Veau" [ref=e139] [cursor=pointer]:
+                    - generic [ref=e140]: 🫕
+                    - generic [ref=e141]: Veau
+                  - button "🔥 Grillades & BBQ" [ref=e142] [cursor=pointer]:
+                    - generic [ref=e143]: 🔥
+                    - generic [ref=e144]: Grillades & BBQ
+                  - button "🧆 Préparations" [ref=e145] [cursor=pointer]:
+                    - generic [ref=e146]: 🧆
+                    - generic [ref=e147]: Préparations
+                  - button "🥘 Abats & Divers" [ref=e148] [cursor=pointer]:
+                    - generic [ref=e149]: 🥘
+                    - generic [ref=e150]: Abats & Divers
+                  - button "🧪 Test Catégorie Modifiée" [ref=e151] [cursor=pointer]:
+                    - generic [ref=e152]: 🧪
+                    - generic [ref=e153]: Test Catégorie Modifiée
+              - generic [ref=e154]:
+                - generic [ref=e155]: Origine
+                - generic [ref=e156]:
+                  - button "🇫🇷 France" [ref=e157] [cursor=pointer]:
+                    - generic [ref=e158]: 🇫🇷
+                    - generic [ref=e159]: France
+                  - button "🇪🇸 Espagne" [ref=e160] [cursor=pointer]:
+                    - generic [ref=e161]: 🇪🇸
+                    - generic [ref=e162]: Espagne
+                  - button "🇮🇪 Irlande" [ref=e163] [cursor=pointer]:
+                    - generic [ref=e164]: 🇮🇪
+                    - generic [ref=e165]: Irlande
+                  - button "🇧🇪 Belgique" [ref=e166] [cursor=pointer]:
+                    - generic [ref=e167]: 🇧🇪
+                    - generic [ref=e168]: Belgique
+                  - button "🇩🇪 Allemagne" [ref=e169] [cursor=pointer]:
+                    - generic [ref=e170]: 🇩🇪
+                    - generic [ref=e171]: Allemagne
+                  - button "🇮🇹 Italie" [ref=e172] [cursor=pointer]:
+                    - generic [ref=e173]: 🇮🇹
+                    - generic [ref=e174]: Italie
+                  - button "🇵🇱 Pologne" [ref=e175] [cursor=pointer]:
+                    - generic [ref=e176]: 🇵🇱
+                    - generic [ref=e177]: Pologne
+                  - button "🇬🇧 UK" [ref=e178] [cursor=pointer]:
+                    - generic [ref=e179]: 🇬🇧
+                    - generic [ref=e180]: UK
+                  - button "🇳🇱 Pays-Bas" [ref=e181] [cursor=pointer]:
+                    - generic [ref=e182]: 🇳🇱
+                    - generic [ref=e183]: Pays-Bas
+                  - button "🇦🇷 Argentine" [ref=e184] [cursor=pointer]:
+                    - generic [ref=e185]: 🇦🇷
+                    - generic [ref=e186]: Argentine
+                  - button "🇧🇷 Bresil" [ref=e187] [cursor=pointer]:
+                    - generic [ref=e188]: 🇧🇷
+                    - generic [ref=e189]: Bresil
+                  - button "🇦🇺 Australie" [ref=e190] [cursor=pointer]:
+                    - generic [ref=e191]: 🇦🇺
+                    - generic [ref=e192]: Australie
+              - generic [ref=e193]:
+                - generic [ref=e194]:
+                  - generic [ref=e195]: Prix *
+                  - generic [ref=e196]:
+                    - spinbutton [ref=e197]
+                    - generic [ref=e198]: €
+                - generic [ref=e199]:
+                  - generic [ref=e200]: Unite
+                  - combobox [ref=e201]:
+                    - option "Au kilo (kg)" [selected]
+                    - option "A la piece"
+                    - option "Barquette"
+                    - option "A la tranche"
+              - generic [ref=e202]:
+                - generic [ref=e203]: Prix PRO (optionnel)
+                - generic [ref=e204]:
+                  - spinbutton [ref=e205]
+                  - generic [ref=e206]: €
+              - generic [ref=e207]:
+                - text: Configuration poids
+                - generic [ref=e208]:
+                  - paragraph [ref=e209]: Poids minimum
+                  - generic [ref=e210]:
+                    - button "100g" [ref=e211] [cursor=pointer]
+                    - button "200g" [ref=e212] [cursor=pointer]
+                    - button "250g" [ref=e213] [cursor=pointer]
+                    - button "300g" [ref=e214] [cursor=pointer]
+                    - button "500g" [ref=e215] [cursor=pointer]
+                - generic [ref=e216]:
+                  - paragraph [ref=e217]: Palier de poids
+                  - generic [ref=e218]:
+                    - button "25g" [ref=e219] [cursor=pointer]
+                    - button "50g" [ref=e220] [cursor=pointer]
+                    - button "100g" [ref=e221] [cursor=pointer]
+              - generic [ref=e222]:
+                - generic [ref=e223]:
+                  - paragraph [ref=e224]: Visible par les clients
+                  - paragraph [ref=e225]: Desactive = le produit n'apparait pas
+                - button [ref=e226] [cursor=pointer]
+            - generic [ref=e228]:
+              - heading "🏅 Labels & Certifications" [level=2] [ref=e229]:
+                - generic [ref=e230]: 🏅
+                - text: Labels & Certifications
+              - generic [ref=e231]:
+                - button "AVS" [ref=e232] [cursor=pointer]
+                - button "Achahada" [ref=e233] [cursor=pointer]
+                - button "Mosquee de Paris" [ref=e234] [cursor=pointer]
+                - button "ARGML" [ref=e235] [cursor=pointer]
+                - button "Halal Service" [ref=e236] [cursor=pointer]
+                - button "Label Rouge" [ref=e237] [cursor=pointer]
+                - button "Bio" [ref=e238] [cursor=pointer]
+                - button "Race a Viande" [ref=e239] [cursor=pointer]
+                - button "Fermier" [ref=e240] [cursor=pointer]
+                - button "AOP" [ref=e241] [cursor=pointer]
+                - button "IGP" [ref=e242] [cursor=pointer]
+                - button "Fait Maison" [ref=e243] [cursor=pointer]
+                - button "Sans Additifs" [ref=e244] [cursor=pointer]
+                - button "Sans Nitrites" [ref=e245] [cursor=pointer]
+              - generic [ref=e246]:
+                - textbox "Label personnalise..." [ref=e247]
+                - button [disabled] [ref=e248]:
+                  - img [ref=e249]
+            - generic [ref=e250]:
+              - heading "🛡️ Fiche Confiance — Tracabilite" [level=2] [ref=e251]:
+                - generic [ref=e252]: 🛡️
+                - text: Fiche Confiance — Tracabilite
+              - paragraph [ref=e253]: Ces informations apparaissent sur la fiche produit cote client. Plus vous remplissez, plus votre score de transparence augmente.
+              - generic [ref=e254]:
+                - generic [ref=e255]: Region d'origine
+                - 'textbox "Ex: Auvergne, Limousin, Galice..." [ref=e256]'
+              - generic [ref=e257]:
+                - generic [ref=e258]: Mode d'elevage
+                - generic [ref=e259]:
+                  - button "Plein air" [ref=e260] [cursor=pointer]
+                  - button "Paturage" [ref=e261] [cursor=pointer]
+                  - button "Extensif" [ref=e262] [cursor=pointer]
+                  - button "Label Rouge" [ref=e263] [cursor=pointer]
+                  - button "Bio" [ref=e264] [cursor=pointer]
+                  - button "Conventionnel" [ref=e265] [cursor=pointer]
+              - generic [ref=e266]:
+                - generic [ref=e267]:
+                  - generic [ref=e268]: Date de fraicheur
+                  - textbox [ref=e269]
+                - generic [ref=e270]:
+                  - generic [ref=e271]: Detail fraicheur
+                  - 'textbox "Ex: Arrivage du jour" [ref=e272]'
+            - generic [ref=e274]:
+              - heading "🔴 Reduction" [level=2] [ref=e275]:
+                - generic [ref=e276]: 🔴
+                - text: Reduction
+              - button [ref=e277] [cursor=pointer]
+            - generic [ref=e280]:
+              - heading "🔪 Options de decoupe" [level=2] [ref=e281]:
+                - generic [ref=e282]: 🔪
+                - text: Options de decoupe
+              - button [ref=e283] [cursor=pointer]
+            - generic [ref=e286]:
+              - heading "🌶️ Variantes de gout" [level=2] [ref=e287]:
+                - generic [ref=e288]: 🌶️
+                - text: Variantes de gout
+              - button [ref=e289] [cursor=pointer]
+            - generic [ref=e292]:
+              - heading "⚖️ Poids par piece" [level=2] [ref=e293]:
+                - generic [ref=e294]: ⚖️
+                - text: Poids par piece
+              - button [ref=e295] [cursor=pointer]
+            - generic [ref=e297]:
+              - heading "Photo & Apercu" [level=2] [ref=e298]:
+                - img [ref=e299]
+                - text: Photo & Apercu
+              - generic [ref=e302]:
+                - generic [ref=e303]:
+                  - paragraph [ref=e304]: Photos (max 5)
+                  - generic [ref=e305]:
+                    - button "Upload" [ref=e306] [cursor=pointer]:
+                      - img [ref=e307]
+                      - text: Upload
+                    - button "Chercher" [ref=e310] [cursor=pointer]:
+                      - img [ref=e311]
+                      - text: Chercher
+                    - button "Générer IA" [ref=e314] [cursor=pointer]:
+                      - img [ref=e315]
+                      - text: Générer IA
+                    - button "Retoucher" [ref=e317] [cursor=pointer]:
+                      - img [ref=e318]
+                      - text: Retoucher
+                - generic [ref=e322]:
+                  - paragraph [ref=e323]: Apercu client
+                  - generic [ref=e324]:
+                    - generic [ref=e326]: 🥩
+                    - generic [ref=e327]:
+                      - paragraph [ref=e328]: Nom du produit
+                      - generic [ref=e329]:
+                        - generic [ref=e330]: —
+                        - generic [ref=e331]: /kg
+              - generic [ref=e332]:
+                - generic [ref=e333]: Note pour le client
+                - 'textbox "Ex: A consommer dans les 48h..." [ref=e334]'
+          - generic [ref=e336]:
+            - button "Annuler" [ref=e337] [cursor=pointer]
+            - button "Enregistrer" [disabled]:
+              - img
+              - text: Enregistrer
+  - generic [ref=e77]:
+    - img [ref=e79]
+    - generic [ref=e82]:
+      - paragraph [ref=e83]: Installez Klik&Go
+      - paragraph [ref=e84]: Commandez plus vite depuis votre écran d'accueil
+    - button "Installer" [ref=e85] [cursor=pointer]
+    - button "Fermer" [ref=e86] [cursor=pointer]:
+      - img [ref=e87]
+  - generic [ref=e90]:
+    - generic [ref=e91]: TEST
+    - button "Client" [ref=e92] [cursor=pointer]
+    - button "Boucher" [ref=e93] [cursor=pointer]
+    - button "Webmaster" [ref=e94] [cursor=pointer]
+    - button "Quitter le mode test" [ref=e95] [cursor=pointer]:
+      - img [ref=e96]
+  - alert [ref=e99]

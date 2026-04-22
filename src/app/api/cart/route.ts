@@ -13,7 +13,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const userId = await getServerUserId();
-    if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+    if (!userId) {
+      return apiSuccess({ shopId: null, shopName: null, shopSlug: null, items: [] });
+    }
 
     const cart = await prisma.cart.findFirst({
       where: { user: { clerkId: userId } },
