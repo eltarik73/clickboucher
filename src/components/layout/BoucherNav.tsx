@@ -14,6 +14,7 @@ import {
   BarChart3,
   Gift,
   Leaf,
+  Wand2,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { key: "dashboard",  label: "Dashboard",   href: "/boucher/dashboard",  icon: LayoutDashboard },
   { key: "commandes",  label: "Commandes",   href: "/boucher/commandes",  icon: ClipboardList, badge: "orders" as const },
   { key: "produits",   label: "Produits",    href: "/boucher/produits",   icon: Package },
+  { key: "images",     label: "Galerie IA",  href: "/boucher/images",     icon: Wand2 },
   { key: "antigaspi",  label: "Anti-Gaspi",  href: "/boucher/dashboard/anti-gaspi", icon: Leaf },
   { key: "offres",     label: "Offres",      href: "/shop/offers",        icon: Gift, badge: "promos" as const },
   { key: "clients",    label: "Clients",     href: "/boucher/clients",    icon: Users },

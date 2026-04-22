@@ -356,6 +356,18 @@ export default function ImageGenerateModal({
             </div>
           )}
         </div>
+
+        {/* Footer link */}
+        <div className="shrink-0 border-t border-[#ece8e3] dark:border-white/10 px-4 sm:px-6 py-3 bg-gray-50 dark:bg-white/5">
+          <a
+            href="/boucher/images"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#DC2626] hover:underline min-h-[44px]"
+          >
+            📚 Voir mes images précédentes
+          </a>
+        </div>
       </div>
     </div>
   );
