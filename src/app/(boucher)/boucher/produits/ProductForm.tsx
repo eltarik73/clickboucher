@@ -17,9 +17,11 @@ import {
   Star,
   AlertTriangle,
   Package,
+  Search,
 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
 import { useNotify } from "@/components/ui/NotificationToast";
+import ImageSearchModal from "@/components/boucher/ImageSearchModal";
 
 // ─────────────────────────────────────────────
 // Types
@@ -223,6 +225,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   );
   const [customerNote, setCustomerNote] = useState(product?.customerNote || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Variantes (saveurs)
   const [variants, setVariants] = useState<string[]>(product?.variants || []);
@@ -1358,6 +1361,18 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                       <span className="text-[10px] font-medium">Ajouter</span>
                     </button>
                   )}
+
+                  {/* Search online button */}
+                  {images.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchOpen(true)}
+                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
+                    >
+                      <Search size={20} />
+                      <span className="text-[10px] font-medium text-center leading-tight px-1">🔍 Chercher<br />en ligne</span>
+                    </button>
+                  )}
                 </div>
                 <input
                   ref={fileInputRef}
@@ -1368,6 +1383,26 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
                 />
               </div>
+
+              <ImageSearchModal
+                open={searchOpen}
+                onClose={() => setSearchOpen(false)}
+                defaultQuery={name}
+                usage="PRODUCT"
+                onSelect={(url, alt) => {
+                  setImages((prev) => {
+                    if (prev.length >= 5) return prev;
+                    const newImg: ImageItem = {
+                      url,
+                      alt: alt || name,
+                      isPrimary: prev.length === 0,
+                      order: prev.length,
+                    };
+                    return [...prev, newImg];
+                  });
+                  notify("success", "Image ajoutée depuis la recherche web");
+                }}
+              />
 
               {/* Customer note */}
               <div>
