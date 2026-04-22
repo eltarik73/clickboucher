@@ -2,9 +2,10 @@
 // Schema migration pending
 
 import prisma from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export async function cleanExpiredOffers(): Promise<{ expired: number; released: number }> {
-  console.log("[STUB CRON] cleanExpiredOffers - schema migration pending");
+  logger.info("[STUB CRON] cleanExpiredOffers - schema migration pending");
   return { expired: 0, released: 0 };
 }
 
@@ -21,7 +22,7 @@ export async function autoCancelStaleOrders(): Promise<{ cancelled: number }> {
       data: { status: "CANCELLED" },
     });
     for (const order of staleOrders) {
-      console.log(`[CRON] Auto-cancelled stale order ${order.orderNumber}`);
+      logger.info(`[CRON] Auto-cancelled stale order ${order.orderNumber}`);
     }
   }
 

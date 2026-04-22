@@ -1,5 +1,6 @@
 // src/lib/recipe-generator.ts — AI recipe generation using Anthropic API
 import prisma from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 // ── Pool d'images recettes (locales, servies depuis /public) ──
 const MEAT_IMAGES: Record<string, string[]> = {
@@ -178,6 +179,6 @@ Réponds UNIQUEMENT en JSON valide, sans backticks, sans preamble :
     data: { featured: false },
   });
 
-  console.log(`[RECIPE] Recette générée : "${recipe.title}" (${recipe.slug})`);
+  logger.info(`[RECIPE] Recette générée : "${recipe.title}" (${recipe.slug})`);
   return recipe;
 }

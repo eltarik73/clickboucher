@@ -1,5 +1,6 @@
 // src/lib/push.ts — Web Push notifications (graceful fallback if VAPID not configured)
 import webpush from "web-push";
+import { logger } from "@/lib/logger";
 
 let configured = false;
 
@@ -46,7 +47,7 @@ export async function sendPushNotification(
   payload: PushPayload
 ): Promise<boolean> {
   if (!ensureConfig()) {
-    console.log(`🔔 PUSH (stub) → ${payload.title}: ${payload.body}`);
+    logger.info(`🔔 PUSH (stub) → ${payload.title}: ${payload.body}`);
     return true;
   }
 

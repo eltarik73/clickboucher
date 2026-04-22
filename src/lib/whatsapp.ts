@@ -1,4 +1,5 @@
 // src/lib/whatsapp.ts — Twilio WhatsApp integration (graceful fallback if not configured)
+import { logger } from "@/lib/logger";
 
 type WhatsAppTemplate = {
   body: string;
@@ -56,7 +57,7 @@ export async function sendWhatsAppRaw(to: string, body: string): Promise<boolean
   const config = getTwilioClient();
 
   if (!config) {
-    console.log(`📱 WHATSAPP (stub) → ${to}: ${body}`);
+    logger.info(`📱 WHATSAPP (stub) → ${to}: ${body}`);
     return true;
   }
 

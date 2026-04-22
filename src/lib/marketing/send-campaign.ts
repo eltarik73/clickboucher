@@ -1,6 +1,7 @@
 // src/lib/marketing/send-campaign.ts — Core campaign email sending logic
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 
 // ── Build campaign HTML email ─────────────────────────────────
 function buildCampaignHtml(campaign: {
@@ -199,6 +200,6 @@ export async function executeCampaignSend(campaignId: string): Promise<{ sent: n
     },
   });
 
-  console.log(`[campaign] Sent "${campaign.title}" to ${sentCount}/${uniqueEmails.length} recipients`);
+  logger.info(`[campaign] Sent "${campaign.title}" to ${sentCount}/${uniqueEmails.length} recipients`);
   return { sent: sentCount, total: uniqueEmails.length };
 }

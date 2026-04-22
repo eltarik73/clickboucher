@@ -5,6 +5,7 @@ import { sendEmail } from "@/lib/email";
 import { sendWhatsAppMessage, sendWhatsAppRaw } from "@/lib/whatsapp";
 import { sendPushNotification, PushSubscriptionData } from "@/lib/push";
 import * as tpl from "@/lib/email-templates";
+import { logger } from "@/lib/logger";
 
 // ─────────────────────────────────────────────
 // Event types
@@ -614,7 +615,7 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
     // Rate limit check
     const allowed = await checkNotifRateLimit(user.id, event);
     if (!allowed) {
-      console.log(`[notifications] Rate limited: ${event} for user ${user.id}`);
+      logger.info(`[notifications] Rate limited: ${event} for user ${user.id}`);
       return { sent: false, channels: [], rateLimited: true };
     }
 

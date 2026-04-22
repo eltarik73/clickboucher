@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 // Validation schema
 const addToCartSchema = z.object({
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     // This endpoint is for future server-side cart + analytics
     
     // Log for analytics (future: save to DB)
-    console.log(`[CART] Add: shop=${shopId}, product=${productId}, qty=${qty}`);
+    logger.info(`[CART] Add: shop=${shopId}, product=${productId}, qty=${qty}`);
 
     return NextResponse.json({
       success: true,

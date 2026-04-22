@@ -1,5 +1,6 @@
 // src/lib/services/performance.ts — Shop performance metrics
 import prisma from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export interface ShopMetrics {
   acceptanceRate: number | null;
@@ -300,5 +301,5 @@ export async function refreshAllShopMetrics() {
     }
   }
 
-  console.log(`[Performance] Refreshed metrics for ${shops.length} shops`);
+  logger.info(`[Performance] Refreshed metrics for ${shops.length} shops`);
 }

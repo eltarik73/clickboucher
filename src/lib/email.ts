@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { logger } from "@/lib/logger";
 
 let resend: Resend | null = null;
 
@@ -18,7 +19,7 @@ export async function sendEmail(
   const client = getResend();
 
   if (!client) {
-    console.log(`\ud83d\udce7 EMAIL (stub) \u2192 ${to}: ${subject}`);
+    logger.info(`\ud83d\udce7 EMAIL (stub) \u2192 ${to}: ${subject}`);
     return true;
   }
 

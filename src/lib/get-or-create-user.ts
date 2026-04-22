@@ -1,6 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { isTestMode, TEST_USERS, type TestRole } from "@/lib/auth/test-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * Find a user by Clerk ID, or auto-create them if the webhook hasn't fired yet.
@@ -28,7 +29,7 @@ export async function getOrCreateUser(clerkId: string) {
             role: testUser.role as "CLIENT" | "BOUCHER" | "ADMIN",
           },
         });
-        console.log(`[getOrCreateUser] Auto-created TEST user for clerkId=${clerkId}`);
+        logger.info(`[getOrCreateUser] Auto-created TEST user for clerkId=${clerkId}`);
         return user;
       } catch {
         // May already exist (race condition) — try to find again
@@ -53,7 +54,7 @@ export async function getOrCreateUser(clerkId: string) {
       },
     });
 
-    console.log(`[getOrCreateUser] Auto-created user for clerkId=${clerkId}`);
+    logger.info(`[getOrCreateUser] Auto-created user for clerkId=${clerkId}`);
     return user;
   } catch (error) {
     console.error(`[getOrCreateUser] Failed to auto-create user for clerkId=${clerkId}:`, error);
