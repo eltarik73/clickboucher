@@ -45,3 +45,5 @@ __MACOSX/
 /uploads/products/*
 !/uploads/products/.gitkeep
 .vercel
+.claude/skills/gstack/browse/dist/
+.claude/skills/gstack/bun.lock
