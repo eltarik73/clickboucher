@@ -75,6 +75,11 @@ export const metadata: Metadata = {
     title: "Klik&Go",
   },
   icons: {
+    icon: [
+      { url: "/icon", type: "image/png", sizes: "32x32" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    shortcut: "/icon",
     apple: "/icons/icon-192.png",
   },
   openGraph: {
