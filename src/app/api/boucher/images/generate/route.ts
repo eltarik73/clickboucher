@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
     // Sequential to stay within Replicate's free-tier concurrency (1 prediction at a time).
     // Total time: ~3-5s per variation × N, stays under maxDuration=60.
     const results: (string | null)[] = [];
+    const failures: { i: number; msg: string }[] = [];
     for (let i = 0; i < variations; i++) {
       try {
         const url = await runOneGeneration(client, {
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error("[images/generate] variation failed", { i, msg });
+        failures.push({ i, msg });
         results.push(null);
       }
     }
@@ -141,6 +143,7 @@ export async function POST(req: NextRequest) {
     return apiSuccess(
       {
         finalPrompt,
+        failures, // debug: list of { i, msg } for variations that failed
         images: images.map((img) => ({
           id: img.id,
           url: img.imageUrl,
