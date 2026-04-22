@@ -47,3 +47,4 @@ __MACOSX/
 .vercel
 .claude/skills/gstack/browse/dist/
 .claude/skills/gstack/bun.lock
+.playwright-mcp/
