@@ -25,9 +25,27 @@ export async function POST(req: NextRequest) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    // @security: Require BOUCHER/ADMIN role upfront — prevents any authenticated
+    // user from uploading to the shared Vercel Blob bucket.
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { id: true, role: true },
+    });
+    if (!dbUser || (dbUser.role !== "BOUCHER" && dbUser.role !== "ADMIN")) {
+      return apiError("FORBIDDEN", "Réservé aux bouchers et administrateurs");
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const productId = formData.get("productId") as string | null;
+    const productIdRaw = formData.get("productId");
+
+    // @security: productId is now REQUIRED to tie every upload to an owned product.
+    const productIdSchema = z.string().min(1, "productId requis");
+    const parsed = productIdSchema.safeParse(productIdRaw);
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Champ 'productId' requis");
+    }
+    const productId = parsed.data;
 
     if (!file) {
       return apiError("VALIDATION_ERROR", "Champ 'file' requis");
@@ -43,27 +61,31 @@ export async function POST(req: NextRequest) {
       return apiError("VALIDATION_ERROR", "Taille maximum : 2 Mo");
     }
 
-    // If productId provided, verify ownership and image count
-    if (productId) {
-      const product = await prisma.product.findUnique({
-        where: { id: productId },
-        select: {
-          shop: { select: { ownerId: true } },
-          _count: { select: { images: true } },
-        },
-      });
+    // Verify ownership and image count
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        shop: { select: { ownerId: true } },
+        _count: { select: { images: true } },
+      },
+    });
 
-      if (!product) {
-        return apiError("NOT_FOUND", "Produit introuvable");
-      }
-      // Verify ownership
-      const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true } });
-      if (product.shop.ownerId !== userId && product.shop.ownerId !== dbUser?.id) {
-        return apiError("FORBIDDEN", "Ce produit ne vous appartient pas");
-      }
-      if (product._count.images >= MAX_IMAGES_PER_PRODUCT) {
-        return apiError("VALIDATION_ERROR", `Maximum ${MAX_IMAGES_PER_PRODUCT} images par produit`);
-      }
+    if (!product) {
+      return apiError("NOT_FOUND", "Produit introuvable");
+    }
+
+    const isAdmin = dbUser.role === "ADMIN";
+    // Shop.ownerId may store either the Clerk id or the Prisma user id
+    const owns =
+      product.shop.ownerId === userId || product.shop.ownerId === dbUser.id;
+    if (!isAdmin && !owns) {
+      return apiError("FORBIDDEN", "Ce produit ne vous appartient pas");
+    }
+    if (product._count.images >= MAX_IMAGES_PER_PRODUCT) {
+      return apiError(
+        "VALIDATION_ERROR",
+        `Maximum ${MAX_IMAGES_PER_PRODUCT} images par produit`
+      );
     }
 
     // Read file buffer
@@ -112,6 +134,14 @@ export async function DELETE(req: NextRequest) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      select: { id: true, role: true },
+    });
+    if (!dbUser || (dbUser.role !== "BOUCHER" && dbUser.role !== "ADMIN")) {
+      return apiError("FORBIDDEN", "Réservé aux bouchers et administrateurs");
+    }
+
     const body = await req.json();
     const { url } = deleteImageSchema.parse(body);
 
@@ -121,6 +151,30 @@ export async function DELETE(req: NextRequest) {
 
     if (!isBlobUrl && !isLegacyUrl) {
       return apiError("VALIDATION_ERROR", "URL invalide");
+    }
+
+    // @security: Resolve the URL to its owning Product + Shop, then verify
+    // the current user owns the shop. Admins bypass ownership.
+    if (dbUser.role !== "ADMIN") {
+      // Try ProductImage join first, fallback to Product.imageUrl
+      const productImage = await prisma.productImage.findFirst({
+        where: { url },
+        select: { product: { select: { shop: { select: { ownerId: true } } } } },
+      });
+      let ownerId = productImage?.product?.shop?.ownerId;
+      if (!ownerId) {
+        const product = await prisma.product.findFirst({
+          where: { imageUrl: url },
+          select: { shop: { select: { ownerId: true } } },
+        });
+        ownerId = product?.shop?.ownerId;
+      }
+      if (!ownerId) {
+        return apiError("NOT_FOUND", "Image introuvable ou déjà supprimée");
+      }
+      if (ownerId !== userId && ownerId !== dbUser.id) {
+        return apiError("FORBIDDEN", "Cette image ne vous appartient pas");
+      }
     }
 
     if (isBlobUrl) {

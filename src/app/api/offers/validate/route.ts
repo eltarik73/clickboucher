@@ -4,6 +4,7 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { validatePromoCode } from "@/lib/marketing/validate-code";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const validateCodeSchema = z.object({
@@ -19,6 +20,12 @@ export async function POST(req: NextRequest) {
     const clerkId = await getServerUserId();
     if (!clerkId) {
       return apiError("UNAUTHORIZED", "Non authentifié");
+    }
+
+    // Anti brute-force on promo codes (2Md combination space for KG-XXXXXX)
+    const rl = await checkRateLimit(rateLimits.promoValidate, `promo:${clerkId}`);
+    if (!rl.success) {
+      return apiError("RATE_LIMITED", "Trop de tentatives, réessayez dans une minute");
     }
 
     const dbUser = await prisma.user.findUnique({

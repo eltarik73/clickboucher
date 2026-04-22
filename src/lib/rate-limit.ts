@@ -23,6 +23,12 @@ export const rateLimits = {
   otpSend: createLimiter(60, 2),
   /** OTP verify: 5 req / 5 minutes (prevent code guessing) */
   otpVerify: createLimiter(300, 5),
+  /** AI-powered endpoints (Anthropic, Replicate): 10 req / minute */
+  ai: createLimiter(60, 10),
+  /** Search endpoints: 30 req / minute */
+  search: createLimiter(60, 30),
+  /** Promo/code validation (prevent brute-force): 10 req / minute */
+  promoValidate: createLimiter(60, 10),
 };
 
 /**

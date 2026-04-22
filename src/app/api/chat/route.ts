@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 const chatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -135,6 +136,20 @@ const PRODUCT_SELECT = {
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit by user or IP (AI cost control)
+    const rlKey =
+      (await getServerUserId()) ||
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("x-real-ip") ||
+      "anon";
+    const rl = await checkRateLimit(rateLimits.ai, `chat:${rlKey}`);
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Trop de requêtes, réessayez dans une minute" },
+        { status: 429 }
+      );
+    }
+
     const client = getClient();
     if (!client) {
       return NextResponse.json(

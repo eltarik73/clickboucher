@@ -66,7 +66,7 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - **ORM** : Prisma + PostgreSQL (Railway)
 - **State** : Zustand + React Context (panier)
 - **AI** : Anthropic SDK (support tickets)
-- **Paiement** : Stripe (structure prête) + paiement sur place
+- **Paiement** : Stripe (non implémenté — placeholder) + paiement sur place
 - **Notifications** : Resend (email), web-push, Svix (webhooks)
 - **Rate limiting** : Upstash Redis
 - **QR Code** : qrcode.react + html5-qrcode (scan)

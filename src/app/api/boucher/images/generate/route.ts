@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
 import { put } from "@vercel/blob";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const VALID_USAGES = ["CAMPAIGN", "PROMO", "PRODUCT", "SOCIAL", "BANNER"] as const;
@@ -22,6 +23,11 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await getAuthenticatedBoucher();
     if (auth.error) return auth.error;
+
+    const rl = await checkRateLimit(rateLimits.ai, `img-gen:${auth.userId}`);
+    if (!rl.success) {
+      return apiError("RATE_LIMITED", "Trop de générations, réessayez dans une minute");
+    }
 
     if (!isReplicateConfigured()) {
       return apiError("SERVICE_DISABLED", "Service d'images IA non configuré.");

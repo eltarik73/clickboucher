@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { SignIn } from "@clerk/nextjs";
 import { isAdmin } from "@/lib/roles";
+import { logger } from "@/lib/logger";
 
 export const metadata = {
   title: "Administration — Klik&Go",
@@ -16,9 +17,9 @@ export default async function AdminLoginPage() {
     const user = await currentUser();
     const role = (user?.publicMetadata as Record<string, string>)?.role;
 
-    console.log("[admin-login] userId:", userId);
-    console.log("[admin-login] publicMetadata:", user?.publicMetadata);
-    console.log("[admin-login] role detected:", role, "| isAdmin:", isAdmin(role));
+    logger.debug("[admin-login] userId:", userId);
+    logger.debug("[admin-login] publicMetadata:", user?.publicMetadata);
+    logger.debug("[admin-login] role detected:", role, "| isAdmin:", isAdmin(role));
 
     if (isAdmin(role)) {
       redirect("/admin/dashboard");

@@ -809,6 +809,7 @@ model Cart {
 
   @@unique([userId, shopId])
   @@index([updatedAt])
+  @@index([abandonedAt])
   @@map("carts")
 }
 
@@ -1077,6 +1078,7 @@ model Order {
   @@index([userId])
   @@index([userId, status])
   @@index([expiresAt, status])
+  @@index([status, expiresAt])
   @@index([createdAt, status])
   @@index([offerId])
   @@map("orders")

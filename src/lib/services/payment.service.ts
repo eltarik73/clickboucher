@@ -1,5 +1,6 @@
 // KLIK&GO — Payment Service (stub)
 // Schema migration pending - minimal exports
+import { logger } from "@/lib/logger";
 
 export interface PaymentIntent {
   id: string;
@@ -20,15 +21,15 @@ export interface IPaymentService {
 
 class StubPaymentService implements IPaymentService {
   async createPayment(orderId: string, amountCents: number, method: string): Promise<PaymentIntent> {
-    console.log(`[STUB PAYMENT] Create: order=${orderId}, ${amountCents}c, ${method}`);
+    logger.debug(`[STUB PAYMENT] Create: order=${orderId}, ${amountCents}c, ${method}`);
     return { id: `stub_${Date.now()}`, orderId, amountCents, method, status: "PENDING", providerRef: null, clientSecret: null };
   }
   async confirmPayment(orderId: string): Promise<PaymentIntent> {
-    console.log(`[STUB PAYMENT] Confirm: order=${orderId}`);
+    logger.debug(`[STUB PAYMENT] Confirm: order=${orderId}`);
     return { id: "stub", orderId, amountCents: 0, method: "STUB", status: "COMPLETED", providerRef: null, clientSecret: null };
   }
   async refundPayment(orderId: string): Promise<PaymentIntent> {
-    console.log(`[STUB PAYMENT] Refund: order=${orderId}`);
+    logger.debug(`[STUB PAYMENT] Refund: order=${orderId}`);
     return { id: "stub", orderId, amountCents: 0, method: "STUB", status: "REFUNDED", providerRef: null, clientSecret: null };
   }
   async getPaymentStatus(_orderId: string): Promise<PaymentIntent | null> {

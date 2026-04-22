@@ -1,6 +1,12 @@
 "use client";
 
-import { QRCodeSVG } from "qrcode.react";
+import dynamic from "next/dynamic";
+
+// Lazy-load qrcode.react (kept off the initial bundle)
+const QRCodeSVG = dynamic(
+  () => import("qrcode.react").then((m) => m.QRCodeSVG),
+  { ssr: false }
+);
 
 interface Props {
   orderId: string;

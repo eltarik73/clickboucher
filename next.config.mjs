@@ -65,4 +65,20 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// ── Sentry wrapping (no-op when SENTRY_DSN absent) ──
+let exported = nextConfig;
+if (process.env.SENTRY_DSN) {
+  // Dynamically require to keep the dependency soft
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { withSentryConfig } = await import("@sentry/nextjs");
+  exported = withSentryConfig(nextConfig, {
+    silent: true,
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+  }, {
+    hideSourceMaps: true,
+    disableLogger: true,
+  });
+}
+
+export default exported;

@@ -1,5 +1,6 @@
 // KLIK&GO — Notification Service (stub)
 // Schema migration pending - minimal exports
+import { logger } from "@/lib/logger";
 
 export interface NotificationPayload {
   userId: string;
@@ -21,16 +22,16 @@ export const SMS_TEMPLATES = {} as Record<string, string>;
 
 class StubNotificationService implements INotificationService {
   async send(payload: NotificationPayload): Promise<void> {
-    console.log(`[STUB NOTIF] ${payload.channel} -> ${payload.userId}: ${payload.title}`);
+    logger.debug(`[STUB NOTIF] ${payload.channel} -> ${payload.userId}: ${payload.title}`);
   }
   async sendOrderUpdate(orderId: string, title: string, body: string): Promise<void> {
-    console.log(`[STUB NOTIF] Order ${orderId}: ${title} - ${body}`);
+    logger.debug(`[STUB NOTIF] Order ${orderId}: ${title} - ${body}`);
   }
   async sendSms(phone: string, message: string): Promise<void> {
-    console.log(`[STUB SMS] -> ${phone}: ${message}`);
+    logger.debug(`[STUB SMS] -> ${phone}: ${message}`);
   }
   async sendWhatsApp(phone: string, templateName: string, params: Record<string, string>): Promise<void> {
-    console.log(`[STUB WA] -> ${phone}: ${templateName}`, params);
+    logger.debug(`[STUB WA] -> ${phone}: ${templateName}`, params);
   }
 }
 
@@ -41,5 +42,5 @@ export async function notifyOrderStatus(
   _status: string,
   _extra: Record<string, string> = {}
 ): Promise<void> {
-  console.log("[STUB] notifyOrderStatus - schema migration pending");
+  logger.debug("[STUB] notifyOrderStatus - schema migration pending");
 }

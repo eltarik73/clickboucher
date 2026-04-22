@@ -1,5 +1,17 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
+import { Redis } from "@upstash/redis";
+
+// ── Upstash Redis client (Edge-compatible) ──
+// Used to share the role cache across middleware instances so that role
+// changes propagate quickly (the old in-memory Map was per-instance).
+const edgeRedis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
 
 // @security: test-only — Bypass Clerk ONLY if secret was validated (cookie present)
 function isTestActivatedMiddleware(req: NextRequest): boolean {
@@ -20,26 +32,53 @@ const isProtectedRoute = createRouteMatcher([
 
 const ADMIN_ROLES = ["admin", "webmaster"];
 
-// ── In-memory role cache (5 min TTL) ──────────────
+// ── Role cache (Redis-backed, Edge-safe) ──────────
+// Shared across middleware instances. Fallback to short-TTL in-memory
+// Map (60s) when Redis is not configured — keeps role changes quick to
+// propagate in dev / test environments.
 const roleCache = new Map<string, { role: string | undefined; ts: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const MEM_CACHE_TTL = 60 * 1000; // 60s fallback when Redis missing
+const REDIS_CACHE_TTL = 5 * 60; // 5 min in Redis (seconds)
+const ROLE_KEY = (userId: string) => `role:${userId}`;
 
-/** Fetch role from Clerk publicMetadata with in-memory cache */
+/** Fetch role from Clerk publicMetadata with Redis-backed cache */
 async function getUserRole(userId: string): Promise<string | undefined> {
-  const cached = roleCache.get(userId);
-  if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    return cached.role;
+  // 1. Redis lookup (shared across instances)
+  if (edgeRedis) {
+    try {
+      const cached = await edgeRedis.get<string>(ROLE_KEY(userId));
+      if (cached !== null && cached !== undefined) {
+        // Empty string sentinel for "no role"
+        return cached === "" ? undefined : cached;
+      }
+    } catch {
+      // ignore and fall through to Clerk
+    }
+  } else {
+    // Fallback in-memory cache (60s TTL, per-instance)
+    const mem = roleCache.get(userId);
+    if (mem && Date.now() - mem.ts < MEM_CACHE_TTL) {
+      return mem.role;
+    }
   }
 
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
     const role = (user.publicMetadata as Record<string, string>)?.role;
-    roleCache.set(userId, { role, ts: Date.now() });
-    // Evict old entries if cache grows too large
-    if (roleCache.size > 500) {
-      const oldest = [...roleCache.entries()].sort((a, b) => a[1].ts - b[1].ts);
-      for (let i = 0; i < 100; i++) roleCache.delete(oldest[i][0]);
+
+    if (edgeRedis) {
+      try {
+        await edgeRedis.set(ROLE_KEY(userId), role ?? "", { ex: REDIS_CACHE_TTL });
+      } catch {
+        // ignore
+      }
+    } else {
+      roleCache.set(userId, { role, ts: Date.now() });
+      if (roleCache.size > 500) {
+        const oldest = [...roleCache.entries()].sort((a, b) => a[1].ts - b[1].ts);
+        for (let i = 0; i < 100; i++) roleCache.delete(oldest[i][0]);
+      }
     }
     return role;
   } catch {
