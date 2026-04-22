@@ -13,6 +13,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
       { protocol: "https", hostname: "*.replicate.delivery" },
+      { protocol: "https", hostname: "images.pexels.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
   async redirects() {

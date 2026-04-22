@@ -48,3 +48,5 @@ __MACOSX/
 .claude/skills/gstack/browse/dist/
 .claude/skills/gstack/bun.lock
 .playwright-mcp/
+product-form-check.md
+search-modal.md
