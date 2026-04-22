@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - region "Notifications alt+T"
+  - main [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: "404"
+      - heading "Page introuvable" [level=1] [ref=e6]
+      - paragraph [ref=e7]: Cette page n'existe pas ou a ete deplacee.
+      - generic [ref=e8]:
+        - link "Retour a l'accueil" [ref=e9] [cursor=pointer]:
+          - /url: /
+        - link "Mes commandes" [ref=e10] [cursor=pointer]:
+          - /url: /commandes
+  - generic [ref=e12]:
+    - img [ref=e14]
+    - generic [ref=e17]:
+      - paragraph [ref=e18]: Installez Klik&Go
+      - paragraph [ref=e19]: Commandez plus vite depuis votre écran d'accueil
+    - button "Installer" [ref=e20] [cursor=pointer]
+    - button "Fermer" [ref=e21] [cursor=pointer]:
+      - img [ref=e22]
+  - generic [ref=e25]:
+    - generic [ref=e26]: TEST
+    - button "Client" [ref=e27] [cursor=pointer]
+    - button "Boucher" [ref=e28] [cursor=pointer]
+    - button "Webmaster" [ref=e29] [cursor=pointer]
+    - button "Quitter le mode test" [ref=e30] [cursor=pointer]:
+      - img [ref=e31]
+  - alert [ref=e34]

@@ -18,9 +18,15 @@ import {
   Package,
   ChevronRight,
   Check,
+  Search,
+  Sparkles,
+  Image as ImageIcon,
 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
 import { useNotify } from "@/components/ui/NotificationToast";
+import ImageSearchModal from "@/components/boucher/ImageSearchModal";
+import ImageGenerateModal from "@/components/boucher/ImageGenerateModal";
+import ImageRetouchModal from "@/components/boucher/ImageRetouchModal";
 
 // ─────────────────────────────────────────────
 // Types
@@ -316,6 +322,26 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
     })) || []
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Image Studio modals ──
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const [retouchOpen, setRetouchOpen] = useState(false);
+
+  function handleStudioSelect(url: string, alt: string) {
+    setImages((prev) => {
+      if (prev.length >= 5) return prev;
+      return [
+        ...prev,
+        {
+          url,
+          alt: alt || name || "Produit",
+          isPrimary: prev.length === 0,
+          order: prev.length,
+        },
+      ];
+    });
+  }
 
   // ── Derived ──
   const priceParsed = Math.round(parseFloat(priceCents || "0") * 100);
@@ -1369,6 +1395,38 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
             {/* Upload zone */}
             <div className="space-y-2">
               <p className="text-[10px] text-stone-500">Photos (max 5)</p>
+              {images.length < 5 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-stone-800 border border-stone-700 text-stone-200 hover:border-red-600 hover:text-red-500 flex items-center gap-1.5 transition-all"
+                  >
+                    <Camera size={14} /> Upload
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(true)}
+                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-stone-800 border border-stone-700 text-stone-200 hover:border-red-600 hover:text-red-500 flex items-center gap-1.5 transition-all"
+                  >
+                    <Search size={14} /> Chercher
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGenerateOpen(true)}
+                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-gradient-to-r from-red-600 to-red-700 text-white hover:opacity-90 flex items-center gap-1.5 transition-all"
+                  >
+                    <Sparkles size={14} /> Générer IA
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRetouchOpen(true)}
+                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-stone-800 border border-stone-700 text-stone-200 hover:border-red-600 hover:text-red-500 flex items-center gap-1.5 transition-all"
+                  >
+                    <ImageIcon size={14} /> Retoucher
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-1.5">
                 {images.map((img, idx) => (
                   <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-stone-700 bg-stone-800">
@@ -1398,13 +1456,6 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                     </div>
                   </div>
                 ))}
-                {images.length < 5 && (
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-xl border-2 border-dashed border-stone-700 flex flex-col items-center justify-center gap-1 text-stone-500 hover:border-red-600 hover:text-red-500 transition-all">
-                    <Camera size={18} />
-                    <span className="text-[9px] font-medium">Ajouter</span>
-                  </button>
-                )}
               </div>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
                 onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
@@ -1598,6 +1649,31 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
           </div>
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* Image Studio modals                          */}
+      {/* ═══════════════════════════════════════════ */}
+      <ImageSearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelect={handleStudioSelect}
+        defaultQuery={name}
+        usage="PRODUCT"
+      />
+      <ImageGenerateModal
+        open={generateOpen}
+        onClose={() => setGenerateOpen(false)}
+        onSelect={handleStudioSelect}
+        defaultQuery={name}
+        usage="PRODUCT"
+      />
+      <ImageRetouchModal
+        open={retouchOpen}
+        onClose={() => setRetouchOpen(false)}
+        onSelect={handleStudioSelect}
+        sourceImageUrl={images[0]?.url}
+        usage="PRODUCT"
+      />
     </div>
   );
 }
