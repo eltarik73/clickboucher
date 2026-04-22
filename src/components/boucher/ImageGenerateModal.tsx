@@ -137,8 +137,16 @@ export default function ImageGenerateModal({
         return;
       }
       const newImgs: ResultImage[] = json.data.images;
+      const failures = Array.isArray(json.data.failures) ? json.data.failures.length : 0;
       if (replaceIdx === null) {
         setResults(newImgs);
+        if (failures > 0 && newImgs.length > 0) {
+          setError(
+            `${newImgs.length}/${variations} variation${variations > 1 ? "s" : ""} générée${newImgs.length > 1 ? "s" : ""}. ` +
+              `Les autres ont été limitées par Replicate (crédit faible). ` +
+              `Clique "Régénérer" sur une case vide ou ajoute du crédit sur replicate.com.`
+          );
+        }
       } else if (newImgs[0]) {
         setResults((prev) =>
           prev.map((img, i) => (i === replaceIdx ? newImgs[0] : img))
