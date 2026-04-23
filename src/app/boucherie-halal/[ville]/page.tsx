@@ -90,6 +90,7 @@ export default async function CityPage({
       phone: true,
       latitude: true,
       longitude: true,
+      openingHours: true,
     },
     orderBy: { rating: "desc" },
   });
@@ -205,7 +206,12 @@ export default async function CityPage({
               {shops.map((shop, idx) => (
                 <ShopCard
                   key={shop.id}
-                  shop={shop}
+                  shop={{
+                    ...shop,
+                    openingHours: shop.openingHours as
+                      | Record<string, { open: string; close: string } | null>
+                      | null,
+                  }}
                   index={idx}
                   showFavorite={false}
                 />

@@ -6,8 +6,13 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
+// Fixed "content update" dates for static legal/marketing pages. Bumped
+// manually when page copy meaningfully changes — keeps lastmod signal honest.
+const STATIC_CONTENT_UPDATED = new Date("2026-04-22T00:00:00Z");
+const LEGAL_CONTENT_UPDATED = new Date("2026-01-01T00:00:00Z");
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [shops, recipes, shopCities] = await Promise.all([
+  const [shops, recipes, shopCities, latestShop, latestProduct] = await Promise.all([
     prisma.shop.findMany({
     where: { visible: true },
     select: { slug: true, updatedAt: true },
@@ -23,7 +28,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { visible: true },
       select: { city: true },
     }),
+    // Use the freshest shop change as the homepage lastmod signal
+    prisma.shop.findFirst({
+      where: { visible: true },
+      select: { updatedAt: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    // Use the freshest product change as the bons-plans lastmod signal
+    prisma.product.findFirst({
+      where: { isActive: true },
+      select: { updatedAt: true },
+      orderBy: { updatedAt: "desc" },
+    }),
   ]);
+
+  const homeLastMod = latestShop?.updatedAt ?? STATIC_CONTENT_UPDATED;
+  const bonsPlansLastMod = latestProduct?.updatedAt ?? STATIC_CONTENT_UPDATED;
 
   const populatedCitySlugs = new Set(
     shopCities
@@ -36,88 +56,94 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       )
   );
 
+  const latestRecipeDate = recipes.reduce<Date | null>((acc, r) => {
+    if (!acc || r.updatedAt > acc) return r.updatedAt;
+    return acc;
+  }, null);
+  const recipesIndexLastMod = latestRecipeDate ?? STATIC_CONTENT_UPDATED;
+
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
-      lastModified: new Date(),
+      lastModified: homeLastMod,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${BASE_URL}/bons-plans`,
-      lastModified: new Date(),
+      lastModified: bonsPlansLastMod,
       changeFrequency: "daily",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/bons-plans/anti-gaspi`,
-      lastModified: new Date(),
+      lastModified: bonsPlansLastMod,
       changeFrequency: "daily",
       priority: 0.6,
     },
     {
       url: `${BASE_URL}/bons-plans/promos`,
-      lastModified: new Date(),
+      lastModified: bonsPlansLastMod,
       changeFrequency: "daily",
       priority: 0.6,
     },
     {
       url: `${BASE_URL}/bons-plans/vente-flash`,
-      lastModified: new Date(),
+      lastModified: bonsPlansLastMod,
       changeFrequency: "daily",
       priority: 0.6,
     },
     {
       url: `${BASE_URL}/bons-plans/packs`,
-      lastModified: new Date(),
+      lastModified: bonsPlansLastMod,
       changeFrequency: "daily",
       priority: 0.6,
     },
     {
       url: `${BASE_URL}/bons-plans/ramadan`,
-      lastModified: new Date(),
+      lastModified: bonsPlansLastMod,
       changeFrequency: "daily",
       priority: 0.6,
     },
     {
       url: `${BASE_URL}/recettes`,
-      lastModified: new Date(),
+      lastModified: recipesIndexLastMod,
       changeFrequency: "daily",
       priority: 0.7,
     },
     {
       url: `${BASE_URL}/espace-boucher`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_UPDATED,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${BASE_URL}/avantages`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_UPDATED,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${BASE_URL}/inscription-boucher`,
-      lastModified: new Date(),
+      lastModified: STATIC_CONTENT_UPDATED,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${BASE_URL}/cgv`,
-      lastModified: new Date(),
+      lastModified: LEGAL_CONTENT_UPDATED,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${BASE_URL}/mentions-legales`,
-      lastModified: new Date(),
+      lastModified: LEGAL_CONTENT_UPDATED,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${BASE_URL}/politique-de-confidentialite`,
-      lastModified: new Date(),
+      lastModified: LEGAL_CONTENT_UPDATED,
       changeFrequency: "yearly",
       priority: 0.3,
     },
@@ -134,7 +160,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     populatedCitySlugs.has(city.slug)
   ).map((city) => ({
     url: `${BASE_URL}/boucherie-halal/${city.slug}`,
-    lastModified: new Date(),
+    // City pages inherit the freshness of the most recently updated shop
+    // (content is derived from the shop list for that city).
+    lastModified: latestShop?.updatedAt ?? STATIC_CONTENT_UPDATED,
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }));

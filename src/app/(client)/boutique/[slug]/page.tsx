@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getShopImage } from "@/lib/product-images";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Star, Clock, MapPin } from "lucide-react";
+import { ArrowLeft, Star, Clock, MapPin, Phone } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -396,6 +396,17 @@ export default async function BoutiquePage({
               {shop.address}, {shop.city}
             </span>
           </div>
+          {shop.phone && (
+            <div className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 mt-1">
+              <Phone size={12} />
+              <a
+                href={`tel:${shop.phone.replace(/[^\d+]/g, "")}`}
+                className="hover:text-[#DC2626] transition-colors"
+              >
+                {shop.phone}
+              </a>
+            </div>
+          )}
           {shop.description && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{shop.description}</p>
           )}
