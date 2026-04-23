@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNotify } from "@/components/ui/NotificationToast";
+import { proxied } from "@/lib/proxy-image";
 
 // ─────────────────────────────────────────────
 // Types
@@ -388,7 +389,7 @@ function ImageCard({
     <div className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 border border-[#ece8e3] dark:border-white/10">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={img.imageUrl}
+        src={proxied(img.imageUrl)}
         alt={img.prompt.slice(0, 80)}
         loading="lazy"
         className="absolute inset-0 w-full h-full object-cover object-center"

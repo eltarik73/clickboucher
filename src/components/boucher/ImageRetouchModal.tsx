@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { proxied } from "@/lib/proxy-image";
 import {
   X,
   Loader2,
@@ -185,7 +186,7 @@ export default function ImageRetouchModal({
                 <div className="aspect-[4/3] max-w-md rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={sourceUrl}
+                    src={proxied(sourceUrl)}
                     alt="source"
                     className="w-full h-full object-cover object-center"
                   />
@@ -297,7 +298,7 @@ export default function ImageRetouchModal({
                 <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={sourceUrl}
+                    src={proxied(sourceUrl)}
                     alt="original"
                     className="w-full h-full object-cover object-center opacity-60"
                   />
@@ -323,7 +324,7 @@ export default function ImageRetouchModal({
                 <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={originalServerUrl || sourceUrl || ""}
+                    src={proxied(originalServerUrl || sourceUrl || "")}
                     alt="original"
                     className="w-full h-full object-cover object-center"
                   />
@@ -343,7 +344,7 @@ export default function ImageRetouchModal({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={img.url}
+                        src={proxied(img.url)}
                         alt="retouche"
                         className="w-full h-full object-cover object-center"
                       />

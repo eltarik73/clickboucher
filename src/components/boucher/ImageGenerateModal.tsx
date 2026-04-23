@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { X, Loader2, Sparkles, RefreshCw, ImageOff } from "lucide-react";
 import PresetChips from "./image-studio/PresetChips";
+import { proxied } from "@/lib/proxy-image";
 
 type Usage = "PRODUCT" | "CAMPAIGN" | "BANNER";
 
@@ -321,7 +322,7 @@ export default function ImageGenerateModal({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={img.url}
+                        src={proxied(img.url)}
                         alt="variation IA"
                         className="w-full h-full object-cover object-center"
                       />
