@@ -125,10 +125,5 @@ export default async function BonsPlansPage() {
   }
   const categories = Array.from(categorySet.values());
 
-  return (
-    <>
-      <h1 className="sr-only">Bons plans et promotions boucherie halal</h1>
-      <BonsPlansClient promos={promos} categories={categories} platformPromos={platformPromos} />
-    </>
-  );
+  return <BonsPlansClient promos={promos} categories={categories} platformPromos={platformPromos} />;
 }

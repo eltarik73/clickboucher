@@ -14,7 +14,8 @@ export default function BonsPlansLayout({ children }: { children: React.ReactNod
               <ArrowLeft size={15} className="text-white" />
             </Link>
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <Flame size={20} /> Bons plans
+              <Flame size={20} aria-hidden="true" />
+              <span>Bons plans et promotions boucherie halal</span>
             </h1>
           </div>
         </div>

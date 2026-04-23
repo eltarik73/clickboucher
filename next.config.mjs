@@ -21,6 +21,12 @@ const nextConfig = {
     return [
       { source: "/decouvrir", destination: "/", permanent: true },
       { source: "/boucheries", destination: "/", permanent: true },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.klikandgo.app" }],
+        destination: "https://klikandgo.app/:path*",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

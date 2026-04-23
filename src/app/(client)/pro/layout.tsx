@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description:
     "Espace professionnel Klik&Go pour les restaurateurs, traiteurs et commerces. Commandez en gros auprès de boucheries halal partenaires avec des tarifs préférentiels.",
   alternates: { canonical: `${SITE_URL}/pro` },
+  robots: { index: false, follow: true },
 };
 
 export default function ProLayout({ children }: { children: React.ReactNode }) {

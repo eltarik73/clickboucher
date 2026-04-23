@@ -229,7 +229,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <h1 className="sr-only">Klik&amp;Go — Click &amp; Collect de boucheries halal</h1>
+      <h1 className="sr-only">Boucheries halal près de chez vous — Click &amp; Collect halal en ligne</h1>
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -286,10 +286,10 @@ export default async function HomePage() {
             </h2>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
+          <p className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
             Marre d&apos;attendre ?<br />
             <span className="text-[#DC2626]">Commandez. Récupérez. Savourez.</span>
-          </h1>
+          </p>
           <p className="mt-3 sm:mt-5 text-base sm:text-lg text-gray-600 dark:text-[#999] max-w-xl mx-auto">
             Zero file. Zero stress. <span className="text-gray-900 dark:text-white font-medium">100% frais.</span>
           </p>

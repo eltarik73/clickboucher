@@ -308,3 +308,55 @@ Sans tester Google réel (rate-limit), évaluation par couverture côté site :
 | "pages /contact /a-propos" | 🔴 toujours 404 |
 
 **Conclusion** : sur 7 fixes revendiqués, **2 sont réellement en prod** (CartFAB, cache-control city pages), 1 partiel (search), 4 non déployés. Vérifier l'état du déploiement Vercel du commit `c522bd7` — possiblement un build raté non détecté.
+
+---
+
+# Tour 2 — Rapport des fixes appliqués (agent)
+
+Commit de base prod : `b5387e3`
+TypeScript : clean (exit 0) · Vitest : 95/95 passed
+
+## FIX 1 — H1 homepage SEO ✅
+`src/app/(client)/page.tsx` : H1 sr-only → `Boucheries halal près de chez vous — Click & Collect halal en ligne`. Ancien H1 visible "Marre d'attendre ?" rétrogradé en `<p>` (mêmes classes) pour éviter H1 en double et renforcer les mots-clés.
+
+## FIX 2 — /bons-plans H1 ✅
+Détecté H1 en double (layout + sr-only page). Retiré sr-only dans `page.tsx`. Enrichi H1 layout : `Bons plans et promotions boucherie halal` (+ icône `aria-hidden`). Fichiers : `bons-plans/page.tsx`, `bons-plans/layout.tsx`.
+
+## FIX 3 — Pages villes sans boutiques ✅
+`src/app/boucherie-halal/[ville]/page.tsx` :
+- `generateMetadata()` fait un `prisma.shop.count()` et renvoie `robots: { index: false, follow: true }` si `shopCount === 0`.
+- FAQ réécrite pour éviter "0 boucherie" : message positif "Klik&Go arrive bientôt, nous recrutons des partenaires…".
+
+## FIX 4 — /api/offers 404 ✅
+Créé `src/app/api/offers/route.ts` : GET public, pagination 20/page, filtre `shopId?`, renvoie offres `ACTIVE` dans fenêtre `startDate/endDate`. Compatible avec `offersApi.list()` existant (actuellement non consommé, mais route publique légitime).
+
+## FIX 5 — /favoris noindex ✅
+`src/app/(client)/favoris/layout.tsx` : ajouté `robots: { index: false, follow: false }`.
+
+## FIX 6 — /pro clés i18n Clerk ⚠️ partiel
+Aucun composant Clerk (`OrganizationSwitcher`, `UserProfile`) dans `/pro` — page statique lucide-only. Le `pRole__admin` vient probablement d'un autre contexte. Appliqué ceinture+bretelles : `robots: { index: false, follow: true }` sur `/pro` → si fuite il y a, Google ne l'indexe pas. Fichier : `src/app/(client)/pro/layout.tsx`.
+
+## FIX 7 — Chat widget ⚠️ skip
+`ChatWidget` correctement monté via `dynamic({ssr:false})` dans `src/app/(client)/layout.tsx`. Bubble a bien `pointer-events-auto`. Code intact dans le source. Non reproductible statiquement — probablement runtime/CSP. Skippé, à re-auditer en prod.
+
+## FIX 8 — Redirect www 301 ✅
+`next.config.mjs` : ajouté redirect permanent host `www.klikandgo.app` → `klikandgo.app` via `async redirects()`. Note : `permanent: true` = 308 côté Next, traité par Google comme 301 canonical-equivalent. Pour un 301 strict, gérer au niveau Vercel dashboard.
+
+## FIX 9 — Contraste text-gray-400 ✅ (nothing to change in scope)
+Audit des 3 fichiers cibles :
+- `page.tsx`, `ShopCard.tsx`, `ProductCard.tsx` : **toutes** les occurrences sont en pattern `text-gray-500 dark:text-gray-400` → light mode = gray-500 (OK WCAG AA), dark = gray-400 sur #0a0a0a (OK).
+Aucun changement requis dans le scope. Les 50 occurrences audit viennent probablement d'autres fichiers (PromoCodeInput, ProductQuickAdd, AntiGaspiBanner…) — à trier dans un tour futur.
+
+## Fichiers modifiés
+- `src/app/(client)/page.tsx`
+- `src/app/(client)/bons-plans/page.tsx`
+- `src/app/(client)/bons-plans/layout.tsx`
+- `src/app/boucherie-halal/[ville]/page.tsx`
+- `src/app/api/offers/route.ts` (nouveau)
+- `src/app/(client)/favoris/layout.tsx`
+- `src/app/(client)/pro/layout.tsx`
+- `next.config.mjs`
+
+## Vérifications
+- `npx tsc --noEmit` : exit 0
+- `npx vitest run` : 6 files / 95 tests passed

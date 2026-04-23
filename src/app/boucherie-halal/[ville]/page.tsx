@@ -25,6 +25,14 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
+  // Check if any shops exist in this city — if not, noindex to avoid thin content
+  const shopCount = await prisma.shop.count({
+    where: {
+      visible: true,
+      city: { contains: city.name, mode: "insensitive" },
+    },
+  });
+
   const title = `Boucherie halal à ${city.name} — Click & Collect`;
   return {
     title,
@@ -44,6 +52,7 @@ export async function generateMetadata({
     alternates: {
       canonical: `${SITE_URL}/boucherie-halal/${city.slug}`,
     },
+    robots: shopCount === 0 ? { index: false, follow: true } : undefined,
   };
 }
 
@@ -92,7 +101,9 @@ export default async function CityPage({
     },
     {
       question: `Quelles boucheries halal proposent le click & collect à ${city.name} ?`,
-      answer: `Klik&Go référence ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name} et dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Consultez notre liste ci-dessous.`,
+      answer: shops.length > 0
+        ? `Klik&Go référence ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name} et dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Consultez notre liste ci-dessous.`
+        : `Klik&Go arrive bientôt à ${city.name}. Nous recrutons actuellement des boucheries halal partenaires dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Si vous êtes boucher, contactez-nous pour rejoindre la plateforme.`,
     },
     {
       question: "La viande est-elle certifiée halal ?",
