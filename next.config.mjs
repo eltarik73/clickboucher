@@ -21,6 +21,9 @@ const nextConfig = {
     return [
       { source: "/decouvrir", destination: "/", permanent: true },
       { source: "/boucheries", destination: "/", permanent: true },
+      // Common 404s reported by audit — map to nearest existing page
+      { source: "/cgu", destination: "/cgv", permanent: true },
+      { source: "/confidentialite", destination: "/politique-de-confidentialite", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.klikandgo.app" }],
