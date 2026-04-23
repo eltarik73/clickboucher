@@ -52,6 +52,7 @@ type ShopData = {
   rating: number;
   ratingCount: number;
   activePromo: string | null;
+  openingHours: Record<string, { open: string; close: string } | null> | null;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -103,6 +104,7 @@ export default async function HomePage() {
         status: true,
         rating: true,
         ratingCount: true,
+        openingHours: true,
       },
     });
 
@@ -211,6 +213,7 @@ export default async function HomePage() {
     // Attach promo label to shops + sort: shops with promos first
     shops = shopsResult.map((s) => ({
       ...s,
+      openingHours: (s.openingHours as ShopData["openingHours"]) ?? null,
       activePromo: shopPromoMap.get(s.id) || null,
     }));
     shops.sort((a, b) => {

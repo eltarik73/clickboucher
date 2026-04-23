@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
           rating: number;
           rating_count: number;
           delivery_radius: number;
+          opening_hours: unknown;
           distance: number;
         }>
       >`SELECT * FROM (
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
             s.id, s.slug, s.name, s.address, s.city, s.image_url,
             s.latitude, s.longitude,
             s.prep_time_min, s.busy_mode, s.busy_extra_min,
-            s.status, s.rating, s.rating_count, s.delivery_radius,
+            s.status, s.rating, s.rating_count, s.delivery_radius, s.opening_hours,
             (6371 * acos(
               LEAST(1.0, GREATEST(-1.0,
                 cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
@@ -91,6 +92,7 @@ export async function GET(req: NextRequest) {
           imageUrl: true, latitude: true, longitude: true,
           prepTimeMin: true, busyMode: true, busyExtraMin: true,
           status: true, rating: true, ratingCount: true,
+          openingHours: true,
         },
         orderBy: { rating: "desc" },
         take: 20,
@@ -113,6 +115,7 @@ export async function GET(req: NextRequest) {
       status: s.status,
       rating: s.rating,
       ratingCount: s.rating_count,
+      openingHours: s.opening_hours ?? null,
       distance: isNaN(Number(s.distance)) ? null : Math.round(Number(s.distance) * 10) / 10,
     }));
 

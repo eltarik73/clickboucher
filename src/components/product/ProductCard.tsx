@@ -14,7 +14,7 @@ export type ProductCardData = Pick<ProductV2,
   "id" | "shopId" | "name" | "description" | "imageUrl" | "priceCents" | "unit" |
   "inStock" | "tags" | "origin" | "halalOrg" | "race" | "popular" |
   "promoPct" | "promoEnd" | "promoType" | "freshness" | "customerNote" |
-  "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin" |
+  "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin" | "minWeightG" |
   "promoFixedCents" | "packOldPriceCents" | "packContent" | "packWeight" | "cutOptions" |
   "originRegion" | "raceDescription" | "elevageMode" | "elevageDetail" |
   "halalMethod" | "freshDate" | "freshDetail" |
@@ -49,6 +49,16 @@ function unitLabel(unit: string) {
 function promoPrice(cents: number, pct: number) {
   return Math.round(cents * (1 - pct / 100));
 }
+
+// Certification halal labels — badge distinct (vert + croissant)
+const HALAL_LABEL_NAMES = new Set([
+  "avs",
+  "achahada",
+  "mosquee de paris",
+  "mosquée de paris",
+  "argml",
+  "halal service",
+]);
 
 const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' fill='%231a1a1a'%3E%3Crect width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='%23333'%3E🥩%3C/text%3E%3C/svg%3E";
 
@@ -181,18 +191,33 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                 ☪<span className="hidden md:inline lg:hidden"> {product.halalOrg}</span>
               </span>
             )}
-            {product.labels.slice(0, 1).map((l) => (
-              <span
-                key={l.id}
-                className="text-[10px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
-                style={{
-                  backgroundColor: l.color ? `${l.color}1F` : "rgba(251,191,36,0.12)",
-                  color: l.color || "#FBBF24",
-                }}
-              >
-                {l.name}
-              </span>
-            ))}
+            {product.labels.slice(0, 1).map((l) => {
+              const isHalal = HALAL_LABEL_NAMES.has(l.name.trim().toLowerCase());
+              if (isHalal) {
+                return (
+                  <span
+                    key={l.id}
+                    className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] shrink-0 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20"
+                    title={`Certifié ${l.name}`}
+                  >
+                    <span aria-hidden="true">☪</span>
+                    <span>{l.name}</span>
+                  </span>
+                );
+              }
+              return (
+                <span
+                  key={l.id}
+                  className="text-[10px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
+                  style={{
+                    backgroundColor: l.color ? `${l.color}1F` : "rgba(251,191,36,0.12)",
+                    color: l.color || "#FBBF24",
+                  }}
+                >
+                  {l.name}
+                </span>
+              );
+            })}
           </div>
         )}
 
@@ -236,6 +261,22 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               )}
               <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
             </div>
+            {/* Estimation /kg → total au poids min */}
+            {(product.unit === "KG" || product.unit === "TRANCHE") && product.minWeightG && product.minWeightG > 0 && (() => {
+              const effectivePerKg = isAntiGaspi
+                ? product.priceCents
+                : hasPromo
+                  ? (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+                      ? Math.max(0, product.priceCents - product.promoFixedCents)
+                      : promoPrice(product.priceCents, product.promoPct!))
+                  : product.priceCents;
+              const estimateCents = Math.round((effectivePerKg * product.minWeightG) / 1000);
+              return (
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                  ≈ {fmtPrice(estimateCents)} pour {product.minWeightG}g
+                </span>
+              );
+            })()}
             {isAntiGaspi && product.antiGaspiStock !== null && product.antiGaspiStock <= 5 && (
               <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400">
                 Plus que {product.antiGaspiStock} !

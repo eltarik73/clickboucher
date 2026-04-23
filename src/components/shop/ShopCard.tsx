@@ -7,6 +7,7 @@ import { MapPin, Clock, Star, Tag } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { getShopImage } from "@/lib/product-images";
+import { getShopStatus, formatClosingHint, type OpeningHours } from "@/lib/shop-hours";
 
 export type ShopCardData = {
   id: string;
@@ -24,6 +25,7 @@ export type ShopCardData = {
   distance?: number | null;
   activePromo?: string | null;
   description?: string | null;
+  openingHours?: OpeningHours | null;
 };
 
 interface ShopCardProps {
@@ -49,6 +51,9 @@ export function ShopCard({
   const imgSrc = shop.imageUrl || getShopImage(index);
   const isOpen = shop.status === "OPEN" || shop.status === "BUSY";
   const isClosed = shop.status === "CLOSED" || shop.status === "VACATION";
+  const hoursStatus = isOpen && shop.openingHours ? getShopStatus(shop.openingHours) : null;
+  const closingSoonHint =
+    hoursStatus && hoursStatus.status === "CLOSING_SOON" ? formatClosingHint(hoursStatus) : null;
 
   const prepBadgeClasses =
     effectiveTime <= 15
@@ -121,6 +126,11 @@ export function ShopCard({
                   {effectiveTime} min
                 </span>
               </div>
+            )}
+            {closingSoonHint && (
+              <span className="text-[11px] font-semibold text-orange-600 dark:text-orange-400">
+                🟠 {closingSoonHint}
+              </span>
             )}
           </div>
         </div>
@@ -215,7 +225,7 @@ export function ShopCard({
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
           {shop.address}, {shop.city}
         </p>
-        <div className="flex items-center gap-3 mt-3">
+        <div className="flex items-center gap-3 mt-3 flex-wrap">
           <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg">
             <Star size={12} className="text-yellow-500 fill-yellow-500" />
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -223,6 +233,11 @@ export function ShopCard({
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400">({shop.ratingCount})</span>
           </div>
+          {closingSoonHint && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300">
+              🟠 {closingSoonHint}
+            </span>
+          )}
         </div>
       </div>
     </Link>

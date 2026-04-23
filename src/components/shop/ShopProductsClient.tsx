@@ -136,6 +136,7 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
       weightPerPiece: p.weightPerPiece,
       pieceLabel: p.pieceLabel,
       weightMargin: p.weightMargin,
+      minWeightG: p.minWeightG,
       cutOptions: p.cutOptions,
       promoFixedCents: p.promoFixedCents,
       packContent: p.packContent,

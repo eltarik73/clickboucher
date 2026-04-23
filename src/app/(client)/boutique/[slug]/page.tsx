@@ -192,6 +192,16 @@ export default async function BoutiquePage({
     shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
   const heroImg = shop.imageUrl || getShopImage(0);
 
+  // Social proof — orders completed this week (only display if ≥ 5)
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const ordersThisWeek = await prisma.order.count({
+    where: {
+      shopId: shop.id,
+      status: { in: ["READY", "PICKED_UP", "COMPLETED"] },
+      createdAt: { gte: weekAgo },
+    },
+  });
+
   // Serialize for client component (strip Prisma internals / Date objects)
   const categories: CategoryData[] = shop.categories.map((c) => ({
     id: c.id,
@@ -388,6 +398,11 @@ export default async function BoutiquePage({
           </div>
           {shop.description && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{shop.description}</p>
+          )}
+          {ordersThisWeek >= 5 && (
+            <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 mt-1">
+              🔥 {ordersThisWeek > 100 ? "Plus de 100 commandes" : `${ordersThisWeek} commande${ordersThisWeek > 1 ? "s" : ""}`} cette semaine
+            </p>
           )}
           <p className="text-xs font-medium text-gray-900 dark:text-gray-300 mt-1">
             Retrait le plus tot :{" "}

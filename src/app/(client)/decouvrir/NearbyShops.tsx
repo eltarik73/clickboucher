@@ -53,8 +53,10 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
     }
   }, []);
 
-  // Check localStorage for cached position on mount
+  // Check localStorage for cached position on mount — fall back to Vercel IP-geo
+  // so the list is pre-sorted by proximity WITHOUT triggering the HTML5 permission prompt.
   useEffect(() => {
+    let cancelled = false;
     try {
       const raw = localStorage.getItem("klikgo-geo");
       if (raw) {
@@ -63,9 +65,28 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
         const lng = Number(cached.lng);
         if (isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0 && Date.now() - cached.ts < 86400000) {
           fetchNearby(lat, lng);
+          return;
         }
       }
     } catch {}
+    // No cached position → silent IP-based lookup via Vercel edge headers
+    (async () => {
+      try {
+        const res = await fetch("/api/geo", { credentials: "omit" });
+        if (!res.ok) return;
+        const json = await res.json();
+        const lat = Number(json?.data?.lat);
+        const lng = Number(json?.data?.lng);
+        if (!cancelled && isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
+          fetchNearby(lat, lng);
+        }
+      } catch {
+        // Fall back to initial (server-rendered) ordering
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchNearby]);
 
   // Listen for location changes from LocationCard
