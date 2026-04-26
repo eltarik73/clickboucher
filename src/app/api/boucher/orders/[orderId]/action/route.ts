@@ -1,5 +1,6 @@
 // src/app/api/boucher/orders/[orderId]/action/route.ts — Unified boucher action route (Uber Eats tablette)
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
@@ -9,10 +10,27 @@ import { sendNotification } from "@/lib/notifications";
 import { canTransition } from "@/lib/order-state-machine";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { sendOrderReceiptEmail } from "@/lib/emails/order-receipt";
+import { logger } from "@/lib/logger";
 
 import { Prisma, type OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+// Audit trail payload — accepts any JSON-serializable record (primitives + nested
+// arrays/objects). Anything that fails this guard is dropped and a warning is
+// logged, so the OrderEvent.payloadJson column never receives garbage.
+type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(jsonValueSchema),
+  ])
+);
+const eventPayloadSchema = z.record(jsonValueSchema).optional();
 
 /** Log an OrderEvent for audit trail */
 async function logOrderEvent(
@@ -22,6 +40,19 @@ async function logOrderEvent(
   actorId: string,
   payload?: Record<string, unknown>
 ) {
+  let safePayload: Prisma.InputJsonValue | null = null;
+  if (payload) {
+    const parsed = eventPayloadSchema.safeParse(payload);
+    if (parsed.success && parsed.data) {
+      safePayload = parsed.data as unknown as Prisma.InputJsonValue;
+    } else {
+      logger.warn("[order-event] Invalid payload, storing null", {
+        type,
+        orderId,
+        error: parsed.success ? "empty" : parsed.error.issues,
+      });
+    }
+  }
   try {
     await prisma.orderEvent.create({
       data: {
@@ -29,11 +60,11 @@ async function logOrderEvent(
         shopId,
         type,
         actorId,
-        ...(payload ? { payloadJson: payload as unknown as Prisma.InputJsonValue } : {}),
+        ...(safePayload !== null ? { payloadJson: safePayload } : {}),
       },
     });
   } catch (e) {
-    console.error("[order-event] Failed to log:", type, e);
+    logger.error("[order-event] Failed to log", { type, error: e });
   }
 }
 

@@ -96,6 +96,9 @@ export async function listOrders(userId: string, req: NextRequest): Promise<List
     where.userId = user.id;
   }
 
+  // ── 1st findMany: fetch the user-visible orders page (limited to 50, newest first).
+  // We need the full list before we can identify which ones have an expired
+  // PriceAdjustment that must be auto-approved before being shown to the client.
   const orders = await prisma.order.findMany({
     where,
     include: orderInclude,
@@ -103,7 +106,9 @@ export async function listOrders(userId: string, req: NextRequest): Promise<List
     take: 50,
   });
 
-  // Auto-approve expired price adjustments (batch instead of N+1)
+  // Auto-approve expired price adjustments (batch instead of N+1).
+  // The PriceAdjustment.autoApproveAt deadline is checked here rather than in a
+  // background job because clients/bouchers must see a consistent state on read.
   const expiredAdjustmentOrderIds = orders
     .filter((order) => {
       const adj = (order as Record<string, unknown>).priceAdjustment as
@@ -113,6 +118,12 @@ export async function listOrders(userId: string, req: NextRequest): Promise<List
     })
     .map((o) => o.id);
 
+  // ── 2nd findMany: refetch ONLY the orders we just mutated.
+  // Why not merge into a single query? `autoApproveExpiredAdjustment` performs
+  // writes (update PriceAdjustment status + recompute order totals), so the
+  // first read is stale. Refetching just the mutated ids is cheaper than refetching
+  // all 50 orders, and we merge the updated rows back into the original list to
+  // preserve ordering (`createdAt desc`).
   if (expiredAdjustmentOrderIds.length > 0) {
     await Promise.all(expiredAdjustmentOrderIds.map((id) => autoApproveExpiredAdjustment(id)));
 

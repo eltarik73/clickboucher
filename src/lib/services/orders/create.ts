@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 import { createOrderSchema } from "@/lib/validators";
@@ -292,12 +293,7 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
   const prefix = `KG-${year}-`;
   const itemCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
 
-  const [lastOrder, dailyResult, _customerNumber, prepMinutes] = await Promise.all([
-    prisma.order.findFirst({
-      where: { orderNumber: { startsWith: prefix } },
-      orderBy: { orderNumber: "desc" },
-      select: { orderNumber: true },
-    }),
+  const [dailyResult, _customerNumber, prepMinutes] = await Promise.all([
     getNextDailyNumber(data.shopId),
     ensureCustomerNumber(user.id, data.shopId),
     calculatePrepTime({
@@ -309,8 +305,6 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
     }),
   ]);
 
-  const nextNum = lastOrder ? parseInt(lastOrder.orderNumber.slice(prefix.length), 10) + 1 : 1;
-  const orderNumber = `${prefix}${String(nextNum).padStart(5, "0")}`;
   const { dailyNumber, displayNumber } = dailyResult;
 
   // Scheduled order detection (notification purposes — NOT auto-accepted)
@@ -327,38 +321,65 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
       : new Date(Date.now() + prepMinutes * 60_000)
     : null;
 
-  const order = await prisma.order.create({
-    data: {
-      orderNumber,
-      dailyNumber,
-      displayNumber,
-      userId: user.id,
-      isPro,
-      shopId: data.shopId,
-      status: initialStatus,
-      requestedTime: data.requestedTime,
-      customerNote: data.customerNote,
-      totalCents: finalTotalCents,
-      commissionCents,
-      discountCents: discountCents > 0 ? discountCents : undefined,
-      discountAmount: discountCents > 0 ? discountCents / 100 : undefined,
-      discountSource: discountSource || undefined,
-      offerId: offerId || undefined,
-      loyaltyRewardId: loyaltyRewardId || undefined,
-      expiresAt: initialStatus === "PENDING" ? expiresAt : null,
-      idempotencyKey: idempotencyKey,
-      pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
-      pickupSlotEnd: data.pickupSlotEnd ? new Date(data.pickupSlotEnd) : null,
-      qrCode,
-      estimatedReady,
-      paymentMethod: data.paymentMethod ?? "ON_PICKUP",
-      items: { create: orderItems },
-    },
-    include: {
-      items: true,
-      shop: { select: { id: true, name: true, slug: true } },
-    },
-  });
+  // ── Race-safe orderNumber generation ──
+  // Under concurrent load, two simultaneous creates can compute the same next
+  // orderNumber and collide on the @unique constraint (P2002). We retry up to
+  // MAX_RETRIES times, recomputing the number from the latest DB row each pass.
+  const MAX_RETRIES = 3;
+  let order: Awaited<ReturnType<typeof createOrderRow>> | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const lastOrder = await prisma.order.findFirst({
+      where: { orderNumber: { startsWith: prefix } },
+      orderBy: { orderNumber: "desc" },
+      select: { orderNumber: true },
+    });
+    const nextNum = lastOrder ? parseInt(lastOrder.orderNumber.slice(prefix.length), 10) + 1 : 1;
+    const orderNumber = `${prefix}${String(nextNum + attempt).padStart(5, "0")}`;
+    try {
+      order = await createOrderRow({
+        orderNumber,
+        dailyNumber,
+        displayNumber,
+        userId: user.id,
+        isPro,
+        shopId: data.shopId,
+        initialStatus,
+        requestedTime: data.requestedTime,
+        customerNote: data.customerNote,
+        finalTotalCents,
+        commissionCents,
+        discountCents,
+        discountSource,
+        offerId,
+        loyaltyRewardId,
+        expiresAt: initialStatus === "PENDING" ? expiresAt : null,
+        idempotencyKey,
+        pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
+        pickupSlotEnd: data.pickupSlotEnd ? new Date(data.pickupSlotEnd) : null,
+        qrCode,
+        estimatedReady,
+        paymentMethod: data.paymentMethod ?? "ON_PICKUP",
+        items: orderItems,
+      });
+      break;
+    } catch (err) {
+      lastErr = err;
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002" &&
+        attempt < MAX_RETRIES - 1
+      ) {
+        logger.warn("[orders/create] orderNumber collision, retrying", { attempt, orderNumber });
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (!order) {
+    logger.error("[orders/create] orderNumber retry exhausted", { err: lastErr });
+    return { ok: false, code: "VALIDATION_ERROR", message: "Conflit de numéro de commande, réessayez" };
+  }
 
   // ── Fire-and-forget: notifications + email + auto-busy ──
   const pickupTimeStr = isScheduled
@@ -405,4 +426,66 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
   ]).catch((err) => logger.error("[orders/create] background error", { err }));
 
   return { ok: true, order, status: 201 };
+}
+
+interface CreateOrderRowInput {
+  orderNumber: string;
+  dailyNumber: number;
+  displayNumber: string;
+  userId: string;
+  isPro: boolean;
+  shopId: string;
+  initialStatus: "PENDING" | "ACCEPTED";
+  requestedTime?: string;
+  customerNote?: string;
+  finalTotalCents: number;
+  commissionCents: number;
+  discountCents: number;
+  discountSource: string | null;
+  offerId: string | null;
+  loyaltyRewardId: string | null;
+  expiresAt: Date | null;
+  idempotencyKey: string | null;
+  pickupSlotStart: Date | null;
+  pickupSlotEnd: Date | null;
+  qrCode: string | null;
+  estimatedReady: Date | null;
+  paymentMethod: "ONLINE" | "ON_PICKUP";
+  // Looser typing on items: this matches the inline shape built upstream.
+  items: Array<Record<string, unknown>>;
+}
+
+async function createOrderRow(input: CreateOrderRowInput) {
+  return prisma.order.create({
+    data: {
+      orderNumber: input.orderNumber,
+      dailyNumber: input.dailyNumber,
+      displayNumber: input.displayNumber,
+      userId: input.userId,
+      isPro: input.isPro,
+      shopId: input.shopId,
+      status: input.initialStatus,
+      requestedTime: input.requestedTime,
+      customerNote: input.customerNote,
+      totalCents: input.finalTotalCents,
+      commissionCents: input.commissionCents,
+      discountCents: input.discountCents > 0 ? input.discountCents : undefined,
+      discountAmount: input.discountCents > 0 ? input.discountCents / 100 : undefined,
+      discountSource: input.discountSource || undefined,
+      offerId: input.offerId || undefined,
+      loyaltyRewardId: input.loyaltyRewardId || undefined,
+      expiresAt: input.expiresAt,
+      idempotencyKey: input.idempotencyKey,
+      pickupSlotStart: input.pickupSlotStart,
+      pickupSlotEnd: input.pickupSlotEnd,
+      qrCode: input.qrCode,
+      estimatedReady: input.estimatedReady,
+      paymentMethod: input.paymentMethod,
+      items: { create: input.items as unknown as Prisma.OrderItemCreateWithoutOrderInput[] },
+    },
+    include: {
+      items: true,
+      shop: { select: { id: true, name: true, slug: true } },
+    },
+  });
 }

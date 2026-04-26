@@ -809,6 +809,7 @@ model Cart {
 
   @@unique([userId, shopId])
   @@index([updatedAt])
+  /// Used by /api/admin/abandoned-carts to list abandoned carts (not the cron, which uses updatedAt)
   @@index([abandonedAt])
   @@map("carts")
 }
