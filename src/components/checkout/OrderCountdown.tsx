@@ -12,7 +12,7 @@ interface OrderCountdownProps {
   shopName: string | null;
   pickupLabel: string;
   onCancel: () => void;
-  onSuccess: (order: { id: string; orderNumber: string }) => void;
+  onSuccess: (order: { id: string; orderNumber: string; guestToken?: string }) => void;
   onError: (missingProductIds?: string[]) => void;
   duration?: number;
 }
@@ -57,10 +57,14 @@ export function OrderCountdown({
     setStatus("sending");
 
     try {
-      const res = await fetch("/api/orders", {
+      // Allow callers to override the endpoint (guest checkout uses /api/checkout/guest).
+      const endpoint = (orderData["__endpoint"] as string) || "/api/orders";
+      const { __endpoint: _omit, ...payload } = orderData as Record<string, unknown>;
+      void _omit;
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -71,9 +75,14 @@ export function OrderCountdown({
         setStatus("success");
         // Vibrate on success
         if (navigator.vibrate) navigator.vibrate(200);
+        // Normalize: guest endpoint wraps as { order, guestToken } — flatten
+        // so callers always receive the order at the top level.
+        const payload = data.data?.order
+          ? { ...data.data.order, guestToken: data.data.guestToken }
+          : data.data;
         // Wait 2s then callback
         setTimeout(() => {
-          if (!cancelledRef.current) onSuccess(data.data);
+          if (!cancelledRef.current) onSuccess(payload);
         }, 2000);
       } else {
         const msg =

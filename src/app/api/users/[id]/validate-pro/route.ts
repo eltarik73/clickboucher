@@ -45,6 +45,12 @@ export async function POST(
       return apiError("VALIDATION_ERROR", "Cet utilisateur n'a pas de demande pro en attente");
     }
 
+    // Pro validation requires a Clerk-registered user (guest users cannot be PRO).
+    if (!user.clerkId) {
+      return apiError("CONFLICT", "Utilisateur invité — pas de compte Clerk");
+    }
+    const targetClerkId: string = user.clerkId;
+
     const body = await req.json();
     const data = validateProSchema.parse(body);
 
@@ -62,11 +68,11 @@ export async function POST(
 
       // Update Clerk metadata
       const clerk = await clerkClient();
-      await clerk.users.updateUserMetadata(user.clerkId, {
+      await clerk.users.updateUserMetadata(targetClerkId, {
         publicMetadata: { role: "client_pro" },
       });
 
-      await sendNotification("PRO_VALIDATED", { userId: user.clerkId });
+      await sendNotification("PRO_VALIDATED", { userId: targetClerkId });
 
       return apiSuccess(updated);
     } else {
@@ -81,11 +87,11 @@ export async function POST(
 
       // Reset Clerk metadata
       const clerk = await clerkClient();
-      await clerk.users.updateUserMetadata(user.clerkId, {
+      await clerk.users.updateUserMetadata(targetClerkId, {
         publicMetadata: { role: "client" },
       });
 
-      await sendNotification("PRO_REJECTED", { userId: user.clerkId });
+      await sendNotification("PRO_REJECTED", { userId: targetClerkId });
 
       return apiSuccess(updated);
     }

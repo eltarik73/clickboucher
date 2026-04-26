@@ -10,32 +10,45 @@ import { autoApproveExpiredAdjustment } from "@/lib/price-adjustment";
 // ── GET /api/orders/[id] ───────────────────────
 // Authenticated — order detail (client owner, boucher owner, or admin)
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
+
+    // Guest checkout magic-link path: ?guestToken=... bypasses Clerk auth but
+    // requires the token to match the order's user.guestToken.
+    const guestTokenQuery = req.nextUrl.searchParams.get("guestToken");
+
     const userId = await getServerUserId();
 
-    if (!userId) {
+    if (!userId && !guestTokenQuery) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    // Get user from DB to determine role
-    const dbUser = await getOrCreateUser(userId);
+    // Get user from DB to determine role (only for Clerk path)
+    const dbUser = userId ? await getOrCreateUser(userId) : null;
 
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
         items: { include: { product: true } },
         shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, phone: true, ownerId: true } },
-        user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true, customerNumber: true } },
+        user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true, customerNumber: true, guestToken: true } },
         priceAdjustment: true,
       },
     });
 
     if (!order) {
       return apiError("NOT_FOUND", "Commande introuvable");
+    }
+
+    // Guest path — token must match the order's user.guestToken.
+    if (!userId && guestTokenQuery) {
+      if (!order.user.guestToken || order.user.guestToken !== guestTokenQuery) {
+        return apiError("FORBIDDEN", "Token invalide");
+      }
+      return apiSuccess(order);
     }
 
     // Auto-approve/escalate expired price adjustment if any

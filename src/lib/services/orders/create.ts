@@ -25,14 +25,20 @@ export type CreateOrderResult =
   | { ok: false; code: CreateErrorCode; message: string; details?: Record<string, string[]> | { missingProductIds: string[] } };
 
 /**
- * Create a new order — called from POST /api/orders.
+ * Create a new order — called from POST /api/orders (Clerk users) and
+ * POST /api/checkout/guest (anonymous users with shadow Prisma User).
+ *
  * Handles idempotency, pricing, stock, throttling, slot validation, auto-cancel timer,
  * numbering and fire-and-forget notifications.
  *
  * @param body - Raw JSON body (already parsed from request)
- * @param userId - Clerk user id (already authenticated upstream)
+ * @param userOrClerkId - Either a Clerk id string (Clerk-authenticated path) or
+ *                       a pre-resolved Prisma User (guest checkout path).
  */
-export async function createOrder(body: unknown, userId: string): Promise<CreateOrderResult> {
+export async function createOrder(
+  body: unknown,
+  userOrClerkId: string | { id: string; firstName: string; lastName: string; email: string; role: string; clerkId: string | null }
+): Promise<CreateOrderResult> {
   const bodyRecord = (body ?? {}) as Record<string, unknown>;
 
   // Idempotency check (anti double-commande)
@@ -60,9 +66,12 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
   const data = parseResult.data;
 
   // ── Phase 1: Parallel fetch — user + shop + products ──
+  // Guest path passes a pre-resolved Prisma User; Clerk path passes a clerkId string.
   const productIds = data.items.map((i) => i.productId);
+  const userPromise =
+    typeof userOrClerkId === "string" ? getOrCreateUser(userOrClerkId) : Promise.resolve(userOrClerkId);
   const [user, shop, products] = await Promise.all([
-    getOrCreateUser(userId),
+    userPromise,
     prisma.shop.findUnique({
       where: { id: data.shopId },
       select: {

@@ -149,6 +149,11 @@ export default function PanierPage() {
   // Clear cart dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  // Guest checkout (Baymard +23%) — non-signed-in visitors can place an order
+  // by providing email + name + optional phone. A magic link is sent for tracking.
+  const [guestForm, setGuestForm] = useState({ email: "", firstName: "", lastName: "", phone: "" });
+  const [guestErrors, setGuestErrors] = useState<{ email?: string; firstName?: string; lastName?: string }>({});
+
   // Promo code
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
@@ -309,8 +314,21 @@ export default function PanierPage() {
     setSelectedSlot(null);
   }
 
+  const validateGuestForm = () => {
+    const errs: { email?: string; firstName?: string; lastName?: string } = {};
+    if (!guestForm.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestForm.email.trim())) {
+      errs.email = "Email invalide";
+    }
+    if (!guestForm.firstName.trim()) errs.firstName = "Prénom requis";
+    if (!guestForm.lastName.trim()) errs.lastName = "Nom requis";
+    setGuestErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleOrder = () => {
     if (!state.shopId || state.items.length === 0) return;
+    // Guest path — validate identity form before sending.
+    if (!isSignedIn && !validateGuestForm()) return;
 
     const requestedTime =
       timeMode === "slot" && selectedSlot
@@ -352,6 +370,15 @@ export default function PanierPage() {
     if (timeMode === "slot" && selectedSlot) {
       orderBody.pickupSlotStart = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
       orderBody.pickupSlotEnd = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
+    }
+
+    if (!isSignedIn) {
+      // Attach guest identity — the OrderCountdown will POST to /api/checkout/guest.
+      orderBody.email = guestForm.email.trim();
+      orderBody.firstName = guestForm.firstName.trim();
+      orderBody.lastName = guestForm.lastName.trim();
+      if (guestForm.phone.trim()) orderBody.phone = guestForm.phone.trim();
+      orderBody.__endpoint = "/api/checkout/guest";
     }
 
     setCountdownOrderData(orderBody);
@@ -576,20 +603,178 @@ export default function PanierPage() {
               Chargement...
             </div>
           ) : !isSignedIn ? (
-            /* Not signed in */
-            <div className="p-5 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Connectez-vous pour passer votre commande
-              </p>
-              <Button
-                className="bg-[#DC2626] hover:bg-[#b91c1c] w-full"
-                size="lg"
-                asChild
-              >
-                <Link href="/sign-in?redirect_url=/panier">
-                  Se connecter pour commander
-                </Link>
-              </Button>
+            /* Not signed in — Guest checkout (Baymard +23% conversion) */
+            <div className="space-y-4">
+              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+                <div className="flex items-start justify-between mb-3 gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Tes infos pour la commande
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      Pas besoin de créer un compte. On t&apos;envoie un lien de suivi par email.
+                    </p>
+                  </div>
+                  <Link
+                    href="/sign-in?redirect_url=/panier"
+                    className="text-xs font-semibold text-[#DC2626] hover:underline whitespace-nowrap shrink-0"
+                  >
+                    J&apos;ai un compte
+                  </Link>
+                </div>
+                <div className="space-y-2.5">
+                  <div>
+                    <input
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      value={guestForm.email}
+                      onChange={(e) => { setGuestForm((f) => ({ ...f, email: e.target.value })); setGuestErrors((er) => ({ ...er, email: undefined })); }}
+                      placeholder="Email *"
+                      className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                    />
+                    {guestErrors.email && <p className="text-[11px] text-red-500 mt-1">{guestErrors.email}</p>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <input
+                        type="text"
+                        autoComplete="given-name"
+                        value={guestForm.firstName}
+                        onChange={(e) => { setGuestForm((f) => ({ ...f, firstName: e.target.value })); setGuestErrors((er) => ({ ...er, firstName: undefined })); }}
+                        placeholder="Prénom *"
+                        className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                      />
+                      {guestErrors.firstName && <p className="text-[11px] text-red-500 mt-1">{guestErrors.firstName}</p>}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        autoComplete="family-name"
+                        value={guestForm.lastName}
+                        onChange={(e) => { setGuestForm((f) => ({ ...f, lastName: e.target.value })); setGuestErrors((er) => ({ ...er, lastName: undefined })); }}
+                        placeholder="Nom *"
+                        className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                      />
+                      {guestErrors.lastName && <p className="text-[11px] text-red-500 mt-1">{guestErrors.lastName}</p>}
+                    </div>
+                  </div>
+                  <div>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={guestForm.phone}
+                      onChange={(e) => setGuestForm((f) => ({ ...f, phone: e.target.value }))}
+                      placeholder="Téléphone (recommandé)"
+                      className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                    />
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                      Tu pourras créer un compte plus tard pour retrouver tes commandes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Time slot */}
+              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock size={16} className="text-[#DC2626]" />
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Créneau de retrait
+                  </span>
+                </div>
+
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors mb-2">
+                  <input type="radio" name="timeSlot" checked={timeMode === "asap"} onChange={() => setTimeMode("asap")} className="w-4 h-4 accent-[#DC2626]" />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Dès que possible</span>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Préparation immédiate par le boucher</p>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <input type="radio" name="timeSlot" checked={timeMode === "slot"} onChange={() => setTimeMode("slot")} className="w-4 h-4 accent-[#DC2626]" />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Choisir un créneau</span>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Sélectionnez un créneau de 30 min</p>
+                  </div>
+                </label>
+
+                {timeMode === "slot" && (
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <button onClick={() => navigateDate(-1)} className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5">
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {new Date(selectedDate + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                      </span>
+                      <button onClick={() => navigateDate(1)} className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5">
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                    {slotsLoading ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Chargement...</p>
+                    ) : slots.length === 0 ? (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Aucun créneau disponible ce jour</p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2">
+                        {slots.map((slot) => {
+                          const isSelected = selectedSlot?.start === slot.start;
+                          return (
+                            <button
+                              key={slot.start}
+                              onClick={() => slot.available && setSelectedSlot(slot)}
+                              disabled={!slot.available}
+                              className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors border ${
+                                isSelected
+                                  ? "bg-[#DC2626] text-white border-[#DC2626]"
+                                  : slot.available
+                                  ? "bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-200 dark:border-white/10 hover:border-[#DC2626]/50"
+                                  : "bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 border-transparent cursor-not-allowed"
+                              }`}
+                            >
+                              {slot.start}
+                              {slot.available && (
+                                <span className={`block text-[10px] mt-0.5 ${isSelected ? "text-white/70" : "text-gray-500 dark:text-gray-400"}`}>
+                                  {slot.remaining} place{slot.remaining > 1 ? "s" : ""}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+                <label className="text-sm font-semibold text-gray-900 dark:text-white mb-2 block">
+                  Note au boucher
+                  <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">(optionnel)</span>
+                </label>
+                <textarea
+                  value={customerNote}
+                  onChange={(e) => setCustomerNote(e.target.value)}
+                  placeholder="Sans trop de gras, bien saignant..."
+                  maxLength={500}
+                  rows={3}
+                  className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                />
+              </div>
+
+              <div className="sticky bottom-0 -mx-5 px-5 pb-[env(safe-area-inset-bottom)] pt-3 bg-gradient-to-t from-[#f8f6f3] dark:from-[#0a0a0a] from-60% to-transparent md:static md:mx-0 md:px-0 md:pb-0 md:pt-0 md:bg-none">
+                <Button
+                  onClick={handleOrder}
+                  disabled={showCountdown || (timeMode === "slot" && !selectedSlot)}
+                  className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50 shadow-lg md:shadow-none"
+                  size="lg"
+                >
+                  Confirmer ma commande
+                </Button>
+              </div>
             </div>
           ) : (
             /* Signed in — checkout form */
@@ -816,7 +1001,11 @@ export default function PanierPage() {
           onSuccess={(order) => {
             clear();
             toast.success(`Commande ${order.orderNumber} confirmee !`);
-            router.push(`/suivi/${order.id}`);
+            const orderRecord = order as unknown as { id: string; orderNumber: string; guestToken?: string };
+            const suiviUrl = orderRecord.guestToken
+              ? `/suivi/${orderRecord.id}?guestToken=${encodeURIComponent(orderRecord.guestToken)}`
+              : `/suivi/${orderRecord.id}`;
+            router.push(suiviUrl);
           }}
           onError={(missingProductIds) => {
             setShowCountdown(false);

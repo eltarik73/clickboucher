@@ -29,7 +29,7 @@ export async function POST(
         shopId: true,
         pickupSlotStart: true,
         notifSent: true,
-        user: { select: { clerkId: true } },
+        user: { select: { id: true, clerkId: true } },
         shop: { select: { name: true } },
       },
     });
@@ -77,7 +77,7 @@ export async function POST(
 
     // Send notification to client
     await sendNotification("PICKUP_SOON", {
-      userId: order.user.clerkId,
+      userId: order.user.clerkId ?? order.user.id,
       orderId: order.id,
       orderNumber: order.orderNumber,
       shopName: order.shop.name,

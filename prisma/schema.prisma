@@ -249,12 +249,18 @@ enum ShopRole {
 
 model User {
   id        String  @id @default(cuid())
-  clerkId   String  @unique @map("clerk_id")
+  clerkId   String? @unique @map("clerk_id")
   email     String  @unique
   phone     String?
   firstName String  @map("first_name")
   lastName  String  @map("last_name")
   role      Role    @default(CLIENT)
+
+  // ── Guest checkout (Baymard +23% conversion) ──
+  // A guest user has clerkId=null and a guestToken used for magic link tracking.
+  // If they later sign up with the same email, the Clerk webhook merges by setting clerkId.
+  isGuest    Boolean @default(false) @map("is_guest")
+  guestToken String? @unique @map("guest_token")
 
   latitude  Float?
   longitude Float?

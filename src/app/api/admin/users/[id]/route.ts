@@ -62,15 +62,14 @@ export async function PATCH(
       },
     });
 
-    // Update Clerk metadata
-    const clerk = await clerkClient();
-    await clerk.users.updateUserMetadata(user.clerkId, {
-      publicMetadata: { role: newRole },
-    });
-
-    // Purge role caches so the new role is honored on the next request
-    // instead of waiting for the cache TTL to expire.
-    await invalidateRoleCache(user.clerkId);
+    // Update Clerk metadata + purge role caches (skip for guest users without clerkId).
+    if (user.clerkId) {
+      const clerk = await clerkClient();
+      await clerk.users.updateUserMetadata(user.clerkId, {
+        publicMetadata: { role: newRole },
+      });
+      await invalidateRoleCache(user.clerkId);
+    }
 
     return apiSuccess({ role: prismaRole });
   } catch (error) {

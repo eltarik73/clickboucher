@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       : [];
     const ownerMap = new Map<string, string>();
     for (const u of owners) {
-      ownerMap.set(u.clerkId, u.id);
+      if (u.clerkId) ownerMap.set(u.clerkId, u.id);
       ownerMap.set(u.id, u.id);
     }
 

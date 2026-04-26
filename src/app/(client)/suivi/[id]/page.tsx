@@ -1,27 +1,38 @@
 export const dynamic = "force-dynamic";
 
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
+import { GUEST_COOKIE_NAME } from "@/lib/auth/guest-auth";
 import SuiviClient from "./SuiviClient";
 
 export default async function SuiviPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: { guestToken?: string };
 }) {
   const { id } = params;
 
-  // Auth check — only order owner can view tracking
+  // Guest checkout magic-link path: ?guestToken=... or httpOnly cookie.
+  const guestTokenFromQuery = searchParams?.guestToken;
+  const guestTokenFromCookie = cookies().get(GUEST_COOKIE_NAME)?.value;
+  const guestToken = guestTokenFromQuery || guestTokenFromCookie;
+
+  // Auth check — only order owner (Clerk) or matching guest token can view tracking.
   const clerkId = await getServerUserId();
-  if (!clerkId) {
+  if (!clerkId && !guestToken) {
     redirect(`/sign-in?redirect_url=/suivi/${id}`);
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { clerkId },
-    select: { id: true },
-  });
+  const dbUser = clerkId
+    ? await prisma.user.findUnique({
+        where: { clerkId },
+        select: { id: true },
+      })
+    : null;
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -51,7 +62,7 @@ export default async function SuiviPage({
       },
       shop: { select: { id: true, name: true, address: true, city: true, phone: true } },
       userId: true,
-      user: { select: { firstName: true, lastName: true, customerNumber: true, clerkId: true } },
+      user: { select: { firstName: true, lastName: true, customerNumber: true, clerkId: true, guestToken: true } },
       priceAdjustment: {
         select: {
           id: true,
@@ -71,8 +82,14 @@ export default async function SuiviPage({
 
   if (!order) notFound();
 
-  // Verify order belongs to authenticated user
-  if (order.user.clerkId !== clerkId && order.userId !== dbUser?.id) {
+  // Verify order belongs to the requester:
+  //  - Clerk owner: matches clerkId or Prisma userId.
+  //  - Guest: guestToken on the order's user matches the token.
+  const isClerkOwner =
+    !!clerkId && (order.user.clerkId === clerkId || order.userId === dbUser?.id);
+  const isGuestOwner =
+    !!guestToken && !!order.user.guestToken && order.user.guestToken === guestToken;
+  if (!isClerkOwner && !isGuestOwner) {
     notFound();
   }
 

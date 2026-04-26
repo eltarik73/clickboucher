@@ -48,10 +48,12 @@ export async function PATCH(
       data: { role: "CLIENT" },
     });
 
-    const clerk = await clerkClient();
-    await clerk.users.updateUserMetadata(user.clerkId, {
-      publicMetadata: { role: "client" },
-    });
+    if (user.clerkId) {
+      const clerk = await clerkClient();
+      await clerk.users.updateUserMetadata(user.clerkId, {
+        publicMetadata: { role: "client" },
+      });
+    }
 
     await writeAuditLog({
       actorId: admin.userId,

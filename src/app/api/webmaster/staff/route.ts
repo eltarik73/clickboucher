@@ -31,7 +31,9 @@ export async function GET(_req: NextRequest) {
     });
 
     // Get audit counts per admin (actions performed)
-    const adminClerkIds = admins.map((a) => a.clerkId);
+    // Admins are always Clerk-registered, but the Prisma type is now nullable
+    // (because of guest checkout). Filter null values defensively.
+    const adminClerkIds = admins.map((a) => a.clerkId).filter((c): c is string => c !== null);
 
     const auditCounts = await prisma.auditLog.groupBy({
       by: ["actorId"],
@@ -76,9 +78,11 @@ export async function GET(_req: NextRequest) {
       },
     });
 
-    // Map admin names for audit
+    // Map admin names for audit (skip admins without clerkId — defensive)
     const nameMap = Object.fromEntries(
-      admins.map((a) => [a.clerkId, `${a.firstName} ${a.lastName}`])
+      admins
+        .filter((a): a is typeof a & { clerkId: string } => a.clerkId !== null)
+        .map((a) => [a.clerkId, `${a.firstName} ${a.lastName}`])
     );
 
     return apiSuccess({
@@ -90,8 +94,8 @@ export async function GET(_req: NextRequest) {
         lastName: a.lastName,
         phone: a.phone,
         createdAt: a.createdAt,
-        auditCount: auditMap[a.clerkId] || 0,
-        lastActivity: lastActivityMap[a.clerkId] || null,
+        auditCount: a.clerkId ? auditMap[a.clerkId] || 0 : 0,
+        lastActivity: a.clerkId ? lastActivityMap[a.clerkId] || null : null,
       })),
       totalAdmins: admins.length,
       recentAudit: recentAudit.map((a) => ({
@@ -134,6 +138,10 @@ export async function POST(req: NextRequest) {
 
     if (user.role === "ADMIN") {
       return apiError("CONFLICT", "Cet utilisateur est déjà administrateur");
+    }
+
+    if (!user.clerkId) {
+      return apiError("CONFLICT", "Cet utilisateur n'a pas de compte Clerk (invité)");
     }
 
     // Update DB
