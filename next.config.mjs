@@ -3,7 +3,19 @@ const nextConfig = {
   output: process.env.VERCEL ? undefined : "standalone",
   experimental: {
     instrumentationHook: true,
-    optimizePackageImports: ["lucide-react", "recharts", "sonner", "zod", "class-variance-authority", "clsx"],
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "sonner",
+      "zod",
+      "class-variance-authority",
+      "clsx",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-slot",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+      "@dnd-kit/utilities",
+    ],
   },
   images: {
     formats: ["image/webp", "image/avif"],

@@ -34,6 +34,9 @@ export default function InscriptionBoucherPage() {
   );
 }
 
+// TODO(refactor): break this monolithic 7-field form into a wizard (Identité → Boutique →
+// Identifiants pro → Récap) to reduce friction. The existing `Stepper` component is a
+// numeric +/- control, not a wizard — needs a new `<FormWizard>` primitive first.
 function InscriptionBoucherContent() {
   const { isLoaded, isSignedIn } = useUser();
   const searchParams = useSearchParams();
