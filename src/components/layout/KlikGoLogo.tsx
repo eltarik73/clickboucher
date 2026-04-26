@@ -1,5 +1,3 @@
-"use client";
-
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 import { SecretTapLogo } from "@/components/layout/SecretTapLogo";
 

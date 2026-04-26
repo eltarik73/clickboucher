@@ -385,6 +385,12 @@ model Shop {
   acceptOnline   Boolean @default(false) @map("accept_online")
   acceptOnPickup Boolean @default(true) @map("accept_on_pickup")
 
+  // ── Stripe Connect (foundations — not activated) ──
+  stripeAccountId      String?  @map("stripe_account_id")        // acct_xxx
+  stripeAccountStatus  String?  @map("stripe_account_status")    // pending | restricted | active
+  stripeChargesEnabled Boolean  @default(false) @map("stripe_charges_enabled")
+  stripePayoutsEnabled Boolean  @default(false) @map("stripe_payouts_enabled")
+
   // ── Commission ──
   commissionPct     Float   @default(0) @map("commission_pct")
   commissionEnabled Boolean @default(false) @map("commission_enabled")
@@ -1710,4 +1716,19 @@ model ChatMessage {
 
   @@index([sessionId, createdAt])
   @@map("chat_messages")
+}
+
+// ══════════════════════════════════════════
+// STRIPE EVENT — webhook idempotency
+// Foundations only — Stripe not yet activated.
+// Used by /api/payments/webhook to dedupe events on retry.
+// ══════════════════════════════════════════
+
+model StripeEvent {
+  id          String   @id // event.id from Stripe (evt_xxx)
+  type        String
+  processedAt DateTime @default(now()) @map("processed_at")
+  payload     Json?
+
+  @@map("stripe_events")
 }

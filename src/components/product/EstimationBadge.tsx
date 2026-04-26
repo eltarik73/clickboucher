@@ -1,6 +1,4 @@
 // src/components/product/EstimationBadge.tsx
-"use client";
-
 import { computeEstimation, formatEstimation, formatEstimationShort } from "@/lib/estimate";
 import type { ConversionProfile } from "@/lib/conversion-config";
 

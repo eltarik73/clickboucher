@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * KlikLogo — Logo rond Klik&Go (cercle rouge + K blanc + 3 traits de vitesse)
  * Réutilisable partout : header, sidebar, splash, email preview, etc.

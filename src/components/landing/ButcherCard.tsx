@@ -1,6 +1,4 @@
 // src/components/landing/ButcherCard.tsx
-"use client";
-
 import Image from "next/image";
 
 export interface Butcher {

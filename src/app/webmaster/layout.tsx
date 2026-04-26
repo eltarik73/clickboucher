@@ -1,5 +1,3 @@
-"use client";
-
 import { WebmasterNav } from "@/components/layout/WebmasterNav";
 
 export default function WebmasterLayout({ children }: { children: React.ReactNode }) {
