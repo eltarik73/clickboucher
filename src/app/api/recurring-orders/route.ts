@@ -5,6 +5,7 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,9 @@ export async function POST(req: NextRequest) {
     const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
+    const rl = await checkRateLimit(rateLimits.api, `recurring-create:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
+
     const user = await getOrCreateUser(userId);
     if (!user) return apiError("NOT_FOUND", "Utilisateur introuvable");
 
@@ -143,6 +147,9 @@ export async function DELETE(req: NextRequest) {
   try {
     const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+
+    const rl = await checkRateLimit(rateLimits.api, `recurring-delete:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const user = await getOrCreateUser(userId);
     if (!user) return apiError("NOT_FOUND", "Utilisateur introuvable");

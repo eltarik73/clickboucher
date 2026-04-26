@@ -235,7 +235,7 @@ export function ButcherOfferForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Promo week-end"
-              className="flex-1 px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+              className="flex-1 px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
             />
             <button
               type="button"
@@ -259,7 +259,7 @@ export function ButcherOfferForm({
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="EX: PROMO20"
-              className="flex-1 px-3.5 py-2.5 text-sm font-mono uppercase bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors tracking-wider"
+              className="flex-1 px-3.5 py-2.5 text-sm font-mono uppercase bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors tracking-wider"
             />
             <button
               type="button"
@@ -285,7 +285,7 @@ export function ButcherOfferForm({
               value={discountValue}
               onChange={(e) => setDiscountValue(Number(e.target.value))}
               disabled={type === "FREE_DELIVERY"}
-              className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             />
           </div>
           <div>
@@ -299,7 +299,7 @@ export function ButcherOfferForm({
               value={minOrder}
               onChange={(e) => setMinOrder(Number(e.target.value))}
               placeholder="0"
-              className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+              className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
             />
           </div>
         </div>
@@ -344,7 +344,7 @@ export function ButcherOfferForm({
             value={maxUses}
             onChange={(e) => setMaxUses(e.target.value === "" ? "" : Number(e.target.value))}
             placeholder="Illimité"
-            className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+            className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
           />
         </div>
 

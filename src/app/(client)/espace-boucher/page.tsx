@@ -63,7 +63,7 @@ function AnimatedStat({
         {count}
         {suffix}
       </p>
-      <p className="text-sm text-gray-400 mt-1">{label}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</p>
     </div>
   );
 }
@@ -89,9 +89,9 @@ function FaqItem({
           {question}
         </span>
         {open ? (
-          <ChevronUp size={18} className="text-gray-400 shrink-0 ml-4" />
+          <ChevronUp size={18} className="text-gray-500 dark:text-gray-400 shrink-0 ml-4" />
         ) : (
-          <ChevronDown size={18} className="text-gray-400 shrink-0 ml-4" />
+          <ChevronDown size={18} className="text-gray-500 dark:text-gray-400 shrink-0 ml-4" />
         )}
       </button>
       {open && (
@@ -132,7 +132,7 @@ export default function EspaceBoucherPage() {
             <Store size={28} className="text-[#DC2626]" />
           </div>
           <h1 className="text-xl font-bold text-white mb-2">Bienvenue, {user.firstName} !</h1>
-          <p className="text-sm text-gray-400 mb-6">Accédez à votre espace boucher pour gérer votre boucherie.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Accédez à votre espace boucher pour gérer votre boucherie.</p>
           <button
             onClick={() => router.push("/boucher/dashboard")}
             className="w-full bg-[#DC2626] text-white rounded-xl py-3 font-semibold hover:bg-[#b91c1c] transition-colors"
@@ -179,7 +179,7 @@ export default function EspaceBoucherPage() {
             </Link>
             <Link
               href="/sign-in?redirect_url=/espace-boucher"
-              className="text-sm text-gray-400 hover:text-white transition"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-white transition"
             >
               Se connecter
             </Link>
@@ -188,7 +188,7 @@ export default function EspaceBoucherPage() {
 
         {/* Hero content */}
         <div className="relative z-10 max-w-4xl mx-auto px-5 py-20 sm:py-28 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-sm text-gray-400 mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-sm text-gray-500 dark:text-gray-400 mb-8">
             <Store size={14} />
             Espace professionnel boucher
           </div>
@@ -199,7 +199,7 @@ export default function EspaceBoucherPage() {
             <span className="text-[#DC2626]">avec Klik&Go</span>
           </h1>
 
-          <p className="mt-5 text-lg text-gray-400 max-w-2xl mx-auto">
+          <p className="mt-5 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
             Rejoignez les boucheries de Chambéry qui ont supprimé les files
             d&apos;attente et augmenté leur chiffre d&apos;affaires.
           </p>
@@ -260,7 +260,7 @@ export default function EspaceBoucherPage() {
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
                 49&euro;
               </span>
-              <span className="text-sm text-gray-400">/mois</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">/mois</span>
             </div>
             <ul className="mt-6 space-y-3 text-gray-700 dark:text-gray-300">
               <Feature>Votre vitrine en ligne (page boucherie dédiée)</Feature>
@@ -294,7 +294,7 @@ export default function EspaceBoucherPage() {
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
                 99&euro;
               </span>
-              <span className="text-sm text-gray-400">/mois</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">/mois</span>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Tout le pack Essentiel, plus :
@@ -446,7 +446,7 @@ export default function EspaceBoucherPage() {
           <h3 className="text-xl font-bold text-white mb-3">
             Des questions ? Contactez-nous
           </h3>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             <a
               href="mailto:contact@klikandgo.app"
               className="hover:text-white transition"

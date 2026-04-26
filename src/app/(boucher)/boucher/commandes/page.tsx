@@ -96,7 +96,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string; icon: typeof 
   COMPLETED: { label: "Terminée", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
   DENIED: { label: "Refusée", color: "bg-red-500/20 text-red-400", icon: XCircle },
   CANCELLED: { label: "Annulée", color: "bg-red-500/20 text-red-400", icon: Ban },
-  AUTO_CANCELLED: { label: "Expirée", color: "bg-gray-500/20 text-gray-400", icon: Ban },
+  AUTO_CANCELLED: { label: "Expirée", color: "bg-gray-500/20 text-gray-500 dark:text-gray-400", icon: Ban },
   PARTIALLY_DENIED: { label: "Partielle", color: "bg-orange-500/20 text-orange-400", icon: XCircle },
 };
 
@@ -478,7 +478,7 @@ export default function KitchenModePage() {
             />
             <button
               onClick={() => setShowScanner(false)}
-              className="w-full min-h-[44px] py-2.5 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all text-sm"
+              className="w-full min-h-[44px] py-2.5 rounded-xl bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10 transition-all text-sm"
             >
               Fermer
             </button>
@@ -502,7 +502,7 @@ export default function KitchenModePage() {
                   className={`py-4 rounded-xl text-center transition-all border ${
                     selectedPauseDuration === min
                       ? "bg-[#F59E0B]/10 border-[#F59E0B] text-[#F59E0B]"
-                      : "bg-white/5 border-[#3F3F46] text-gray-400 hover:bg-white/10"
+                      : "bg-white/5 border-[#3F3F46] text-gray-500 dark:text-gray-400 hover:bg-white/10"
                   }`}
                 >
                   <span className="text-2xl font-bold block">{min}</span>
@@ -637,7 +637,7 @@ export default function KitchenModePage() {
             <button
               onClick={() => setMuted(!muted)}
               className={`min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center rounded-lg transition-colors ${
-                muted ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-400 hover:text-white"
+                muted ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white"
               }`}
               title={muted ? "Son désactivé" : "Son activé"}
             >
@@ -652,7 +652,7 @@ export default function KitchenModePage() {
                 localStorage.setItem("klikgo-simple-mode", String(next));
               }}
               className={`hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-colors ${
-                simpleMode ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-400 hover:text-white"
+                simpleMode ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white"
               }`}
               title={simpleMode ? "Mode simple actif" : "Passer en mode simple"}
             >
@@ -662,7 +662,7 @@ export default function KitchenModePage() {
             {/* QR Scanner — hidden on small phones, visible on tablets+ */}
             <button
               onClick={() => setShowScanner(true)}
-              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Scanner QR"
             >
               <ScanLine size={16} />
@@ -680,7 +680,7 @@ export default function KitchenModePage() {
             {/* Settings — hidden on small phones */}
             <a
               href="/boucher/parametres"
-              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Parametres"
             >
               <Settings size={16} />
@@ -747,7 +747,7 @@ export default function KitchenModePage() {
                           ? "bg-white/20 text-white"
                           : tab.key === "nouvelles"
                           ? "bg-[#DC2626] text-white"
-                          : "bg-white/10 text-gray-400"
+                          : "bg-white/10 text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       {tab.count}
@@ -1042,7 +1042,7 @@ export default function KitchenModePage() {
               <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ScrollText size={16} className="text-gray-400" />
+                  <ScrollText size={16} className="text-gray-500 dark:text-gray-400" />
                   <h3 className="text-base font-bold text-white">Historique</h3>
                   <span className="text-xs text-gray-500">7 derniers jours</span>
                 </div>
@@ -1114,7 +1114,7 @@ function KitchenColumn({
     blue: "text-blue-400 bg-blue-500/20",
     emerald: "text-emerald-400 bg-emerald-500/20",
     purple: "text-purple-400 bg-purple-500/20",
-    gray: "text-gray-400 bg-gray-500/20",
+    gray: "text-gray-500 dark:text-gray-400 bg-gray-500/20",
   };
 
   return (
@@ -1175,7 +1175,7 @@ function KitchenColumn({
 function HistoryCard({ order }: { order: KitchenOrder }) {
   const badge = STATUS_BADGE[order.status] || {
     label: order.status,
-    color: "bg-gray-500/20 text-gray-400",
+    color: "bg-gray-500/20 text-gray-500 dark:text-gray-400",
     icon: Clock,
   };
   const BadgeIcon = badge.icon;
@@ -1195,7 +1195,7 @@ function HistoryCard({ order }: { order: KitchenOrder }) {
           <span className="font-bold text-base text-white">
             {ticketNumber}
           </span>
-          <span className="text-sm text-gray-400">{clientName}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{clientName}</span>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${badge.color}`}>
             <BadgeIcon size={10} />
             {badge.label}

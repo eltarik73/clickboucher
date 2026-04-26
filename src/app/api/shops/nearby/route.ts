@@ -136,6 +136,7 @@ export async function GET(req: NextRequest) {
             diffBadge: true,
           },
           select: { shopId: true, type: true, discountValue: true, name: true },
+          take: 200,
         })
       : [];
 

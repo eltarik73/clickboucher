@@ -446,7 +446,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 placeholder="Nom de l'offre"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
+                className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
               />
               <button
                 onClick={() => setName(autoGenerateName(type, discountValue))}
@@ -467,7 +467,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                   value={type === "FREE_DELIVERY" ? "" : discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
                   disabled={type === "FREE_DELIVERY"}
-                  className={`w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300 ${
+                  className={`w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300 ${
                     type === "FREE_DELIVERY" ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 />
@@ -483,7 +483,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                     placeholder="CODE123"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm font-mono text-gray-900 dark:text-white uppercase placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
+                    className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm font-mono text-gray-900 dark:text-white uppercase placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
                   />
                   <button
                     onClick={generateCode}
@@ -502,7 +502,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                     placeholder="0"
                     value={minOrder}
                     onChange={(e) => setMinOrder(e.target.value)}
-                    className="w-full px-3 py-2.5 pr-7 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
+                    className="w-full px-3 py-2.5 pr-7 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">€</span>
                 </div>
@@ -539,7 +539,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 placeholder="Illimité"
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300"
               />
               <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Laisser vide = illimité</p>
             </div>
@@ -629,14 +629,14 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                       placeholder="Titre de la bannière"
                       value={bannerTitle}
                       onChange={(e) => setBannerTitle(e.target.value)}
-                      className="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                      className="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                     />
                     <input
                       type="text"
                       placeholder="Sous-titre"
                       value={bannerSubtitle}
                       onChange={(e) => setBannerSubtitle(e.target.value)}
-                      className="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                      className="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -720,14 +720,14 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                       placeholder="Titre du popup"
                       value={popupTitle}
                       onChange={(e) => setPopupTitle(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                     />
                     <input
                       type="text"
                       placeholder="Message du popup"
                       value={popupMessage}
                       onChange={(e) => setPopupMessage(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                     />
                   </div>
                   <div className="flex items-center gap-2">

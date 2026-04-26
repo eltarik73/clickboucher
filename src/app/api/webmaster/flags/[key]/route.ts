@@ -4,6 +4,7 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { writeAuditLog } from "@/lib/audit-log";
 import { invalidateFlag } from "@/lib/feature-flags";
 import { wmToggleFeatureFlagSchema } from "@/lib/validators";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,9 @@ export async function PATCH(
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
+
+    const rl = await checkRateLimit(rateLimits.api, `wm-flag:${admin.userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const { key } = await params;
     const body = await request.json();

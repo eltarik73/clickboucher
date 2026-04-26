@@ -190,7 +190,7 @@ export default function KitchenOrderCard({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-black text-base text-white shrink-0">{ticketNumber}</span>
-            <span className="text-sm font-medium text-gray-400 truncate">{clientName}</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{clientName}</span>
             {order.isPro && (
               <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded shrink-0">PRO</span>
             )}
@@ -491,7 +491,7 @@ export default function KitchenOrderCard({
           <div className="flex gap-1.5">
             <button
               onClick={silentPrint}
-              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
             >
               <Printer size={13} />
             </button>
@@ -534,7 +534,7 @@ export default function KitchenOrderCard({
                   className={`px-2.5 min-h-[36px] py-1.5 rounded-lg text-xs font-bold transition-all ${
                     acceptMinutes === m
                       ? "bg-emerald-600 text-white"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10"
+                      : "bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10"
                   }`}
                 >
                   {m}
@@ -562,7 +562,7 @@ export default function KitchenOrderCard({
               </button>
               <button
                 onClick={() => setShowAcceptForm(false)}
-                className="px-3 py-2 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all text-xs"
+                className="px-3 py-2 rounded-xl bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10 transition-all text-xs"
               >
                 Annuler
               </button>
@@ -588,7 +588,7 @@ export default function KitchenOrderCard({
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                     denyReason === reason
                       ? "bg-red-600 text-white"
-                      : "bg-white/5 text-gray-400 hover:bg-white/10"
+                      : "bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10"
                   }`}
                 >
                   {reason}
@@ -613,7 +613,7 @@ export default function KitchenOrderCard({
               </button>
               <button
                 onClick={() => { setShowDenyForm(false); setDenyReason(""); }}
-                className="px-3 py-2 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 transition-all text-xs"
+                className="px-3 py-2 rounded-xl bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10 transition-all text-xs"
               >
                 Annuler
               </button>
@@ -627,7 +627,7 @@ export default function KitchenOrderCard({
             <div className="flex gap-1.5">
               <button
                 onClick={silentPrint}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
               >
                 <Printer size={13} />
               </button>
@@ -679,7 +679,7 @@ export default function KitchenOrderCard({
             <div className="flex gap-1.5">
               <button
                 onClick={silentPrint}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
               >
                 <Printer size={13} />
               </button>
@@ -724,7 +724,7 @@ export default function KitchenOrderCard({
           <div className="flex gap-1.5">
             <button
               onClick={silentPrint}
-              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
             >
               <Printer size={13} />
             </button>

@@ -4,6 +4,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,9 @@ export async function POST(req: NextRequest) {
   try {
     const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
+
+    const rl = await checkRateLimit(rateLimits.api, `onboarding:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     // Check if user already exists in DB
     const existing = await prisma.user.findUnique({

@@ -1,4 +1,7 @@
 // src/app/(boucher)/boucher/produits/ProductFormPage.tsx — Single-page product form (dark mode)
+// TODO(refactor): largely duplicated with ProductForm.tsx (1708L), unify in a future refactor.
+// This variant is the single-page version (used by boucher /produits/nouveau and /produits/[id]/modifier).
+// ProductForm.tsx is the modal/4-step version (used by webmaster /catalogue/reference).
 "use client";
 
 import { useState, useRef, useEffect } from "react";

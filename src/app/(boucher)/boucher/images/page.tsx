@@ -210,7 +210,7 @@ export default function BoucherImagesGalleryPage() {
                 <Wand2 size={20} className="text-[#DC2626]" />
                 Galerie images IA
               </h1>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 Retrouve, réutilise et supprime tes images générées
               </p>
             </div>
@@ -219,19 +219,19 @@ export default function BoucherImagesGalleryPage() {
           <div className="grid grid-cols-4 gap-1.5">
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-white">{total}</p>
-              <p className="text-[9px] text-gray-400 font-medium">Total</p>
+              <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">Total</p>
             </div>
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-purple-400">{generatedCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">Générées</p>
+              <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">Générées</p>
             </div>
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-blue-400">{retouchedCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">Retouchées</p>
+              <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">Retouchées</p>
             </div>
             <div className="bg-white/10 rounded-xl px-2 py-2.5 text-center">
               <p className="text-lg font-bold text-emerald-400">{searchedCount}</p>
-              <p className="text-[9px] text-gray-400 font-medium">Recherchées</p>
+              <p className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">Recherchées</p>
             </div>
           </div>
         </div>

@@ -212,7 +212,7 @@ export default function WebmasterCapacitePage() {
           icon={AlertTriangle}
           label="Alertes capacité"
           value={alerts.length}
-          color={alerts.length > 0 ? "text-red-600 dark:text-red-400" : "text-gray-400"}
+          color={alerts.length > 0 ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}
         />
         <KpiCard
           icon={Palmtree}

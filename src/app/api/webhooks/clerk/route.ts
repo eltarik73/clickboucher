@@ -8,6 +8,7 @@ import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { handleApiError } from "@/lib/api/errors";
 import { invalidateRoleCache } from "@/lib/auth/role-cache";
+import { redis } from "@/lib/redis";
 
 // Map Clerk metadata role string to Prisma Role enum
 const ROLE_MAP: Record<string, Role> = {
@@ -62,6 +63,21 @@ export async function POST(req: NextRequest) {
   }
 
   const eventType = event.type;
+
+  // ── Idempotency guard (Svix retries can deliver same event multiple times) ──
+  // Use Redis SET NX with 24h TTL. Best-effort: if Redis is down, we just continue.
+  if (redis.isAvailable && redis.raw) {
+    try {
+      const key = `webhook:clerk:${svixId}`;
+      const setResult = await redis.raw.set(key, "1", { nx: true, ex: 86400 });
+      if (setResult !== "OK") {
+        return NextResponse.json({ success: true, status: "duplicate", svixId });
+      }
+    } catch (e) {
+      console.warn("[webhooks/clerk] idempotency check failed:", (e as Error).message);
+      // Fail open — better to process twice than not at all
+    }
+  }
 
   try {
     // ── user.created ──────────────────────────

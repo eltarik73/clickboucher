@@ -454,7 +454,7 @@ export function CampaignForm({
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Objet de votre email..."
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
             />
           </div>
 
@@ -469,7 +469,7 @@ export function CampaignForm({
                 onChange={(e) => setBody(e.target.value)}
                 rows={5}
                 placeholder="R\u00E9digez le contenu de votre email..."
-                className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
+                className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
               />
               <button
                 type="button"
@@ -545,14 +545,14 @@ export function CampaignForm({
                 value={visualTitle}
                 onChange={(e) => setVisualTitle(e.target.value)}
                 placeholder="Titre du visuel"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500"
               />
               <input
                 type="text"
                 value={visualSubtitle}
                 onChange={(e) => setVisualSubtitle(e.target.value)}
                 placeholder="Sous-titre du visuel"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500"
               />
             </div>
 
@@ -671,7 +671,7 @@ export function CampaignForm({
                             setNewCode(e.target.value.toUpperCase())
                           }
                           placeholder="CODE-PROMO"
-                          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white dark:placeholder:text-gray-500"
+                          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white dark:placeholder:text-gray-500"
                         />
                         <button
                           type="button"
@@ -738,7 +738,7 @@ export function CampaignForm({
                             onChange={(e) => setNewMaxUses(e.target.value)}
                             placeholder="Illimit\u00E9"
                             min="1"
-                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white dark:placeholder:text-gray-500"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white dark:placeholder:text-gray-500"
                           />
                         </div>
                       </div>

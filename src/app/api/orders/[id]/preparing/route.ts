@@ -5,6 +5,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { OrderStatus } from "@prisma/client";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const preparingSchema = z.object({
@@ -22,6 +23,9 @@ export async function POST(
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
+
+    const rl = await checkRateLimit(rateLimits.api, `order-preparing:${shopId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const order = await prisma.order.findUnique({
       where: { id },

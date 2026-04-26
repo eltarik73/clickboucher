@@ -344,7 +344,7 @@ export default function AdminOrdersPage() {
             placeholder="N° commande, nom client, email..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-500 dark:text-gray-400"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -643,7 +643,7 @@ export default function AdminOrdersPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <span
-                          className={`font-medium ${!item.available ? "line-through text-gray-400" : "text-gray-900 dark:text-[#f8f6f3]"}`}
+                          className={`font-medium ${!item.available ? "line-through text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-[#f8f6f3]"}`}
                         >
                           {item.name}
                         </span>

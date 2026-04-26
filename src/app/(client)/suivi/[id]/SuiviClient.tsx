@@ -282,7 +282,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
                   <div className="pt-1">
                     <span
                       className={`text-sm font-semibold ${
-                        isFuture ? "text-gray-400 dark:text-gray-600" : "text-gray-900 dark:text-white"
+                        isFuture ? "text-gray-500 dark:text-gray-400 dark:text-gray-600" : "text-gray-900 dark:text-white"
                       }`}
                     >
                       {step.label}

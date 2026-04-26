@@ -2,7 +2,8 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,9 @@ export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
+
+    const rl = await checkRateLimit(rateLimits.api, `admin-cal-post:${admin.userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const body = await req.json();
     const data = createEventSchema.parse(body);

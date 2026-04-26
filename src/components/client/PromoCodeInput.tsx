@@ -122,7 +122,7 @@ export function PromoCodeInput({
               setError(null);
             }}
             placeholder="Code promo"
-            className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-l-xl text-sm font-mono uppercase placeholder:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500"
+            className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-l-xl text-sm font-mono uppercase placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500"
             disabled={loading}
           />
         </div>

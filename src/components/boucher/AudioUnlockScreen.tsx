@@ -32,7 +32,7 @@ export default function AudioUnlockScreen({ onUnlocked }: Props) {
 
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-white">Alertes sonores</h1>
-        <p className="text-gray-400 text-sm max-w-xs">
+        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs">
           Choisissez votre melodie puis activez le son pour recevoir les alertes
         </p>
       </div>

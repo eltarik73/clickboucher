@@ -157,7 +157,7 @@ export default function ImageSearchModal({
             <div className="flex-1 relative">
               <Search
                 size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
               />
               <input
                 ref={inputRef}
@@ -217,7 +217,7 @@ export default function ImageSearchModal({
 
           {!loading && hasSearched && results.length === 0 && configured && !error && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-              <ImageOff size={40} className="text-gray-400 mb-3" />
+              <ImageOff size={40} className="text-gray-500 dark:text-gray-400 mb-3" />
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Aucune image trouvée. Essaie avec des mots-clés différents.
               </p>
@@ -226,7 +226,7 @@ export default function ImageSearchModal({
 
           {!hasSearched && !loading && (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-              <Search size={40} className="text-gray-400 mb-3" />
+              <Search size={40} className="text-gray-500 dark:text-gray-400 mb-3" />
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Lance une recherche ou clique un preset ci-dessus.
               </p>

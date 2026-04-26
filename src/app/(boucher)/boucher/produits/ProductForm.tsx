@@ -1,4 +1,7 @@
-// src/app/(boucher)/boucher/produits/ProductForm.tsx — 4-step product form
+// src/app/(boucher)/boucher/produits/ProductForm.tsx — 4-step product form (modal)
+// TODO(refactor): largely duplicated with ProductFormPage.tsx (1703L), unify in a future refactor.
+// This variant is the modal/4-step version (used by webmaster /catalogue/reference).
+// ProductFormPage.tsx is the single-page version (used by boucher /produits/nouveau and /produits/[id]/modifier).
 "use client";
 
 import { useState, useRef } from "react";

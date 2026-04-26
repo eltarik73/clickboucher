@@ -904,7 +904,7 @@ function ProductRow({
       {/* Drag handle */}
       {isDraggable && (
         <div
-          className="shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 touch-none p-1"
+          className="shrink-0 cursor-grab active:cursor-grabbing text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-500 touch-none p-1"
           {...(dragHandleProps || {})}
         >
           <GripVertical size={16} />

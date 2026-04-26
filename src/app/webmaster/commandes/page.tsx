@@ -182,7 +182,7 @@ export default function WebmasterCommandesPage() {
             placeholder="N° commande, client, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-white placeholder:text-gray-400"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400"
           />
         </div>
 

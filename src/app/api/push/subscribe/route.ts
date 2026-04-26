@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getVapidPublicKey } from "@/lib/push";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 const pushSubscriptionSchema = z.object({
   endpoint: z.string().url(),
@@ -71,6 +72,9 @@ export async function DELETE() {
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+
+    const rl = await checkRateLimit(rateLimits.api, `push-unsubscribe:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const user = await getOrCreateUser(userId);
     if (!user) {

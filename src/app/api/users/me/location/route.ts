@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ export async function PATCH(req: NextRequest) {
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+
+    const rl = await checkRateLimit(rateLimits.api, `user-location:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const body = await req.json();
     const data = locationSchema.parse(body);

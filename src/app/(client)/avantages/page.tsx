@@ -215,7 +215,7 @@ export default function AvantagesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-mono font-bold text-sm">{r.code}</p>
-                    <p className={`text-xs ${isExpiringSoon ? "text-amber-600 dark:text-amber-400 font-medium" : "text-gray-400"}`}>
+                    <p className={`text-xs ${isExpiringSoon ? "text-amber-600 dark:text-amber-400 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
                       <Clock size={10} className="inline mr-1" />{expDays}
                     </p>
                   </div>

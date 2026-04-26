@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getServerUserId } from "@/lib/auth/server-auth";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const toggleFavoriteSchema = z.object({
@@ -16,6 +17,9 @@ export async function POST(req: Request) {
     if (!clerkId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+
+    const rl = await checkRateLimit(rateLimits.api, `fav-toggle:${clerkId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     let shopId: string;
     try {

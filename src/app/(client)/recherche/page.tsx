@@ -95,7 +95,7 @@ export default function RecherchePage() {
           <div className="relative flex-1">
           <Search
             size={20}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 dark:text-gray-500"
           />
           <input
             type="search"
@@ -103,7 +103,7 @@ export default function RecherchePage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher une boucherie ou un produit..."
             autoFocus
-            className="w-full h-12 pl-10 pr-10 rounded-xl bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium outline-none focus:ring-2 focus:ring-[#DC2626]/30 transition-shadow"
+            className="w-full h-12 pl-10 pr-10 rounded-xl bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium outline-none focus:ring-2 focus:ring-[#DC2626]/30 transition-shadow"
           />
           {query && (
             <button
@@ -111,7 +111,7 @@ export default function RecherchePage() {
               className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-white/10"
               aria-label="Effacer la recherche"
             >
-              <X size={16} className="text-gray-400" />
+              <X size={16} className="text-gray-500 dark:text-gray-400" />
             </button>
           )}
           </div>
@@ -177,7 +177,7 @@ export default function RecherchePage() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <MapPin size={20} className="text-gray-400" />
+                            <MapPin size={20} className="text-gray-500 dark:text-gray-400" />
                           </div>
                         )}
                       </div>

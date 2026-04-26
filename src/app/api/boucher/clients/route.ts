@@ -21,6 +21,9 @@ export async function GET(_req: NextRequest) {
     }
 
     // 1. Aggregate orders by userId in DB (count, sum, max date)
+    const url = new URL(_req.url);
+    const limit = Math.min(100, Number(url.searchParams.get("limit")) || 50);
+
     const aggregated = await prisma.order.groupBy({
       by: ["userId"],
       where: { shopId: shop.id },
@@ -28,7 +31,7 @@ export async function GET(_req: NextRequest) {
       _sum: { totalCents: true },
       _max: { createdAt: true },
       orderBy: { _count: { userId: "desc" } },
-      take: 50,
+      take: limit,
     });
 
     if (aggregated.length === 0) {

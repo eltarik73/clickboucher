@@ -167,7 +167,7 @@ export default function WebmasterSupportPage() {
             placeholder="Rechercher sujet, boutique..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400"
           />
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">

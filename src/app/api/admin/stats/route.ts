@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { cached } from "@/lib/redis-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export async function GET() {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
+    const payload = await cached("admin:stats:global", 60, async () => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -195,7 +197,7 @@ export async function GET() {
       };
     });
 
-    return apiSuccess({
+    return {
       totalRevenue: totalRevenue._sum.totalCents || 0,
       revenueThisMonth: revenueThisMonth._sum.totalCents || 0,
       totalOrders,
@@ -223,7 +225,9 @@ export async function GET() {
         pausedShops,
         pendingProRequests,
       },
+    };
     });
+    return apiSuccess(payload);
   } catch (error) {
     return handleApiError(error, "admin/stats");
   }

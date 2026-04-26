@@ -2,6 +2,7 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,9 @@ export async function PATCH(
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+
+    const rl = await checkRateLimit(rateLimits.api, `notif-read:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const user = await getOrCreateUser(userId);
     if (!user) {

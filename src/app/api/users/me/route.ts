@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getServerUserId } from "@/lib/auth/server-auth";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +87,9 @@ export async function PATCH(req: NextRequest) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    const rl = await checkRateLimit(rateLimits.api, `user-patch:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
+
     const body = await req.json();
     const data = updateMeSchema.parse(body);
 
@@ -126,6 +130,9 @@ export async function DELETE() {
     if (!userId) {
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
+
+    const rl = await checkRateLimit(rateLimits.api, `user-delete:${userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const user = await getOrCreateUser(userId);
     if (!user) {

@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import prisma from "@/lib/prisma";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const createBannerSchema = z.object({
@@ -54,6 +55,9 @@ export async function POST(req: NextRequest) {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
+    const rl = await checkRateLimit(rateLimits.api, `admin-banners-post:${admin.userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
+
     const body = await req.json();
     const data = createBannerSchema.parse(body);
 
@@ -81,6 +85,9 @@ export async function PATCH(req: NextRequest) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
+
+    const rl = await checkRateLimit(rateLimits.api, `admin-banners-patch:${admin.userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const body = await req.json();
     const { id, ...updates } = updateBannerSchema.parse(body);
@@ -110,6 +117,9 @@ export async function DELETE(req: NextRequest) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
+
+    const rl = await checkRateLimit(rateLimits.api, `admin-banners-del:${admin.userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const { id } = deleteBannerSchema.parse(await req.json());
 

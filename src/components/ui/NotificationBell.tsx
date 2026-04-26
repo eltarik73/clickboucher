@@ -95,7 +95,7 @@ export function NotificationBell() {
             {notifications.length === 0 ? (
               <div className="py-10 text-center">
                 <Bell size={28} className="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-                <p className="text-sm text-gray-400">Aucune notification</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Aucune notification</p>
               </div>
             ) : (
               notifications.map((notif) => {
@@ -116,7 +116,7 @@ export function NotificationBell() {
                       <p className={`text-sm leading-snug ${!notif.read ? "font-semibold text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-400"}`}>
                         {notif.message}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-1">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
                         {timeAgo(notif.createdAt)}
                       </p>
                     </div>

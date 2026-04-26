@@ -91,7 +91,7 @@ function getStatusBadge(status: string) {
       return {
         label: "Expir\u00E9",
         className:
-          "bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-gray-500",
+          "bg-gray-100 text-gray-500 dark:text-gray-400 dark:bg-white/5 dark:text-gray-500",
       };
     case "DRAFT":
     default:

@@ -1134,7 +1134,7 @@ export default function BoucherParametresPage() {
                 <Volume2 size={16} className="text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Son</p>
-                  <p className="text-[11px] text-gray-400">Alerte sonore pour les nouvelles commandes</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Alerte sonore pour les nouvelles commandes</p>
                 </div>
               </div>
               <Switch
@@ -1161,7 +1161,7 @@ export default function BoucherParametresPage() {
                 <Monitor size={16} className="text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Flash écran</p>
-                  <p className="text-[11px] text-gray-400">Flash visuel sur la tablette</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Flash visuel sur la tablette</p>
                 </div>
               </div>
               <Switch
@@ -1188,7 +1188,7 @@ export default function BoucherParametresPage() {
                 <Smartphone size={16} className="text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Vibration</p>
-                  <p className="text-[11px] text-gray-400">Vibration sur mobile/tablette</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Vibration sur mobile/tablette</p>
                 </div>
               </div>
               <Switch

@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
 import { put } from "@vercel/blob";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const generateVisualSchema = z.object({
@@ -22,6 +23,9 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
+
+    const rl = await checkRateLimit(rateLimits.ai, `gen-visual:${auth.userId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes IA, réessayez dans une minute");
 
     const body = await req.json();
     const { type, title, subtitle, color, context } = generateVisualSchema.parse(body);

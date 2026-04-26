@@ -167,7 +167,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
         {/* Order info */}
         <div className="px-5 py-3 bg-white/5 shrink-0 flex items-center justify-between">
           <div>
-            <span className="text-xs text-gray-400">Commande </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Commande </span>
             <span className="text-sm font-mono font-bold text-white">
               {order.displayNumber || `#${order.orderNumber}`}
             </span>
@@ -202,7 +202,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
           {/* WEIGHT tab */}
           {tab === "WEIGHT" && (
             <div className="space-y-2">
-              <p className="text-xs text-gray-400">Modifiez les quantites (poids reel) :</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Modifiez les quantites (poids reel) :</p>
               {order.items.map((item) => {
                 const isKg = (item.product?.unit || item.unit) === "KG";
                 return (
@@ -244,7 +244,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
           {/* PRICE tab */}
           {tab === "PRICE" && (
             <div className="space-y-2">
-              <p className="text-xs text-gray-400">Modifiez les prix unitaires :</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Modifiez les prix unitaires :</p>
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3">
                   <div className="flex-1 min-w-0">
@@ -283,7 +283,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
           {/* MANUAL tab */}
           {tab === "MANUAL" && (
             <div className="space-y-3">
-              <p className="text-xs text-gray-400">Saisissez le nouveau total :</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Saisissez le nouveau total :</p>
               <div className="flex items-center gap-3 justify-center">
                 <input
                   type="number"
@@ -302,14 +302,14 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                   className="w-40 bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3 text-white text-xl text-center font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/40"
                   aria-label="Nouveau montant total"
                 />
-                <span className="text-lg text-gray-400 font-bold">EUR</span>
+                <span className="text-lg text-gray-500 dark:text-gray-400 font-bold">EUR</span>
               </div>
             </div>
           )}
 
           {/* Reason */}
           <div>
-            <label className="text-xs text-gray-400 block mb-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
               Raison {tier === 3 ? "(recommande)" : "(optionnel)"}
             </label>
             <textarea
@@ -327,7 +327,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs text-gray-500">Ancien total</p>
-              <p className="text-sm text-gray-400">{formatPrice(originalTotal)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{formatPrice(originalTotal)}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Difference</p>
@@ -405,7 +405,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 font-medium transition-all"
+              className="flex-1 py-3 rounded-xl border border-white/10 text-gray-500 dark:text-gray-400 hover:text-white hover:bg-white/5 font-medium transition-all"
             >
               Annuler
             </button>

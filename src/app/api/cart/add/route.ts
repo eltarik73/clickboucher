@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 // Validation schema
 const addToCartSchema = z.object({
@@ -11,8 +12,14 @@ const addToCartSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "anon";
+    const rl = await checkRateLimit(rateLimits.api, `cart-add:${ip}`);
+    if (!rl.success) {
+      return NextResponse.json({ error: "Trop de requêtes" }, { status: 429 });
+    }
+
     const body = await req.json();
-    
+
     // Validate input
     const parsed = addToCartSchema.safeParse(body);
     if (!parsed.success) {

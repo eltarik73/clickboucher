@@ -138,7 +138,7 @@ export default function OnboardingPage() {
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
                 placeholder="Ex: Boucherie El Fathe"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
                 autoComplete="organization"
               />
@@ -152,7 +152,7 @@ export default function OnboardingPage() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Ex: 533 Faubourg Montmélian"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
                 autoComplete="street-address"
               />
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Ex: Chambéry"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
                 autoComplete="address-level2"
               />
@@ -180,7 +180,7 @@ export default function OnboardingPage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Ex: 04 79 85 XX XX"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#141414] text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 text-base focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
                 disabled={loading}
                 autoComplete="tel"
               />

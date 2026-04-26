@@ -59,7 +59,7 @@ export default function ItemUnavailableModal({ order, onClose, onConfirm }: Prop
 
         {/* Order info */}
         <div className="px-5 py-3 bg-white/5">
-          <span className="text-xs text-gray-400">Commande </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Commande </span>
           <span className="text-sm font-mono font-bold text-white">
             #{order.orderNumber}
           </span>
@@ -67,7 +67,7 @@ export default function ItemUnavailableModal({ order, onClose, onConfirm }: Prop
 
         {/* Items list */}
         <div className="px-5 py-3 space-y-2 max-h-[50vh] overflow-y-auto">
-          <p className="text-sm text-gray-400 mb-2">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
             Cochez les articles en rupture de stock :
           </p>
           {order.items.map((item) => {
@@ -113,7 +113,7 @@ export default function ItemUnavailableModal({ order, onClose, onConfirm }: Prop
         <div className="px-5 py-4 border-t border-white/10 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 font-medium transition-all"
+            className="flex-1 py-3 rounded-xl border border-white/10 text-gray-500 dark:text-gray-400 hover:text-white hover:bg-white/5 font-medium transition-all"
           >
             Annuler
           </button>

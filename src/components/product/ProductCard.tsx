@@ -292,7 +292,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                 <button
                   onClick={handleDecrement}
                   aria-label="Diminuer la quantité"
-                  className="w-[36px] h-[36px] flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
+                  className="w-11 h-11 flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
                 >
                   <Minus size={14} strokeWidth={2.5} />
                 </button>
@@ -302,7 +302,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                 <button
                   onClick={handleIncrement}
                   aria-label="Augmenter la quantité"
-                  className="w-[36px] h-[36px] flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
+                  className="w-11 h-11 flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
                 >
                   <Plus size={14} strokeWidth={2.5} />
                 </button>
@@ -312,7 +312,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               <button
                 onClick={handleAdd}
                 aria-label="Ajouter au panier"
-                className={`w-[36px] h-[36px] rounded-xl flex items-center justify-center
+                className={`w-11 h-11 rounded-xl flex items-center justify-center
                   transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
                   ${animating
                     ? "bg-emerald-500 text-white"

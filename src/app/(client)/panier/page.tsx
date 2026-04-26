@@ -511,7 +511,7 @@ export default function PanierPage() {
                     onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(""); }}
                     placeholder="Entrez un code..."
                     maxLength={30}
-                    className="flex-1 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors uppercase"
+                    className="flex-1 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors uppercase"
                   />
                   <button
                     onClick={applyPromoCode}
@@ -713,7 +713,7 @@ export default function PanierPage() {
                   placeholder="Sans trop de gras, bien saignant..."
                   maxLength={500}
                   rows={3}
-                  className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
+                  className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
                 />
               </div>
 
@@ -766,15 +766,17 @@ export default function PanierPage() {
                 )}
               </div>
 
-              {/* Submit */}
-              <Button
-                onClick={handleOrder}
-                disabled={showCountdown || (timeMode === "slot" && !selectedSlot)}
-                className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50"
-                size="lg"
-              >
-                Confirmer ma commande
-              </Button>
+              {/* Submit — sticky bottom on mobile (Uber Eats pattern), inline on md+ */}
+              <div className="sticky bottom-0 -mx-5 px-5 pb-[env(safe-area-inset-bottom)] pt-3 bg-gradient-to-t from-[#f8f6f3] dark:from-[#0a0a0a] from-60% to-transparent md:static md:mx-0 md:px-0 md:pb-0 md:pt-0 md:bg-none">
+                <Button
+                  onClick={handleOrder}
+                  disabled={showCountdown || (timeMode === "slot" && !selectedSlot)}
+                  className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50 shadow-lg md:shadow-none"
+                  size="lg"
+                >
+                  Confirmer ma commande
+                </Button>
+              </div>
             </div>
           )}
         </div>

@@ -302,7 +302,7 @@ export default function WebmasterTicketDetailPage() {
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Répondre au boucher..."
                 rows={2}
-                className="flex-1 px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
+                className="flex-1 px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                     e.preventDefault();

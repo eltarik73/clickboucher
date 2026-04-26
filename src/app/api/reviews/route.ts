@@ -5,6 +5,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
   try {
     const clerkId = await getServerUserId();
     if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
+
+    const rl = await checkRateLimit(rateLimits.api, `reviews:${clerkId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const user = await getOrCreateUser(clerkId);
     if (!user) return apiError("UNAUTHORIZED", "Utilisateur introuvable");

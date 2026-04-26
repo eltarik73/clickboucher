@@ -75,7 +75,7 @@ export default function OrderAlertOverlay({ order, onDismiss }: Props) {
 
         <div className="bg-white/5 rounded-xl p-4 space-y-2 mb-4">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Client</span>
+            <span className="text-gray-500 dark:text-gray-400">Client</span>
             <span className="text-white font-medium">
               {order.user
                 ? `${order.user.firstName} ${order.user.lastName}`
@@ -83,20 +83,20 @@ export default function OrderAlertOverlay({ order, onDismiss }: Props) {
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Articles</span>
+            <span className="text-gray-500 dark:text-gray-400">Articles</span>
             <span className="text-white font-medium">
               {order.items.length} article{order.items.length > 1 ? "s" : ""}
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-400">Total</span>
+            <span className="text-gray-500 dark:text-gray-400">Total</span>
             <span className="text-emerald-400 font-bold text-base">
               {formatPrice(order.totalCents)}
             </span>
           </div>
           {order.isPro && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Type</span>
+              <span className="text-gray-500 dark:text-gray-400">Type</span>
               <span className="text-amber-400 font-bold">PRO</span>
             </div>
           )}

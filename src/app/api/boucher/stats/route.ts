@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { cached } from "@/lib/redis-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -79,21 +80,41 @@ export async function GET(req: NextRequest) {
     });
     if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
 
-    // ── 2. Subscription check ──
-    const subscription = await prisma.subscription.findUnique({
-      where: { shopId: shop.id },
-    });
-
-    const plan: "STARTER" | "PRO" | "PREMIUM" = subscription?.plan ?? "STARTER";
-    const isPro = plan === "PRO" || plan === "PREMIUM";
-    const isPremium = plan === "PREMIUM";
-
     // ── 3. Period ──
     const periodParam = req.nextUrl.searchParams.get("period") || "week";
     if (!["week", "month", "year"].includes(periodParam)) {
       return apiError("VALIDATION_ERROR", "Periode invalide (week, month, year)");
     }
     const period = periodParam as Period;
+
+    const shopId2 = shop.id;
+    const shopRating = shop.rating;
+    const shopRatingCount = shop.ratingCount;
+
+    const payload = await cached(
+      `boucher:stats:${shopId2}:${period}`,
+      300,
+      () => computeStats(shopId2, period, shopRating, shopRatingCount)
+    );
+    return apiSuccess(payload);
+  } catch (error) {
+    return handleApiError(error, "boucher/stats/GET");
+  }
+}
+
+async function computeStats(
+  shopId: string,
+  period: Period,
+  shopRating: number,
+  shopRatingCount: number
+) {
+    // ── Subscription check ──
+    const subscription = await prisma.subscription.findUnique({
+      where: { shopId },
+    });
+    const plan: "STARTER" | "PRO" | "PREMIUM" = subscription?.plan ?? "STARTER";
+    const isPro = plan === "PRO" || plan === "PREMIUM";
+    const isPremium = plan === "PREMIUM";
     const { start, end } = getDateRange(period);
 
     // ── 4. Fetch orders for current + previous period ──
@@ -131,17 +152,17 @@ export async function GET(req: NextRequest) {
 
     const [periodOrders, prevPeriodOrders, ordersToday] = await Promise.all([
       prisma.order.findMany({
-        where: { shopId: shop.id, createdAt: { gte: start, lte: end } },
+        where: { shopId, createdAt: { gte: start, lte: end } },
         select: orderSelect,
         take: 5000,
       }),
       prisma.order.findMany({
-        where: { shopId: shop.id, createdAt: { gte: prevStart, lte: prevEnd } },
+        where: { shopId, createdAt: { gte: prevStart, lte: prevEnd } },
         select: { id: true, status: true, totalCents: true },
         take: 5000,
       }),
       prisma.order.count({
-        where: { shopId: shop.id, createdAt: { gte: todayStart } },
+        where: { shopId, createdAt: { gte: todayStart } },
       }),
     ]);
 
@@ -187,8 +208,8 @@ export async function GET(req: NextRequest) {
       totalRevenue,
       totalOrders,
       avgOrderValue,
-      rating: shop.rating,
-      ratingCount: shop.ratingCount,
+      rating: shopRating,
+      ratingCount: shopRatingCount,
       completionRate,
       ordersToday,
       denialRate,
@@ -203,7 +224,7 @@ export async function GET(req: NextRequest) {
 
     // ── STARTER plan: return basic stats only ──
     if (!isPro) {
-      return apiSuccess(basicStats);
+      return basicStats;
     }
 
     // ── 6. Advanced stats (PRO + PREMIUM) ──
@@ -353,7 +374,7 @@ export async function GET(req: NextRequest) {
 
     // ── PRO plan: return advanced stats ──
     if (!isPremium) {
-      return apiSuccess(advancedStats);
+      return advancedStats;
     }
 
     // ── 7. Premium stats ──
@@ -363,11 +384,8 @@ export async function GET(req: NextRequest) {
       .filter((h) => h.orders < threshold)
       .map((h) => h.hour);
 
-    return apiSuccess({
+    return {
       ...advancedStats,
       offPeakHours,
-    });
-  } catch (error) {
-    return handleApiError(error, "boucher/stats/GET");
-  }
+    };
 }

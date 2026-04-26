@@ -477,7 +477,7 @@ export default function StatistiquesPage() {
               <div className="bg-white dark:bg-[#141414] rounded-xl p-3 text-center shadow-sm">
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Prep. moy.</p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white mt-0.5">
-                  {stats.avgPrepTime || "-"}<span className="text-xs font-normal text-gray-400">min</span>
+                  {stats.avgPrepTime || "-"}<span className="text-xs font-normal text-gray-500 dark:text-gray-400">min</span>
                 </p>
               </div>
               <div className="bg-white dark:bg-[#141414] rounded-xl p-3 text-center shadow-sm">

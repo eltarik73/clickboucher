@@ -38,7 +38,7 @@ export function TestRoleSwitcher() {
       )}
       <button
         onClick={deactivate}
-        className="ml-1 p-1 rounded-full text-gray-400 hover:text-white hover:bg-red-600 transition-all"
+        className="ml-1 p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-white hover:bg-red-600 transition-all"
         title="Quitter le mode test"
       >
         <X size={14} />

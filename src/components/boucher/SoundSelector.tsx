@@ -29,7 +29,7 @@ export default function SoundSelector() {
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <p className="text-xs text-gray-400 font-medium mb-1">Son de notification</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Son de notification</p>
       <div className="flex gap-2">
         {SOUND_OPTIONS.map((opt) => {
           const active = selected === opt.key;
@@ -46,7 +46,7 @@ export default function SoundSelector() {
               <span className="text-2xl">{opt.emoji}</span>
               <span
                 className={`text-[11px] font-semibold leading-tight text-center ${
-                  active ? "text-white" : "text-gray-400"
+                  active ? "text-white" : "text-gray-500 dark:text-gray-400"
                 }`}
               >
                 {opt.label}

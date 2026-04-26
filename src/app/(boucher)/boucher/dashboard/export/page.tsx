@@ -164,7 +164,7 @@ export default function ExportPage() {
               CSV pour Excel ou impression PDF
             </p>
           </div>
-          <FileSpreadsheet size={20} className="text-gray-400" />
+          <FileSpreadsheet size={20} className="text-gray-500 dark:text-gray-400" />
         </div>
 
         {/* Date filters */}
@@ -305,13 +305,13 @@ export default function ExportPage() {
                   </tbody>
                 </table>
                 {preview.count > 10 && (
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center py-2">
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center py-2">
                     ... et {preview.count - 10} autres commandes
                   </p>
                 )}
               </div>
             ) : (
-              <div className="py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
+              <div className="py-12 text-center text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">
                 Aucune commande pour cette période et ces filtres
               </div>
             )}

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { z } from "zod";
 
 const updateConfigSchema = z.object({
@@ -40,6 +41,9 @@ export async function PATCH(req: NextRequest) {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
+
+    const rl = await checkRateLimit(rateLimits.api, `loyalty-config:${shopId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const body = await req.json();
     const { active, ordersRequired, rewardPct } = updateConfigSchema.parse(body);

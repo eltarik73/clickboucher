@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { acceptOrderSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 // ── POST /api/orders/[id]/accept ───────────────
 // Boucher (owner) — accept an order
@@ -19,6 +20,9 @@ export async function POST(
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
+
+    const rl = await checkRateLimit(rateLimits.api, `order-accept:${shopId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const order = await prisma.order.findUnique({
       where: { id },

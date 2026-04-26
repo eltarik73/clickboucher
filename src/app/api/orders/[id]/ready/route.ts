@@ -5,6 +5,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
+import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 
 // ── POST /api/orders/[id]/ready ────────────────
 // Boucher (owner) — mark order as ready for pickup
@@ -17,6 +18,9 @@ export async function POST(
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
+
+    const rl = await checkRateLimit(rateLimits.api, `order-ready:${shopId}`);
+    if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
     const order = await prisma.order.findUnique({
       where: { id },
