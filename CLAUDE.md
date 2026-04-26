@@ -2,7 +2,7 @@
 
 ## Projet
 
-Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack : Next.js 14, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Clerk, Stripe. Déployé sur Vercel (klikandgo.app).
+Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack : Next.js 14, TypeScript, Tailwind CSS, Prisma, PostgreSQL, Clerk. Paiement sur place uniquement (Stripe à venir). Déployé sur Vercel (klikandgo.app).
 
 ## Règles non négociables
 
@@ -66,7 +66,7 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - **ORM** : Prisma + PostgreSQL (Railway)
 - **State** : Zustand + React Context (panier)
 - **AI** : Anthropic SDK (support tickets)
-- **Paiement** : Stripe (non implémenté — placeholder) + paiement sur place
+- **Paiement** : Paiement sur place uniquement (Stripe à venir — pas encore implémenté)
 - **Notifications** : Resend (email), web-push, Svix (webhooks)
 - **Rate limiting** : Upstash Redis
 - **QR Code** : qrcode.react + html5-qrcode (scan)
@@ -258,10 +258,12 @@ const shop = await prisma.shop.findFirst({
 
 ## Test Mode
 
-- Activation : `?testmode=KlikTest2026!` dans l'URL → set cookies
+- Activation : `?testmode=<TEST_SECRET>` dans l'URL → fetch `/api/test-mode/activate` (server valide le secret) → set cookies
 - Cookies : `klikgo-test-activated=true` + `klikgo-test-role=CLIENT|BOUCHER|ADMIN`
-- Env vars Vercel : `NEXT_PUBLIC_TEST_MODE=true`, `NEXT_PUBLIC_TEST_SECRET=KlikTest2026!`
+- Env vars (server-only, JAMAIS `NEXT_PUBLIC_*`) : `TEST_MODE=true`, `TEST_SECRET=...`
+- Désactivé automatiquement en production sauf si `ALLOW_TEST_IN_PROD=true` (escape hatch explicite)
 - Test users définis dans `@/lib/auth/test-auth.ts`
+- Le secret n'est JAMAIS exposé au bundle client — la validation se fait uniquement server-side via `/api/test-mode/activate`
 
 ## Performance (PageSpeed)
 
@@ -288,13 +290,17 @@ const shop = await prisma.shop.findFirst({
 ## Variables d'environnement
 
 ```
-DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+DATABASE_URL, DIRECT_DATABASE_URL,
+CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 NEXT_PUBLIC_CLERK_SIGN_IN_URL, NEXT_PUBLIC_CLERK_SIGN_UP_URL,
-NEXT_PUBLIC_TEST_MODE, NEXT_PUBLIC_TEST_SECRET,
+TEST_MODE, TEST_SECRET, ALLOW_TEST_IN_PROD,
 NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_PLAUSIBLE_DOMAIN,
 ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
 ```
 
+- `DATABASE_URL` : pooled (pgbouncer) — `?pgbouncer=true&connection_limit=1` sur Vercel. Utilisé par l'app au runtime.
+- `DIRECT_DATABASE_URL` : non-pooled (port 5432) — utilisé UNIQUEMENT par `prisma migrate deploy` pour les advisory locks/DDL. Voir `audit/migrations.md`.
+- `TEST_MODE` / `TEST_SECRET` : server-only, JAMAIS `NEXT_PUBLIC_*`. Le secret est validé côté serveur via `/api/test-mode/activate`. Désactivé en prod sauf si `ALLOW_TEST_IN_PROD=true`.
 - `NEXT_PUBLIC_SITE_URL` : URL canonique du site (`https://klikandgo.app`). Utilisé pour sitemap, OG, canonical.
 - `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` : Domaine Plausible Analytics (si défini, active le tracking RGPD).
 - Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.

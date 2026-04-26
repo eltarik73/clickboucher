@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, Search, Tag, ShoppingBag, User, LogIn } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { useCart } from "@/lib/hooks/use-cart";
+import { useTestAuth } from "@/hooks/useTestAuth";
 
 type NavItem = {
   key: string;
@@ -24,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
 export function BottomNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
+  const { enabled: testEnabled, activated: testActivated } = useTestAuth();
 
   // Don't show on boucher/admin/webmaster pages
   if (
@@ -75,7 +77,7 @@ export function BottomNav() {
         })}
 
         {/* Compte tab — Clerk aware */}
-        {process.env.NEXT_PUBLIC_TEST_MODE === "true" ? (
+        {testEnabled && testActivated ? (
           <div className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] px-2 py-1.5">
             <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-white text-[10px] font-bold">
               T

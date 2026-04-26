@@ -9,7 +9,7 @@ import { getTestRole, isTestActivated } from "@/lib/auth/server-auth";
 // ── In-memory admin role cache (5 min TTL) ──────────────
 // Avoids calling currentUser() (HTTP ~100-300ms) on every admin API request
 const adminCache = new Map<string, { isAdmin: boolean; ts: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 60 * 1000; // 60s — tightened from 5 min for faster role-change propagation
 
 /**
  * Vérifie que l'utilisateur est admin (via Clerk publicMetadata + DB role).

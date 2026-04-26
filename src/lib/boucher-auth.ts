@@ -6,11 +6,11 @@ import { apiError } from "@/lib/api/errors";
 import { isBoucher } from "@/lib/roles";
 import { getTestRole, isTestActivated } from "@/lib/auth/server-auth";
 
-const REDIS_TTL = 300; // 5 min
+const REDIS_TTL = 60; // 60s — tightened from 5 min for faster role-change propagation
 
 // ── In-memory fallback cache (if Redis unavailable) ──
 const memCache = new Map<string, { shopId: string; userId: string; ts: number }>();
-const MEM_TTL = 5 * 60 * 1000;
+const MEM_TTL = 60 * 1000;
 
 /**
  * Vérifie que l'utilisateur est un boucher authentifié avec une boutique.

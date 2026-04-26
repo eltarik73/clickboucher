@@ -240,7 +240,8 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
     };
   });
 
-  // ── Apply offer discount ──
+  // ── Resolve offer/loyalty (read-only here — actual mutation happens inside the
+  // transaction below to keep coupon-consumption + order.create atomic) ──
   let discountCents = 0;
   let discountSource: string | null = null;
   let offerId: string | null = null;
@@ -252,10 +253,6 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
       discountCents = Math.min(data.discountCents, totalCents);
       discountSource = offer.shopId ? "SHOP" : "PLATFORM";
       offerId = offer.id;
-      await prisma.offer.update({
-        where: { id: offer.id },
-        data: { currentUses: { increment: 1 } },
-      });
     }
   } else if (data.loyaltyRewardId && data.discountCents) {
     const reward = await prisma.loyaltyReward.findUnique({ where: { id: data.loyaltyRewardId } });
@@ -263,12 +260,6 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
       discountCents = Math.min(data.discountCents, totalCents);
       discountSource = "LOYALTY";
       loyaltyRewardId = reward.id;
-      await prisma.loyaltyReward
-        .update({
-          where: { id: reward.id },
-          data: { usedAt: new Date() },
-        })
-        .catch(() => {});
     }
   }
 
@@ -337,30 +328,49 @@ export async function createOrder(body: unknown, userId: string): Promise<Create
     const nextNum = lastOrder ? parseInt(lastOrder.orderNumber.slice(prefix.length), 10) + 1 : 1;
     const orderNumber = `${prefix}${String(nextNum + attempt).padStart(5, "0")}`;
     try {
-      order = await createOrderRow({
-        orderNumber,
-        dailyNumber,
-        displayNumber,
-        userId: user.id,
-        isPro,
-        shopId: data.shopId,
-        initialStatus,
-        requestedTime: data.requestedTime,
-        customerNote: data.customerNote,
-        finalTotalCents,
-        commissionCents,
-        discountCents,
-        discountSource,
-        offerId,
-        loyaltyRewardId,
-        expiresAt: initialStatus === "PENDING" ? expiresAt : null,
-        idempotencyKey,
-        pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
-        pickupSlotEnd: data.pickupSlotEnd ? new Date(data.pickupSlotEnd) : null,
-        qrCode,
-        estimatedReady,
-        paymentMethod: data.paymentMethod ?? "ON_PICKUP",
-        items: orderItems,
+      // Atomic: consume coupon/loyalty + create order in a single transaction.
+      // If the order.create fails, the offer/loyalty mutations roll back automatically.
+      order = await prisma.$transaction(async (tx) => {
+        if (offerId) {
+          await tx.offer.update({
+            where: { id: offerId },
+            data: { currentUses: { increment: 1 } },
+          });
+        }
+        if (loyaltyRewardId) {
+          await tx.loyaltyReward.update({
+            where: { id: loyaltyRewardId },
+            data: { usedAt: new Date() },
+          });
+        }
+        return createOrderRow(
+          {
+            orderNumber,
+            dailyNumber,
+            displayNumber,
+            userId: user.id,
+            isPro,
+            shopId: data.shopId,
+            initialStatus,
+            requestedTime: data.requestedTime,
+            customerNote: data.customerNote,
+            finalTotalCents,
+            commissionCents,
+            discountCents,
+            discountSource,
+            offerId,
+            loyaltyRewardId,
+            expiresAt: initialStatus === "PENDING" ? expiresAt : null,
+            idempotencyKey,
+            pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
+            pickupSlotEnd: data.pickupSlotEnd ? new Date(data.pickupSlotEnd) : null,
+            qrCode,
+            estimatedReady,
+            paymentMethod: data.paymentMethod ?? "ON_PICKUP",
+            items: orderItems,
+          },
+          tx
+        );
       });
       break;
     } catch (err) {
@@ -455,8 +465,11 @@ interface CreateOrderRowInput {
   items: Array<Record<string, unknown>>;
 }
 
-async function createOrderRow(input: CreateOrderRowInput) {
-  return prisma.order.create({
+async function createOrderRow(
+  input: CreateOrderRowInput,
+  client: Prisma.TransactionClient | typeof prisma = prisma
+) {
+  return client.order.create({
     data: {
       orderNumber: input.orderNumber,
       dailyNumber: input.dailyNumber,

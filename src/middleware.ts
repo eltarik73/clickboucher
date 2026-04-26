@@ -15,7 +15,10 @@ const edgeRedis =
 
 // @security: test-only — Bypass Clerk ONLY if secret was validated (cookie present)
 function isTestActivatedMiddleware(req: NextRequest): boolean {
-  if (process.env.NEXT_PUBLIC_TEST_MODE !== "true") return false;
+  if (process.env.TEST_MODE !== "true") return false;
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_TEST_IN_PROD !== "true") {
+    return false;
+  }
   return req.cookies.get("klikgo-test-activated")?.value === "true";
 }
 
@@ -38,7 +41,7 @@ const ADMIN_ROLES = ["admin", "webmaster"];
 // propagate in dev / test environments.
 const roleCache = new Map<string, { role: string | undefined; ts: number }>();
 const MEM_CACHE_TTL = 60 * 1000; // 60s fallback when Redis missing
-const REDIS_CACHE_TTL = 5 * 60; // 5 min in Redis (seconds)
+const REDIS_CACHE_TTL = 60; // 60s in Redis — tightened from 5 min to limit role-stale window
 const ROLE_KEY = (userId: string) => `role:${userId}`;
 
 /** Fetch role from Clerk publicMetadata with Redis-backed cache */

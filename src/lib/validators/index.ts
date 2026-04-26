@@ -257,7 +257,14 @@ export const createOrderSchema = z.object({
   pickupSlotStart: z.string().datetime().optional(),
   pickupSlotEnd: z.string().datetime().optional(),
   idempotencyKey: z.string().max(100).optional(),
-  paymentMethod: z.enum(["ONLINE", "ON_PICKUP"]).optional(),
+  // Online payment not implemented yet — Stripe pending. Reject "ONLINE" until then.
+  paymentMethod: z
+    .literal("ON_PICKUP", {
+      errorMap: () => ({
+        message: "Le paiement en ligne n'est pas encore disponible. Réglez sur place au retrait.",
+      }),
+    })
+    .optional(),
   // Offer / Loyalty
   offerId: z.string().optional(),
   loyaltyRewardId: z.string().optional(),

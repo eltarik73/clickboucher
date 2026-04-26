@@ -134,51 +134,90 @@ export async function PATCH(
           : new Date(Date.now() + estimatedMinutes * 60_000);
         const qrCode = order.qrCode || randomUUID();
 
-        const updated = await prisma.order.update({
-          where: { id: orderId },
-          data: {
-            status: "ACCEPTED",
-            estimatedReady,
-            qrCode,
-            expiresAt: null,
-          },
-          include: { items: true },
-        });
+        // Atomic: status update + stock decrement + audit log.
+        // Stock decrement uses Prisma `decrement` so two concurrent ACCEPTs cannot survive
+        // the same stock atomically; if a row would underflow we throw STOCK_INSUFFICIENT and
+        // the entire transaction rolls back.
+        let updated: Awaited<ReturnType<typeof prisma.order.update>>;
+        try {
+          updated = await prisma.$transaction(async (tx) => {
+            const u = await tx.order.update({
+              where: { id: orderId },
+              data: {
+                status: "ACCEPTED",
+                estimatedReady,
+                qrCode,
+                expiresAt: null,
+              },
+              include: { items: true },
+            });
 
-        // ── Decrement anti-gaspi + flash sale stock via $transaction ──
-        const stockUpdates = [];
-        const agItems = order.items.filter(i => i.product.isAntiGaspi && i.product.antiGaspiStock !== null);
-        for (const item of agItems) {
-          const newStock = Math.max(0, (item.product.antiGaspiStock ?? 0) - item.quantity);
-          stockUpdates.push(prisma.product.update({
-            where: { id: item.productId },
-            data: {
-              antiGaspiStock: newStock,
-              ...(newStock <= 0 ? {
-                isAntiGaspi: false,
-                priceCents: item.product.antiGaspiOrigPriceCents ?? item.product.priceCents,
-                antiGaspiOrigPriceCents: null, antiGaspiEndAt: null,
-                antiGaspiReason: null, antiGaspiStock: null,
-              } : {}),
-            },
-          }));
-        }
-        const flashItems = order.items.filter(i => i.product.isFlashSale && i.product.flashSaleStock !== null);
-        for (const item of flashItems) {
-          const newStock = Math.max(0, (item.product.flashSaleStock ?? 0) - item.quantity);
-          stockUpdates.push(prisma.product.update({
-            where: { id: item.productId },
-            data: {
-              flashSaleStock: newStock,
-              ...(newStock <= 0 ? { isFlashSale: false, flashSaleEndAt: null, flashSaleStock: null } : {}),
-            },
-          }));
-        }
-        if (stockUpdates.length > 0) {
-          await prisma.$transaction(stockUpdates);
-        }
+            // Anti-gaspi stock — atomic decrement, then read-back to detect underflow
+            for (const item of order.items) {
+              if (item.product.isAntiGaspi && item.product.antiGaspiStock !== null) {
+                const updatedProduct = await tx.product.update({
+                  where: { id: item.productId },
+                  data: { antiGaspiStock: { decrement: item.quantity } },
+                  select: { antiGaspiStock: true, antiGaspiOrigPriceCents: true, priceCents: true },
+                });
+                if ((updatedProduct.antiGaspiStock ?? 0) < 0) {
+                  // Rollback by throwing
+                  throw new Error("STOCK_INSUFFICIENT");
+                }
+                if ((updatedProduct.antiGaspiStock ?? 0) <= 0) {
+                  await tx.product.update({
+                    where: { id: item.productId },
+                    data: {
+                      isAntiGaspi: false,
+                      priceCents: updatedProduct.antiGaspiOrigPriceCents ?? updatedProduct.priceCents,
+                      antiGaspiOrigPriceCents: null,
+                      antiGaspiEndAt: null,
+                      antiGaspiReason: null,
+                      antiGaspiStock: null,
+                    },
+                  });
+                }
+              }
+              if (item.product.isFlashSale && item.product.flashSaleStock !== null) {
+                const updatedProduct = await tx.product.update({
+                  where: { id: item.productId },
+                  data: { flashSaleStock: { decrement: item.quantity } },
+                  select: { flashSaleStock: true },
+                });
+                if ((updatedProduct.flashSaleStock ?? 0) < 0) {
+                  throw new Error("STOCK_INSUFFICIENT");
+                }
+                if ((updatedProduct.flashSaleStock ?? 0) <= 0) {
+                  await tx.product.update({
+                    where: { id: item.productId },
+                    data: { isFlashSale: false, flashSaleEndAt: null, flashSaleStock: null },
+                  });
+                }
+              }
+            }
 
-        await logOrderEvent(orderId, order.shop.id, "ACCEPTED", userId, { estimatedMinutes, qrCode });
+            // Audit trail inside the same transaction
+            await tx.orderEvent.create({
+              data: {
+                orderId,
+                shopId: order.shop.id,
+                type: "ACCEPTED",
+                actorId: userId,
+                payloadJson: { estimatedMinutes, qrCode } as Prisma.InputJsonValue,
+              },
+            });
+
+            return u;
+          });
+        } catch (e) {
+          if (e instanceof Error && e.message === "STOCK_INSUFFICIENT") {
+            return apiError(
+              "STOCK_INSUFFICIENT",
+              "Stock insuffisant pour cette commande (rupture détectée pendant l'acceptation)"
+            );
+          }
+          throw e;
+        }
 
         await sendNotification("ORDER_ACCEPTED", {
           userId: order.user.id,

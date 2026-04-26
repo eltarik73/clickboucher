@@ -7,6 +7,7 @@ import { WebhookEvent } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { handleApiError } from "@/lib/api/errors";
+import { invalidateRoleCache } from "@/lib/auth/role-cache";
 
 // Map Clerk metadata role string to Prisma Role enum
 const ROLE_MAP: Record<string, Role> = {
@@ -111,14 +112,22 @@ export async function POST(req: NextRequest) {
         updateData.email = email;
       }
 
+      let roleChanged = false;
       if (metadataRole && ROLE_MAP[metadataRole]) {
         updateData.role = ROLE_MAP[metadataRole];
+        roleChanged = true;
       }
 
       await prisma.user.update({
         where: { clerkId: id },
         data: updateData,
       });
+
+      // Invalidate role caches so the new role takes effect immediately
+      // (instead of waiting for the 60s TTL to expire across 3 caches).
+      if (roleChanged) {
+        await invalidateRoleCache(id);
+      }
 
       return NextResponse.json({ success: true, event: "user.updated" });
     }
@@ -145,6 +154,9 @@ export async function POST(req: NextRequest) {
           phone: null,
         },
       });
+
+      // Drop all role caches for the deleted user
+      await invalidateRoleCache(id);
 
       return NextResponse.json({ success: true, event: "user.deleted" });
     }

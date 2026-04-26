@@ -4,6 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { requireAdmin } from "@/lib/admin-auth";
+import { invalidateRoleCache } from "@/lib/auth/role-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,10 @@ export async function PATCH(
     await clerk.users.updateUserMetadata(user.clerkId, {
       publicMetadata: { role: newRole },
     });
+
+    // Purge role caches so the new role is honored on the next request
+    // instead of waiting for the cache TTL to expire.
+    await invalidateRoleCache(user.clerkId);
 
     return apiSuccess({ role: prismaRole });
   } catch (error) {

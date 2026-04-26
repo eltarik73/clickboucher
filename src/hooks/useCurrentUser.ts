@@ -14,7 +14,7 @@ export function useCurrentUser() {
   const testAuth = useTestAuth();
   const clerkAuth = useUser();
 
-  if (process.env.NEXT_PUBLIC_TEST_MODE === "true" && testAuth.activated) {
+  if (testAuth.enabled && testAuth.activated) {
     return {
       isLoaded: true,
       isSignedIn: true,

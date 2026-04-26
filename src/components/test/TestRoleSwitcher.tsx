@@ -1,6 +1,6 @@
 "use client";
 // @security: test-only — Barre flottante de switch de rôle pour le mode test
-// N'apparaît QUE si le test mode a été activé via le secret URL
+// N'apparaît QUE si le test mode a été activé via le secret URL (vérifié server-side)
 
 import { useTestAuth } from "@/hooks/useTestAuth";
 import type { TestRole } from "@/lib/auth/test-auth";
@@ -13,16 +13,10 @@ const ROLE_CONFIG: Record<TestRole, { label: string; color: string }> = {
 };
 
 export function TestRoleSwitcher() {
-  if (process.env.NEXT_PUBLIC_TEST_MODE !== "true") return null;
+  const { enabled, activated, role, switchRole, deactivate } = useTestAuth();
 
-  return <TestRoleSwitcherInner />;
-}
-
-function TestRoleSwitcherInner() {
-  const { activated, role, switchRole, deactivate } = useTestAuth();
-
-  // Don't render anything if test mode hasn't been activated via secret
-  if (!activated) return null;
+  // Don't render anything if test mode is not enabled OR not activated via secret
+  if (!enabled || !activated) return null;
 
   return (
     <div className="fixed bottom-4 left-4 z-[9999] flex items-center gap-2 rounded-full bg-black/90 px-4 py-2 shadow-2xl border border-yellow-400">

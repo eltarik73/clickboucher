@@ -1,6 +1,6 @@
 // @security: test-only — Mode test : simule l'authentification sans Clerk
-// Sécurisé par secret URL — s'active UNIQUEMENT via ?testmode=<secret>
-// Le secret est dans NEXT_PUBLIC_TEST_SECRET
+// Sécurisé par secret URL — s'active UNIQUEMENT via /api/test-mode/activate
+// Le secret est dans TEST_SECRET (server-only — JAMAIS NEXT_PUBLIC_*)
 
 export type TestRole = "CLIENT" | "BOUCHER" | "ADMIN";
 
@@ -34,14 +34,21 @@ export const TEST_USERS = {
   },
 };
 
-/** Check if test mode is enabled via env var */
+/**
+ * Server-only check: is test mode enabled at all?
+ * Disabled in production unless ALLOW_TEST_IN_PROD="true" (escape hatch).
+ */
 export function isTestMode(): boolean {
-  return process.env.NEXT_PUBLIC_TEST_MODE === "true";
+  if (process.env.TEST_MODE !== "true") return false;
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_TEST_IN_PROD !== "true") {
+    return false;
+  }
+  return true;
 }
 
-/** Get the test secret from env */
+/** Server-only — returns the test secret (no NEXT_PUBLIC_ exposure). */
 export function getTestSecret(): string {
-  return process.env.NEXT_PUBLIC_TEST_SECRET || "";
+  return process.env.TEST_SECRET || "";
 }
 
 /** Get the Clerk-style role string from a test role */

@@ -2,28 +2,39 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // ── Hoisted Prisma mock factory ───────────────────────────────
-const prismaMock = vi.hoisted(() => ({
-  order: {
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    count: vi.fn(),
-    create: vi.fn(),
-  },
-  shop: {
-    findUnique: vi.fn(),
-  },
-  product: {
-    findMany: vi.fn(),
-  },
-  offer: {
-    findUnique: vi.fn(),
-    update: vi.fn(),
-  },
-  loyaltyReward: {
-    findUnique: vi.fn(),
-    update: vi.fn(),
-  },
-}));
+const prismaMock = vi.hoisted(() => {
+  const m = {
+    order: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      count: vi.fn(),
+      create: vi.fn(),
+    },
+    shop: {
+      findUnique: vi.fn(),
+    },
+    product: {
+      findMany: vi.fn(),
+    },
+    offer: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    loyaltyReward: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    // $transaction pass-through — invoke the callback with the same mock as `tx`.
+    $transaction: vi.fn(async (cb: unknown) => {
+      if (typeof cb === "function") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return await (cb as any)(m);
+      }
+      return cb;
+    }),
+  };
+  return m;
+});
 
 vi.mock("@/lib/prisma", () => ({
   default: prismaMock,

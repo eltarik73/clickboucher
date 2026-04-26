@@ -129,7 +129,10 @@ curl https://<votre-app>.up.railway.app/api/health
 
 ---
 
-## 3. Activer Stripe (paiement reel)
+## 3. Activer Stripe (paiement reel) — TODO: not implemented
+
+> ⚠️ Stripe n'est pas encore intégré. Toutes les commandes utilisent **paiement sur place** (`ON_PICKUP`).
+> Les variables d'environnement et webhooks ci-dessous sont fournis à titre indicatif pour la future intégration mais ne sont pas lus par le code actuel.
 
 ### 3.1 Configuration
 

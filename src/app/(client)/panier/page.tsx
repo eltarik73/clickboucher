@@ -335,7 +335,8 @@ export default function PanierPage() {
       })),
       requestedTime,
       customerNote: customerNote.trim() || undefined,
-      paymentMethod,
+      // Stripe online payment not implemented yet — always force on-pickup payment
+      paymentMethod: "ON_PICKUP",
       ...(appliedPromo?.offerId && {
         offerId: appliedPromo.offerId,
         discountCents: appliedPromo.discountCents,
@@ -751,28 +752,17 @@ export default function PanierPage() {
                 )}
 
                 {shopAcceptOnline && (
-                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                    paymentMethod === "ONLINE"
-                      ? "border-[#DC2626] bg-[#DC2626]/5"
-                      : "border-[#ece8e3] dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
-                  }`}>
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "ONLINE"}
-                      onChange={() => setPaymentMethod("ONLINE")}
-                      className="w-4 h-4 accent-[#DC2626]"
-                    />
-                    <CreditCard size={18} className="text-blue-600 shrink-0" />
+                  <div className="flex items-start gap-3 p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">
+                    <CreditCard size={18} className="text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        Paiement en ligne
+                      <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                        Paiement en ligne temporairement indisponible
                       </span>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Payez par carte maintenant
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
+                        Réglez sur place au retrait (espèces ou CB).
                       </p>
                     </div>
-                  </label>
+                  </div>
                 )}
               </div>
 
@@ -783,9 +773,7 @@ export default function PanierPage() {
                 className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50"
                 size="lg"
               >
-                {paymentMethod === "ONLINE"
-                  ? `Payer ${fmtPrice(finalTotal)} et commander`
-                  : "Confirmer ma commande"}
+                Confirmer ma commande
               </Button>
             </div>
           )}

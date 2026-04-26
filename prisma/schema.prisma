@@ -16,8 +16,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // DIRECT_DATABASE_URL must point to the same database without pgbouncer.
+  // Used by `prisma migrate deploy` for advisory locks / DDL — pgbouncer in
+  // transaction mode breaks those. Falls back to DATABASE_URL when unset
+  // (e.g. local dev). Set both vars on Vercel.
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ══════════════════════════════════════════

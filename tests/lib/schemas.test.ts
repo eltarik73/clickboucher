@@ -55,9 +55,12 @@ describe("createOrderSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts valid payment method", () => {
-    expect(createOrderSchema.safeParse({ ...validOrder, paymentMethod: "ONLINE" }).success).toBe(true);
+  it("accepts ON_PICKUP payment method", () => {
     expect(createOrderSchema.safeParse({ ...validOrder, paymentMethod: "ON_PICKUP" }).success).toBe(true);
+  });
+
+  it("rejects ONLINE payment method (Stripe not implemented yet)", () => {
+    expect(createOrderSchema.safeParse({ ...validOrder, paymentMethod: "ONLINE" }).success).toBe(false);
   });
 
   it("rejects invalid payment method", () => {

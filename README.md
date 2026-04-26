@@ -11,7 +11,7 @@ MVP premium de Click & Collect pour boucheries artisanales, inspiré d'Uber.
 | Backend       | Next.js Route Handlers (`/api/*`)    |
 | Base de données | PostgreSQL (Railway)               |
 | ORM           | Prisma                               |
-| Paiement      | Mock (structure prête)               |
+| Paiement      | Sur place uniquement (Stripe à venir) |
 | Notifications | Stubs (WhatsApp/SMS/Push)            |
 | Hébergement   | Railway (full stack)                 |
 

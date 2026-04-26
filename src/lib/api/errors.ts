@@ -4,6 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import * as Sentry from "@sentry/nextjs";
 
 export type ApiErrorCode =
   | "VALIDATION_ERROR"
@@ -155,6 +156,15 @@ export function handleApiError(error: unknown, context?: string) {
     console.error(prefix, msg, error.stack);
   } else {
     console.error(prefix, "Unknown error:", error);
+  }
+
+  // Send to Sentry (no-op if SENTRY_DSN absent — the SDK handles this gracefully)
+  try {
+    Sentry.captureException(error, {
+      tags: context ? { route: context } : undefined,
+    });
+  } catch {
+    // never let observability break the response
   }
 
   return apiError("INTERNAL_ERROR", "Erreur interne du serveur");
