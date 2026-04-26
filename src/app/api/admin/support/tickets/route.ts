@@ -1,5 +1,6 @@
 // GET /api/admin/support/tickets — List support tickets
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
       perPage: url.searchParams.get("perPage") || 20,
     });
 
-    const where: Record<string, unknown> = {};
+    const where: Prisma.SupportTicketWhereInput = {};
     if (query.status) where.status = query.status;
     if (query.shopId) where.shopId = query.shopId;
 

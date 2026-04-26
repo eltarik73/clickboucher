@@ -1,11 +1,12 @@
 // GET + POST /api/support/tickets — Boucher: list own tickets + create new ticket
 import { NextRequest } from "next/server";
-import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { generateAIResponse } from "@/lib/services/support-ai";
+import { rateLimits, checkRateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,12 @@ export async function POST(req: NextRequest) {
     if (authResult.error) return authResult.error;
     const { userId, shopId: authShopId } = authResult;
 
+    // Rate limit: 10 ticket creations / hour per user
+    const rl = await checkRateLimit(rateLimits.tickets, `ticket-create:${userId}`);
+    if (!rl.success) {
+      return apiError("RATE_LIMITED", "Trop de tickets créés. Réessayez plus tard.");
+    }
+
     const body = await req.json();
     const data = createTicketSchema.parse(body);
 
@@ -62,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     const dbUserId = userId;
 
-    // Create ticket + initial message in transaction
+    // Create ticket + initial message
     const ticket = await prisma.supportTicket.create({
       data: {
         shopId: data.shopId,
@@ -77,39 +84,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Read cookie header while still in request context for internal fetch
-    const headersList = headers();
-    const cookieHeader = headersList.get("cookie") || "";
-
-    // Trigger AI auto-response asynchronously (don't await)
-    triggerAIResponse(ticket.id, data.message, shop.name, cookieHeader).catch(() => {});
+    // Trigger AI auto-response via direct service call (no internal fetch).
+    // Best-effort — we don't await to avoid blocking the response.
+    generateAIResponse({
+      ticketId: ticket.id,
+      userMessage: data.message,
+      shopName: shop.name,
+    }).catch((err) =>
+      logger.warn("[support/tickets] AI response failed", {
+        ticketId: ticket.id,
+        err: (err as Error)?.message,
+      })
+    );
 
     return apiSuccess(ticket, 201);
   } catch (error) {
     return handleApiError(error, "support/tickets/create");
-  }
-}
-
-async function triggerAIResponse(
-  ticketId: string,
-  userMessage: string,
-  shopName: string,
-  cookieHeader: string
-) {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-      || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null)
-      || "http://localhost:3000";
-
-    await fetch(`${baseUrl}/api/support/ai-respond`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Cookie": cookieHeader,
-      },
-      body: JSON.stringify({ ticketId, userMessage, shopName }),
-    });
-  } catch {
-    // Silent fail — AI response is best-effort
   }
 }

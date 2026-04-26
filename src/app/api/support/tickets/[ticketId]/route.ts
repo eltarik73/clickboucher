@@ -2,19 +2,52 @@
 // POST /api/support/tickets/[ticketId] — Boucher: send a message
 import { NextRequest } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
-import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
+import { generateAIResponse } from "@/lib/services/support-ai";
+import { rateLimits, checkRateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-// Helper: get boucher's shop IDs from Clerk userId
+/**
+ * Resolve the boucher's shop IDs.
+ *
+ * Multi-tenant ownership: a Shop.ownerId can store either the Clerk ID
+ * (user_xxx) or the Prisma User.id (cm...). We must query with an OR clause
+ * spanning both to avoid silently leaking/denying tickets when the data was
+ * inserted under one form but the request comes in under another.
+ *
+ * Logs a warning if both forms resolve to disjoint shop sets — that means
+ * legacy data drift exists and someone should reconcile.
+ */
 async function getBoucherShopIds(clerkId: string): Promise<string[]> {
-  const shops = await prisma.shop.findMany({
-    where: { ownerId: clerkId },
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId },
     select: { id: true },
   });
+
+  const ownerCandidates = dbUser ? [clerkId, dbUser.id] : [clerkId];
+
+  const shops = await prisma.shop.findMany({
+    where: { OR: ownerCandidates.map((ownerId) => ({ ownerId })) },
+    select: { id: true, ownerId: true },
+  });
+
+  if (dbUser && shops.length > 0) {
+    const byClerk = shops.filter((s) => s.ownerId === clerkId).length;
+    const byDb = shops.filter((s) => s.ownerId === dbUser.id).length;
+    if (byClerk > 0 && byDb > 0) {
+      logger.warn("[support/tickets] inconsistent Shop.ownerId — both clerkId and dbUserId", {
+        clerkId,
+        dbUserId: dbUser.id,
+        byClerk,
+        byDb,
+      });
+    }
+  }
+
   return shops.map((s) => s.id);
 }
 
@@ -28,7 +61,6 @@ export async function GET(
 
     const { ticketId } = params;
 
-    // Verify ownership through shop (not userId — avoids clerkId vs DB id mismatch)
     const shopIds = await getBoucherShopIds(userId);
     if (shopIds.length === 0) return apiError("NOT_FOUND", "Aucune boutique trouvee");
 
@@ -60,6 +92,12 @@ export async function POST(
     const userId = await getServerUserId();
     if (!userId) return apiError("UNAUTHORIZED", "Authentification requise");
 
+    // Rate limit: 10 messages / hour per user
+    const rl = await checkRateLimit(rateLimits.tickets, `ticket-msg:${userId}`);
+    if (!rl.success) {
+      return apiError("RATE_LIMITED", "Trop de messages. Réessayez plus tard.");
+    }
+
     const { ticketId } = params;
     const body = await req.json();
     const data = sendMessageSchema.parse(body);
@@ -72,18 +110,21 @@ export async function POST(
     });
     if (!ticket) return apiError("NOT_FOUND", "Ticket introuvable");
 
-    // Create message
-    const message = await prisma.supportMessage.create({
-      data: { ticketId, role: "user", content: data.content },
-    });
-
-    // Reopen ticket if it was resolved/closed
-    if (ticket.status === "RESOLVED" || ticket.status === "CLOSED") {
-      await prisma.supportTicket.update({
-        where: { id: ticketId },
-        data: { status: "OPEN" },
-      });
-    }
+    // Atomic: create message + (optionally) reopen ticket
+    const shouldReopen = ticket.status === "RESOLVED" || ticket.status === "CLOSED";
+    const [message] = await prisma.$transaction([
+      prisma.supportMessage.create({
+        data: { ticketId, role: "user", content: data.content },
+      }),
+      ...(shouldReopen
+        ? [
+            prisma.supportTicket.update({
+              where: { id: ticketId },
+              data: { status: "OPEN" },
+            }),
+          ]
+        : []),
+    ]);
 
     // Get shop name for AI context
     const shop = await prisma.shop.findUnique({
@@ -91,39 +132,20 @@ export async function POST(
       select: { name: true },
     });
 
-    // Read cookie header while still in request context
-    const headersList = headers();
-    const cookieHeader = headersList.get("cookie") || "";
-
-    // Trigger AI response
-    triggerAIResponse(ticketId, data.content, shop?.name || "", cookieHeader).catch(() => {});
+    // Trigger AI response via direct service call (no internal fetch). Best-effort.
+    generateAIResponse({
+      ticketId,
+      userMessage: data.content,
+      shopName: shop?.name || "",
+    }).catch((err) =>
+      logger.warn("[support/tickets] AI response failed", {
+        ticketId,
+        err: (err as Error)?.message,
+      })
+    );
 
     return apiSuccess(message, 201);
   } catch (error) {
     return handleApiError(error, "support/tickets/message");
-  }
-}
-
-async function triggerAIResponse(
-  ticketId: string,
-  userMessage: string,
-  shopName: string,
-  cookieHeader: string
-) {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-      || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null)
-      || "http://localhost:3000";
-
-    await fetch(`${baseUrl}/api/support/ai-respond`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Cookie": cookieHeader,
-      },
-      body: JSON.stringify({ ticketId, userMessage, shopName }),
-    });
-  } catch {
-    // Silent fail — AI response is best-effort
   }
 }

@@ -29,6 +29,8 @@ export const rateLimits = {
   search: createLimiter(60, 30),
   /** Promo/code validation (prevent brute-force): 10 req / minute */
   promoValidate: createLimiter(60, 10),
+  /** Support tickets create/message: 10 req / hour */
+  tickets: createLimiter(3600, 10),
 };
 
 /**
