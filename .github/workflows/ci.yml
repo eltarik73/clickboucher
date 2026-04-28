@@ -10,13 +10,30 @@ jobs:
     name: Lint / Typecheck / Test / Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
-      # Dummy values for build-time env (do not hit real services in CI)
-      DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
-      CLERK_SECRET_KEY: "sk_test_ci"
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_ci"
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
+      # Valid-format Clerk fake keys (Clerk validates the prefix + base64 shape at build).
+      CLERK_SECRET_KEY: "sk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk"
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk"
       NEXT_PUBLIC_SITE_URL: "https://klikandgo.app"
       NEXT_PUBLIC_APP_URL: "https://klikandgo.app"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +48,9 @@ jobs:
 
       - name: Prisma generate
         run: npx prisma generate
+
+      - name: Apply Prisma schema to CI database
+        run: npx prisma db push --skip-generate --accept-data-loss
 
       - name: Lint
         run: npm run lint

@@ -59,6 +59,8 @@ export function SeoFooter() {
           <ul className="space-y-2">
             <li><Link href="/" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Accueil</Link></li>
             <li><Link href="/avantages" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Pourquoi Klik&Go</Link></li>
+            <li><Link href="/click-and-collect-halal" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Click &amp; Collect halal</Link></li>
+            <li><Link href="/commander-viande-halal" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Commander viande halal</Link></li>
             <li><Link href="/espace-boucher" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Espace boucher</Link></li>
             <li><Link href="/inscription-boucher" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Inscrire ma boucherie</Link></li>
             <li><Link href="/presse" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Espace presse</Link></li>
