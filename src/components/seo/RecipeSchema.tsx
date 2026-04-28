@@ -55,7 +55,9 @@ export function RecipeSchema({ recipe }: RecipeSchemaProps) {
     recipeInstructions: recipe.steps.map((s) => ({
       "@type": "HowToStep",
       position: s.number,
+      name: `Étape ${s.number}`,
       text: s.text,
+      url: `${url}#step-${s.number}`,
     })),
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     url,
