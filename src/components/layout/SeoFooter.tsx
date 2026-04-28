@@ -61,6 +61,7 @@ export function SeoFooter() {
             <li><Link href="/avantages" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Pourquoi Klik&Go</Link></li>
             <li><Link href="/espace-boucher" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Espace boucher</Link></li>
             <li><Link href="/inscription-boucher" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Inscrire ma boucherie</Link></li>
+            <li><Link href="/presse" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Espace presse</Link></li>
             <li><Link href="/contact" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Contact</Link></li>
             <li><Link href="/mentions-legales" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Mentions légales</Link></li>
             <li><Link href="/politique-de-confidentialite" className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] transition-colors">Confidentialité</Link></li>
