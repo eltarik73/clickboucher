@@ -1,6 +1,34 @@
-# 🥩 ClickBoucher — Click & Collect Boucherie
+# Klik&Go — Click & Collect Boucherie Halal
 
-MVP premium de Click & Collect pour boucheries artisanales, inspiré d'Uber.
+> **Site en production : [klikandgo.app](https://klikandgo.app)**
+
+[![Site en ligne](https://img.shields.io/website?url=https%3A%2F%2Fklikandgo.app&label=klikandgo.app)](https://klikandgo.app)
+
+**[Klik&Go](https://klikandgo.app)** est la première marketplace de click & collect dédiée aux **boucheries halal indépendantes** en France.
+Les clients commandent leur viande halal en quelques clics depuis [klikandgo.app](https://klikandgo.app) et la récupèrent fraîche en boutique en moins de 30 minutes.
+
+## Liens utiles
+
+- **Site officiel** : https://klikandgo.app
+- **Espace presse** : https://klikandgo.app/presse
+- **Recettes halal** : https://klikandgo.app/recettes
+- **Bons plans** : https://klikandgo.app/bons-plans
+- **Inscrire ma boucherie** : https://klikandgo.app/inscription-boucher
+- **Trouver une boucherie halal par ville** :
+  - [Chambéry](https://klikandgo.app/boucherie-halal/chambery)
+  - [Aix-les-Bains](https://klikandgo.app/boucherie-halal/aix-les-bains)
+  - [Annecy](https://klikandgo.app/boucherie-halal/annecy)
+  - [Grenoble](https://klikandgo.app/boucherie-halal/grenoble)
+  - [Lyon](https://klikandgo.app/boucherie-halal/lyon)
+  - [Saint-Étienne](https://klikandgo.app/boucherie-halal/saint-etienne)
+  - [Villeurbanne](https://klikandgo.app/boucherie-halal/villeurbanne)
+  - [Vénissieux](https://klikandgo.app/boucherie-halal/venissieux)
+
+## Mission
+
+Digitaliser les boucheries halal de proximité — sans abonnement, sans commission cachée — pour qu'elles puissent affronter la grande distribution avec des outils modernes.
+
+Chaque produit affiche systématiquement son **organisme certificateur halal** : la transparence est notre engagement principal envers la communauté.
 
 ## Stack technique
 
