@@ -2,6 +2,22 @@
   "name": "clickboucher",
   "version": "0.1.0",
   "private": true,
+  "description": "Klik&Go — Click & Collect marketplace for halal butcher shops in France. https://klikandgo.app",
+  "homepage": "https://klikandgo.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eltarik73/clickboucher.git"
+  },
+  "keywords": [
+    "klikandgo",
+    "klik-and-go",
+    "boucherie-halal",
+    "click-and-collect",
+    "halal",
+    "viande-halal",
+    "marketplace",
+    "nextjs"
+  ],
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
