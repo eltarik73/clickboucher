@@ -9,9 +9,33 @@ import { BonsPlansClient } from "./BonsPlansClient";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
-  title: "Bons Plans & Promotions Boucherie Halal",
-  description: "Toutes les promotions et offres flash des boucheries halal près de chez vous. Réductions, offres du moment, codes promo.",
+  title: "Bons plans & promos boucherie halal",
+  description: "Toutes les promotions et offres flash des boucheries halal près de chez vous : anti-gaspi, packs, vente flash, ramadan. Économisez sur la viande halal en click & collect.",
+  keywords: [
+    "bons plans halal",
+    "promo boucherie halal",
+    "viande halal pas chère",
+    "anti gaspi viande",
+    "vente flash halal",
+    "promo ramadan",
+    "packs viande halal",
+  ],
   alternates: { canonical: `${SITE_URL}/bons-plans` },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Klik&Go",
+    title: "Bons plans & promos boucherie halal | Klik&Go",
+    description: "Promotions, anti-gaspi, packs et vente flash des boucheries halal. Économisez en click & collect.",
+    url: `${SITE_URL}/bons-plans`,
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Bons plans halal Klik&Go" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bons plans & promos boucherie halal",
+    description: "Promotions et offres anti-gaspi des boucheries halal en click & collect.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default async function BonsPlansPage() {

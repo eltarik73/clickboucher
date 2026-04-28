@@ -10,10 +10,37 @@ import { SafeImage } from "@/components/ui/SafeImage";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
-  title: "Recettes halal — Idées de plats avec viande halal",
+  title: "Recettes halal — Tajine, couscous, kefta, BBQ",
   description:
-    "Découvrez nos recettes halal avec des quantités de viande précises. Tajine, couscous, grillades, kefta et plus. Commandez les ingrédients en click & collect.",
+    "Plus de 50 recettes halal faciles avec quantités de viande précises : tajine d'agneau, couscous royal, brochettes, kefta, shawarma. Commandez la viande halal en click & collect chez votre boucher de proximité.",
+  keywords: [
+    "recettes halal",
+    "recettes viande halal",
+    "tajine agneau",
+    "couscous royal",
+    "kefta",
+    "brochettes halal",
+    "merguez maison",
+    "shawarma",
+    "ramadan",
+    "BBQ halal",
+  ],
   alternates: { canonical: `${SITE_URL}/recettes` },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Klik&Go",
+    title: "Recettes halal — Tajine, couscous, kefta, BBQ | Klik&Go",
+    description: "Plus de 50 recettes halal faciles avec quantités de viande précises. Commandez la viande halal en click & collect.",
+    url: `${SITE_URL}/recettes`,
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Recettes halal Klik&Go" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Recettes halal — Tajine, couscous, kefta",
+    description: "Plus de 50 recettes halal avec viande halal en click & collect.",
+    images: ["/og-image.png"],
+  },
 };
 
 const TAGS = [

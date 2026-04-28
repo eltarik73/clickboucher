@@ -6,6 +6,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { SafeImage } from "@/components/ui/SafeImage";
+import { RecipeSchema } from "@/components/seo/RecipeSchema";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -30,10 +32,41 @@ export async function generateMetadata({
   const { slug } = await params;
   const recipe = await prisma.recipe.findUnique({ where: { slug } });
   if (!recipe) return {};
+  const url = `${SITE_URL}/recettes/${slug}`;
+  const ogImage = recipe.imageUrl
+    ? (recipe.imageUrl.startsWith("http") ? recipe.imageUrl : `${SITE_URL}${recipe.imageUrl}`)
+    : `${SITE_URL}/og-image.png`;
+  const title = `${recipe.title} — Recette halal facile`;
+  const description = `${recipe.description} Pour ${recipe.servings} personnes en ${recipe.totalTime} min. ${recipe.meatQuantity} de viande halal — commande click & collect chez votre boucher.`;
   return {
-    title: `${recipe.title} — Recette halal`,
-    description: `${recipe.description} ${recipe.meatQuantity}. Commandez la viande halal en click & collect.`,
-    alternates: { canonical: `${SITE_URL}/recettes/${slug}` },
+    title,
+    description,
+    keywords: [
+      "recette halal",
+      `recette ${recipe.meatType}`,
+      recipe.title.toLowerCase(),
+      ...recipe.tags,
+      "viande halal",
+      "click and collect viande",
+    ],
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      title: `${title} | Klik&Go`,
+      description,
+      url,
+      siteName: "Klik&Go",
+      locale: "fr_FR",
+      images: [{ url: ogImage, width: 1200, height: 630, alt: recipe.title }],
+      publishedTime: new Date(recipe.publishedAt).toISOString(),
+      modifiedTime: new Date(recipe.updatedAt).toISOString(),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 
@@ -93,6 +126,32 @@ export default async function RecettePage({
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
+      <RecipeSchema
+        recipe={{
+          slug: recipe.slug,
+          title: recipe.title,
+          description: recipe.description,
+          imageUrl: recipe.imageUrl,
+          prepTime: recipe.prepTime,
+          cookTime: recipe.cookTime,
+          totalTime: recipe.totalTime,
+          servings: recipe.servings,
+          difficulty: recipe.difficulty,
+          ingredients,
+          steps,
+          tags: recipe.tags,
+          meatType: recipe.meatType,
+          publishedAt: recipe.publishedAt,
+          updatedAt: recipe.updatedAt,
+        }}
+      />
+      <BreadcrumbSchema
+        items={[
+          { name: "Accueil", url: SITE_URL },
+          { name: "Recettes", url: `${SITE_URL}/recettes` },
+          { name: recipe.title, url: `${SITE_URL}/recettes/${slug}` },
+        ]}
+      />
       <div className="max-w-2xl mx-auto">
         {/* Image */}
         <div className="h-60 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
