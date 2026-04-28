@@ -10,6 +10,8 @@ Les clients commandent leur viande halal en quelques clics depuis [klikandgo.app
 ## Liens utiles
 
 - **Site officiel** : https://klikandgo.app
+- **Click & Collect halal** : https://klikandgo.app/click-and-collect-halal
+- **Commander viande halal en ligne** : https://klikandgo.app/commander-viande-halal
 - **Espace presse** : https://klikandgo.app/presse
 - **Recettes halal** : https://klikandgo.app/recettes
 - **Bons plans** : https://klikandgo.app/bons-plans
