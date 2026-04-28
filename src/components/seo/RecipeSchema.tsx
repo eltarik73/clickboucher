@@ -1,5 +1,3 @@
-import Script from "next/script";
-
 type Ingredient = { name: string; quantity: string; unit: string };
 type Step = { number: number; text: string };
 
@@ -64,10 +62,8 @@ export function RecipeSchema({ recipe }: RecipeSchemaProps) {
   };
 
   return (
-    <Script
-      id={`recipe-schema-${recipe.slug}`}
+    <script
       type="application/ld+json"
-      strategy="afterInteractive"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
     />
   );
