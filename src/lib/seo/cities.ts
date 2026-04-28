@@ -53,6 +53,51 @@ export const SEO_CITIES = [
     latitude: 45.8992,
     longitude: 6.1294,
   },
+  {
+    slug: "cognin",
+    name: "Cognin",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Cognin (Savoie). Commandez votre viande halal en ligne et récupérez-la en boutique en click & collect, à 5 minutes du centre de Chambéry.",
+    latitude: 45.5599,
+    longitude: 5.8861,
+  },
+  {
+    slug: "bissy",
+    name: "Bissy",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Bissy (Chambéry). Trouvez votre boucher halal à Bissy et commandez en click & collect : viande halal fraîche, retrait rapide.",
+    latitude: 45.5742,
+    longitude: 5.8867,
+  },
+  {
+    slug: "la-motte-servolex",
+    name: "La Motte-Servolex",
+    region: "Savoie",
+    description:
+      "Boucheries halal à La Motte-Servolex. Commandez votre viande halal en ligne avec retrait en boutique près de Chambéry.",
+    latitude: 45.5933,
+    longitude: 5.8761,
+  },
+  {
+    slug: "villeurbanne",
+    name: "Villeurbanne",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Villeurbanne. Commande en ligne et retrait en boutique pour votre viande halal fraîche dans le Grand Lyon.",
+    latitude: 45.7665,
+    longitude: 4.8795,
+  },
+  {
+    slug: "venissieux",
+    name: "Vénissieux",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Vénissieux. Commandez votre viande halal en click & collect et récupérez-la en boutique dans la métropole lyonnaise.",
+    latitude: 45.6975,
+    longitude: 4.8867,
+  },
 ] as const;
 
 export type SeoCity = (typeof SEO_CITIES)[number];
