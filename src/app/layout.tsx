@@ -120,8 +120,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
         <head>
-          <link rel="preconnect" href="https://busy-mutt-20.clerk.accounts.dev" />
-          <link rel="dns-prefetch" href="https://busy-mutt-20.clerk.accounts.dev" />
           {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
             <Script
               defer

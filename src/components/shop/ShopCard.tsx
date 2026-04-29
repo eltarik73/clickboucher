@@ -66,11 +66,9 @@ export function ShopCard({
     return (
       <Link
         href={`/boutique/${shop.slug}`}
-        className={`flex gap-4 p-3 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none ${
-          isClosed ? "opacity-60" : ""
-        }`}
+        className="flex gap-4 p-3 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none"
       >
-        <div className="relative w-24 h-24 rounded-xl overflow-hidden shrink-0">
+        <div className={`relative w-24 h-24 rounded-xl overflow-hidden shrink-0 ${isClosed ? "opacity-60 grayscale" : ""}`}>
           <SafeImage
             src={imgSrc}
             alt={shop.name}
@@ -81,7 +79,7 @@ export function ShopCard({
             quality={60}
           />
           {isClosed && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
               <span className="text-white text-xs font-bold">Fermé</span>
             </div>
           )}
@@ -142,12 +140,10 @@ export function ShopCard({
   return (
     <Link
       href={`/boutique/${shop.slug}`}
-      className={`group bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none ${
-        isClosed ? "opacity-60" : ""
-      }`}
+      className="group bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none"
     >
       {/* Image */}
-      <div className="relative h-36 sm:h-48 overflow-hidden">
+      <div className={`relative h-36 sm:h-48 overflow-hidden ${isClosed ? "opacity-70 grayscale" : ""}`}>
         <SafeImage
           src={imgSrc}
           alt={shop.name}

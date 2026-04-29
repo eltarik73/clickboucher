@@ -82,7 +82,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https: http:",
-              "connect-src 'self' https://*.clerk.accounts.dev https://api.anthropic.com https://clerk.busy-mutt-20.clerk.accounts.dev wss://*.clerk.accounts.dev https://api.stripe.com https://*.sentry.io",
+              "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.klikandgo.app https://api.anthropic.com wss://*.clerk.accounts.dev wss://*.clerk.com https://api.stripe.com https://*.sentry.io",
               "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com",
               "worker-src 'self' blob:",
             ].join("; "),

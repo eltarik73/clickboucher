@@ -57,7 +57,7 @@ export function FavoriteButton({
   return (
     <button
       onClick={handleToggle}
-      className={`flex items-center justify-center transition-transform duration-300 ${
+      className={`flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full transition-transform duration-300 ${
         animating ? "scale-125" : "scale-100"
       } ${className}`}
       aria-label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
