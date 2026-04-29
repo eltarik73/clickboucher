@@ -137,7 +137,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
                     </span>
                   )}
                 </div>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
                   {openShops.length > 0
                     ? `${openShops.length} boucherie${openShops.length > 1 ? "s" : ""} prête${openShops.length > 1 ? "s" : ""} à vous servir`
                     : "Aucune boucherie ouverte pour le moment"}
@@ -183,7 +183,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
                     {closedShops.length}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 opacity-60 grayscale">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 grayscale">
                   {closedShops.map((shop, i) => (
                     <ShopCard
                       key={shop.id}

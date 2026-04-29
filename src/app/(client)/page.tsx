@@ -28,9 +28,24 @@ export const metadata: Metadata = {
   description:
     "Commandez en ligne chez votre boucherie halal de proximité. Retrait rapide en boutique à Chambéry, Grenoble, Lyon. Frais de service 0,99€ seulement.",
   openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Klik&Go",
     title: "Boucheries Halal près de chez vous — Click & Collect",
     description: "Trouvez votre boucherie halal et commandez en click & collect. Retrait rapide en boutique.",
     url: SITE_URL,
+    images: [{
+      url: "/og-image.png",
+      width: 1200,
+      height: 630,
+      alt: "Klik&Go — Click & Collect Boucherie Halal",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Boucheries Halal près de chez vous — Click & Collect",
+    description: "Trouvez votre boucherie halal et commandez en click & collect.",
+    images: ["/og-image.png"],
   },
   alternates: { canonical: SITE_URL },
 };
