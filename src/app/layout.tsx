@@ -19,14 +19,14 @@ import "@/styles/globals.css";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
 
 const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: ["500", "700", "800"],
   variable: "--font-display",
   display: "swap",
 });
@@ -117,7 +117,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider localization={frFR}>
+    <ClerkProvider localization={frFR} dynamic>
       <html lang="fr" suppressHydrationWarning>
         <head>
           {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
@@ -125,7 +125,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               defer
               data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
               src="https://plausible.io/js/script.js"
-              strategy="afterInteractive"
+              strategy="lazyOnload"
             />
           )}
         </head>
