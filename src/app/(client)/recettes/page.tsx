@@ -74,8 +74,37 @@ export default async function RecettesPage({
   const featured = recipes.find((r) => r.featured) || recipes[0];
   const others = recipes.filter((r) => r.id !== featured?.id);
 
+  // CollectionPage + ItemList schema (audit SEO QW8) — gives Google a clean
+  // map of all 49 recipes so the section ranks in the Recipes vertical.
+  const collectionSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${SITE_URL}/recettes`,
+    name: "Recettes halal — Klik&Go",
+    description:
+      "Recettes halal avec quantités de viande précises et lien direct vers les boucheries halal partenaires en click & collect.",
+    url: `${SITE_URL}/recettes`,
+    inLanguage: "fr-FR",
+    isPartOf: { "@type": "WebSite", "@id": SITE_URL, name: "Klik&Go" },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: recipes.length,
+      itemListOrder: "https://schema.org/ItemListOrderDescending",
+      itemListElement: recipes.slice(0, 30).map((r, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${SITE_URL}/recettes/${r.slug}`,
+        name: r.title,
+      })),
+    },
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back + Hero */}
         <div className="flex items-center gap-3 mb-1">
