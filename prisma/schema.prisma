@@ -413,7 +413,7 @@ model Shop {
   tier                    ShopTier  @default(BRONZE)
   commissionMarkupPercent Int       @default(80) @map("commission_markup_percent") // 0/30/50/80/100
   priceRoundingEnabled    Boolean   @default(true) @map("price_rounding_enabled")
-  monthlyGmvCents         Int       @default(0) @map("monthly_gmv_cents")
+  monthlyGmvCents         BigInt    @default(0) @map("monthly_gmv_cents")
   earlyAdopterUntil       DateTime? @map("early_adopter_until")
 
   // ── Stats ──
@@ -1078,6 +1078,9 @@ model Order {
   // ── Remboursement ──
   refundedAt        DateTime? @map("refunded_at")
   refundAmountCents Int?      @map("refund_amount_cents")
+  // Commission Klik&Go proportionnellement remboursée au boucher lors d'un refund partiel/total
+  // (audit Phase 1 — C3 : sans ce champ Klik&Go gardait toute la commission même sur refund).
+  refundedPlatformFeeCents Int @default(0) @map("refunded_platform_fee_cents")
 
   paymentMethod   PaymentMethod @default(ON_PICKUP) @map("payment_method")
   paidAt          DateTime?     @map("paid_at")

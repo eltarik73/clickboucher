@@ -27,6 +27,13 @@ export const COMMISSION_FLOOR = 0.05; // 5% — plancher absolu (jamais en desso
 export const SERVICE_FEE_CENTS = 99; // 0,99€ frais service Klik&Go par commande
 export const EARLY_ADOPTER_DISCOUNT = 0.02; // -2 pts pour les 50 premiers bouchers (3 mois)
 
+// ⚠️ TVA viande France = 5,5% (taux réduit produits alimentaires).
+// La commission Klik&Go DOIT être calculée sur le HT et JAMAIS sur le TTC.
+// Sinon Klik&Go prélève une part de la TVA collectée par le boucher → erreur fiscale grave
+// (TVA collectée ≠ TVA déclarée à l'URSSAF/DGFiP → redressement boucher).
+// Voir audit Phase 1 — issue I4. Référence : BOI-TVA-LIQ-30-10.
+export const VAT_RATE_FOOD = 0.055; // 5,5% TVA viande (taux réduit alimentaire FR)
+
 /**
  * Markups proposés au boucher dans l'UI.
  * 0% = boucher absorbe la commission (online = boutique).
@@ -39,11 +46,17 @@ export type MarkupPercent = (typeof ALLOWED_MARKUP_PERCENTS)[number];
  * Détermine le palier d'un shop d'après son CA mensuel HT (en cents).
  * Appelé par le cron mensuel (à venir) qui recalcule le tier après clôture
  * du mois précédent.
+ *
+ * Accepte `number` ou `bigint` — le champ Prisma est BigInt (audit C4)
+ * mais la comparaison reste possible via cast `Number()` pour les valeurs
+ * < Number.MAX_SAFE_INTEGER (2^53).
  */
-export function computeTier(monthlyGmvCents: number): ShopTier {
-  if (monthlyGmvCents >= TIER_THRESHOLDS.PLATINUM.min) return "PLATINUM";
-  if (monthlyGmvCents >= TIER_THRESHOLDS.GOLD.min) return "GOLD";
-  if (monthlyGmvCents >= TIER_THRESHOLDS.SILVER.min) return "SILVER";
+export function computeTier(monthlyGmvCents: number | bigint): ShopTier {
+  // Conversion safe : les seuils tier ne dépassent jamais Number.MAX_SAFE_INTEGER
+  const gmv = typeof monthlyGmvCents === "bigint" ? Number(monthlyGmvCents) : monthlyGmvCents;
+  if (gmv >= TIER_THRESHOLDS.PLATINUM.min) return "PLATINUM";
+  if (gmv >= TIER_THRESHOLDS.GOLD.min) return "GOLD";
+  if (gmv >= TIER_THRESHOLDS.SILVER.min) return "SILVER";
   return "BRONZE";
 }
 
@@ -114,29 +127,70 @@ export function computeOnlinePriceCents(
 }
 
 /**
- * Commission Klik&Go en cents pour une commande.
- * Calculée sur le subtotal du panier (sans frais service, sans remise).
+ * Convertit un montant TTC (panier client viande) en HT.
  *
- * @param orderSubtotalCents - Total panier en cents
+ * La viande = TVA 5,5% (taux réduit alimentaire FR).
+ * HT = TTC / (1 + 0,055)
+ *
+ * ⚠️ Cette conversion est OBLIGATOIRE avant de calculer la commission Klik&Go.
+ * Voir computeOrderCommission (audit Phase 1 — issue I4).
+ */
+export function ttcToHtCents(ttcCents: number): number {
+  if (ttcCents <= 0) return 0;
+  return Math.round(ttcCents / (1 + VAT_RATE_FOOD));
+}
+
+/**
+ * Commission Klik&Go en cents pour une commande.
+ *
+ * ⚠️ FIX AUDIT I4 — La commission est calculée sur le HT, JAMAIS sur le TTC.
+ * Le panier client est en TTC (TVA 5,5% incluse). Si on prend la commission
+ * sur le TTC, on prend une part de la TVA collectée par le boucher → erreur
+ * fiscale grave (TVA déclarée < TVA collectée → redressement URSSAF/DGFiP).
+ *
+ * Convention : ce paramètre `orderSubtotalTtcCents` reçoit le total TTC du panier.
+ * En interne, on ramène en HT via ttcToHtCents() avant d'appliquer le taux.
+ *
+ * @param orderSubtotalTtcCents - Total panier TTC en cents (panier client)
  * @param effectiveCommissionRate - Taux commission effectif (0.05 à 0.08)
+ * @returns Commission en cents (HT × taux)
  */
 export function computeOrderCommission(
-  orderSubtotalCents: number,
+  orderSubtotalTtcCents: number,
   effectiveCommissionRate: number,
 ): number {
-  if (orderSubtotalCents <= 0) return 0;
-  return Math.round(orderSubtotalCents * effectiveCommissionRate);
+  if (orderSubtotalTtcCents <= 0) return 0;
+  // Conversion TTC → HT obligatoire pour ne pas prélever de TVA boucher
+  const subtotalHtCents = ttcToHtCents(orderSubtotalTtcCents);
+  return Math.round(subtotalHtCents * effectiveCommissionRate);
+}
+
+/**
+ * Variante explicite : commission directement à partir d'un montant HT.
+ * À utiliser quand l'appelant a déjà fait la conversion TTC→HT (par ex.
+ * un order avec `vatAmountCents` séparé).
+ */
+export function computeOrderCommissionFromHt(
+  orderSubtotalHtCents: number,
+  effectiveCommissionRate: number,
+): number {
+  if (orderSubtotalHtCents <= 0) return 0;
+  return Math.round(orderSubtotalHtCents * effectiveCommissionRate);
 }
 
 /**
  * Calcule le breakdown complet d'une commande pour Stripe Connect.
  *
  * Flow :
- * - Le client paie : subtotal + frais service (= totalToPay)
- * - Stripe transfère au boucher : subtotal - commission %
- * - Klik&Go conserve : commission % + frais service (- frais Stripe absorbés)
+ * - Le client paie : subtotal TTC + frais service (= totalToPay)
+ * - Stripe transfère au boucher : subtotal TTC - commission (calculée sur HT)
+ * - Klik&Go conserve : commission % HT + frais service (- frais Stripe absorbés)
  *
  * platformFeeCents (= application_fee_amount Stripe) = commission + service fee
+ *
+ * ⚠️ Le paramètre `orderSubtotalCents` est le panier TTC (TVA 5,5% viande incluse).
+ * `computeOrderCommission` se charge de ramener en HT pour le calcul commission.
+ * Le boucher conserve donc 100% de sa TVA collectée (obligation fiscale).
  */
 export function computeOrderFees(input: {
   orderSubtotalCents: number;
@@ -149,9 +203,11 @@ export function computeOrderFees(input: {
   shopPayoutCents: number;
   totalToPayCents: number;
 } {
-  const subtotal = input.orderSubtotalCents;
+  const subtotal = input.orderSubtotalCents; // TTC
+  // Commission calculée sur HT (computeOrderCommission ramène en HT en interne — fix I4)
   const commission = computeOrderCommission(subtotal, input.effectiveCommissionRate);
   const platformFee = commission + SERVICE_FEE_CENTS;
+  // Le boucher reçoit le TTC moins la commission HT → conserve 100% de sa TVA
   const shopPayout = subtotal - commission;
   const totalToPay = subtotal + SERVICE_FEE_CENTS;
 

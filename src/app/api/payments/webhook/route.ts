@@ -3,14 +3,18 @@
 // Événements gérés (16 events configurés sur Stripe Dashboard) :
 // - checkout.session.completed : passe l'order en PAID, déclenche notif boucher
 // - payment_intent.succeeded : confirme le paiement (idempotent avec checkout)
-// - payment_intent.payment_failed : marque l'order FAILED + notifie le client
-// - charge.refunded : marque l'order REFUNDED + ajuste les compteurs
+// - payment_intent.payment_failed : marque l'order CANCELLED + notifie le client (audit C2)
+// - charge.refunded : marque l'order REFUNDED + ajuste les compteurs + recalcule
+//   la commission proportionnellement (audit C3)
 // - account.updated : sync Shop.stripeChargesEnabled / stripePayoutsEnabled / status
+//   directement depuis le payload webhook (pas de re-fetch Stripe — audit C5)
 // - transfer.created : persist Order.stripeTransferId pour reporting
 // - payout.paid : log pour le dashboard finances boucher
 //
 // Idempotency : chaque event.id est tracké dans la table StripeEvent.
-// Sur retry (Stripe rejoue automatiquement après 5xx), on retourne 200 immédiatement.
+// ⚠️ FIX AUDIT I1 — l'INSERT du marker StripeEvent est fait AVANT le handler
+// (pas après) pour éviter la fenêtre de double-traitement lors d'un retry Stripe
+// pendant l'exécution du handler. ON CONFLICT DO NOTHING (Prisma P2002) → 200 dup.
 //
 // Runtime : nodejs (signature Stripe = byte-stream → req.text(), pas req.json()).
 
@@ -27,7 +31,6 @@ import {
 import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { sendNotification } from "@/lib/notifications";
-import { syncShopStripeStatus } from "@/lib/services/stripe/connect";
 import { estimateStripeFeeCents } from "@/lib/services/stripe/commission";
 
 export async function POST(req: NextRequest) {
@@ -60,16 +63,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // ── Idempotency : sur retry, on a déjà traité cet event ──
-  const existing = await prisma.stripeEvent.findUnique({
-    where: { id: event.id },
-  });
-  if (existing) {
-    logger.info("[stripe/webhook] duplicate event, skipping", {
-      id: event.id,
-      type: event.type,
+  // ── FIX AUDIT I1 : INSERT du marker AVANT le handler ──
+  // Patron : INSERT ... ON CONFLICT DO NOTHING via catch P2002 Prisma.
+  // Si event déjà inséré (retry pendant l'exécution d'un handler concurrent)
+  // → 200 immédiat avec duplicate=true, on ne re-traite PAS le handler.
+  try {
+    await prisma.stripeEvent.create({
+      data: {
+        id: event.id,
+        type: event.type,
+        // Cast contrôlé : le payload Stripe est sérialisable en JSON par construction.
+        payload: event as unknown as object,
+      },
     });
-    return NextResponse.json({ received: true, duplicate: true });
+  } catch (err) {
+    // Prisma renvoie code "P2002" sur unique-constraint violation (event.id duplicate)
+    const code = (err as { code?: string }).code;
+    if (code === "P2002") {
+      logger.info("[stripe/webhook] duplicate event, skipping", {
+        id: event.id,
+        type: event.type,
+      });
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    // Autre erreur DB inattendue → on remonte (Stripe retentera)
+    throw err;
   }
 
   logger.info("[stripe/webhook] received", { type: event.type, id: event.id });
@@ -110,16 +128,6 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    // Marque l'event traité (après succès du handler)
-    await prisma.stripeEvent.create({
-      data: {
-        id: event.id,
-        type: event.type,
-        // Cast contrôlé : le payload Stripe est sérialisable en JSON par construction.
-        payload: event as unknown as object,
-      },
-    });
-
     return NextResponse.json({ received: true });
   } catch (err) {
     logger.error("[stripe/webhook] handler error", {
@@ -127,8 +135,16 @@ export async function POST(req: NextRequest) {
       id: event.id,
       err: (err as Error).message,
     });
-    // On retourne 500 pour que Stripe rejoue. La table StripeEvent fait
-    // que le rejeu sera idempotent une fois le bug fixé.
+    // Le marker StripeEvent a déjà été inséré → on le supprime pour permettre
+    // un retry Stripe propre (sinon le retry serait skippé comme duplicate).
+    await prisma.stripeEvent
+      .delete({ where: { id: event.id } })
+      .catch((delErr) =>
+        logger.error("[stripe/webhook] failed to rollback StripeEvent marker", {
+          id: event.id,
+          err: (delErr as Error).message,
+        }),
+      );
     return NextResponse.json({ error: "Handler error" }, { status: 500 });
   }
 }
@@ -220,87 +236,254 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
   });
 }
 
+/**
+ * ⚠️ FIX AUDIT C2 — `payment_intent.payment_failed` marque maintenant l'order
+ * en CANCELLED (avec deny_reason = message Stripe) au lieu de seulement logger.
+ *
+ * Avant : la commande restait à PENDING indéfiniment → le boucher la voyait
+ * dans son Mode Cuisine et pouvait la préparer pour rien.
+ *
+ * Safety : on n'écrase pas un order déjà payé (paidAt !== null) — protection
+ * contre les events arrivés dans le désordre (cas rare mais possible).
+ */
 async function handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
   const orderId = pi.metadata?.orderId;
   if (!orderId) return;
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    select: { id: true, status: true, userId: true, orderNumber: true, shopId: true },
+    select: { id: true, status: true, paidAt: true, userId: true, orderNumber: true, shopId: true },
   });
-  if (!order) return;
+  if (!order) {
+    logger.warn("[stripe/webhook] order not found for payment_failed", { orderId });
+    return;
+  }
 
-  // On ne marque pas CANCELLED (le client peut retenter). On log + notifie.
-  logger.warn("[stripe/webhook] payment failed", {
+  // Safety : ne pas écraser un order déjà payé
+  if (order.paidAt) {
+    logger.warn("[stripe/webhook] payment_failed received but order already paid", {
+      orderId,
+      piId: pi.id,
+    });
+    return;
+  }
+
+  // Safety : si l'order est déjà annulée, on ne re-écrit pas
+  if (order.status === "CANCELLED" || order.status === "AUTO_CANCELLED" || order.status === "DENIED") {
+    logger.info("[stripe/webhook] payment_failed: order already terminal", {
+      orderId,
+      status: order.status,
+    });
+    return;
+  }
+
+  const failureMsg =
+    pi.last_payment_error?.message ||
+    pi.last_payment_error?.code ||
+    "Paiement refusé";
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      status: "CANCELLED",
+      autoCancelledAt: new Date(),
+      denyReason: `Stripe — ${failureMsg}`.slice(0, 500),
+    },
+  });
+
+  logger.warn("[stripe/webhook] order cancelled (payment failed)", {
     orderId,
+    piId: pi.id,
     failureCode: pi.last_payment_error?.code,
     failureMessage: pi.last_payment_error?.message,
   });
-
-  // Pas de notif client native ici (Stripe Checkout l'a déjà notifié sur leur page)
 }
 
+/**
+ * ⚠️ FIX AUDIT C3 — `charge.refunded` calcule maintenant la part de commission
+ * Klik&Go remboursée au boucher proportionnellement au montant remboursé.
+ *
+ * Avant : Klik&Go gardait 100% de la commission même sur un refund total.
+ * Conséquence : soit le boucher perdait l'argent (a livré la viande), soit
+ * Klik&Go violait son obligation de rendre 100% au consommateur.
+ *
+ * Désormais :
+ * - `refundedAmountCents` (déjà existant) = montant remboursé
+ * - `refundedPlatformFeeCents` (nouveau, fix C3) = part commission rendue
+ * - `shopPayoutCents` mis à jour pour refléter le payout NET (après refund)
+ *
+ * Note : ce handler RÉAGIT à un refund déjà effectué. Pour QUE la commission
+ * soit physiquement reversée au boucher côté Stripe, il faut que la route qui
+ * crée le refund passe `refund_application_fee: true` à `stripe.refunds.create()`.
+ * Voir TODO en commentaire dans `lib/services/stripe/checkout-session.ts` (ou
+ * dans une nouvelle route `/api/admin/orders/[id]/refund` à venir).
+ */
 async function handleChargeRefunded(charge: Stripe.Charge) {
   const orderId = charge.metadata?.orderId;
-  if (!orderId) return;
+  if (!orderId) {
+    // Fallback : retrouver l'order via le PaymentIntent
+    const piId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+    if (!piId) {
+      logger.warn("[stripe/webhook] charge.refunded sans orderId ni payment_intent", {
+        chargeId: charge.id,
+      });
+      return;
+    }
+    const fallbackOrder = await prisma.order.findFirst({
+      where: { stripePaymentIntentId: piId },
+      select: { id: true },
+    });
+    if (!fallbackOrder) {
+      logger.warn("[stripe/webhook] charge.refunded: order not found via PI fallback", {
+        chargeId: charge.id,
+        piId,
+      });
+      return;
+    }
+    return processRefund(fallbackOrder.id, charge);
+  }
+  return processRefund(orderId, charge);
+}
 
-  const refunded = charge.amount_refunded;
-  const isFullRefund = charge.amount_refunded === charge.amount;
+async function processRefund(orderId: string, charge: Stripe.Charge) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      status: true,
+      platformFeeCents: true,
+      shopPayoutCents: true,
+      totalCents: true,
+    },
+  });
+  if (!order) {
+    logger.warn("[stripe/webhook] charge.refunded: order not found", { orderId, chargeId: charge.id });
+    return;
+  }
+
+  const refundedAmountCents = charge.amount_refunded;
+  const isFullRefund = refundedAmountCents >= charge.amount;
+
+  // Refund ratio basé sur le total Stripe (charge.amount inclut subtotal + service fee)
+  // Math.min pour clamp au cas où Stripe rembourse plus que charge.amount (cas pathologique)
+  const refundRatio = charge.amount > 0 ? Math.min(1, refundedAmountCents / charge.amount) : 0;
+
+  // Part proportionnelle de la commission Klik&Go à rembourser au boucher
+  const platformFeeRefundCents = Math.round(order.platformFeeCents * refundRatio);
+
+  // shopPayout NET = shopPayout initial - (montant remboursé NET de la part Klik&Go)
+  // = shopPayout - (refundedAmount - platformFeeRefund)
+  // En pratique : si full refund → shopPayoutCents = 0, refundedPlatformFeeCents = platformFeeCents
+  const shopPayoutAdjustedCents = Math.max(
+    0,
+    order.shopPayoutCents - (refundedAmountCents - platformFeeRefundCents),
+  );
 
   await prisma.order.update({
     where: { id: orderId },
     data: {
       refundedAt: new Date(),
-      refundAmountCents: refunded,
+      refundAmountCents: refundedAmountCents,
+      refundedPlatformFeeCents: platformFeeRefundCents,
+      shopPayoutCents: shopPayoutAdjustedCents,
+      // Statut : on ne CANCELLED que si full refund. Sinon on laisse le statut courant
+      // (le boucher peut encore livrer le reste).
       status: isFullRefund ? "CANCELLED" : undefined,
     },
   });
 
   logger.info("[stripe/webhook] charge refunded", {
     orderId,
-    refundedCents: refunded,
+    refundedCents: refundedAmountCents,
+    platformFeeRefundCents,
+    shopPayoutAdjustedCents,
     full: isFullRefund,
+    chargeId: charge.id,
   });
 }
 
+/**
+ * ⚠️ FIX AUDIT C5 — `account.updated` lit DIRECTEMENT le payload webhook
+ * (qui contient déjà charges_enabled, payouts_enabled, requirements) au lieu
+ * de re-appeler `stripe.accounts.retrieve()`.
+ *
+ * Avant : un round-trip Stripe inutile + risque de régression d'état si
+ * `accounts.retrieve` répond avec un état plus VIEUX que celui du payload
+ * (cohérence éventuelle Stripe, rare mais possible).
+ *
+ * Maintenant : le payload webhook EST la source de vérité à l'instant t.
+ * Pour une vérif manuelle (route /api/boucher/stripe/refresh-status) on
+ * garde l'appel API direct via syncShopStripeStatus() — non concerné par ce fix.
+ */
 async function handleAccountUpdated(account: Stripe.Account) {
+  const chargesEnabled = account.charges_enabled ?? false;
+  const payoutsEnabled = account.payouts_enabled ?? false;
+  const pastDue = account.requirements?.past_due ?? [];
+  const disabledReason = account.requirements?.disabled_reason;
+
+  // Status logic identique à syncShopStripeStatus mais sans round-trip Stripe
+  let status: "active" | "pending" | "restricted";
+  if (chargesEnabled && payoutsEnabled) {
+    status = "active";
+  } else if (pastDue.length > 0 || disabledReason) {
+    status = "restricted";
+  } else {
+    status = "pending";
+  }
+
   // Le shopId est dans metadata (set à la création) — fallback sur stripeAccountId si absent
   const shopId = account.metadata?.shopId;
 
-  const status = await syncShopStripeStatus(account.id);
-
-  const where = shopId
-    ? { id: shopId }
-    : { stripeAccountId: account.id };
-
-  // findFirst plutôt que update direct pour ne pas crasher si le shop n'existe plus
-  const shop = await prisma.shop.findFirst({
-    where,
-    select: { id: true },
-  });
-  if (!shop) {
-    logger.warn("[stripe/webhook] shop not found for account.updated", {
-      accountId: account.id,
-      metadataShopId: shopId,
+  if (shopId) {
+    // Fix audit I7 : si l'event arrive AVANT le persist de stripeAccountId
+    // (latence onboard route), on peut quand même updater via shop.id.
+    const result = await prisma.shop.updateMany({
+      where: { id: shopId },
+      data: {
+        stripeAccountId: account.id,
+        stripeAccountStatus: status,
+        stripeChargesEnabled: chargesEnabled,
+        stripePayoutsEnabled: payoutsEnabled,
+      },
     });
+
+    if (result.count === 0) {
+      logger.warn("[stripe/webhook] shop not found via metadata.shopId", {
+        accountId: account.id,
+        shopId,
+      });
+    } else {
+      logger.info("[stripe/webhook] shop stripe status synced (via metadata)", {
+        shopId,
+        accountId: account.id,
+        status,
+        chargesEnabled,
+      });
+    }
     return;
   }
 
-  await prisma.shop.update({
-    where: { id: shop.id },
+  // Fallback : pas de metadata.shopId → on cherche par stripeAccountId
+  const result = await prisma.shop.updateMany({
+    where: { stripeAccountId: account.id },
     data: {
-      stripeAccountId: account.id,
-      stripeAccountStatus: status.status,
-      stripeChargesEnabled: status.chargesEnabled,
-      stripePayoutsEnabled: status.payoutsEnabled,
+      stripeAccountStatus: status,
+      stripeChargesEnabled: chargesEnabled,
+      stripePayoutsEnabled: payoutsEnabled,
     },
   });
 
-  logger.info("[stripe/webhook] shop stripe status synced", {
-    shopId: shop.id,
-    status: status.status,
-    chargesEnabled: status.chargesEnabled,
-  });
+  if (result.count === 0) {
+    logger.warn("[stripe/webhook] shop not found for account.updated", {
+      accountId: account.id,
+    });
+  } else {
+    logger.info("[stripe/webhook] shop stripe status synced", {
+      accountId: account.id,
+      status,
+      chargesEnabled,
+    });
+  }
 }
 
 async function handleTransferCreated(transfer: Stripe.Transfer) {
