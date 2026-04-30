@@ -81,8 +81,8 @@ export async function GET(req: NextRequest) {
       process.env.NEXT_PUBLIC_SITE_URL ||
       process.env.NEXT_PUBLIC_APP_URL ||
       new URL(req.url).origin;
-    const returnUrl = `${siteUrl}/boucher/dashboard/parametres/paiement?stripe=return`;
-    const refreshUrl = `${siteUrl}/boucher/dashboard/parametres/paiement?stripe=refresh`;
+    const returnUrl = `${siteUrl}/boucher/parametres/paiement?stripe=return`;
+    const refreshUrl = `${siteUrl}/boucher/parametres/paiement?stripe=refresh`;
 
     const link = await createOnboardingLink({
       accountId,

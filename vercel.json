@@ -18,6 +18,7 @@
     { "path": "/api/cron/calendar-alerts", "schedule": "0 9 * * *" },
     { "path": "/api/cron/trial-expiry", "schedule": "0 2 * * *" },
     { "path": "/api/cron/performance-refresh", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/weekly-report", "schedule": "0 9 * * 1" }
+    { "path": "/api/cron/weekly-report", "schedule": "0 9 * * 1" },
+    { "path": "/api/cron/recalc-shop-tiers", "schedule": "0 3 1 * *" }
   ]
 }

@@ -193,6 +193,7 @@ export async function POST(req: NextRequest) {
         description: data.description,
         imageUrl: data.imageUrl,
         priceCents: data.priceCents,
+        boutiquePriceCents: data.boutiquePriceCents ?? null,
         proPriceCents: data.proPriceCents,
         unit: data.unit,
         inStock: data.inStock ?? true,

@@ -82,6 +82,8 @@ export const updateShopSchema = z.object({
   acceptOnline: z.boolean().optional(),
   acceptOnPickup: z.boolean().optional(),
   priceAdjustmentThreshold: z.number().int().min(0).max(50).optional(),
+  commissionMarkupPercent: z.number().int().refine((v) => [0, 30, 50, 80, 100].includes(v), "Markup invalide").optional(),
+  priceRoundingEnabled: z.boolean().optional(),
 });
 
 export const updateShopStatusSchema = z.object({
@@ -119,6 +121,7 @@ export const createProductSchema = z.object({
   description: z.string().max(1000).optional(),
   imageUrl: z.string().url().optional(),
   priceCents: z.number().int().min(0),
+  boutiquePriceCents: z.number().int().min(0).nullable().optional(),
   proPriceCents: z.number().int().min(0).nullable().optional(),
   unit: z.enum(["KG", "PIECE", "BARQUETTE", "TRANCHE"]),
   inStock: z.boolean().optional(),
@@ -173,6 +176,7 @@ export const updateProductSchema = z.object({
   description: z.string().max(1000).nullable().optional(),
   imageUrl: z.string().url().nullable().optional(),
   priceCents: z.number().int().min(0).optional(),
+  boutiquePriceCents: z.number().int().min(0).nullable().optional(),
   proPriceCents: z.number().int().min(0).nullable().optional(),
   unit: z.enum(["KG", "PIECE", "BARQUETTE", "TRANCHE"]).optional(),
   inStock: z.boolean().optional(),

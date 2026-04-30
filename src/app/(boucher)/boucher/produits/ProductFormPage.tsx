@@ -30,6 +30,11 @@ import { useNotify } from "@/components/ui/NotificationToast";
 import ImageSearchModal from "@/components/boucher/ImageSearchModal";
 import ImageGenerateModal from "@/components/boucher/ImageGenerateModal";
 import ImageRetouchModal from "@/components/boucher/ImageRetouchModal";
+import {
+  computeOnlinePriceCents,
+  getEffectiveCommissionRate,
+  type ShopTier,
+} from "@/lib/services/stripe/commission";
 
 // ─────────────────────────────────────────────
 // Types
@@ -60,6 +65,7 @@ export type EditProduct = {
   description: string | null;
   imageUrl: string | null;
   priceCents: number;
+  boutiquePriceCents?: number | null;
   suggestedPrice?: number | null;
   proPriceCents: number | null;
   unit: string;
@@ -239,6 +245,74 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
     product?.proPriceCents ? (product.proPriceCents / 100).toFixed(2) : ""
   );
 
+  // Prix boutique + markup commission (Stripe Connect)
+  const initBoutiquePrice = product?.boutiquePriceCents ?? null;
+  const [boutiquePrice, setBoutiquePrice] = useState(
+    initBoutiquePrice ? (initBoutiquePrice / 100).toFixed(2) : ""
+  );
+  const [markupPercent, setMarkupPercent] = useState<number>(80);
+
+  // Shop tier (chargé depuis /api/shops/my-shop pour le calcul live)
+  const [shopTier, setShopTier] = useState<ShopTier>("BRONZE");
+  const [shopEarlyAdopterUntil, setShopEarlyAdopterUntil] = useState<Date | null>(null);
+  const [shopRoundingEnabled, setShopRoundingEnabled] = useState<boolean>(true);
+  const [shopIdResolved, setShopIdResolved] = useState<string>(shopId);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/shops/my-shop")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!active || !json?.data) return;
+        setShopTier((json.data.tier as ShopTier) ?? "BRONZE");
+        setShopEarlyAdopterUntil(
+          json.data.earlyAdopterUntil ? new Date(json.data.earlyAdopterUntil) : null
+        );
+        setShopRoundingEnabled(json.data.priceRoundingEnabled ?? true);
+        setShopIdResolved(json.data.id ?? shopId);
+        if (typeof json.data.commissionMarkupPercent === "number") {
+          setMarkupPercent(json.data.commissionMarkupPercent);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [shopId]);
+
+  // Persist markup change to shop (debounced via blur — handled inline)
+  async function persistMarkup(newMarkup: number) {
+    setMarkupPercent(newMarkup);
+    if (!shopIdResolved) return;
+    try {
+      await fetch(`/api/shops/${shopIdResolved}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commissionMarkupPercent: newMarkup }),
+      });
+    } catch {
+      // silent — la valeur reste en local pour le calcul ; on retentera au save
+    }
+  }
+
+  // Live computed online price
+  const boutiqueParsed = Math.round(parseFloat(boutiquePrice || "0") * 100);
+  const effectiveRate = getEffectiveCommissionRate({
+    tier: shopTier,
+    earlyAdopterUntil: shopEarlyAdopterUntil,
+  });
+  const computedOnlinePrice =
+    boutiqueParsed > 0
+      ? computeOnlinePriceCents(boutiqueParsed, effectiveRate, markupPercent, shopRoundingEnabled)
+      : 0;
+
+  // Sync priceCents (online) when boutique/markup changes — only if user hasn't manually overridden
+  useEffect(() => {
+    if (boutiqueParsed > 0) {
+      setPriceCents((computedOnlinePrice / 100).toFixed(2));
+    }
+  }, [boutiqueParsed, markupPercent, effectiveRate, shopRoundingEnabled, computedOnlinePrice]);
+
   // Poids
   const [minWeightG, setMinWeightG] = useState(product?.minWeightG || 200);
   const [weightStepG, setWeightStepG] = useState(product?.weightStepG || 50);
@@ -373,7 +447,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
     setDescription(ref.description || "");
     if (ref.unit) setUnit(ref.unit as "KG" | "PIECE" | "BARQUETTE" | "TRANCHE");
     if (ref.origin) setOrigin(ref.origin);
-    if (ref.suggestedPrice) setPriceCents((ref.suggestedPrice / 100).toFixed(2));
+    if (ref.suggestedPrice) setBoutiquePrice((ref.suggestedPrice / 100).toFixed(2));
     if (ref.halalOrg) setHalalOrg(ref.halalOrg);
     if (ref.freshness) setFreshness(ref.freshness);
     if (ref.race) setRace(ref.race);
@@ -471,8 +545,16 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
 
   // ── Submit ──
   async function handleSubmit() {
-    if (!name.trim() || categoryIds.length === 0 || parseFloat(priceCents) <= 0) {
-      setApiError("Veuillez remplir le nom, au moins une categorie et le prix");
+    if (!name.trim() || categoryIds.length === 0) {
+      setApiError("Veuillez remplir le nom et au moins une categorie");
+      return;
+    }
+    if (parseFloat(boutiquePrice || "0") <= 0) {
+      setApiError("Veuillez remplir le prix boutique TTC");
+      return;
+    }
+    if (parseFloat(priceCents || "0") <= 0) {
+      setApiError("Le prix online n'a pas pu être calculé — réessayez");
       return;
     }
 
@@ -481,6 +563,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
 
     const priceVal = Math.round(parseFloat(priceCents) * 100);
     const proVal = proPriceCents ? Math.round(parseFloat(proPriceCents) * 100) : null;
+    const boutiqueVal = boutiquePrice ? Math.round(parseFloat(boutiquePrice) * 100) : null;
 
     const body: Record<string, unknown> = {
       name: name.trim(),
@@ -502,6 +585,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
       tags: [],
       isActive,
       priceCents: priceVal,
+      boutiquePriceCents: boutiqueVal,
       proPriceCents: proVal,
       shopId,
       unitLabel: unitLabel.trim() || null,
@@ -753,17 +837,22 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
             </div>
           </div>
 
-          {/* Prix + Unite */}
+          {/* Prix boutique + Unite */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-stone-400 mb-1.5 block">Prix *</label>
+              <label className="text-xs font-semibold text-stone-400 mb-1.5 block flex items-center gap-1">
+                Prix boutique TTC *
+                <span className="text-stone-600 font-normal" title="Le prix que tu pratiques en magasin physique">
+                  (?)
+                </span>
+              </label>
               <div className="relative">
                 <input
                   type="number"
                   step="0.01"
                   min="0"
-                  value={priceCents}
-                  onChange={(e) => setPriceCents(e.target.value)}
+                  value={boutiquePrice}
+                  onChange={(e) => setBoutiquePrice(e.target.value)}
                   placeholder="0,00"
                   className="w-full bg-stone-800 border border-stone-700 rounded-xl px-3.5 py-2.5 text-sm text-white pr-8 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600"
                 />
@@ -783,6 +872,72 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                 <option value="TRANCHE">A la tranche</option>
               </select>
             </div>
+          </div>
+
+          {/* Markup commission */}
+          <div className="bg-stone-800/50 rounded-xl p-4 space-y-3 border border-red-600/20">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs font-semibold text-white">R\u00E9percussion de la commission</p>
+                <p className="text-[10px] text-stone-500 mt-0.5">
+                  Commission Klik&Go appliqu\u00E9e : <span className="font-bold text-red-400">{(effectiveRate * 100).toFixed(0)}%</span> (palier {shopTier})
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-5 gap-1.5">
+              {[
+                { v: 0, label: "0%", desc: "\u00C0 ma charge" },
+                { v: 30, label: "30%", desc: "Partage" },
+                { v: 50, label: "50%", desc: "50/50" },
+                { v: 80, label: "80%", desc: "Recommand\u00E9", recommended: true },
+                { v: 100, label: "100%", desc: "Client paie" },
+              ].map((opt) => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => persistMarkup(opt.v)}
+                  className={`relative flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl border transition-all ${
+                    markupPercent === opt.v
+                      ? "bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/30"
+                      : opt.recommended
+                      ? "bg-stone-800 border-red-600/40 text-stone-300 hover:border-red-600"
+                      : "bg-stone-800 border-stone-700 text-stone-400 hover:border-stone-600"
+                  }`}
+                >
+                  {opt.recommended && markupPercent !== opt.v && (
+                    <span className="absolute -top-1.5 -right-1.5 px-1 py-0.5 bg-red-600 text-white text-[8px] font-bold rounded-full">\u2605</span>
+                  )}
+                  <span className="text-xs font-bold">{opt.label}</span>
+                  <span className="text-[9px] leading-tight text-center">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+
+            {boutiqueParsed > 0 && (
+              <div className="bg-stone-900 rounded-xl p-3 border border-stone-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide text-stone-500">Prix online affich\u00E9 au client</p>
+                    <p className="text-lg font-bold text-green-400">
+                      {fmtPrice(computedOnlinePrice)}
+                    </p>
+                  </div>
+                  {computedOnlinePrice > boutiqueParsed && (
+                    <div className="text-right">
+                      <p className="text-[10px] text-stone-500">Markup appliqu\u00E9</p>
+                      <p className="text-xs font-bold text-amber-400">
+                        +{fmtPrice(computedOnlinePrice - boutiqueParsed)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed">
+                  Le client voit uniquement le prix online. Le markup est invisible pour lui.
+                  {shopRoundingEnabled && computedOnlinePrice > 0 && " Arrondi \u00E0 la dizaine de centimes inf\u00E9rieure."}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Prix PRO */}
@@ -1564,7 +1719,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || categoryIds.length === 0 || parseFloat(priceCents || "0") <= 0}
+            disabled={submitting || !name.trim() || categoryIds.length === 0 || parseFloat(boutiquePrice || "0") <= 0}
             className="h-11 px-6 gap-1.5 bg-red-600 hover:bg-red-700 text-white disabled:opacity-40"
           >
             {submitting ? (
