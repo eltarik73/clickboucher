@@ -173,9 +173,13 @@ export default function PanierPage() {
   // Shop payment config
   const [shopAcceptOnline, setShopAcceptOnline] = useState(false);
   const [shopAcceptOnPickup, setShopAcceptOnPickup] = useState(true);
+  const [shopStripeReady, setShopStripeReady] = useState(false);
 
   const role = user?.publicMetadata?.role as string | undefined;
   const isPro = role === "client_pro";
+
+  // Online payment available only when shop opted-in AND Stripe Connect onboarding is complete
+  const onlinePaymentAvailable = shopAcceptOnline && shopStripeReady;
 
   // Fetch shop payment config + validate cart products
   useEffect(() => {
@@ -184,9 +188,14 @@ export default function PanierPage() {
       .then((r) => r.json())
       .then((json) => {
         const shop = json.data || json;
-        setShopAcceptOnline(shop.acceptOnline ?? false);
-        setShopAcceptOnPickup(shop.acceptOnPickup ?? true);
-        if (!shop.acceptOnPickup && shop.acceptOnline) {
+        const acceptOnline = shop.acceptOnline ?? false;
+        const acceptOnPickup = shop.acceptOnPickup ?? true;
+        const stripeReady = shop.stripeChargesEnabled ?? false;
+        setShopAcceptOnline(acceptOnline);
+        setShopAcceptOnPickup(acceptOnPickup);
+        setShopStripeReady(stripeReady);
+        // Default to ONLINE only if on-pickup is disabled and online is fully ready
+        if (!acceptOnPickup && acceptOnline && stripeReady) {
           setPaymentMethod("ONLINE");
         }
       })
@@ -353,8 +362,8 @@ export default function PanierPage() {
       })),
       requestedTime,
       customerNote: customerNote.trim() || undefined,
-      // Stripe online payment not implemented yet — always force on-pickup payment
-      paymentMethod: "ON_PICKUP",
+      // Use the user-selected payment method (Stripe Connect marketplace flow)
+      paymentMethod: onlinePaymentAvailable ? paymentMethod : "ON_PICKUP",
       ...(appliedPromo?.offerId && {
         offerId: appliedPromo.offerId,
         discountCents: appliedPromo.discountCents,
@@ -936,18 +945,29 @@ export default function PanierPage() {
                   </label>
                 )}
 
-                {shopAcceptOnline && (
-                  <div className="flex items-start gap-3 p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">
-                    <CreditCard size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                {onlinePaymentAvailable && (
+                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    paymentMethod === "ONLINE"
+                      ? "border-[#DC2626] bg-[#DC2626]/5"
+                      : "border-[#ece8e3] dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "ONLINE"}
+                      onChange={() => setPaymentMethod("ONLINE")}
+                      className="w-4 h-4 accent-[#DC2626]"
+                    />
+                    <CreditCard size={18} className="text-[#DC2626] shrink-0" />
                     <div>
-                      <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                        Paiement en ligne temporairement indisponible
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        Payer en ligne
                       </span>
-                      <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
-                        Réglez sur place au retrait (espèces ou CB).
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        Paiement sécurisé par carte (Stripe)
                       </p>
                     </div>
-                  </div>
+                  </label>
                 )}
               </div>
 
@@ -998,13 +1018,39 @@ export default function PanierPage() {
             setCountdownOrderData(null);
             toast("Commande annulee", { icon: "ℹ️" });
           }}
-          onSuccess={(order) => {
-            clear();
-            toast.success(`Commande ${order.orderNumber} confirmee !`);
+          onSuccess={async (order) => {
             const orderRecord = order as unknown as { id: string; orderNumber: string; guestToken?: string };
             const suiviUrl = orderRecord.guestToken
               ? `/suivi/${orderRecord.id}?guestToken=${encodeURIComponent(orderRecord.guestToken)}`
               : `/suivi/${orderRecord.id}`;
+
+            // Stripe Checkout flow — redirect to hosted payment page
+            if (onlinePaymentAvailable && paymentMethod === "ONLINE") {
+              try {
+                const res = await fetch(`/api/orders/${orderRecord.id}/checkout-session`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    successUrl: `${window.location.origin}${suiviUrl}`,
+                    cancelUrl: `${window.location.origin}/panier`,
+                    ...(orderRecord.guestToken && { guestToken: orderRecord.guestToken }),
+                  }),
+                });
+                const data = await res.json();
+                const url = data?.data?.url || data?.url;
+                if (res.ok && url) {
+                  clear();
+                  window.location.href = url;
+                  return;
+                }
+                toast.error("Impossible d'ouvrir le paiement, redirection vers le suivi");
+              } catch {
+                toast.error("Erreur paiement en ligne, redirection vers le suivi");
+              }
+            }
+
+            clear();
+            toast.success(`Commande ${orderRecord.orderNumber} confirmee !`);
             router.push(suiviUrl);
           }}
           onError={(missingProductIds) => {
