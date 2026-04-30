@@ -173,6 +173,39 @@ export default async function CityPage({
       </section>
 
       <div className="max-w-4xl mx-auto px-5 py-10">
+        {/* ── Local context paragraph (audit SEO W1 — boost word count + local relevance) ── */}
+        <section className="mb-14">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+            Boucheries halal à {city.name} : tout ce qu&apos;il faut savoir
+          </h2>
+          <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+            {city.localContext}
+          </p>
+          {city.specialty && (
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+              <strong className="text-gray-800 dark:text-gray-200">Spécialités appréciées à {city.name} :</strong>{" "}
+              {city.specialty}.
+            </p>
+          )}
+          {city.districts.length > 0 && (
+            <div className="mt-5">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                Quartiers et communes desservis :
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {city.districts.map((d) => (
+                  <span
+                    key={d}
+                    className="inline-flex items-center px-3 py-1 rounded-full bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] text-xs text-gray-700 dark:text-gray-300"
+                  >
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* ── Comment ça marche ── */}
         <section className="mb-14">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 font-display">
