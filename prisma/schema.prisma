@@ -967,6 +967,12 @@ model Review {
   shop    Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
   orderId String? @map("order_id")
 
+  // Boucher reply — visible publicly under the review.
+  // Lets the boucher defend against unfair 1-star reviews and acknowledge praise.
+  reply       String?   @db.Text
+  repliedAt   DateTime? @map("replied_at")
+  repliedById String?   @map("replied_by_id")
+
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([userId, shopId, orderId])

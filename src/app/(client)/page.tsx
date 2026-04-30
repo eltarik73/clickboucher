@@ -354,7 +354,7 @@ export default async function HomePage() {
             </h2>
             <Link
               href="/recettes"
-              className="text-xs font-semibold text-[#DC2626] hover:text-[#b91c1c] transition"
+              className="text-xs font-bold text-[#991B1B] hover:text-[#7F1D1D] underline-offset-2 hover:underline transition"
             >
               Tout voir →
             </Link>

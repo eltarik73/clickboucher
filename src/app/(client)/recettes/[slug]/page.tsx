@@ -377,7 +377,7 @@ export default async function RecettePage({
           <div className="mt-6 pb-8">
             <Link
               href="/recettes"
-              className="text-sm font-semibold text-[#DC2626] hover:text-[#b91c1c] transition"
+              className="text-sm font-bold text-[#991B1B] hover:text-[#7F1D1D] underline-offset-2 hover:underline transition"
             >
               ← Toutes les recettes
             </Link>

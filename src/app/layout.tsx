@@ -120,6 +120,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider localization={frFR} dynamic>
       <html lang="fr" suppressHydrationWarning>
         <head>
+          {/* DNS preconnect for critical third parties — saves 100-300ms on LCP (audit P-06). */}
+          <link rel="preconnect" href="https://clerk.klikandgo.app" crossOrigin="" />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+          <link rel="dns-prefetch" href="https://api.stripe.com" />
+          <link rel="dns-prefetch" href="https://js.stripe.com" />
           {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
             <Script
               defer

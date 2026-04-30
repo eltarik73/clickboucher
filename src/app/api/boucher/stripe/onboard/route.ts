@@ -16,7 +16,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 import {
-  createConnectAccount,
+  getOrCreateConnectAccount,
   createOnboardingLink,
 } from "@/lib/services/stripe/connect";
 
@@ -52,24 +52,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Si pas encore de compte Stripe → on en crée un
-    let accountId = shop.stripeAccountId;
-    if (!accountId) {
-      const account = await createConnectAccount({
-        email: shop.email,
-        businessName: shop.name,
-        shopId: shop.id,
-      });
-      accountId = account.id;
+    // Get-or-create idempotent — protège contre la double-création (audit C1 + F-08).
+    // Idempotency Stripe + re-check optimiste DB : double-clic / retry réseau ne
+    // crée jamais deux comptes Express orphelins.
+    const { accountId, created } = await getOrCreateConnectAccount({
+      shopId: shop.id,
+      email: shop.email,
+      businessName: shop.name,
+    });
 
-      await prisma.shop.update({
-        where: { id: shop.id },
-        data: {
-          stripeAccountId: accountId,
-          stripeAccountStatus: "pending",
-        },
-      });
-
+    if (created) {
       logger.info("[boucher/stripe/onboard] account created", {
         shopId: shop.id,
         accountId,

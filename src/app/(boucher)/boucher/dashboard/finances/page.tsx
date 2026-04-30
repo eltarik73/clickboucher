@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,15 +20,20 @@ import {
   CreditCard,
   ArrowRight,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+
+// Lazy-load recharts (~140KB) to keep finances page fast (audit P-05).
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(
+  () => import("recharts").then((m) => m.ResponsiveContainer),
+  { ssr: false },
+);
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), {
+  ssr: false,
+});
 
 // ─────────────────────────────────────────────
 // Types
@@ -372,7 +378,7 @@ export default function BoucherFinancesPage() {
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip
                       contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid #e5e7eb" }}
-                      formatter={(v: number | string | undefined) => `${v ?? 0} €`}
+                      formatter={((v: unknown) => `${v ?? 0} €`) as never}
                     />
                     <Bar dataKey="CA (€)" fill="#DC2626" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="Payout (€)" fill="#10b981" radius={[4, 4, 0, 0]} />

@@ -174,15 +174,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.filter((city) =>
-    populatedCitySlugs.has(city.slug)
-  ).map((city) => ({
+  // Include ALL SEO city pages — they're SSG'd from `SEO_CITIES` config and
+  // already render shops geographically near each city, so they're never empty
+  // (audit SEO QW1). Pages with at least one local shop get higher priority
+  // because they show direct results; pages without local shops still serve
+  // SEO intent (FAQ + nearby shops + breadcrumb).
+  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.map((city) => ({
     url: `${BASE_URL}/boucherie-halal/${city.slug}`,
-    // City pages inherit the freshness of the most recently updated shop
-    // (content is derived from the shop list for that city).
     lastModified: latestShop?.updatedAt ?? STATIC_CONTENT_UPDATED,
     changeFrequency: "weekly" as const,
-    priority: 0.8,
+    priority: populatedCitySlugs.has(city.slug) ? 0.8 : 0.6,
   }));
 
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({

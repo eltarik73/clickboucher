@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
@@ -16,18 +17,23 @@ import {
   Trophy,
   Filter,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  LineChart,
-  Line,
-  Legend,
-} from "recharts";
+
+// Lazy-load recharts (~140KB) to keep webmaster finances page fast (audit P-05).
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
+const ResponsiveContainer = dynamic(
+  () => import("recharts").then((m) => m.ResponsiveContainer),
+  { ssr: false },
+);
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), {
+  ssr: false,
+});
+const LineChart = dynamic(() => import("recharts").then((m) => m.LineChart), { ssr: false });
+const Line = dynamic(() => import("recharts").then((m) => m.Line), { ssr: false });
+const Legend = dynamic(() => import("recharts").then((m) => m.Legend), { ssr: false });
 
 // ─────────────────────────────────────────────
 // Types
@@ -246,7 +252,7 @@ export default function WebmasterFinancesPage() {
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{ borderRadius: 12, fontSize: 12, border: "1px solid #e5e7eb" }}
-                    formatter={(v: number | string | undefined) => `${typeof v === "number" ? v.toLocaleString("fr-FR") : v ?? 0} €`}
+                    formatter={((v: unknown) => `${typeof v === "number" ? v.toLocaleString("fr-FR") : v ?? 0} €`) as never}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Line type="monotone" dataKey="CA (€)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />

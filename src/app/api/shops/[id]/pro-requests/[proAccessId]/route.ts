@@ -19,14 +19,32 @@ export async function PATCH(
     const shopId = params.id;
     const { proAccessId } = params;
 
-    // Verify shop owner
-    const shop = await prisma.shop.findUnique({ where: { id: shopId } });
+    // Resolve Clerk → DB user (shops may store either clerkId or dbUser.id as ownerId).
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId },
+      select: { id: true },
+    });
+
+    const shop = await prisma.shop.findFirst({
+      where: {
+        id: shopId,
+        OR: [
+          { ownerId: clerkId },
+          ...(dbUser ? [{ ownerId: dbUser.id }] : []),
+        ],
+      },
+    });
     if (!shop) {
-      return apiError("NOT_FOUND", "Boucherie introuvable");
+      return apiError("FORBIDDEN", "Accès refusé");
     }
 
-    if (shop.ownerId !== clerkId) {
-      return apiError("FORBIDDEN", "Accès refusé");
+    // Lock proAccessId to this shop — prevents cross-shop tampering via guessable IDs.
+    const targetAccess = await prisma.proAccess.findUnique({
+      where: { id: proAccessId },
+      select: { shopId: true },
+    });
+    if (!targetAccess || targetAccess.shopId !== shopId) {
+      return apiError("NOT_FOUND", "Demande introuvable");
     }
 
     const body = await req.json();
