@@ -243,6 +243,14 @@ enum ShopRole {
   ANALYST
 }
 
+// ── Marketplace commission tier ──
+enum ShopTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
 // ══════════════════════════════════════════
 // USER
 // ══════════════════════════════════════════
@@ -291,9 +299,9 @@ model User {
   deletedAt DateTime? @map("deleted_at")
 
   // ── Fidélité plateforme ──
-  totalOrders    Int      @default(0) @map("total_orders")
-  loyaltyTier    Int      @default(0) @map("loyalty_tier")
-  loyaltyBadge   String?  @map("loyalty_badge")
+  totalOrders      Int     @default(0) @map("total_orders")
+  loyaltyTier      Int     @default(0) @map("loyalty_tier")
+  loyaltyBadge     String? @map("loyalty_badge")
   pushPromoEnabled Boolean @default(true) @map("push_promo_enabled")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -308,8 +316,8 @@ model User {
   carts           Cart[]
   recurringOrders RecurringOrder[]
   supportTickets  SupportTicket[]
-  proAccesses      ProAccess[]
-  shopMemberships  ShopMember[]
+  proAccesses     ProAccess[]
+  shopMemberships ShopMember[]
 
   @@map("users")
 }
@@ -319,16 +327,16 @@ model User {
 // ══════════════════════════════════════════
 
 model Shop {
-  id          String  @id @default(cuid())
-  slug        String  @unique
-  name        String
-  address     String
-  city        String
-  phone       String
-  email       String?
-  imageUrl    String? @map("image_url")
-  bannerUrl   String? @map("banner_url")
-  description String?
+  id             String  @id @default(cuid())
+  slug           String  @unique
+  name           String
+  address        String
+  city           String
+  phone          String
+  email          String?
+  imageUrl       String? @map("image_url")
+  bannerUrl      String? @map("banner_url")
+  description    String?
   welcomeMessage String? @map("welcome_message")
 
   ownerPhotoUrl String? @map("owner_photo_url")
@@ -345,8 +353,8 @@ model Shop {
   pickupSlots  Json @default("[]") @map("pickup_slots")
 
   // ── Busy Mode (Uber Eats) ──
-  busyMode       Boolean   @default(false) @map("busy_mode")
-  busyExtraMin   Int       @default(15) @map("busy_extra_min")
+  busyMode               Boolean   @default(false) @map("busy_mode")
+  busyExtraMin           Int       @default(15) @map("busy_extra_min")
   busyModeEndsAt         DateTime? @map("busy_mode_ends_at")
   defaultBusyDurationMin Int       @default(15) @map("default_busy_duration_min")
 
@@ -392,14 +400,21 @@ model Shop {
   acceptOnPickup Boolean @default(true) @map("accept_on_pickup")
 
   // ── Stripe Connect (foundations — not activated) ──
-  stripeAccountId      String?  @map("stripe_account_id")        // acct_xxx
-  stripeAccountStatus  String?  @map("stripe_account_status")    // pending | restricted | active
-  stripeChargesEnabled Boolean  @default(false) @map("stripe_charges_enabled")
-  stripePayoutsEnabled Boolean  @default(false) @map("stripe_payouts_enabled")
+  stripeAccountId      String? @map("stripe_account_id") // acct_xxx
+  stripeAccountStatus  String? @map("stripe_account_status") // pending | restricted | active
+  stripeChargesEnabled Boolean @default(false) @map("stripe_charges_enabled")
+  stripePayoutsEnabled Boolean @default(false) @map("stripe_payouts_enabled")
 
   // ── Commission ──
   commissionPct     Float   @default(0) @map("commission_pct")
   commissionEnabled Boolean @default(false) @map("commission_enabled")
+
+  // ── Marketplace commission tier (recalculated monthly via cron) ──
+  tier                    ShopTier  @default(BRONZE)
+  commissionMarkupPercent Int       @default(80) @map("commission_markup_percent") // 0/30/50/80/100
+  priceRoundingEnabled    Boolean   @default(true) @map("price_rounding_enabled")
+  monthlyGmvCents         Int       @default(0) @map("monthly_gmv_cents")
+  earlyAdopterUntil       DateTime? @map("early_adopter_until")
 
   // ── Stats ──
   rating      Float @default(0)
@@ -441,14 +456,14 @@ model Shop {
   suspendReason String?   @map("suspend_reason")
 
   // ── Cached metrics (webmaster dashboard) ──
-  cachedAcceptanceRate   Float?    @map("cached_acceptance_rate")
-  cachedAvgPrepMinutes   Float?    @map("cached_avg_prep_minutes")
-  cachedCancelRate       Float?    @map("cached_cancel_rate")
-  cachedResponseMinutes  Float?    @map("cached_response_minutes")
-  cachedLateRate         Float?    @map("cached_late_rate")
-  cachedAvgRating        Float?    @map("cached_avg_rating")
-  performanceScore       Float?    @map("performance_score")
-  metricsUpdatedAt       DateTime? @map("metrics_updated_at")
+  cachedAcceptanceRate  Float?    @map("cached_acceptance_rate")
+  cachedAvgPrepMinutes  Float?    @map("cached_avg_prep_minutes")
+  cachedCancelRate      Float?    @map("cached_cancel_rate")
+  cachedResponseMinutes Float?    @map("cached_response_minutes")
+  cachedLateRate        Float?    @map("cached_late_rate")
+  cachedAvgRating       Float?    @map("cached_avg_rating")
+  performanceScore      Float?    @map("performance_score")
+  metricsUpdatedAt      DateTime? @map("metrics_updated_at")
 
   // ── Dernière activité (Uber Eats vérifie si tablette connectée) ──
   lastSeenAt DateTime? @map("last_seen_at")
@@ -565,6 +580,13 @@ model Product {
   proPriceCents Int?   @map("pro_price_cents")
   vatRate       Float? @map("vat_rate")
 
+  // ── Marketplace pricing ──
+  // boutiquePriceCents = prix magasin physique (saisi par boucher)
+  // priceCents = prix online affiché client (computed from boutique + commission markup)
+  // Nullable temporairement pour compat avec les produits existants. À rendre obligatoire
+  // une fois la migration des données faite côté UI catalogue.
+  boutiquePriceCents Int? @map("boutique_price_cents")
+
   unit     Unit
   inStock  Boolean @default(true) @map("in_stock")
   stockQty Float?  @map("stock_qty")
@@ -607,39 +629,39 @@ model Product {
   snoozeReason String?    @map("snooze_reason")
 
   // ── VENTE & VISIBILITÉ ──
-  isActive     Boolean  @default(true) @map("is_active")
-  unitLabel    String?  @map("unit_label")
-  sliceOptions Json?    @map("slice_options")
-  pricePerKg   Int?     @map("price_per_kg")
-  sliceWeights Json?    @map("slice_weights")
+  isActive     Boolean @default(true) @map("is_active")
+  unitLabel    String? @map("unit_label")
+  sliceOptions Json?   @map("slice_options")
+  pricePerKg   Int?    @map("price_per_kg")
+  sliceWeights Json?   @map("slice_weights")
 
   // ── Variantes & Calculateur poids/pièces ──
-  variants       String[]          @default([])
-  weightPerPiece Int?              @map("weight_per_piece")
-  pieceLabel     String?           @map("piece_label")
-  weightMargin   Int     @default(15) @map("weight_margin")
+  variants       String[] @default([])
+  weightPerPiece Int?     @map("weight_per_piece")
+  pieceLabel     String?  @map("piece_label")
+  weightMargin   Int      @default(15) @map("weight_margin")
 
   // ── Découpe, promo fixe, pack ──
-  cutOptions        Json?    @map("cut_options")
-  promoFixedCents   Int?     @map("promo_fixed_cents")
-  packContent       String?  @map("pack_content")
-  packWeight        String?  @map("pack_weight")
-  packOldPriceCents Int?     @map("pack_old_price_cents")
+  cutOptions        Json?   @map("cut_options")
+  promoFixedCents   Int?    @map("promo_fixed_cents")
+  packContent       String? @map("pack_content")
+  packWeight        String? @map("pack_weight")
+  packOldPriceCents Int?    @map("pack_old_price_cents")
 
   // ── ANTI-GASPI ──
-  isAntiGaspi            Boolean   @default(false) @map("is_anti_gaspi")
-  antiGaspiStock         Int?      @map("anti_gaspi_stock")
-  antiGaspiOrigPriceCents Int?     @map("anti_gaspi_orig_price")
-  antiGaspiEndAt         DateTime? @map("anti_gaspi_end_at")
-  antiGaspiReason        String?   @map("anti_gaspi_reason")
+  isAntiGaspi             Boolean   @default(false) @map("is_anti_gaspi")
+  antiGaspiStock          Int?      @map("anti_gaspi_stock")
+  antiGaspiOrigPriceCents Int?      @map("anti_gaspi_orig_price")
+  antiGaspiEndAt          DateTime? @map("anti_gaspi_end_at")
+  antiGaspiReason         String?   @map("anti_gaspi_reason")
 
   // ── FLASH SALE ──
-  isFlashSale            Boolean   @default(false) @map("is_flash_sale")
-  flashSaleEndAt         DateTime? @map("flash_sale_end_at")
-  flashSaleStock         Int?      @map("flash_sale_stock")
+  isFlashSale    Boolean   @default(false) @map("is_flash_sale")
+  flashSaleEndAt DateTime? @map("flash_sale_end_at")
+  flashSaleStock Int?      @map("flash_sale_stock")
 
   // ── Catalogue de référence (lien souple) ──
-  referenceId  String?  @map("reference_id")
+  referenceId String? @map("reference_id")
 
   shopId String @map("shop_id")
   shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -650,8 +672,8 @@ model Product {
   cartItems  CartItem[]
 
   offerProducts      OfferProduct[]
-  suggestSourceRules SuggestRule[] @relation("SuggestSource")
-  suggestTargetRules SuggestRule[] @relation("SuggestTarget")
+  suggestSourceRules SuggestRule[]  @relation("SuggestSource")
+  suggestTargetRules SuggestRule[]  @relation("SuggestTarget")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -795,7 +817,7 @@ model FAQ {
   id        String   @id @default(cuid())
   question  String
   answer    String
-  category  String   // "boutique", "commandes", "facturation", "technique", "compte"
+  category  String // "boutique", "commandes", "facturation", "technique", "compte"
   keywords  String[] @default([])
   order     Int      @default(0)
   active    Boolean  @default(true)
@@ -1046,20 +1068,33 @@ model Order {
   commissionCents Int @default(0) @map("commission_cents")
 
   // ── Remise / Offre ──
-  discountCents   Int      @default(0) @map("discount_cents")
-  discountAmount  Float    @default(0) @map("discount_amount")
-  discountSource  String?  @map("discount_source")
-  offerId         String?  @map("offer_id")
-  offer           Offer?   @relation(fields: [offerId], references: [id])
-  loyaltyRewardId String?  @map("loyalty_reward_id")
+  discountCents   Int     @default(0) @map("discount_cents")
+  discountAmount  Float   @default(0) @map("discount_amount")
+  discountSource  String? @map("discount_source")
+  offerId         String? @map("offer_id")
+  offer           Offer?  @relation(fields: [offerId], references: [id])
+  loyaltyRewardId String? @map("loyalty_reward_id")
 
   // ── Remboursement ──
-  refundedAt      DateTime? @map("refunded_at")
-  refundAmountCents Int?    @map("refund_amount_cents")
+  refundedAt        DateTime? @map("refunded_at")
+  refundAmountCents Int?      @map("refund_amount_cents")
 
   paymentMethod   PaymentMethod @default(ON_PICKUP) @map("payment_method")
   paidAt          DateTime?     @map("paid_at")
   stripePaymentId String?       @map("stripe_payment_id")
+
+  // ── Marketplace fees / Connect (destination charges) ──
+  // platformFeeCents = total perçu par Klik&Go = commission % + frais service 0,99€
+  // serviceFeeCents = frais service fixe (99 cents)
+  // stripeFeeCents = frais Stripe (≈ 1.4% + 25 cts FR) — pour reporting interne
+  // shopPayoutCents = ce que reçoit le boucher (subtotal - commission %)
+  platformFeeCents        Int     @default(0) @map("platform_fee_cents")
+  serviceFeeCents         Int     @default(99) @map("service_fee_cents")
+  stripeFeeCents          Int     @default(0) @map("stripe_fee_cents")
+  shopPayoutCents         Int     @default(0) @map("shop_payout_cents")
+  stripeCheckoutSessionId String? @map("stripe_checkout_session_id")
+  stripePaymentIntentId   String? @map("stripe_payment_intent_id")
+  stripeTransferId        String? @map("stripe_transfer_id")
 
   qrCode      String?   @unique @map("qr_code")
   qrScannedAt DateTime? @map("qr_scanned_at")
@@ -1123,19 +1158,19 @@ model OrderItem {
   replacement String?
 
   // ── Types de vente ──
-  sliceCount          Int?      @map("slice_count")
-  sliceThickness      String?   @map("slice_thickness")
+  sliceCount     Int?    @map("slice_count")
+  sliceThickness String? @map("slice_thickness")
 
   // ── Variante & pièces ──
-  variant    String?   @map("variant")
-  pieceCount Int?      @map("piece_count")
-  pieceLabel String?   @map("piece_label")
+  variant    String? @map("variant")
+  pieceCount Int?    @map("piece_count")
+  pieceLabel String? @map("piece_label")
 
   // ── Découpe ──
-  cutOption      String?  @map("cut_option")
-  cutPriceCents  Int?     @map("cut_price_cents")
+  cutOption     String? @map("cut_option")
+  cutPriceCents Int?    @map("cut_price_cents")
 
-  estimatedPriceCents Int?      @map("estimated_price_cents")
+  estimatedPriceCents Int? @map("estimated_price_cents")
 
   // ── Ajustement poids/prix (boucher) ──
   actualWeightGrams Int?      @map("actual_weight_grams")
@@ -1199,19 +1234,19 @@ model PriceAdjustment {
 // ══════════════════════════════════════════
 
 model ProAccess {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId      String    @map("user_id")
-  user        User      @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
 
-  shopId      String    @map("shop_id")
-  shop        Shop      @relation(fields: [shopId], references: [id])
+  shopId String @map("shop_id")
+  shop   Shop   @relation(fields: [shopId], references: [id])
 
-  status      ProStatus @default(PENDING)
+  status ProStatus @default(PENDING)
 
-  companyName String    @map("company_name")
+  companyName String  @map("company_name")
   siret       String
-  sector      String    // RESTAURANT, TRAITEUR, COLLECTIVITE, COMMERCE, AUTRE
+  sector      String // RESTAURANT, TRAITEUR, COLLECTIVITE, COMMERCE, AUTRE
   phone       String?
 
   requestedAt DateTime  @default(now()) @map("requested_at")
@@ -1290,13 +1325,13 @@ model PlatformConfig {
 // ══════════════════════════════════════════
 
 model AuditLog {
-  id        String   @id @default(cuid())
-  actorId   String   @map("actor_id")
-  action    String
-  target    String?
-  targetId  String?  @map("target_id")
-  details   Json?
-  ip        String?
+  id       String  @id @default(cuid())
+  actorId  String  @map("actor_id")
+  action   String
+  target   String?
+  targetId String? @map("target_id")
+  details  Json?
+  ip       String?
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -1312,43 +1347,43 @@ model AuditLog {
 // ══════════════════════════════════════════
 
 model GlobalCategory {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  id        String             @id @default(cuid())
+  name      String             @unique
   emoji     String?
-  order     Int      @default(0)
+  order     Int                @default(0)
   products  ReferenceProduct[]
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime           @default(now()) @map("created_at")
 
   @@map("global_categories")
 }
 
 model ReferenceProduct {
-  id             String          @id @default(cuid())
+  id             String         @id @default(cuid())
   name           String
   description    String?
-  imageUrl       String?         @map("image_url")
-  suggestedPrice Int?            @map("suggested_price")
-  unit           Unit            @default(KG)
-  categoryId     String          @map("category_id")
-  category       GlobalCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  imageUrl       String?        @map("image_url")
+  suggestedPrice Int?           @map("suggested_price")
+  unit           Unit           @default(KG)
+  categoryId     String         @map("category_id")
+  category       GlobalCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   origin         Origin?
-  pricePerKg     Int?            @map("price_per_kg")
-  sliceWeights   Json?           @map("slice_weights")
-  tags           String[]        @default([])
+  pricePerKg     Int?           @map("price_per_kg")
+  sliceWeights   Json?          @map("slice_weights")
+  tags           String[]       @default([])
 
   // ── Qualite & certifications ──
-  halalOrg     String?    @map("halal_org")
-  freshness    Freshness  @default(FRAIS)
+  halalOrg     String?   @map("halal_org")
+  freshness    Freshness @default(FRAIS)
   race         String?
-  customerNote String?    @map("customer_note")
+  customerNote String?   @map("customer_note")
 
   // ── Config poids (KG) ──
-  minWeightG   Int        @default(200)  @map("min_weight_g")
-  weightStepG  Int        @default(50)   @map("weight_step_g")
-  maxWeightG   Int        @default(5000) @map("max_weight_g")
+  minWeightG  Int @default(200) @map("min_weight_g")
+  weightStepG Int @default(50) @map("weight_step_g")
+  maxWeightG  Int @default(5000) @map("max_weight_g")
 
   // ── Tranches ──
-  sliceOptions Json?      @map("slice_options")
+  sliceOptions Json? @map("slice_options")
 
   // ── Variantes & calculateur pieces ──
   variants       String[] @default([])
@@ -1357,12 +1392,12 @@ model ReferenceProduct {
   weightMargin   Int      @default(15) @map("weight_margin")
 
   // ── Images & Labels ──
-  images  ReferenceProductImage[]
-  labels  ReferenceProductLabel[]
+  images ReferenceProductImage[]
+  labels ReferenceProductLabel[]
 
-  isActive       Boolean         @default(true) @map("is_active")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([categoryId])
   @@map("reference_products")
@@ -1420,21 +1455,21 @@ model ShopAlert {
 
 // ── API Keys for external integrations ──
 model ApiKey {
-  id          String    @id @default(cuid())
-  name        String
-  keyHash     String    @unique @map("key_hash")
-  keyPrefix   String    @map("key_prefix") // first 8 chars for display (klik_xxxx)
-  scopes      Json      @default("[]") // JSON array of allowed scopes
-  rateLimit   Int       @default(60) @map("rate_limit") // requests per minute
-  isActive    Boolean   @default(true) @map("is_active")
-  expiresAt   DateTime? @map("expires_at")
-  lastUsedAt  DateTime? @map("last_used_at")
-  usageCount  Int       @default(0) @map("usage_count")
+  id         String    @id @default(cuid())
+  name       String
+  keyHash    String    @unique @map("key_hash")
+  keyPrefix  String    @map("key_prefix") // first 8 chars for display (klik_xxxx)
+  scopes     Json      @default("[]") // JSON array of allowed scopes
+  rateLimit  Int       @default(60) @map("rate_limit") // requests per minute
+  isActive   Boolean   @default(true) @map("is_active")
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  usageCount Int       @default(0) @map("usage_count")
 
   shopId String? @map("shop_id")
   shop   Shop?   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  createdBy String  @map("created_by") // admin clerk id
+  createdBy String   @map("created_by") // admin clerk id
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1466,8 +1501,8 @@ model LoyaltyReward {
   id            String    @id @default(cuid())
   userId        String    @map("user_id")
   user          User      @relation(fields: [userId], references: [id])
-  tier          Int       // palier atteint (3, 7, 15)
-  rewardType    String    // FIXED | PERCENT
+  tier          Int // palier atteint (3, 7, 15)
+  rewardType    String // FIXED | PERCENT
   rewardCents   Int?      @map("reward_cents")
   rewardPercent Float?    @map("reward_percent")
   code          String    @unique
@@ -1507,23 +1542,23 @@ model Offer {
   status        OfferStatus   @default(ACTIVE)
 
   // Diffusion
-  diffBadge      Boolean  @default(true) @map("diff_badge")
-  diffBanner     Boolean  @default(false) @map("diff_banner")
-  diffPopup      Boolean  @default(false) @map("diff_popup")
+  diffBadge  Boolean @default(true) @map("diff_badge")
+  diffBanner Boolean @default(false) @map("diff_banner")
+  diffPopup  Boolean @default(false) @map("diff_popup")
 
   // Visuels bannière
-  bannerTitle    String?  @map("banner_title")
-  bannerSubtitle String?  @map("banner_subtitle")
-  bannerColor    String?  @default("red") @map("banner_color")
-  bannerPosition String?  @default("discover_top") @map("banner_position")
-  bannerImageUrl String?  @map("banner_image_url") @db.Text
+  bannerTitle    String? @map("banner_title")
+  bannerSubtitle String? @map("banner_subtitle")
+  bannerColor    String? @default("red") @map("banner_color")
+  bannerPosition String? @default("discover_top") @map("banner_position")
+  bannerImageUrl String? @map("banner_image_url") @db.Text
 
   // Visuels popup
-  popupTitle     String?  @map("popup_title")
-  popupMessage   String?  @map("popup_message") @db.Text
-  popupColor     String?  @default("red") @map("popup_color")
-  popupFrequency String?  @default("once_user") @map("popup_frequency")
-  popupImageUrl  String?  @map("popup_image_url") @db.Text
+  popupTitle     String? @map("popup_title")
+  popupMessage   String? @map("popup_message") @db.Text
+  popupColor     String? @default("red") @map("popup_color")
+  popupFrequency String? @default("once_user") @map("popup_frequency")
+  popupImageUrl  String? @map("popup_image_url") @db.Text
 
   // Relations
   proposals        OfferProposal[]
@@ -1563,34 +1598,34 @@ model OfferProposal {
 // ══════════════════════════════════════════
 
 model Campaign {
-  id             String           @id @default(cuid())
-  title          String
-  type           CampaignType
-  audience       CampaignAudience
-  subject        String
-  body           String           @db.Text
+  id       String           @id @default(cuid())
+  title    String
+  type     CampaignType
+  audience CampaignAudience
+  subject  String
+  body     String           @db.Text
 
   // Visuel header
-  visualTitle    String?          @map("visual_title")
-  visualSubtitle String?          @map("visual_subtitle")
-  visualColor    String?          @default("red") @map("visual_color")
-  visualImageUrl String?          @map("visual_image_url") @db.Text
+  visualTitle    String? @map("visual_title")
+  visualSubtitle String? @map("visual_subtitle")
+  visualColor    String? @default("red") @map("visual_color")
+  visualImageUrl String? @map("visual_image_url") @db.Text
 
   // Code promo attaché
-  offerId        String?          @map("offer_id")
-  offer          Offer?           @relation(fields: [offerId], references: [id])
+  offerId String? @map("offer_id")
+  offer   Offer?  @relation(fields: [offerId], references: [id])
 
-  status         CampaignStatus   @default(DRAFT)
-  scheduledAt    DateTime?        @map("scheduled_at")
-  sentAt         DateTime?        @map("sent_at")
+  status      CampaignStatus @default(DRAFT)
+  scheduledAt DateTime?      @map("scheduled_at")
+  sentAt      DateTime?      @map("sent_at")
 
   // Stats
-  sentCount      Int              @default(0) @map("sent_count")
-  openedCount    Int              @default(0) @map("opened_count")
-  clickedCount   Int              @default(0) @map("clicked_count")
+  sentCount    Int @default(0) @map("sent_count")
+  openedCount  Int @default(0) @map("opened_count")
+  clickedCount Int @default(0) @map("clicked_count")
 
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([status, audience])
   @@map("campaigns")
@@ -1601,17 +1636,17 @@ model Campaign {
 // ══════════════════════════════════════════
 
 model GeneratedImage {
-  id        String   @id @default(cuid())
-  prompt    String   @db.Text
-  model     String   // FLUX_SCHNELL | FLUX_PRO | IDEOGRAM
-  imageUrl  String   @map("image_url") @db.Text
-  width     Int      @default(1024)
-  height    Int      @default(1024)
-  usage     String   // CAMPAIGN | PROMO | PRODUCT | SOCIAL | BANNER
-  metadata  Json?    // extra info (seed, style, etc.)
+  id       String @id @default(cuid())
+  prompt   String @db.Text
+  model    String // FLUX_SCHNELL | FLUX_PRO | IDEOGRAM
+  imageUrl String @map("image_url") @db.Text
+  width    Int    @default(1024)
+  height   Int    @default(1024)
+  usage    String // CAMPAIGN | PROMO | PRODUCT | SOCIAL | BANNER
+  metadata Json? // extra info (seed, style, etc.)
 
-  shopId    String?  @map("shop_id")
-  shop      Shop?    @relation("ShopImages", fields: [shopId], references: [id], onDelete: Cascade)
+  shopId String? @map("shop_id")
+  shop   Shop?   @relation("ShopImages", fields: [shopId], references: [id], onDelete: Cascade)
 
   createdBy String   @map("created_by") // clerk id
   createdAt DateTime @default(now()) @map("created_at")
@@ -1627,16 +1662,16 @@ model GeneratedImage {
 // ══════════════════════════════════════════
 
 model SiteBanner {
-  id        String   @id @default(cuid())
-  title     String
-  subtitle  String?
-  imageUrl  String   @map("image_url") @db.Text
-  linkUrl   String?  @map("link_url")
-  position  Int      @default(0) // ordering
-  isActive  Boolean  @default(true) @map("is_active")
+  id       String  @id @default(cuid())
+  title    String
+  subtitle String?
+  imageUrl String  @map("image_url") @db.Text
+  linkUrl  String? @map("link_url")
+  position Int     @default(0) // ordering
+  isActive Boolean @default(true) @map("is_active")
 
-  startsAt  DateTime? @map("starts_at")
-  endsAt    DateTime? @map("ends_at")
+  startsAt DateTime? @map("starts_at")
+  endsAt   DateTime? @map("ends_at")
 
   createdBy String   @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
@@ -1672,36 +1707,36 @@ model OfferProduct {
 // ══════════════════════════════════════════
 
 model Recipe {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  title           String
-  description     String
-  imageUrl        String?  @map("image_url")
-  prepTime        Int      @map("prep_time")
-  cookTime        Int      @map("cook_time")
-  totalTime       Int      @map("total_time")
-  servings        Int      @default(4)
-  difficulty      String   @default("Facile")
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  description String
+  imageUrl    String? @map("image_url")
+  prepTime    Int     @map("prep_time")
+  cookTime    Int     @map("cook_time")
+  totalTime   Int     @map("total_time")
+  servings    Int     @default(4)
+  difficulty  String  @default("Facile")
 
   // Contenu
-  ingredients     Json     // Array de { name, quantity, unit, isMeat, productCategory? }
-  steps           Json     // Array de { number, text }
+  ingredients Json // Array de { name, quantity, unit, isMeat, productCategory? }
+  steps       Json // Array de { number, text }
 
   // SEO & catégorisation
-  tags            String[]
-  meatType        String   @map("meat_type")
-  meatQuantity    String   @map("meat_quantity")
+  tags         String[]
+  meatType     String   @map("meat_type")
+  meatQuantity String   @map("meat_quantity")
 
   // Métadonnées IA
   sourceInspiration String? @map("source_inspiration")
-  aiGenerated     Boolean  @default(true) @map("ai_generated")
+  aiGenerated       Boolean @default(true) @map("ai_generated")
 
   // Publication
-  published       Boolean  @default(true)
-  featured        Boolean  @default(false)
-  publishedAt     DateTime @default(now()) @map("published_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  published   Boolean  @default(true)
+  featured    Boolean  @default(false)
+  publishedAt DateTime @default(now()) @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@index([published, publishedAt])
   @@index([meatType])
