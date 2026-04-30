@@ -108,7 +108,6 @@ const isPublicRoute = createRouteMatcher([
   "/politique-de-confidentialite",
   "/favoris",
   "/recherche",
-  "/admin-login",
 ]);
 
 // ── Clerk middleware: only for auth-required routes ──

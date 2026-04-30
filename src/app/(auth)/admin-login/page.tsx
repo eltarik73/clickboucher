@@ -1,6 +1,7 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { SignIn } from "@clerk/nextjs";
+import { getServerUserId, getTestRole, isTestActivated } from "@/lib/auth/server-auth";
 import { isAdmin } from "@/lib/roles";
 import { logger } from "@/lib/logger";
 
@@ -10,22 +11,27 @@ export const metadata = {
 };
 
 export default async function AdminLoginPage() {
-  const { userId } = await auth();
+  const userId = await getServerUserId();
 
   if (userId) {
-    // Read role directly from Clerk user (works without session token config)
-    const user = await currentUser();
-    const role = (user?.publicMetadata as Record<string, string>)?.role;
+    let role: string | undefined;
+
+    if (isTestActivated()) {
+      const testRole = getTestRole();
+      role = testRole?.toLowerCase();
+    } else {
+      const user = await currentUser();
+      role = (user?.publicMetadata as Record<string, string>)?.role;
+      logger.debug("[admin-login] publicMetadata:", user?.publicMetadata);
+    }
 
     logger.debug("[admin-login] userId:", userId);
-    logger.debug("[admin-login] publicMetadata:", user?.publicMetadata);
     logger.debug("[admin-login] role detected:", role, "| isAdmin:", isAdmin(role));
 
     if (isAdmin(role)) {
       redirect("/admin/dashboard");
     }
 
-    // Logged in but not admin → access denied
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center px-5">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Administration</p>
@@ -42,7 +48,6 @@ export default async function AdminLoginPage() {
     );
   }
 
-  // Not logged in → show Clerk sign-in
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center px-5">
       <p className="text-xs text-gray-600 dark:text-gray-400 mb-6 tracking-wider uppercase">Administration</p>
