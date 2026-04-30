@@ -34,16 +34,20 @@ Chaque produit affiche systématiquement son **organisme certificateur halal** :
 
 ## Stack technique
 
-| Couche        | Technologie                          |
-| ------------- | ------------------------------------ |
-| Frontend      | Next.js 14 (App Router) + TypeScript |
-| UI            | Tailwind CSS + shadcn/ui (custom)    |
-| Backend       | Next.js Route Handlers (`/api/*`)    |
-| Base de données | PostgreSQL (Railway)               |
-| ORM           | Prisma                               |
-| Paiement      | Sur place uniquement (Stripe à venir) |
-| Notifications | Stubs (WhatsApp/SMS/Push)            |
-| Hébergement   | Railway (full stack)                 |
+| Couche          | Technologie                                                |
+| --------------- | ---------------------------------------------------------- |
+| Frontend        | Next.js 14 (App Router) + TypeScript                       |
+| UI              | Tailwind CSS + shadcn/ui + Lucide React                    |
+| Backend         | Next.js Route Handlers (`/api/*`)                          |
+| Base de données | PostgreSQL (Railway, pooled via PgBouncer)                 |
+| ORM             | Prisma                                                     |
+| Auth            | Clerk (custom domain `clerk.klikandgo.app`)                |
+| Paiement        | Stripe Connect Express (marketplace, destination charges)  |
+| Notifications   | Resend (email), web-push, Svix (webhooks)                  |
+| Rate limiting   | Upstash Redis                                              |
+| AI              | Anthropic SDK (support tickets, recettes)                  |
+| Analytics       | Plausible (RGPD-compliant)                                 |
+| Hébergement     | Vercel (app + serverless) + Railway (PostgreSQL uniquement) |
 
 ## Structure du projet
 

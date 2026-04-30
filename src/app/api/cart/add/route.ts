@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       item: { shopId, productId, qty },
     });
   } catch (error) {
-    console.error("[cart/add]", error);
+    logger.error("[cart/add]", { err: (error as Error).message });
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Données invalides", details: error.flatten() },
