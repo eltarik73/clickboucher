@@ -22,10 +22,14 @@ function isTestActivatedMiddleware(req: NextRequest): boolean {
   return req.cookies.get("klikgo-test-activated")?.value === "true";
 }
 
-const isBoucherRoute = createRouteMatcher(["/boucher(.*)"]);
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+// IMPORTANT: matchers strict — utiliser /boucher$|/boucher/(.*) car
+// "/boucher(.*)" matche aussi /boucheries-halal-rhone-alpes,
+// /boucheries-halal/rhone, /boucheries-halal-ouvertes-dimanche/lyon
+// (toutes nos pages SEO annuaire — Sprints 1-7) → redirect 307 cassé.
+const isBoucherRoute = createRouteMatcher(["/boucher", "/boucher/(.*)"]);
+const isAdminRoute = createRouteMatcher(["/admin", "/admin/(.*)"]);
 const isAdminLoginRoute = createRouteMatcher(["/admin-login"]);
-const isWebmasterRoute = createRouteMatcher(["/webmaster(.*)"]);
+const isWebmasterRoute = createRouteMatcher(["/webmaster", "/webmaster/(.*)"]);
 const isProtectedRoute = createRouteMatcher([
   "/checkout(.*)",
   "/commandes(.*)",
@@ -108,6 +112,13 @@ const isPublicRoute = createRouteMatcher([
   "/politique-de-confidentialite",
   "/favoris",
   "/recherche",
+  // SEO annuaire local (Sprints 1-7 mai 2026) — pages publiques
+  "/boucheries-halal-rhone-alpes",
+  "/boucheries-halal/(.*)",
+  "/boucheries-halal-ouvertes-dimanche/(.*)",
+  "/produits/(.*)",
+  "/occasions/(.*)",
+  "/trouver-boucherie-halal",
 ]);
 
 // ── Clerk middleware: only for auth-required routes ──
