@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import type { MetadataRoute } from "next";
 import prisma from "@/lib/prisma";
 import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
+import { getProductCityCombinations } from "@/lib/seo/products";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -198,6 +199,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }));
 
+  // Pages "ouverte dimanche" par ville (top 15 — Sprint 4).
+  const SUNDAY_CITIES = [
+    "lyon", "grenoble", "saint-etienne", "chambery", "annecy", "aix-les-bains",
+    "villeurbanne", "venissieux", "vaulx-en-velin", "annemasse", "voiron",
+    "echirolles", "bron", "saint-priest", "bourgoin-jallieu",
+  ];
+  const sundayPages: MetadataRoute.Sitemap = SUNDAY_CITIES.map((slug) => ({
+    url: `${BASE_URL}/boucheries-halal-ouvertes-dimanche/${slug}`,
+    lastModified: STATIC_CONTENT_UPDATED,
+    changeFrequency: "daily" as const, // horaires changent souvent
+    priority: 0.75,
+  }));
+
+  // Pages produit × ville (Sprint 5) — ~84 pages SSG
+  const productCityPages: MetadataRoute.Sitemap = getProductCityCombinations().map((combo) => ({
+    url: `${BASE_URL}/produits/${combo.produit}/${combo.ville}`,
+    lastModified: STATIC_CONTENT_UPDATED,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
     url: `${BASE_URL}/recettes/${r.slug}`,
     lastModified: r.updatedAt,
@@ -209,6 +231,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...regionalHub,
     ...departmentPages,
+    ...sundayPages,
+    ...productCityPages,
     ...shopPages,
     ...cityPages,
     ...becomePartnerPages,
