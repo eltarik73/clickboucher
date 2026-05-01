@@ -1,8 +1,19 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { MapPin, LocateFixed, Loader2, AlertCircle } from "lucide-react";
 import { ShopCard, type ShopCardData } from "@/components/shop/ShopCard";
+
+// Lazy-load la map (Leaflet a besoin de window, ne build pas en SSR)
+const MapView = dynamic(() => import("./MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-2xl bg-gray-100 dark:bg-gray-800 h-[400px] animate-pulse flex items-center justify-center">
+      <span className="text-sm text-gray-500">Chargement de la carte…</span>
+    </div>
+  ),
+});
 
 type ShopWithGeo = ShopCardData & {
   latitude: number | null;
@@ -153,11 +164,32 @@ export function GeoLocator({ shops }: Props) {
               <p className="text-sm text-gray-400">Essayez d&apos;élargir votre zone de recherche.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {sortedShops.map((shop, idx) => (
-                <ShopCard key={shop.id} shop={shop} index={idx} showFavorite={false} />
-              ))}
-            </div>
+            <>
+              {/* Carte avec markers boucheries + position user */}
+              <MapView
+                userPos={userPos}
+                shops={sortedShops
+                  .filter((s) => s.latitude != null && s.longitude != null)
+                  .map((s) => ({
+                    id: s.id,
+                    slug: s.slug,
+                    name: s.name,
+                    city: s.city,
+                    address: s.address,
+                    latitude: s.latitude!,
+                    longitude: s.longitude!,
+                    rating: s.rating,
+                    distance: s.distance ?? undefined,
+                  }))}
+                maxDistanceKm={maxDistanceKm}
+              />
+              {/* Liste des boucheries */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-6">
+                {sortedShops.map((shop, idx) => (
+                  <ShopCard key={shop.id} shop={shop} index={idx} showFavorite={false} />
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
