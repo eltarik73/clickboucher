@@ -491,3 +491,72 @@ export function calendarAlert(data: {
     ${button(`${baseUrl}/boucher/dashboard`, "Mon tableau de bord")}
   `);
 }
+
+// ─────────────────────────────────────────────
+// Prospect Outreach Templates (cold email)
+// ─────────────────────────────────────────────
+
+export function prospectInitial(data: { name?: string; city?: string }): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
+  const greeting = data.name
+    ? `Bonjour ${esc(data.name)},`
+    : data.city
+      ? `Bonjour, je m'adresse aux boucheries halal de ${esc(data.city)},`
+      : "Bonjour,";
+  return layout(`
+    <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
+    <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
+      Je suis Tarik, fondateur de <strong>Klik&amp;Go</strong>, la première plateforme de click &amp; collect 100% dédiée aux boucheries halal.
+      Notre service est <strong>100% gratuit</strong> — pas d'abonnement, pas de frais d'installation. Une simple commission par commande livrée.
+      Nos boucheries partenaires constatent en moyenne <strong>+15 à 30% de chiffre d'affaires</strong> en 3 mois.
+    </p>
+    <p style="margin:0 0 12px;font-size:15px;color:#4b5563;line-height:1.6">
+      Trois questions rapides pour vous :
+    </p>
+    <ul style="margin:0 0 20px;padding-left:20px;font-size:14px;color:#4b5563;line-height:1.7">
+      <li>Combien d'appels manqués pour des commandes par jour ?</li>
+      <li>Combien de clients vous demandent si vous livrez ou si on peut commander à l'avance ?</li>
+      <li>Quel est votre panier moyen actuel en boutique ?</li>
+    </ul>
+    ${button(`${baseUrl}/espace-boucher`, "Voir une démo en 2 min")}
+    ${button(`${baseUrl}/inscription-boucher`, "Inscrire ma boucherie gratuitement")}
+    <p style="margin:24px 0 4px;font-size:14px;color:#111827">Bien à vous,</p>
+    <p style="margin:0;font-size:14px;color:#111827"><strong>Tarik B.</strong><br><span style="color:#6b7280">Fondateur Klik&amp;Go</span></p>
+  `);
+}
+
+export function prospectRelance3j(data: { name?: string; city?: string }): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
+  const greeting = data.name ? `Bonjour ${esc(data.name)},` : "Bonjour,";
+  const cityLine = data.city ? ` à ${esc(data.city)} et alentours` : "";
+  return layout(`
+    <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
+    <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
+      Je me permets de revenir vers vous concernant Klik&amp;Go. <strong>Déjà 11 boucheries halal</strong>${cityLine} ont rejoint la plateforme et reçoivent leurs premières commandes en click &amp; collect — sans payer un centime d'abonnement.
+    </p>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563;line-height:1.6">
+      Si l'idée vous intéresse, <strong>répondez simplement "Oui" à cet email</strong> et je vous rappelle pour une démo de 10 minutes adaptée à votre boucherie.
+    </p>
+    ${button(`${baseUrl}/espace-boucher`, "Découvrir Klik&Go")}
+    <p style="margin:24px 0 4px;font-size:14px;color:#111827">Bien à vous,</p>
+    <p style="margin:0;font-size:14px;color:#111827"><strong>Tarik B.</strong><br><span style="color:#6b7280">Fondateur Klik&amp;Go</span></p>
+  `);
+}
+
+export function prospectRelance7j(data: { name?: string; city?: string }): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
+  const greeting = data.name ? `Bonjour ${esc(data.name)},` : "Bonjour,";
+  return layout(`
+    <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
+    <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
+      Je vous écris une dernière fois — promis, je ne vous embêterai plus après ça. Je comprends parfaitement que le click &amp; collect ne soit pas une priorité pour le moment, ou que vous préfériez attendre.
+    </p>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563;line-height:1.6">
+      Si toutefois vous voulez en discuter <strong>10 minutes</strong> par téléphone, sans aucun engagement, je suis à votre disposition. Un simple appel pour comprendre vos besoins, sans bla-bla commercial.
+    </p>
+    ${button(`${baseUrl}/espace-boucher`, "Plus d'infos sur Klik&Go")}
+    ${button(`mailto:contact@klikandgo.app`, "Programmer un appel de 10 min")}
+    <p style="margin:24px 0 4px;font-size:14px;color:#111827">Très cordialement,</p>
+    <p style="margin:0;font-size:14px;color:#111827"><strong>Tarik B.</strong><br><span style="color:#6b7280">Fondateur Klik&amp;Go</span></p>
+  `);
+}

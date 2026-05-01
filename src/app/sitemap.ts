@@ -166,6 +166,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: populatedCitySlugs.has(city.slug) ? 0.8 : 0.6,
   }));
 
+  // Acquisition landing pages targeting bouchers in each SEO city.
+  // SSG'd from SEO_CITIES + revalidate every hour.
+  const becomePartnerPages: MetadataRoute.Sitemap = SEO_CITIES.map((city) => ({
+    url: `${BASE_URL}/devenir-boucher-partenaire/${city.slug}`,
+    lastModified: STATIC_CONTENT_UPDATED,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
     url: `${BASE_URL}/recettes/${r.slug}`,
     lastModified: r.updatedAt,
@@ -173,5 +182,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...shopPages, ...cityPages, ...recipePages];
+  return [
+    ...staticPages,
+    ...shopPages,
+    ...cityPages,
+    ...becomePartnerPages,
+    ...recipePages,
+  ];
 }

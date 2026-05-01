@@ -709,6 +709,70 @@ model ProductLabel {
 }
 
 // ══════════════════════════════════════════
+// PROSPECT — Pipeline d'acquisition boucheries
+// ══════════════════════════════════════════
+
+enum ProspectStatus {
+  NEW         // Nouveau, jamais contacté
+  CONTACTED   // Email/WhatsApp envoyé, en attente
+  REPLIED     // A répondu, intéressé
+  VISIT_SCHEDULED // RDV physique programmé
+  VISITED     // Visite effectuée
+  SIGNED      // Boucherie signée — devient un Shop
+  REFUSED     // A refusé / pas intéressé
+  UNREACHABLE // Téléphone/email invalide
+}
+
+enum ProspectSource {
+  GOOGLE_PLACES // Scraping API Google Places
+  MANUAL        // Saisie manuelle
+  REFERRAL      // Parrainé par un boucher existant
+  INBOUND       // Inscrit via /devenir-boucher-partenaire
+}
+
+model Prospect {
+  id          String         @id @default(cuid())
+  // Identité boucherie
+  name        String
+  city        String
+  zipCode     String?        @map("zip_code")
+  address     String?
+  phone       String?
+  email       String?
+  // Données Google Places (si scrapé)
+  googlePlaceId String?      @unique @map("google_place_id")
+  googleUrl     String?      @map("google_url")
+  rating        Float?
+  reviewCount   Int?         @map("review_count")
+  // Pipeline
+  status      ProspectStatus @default(NEW)
+  source      ProspectSource @default(MANUAL)
+  notes       String?
+  // Timestamps actions
+  contactedAt    DateTime?   @map("contacted_at")
+  repliedAt      DateTime?   @map("replied_at")
+  visitScheduledAt DateTime? @map("visit_scheduled_at")
+  visitedAt      DateTime?   @map("visited_at")
+  signedAt       DateTime?   @map("signed_at")
+  refusedAt      DateTime?   @map("refused_at")
+  refusedReason  String?     @map("refused_reason")
+  // Relations
+  signedShopId String?       @unique @map("signed_shop_id")
+  // Stats relances
+  emailsSentCount  Int       @default(0) @map("emails_sent_count")
+  lastEmailAt      DateTime? @map("last_email_at")
+  whatsappSentAt   DateTime? @map("whatsapp_sent_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([city])
+  @@index([source])
+  @@map("prospects")
+}
+
+// ══════════════════════════════════════════
 // SUPPORT
 // ══════════════════════════════════════════
 

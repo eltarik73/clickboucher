@@ -4,7 +4,7 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 export function SeoFooter() {
   return (
     <footer className="mt-16 border-t border-gray-200 dark:border-white/[0.06] bg-white dark:bg-[#0a0a0a]">
-      <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
+      <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-5 gap-8 text-sm">
         <div>
           <h3 className="font-extrabold text-[#1C1512] dark:text-white mb-3">
             Boucheries halal par ville
@@ -17,6 +17,24 @@ export function SeoFooter() {
                   className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] dark:hover:text-[#DC2626] transition-colors"
                 >
                   Boucherie halal {c.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="font-extrabold text-[#1C1512] dark:text-white mb-3">
+            Pour les bouchers
+          </h3>
+          <ul className="space-y-2">
+            {SEO_CITIES.map((c) => (
+              <li key={`partner-${c.slug}`}>
+                <Link
+                  href={`/devenir-boucher-partenaire/${c.slug}`}
+                  className="text-gray-600 dark:text-gray-400 hover:text-[#DC2626] dark:hover:text-[#DC2626] transition-colors"
+                >
+                  Devenir partenaire {c.name}
                 </Link>
               </li>
             ))}

@@ -60,3 +60,7 @@ search-modal2.md
 check-buttons.md
 search-modal3.md
 shop-page.md
+
+# prospect-scraper output (keep dir, ignore CSVs)
+/prospect-scraper-output/*.csv
+!/prospect-scraper-output/.gitkeep

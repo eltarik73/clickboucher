@@ -317,6 +317,35 @@ export default async function CityPage({
           </div>
         </section>
 
+        {/* ── B2B CTA — Boucher acquisition cross-link ── */}
+        <section className="mb-14">
+          <Link
+            href={`/devenir-boucher-partenaire/${city.slug}`}
+            className="group block bg-[#0a0a0a] border border-white/10 hover:border-[#DC2626]/40 rounded-2xl p-6 sm:p-8 transition-all"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-xs font-bold tracking-[2px] uppercase text-[#FCA5A5] mb-2">
+                  Vous êtes boucher à {city.name} ?
+                </p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white font-display">
+                  Rejoignez Klik&amp;Go &mdash;{" "}
+                  <span className="font-serif italic font-normal text-[#FCA5A5]">
+                    100% gratuit
+                  </span>
+                </h3>
+                <p className="text-sm text-gray-400 mt-2">
+                  Aucun abonnement, commission uniquement. Vitrine en ligne, mode cuisine, fidélité &mdash; en 24h.
+                </p>
+              </div>
+              <ArrowRight
+                size={28}
+                className="shrink-0 text-[#DC2626] transition-transform group-hover:translate-x-1"
+              />
+            </div>
+          </Link>
+        </section>
+
         {/* ── Other cities ── */}
         <section className="mb-10">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 font-display">

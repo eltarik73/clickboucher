@@ -16,6 +16,7 @@ import {
   Flag,
   Shield,
   BarChart3,
+  Target,
   Trophy,
   Megaphone,
   Users,
@@ -63,6 +64,12 @@ const NAV_SECTIONS: NavSection[] = [
       { key: "capacite",   label: "Capacité",      href: "/webmaster/capacite",     icon: Clock },
       { key: "facturation",label: "Facturation",   href: "/webmaster/facturation",  icon: Coins },
       { key: "marketing",  label: "Marketing",     href: "/webmaster/marketing",    icon: Megaphone },
+    ],
+  },
+  {
+    title: "Acquisition",
+    items: [
+      { key: "prospects",  label: "Prospects",     href: "/webmaster/prospects",    icon: Target },
     ],
   },
   {
