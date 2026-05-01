@@ -2,7 +2,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { MapPin, Clock, Star, Tag } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { SafeImage } from "@/components/ui/SafeImage";

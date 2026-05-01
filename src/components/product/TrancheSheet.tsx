@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Image from "next/image";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { ChevronDown } from "lucide-react";
 import { formatPrice } from "@/lib/estimate";
 import { getFlag } from "@/lib/flags";
@@ -142,7 +142,8 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
           <div className="flex items-center gap-3 px-3.5 pt-3.5">
             <div className="relative w-14 h-14 rounded-2xl flex-shrink-0 overflow-hidden">
               {product.imageUrl ? (
-                <Image
+                <SafeImage
+                  type="product"
                   src={product.imageUrl}
                   alt={product.name}
                   width={56}

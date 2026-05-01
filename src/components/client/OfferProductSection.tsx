@@ -1,5 +1,5 @@
 import { Gift } from "lucide-react";
-import Image from "next/image";
+import { SafeImage } from "@/components/ui/SafeImage";
 
 type OfferProduct = {
   id: string;
@@ -67,7 +67,8 @@ export function OfferProductSection({
             {/* Image */}
             {product.imageUrl ? (
               <div className="relative h-28 w-full">
-                <Image
+                <SafeImage
+                  type="product"
                   src={product.imageUrl}
                   alt={product.name}
                   fill

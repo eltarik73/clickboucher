@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { Search, X, Clock, ArrowRight, Timer, Mic } from "lucide-react";
 import { resolveProductImage } from "@/lib/product-images";
 
@@ -207,7 +207,8 @@ export function SearchBar() {
                 >
                   {/* Product thumbnail */}
                   <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 shrink-0">
-                    <Image
+                    <SafeImage
+                      type="product"
                       src={resolveProductImage({ name: r.name, imageUrl: r.imageUrl || null, category: r.category || "" })}
                       alt={r.name}
                       width={40}
