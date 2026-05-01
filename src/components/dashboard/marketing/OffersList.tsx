@@ -53,7 +53,7 @@ function getDiscountBadge(type: string, discountValue: number) {
         label: "1+1",
         className: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
       };
-    case "FREE_DELIVERY":
+    case "FREE_FEES":
       return {
         label: "Frais offerts",
         className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",

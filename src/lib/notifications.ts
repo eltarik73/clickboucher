@@ -27,7 +27,6 @@ export type NotifEvent =
   | "CART_ABANDONED"
   | "ACCOUNT_APPROVED"
   | "RECURRING_REMINDER"
-  | "TRIAL_EXPIRING"
   | "CALENDAR_ALERT"
   | "WEEKLY_REPORT"
   | "PRICE_ADJUSTMENT_PENDING"
@@ -195,13 +194,6 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         subject: `🔄 Commande récurrente à confirmer`,
         html: tpl.orderReady(data), // Reuse ready template
         plainText: `Votre commande récurrente chez ${data.shopName} est prête à être confirmée.`,
-      };
-
-    case "TRIAL_EXPIRING":
-      return {
-        subject: `⏳ Votre essai se termine bientôt`,
-        html: tpl.trialExpiring(data),
-        plainText: data.message || `Votre essai gratuit se termine dans 7 jours. Passez au paiement pour continuer.`,
       };
 
     case "CALENDAR_ALERT":
@@ -402,12 +394,6 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
         body: `${data.shopName} — ${data.weeklyOrders || 0} commandes cette semaine`,
         url: `${baseUrl}/boucher/dashboard/statistiques`,
         tag: "weekly-report",
-      };
-    case "TRIAL_EXPIRING":
-      return {
-        title: "⏳ Essai bientôt terminé",
-        body: data.message || `L'essai de ${data.shopName} se termine bientôt`,
-        url: `${baseUrl}/boucher/dashboard`,
       };
     case "SCHEDULED_REMINDER":
       return data.customerName

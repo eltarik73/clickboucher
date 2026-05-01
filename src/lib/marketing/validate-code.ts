@@ -74,7 +74,7 @@ export async function validatePromoCode(params: {
     case "AMOUNT":
       discount = Math.min(offer.discountValue, params.cartTotal);
       break;
-    case "FREE_DELIVERY":
+    case "FREE_FEES":
       discount = 0.99;
       break;
     case "BOGO": {

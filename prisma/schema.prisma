@@ -161,7 +161,7 @@ enum SnoozeType {
 enum OfferType {
   PERCENT
   AMOUNT
-  FREE_DELIVERY
+  FREE_FEES
   BOGO
   BUNDLE
 }

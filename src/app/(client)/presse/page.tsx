@@ -139,9 +139,10 @@ export default async function PressePage() {
           <div className="space-y-3">
             <div className="bg-white dark:bg-white/[0.05] border-l-4 border-[#DC2626] rounded-xl p-4">
               <p className="text-gray-700 dark:text-gray-300 italic">
-                &laquo; Nos boucheries partenaires ne paient ni abonnement ni commission cachée.
-                On se rémunère uniquement sur les frais de service côté client (0,99 €), pour
-                que la valeur reste chez l&apos;artisan. &raquo;
+                &laquo; Nos boucheries partenaires ne paient aucun abonnement, aucun frais fixe.
+                Klik&amp;Go se rémunère uniquement via une commission transparente sur les commandes
+                encaissées et des frais de service côté client (0,99 €), pour que la valeur
+                reste chez l&apos;artisan. &raquo;
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">— Tarik Boudefar, fondateur</p>
             </div>

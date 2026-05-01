@@ -31,7 +31,6 @@ type AdminStats = {
   pendingProRequests: number;
   avgRating: number;
   totalCommissionCents: number;
-  shopsByPlan: Record<string, number>;
   ordersLast7Days: { date: string; orders: number; revenue: number }[];
   topShops: { id: string; name: string; rating: number; orderCount: number; revenue: number }[];
   alerts: {
@@ -245,42 +244,6 @@ export default function WebmasterDashboardPage() {
           </div>
         )}
 
-        {/* Plans distribution */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
-          <h3 className="font-display text-sm font-bold text-gray-900 dark:text-white mb-4">
-            Boutiques par plan
-          </h3>
-          <div className="space-y-3">
-            {Object.entries(stats.shopsByPlan).map(([plan, count]) => {
-              const total = stats.totalShops || 1;
-              const pct = Math.round((count / total) * 100);
-              const colors: Record<string, string> = {
-                STARTER: "bg-gray-400",
-                PRO: "bg-blue-500",
-                PREMIUM: "bg-[#DC2626]",
-              };
-              return (
-                <div key={plan}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{plan}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{count} ({pct}%)</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${colors[plan] || "bg-gray-400"} transition-all duration-500`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {stats.totalShops > 0 && (
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-3">
-              {stats.totalShops} boutique{stats.totalShops > 1 ? "s" : ""} au total
-            </p>
-          )}
-        </div>
       </div>
 
       {/* Top shops + Quick actions */}

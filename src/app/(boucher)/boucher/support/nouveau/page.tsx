@@ -65,7 +65,7 @@ export default function NewTicketPage() {
 
   const QUICK_SUBJECTS = [
     "Problème de commande",
-    "Question sur mon abonnement",
+    "Question sur la commission",
     "Bug technique",
     "Problème de paiement",
     "Modification de mes informations",

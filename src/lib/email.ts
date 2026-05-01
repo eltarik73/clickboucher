@@ -25,7 +25,7 @@ export async function sendEmail(
 
   try {
     await client.emails.send({
-      from: "Klik&Go <noreply@klikandgo.fr>",
+      from: "Klik&Go <noreply@klikandgo.app>",
       to: [to],
       subject,
       html: htmlBody,

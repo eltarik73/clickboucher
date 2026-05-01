@@ -36,7 +36,7 @@ const CLIENT_SUBJECTS: Record<string, string[]> = {
     "Les nouveautés de la semaine chez Klik&Go",
     "Vos boucheries préférées vous attendent !",
     "Cette semaine : viandes d'exception en click & collect",
-    "Le meilleur de la boucherie halal, livré en un clic",
+    "Le meilleur de la boucherie halal, à retirer en un clic",
   ],
   ONBOARDING: [
     "Bienvenue sur Klik&Go ! Voici comment commander",
@@ -123,7 +123,7 @@ const PROMO_PRESETS = [
   { label: "-20%", type: "PERCENT", value: "20" },
   { label: "-3\u20AC", type: "AMOUNT", value: "3" },
   { label: "-5\u20AC", type: "AMOUNT", value: "5" },
-  { label: "Frais offerts", type: "FREE_DELIVERY", value: "0" },
+  { label: "Frais offerts", type: "FREE_FEES", value: "0" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -253,7 +253,7 @@ export function CampaignForm({
   function formatOfferType(o: { type: string; discountValue: number }) {
     if (o.type === "PERCENT") return `-${o.discountValue}%`;
     if (o.type === "AMOUNT" || o.type === "FIXED") return `-${o.discountValue}\u20AC`;
-    if (o.type === "FREE_DELIVERY") return "Frais offerts";
+    if (o.type === "FREE_FEES") return "Frais offerts";
     if (o.type === "BOGO") return "1+1 offert";
     if (o.type === "BUNDLE") return "Pack";
     return o.type;

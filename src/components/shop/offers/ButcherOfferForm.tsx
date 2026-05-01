@@ -23,7 +23,7 @@ import { toast } from "sonner";
 const OFFER_TYPES = [
   { value: "PERCENT", label: "Pourcentage", icon: Percent, color: "blue" },
   { value: "AMOUNT", label: "Montant fixe", icon: DollarSign, color: "emerald" },
-  { value: "FREE_DELIVERY", label: "Frais offerts", icon: Truck, color: "purple" },
+  { value: "FREE_FEES", label: "Frais offerts", icon: Truck, color: "purple" },
   { value: "BOGO", label: "1+1 offert", icon: Copy, color: "orange" },
   { value: "BUNDLE", label: "Pack", icon: Package, color: "pink" },
 ] as const;
@@ -88,7 +88,7 @@ function generateName(type: string) {
       return "Réduction spéciale";
     case "AMOUNT":
       return "Bon de réduction";
-    case "FREE_DELIVERY":
+    case "FREE_FEES":
       return "Frais de service offerts";
     case "BOGO":
       return "Offre 1 acheté = 1 offert";
@@ -284,7 +284,7 @@ export function ButcherOfferForm({
               step={type === "PERCENT" ? 1 : 0.01}
               value={discountValue}
               onChange={(e) => setDiscountValue(Number(e.target.value))}
-              disabled={type === "FREE_DELIVERY"}
+              disabled={type === "FREE_FEES"}
               className="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             />
           </div>

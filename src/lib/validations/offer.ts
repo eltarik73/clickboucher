@@ -8,7 +8,7 @@ export const createOfferSchema = z.object({
     .min(3, "Code requis (min 3 car.)")
     .max(20)
     .transform((v) => v.toUpperCase().trim()),
-  type: z.enum(["PERCENT", "AMOUNT", "FREE_DELIVERY", "BOGO", "BUNDLE"]),
+  type: z.enum(["PERCENT", "AMOUNT", "FREE_FEES", "BOGO", "BUNDLE"]),
   discountValue: z.number().min(0),
   minOrder: z.number().min(0).default(0),
   payer: z.enum(["KLIKGO", "BUTCHER"]),

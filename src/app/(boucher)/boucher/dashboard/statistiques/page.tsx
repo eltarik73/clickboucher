@@ -14,7 +14,6 @@ import {
   ShoppingBag,
   Users,
   Clock,
-  Crown,
   BarChart3,
   Loader2,
   AlertCircle,
@@ -71,7 +70,6 @@ const ResponsiveContainer = dynamic(
 type Period = "week" | "month" | "year";
 
 type StatsData = {
-  // Basic (all plans)
   plan: "STARTER" | "PRO" | "PREMIUM";
   period: string;
   totalRevenue: number;
@@ -243,10 +241,10 @@ export default function StatistiquesPage() {
   }, [period, fetchStats]);
 
   useEffect(() => {
-    if (stats?.plan === "PREMIUM") {
+    if (stats) {
       fetchAutoPromos();
     }
-  }, [stats?.plan, fetchAutoPromos]);
+  }, [stats, fetchAutoPromos]);
 
   // ── Export CSV ──
   async function exportCSV() {
@@ -292,10 +290,9 @@ export default function StatistiquesPage() {
     }
   }
 
-  // Derived
-  const plan = stats?.plan || "STARTER";
-  const hasAdvanced = plan === "PRO" || plan === "PREMIUM";
-  const hasPremium = plan === "PREMIUM";
+  // Derived — all shops get full features (commission-only model, no plan tiers)
+  const hasAdvanced = true;
+  const hasPremium = true;
 
   // Loading
   if (loading && !stats) {
@@ -360,19 +357,6 @@ export default function StatistiquesPage() {
               <Download size={13} /> Plus
             </Link>
           </div>
-          <Badge
-            variant="outline"
-            className={`text-[10px] font-semibold uppercase ${
-              plan === "PREMIUM"
-                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800"
-                : plan === "PRO"
-                ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-800"
-                : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10"
-            }`}
-          >
-            <Crown size={10} className="mr-1" />
-            {plan}
-          </Badge>
         </div>
 
         {/* ── Period Selector ── */}

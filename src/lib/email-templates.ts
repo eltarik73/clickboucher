@@ -230,20 +230,6 @@ export function accountApproved(data: {
   `);
 }
 
-export function trialExpiring(data: {
-  shopName?: string;
-  message?: string;
-}): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
-  return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f3 Votre essai se termine bientôt</h1>
-    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      ${data.message ? esc(data.message) : `L'essai gratuit de <strong>${esc(data.shopName || "votre boutique")}</strong> se termine dans 7 jours.`}
-    </p>
-    <p style="margin:0;font-size:13px;color:#6b7280">Passez au paiement pour continuer à recevoir des commandes sans interruption.</p>
-    ${button(`${baseUrl}/boucher/dashboard`, "Accéder à mon espace")}
-  `);
-}
 
 export function weeklyReport(data: {
   shopName?: string;

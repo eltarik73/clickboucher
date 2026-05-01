@@ -52,11 +52,6 @@ const CONFIG_META: Record<
     description: "Taux appliqué aux nouvelles boutiques",
     type: "number",
   },
-  trial_days: {
-    label: "Durée essai gratuit (jours)",
-    description: "Période d'essai pour les nouveaux abonnements",
-    type: "number",
-  },
   max_order_value_cents: {
     label: "Montant max commande (centimes)",
     description: "Valeur maximale acceptée par commande",

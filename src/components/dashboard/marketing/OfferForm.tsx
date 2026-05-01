@@ -46,7 +46,7 @@ const OFFER_TYPES = [
   { value: "BOGO", emoji: "🎁", label: "1+1 Offert", desc: "Achetez 1, recevez 1" },
   { value: "PERCENT", emoji: "💰", label: "Réduction %", desc: "Pourcentage" },
   { value: "AMOUNT", emoji: "🏷️", label: "Réduction €", desc: "Montant fixe" },
-  { value: "FREE_DELIVERY", emoji: "🚀", label: "Frais offerts", desc: "0,99€ offerts" },
+  { value: "FREE_FEES", emoji: "🚀", label: "Frais offerts", desc: "0,99€ offerts" },
   { value: "BUNDLE", emoji: "📦", label: "Pack", desc: "Offre groupée" },
 ];
 
@@ -85,7 +85,7 @@ function getBannerGradient(color: string) {
 function getBadgePreview(type: string, discountValue: string) {
   const v = parseFloat(discountValue) || 0;
   switch (type) {
-    case "FREE_DELIVERY": return "🚀 FRAIS OFFERTS";
+    case "FREE_FEES": return "🚀 FRAIS OFFERTS";
     case "PERCENT": return `💰 -${v}%`;
     case "BOGO": return "🎁 1+1 OFFERT";
     case "AMOUNT": return `🏷️ -${v}€`;
@@ -111,7 +111,7 @@ function autoGenerateName(type: string, discountValue: string) {
   switch (type) {
     case "PERCENT": return `Bienvenue -${v || 10}%`;
     case "AMOUNT": return `Réduction ${v || 5}€`;
-    case "FREE_DELIVERY": return "Frais offerts";
+    case "FREE_FEES": return "Frais offerts";
     case "BOGO": return "1+1 Offert";
     case "BUNDLE": return `Pack spécial -${v || 5}€`;
     default: return "Offre spéciale";
@@ -226,7 +226,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
   async function handleSubmit() {
     if (!name.trim()) { toast.error("Nom requis"); return; }
     if (!code.trim()) { toast.error("Code requis"); return; }
-    if (type !== "FREE_DELIVERY" && !discountValue) { toast.error("Valeur de réduction requise"); return; }
+    if (type !== "FREE_FEES" && !discountValue) { toast.error("Valeur de réduction requise"); return; }
 
     setSaving(true);
     try {
@@ -234,7 +234,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
         name,
         code,
         type,
-        discountValue: type === "FREE_DELIVERY" ? 0.99 : parseFloat(discountValue) || 0,
+        discountValue: type === "FREE_FEES" ? 0.99 : parseFloat(discountValue) || 0,
         minOrder: parseFloat(minOrder) || 0,
         payer,
         audience,
@@ -285,7 +285,7 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
   }
 
   // ── Helpers for summary ──
-  const discountBadgeText = type === "FREE_DELIVERY"
+  const discountBadgeText = type === "FREE_FEES"
     ? "0,99€"
     : type === "PERCENT"
     ? `${discountValue || 0}%`
@@ -464,14 +464,14 @@ export function OfferForm({ onClose, onCreated }: { onClose: () => void; onCreat
                 <input
                   type="number"
                   placeholder={type === "PERCENT" ? "10" : "5"}
-                  value={type === "FREE_DELIVERY" ? "" : discountValue}
+                  value={type === "FREE_FEES" ? "" : discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
-                  disabled={type === "FREE_DELIVERY"}
+                  disabled={type === "FREE_FEES"}
                   className={`w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300 ${
-                    type === "FREE_DELIVERY" ? "opacity-50 cursor-not-allowed" : ""
+                    type === "FREE_FEES" ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 />
-                {type === "FREE_DELIVERY" && (
+                {type === "FREE_FEES" && (
                   <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">Fixé à 0,99€</p>
                 )}
               </div>

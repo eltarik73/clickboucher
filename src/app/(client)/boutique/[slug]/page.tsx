@@ -468,7 +468,7 @@ export default async function BoutiquePage({
             discountLabel={
               bannerOffer.type === "PERCENT" ? `-${bannerOffer.discountValue}%`
               : bannerOffer.type === "AMOUNT" ? `-${bannerOffer.discountValue}€`
-              : bannerOffer.type === "FREE_DELIVERY" ? "Frais offerts"
+              : bannerOffer.type === "FREE_FEES" ? "Frais offerts"
               : bannerOffer.type === "BOGO" ? "1+1 offert"
               : bannerOffer.type === "BUNDLE" ? `Pack -${bannerOffer.discountValue}€`
               : bannerOffer.name

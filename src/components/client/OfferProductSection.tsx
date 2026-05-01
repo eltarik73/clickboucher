@@ -15,7 +15,7 @@ type OfferProduct = {
 
 function getOfferLabel(type: string, discountValue: number): string {
   switch (type) {
-    case "FREE_DELIVERY":
+    case "FREE_FEES":
       return "Frais offerts";
     case "PERCENT":
       return `-${discountValue}%`;

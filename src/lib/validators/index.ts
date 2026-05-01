@@ -510,11 +510,6 @@ export const wmSuspendShopSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
-export const wmValidateSubscriptionSchema = z.object({
-  plan: z.enum(["STARTER","PRO","PREMIUM"]),
-  note: z.string().max(500).optional(),
-});
-
 // ══════════════════════════════════════════
 // REFERENCE CATALOG schemas
 // ══════════════════════════════════════════

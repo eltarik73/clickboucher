@@ -69,19 +69,3 @@ export const SHOP_STATUS_LABELS: Record<string, string> = {
   VACATION:    "Vacances",
 };
 
-// ── Subscription Status ─────────────────────────────
-export const SUB_STATUS_COLORS: Record<string, string> = {
-  TRIAL:     "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  ACTIVE:    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  SUSPENDED: "bg-red-500/10 text-red-500",
-  CANCELLED: "bg-gray-500/10 text-gray-500",
-  EXPIRED:   "bg-gray-500/10 text-gray-400",
-  PENDING:   "bg-amber-500/10 text-amber-600",
-};
-
-// ── Plan Colors ─────────────────────────────────────
-export const PLAN_COLORS: Record<string, string> = {
-  STARTER: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300",
-  PRO:     "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300",
-  PREMIUM: "bg-primary/10 text-primary",
-};

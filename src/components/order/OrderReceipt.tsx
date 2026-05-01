@@ -158,7 +158,7 @@ export default function OrderReceipt({
         {/* Footer */}
         <div className="text-center mt-6 pt-4 border-t border-dashed border-gray-300 dark:border-white/20">
           <p className="text-xs text-gray-500 dark:text-gray-400">Merci pour votre commande !</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">klikandgo.fr</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">klikandgo.app</p>
         </div>
       </div>
     </div>

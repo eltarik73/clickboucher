@@ -32,7 +32,7 @@ function buildCampaignHtml(campaign: {
   let promoHtml = "";
   if (campaign.offer) {
     const { code, type, discountValue } = campaign.offer;
-    const label = type === "PERCENT" ? `-${discountValue}%` : type === "AMOUNT" ? `-${discountValue}€` : type === "FREE_DELIVERY" ? "Frais offerts" : type === "BOGO" ? "1+1 Offert" : `-${discountValue}€`;
+    const label = type === "PERCENT" ? `-${discountValue}%` : type === "AMOUNT" ? `-${discountValue}€` : type === "FREE_FEES" ? "Frais offerts" : type === "BOGO" ? "1+1 Offert" : `-${discountValue}€`;
     promoHtml = `
       <table cellpadding="0" cellspacing="0" style="margin:20px 0;width:100%"><tr>
         <td style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:16px;text-align:center">

@@ -46,7 +46,7 @@ function typeBadge(type: string) {
       return { label: "Pourcentage", color: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300" };
     case "AMOUNT":
       return { label: "Montant fixe", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" };
-    case "FREE_DELIVERY":
+    case "FREE_FEES":
       return { label: "Frais offerts", color: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" };
     case "BOGO":
       return { label: "1+1 offert", color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300" };
@@ -253,7 +253,7 @@ export default function ShopOffersPage() {
                           ? `-${offer.discountValue}%`
                           : offer.type === "AMOUNT"
                             ? `-${offer.discountValue.toFixed(2)}\u00A0\u20AC`
-                            : offer.type === "FREE_DELIVERY"
+                            : offer.type === "FREE_FEES"
                               ? "Frais offerts"
                               : offer.type === "BOGO"
                                 ? "1+1 offert"

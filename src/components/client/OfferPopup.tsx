@@ -26,7 +26,7 @@ const gradientMap: Record<string, string> = {
 
 function getEmoji(type: string): string {
   switch (type) {
-    case "FREE_DELIVERY":
+    case "FREE_FEES":
       return "\u{1F680}";
     case "PERCENT":
       return "\u{1F4B0}";

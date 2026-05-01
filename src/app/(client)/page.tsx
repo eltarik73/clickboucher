@@ -215,7 +215,7 @@ export default async function HomePage() {
     const shopPromoMap = new Map<string, string>();
     for (const o of offersResult) {
       if (o.shopId && !shopPromoMap.has(o.shopId)) {
-        const shortLabel = o.type === "FREE_DELIVERY" ? "Frais offerts"
+        const shortLabel = o.type === "FREE_FEES" ? "Frais offerts"
           : o.type === "PERCENT" ? `-${o.discountValue}%`
           : o.type === "AMOUNT" ? `-${o.discountValue}€`
           : o.type === "BOGO" ? "1+1 offert"

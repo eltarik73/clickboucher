@@ -304,7 +304,7 @@ async function handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
  * Klik&Go remboursée au boucher proportionnellement au montant remboursé.
  *
  * Avant : Klik&Go gardait 100% de la commission même sur un refund total.
- * Conséquence : soit le boucher perdait l'argent (a livré la viande), soit
+ * Conséquence : soit le boucher perdait l'argent (commande déjà remise), soit
  * Klik&Go violait son obligation de rendre 100% au consommateur.
  *
  * Désormais :
@@ -387,7 +387,7 @@ async function processRefund(orderId: string, charge: Stripe.Charge) {
       refundedPlatformFeeCents: platformFeeRefundCents,
       shopPayoutCents: shopPayoutAdjustedCents,
       // Statut : on ne CANCELLED que si full refund. Sinon on laisse le statut courant
-      // (le boucher peut encore livrer le reste).
+      // (le boucher peut encore remettre le reste de la commande).
       status: isFullRefund ? "CANCELLED" : undefined,
     },
   });

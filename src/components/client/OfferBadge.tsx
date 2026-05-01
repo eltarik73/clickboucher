@@ -8,7 +8,7 @@ export function OfferBadge({
   let label = "";
 
   switch (type) {
-    case "FREE_DELIVERY":
+    case "FREE_FEES":
       label = "🚀 FRAIS OFFERTS";
       break;
     case "PERCENT":

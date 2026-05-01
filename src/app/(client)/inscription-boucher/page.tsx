@@ -10,12 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormWizard, WizardStep } from "@/components/ui/FormWizard";
 
-const PACKS: Record<string, { name: string; price: string }> = {
-  essentiel: { name: "Essentiel", price: "49€/mois" },
-  premium: { name: "Premium", price: "99€/mois" },
-  entreprise: { name: "Entreprise", price: "199€/mois" },
-};
-
 const inputCls =
   "border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]";
 
@@ -36,8 +30,6 @@ export default function InscriptionBoucherPage() {
 function InscriptionBoucherContent() {
   const { isLoaded, isSignedIn } = useUser();
   const searchParams = useSearchParams();
-  const packKey = searchParams.get("pack") || "essentiel";
-  const pack = PACKS[packKey] || PACKS.essentiel;
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -80,7 +72,6 @@ function InscriptionBoucherContent() {
           email: email.trim(),
           siret: siret.trim(),
           description: description.trim() || undefined,
-          pack: packKey,
           referralCode: referralCode.trim() || undefined,
         }),
       });
@@ -114,9 +105,6 @@ function InscriptionBoucherContent() {
               Votre boucherie est en cours de validation. Vous recevrez un email
               de confirmation sous 24h.
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Pack sélectionné : {pack.name} — {pack.price}
-            </p>
             <Button
               className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]"
               size="lg"
@@ -149,9 +137,7 @@ function InscriptionBoucherContent() {
               size="lg"
               asChild
             >
-              <Link
-                href={`/sign-in?redirect_url=/inscription-boucher?pack=${packKey}`}
-              >
+              <Link href="/sign-in?redirect_url=/inscription-boucher">
                 Se connecter
               </Link>
             </Button>
@@ -333,8 +319,8 @@ function InscriptionBoucherContent() {
               className="mt-1 w-4 h-4 accent-[#DC2626] rounded"
             />
             <span className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              J&apos;accepte les conditions générales de vente et la période
-              d&apos;essai gratuite de 30 jours.
+              J&apos;accepte les conditions générales de vente. Klik&amp;Go est
+              100% gratuit (commission uniquement sur les commandes encaissées).
             </span>
           </label>
         </div>
@@ -348,17 +334,17 @@ function InscriptionBoucherContent() {
       <Header />
 
       <main className="max-w-xl mx-auto px-5 mt-6 space-y-5">
-        {/* Pack selected */}
-        <div className="bg-[#DC2626]/5 dark:bg-[#DC2626]/10 rounded-2xl p-5 border border-[#DC2626]/10">
+        {/* Free badge */}
+        <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-5 border border-emerald-200 dark:border-emerald-500/20">
           <div className="flex items-center gap-2.5 mb-1">
-            <Store size={18} className="text-[#DC2626]" />
+            <Store size={18} className="text-emerald-600 dark:text-emerald-400" />
             <h2 className="text-base font-bold text-gray-900 dark:text-white">
-              Pack {pack.name} — {pack.price}
+              Inscription 100% gratuite
             </h2>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            30 jours d&apos;essai gratuit inclus. Changez de formule à tout
-            moment.
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement
+            via une petite commission sur les commandes encaissées.
           </p>
         </div>
 
