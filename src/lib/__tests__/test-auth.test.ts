@@ -5,7 +5,7 @@
 // let bypass-Clerk users hit privileged routes. We pin the conditions so
 // any future edit that loosens the gate fails CI immediately.
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { isTestMode, testRoleToClerkRole, TEST_USERS } from "@/lib/auth/test-auth";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -29,14 +29,14 @@ describe("isTestMode", () => {
 
   it("should return true in dev/test when TEST_MODE='true'", () => {
     process.env.TEST_MODE = "true";
-    process.env.NODE_ENV = "development";
+    vi.stubEnv("NODE_ENV", "development");
     expect(isTestMode()).toBe(true);
   });
 
   it("should refuse to enable in production unless ALLOW_TEST_IN_PROD is explicitly set", () => {
     // Critical security gate — without this guard, prod would accept fake users
     process.env.TEST_MODE = "true";
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     delete process.env.ALLOW_TEST_IN_PROD;
     expect(isTestMode()).toBe(false);
     process.env.ALLOW_TEST_IN_PROD = "true";
