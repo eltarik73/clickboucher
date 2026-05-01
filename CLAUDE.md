@@ -71,7 +71,10 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - **Rate limiting** : Upstash Redis
 - **QR Code** : qrcode.react + html5-qrcode (scan)
 - **Charts** : Recharts (dashboard boucher)
-- **Hébergement** : Vercel (frontend + serverless, auto-deploy on push to main) + Railway (PostgreSQL)
+- **Hébergement** :
+  - **Frontend Next.js + serverless** : Vercel (auto-deploy on push to main) — **seul service web actif**
+  - **PostgreSQL** : Railway (DB uniquement, host `switchyard.proxy.rlwy.net`)
+  - ⚠️ **Pas de service Next.js sur Railway** : l'ancien service `clickboucher` du projet Railway `perpetual-clarity` doit rester désactivé (ou supprimé). Sinon il essaie de re-builder à chaque push GitHub et envoie des emails "Build failed" inutiles. Si tu reçois ces mails : Railway dashboard → projet `perpetual-clarity` → service `clickboucher` (PAS le service Postgres) → Settings → désactiver Auto Deploy ou Delete Service.
 - **Repo** : https://github.com/eltarik73/clickboucher
 - **Production** : https://klikandgo.app (canonical, sans www)
 
