@@ -377,6 +377,25 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - `www.klikandgo.app` → `klikandgo.app` (301 Vercel-level) — le domaine canonique est SANS www
 - `/boucheries` → `/` (301 permanent, next.config.mjs)
 
+### GEO / AIO (visibilité dans les IA — ChatGPT, Claude, Perplexity, Gemini, Bing Copilot)
+- **`public/llms.txt`** : description structurée de Klik&Go pour les LLMs (standard 2026 adopté par Anthropic/Stripe/Cloudflare). Bumper `lastModified` si la description change.
+- **IndexNow** (Bing/Copilot/Yandex/DuckDuckGo) : `src/lib/indexnow.ts` + clé publique dans `public/{key}.txt`. Auto-trigger sur shop validate. Endpoint manuel `POST /api/_seo/indexnow` (admin).
+- **AI crawlers dans `robots.ts`** : règles explicites pour GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, ChatGPT-User, Claude-User, Google-Extended, PerplexityBot, Applebot-Extended. Allow par défaut.
+- **Freshness** : composant `<LastUpdated date="YYYY-MM-DD" />` sur pages SEO — bumper `PAGE_LAST_UPDATED` quand le contenu change vraiment (signal fort pour Perplexity/ChatGPT).
+
+### Vérifications Search Engines (Google/Bing/Yandex)
+Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
+- **`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`** : Google Search Console → Property → Settings → Ownership verification → HTML tag (copier le `content="..."`)
+- **`NEXT_PUBLIC_BING_SITE_VERIFICATION`** : Bing Webmaster Tools → Settings → Site → Site verification → Meta tag (copier le `content="..."`). Alternative : importer auto depuis Search Console (pas besoin de meta tag).
+- **`NEXT_PUBLIC_YANDEX_VERIFICATION`** : Yandex Webmaster (optionnel)
+
+### Setup Bing Webmaster Tools (5 min)
+1. Créer compte sur https://www.bing.com/webmasters/
+2. **Option recommandée — Import depuis Google Search Console** : "Add a site" → "Import from Google Search Console" (validation auto)
+3. Soumettre sitemap : `https://klikandgo.app/sitemap.xml`
+4. Soumettre IndexNow key : Settings → IndexNow → ajouter `https://klikandgo.app/{key}.txt`
+5. Pour le AI Performance Dashboard (lancé fév 2026) : Reports → AI Performance — surveille les citations Copilot/ChatGPT Search
+
 ## Conventions
 
 - Prix toujours en **centimes** (`priceCents`, `totalCents`)

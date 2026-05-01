@@ -104,6 +104,27 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  // Search engine ownership verification meta tags. Each provider gives you
+  // a unique code; we read them from env so they stay out of git.
+  // - Google: Search Console → Property → Settings → Ownership verification → HTML tag
+  //   then set NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION on Vercel
+  // - Bing: Webmaster Tools → Settings → Site → Site verification → Meta tag option
+  //   then set NEXT_PUBLIC_BING_SITE_VERIFICATION on Vercel
+  // - Yandex (optional): Yandex Webmaster → Site rights → Meta tag
+  //   then set NEXT_PUBLIC_YANDEX_VERIFICATION on Vercel
+  verification: {
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
+      google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    }),
+    ...(process.env.NEXT_PUBLIC_YANDEX_VERIFICATION && {
+      yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+    }),
+    other: {
+      ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && {
+        "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
+      }),
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
