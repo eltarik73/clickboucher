@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
@@ -78,8 +78,14 @@ export async function GET(
     if (role === "ADMIN") {
       // Admin can see all
     } else if (role === "BOUCHER") {
-      // Check ownership with OR clause (ownerId may store clerkId OR dbUser.id)
-      if (order.shop.ownerId !== userId && order.shop.ownerId !== dbUser?.id) {
+      // Check ownership with OR clause (ownerId may store clerkId OR dbUser.id;
+      // in test mode, getBoucherOwnerUserId() returns the real shop ownerId)
+      const testOwner = await getBoucherOwnerUserId();
+      if (
+        order.shop.ownerId !== userId &&
+        order.shop.ownerId !== dbUser?.id &&
+        order.shop.ownerId !== testOwner
+      ) {
         return apiError("FORBIDDEN", "Cette commande n'appartient pas a votre boucherie");
       }
     } else {

@@ -3,7 +3,7 @@ import { put, del } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import crypto from "crypto";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import { z } from "zod";
 
 const deleteImageSchema = z.object({
@@ -172,7 +172,8 @@ export async function DELETE(req: NextRequest) {
       if (!ownerId) {
         return apiError("NOT_FOUND", "Image introuvable ou déjà supprimée");
       }
-      if (ownerId !== userId && ownerId !== dbUser.id) {
+      const testOwner = await getBoucherOwnerUserId();
+      if (ownerId !== userId && ownerId !== dbUser.id && ownerId !== testOwner) {
         return apiError("FORBIDDEN", "Cette image ne vous appartient pas");
       }
     }

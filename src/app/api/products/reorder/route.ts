@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { reorderProductsSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest) {
     // Verify ownership or admin
     const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
     if (!isAdmin(dbUser?.role)) {
+      const ownerId = await getBoucherOwnerUserId();
       const shop = await prisma.shop.findUnique({
         where: { id: shopId },
         select: { ownerId: true },
@@ -30,7 +31,7 @@ export async function PATCH(req: NextRequest) {
       if (!shop) {
         return apiError("NOT_FOUND", "Boucherie introuvable");
       }
-      if (shop.ownerId !== userId && shop.ownerId !== dbUser?.id) {
+      if (shop.ownerId !== userId && shop.ownerId !== dbUser?.id && shop.ownerId !== ownerId) {
         return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
       }
     }

@@ -1,6 +1,6 @@
 // src/app/api/orders/[id]/status/route.ts — Lightweight order status endpoint (for polling)
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
@@ -75,8 +75,9 @@ export async function GET(
 
     // Permission: client owner or shop owner
     if (order.user.clerkId !== userId) {
-      // Check shop ownership with OR clause (ownerId may store clerkId OR dbUser.id)
-      const [shop, dbUser] = await Promise.all([
+      // Check shop ownership with OR clause (ownerId may store clerkId OR dbUser.id;
+      // in test mode, getBoucherOwnerUserId() returns the real shop ownerId)
+      const [shop, dbUser, testOwner] = await Promise.all([
         prisma.shop.findUnique({
           where: { id: order.shop.id },
           select: { ownerId: true },
@@ -85,8 +86,13 @@ export async function GET(
           where: { clerkId: userId },
           select: { id: true },
         }),
+        getBoucherOwnerUserId(),
       ]);
-      if (shop?.ownerId !== userId && shop?.ownerId !== dbUser?.id) {
+      if (
+        shop?.ownerId !== userId &&
+        shop?.ownerId !== dbUser?.id &&
+        shop?.ownerId !== testOwner
+      ) {
         return apiError("FORBIDDEN", "Accès refusé");
       }
     }

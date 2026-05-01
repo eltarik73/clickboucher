@@ -1,4 +1,4 @@
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -25,7 +25,13 @@ export async function GET(
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
 
-    if (shop.ownerId !== clerkId && shop.ownerId !== dbUser?.id && !isAdmin(dbUser?.role)) {
+    const testOwner = await getBoucherOwnerUserId();
+    if (
+      shop.ownerId !== clerkId &&
+      shop.ownerId !== dbUser?.id &&
+      shop.ownerId !== testOwner &&
+      !isAdmin(dbUser?.role)
+    ) {
       return apiError("FORBIDDEN", "Accès refusé");
     }
 
