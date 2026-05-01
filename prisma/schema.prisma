@@ -106,21 +106,6 @@ enum PromoType {
   FIXED_AMOUNT
 }
 
-enum SubscriptionPlan {
-  STARTER
-  PRO
-  PREMIUM
-}
-
-enum SubscriptionStatus {
-  TRIAL
-  PENDING
-  ACTIVE
-  SUSPENDED
-  CANCELLED
-  EXPIRED
-}
-
 enum TicketStatus {
   OPEN
   AI_HANDLED
@@ -477,7 +462,6 @@ model Shop {
   favoritedBy       User[]           @relation("UserFavorites")
   reviews           Review[]
   loyaltyRules      LoyaltyRule[]
-  subscription      Subscription?
   supportTickets    SupportTicket[]
   suggestRules      SuggestRule[]
   carts             Cart[]
@@ -722,52 +706,6 @@ model ProductLabel {
 
   @@index([productId])
   @@map("product_labels")
-}
-
-// ══════════════════════════════════════════
-// SUBSCRIPTION
-// ══════════════════════════════════════════
-
-model Subscription {
-  id     String @id @default(cuid())
-  shopId String @unique @map("shop_id")
-  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  plan   SubscriptionPlan   @default(STARTER)
-  status SubscriptionStatus @default(TRIAL)
-
-  trialEndsAt          DateTime? @map("trial_ends_at")
-  stripeCustomerId     String?   @map("stripe_customer_id")
-  stripeSubscriptionId String?   @map("stripe_subscription_id")
-  billingCycle         String    @default("monthly") @map("billing_cycle")
-  yearlyDiscount       Boolean   @default(false) @map("yearly_discount")
-
-  validatedAt        DateTime? @map("validated_at")
-  validatedBy        String?   @map("validated_by")
-  currentPeriodStart DateTime? @map("current_period_start")
-  currentPeriodEnd   DateTime? @map("current_period_end")
-  adminNote          String?   @map("admin_note")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("subscriptions")
-}
-
-// ══════════════════════════════════════════
-// PLAN FEATURE
-// ══════════════════════════════════════════
-
-model PlanFeature {
-  id          String           @id @default(cuid())
-  plan        SubscriptionPlan
-  featureKey  String           @map("feature_key")
-  featureName String           @map("feature_name")
-  description String?
-  enabled     Boolean          @default(true)
-
-  @@unique([plan, featureKey])
-  @@map("plan_features")
 }
 
 // ══════════════════════════════════════════

@@ -54,17 +54,11 @@ type ShopAdmin = {
   productCount: number;
   orderCount: number;
   reviewCount: number;
-  subscription: {
-    plan: string;
-    status: string;
-    trialEndsAt: string | null;
-    validatedAt: string | null;
-  } | null;
 };
 
 // ── Helpers ──
 
-import { SHOP_STATUS_COLORS as STATUS_COLORS, SUB_STATUS_COLORS, PLAN_COLORS } from "@/lib/design-tokens";
+import { SHOP_STATUS_COLORS as STATUS_COLORS } from "@/lib/design-tokens";
 
 function ShopAvatar({ src, name, size = 44 }: { src?: string | null; name: string; size?: number }) {
   return (
@@ -90,7 +84,6 @@ export default function WebmasterBoutiquesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [subFilter, setSubFilter] = useState("all");
   const [sortBy, setSortBy] = useState<"createdAt" | "name" | "rating" | "orders">("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -124,15 +117,6 @@ export default function WebmasterBoutiquesPage() {
       result = result.filter((s) => s.status === statusFilter);
     }
 
-    // Subscription filter
-    if (subFilter !== "all") {
-      if (subFilter === "none") {
-        result = result.filter((s) => !s.subscription);
-      } else {
-        result = result.filter((s) => s.subscription?.status === subFilter);
-      }
-    }
-
     // Sort
     result.sort((a, b) => {
       let cmp = 0;
@@ -147,7 +131,7 @@ export default function WebmasterBoutiquesPage() {
     });
 
     return result;
-  }, [shops, search, statusFilter, subFilter, sortBy, sortDir]);
+  }, [shops, search, statusFilter, sortBy, sortDir]);
 
   async function toggleField(id: string, field: "featured" | "visible") {
     const shop = shops.find((s) => s.id === id);
@@ -228,20 +212,6 @@ export default function WebmasterBoutiquesPage() {
           <option value="VACATION">Vacances</option>
         </select>
 
-        {/* Subscription filter */}
-        <select
-          value={subFilter}
-          onChange={(e) => setSubFilter(e.target.value)}
-          className="px-3 py-2 text-xs font-medium bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-gray-700 dark:text-gray-300"
-        >
-          <option value="all">Tous abonnements</option>
-          <option value="TRIAL">Essai</option>
-          <option value="ACTIVE">Actif</option>
-          <option value="SUSPENDED">Suspendu</option>
-          <option value="CANCELLED">Annule</option>
-          <option value="none">Sans abonnement</option>
-        </select>
-
         {/* Sort */}
         <button
           onClick={() => toggleSort(sortBy === "createdAt" ? "name" : sortBy === "name" ? "rating" : sortBy === "rating" ? "orders" : "createdAt")}
@@ -254,7 +224,7 @@ export default function WebmasterBoutiquesPage() {
       </div>
 
       {/* Results count */}
-      {search || statusFilter !== "all" || subFilter !== "all" ? (
+      {search || statusFilter !== "all" ? (
         <p className="text-[11px] text-gray-500 dark:text-gray-400">{filtered.length} resultat{filtered.length > 1 ? "s" : ""}</p>
       ) : null}
 
@@ -280,16 +250,6 @@ export default function WebmasterBoutiquesPage() {
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${STATUS_COLORS[s.status] || "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400"}`}>
                     {s.status}
                   </span>
-                  {s.subscription && (
-                    <>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md ${PLAN_COLORS[s.subscription.plan] || ""}`}>
-                        {s.subscription.plan}
-                      </span>
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${SUB_STATUS_COLORS[s.subscription.status] || ""}`}>
-                        {s.subscription.status}
-                      </span>
-                    </>
-                  )}
                   {s.featured && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
                       En avant

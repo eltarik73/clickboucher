@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════
 // KLIK&GO — Seed V4 UBER EATS STYLE
-// 10 boucheries halal + subscriptions + calendar
+// 10 boucheries halal + calendar
 // + suggest rules + referrals + plan features
 // ═══════════════════════════════════════════════
 
@@ -300,8 +300,6 @@ async function main() {
   await prisma.referral.deleteMany();
   await prisma.suggestRule.deleteMany();
   await prisma.calendarEvent.deleteMany();
-  await prisma.planFeature.deleteMany();
-  await prisma.subscription.deleteMany();
   await prisma.supportMessage.deleteMany();
   await prisma.supportTicket.deleteMany();
   await prisma.cartItem.deleteMany();
@@ -520,52 +518,7 @@ async function main() {
   console.log("   ✅ 5 loyalty rules");
 
   // ═══════════════════════════════════════════
-  // 6. SUBSCRIPTIONS (2 TRIAL + 1 PENDING)
-  // ═══════════════════════════════════════════
-  console.log("\n💳 Creating subscriptions...");
-  await prisma.subscription.create({
-    data: { shopId: shopRecords[0].id, plan: "PRO", status: "TRIAL", trialEndsAt: daysFromNow(30) },
-  });
-  await prisma.subscription.create({
-    data: { shopId: shopRecords[1].id, plan: "STARTER", status: "TRIAL", trialEndsAt: daysFromNow(30) },
-  });
-  await prisma.subscription.create({
-    data: { shopId: shopRecords[2].id, plan: "PREMIUM", status: "PENDING", adminNote: "En attente de validation admin" },
-  });
-  console.log("   ✅ 3 subscriptions (2 TRIAL + 1 PENDING)");
-
-  // ═══════════════════════════════════════════
-  // 7. PLAN FEATURES
-  // ═══════════════════════════════════════════
-  console.log("\n📋 Creating plan features...");
-
-  const features = [
-    { key: "products_limit",    name: "Jusqu'à 30 produits",     starter: true,  pro: true,  premium: true },
-    { key: "basic_orders",      name: "Gestion commandes",       starter: true,  pro: true,  premium: true },
-    { key: "basic_stats",       name: "Statistiques basiques",   starter: true,  pro: true,  premium: true },
-    { key: "single_image",      name: "1 photo par produit",     starter: true,  pro: true,  premium: true },
-    { key: "pickup_slots",      name: "Créneaux retrait",        starter: true,  pro: true,  premium: true },
-    { key: "pay_on_pickup",     name: "Paiement sur place",      starter: true,  pro: true,  premium: true },
-    { key: "ai_chat",           name: "Chat IA commandes",       starter: false, pro: true,  premium: true },
-    { key: "promo_flash",       name: "Promos flash",            starter: false, pro: true,  premium: true },
-    { key: "multi_images",      name: "Photos multiples",        starter: false, pro: true,  premium: true },
-    { key: "advanced_stats",    name: "Stats avancées",          starter: false, pro: true,  premium: true },
-    { key: "whatsapp_notif",    name: "Notifications WhatsApp",  starter: false, pro: true,  premium: true },
-    { key: "loyalty_program",   name: "Programme fidélité",      starter: false, pro: false, premium: true },
-    { key: "priority_support",  name: "Support prioritaire",     starter: false, pro: false, premium: true },
-    { key: "recurring_orders",  name: "Commandes récurrentes",   starter: false, pro: false, premium: true },
-    { key: "custom_branding",   name: "Branding personnalisé",   starter: false, pro: false, premium: true },
-  ];
-
-  for (const f of features) {
-    await prisma.planFeature.create({ data: { plan: "STARTER", featureKey: f.key, featureName: f.name, enabled: f.starter } });
-    await prisma.planFeature.create({ data: { plan: "PRO", featureKey: f.key, featureName: f.name, enabled: f.pro } });
-    await prisma.planFeature.create({ data: { plan: "PREMIUM", featureKey: f.key, featureName: f.name, enabled: f.premium } });
-  }
-  console.log(`   ✅ ${features.length * 3} plan features (3 plans x ${features.length})`);
-
-  // ═══════════════════════════════════════════
-  // 8. CALENDAR EVENTS
+  // 6. CALENDAR EVENTS
   // ═══════════════════════════════════════════
   console.log("\n📅 Creating calendar events...");
   await prisma.calendarEvent.create({ data: { name: "Ramadan début", description: "Début du mois sacré du Ramadan", date: new Date("2026-02-17"), type: "religious", alertDaysBefore: 14, active: true } });
@@ -613,8 +566,6 @@ async function main() {
   console.log(`   📋 Orders:        4`);
   console.log(`   ⭐ Reviews:       ${reviewData.length}`);
   console.log(`   🎁 Loyalty:       5 rules`);
-  console.log(`   💳 Subscriptions: 3`);
-  console.log(`   📋 Plan Features: ${features.length * 3}`);
   console.log(`   📅 Calendar:      4 events`);
   console.log(`   🤝 Suggest Rules: 2`);
   console.log(`   🤝 Referrals:     1`);

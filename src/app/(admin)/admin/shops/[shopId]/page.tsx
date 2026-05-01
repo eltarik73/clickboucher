@@ -14,7 +14,6 @@ import {
   Check,
   Ban,
   Play,
-  Crown,
 } from "lucide-react";
 
 type ShopDetail = {
@@ -26,17 +25,15 @@ type ShopDetail = {
   phone: string;
   status: string;
   visible: boolean;
+  featured: boolean;
+  suspendedAt: string | null;
+  suspendReason: string | null;
+  onboardingCompleted: boolean;
   rating: number;
   ratingCount: number;
   commissionPct: number;
   commissionEnabled: boolean;
   createdAt: string;
-  subscription: {
-    plan: string;
-    status: string;
-    trialEndsAt: string | null;
-    validatedAt: string | null;
-  } | null;
   owner: {
     name: string;
     email: string;
@@ -67,32 +64,6 @@ function fmt(cents: number): string {
   });
 }
 
-function planBadge(plan: string) {
-  const colors: Record<string, string> = {
-    STARTER: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300",
-    PRO: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
-    PREMIUM: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${colors[plan] || colors.STARTER}`}>
-      {plan}
-    </span>
-  );
-}
-
-function subStatusBadge(status: string) {
-  const m: Record<string, { label: string; cls: string }> = {
-    TRIAL: { label: "Essai", cls: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400" },
-    ACTIVE: { label: "Actif", cls: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" },
-    SUSPENDED: { label: "Suspendu", cls: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400" },
-    CANCELLED: { label: "Annulé", cls: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-400" },
-    PENDING: { label: "En attente", cls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-400" },
-    EXPIRED: { label: "Expiré", cls: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-400" },
-  };
-  const s = m[status] || { label: status, cls: "bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300" };
-  return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.cls}`}>{s.label}</span>;
-}
-
 export default function AdminShopDetailPage({ params }: { params: { shopId: string } }) {
   const { shopId } = params;
   const [shop, setShop] = useState<ShopDetail | null>(null);
@@ -118,7 +89,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
     await fetch(`/api/admin/shops/${shopId}/validate`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ approved, plan: "STARTER", trialDays: 14 }),
+      body: JSON.stringify({ approved }),
     });
     await load();
     setActing(false);
@@ -130,17 +101,6 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ suspended }),
-    });
-    await load();
-    setActing(false);
-  }
-
-  async function handlePlanChange(plan: string) {
-    setActing(true);
-    await fetch(`/api/admin/shops/${shopId}/plan`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan }),
     });
     await load();
     setActing(false);
@@ -192,8 +152,6 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
             <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
               {shop.name}
             </h1>
-            {shop.subscription && planBadge(shop.subscription.plan)}
-            {shop.subscription && subStatusBadge(shop.subscription.status)}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {shop.address}, {shop.city} &middot; {shop.phone}
@@ -207,7 +165,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
-          {!shop.visible && (
+          {!shop.onboardingCompleted && (
             <button
               onClick={() => handleValidate(true)}
               disabled={acting}
@@ -216,7 +174,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
               <Check size={14} /> Valider
             </button>
           )}
-          {shop.visible && shop.subscription?.status !== "SUSPENDED" && (
+          {!shop.suspendedAt && (
             <button
               onClick={() => handleSuspend(true)}
               disabled={acting}
@@ -225,7 +183,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
               <Ban size={14} /> Suspendre
             </button>
           )}
-          {shop.subscription?.status === "SUSPENDED" && (
+          {shop.suspendedAt && (
             <button
               onClick={() => handleSuspend(false)}
               disabled={acting}
@@ -233,25 +191,6 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
             >
               <Play size={14} /> Réactiver
             </button>
-          )}
-          {shop.subscription && (
-            <div className="flex items-center gap-1">
-              <Crown size={14} className="text-amber-500" />
-              {(["STARTER", "PRO", "PREMIUM"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => handlePlanChange(p)}
-                  disabled={acting || shop.subscription?.plan === p}
-                  className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                    shop.subscription?.plan === p
-                      ? "bg-[#DC2626] text-white"
-                      : "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/15"
-                  } disabled:opacity-50`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
           )}
         </div>
       </div>

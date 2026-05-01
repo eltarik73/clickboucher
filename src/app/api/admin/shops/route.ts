@@ -4,7 +4,7 @@ import { apiSuccess, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
-// Admin-only: all shops with counts + owner info + subscription
+// Admin-only: all shops with counts + owner info
 export async function GET() {
   try {
     const admin = await requireAdmin();
@@ -12,9 +12,6 @@ export async function GET() {
 
     const shops = await prisma.shop.findMany({
       include: {
-        subscription: {
-          select: { plan: true, status: true, trialEndsAt: true, validatedAt: true },
-        },
         _count: { select: { products: true, orders: true, reviews: true } },
       },
       orderBy: { createdAt: "desc" },

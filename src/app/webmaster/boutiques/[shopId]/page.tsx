@@ -50,14 +50,7 @@ type ShopDetail = {
   legalName: string | null;
   suspendedAt: string | null;
   suspendReason: string | null;
-  subscription: {
-    id: string;
-    plan: string;
-    status: string;
-    trialEndsAt: string | null;
-    validatedAt: string | null;
-    adminNote: string | null;
-  } | null;
+  onboardingCompleted: boolean;
   owner: { name: string; email: string; phone: string | null } | null;
   stats: {
     totalRevenue: number;
@@ -83,7 +76,7 @@ function centsToEuro(c: number) {
   return (c / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
-import { ORDER_STATUS_COLORS, PLAN_COLORS, SUB_STATUS_COLORS } from "@/lib/design-tokens";
+import { ORDER_STATUS_COLORS } from "@/lib/design-tokens";
 
 // ── Component ──
 
@@ -93,10 +86,6 @@ export default function WebmasterShopDetailPage() {
   const [shop, setShop] = useState<ShopDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  // Plan change state
-  const [showPlanModal, setShowPlanModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("");
 
   // Commission state
   const [commissionPct, setCommissionPct] = useState(0);
@@ -136,7 +125,7 @@ export default function WebmasterShopDetailPage() {
       const res = await fetch(`/api/admin/shops/${shopId}/validate`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved, plan: "STARTER", trialDays: 14 }),
+        body: JSON.stringify({ approved }),
       });
       if (res.ok) await fetchShop();
       else toast.error("Erreur");
@@ -171,23 +160,6 @@ export default function WebmasterShopDetailPage() {
       });
       if (res.ok) await fetchShop();
       else toast.error("Erreur");
-    } catch { toast.error("Erreur de connexion au serveur"); }
-    setActionLoading(null);
-  }
-
-  async function handleChangePlan() {
-    if (!selectedPlan) return;
-    setActionLoading("plan");
-    try {
-      const res = await fetch(`/api/admin/shops/${shopId}/plan`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: selectedPlan }),
-      });
-      if (res.ok) {
-        setShowPlanModal(false);
-        await fetchShop();
-      } else toast.error("Erreur");
     } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
@@ -246,8 +218,8 @@ export default function WebmasterShopDetailPage() {
     );
   }
 
-  const isSuspended = shop.subscription?.status === "SUSPENDED";
-  const isNotValidated = !shop.subscription?.validatedAt && !shop.visible;
+  const isSuspended = !!shop.suspendedAt;
+  const isNotValidated = !shop.onboardingCompleted && !shop.visible;
   const avgOrder = shop.stats.completedOrders > 0
     ? Math.round(shop.stats.totalRevenue / shop.stats.completedOrders)
     : 0;
@@ -267,13 +239,10 @@ export default function WebmasterShopDetailPage() {
             <h1 className="font-display text-xl font-bold text-gray-900 dark:text-white truncate">
               {shop.name}
             </h1>
-            {shop.subscription && (
+            {shop.visible && (
               <>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${PLAN_COLORS[shop.subscription.plan] || ""}`}>
-                  {shop.subscription.plan}
-                </span>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${SUB_STATUS_COLORS[shop.subscription.status] || ""}`}>
-                  {shop.subscription.status}
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  ACTIVE
                 </span>
               </>
             )}
@@ -380,8 +349,8 @@ export default function WebmasterShopDetailPage() {
             <PauseCircle size={16} className="text-red-500" />
             <span className="text-sm font-bold text-red-700 dark:text-red-400">Boutique suspendue</span>
           </div>
-          {shop.subscription?.adminNote && (
-            <p className="text-xs text-red-600 dark:text-red-400/80 mb-3">Raison: {shop.subscription.adminNote}</p>
+          {shop.suspendReason && (
+            <p className="text-xs text-red-600 dark:text-red-400/80 mb-3">Raison: {shop.suspendReason}</p>
           )}
           <button
             onClick={handleReactivate}
@@ -422,85 +391,7 @@ export default function WebmasterShopDetailPage() {
       </div>
 
       {/* Admin actions row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Subscription / Plan management */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Abonnement</h3>
-
-          {shop.subscription ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Plan actuel</span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${PLAN_COLORS[shop.subscription.plan] || ""}`}>
-                  {shop.subscription.plan}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Statut</span>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-md ${SUB_STATUS_COLORS[shop.subscription.status] || ""}`}>
-                  {shop.subscription.status}
-                </span>
-              </div>
-              {shop.subscription.trialEndsAt && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Fin essai</span>
-                  <span className="text-xs text-gray-700 dark:text-gray-300">
-                    {new Date(shop.subscription.trialEndsAt).toLocaleDateString("fr-FR")}
-                  </span>
-                </div>
-              )}
-              {shop.subscription.adminNote && (
-                <p className="text-[11px] text-gray-500 dark:text-gray-400 italic">Note: {shop.subscription.adminNote}</p>
-              )}
-
-              {/* Change plan */}
-              {!showPlanModal ? (
-                <button
-                  onClick={() => { setSelectedPlan(shop.subscription!.plan); setShowPlanModal(true); }}
-                  className="w-full mt-2 px-3 py-2 text-xs font-semibold text-[#DC2626] bg-[#DC2626]/10 rounded-xl hover:bg-[#DC2626]/20 transition-colors"
-                >
-                  Changer de plan
-                </button>
-              ) : (
-                <div className="mt-2 space-y-2">
-                  <div className="flex gap-2">
-                    {["STARTER", "PRO", "PREMIUM"].map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setSelectedPlan(p)}
-                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
-                          selectedPlan === p
-                            ? "bg-[#DC2626] text-white"
-                            : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleChangePlan}
-                      disabled={actionLoading === "plan" || selectedPlan === shop.subscription.plan}
-                      className="flex-1 py-2 text-xs font-semibold bg-[#DC2626] text-white rounded-lg disabled:opacity-50 hover:bg-[#b91c1c] transition-colors"
-                    >
-                      {actionLoading === "plan" ? "..." : "Confirmer"}
-                    </button>
-                    <button
-                      onClick={() => setShowPlanModal(false)}
-                      className="py-2 px-3 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-500 dark:text-gray-400">Aucun abonnement</p>
-          )}
-        </div>
-
+      <div className="grid grid-cols-1 gap-4">
         {/* Commission + Suspend */}
         <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5 space-y-5">
           {/* Commission */}
