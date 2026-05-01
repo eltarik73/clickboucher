@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
 import { apiSuccess, apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
@@ -15,12 +15,21 @@ export async function GET(req: NextRequest) {
 
     // ?owned=true — return shops owned by the current user (for boucher)
     if (params.owned === "true") {
-      const clerkId = await getServerUserId();
-      if (!clerkId) {
+      const ownerId = await getBoucherOwnerUserId();
+      if (!ownerId) {
         return apiError("UNAUTHORIZED", "Authentification requise");
       }
+      const dbUser = await prisma.user.findUnique({
+        where: { clerkId: ownerId },
+        select: { id: true },
+      });
       const shops = await prisma.shop.findMany({
-        where: { ownerId: clerkId },
+        where: {
+          OR: [
+            { ownerId },
+            ...(dbUser ? [{ ownerId: dbUser.id }] : []),
+          ],
+        },
         select: { id: true, slug: true, name: true, imageUrl: true, city: true },
       });
       return apiSuccess(shops);
