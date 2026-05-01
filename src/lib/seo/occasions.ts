@@ -28,6 +28,24 @@ export type SeoOccasion = {
 
 export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
+    slug: "aid-al-adha",
+    name: "Aïd al-Adha",
+    keyword: "viande aïd al-adha",
+    eventType: "Event",
+    shortDescription:
+      "Commandez votre mouton ou agneau halal pour l'Aïd al-Adha 2026. Sacrifice rituel, découpe, conditionnement par votre boucher partenaire Klik&Go.",
+    intro:
+      "L'Aïd al-Adha (Aïd el-Kebir) est la plus grande fête religieuse musulmane, célébrant le sacrifice d'Abraham. Le 7e jour du mois de Dhul-Hijjah, chaque famille musulmane sacrifie un mouton, une chèvre, une vache ou un chameau, partagé en trois parts égales : la famille, les voisins et amis, et les pauvres. En 2026, l'Aïd al-Adha tombe en juin. Sur Klik&Go, les boucheries halal partenaires vous accompagnent pour la commande, le sacrifice rituel certifié halal, la découpe selon vos besoins (en parts familiales, conditionné sous vide ou en barquettes), et la mise à disposition au créneau choisi. Vous pouvez commander un mouton entier (12-18 kg vivant, soit 6-9 kg de viande nette), une demi-bête, ou directement des morceaux pré-découpés (gigot, épaule, côtelettes, abats). Anticipez : les boucheries halal ont énormément de commandes pendant l'Aïd, le carnet se remplit vite — réservez idéalement 3-4 semaines avant la date.",
+    servingTip: {
+      question: "Quelle quantité d'agneau / mouton pour l'Aïd 2026 ?",
+      answer:
+        "Pour une famille de 5 personnes, comptez un mouton entier (12-15 kg vivant, soit 6-8 kg de viande nette). Pour 8-10 personnes, un agneau de 18-20 kg. La règle traditionnelle : 1/3 famille (~2-3 kg), 1/3 voisins (~2-3 kg), 1/3 pauvres (~2-3 kg).",
+    },
+    bookingDelay: "RÉSERVEZ 3-4 SEMAINES AVANT — les bouchers halal saturent vite leur carnet de commandes pour l'Aïd. En 2026, Aïd al-Adha tombe en juin, réservez dès mai.",
+    season: "summer",
+    priority: "P0",
+  },
+  {
     slug: "mechoui",
     name: "Méchoui",
     keyword: "méchoui",

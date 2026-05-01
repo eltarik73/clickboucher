@@ -16,6 +16,7 @@ import {
   Upload,
   X,
   Check,
+  Globe,
 } from "lucide-react";
 
 type ProspectStatus =
@@ -78,6 +79,7 @@ export default function WebmasterProspectsPage() {
   const [cityFilter, setCityFilter] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showScrape, setShowScrape] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -181,6 +183,13 @@ export default function WebmasterProspectsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowScrape(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
+            title="Scraper Google Places"
+          >
+            <Globe size={13} /> Scraper Google Places
+          </button>
           <button
             onClick={() => setShowImport(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
@@ -375,6 +384,7 @@ export default function WebmasterProspectsPage() {
       {/* Add modal */}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onCreated={() => { setShowAdd(false); fetchData(); }} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); fetchData(); }} />}
+      {showScrape && <ScrapeModal onClose={() => setShowScrape(false)} onDone={() => { setShowScrape(false); fetchData(); }} />}
     </div>
   );
 }
@@ -507,6 +517,135 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Scrape Google Places Modal ──────────────────────
+function ScrapeModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [city, setCity] = useState("");
+  const [radius, setRadius] = useState(15);
+  const [scraping, setScraping] = useState(false);
+  const [result, setResult] = useState<{ scraped: number; upserted: number; sample?: { name: string; address: string }[] } | null>(null);
+
+  async function submit() {
+    if (!city.trim()) return;
+    setScraping(true);
+    try {
+      const res = await fetch("/api/admin/scrape-butchers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city: city.trim(), radiusKm: radius }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const err = data?.error || "Erreur scraping";
+        const hint = data?.hint ? `\n\n💡 ${data.hint}` : "";
+        toast.error(`${err}${hint}`);
+        setScraping(false);
+        return;
+      }
+      setResult({ scraped: data.scraped, upserted: data.upserted, sample: data.sample });
+      toast.success(`${data.upserted} boucherie${data.upserted > 1 ? "s" : ""} ajoutée${data.upserted > 1 ? "s" : ""}/MAJ pour ${city}`);
+    } catch (err) {
+      toast.error(`Erreur réseau : ${String(err)}`);
+    } finally {
+      setScraping(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/10 max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-gray-900 dark:text-white inline-flex items-center gap-2">
+            <Globe size={16} /> Scraper Google Places
+          </h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">
+            <X size={18} />
+          </button>
+        </div>
+
+        {!result ? (
+          <>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              Cherche les boucheries halal d&apos;une ville via Google Places et les ajoute en prospects.
+              Nécessite la variable d&apos;environnement <code className="bg-gray-100 dark:bg-white/10 px-1 rounded">GOOGLE_PLACES_API_KEY</code> côté Vercel.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  Ville
+                </label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Lyon, Grenoble, Chambéry…"
+                  className="w-full px-3 py-2 text-sm bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  Rayon de recherche : {radius} km
+                </label>
+                <input
+                  type="range"
+                  min={5}
+                  max={50}
+                  step={5}
+                  value={radius}
+                  onChange={(e) => setRadius(Number(e.target.value))}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                  <span>5 km</span>
+                  <span>15 km</span>
+                  <span>50 km</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-5">
+              <button onClick={onClose} className="flex-1 px-4 py-2.5 text-sm font-medium bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl">
+                Annuler
+              </button>
+              <button
+                onClick={submit}
+                disabled={!city.trim() || scraping}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold bg-[#DC2626] text-white rounded-xl disabled:opacity-50"
+              >
+                {scraping ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
+                {scraping ? "Scraping…" : "Lancer"}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 mb-4">
+              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 mb-1">
+                ✅ {result.upserted} prospect{result.upserted > 1 ? "s" : ""} ajouté{result.upserted > 1 ? "s" : ""}/MAJ
+              </p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-500">
+                {result.scraped} boucheries trouvées par Google Places
+              </p>
+            </div>
+            {result.sample && result.sample.length > 0 && (
+              <div className="space-y-1.5 mb-4">
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Exemples :</p>
+                {result.sample.map((s, i) => (
+                  <div key={i} className="text-xs bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
+                    <p className="font-semibold text-gray-900 dark:text-white">{s.name}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-[11px]">{s.address}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button onClick={onDone} className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold bg-emerald-600 text-white rounded-xl">
+              <Check size={14} /> Voir les prospects
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

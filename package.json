@@ -21,7 +21,7 @@
   "scripts": {
     "postinstall": "prisma generate && (husky 2>/dev/null || true)",
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "prisma generate && node scripts/prisma-migrate-prod-only.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
