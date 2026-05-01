@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import type { MetadataRoute } from "next";
 import prisma from "@/lib/prisma";
-import { SEO_CITIES } from "@/lib/seo/cities";
+import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -122,6 +122,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      url: `${BASE_URL}/trouver-boucherie-halal`,
+      lastModified: STATIC_CONTENT_UPDATED,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${BASE_URL}/inscription-boucher`,
       lastModified: STATIC_CONTENT_UPDATED,
       changeFrequency: "monthly",
@@ -175,6 +181,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Hub régional + 5 hubs départementaux (annuaire local — Sprint 2-3).
+  const regionalHub: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/boucheries-halal-rhone-alpes`,
+      lastModified: STATIC_CONTENT_UPDATED,
+      changeFrequency: "weekly" as const,
+      priority: 0.9,
+    },
+  ];
+
+  const departmentPages: MetadataRoute.Sitemap = SEO_DEPARTMENTS.map((dept) => ({
+    url: `${BASE_URL}/boucheries-halal/${dept.slug}`,
+    lastModified: STATIC_CONTENT_UPDATED,
+    changeFrequency: "weekly" as const,
+    priority: 0.85,
+  }));
+
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
     url: `${BASE_URL}/recettes/${r.slug}`,
     lastModified: r.updatedAt,
@@ -184,6 +207,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages,
+    ...regionalHub,
+    ...departmentPages,
     ...shopPages,
     ...cityPages,
     ...becomePartnerPages,
