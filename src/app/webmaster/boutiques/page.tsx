@@ -16,6 +16,22 @@ import Image from "next/image";
 
 // ── Types ──
 
+type ShopTier = "BRONZE" | "SILVER" | "GOLD" | "PLATINUM";
+
+const TIER_RATES: Record<ShopTier, number> = {
+  BRONZE: 8,
+  SILVER: 7,
+  GOLD: 6,
+  PLATINUM: 5,
+};
+
+const TIER_LABELS: Record<ShopTier, string> = {
+  BRONZE: "Bronze",
+  SILVER: "Argent",
+  GOLD: "Or",
+  PLATINUM: "Platine",
+};
+
 type ShopAdmin = {
   id: string;
   name: string;
@@ -30,6 +46,7 @@ type ShopAdmin = {
   ratingCount: number;
   commissionPct: number;
   commissionEnabled: boolean;
+  tier: ShopTier;
   createdAt: string;
   ownerId: string;
   ownerName: string;
@@ -285,7 +302,7 @@ export default function WebmasterBoutiquesPage() {
                   {s.city}
                   {s.rating > 0 ? ` · ${s.rating.toFixed(1)}★` : ""}
                   {` · ${s.productCount} prod. · ${s.orderCount} cmd.`}
-                  {s.commissionEnabled ? ` · ${s.commissionPct}% com.` : ""}
+                  {` · ${TIER_LABELS[s.tier ?? "BRONZE"]} ${TIER_RATES[s.tier ?? "BRONZE"]}%`}
                 </p>
 
                 {/* Row 3: Owner */}

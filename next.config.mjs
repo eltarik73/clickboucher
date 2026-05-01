@@ -36,6 +36,10 @@ const nextConfig = {
       // Common 404s reported by audit — map to nearest existing page
       { source: "/cgu", destination: "/cgv", permanent: true },
       { source: "/confidentialite", destination: "/politique-de-confidentialite", permanent: true },
+      // Boucher area aliases — sidebar uses /shop/offers but boucher namespace is more discoverable
+      { source: "/boucher/offres", destination: "/shop/offers", permanent: true },
+      { source: "/boucher/offers", destination: "/shop/offers", permanent: true },
+      { source: "/boucher/promos", destination: "/shop/offers", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.klikandgo.app" }],
