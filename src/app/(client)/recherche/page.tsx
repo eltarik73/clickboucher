@@ -36,11 +36,20 @@ export default function RecherchePage() {
     setLoading(true);
     try {
       const [productsRes, shopsRes] = await Promise.all([
-        fetch(`/api/search?q=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => ({ results: [] })),
-        fetch(`/api/shops?q=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => []),
+        fetch(`/api/search?q=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => ({ data: { results: [] } })),
+        fetch(`/api/shops?q=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => ({ data: [] })),
       ]);
 
-      const shopResults: SearchResult[] = (Array.isArray(shopsRes) ? shopsRes : shopsRes.shops || [])
+      // Both APIs wrap in { success, data }. /api/shops also returns array directly when called raw.
+      const shopsArr = Array.isArray(shopsRes)
+        ? shopsRes
+        : Array.isArray(shopsRes?.data)
+          ? shopsRes.data
+          : shopsRes?.shops || [];
+      const productsArr =
+        productsRes?.data?.results ?? productsRes?.results ?? [];
+
+      const shopResults: SearchResult[] = shopsArr
         .slice(0, 5)
         .map((s: Record<string, string>) => ({
           id: s.id,
@@ -51,15 +60,15 @@ export default function RecherchePage() {
           address: s.address,
         }));
 
-      const productResults: SearchResult[] = (productsRes.results || [])
+      const productResults: SearchResult[] = productsArr
         .slice(0, 10)
-        .map((p: Record<string, string | number | null>) => ({
+        .map((p: Record<string, string | number | null> & { shop?: { name?: string; slug?: string } }) => ({
           id: p.id as string,
           name: p.name as string,
           type: "product" as const,
           imageUrl: p.imageUrl as string | null,
-          shopName: p.shopName as string,
-          shopSlug: p.shopSlug as string,
+          shopName: p.shop?.name ?? (p.shopName as string),
+          shopSlug: p.shop?.slug ?? (p.shopSlug as string),
           priceCents: p.priceCents as number,
           unit: p.unit as string,
           category: p.categoryName as string,
