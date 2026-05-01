@@ -67,11 +67,13 @@ interface ShopSchemaProps {
 export function ShopSchema({ shop }: ShopSchemaProps) {
   const schema: Record<string, unknown> = {
     "@context": "https://schema.org",
-    // Hybrid type unlocks both retail rich results AND Local Pack inclusion
-    // (audit SEO MED #13).
-    "@type": ["Store", "LocalBusiness"],
+    // Triple-type : Store (retail rich results) + LocalBusiness (Pack Local)
+    // + FoodEstablishment (signal halal certifié food retail). Annuaire local
+    // SEO Sprint 12 (audit mai 2026).
+    "@type": ["Store", "FoodEstablishment", "LocalBusiness"],
     "@id": `${SITE_URL}/boutique/${shop.slug}`,
     name: shop.name,
+    ...(shop.city && { alternateName: `${shop.name} ${shop.city}` }),
     url: `${SITE_URL}/boutique/${shop.slug}`,
     ...(shop.description && { description: shop.description }),
     ...(shop.phone && { telephone: shop.phone }),
@@ -79,7 +81,11 @@ export function ShopSchema({ shop }: ShopSchemaProps) {
     priceRange: "€€",
     currenciesAccepted: "EUR",
     paymentAccepted: "Cash, Credit Card",
-    servesCuisine: "Halal",
+    servesCuisine: ["Halal", "Méditerranéenne"],
+    acceptsReservations: false,
+    keywords: shop.city
+      ? `boucherie halal, click and collect, ${shop.city}, viande halal certifiée`
+      : "boucherie halal, click and collect, viande halal certifiée",
   };
 
   if (shop.address) {
