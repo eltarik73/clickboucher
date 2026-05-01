@@ -1,0 +1,12 @@
+node_modules
+.next
+.turbo
+build
+dist
+out
+coverage
+prisma/migrations
+public
+*.log
+.env*
+package-lock.json

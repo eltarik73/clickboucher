@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# Conventional Commits validation (without commitlint dep)
+# Format: <type>(<scope>): <subject>
+#   type: feat | fix | chore | docs | refactor | test | perf | style | ci | build
+#   subject: lowercase, no period at end (max 100 chars first line)
+
+commit_regex='^(feat|fix|chore|docs|refactor|test|perf|style|ci|build|revert)(\([^)]+\))?: .{1,100}'
+error_msg="Aborting commit. Format: <type>(<scope>): <subject>
+Allowed types: feat, fix, chore, docs, refactor, test, perf, style, ci, build, revert
+Examples:
+  feat(boucher): aperçu items sur card PENDING
+  fix(api): /api/shops?owned=true test mode
+  docs: update README"
+
+if ! head -1 "$1" | grep -qE "$commit_regex"; then
+    echo "$error_msg" >&2
+    exit 1
+fi

@@ -1,0 +1,70 @@
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - dependencies
+      - automated
+    commit-message:
+      prefix: chore
+      prefix-development: chore(dev)
+      include: scope
+    groups:
+      # Group all minor/patch dev deps to reduce PR noise
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # Group safe minor/patch prod updates
+      prod-minor-patch:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Pin Next.js majors — manually upgrade to avoid surprises
+      - dependency-name: next
+        update-types:
+          - version-update:semver-major
+      - dependency-name: react
+        update-types:
+          - version-update:semver-major
+      - dependency-name: react-dom
+        update-types:
+          - version-update:semver-major
+      # Pin Clerk majors — auth migrations need manual review
+      - dependency-name: "@clerk/*"
+        update-types:
+          - version-update:semver-major
+      # Pin Prisma majors — schema/migration breaking changes
+      - dependency-name: prisma
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "@prisma/*"
+        update-types:
+          - version-update:semver-major
+
+  # GitHub Actions versions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    open-pull-requests-limit: 3
+    labels:
+      - ci
+      - automated
+    commit-message:
+      prefix: ci
+      include: scope

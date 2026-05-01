@@ -24,6 +24,15 @@ import { printOrderTicket } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 // ORDER_STATUS_BORDER removed in v3 — tickets use uniform border style
 import { toast } from "sonner";
+import {
+  formatPriceCents as formatPrice,
+  formatUnit,
+  isAsapTime,
+  formatTime,
+  timeSince,
+  formatCountdown,
+  formatClientName,
+} from "@/lib/format-kitchen";
 
 type Props = {
   order: KitchenOrder;
@@ -35,49 +44,8 @@ type Props = {
   onAdjustPrice?: (order: KitchenOrder) => void;
 };
 
-function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
-}
-
-function formatUnit(unit: string) {
-  return unit === "KG" ? "kg" : unit === "PIECE" ? "pc" : unit === "TRANCHE" ? "tr." : "barq.";
-}
-
-function isAsapTime(timeStr: string | null): boolean {
-  if (!timeStr) return false;
-  return timeStr.toLowerCase() === "asap";
-}
-
-function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function timeSince(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "< 1 min";
-  if (mins < 60) return `${mins} min`;
-  return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, "0")}`;
-}
-
-function formatCountdown(ms: number): string {
-  if (ms <= 0) return "Maintenant";
-  const totalMin = Math.floor(ms / 60_000);
-  if (totalMin < 60) return `Dans ${totalMin} min`;
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return m > 0 ? `Dans ${h}h${String(m).padStart(2, "0")}` : `Dans ${h}h`;
-}
-
-function formatClientName(firstName: string, lastName: string): string {
-  if (!firstName) return "Client";
-  const first = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : "";
-  return lastInitial ? `${first}.${lastInitial}` : first;
-}
+// Pure formatters extracted to @/lib/format-kitchen so they can be unit-tested
+// in isolation and shared with OrderTicket.tsx (was duplicated before).
 
 function getCountdownColor(ms: number): string {
   const min = ms / 60_000;

@@ -58,6 +58,34 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - Déploiement automatique via Vercel sur `git push main`
 - Migrations prod : `npx prisma migrate deploy` (JAMAIS `migrate dev`)
 
+## Tests
+
+- **Runner** : Vitest 4 (config dans `vitest.config.ts`).
+- **Commandes** :
+  - `npm run test` → run unique (utilisée par CI)
+  - `npm run test:watch` → mode watch local
+  - `npm run test:coverage` → rapport couverture v8 (text + html + lcov)
+  - `npm run test:ui` → UI Vitest dans le navigateur
+- **Conventions** :
+  - Tests unitaires colocalisés dans `src/lib/__tests__/*.test.ts` (fonctions pures uniquement — pas de DB ni réseau).
+  - Tests intégration/E2E dans `tests/` (Playwright + intégrations Prisma).
+  - Pour un test sans DOM, ajoute `// @vitest-environment node` en tête de fichier (l'environnement par défaut est `jsdom`).
+- **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils`.
+- **Règle** : tout helper pur ajouté dans `src/lib/**` mérite un test ; les fonctions qui touchent Prisma/HTTP restent en intégration.
+
+## CI/CD
+
+- **Workflow** : `.github/workflows/ci.yml` — déclenché sur push `main` + PRs.
+- **Jobs parallèles** (Node 20, ubuntu-latest) :
+  - `lint` → `npm run lint` (ESLint)
+  - `typecheck` → `npx tsc --noEmit`
+  - `test` → `npm run test:run` (vitest, avec service Postgres 16)
+- **Cache** : `node_modules` + `~/.npm` indexés sur `package-lock.json`. Concurrency cancel-in-progress par ref.
+- **Env stub** : `DATABASE_URL` factice, clés Clerk fake (format valide pour passer la validation au build).
+- **Dependabot** : `.github/dependabot.yml` — npm + GitHub Actions, hebdo lundi 06:00 Paris, max 5 PRs npm + 3 PRs CI. Majeurs Next/React/Clerk/Prisma ignorés (upgrade manuel).
+- **PR template** : `.github/pull_request_template.md` — checklist build/lint/typecheck/test + screenshots si UI.
+- **Vercel preview** : géré nativement par l'intégration GitHub-Vercel — pas de workflow custom.
+
 ## Stack
 
 - **Framework** : Next.js 14 (App Router) + TypeScript
@@ -298,7 +326,8 @@ CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 NEXT_PUBLIC_CLERK_SIGN_IN_URL, NEXT_PUBLIC_CLERK_SIGN_UP_URL,
 TEST_MODE, TEST_SECRET, ALLOW_TEST_IN_PROD,
 NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_PLAUSIBLE_DOMAIN,
-ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
+ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN,
+SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKEN
 ```
 
 - `DATABASE_URL` : pooled (pgbouncer) — `?pgbouncer=true&connection_limit=1` sur Vercel. Utilisé par l'app au runtime.
@@ -306,7 +335,21 @@ ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN
 - `TEST_MODE` / `TEST_SECRET` : server-only, JAMAIS `NEXT_PUBLIC_*`. Le secret est validé côté serveur via `/api/test-mode/activate`. Désactivé en prod sauf si `ALLOW_TEST_IN_PROD=true`.
 - `NEXT_PUBLIC_SITE_URL` : URL canonique du site (`https://klikandgo.app`). Utilisé pour sitemap, OG, canonical.
 - `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` : Domaine Plausible Analytics (si défini, active le tracking RGPD).
+- `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` : DSN Sentry — server + client. Si absent, le SDK est no-op (zéro overhead).
+- `SENTRY_ORG` / `SENTRY_PROJECT` : `klikandgo` / `klikandgo-web` par défaut (utilisés pour upload source maps).
+- `SENTRY_AUTH_TOKEN` : token org pour upload des source maps au build (Vercel uniquement). Sans token → `dryRun: true`.
 - Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.
+
+## Monitoring (Sentry)
+
+- **SDK** : `@sentry/nextjs` configuré dans `sentry.client.config.ts` / `sentry.server.config.ts` / `sentry.edge.config.ts` (racine).
+- **Wrapping** : `next.config.mjs` enveloppe avec `withSentryConfig` (org `klikandgo`, project `klikandgo-web`, `silent: true`, `hideSourceMaps: true`, `disableLogger: true`).
+- **Activation** : SDK initialisé uniquement si `SENTRY_DSN` (ou `NEXT_PUBLIC_SENTRY_DSN`) est défini ET `TEST_MODE !== "true"`.
+- **Sample rates** : prod → traces 10%, replay session 5%, replay on error 100%. Dev → traces 100%, replay 0%.
+- **Bruit filtré** : `NEXT_REDIRECT`, `NEXT_NOT_FOUND`, `RouteError`, `ResizeObserver loop` — ignorés via `ignoreErrors` + `beforeSend` digest check.
+- **Logger** : `logger.error()` (depuis `src/lib/logger.ts`) appelle `Sentry.captureException()` automatiquement en prod (NODE_ENV=production + DSN présent + pas en test mode).
+- **Test mode** : Sentry désactivé entièrement quand `TEST_MODE=true` (zéro events).
+- **Source maps** : upload automatique au build Vercel si `SENTRY_AUTH_TOKEN` est défini, sinon `dryRun: true` (no-op).
 
 ## Marketing Hub V2 (ÉTAPE 17 — TERMINÉ)
 

@@ -97,20 +97,24 @@ const nextConfig = {
   },
 };
 
-// ── Sentry wrapping (no-op when SENTRY_DSN absent) ──
+// ── Sentry wrapping ──
+// Always wrap when @sentry/nextjs is installed so source maps + tunneling work.
+// SDK init is gated by DSN inside sentry.*.config.ts (safe no-op without DSN).
 let exported = nextConfig;
-if (process.env.SENTRY_DSN) {
-  // Dynamically require to keep the dependency soft
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+try {
   const { withSentryConfig } = await import("@sentry/nextjs");
   exported = withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG || "klikandgo",
+    project: process.env.SENTRY_PROJECT || "klikandgo-web",
     silent: true,
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
-  }, {
     hideSourceMaps: true,
     disableLogger: true,
+    // Skip source map upload at build time when no auth token is present
+    // (e.g. local dev, CI without Sentry secrets)
+    dryRun: !process.env.SENTRY_AUTH_TOKEN,
   });
+} catch {
+  // @sentry/nextjs not installed — fall back to plain config
 }
 
 export default exported;

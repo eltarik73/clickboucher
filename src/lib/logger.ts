@@ -62,7 +62,10 @@ function emit(level: Level, message: unknown, ...extras: unknown[]) {
     }
   }
 
-  if (level === "error" && process.env.SENTRY_DSN) {
+  // Send errors to Sentry only in production (and when DSN is configured)
+  const sentryDsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+  const isTestMode = process.env.TEST_MODE === "true";
+  if (level === "error" && isProd && sentryDsn && !isTestMode) {
     try {
       if (context instanceof Error) {
         Sentry.captureException(context, { extra: { message: msg } });

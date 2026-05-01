@@ -3,21 +3,12 @@
 "use client";
 
 import type { KitchenOrder } from "@/hooks/use-order-polling";
-
-function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
-}
-
-function formatUnit(unit: string) {
-  return unit === "KG" ? "kg" : unit === "PIECE" ? "pc" : unit === "TRANCHE" ? "tr." : "barq.";
-}
-
-function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import {
+  formatPriceCents as formatPrice,
+  formatUnit,
+  formatTime,
+  formatClientName,
+} from "@/lib/format-kitchen";
 
 function formatDateFull(dateStr: string) {
   const d = new Date(dateStr);
@@ -26,13 +17,6 @@ function formatDateFull(dateStr: string) {
     " a " +
     d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
   );
-}
-
-function formatClientName(firstName: string, lastName: string): string {
-  if (!firstName) return "Client";
-  const first = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : "";
-  return lastInitial ? `${first}.${lastInitial}` : first;
 }
 
 /** Extract a 4-digit numeric pickup code from a UUID */
