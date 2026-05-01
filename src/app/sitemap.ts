@@ -4,6 +4,8 @@ import type { MetadataRoute } from "next";
 import prisma from "@/lib/prisma";
 import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
 import { getProductCityCombinations } from "@/lib/seo/products";
+import { getCityDistrictCombinations } from "@/lib/seo/districts";
+import { getOccasionCityCombinations } from "@/lib/seo/occasions";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -220,6 +222,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Pages quartier (Sprint 6) — 12 quartiers prioritaires (Lyon, Grenoble, etc.)
+  const districtPages: MetadataRoute.Sitemap = getCityDistrictCombinations().map((combo) => ({
+    url: `${BASE_URL}/boucherie-halal/${combo.ville}/${combo.quartier}`,
+    lastModified: STATIC_CONTENT_UPDATED,
+    changeFrequency: "weekly" as const,
+    priority: 0.75,
+  }));
+
+  // Pages occasion x ville (Sprint 7) — 6 occasions x 8 villes = 48 pages SSG
+  const occasionPages: MetadataRoute.Sitemap = getOccasionCityCombinations().map((combo) => ({
+    url: `${BASE_URL}/occasions/${combo.occasion}/${combo.ville}`,
+    lastModified: STATIC_CONTENT_UPDATED,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
     url: `${BASE_URL}/recettes/${r.slug}`,
     lastModified: r.updatedAt,
@@ -233,6 +251,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...departmentPages,
     ...sundayPages,
     ...productCityPages,
+    ...districtPages,
+    ...occasionPages,
     ...shopPages,
     ...cityPages,
     ...becomePartnerPages,
