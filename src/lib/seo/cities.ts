@@ -157,4 +157,357 @@ export const SEO_CITIES: readonly SeoCity[] = [
       "Vénissieux, dans le Sud-Est lyonnais, compte plus de 65 000 habitants et abrite une importante communauté musulmane historiquement implantée dans les quartiers des Minguettes, du centre-ville et de Parilly. Les boucheries halal vénissianes sont parmi les plus actives du Grand Lyon et proposent une viande halal certifiée à des prix compétitifs. Klik&Go simplifie votre achat : commandez en ligne pour la viande quotidienne, l'Aïd ou un grand repas familial. Vous payez en ligne ou sur place, vous récupérez votre commande au créneau choisi sans attendre. Frais de service : 0,99€ par commande, pas d'abonnement, pas de commission cachée. Les bouchers partenaires sélectionnent leurs viandes auprès d'éleveurs de la Loire et du Beaujolais.",
     specialty: "agneau, bœuf charolais, viande hachée halal pour merguez maison",
   },
+  // ── Extensions SEO Sprint 1 (mai 2026) — couverture Rhône-Alpes ──
+  {
+    slug: "vaulx-en-velin",
+    name: "Vaulx-en-Velin",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Vaulx-en-Velin. Commandez votre viande halal en click & collect dans le Grand Lyon, retrait rapide en boutique.",
+    latitude: 45.7779,
+    longitude: 4.9201,
+    districts: ["Mas du Taureau", "Centre-ville", "La Soie", "Grand Vire"],
+    localContext:
+      "Vaulx-en-Velin, ville de l'est lyonnais avec plus de 50 000 habitants, abrite une grande communauté musulmane et plusieurs boucheries halal certifiées dans les quartiers du Mas du Taureau, du centre-ville et autour de la Grande Mosquée. Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs du Beaujolais et de l'Isle d'Abeau : agneau, bœuf charolais, volailles fermières des Dombes. Commandez en ligne pour la viande quotidienne, l'Aïd ou un grand repas familial. Pas de file d'attente, payez en ligne ou sur place, récupérez votre viande au créneau choisi. Frais de service : 0,99€ par commande.",
+    specialty: "agneau, viande pour kefta, brochettes, bœuf charolais",
+  },
+  {
+    slug: "bron",
+    name: "Bron",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Bron. Click & collect halal dans la banlieue est de Lyon, retrait rapide pour votre viande halal fraîche.",
+    latitude: 45.7361,
+    longitude: 4.9128,
+    districts: ["Centre-ville", "Parilly", "Terraillon", "Les Essarts"],
+    localContext:
+      "Bron, commune de la première couronne lyonnaise (40 000 habitants), accueille plusieurs boucheries halal de proximité, notamment dans les quartiers du Terraillon et autour du parc de Parilly. Les boucheries halal bronoises proposent une viande halal certifiée pour les familles de Bron, Saint-Priest et Chassieu. Klik&Go vous simplifie la vie : commandez votre viande en ligne, choisissez votre créneau, récupérez en boutique sans attendre. Idéal pour la pause déjeuner ou en sortant du travail. Frais de service : 0,99€ par commande, pas d'abonnement.",
+    specialty: "agneau, viande hachée halal, brochettes, escalopes de poulet",
+  },
+  {
+    slug: "saint-priest",
+    name: "Saint-Priest",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Saint-Priest. Commandez en ligne et récupérez votre viande halal en click & collect dans l'est lyonnais.",
+    latitude: 45.6968,
+    longitude: 4.9408,
+    districts: ["Centre-ville", "Bel-Air", "Manissieux", "Revaison"],
+    localContext:
+      "Saint-Priest, troisième commune du Grand Lyon avec 47 000 habitants, compte une communauté musulmane installée dans les quartiers de Bel-Air et du centre-ville. Les boucheries halal de Saint-Priest sélectionnent leurs viandes auprès d'éleveurs du Sud-Lyonnais et du Beaujolais. Avec Klik&Go, commandez votre viande halal en ligne et récupérez-la en quelques minutes au créneau choisi. Pratique pour les familles san-priodes et pour les actifs travaillant dans les zones d'activité environnantes. Frais de service : 0,99€ par commande.",
+    specialty: "viande pour grillades, agneau, bœuf charolais, kefta halal",
+  },
+  {
+    slug: "meyzieu",
+    name: "Meyzieu",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Meyzieu. Click & collect halal dans l'est de Lyon, retrait rapide en boutique pour votre viande halal fraîche.",
+    latitude: 45.7681,
+    longitude: 5.0028,
+    districts: ["Centre-ville", "Plan d'Eau", "Mathiolan"],
+    localContext:
+      "Meyzieu, commune de l'Est lyonnais (33 000 habitants), accueille plusieurs boucheries halal de proximité dans son centre-ville et le long de la zone commerciale. Les bouchers partenaires Klik&Go proposent une viande halal certifiée issue d'élevages du Bugey et du Sud-Lyonnais. Klik&Go vous fait gagner du temps : commandez en ligne, payez en ligne ou sur place, récupérez votre commande sans file d'attente au créneau choisi. Frais de service : 0,99€ par commande, pas d'abonnement.",
+    specialty: "agneau, brochettes pour barbecue, viande hachée halal, volailles",
+  },
+  {
+    slug: "rillieux-la-pape",
+    name: "Rillieux-la-Pape",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Rillieux-la-Pape. Commandez en ligne et récupérez votre viande halal au nord de Lyon.",
+    latitude: 45.8181,
+    longitude: 4.8983,
+    districts: ["Ville Nouvelle", "Crépieux", "Vancia", "Le Loup Pendu"],
+    localContext:
+      "Rillieux-la-Pape, commune du nord-est lyonnais (30 000 habitants), abrite une communauté musulmane active dans les quartiers de la Ville Nouvelle et de Crépieux. Les boucheries halal rilliardes proposent une viande halal certifiée pour les familles du nord du Grand Lyon. Avec Klik&Go, commandez votre viande halal en ligne et récupérez-la au créneau choisi sans perdre de temps. Frais de service : 0,99€ par commande.",
+    specialty: "agneau, viande pour mijoté, bœuf charolais, volailles fermières",
+  },
+  {
+    slug: "givors",
+    name: "Givors",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Givors. Click & collect halal au sud de Lyon, retrait pratique en boutique pour votre viande fraîche.",
+    latitude: 45.5856,
+    longitude: 4.7689,
+    districts: ["Centre-ville", "Vernes", "Bans"],
+    localContext:
+      "Givors, ville du sud du Rhône (19 000 habitants), à la confluence du Rhône et du Gier, compte plusieurs boucheries halal historiquement implantées dans le centre-ville et le quartier des Vernes. Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs locaux du Pilat et du Beaujolais. Commandez en ligne, payez en ligne ou sur place, récupérez votre viande au créneau choisi. Frais de service : 0,99€.",
+    specialty: "agneau du Pilat, viande pour grillades, bœuf charolais",
+  },
+  {
+    slug: "oullins",
+    name: "Oullins",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Oullins. Click & collect halal dans le sud-ouest lyonnais, retrait rapide en boutique.",
+    latitude: 45.7144,
+    longitude: 4.8086,
+    districts: ["Centre", "La Saulaie", "Pierre-Bénite"],
+    localContext:
+      "Oullins, commune du sud-ouest lyonnais (26 000 habitants) traversée par le Rhône, accueille plusieurs boucheries halal de quartier. Les boucheries halal oullinoises proposent une viande halal certifiée pour les familles du sud-ouest du Grand Lyon. Klik&Go vous évite les files d'attente : commandez en ligne et récupérez votre commande à votre créneau. Frais de service : 0,99€ par commande.",
+    specialty: "agneau, brochettes, viande hachée halal, volailles",
+  },
+  {
+    slug: "decines-charpieu",
+    name: "Décines-Charpieu",
+    region: "Rhône",
+    description:
+      "Boucheries halal à Décines-Charpieu. Commandez en ligne votre viande halal et récupérez-la en click & collect dans l'est lyonnais.",
+    latitude: 45.7706,
+    longitude: 4.9586,
+    districts: ["Centre", "Le Sept-Chemins", "La Mouche"],
+    localContext:
+      "Décines-Charpieu, commune de l'est lyonnais (28 000 habitants), abrite plusieurs boucheries halal certifiées qui servent les familles décinoises et des communes voisines (Meyzieu, Chassieu). Avec Klik&Go, commandez votre viande halal en ligne pour la viande quotidienne ou les grands repas familiaux. Frais de service : 0,99€ par commande, pas d'abonnement.",
+    specialty: "agneau, viande pour kefta, brochettes, bœuf charolais",
+  },
+  // ── Isère ──
+  {
+    slug: "echirolles",
+    name: "Échirolles",
+    region: "Isère",
+    description:
+      "Boucheries halal à Échirolles. Click & collect halal en banlieue de Grenoble, retrait rapide en boutique.",
+    latitude: 45.1467,
+    longitude: 5.7142,
+    districts: ["Village 2", "La Luire", "Essarts", "Centre"],
+    localContext:
+      "Échirolles, deuxième commune de l'Isère (37 000 habitants), accueille une importante communauté musulmane et plusieurs boucheries halal certifiées dans les quartiers de la Luire et du Village 2. Les bouchers partenaires Klik&Go proposent une viande halal certifiée issue d'élevages alpins. Commandez en ligne, payez en ligne ou sur place, récupérez en quelques minutes au créneau choisi. Frais de service : 0,99€.",
+    specialty: "agneau, viande pour tajine, brochettes, volailles fermières",
+  },
+  {
+    slug: "saint-martin-dheres",
+    name: "Saint-Martin-d'Hères",
+    region: "Isère",
+    description:
+      "Boucheries halal à Saint-Martin-d'Hères. Commandez votre viande halal en ligne et récupérez en click & collect dans la banlieue de Grenoble.",
+    latitude: 45.1729,
+    longitude: 5.7575,
+    districts: ["Champberton", "Galochère", "Renaudie", "Université"],
+    localContext:
+      "Saint-Martin-d'Hères, troisième ville de l'Isère (38 000 habitants), abrite l'Université Grenoble Alpes et une importante communauté musulmane. Les boucheries halal san-martinoises proposent une viande halal certifiée pour les familles, les étudiants et les personnels universitaires. Klik&Go simplifie votre achat : commandez en ligne, récupérez sans attendre. Frais de service : 0,99€ par commande.",
+    specialty: "agneau, viande hachée halal, escalopes poulet, brochettes",
+  },
+  {
+    slug: "fontaine",
+    name: "Fontaine",
+    region: "Isère",
+    description:
+      "Boucheries halal à Fontaine. Click & collect halal à Grenoble Ouest, retrait rapide pour votre viande halal fraîche.",
+    latitude: 45.1944,
+    longitude: 5.6850,
+    districts: ["Centre", "Bastille", "Bouvignier"],
+    localContext:
+      "Fontaine, commune de l'agglomération grenobloise (23 000 habitants), accueille plusieurs boucheries halal qui servent les familles de Fontaine, Sassenage et des communes voisines. Klik&Go vous fait gagner du temps : commandez en ligne et récupérez votre commande au créneau choisi. Frais de service : 0,99€.",
+    specialty: "agneau alpin, viande pour grillades, volailles fermières",
+  },
+  {
+    slug: "voiron",
+    name: "Voiron",
+    region: "Isère",
+    description:
+      "Boucheries halal à Voiron. Click & collect halal au nord de Grenoble, dans le pays voironnais.",
+    latitude: 45.3654,
+    longitude: 5.5901,
+    districts: ["Centre", "Brunetière", "Sermorens"],
+    localContext:
+      "Voiron, sous-préfecture de l'Isère (20 000 habitants) à 25 km au nord de Grenoble, accueille plusieurs boucheries halal de proximité dans son centre historique. Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs des Bauges et de la Chartreuse. Commandez en ligne, récupérez votre commande sans attente. Frais de service : 0,99€.",
+    specialty: "agneau, viande pour mijoté, bœuf charolais, volailles",
+  },
+  {
+    slug: "bourgoin-jallieu",
+    name: "Bourgoin-Jallieu",
+    region: "Isère",
+    description:
+      "Boucheries halal à Bourgoin-Jallieu. Commandez votre viande halal en ligne et récupérez en click & collect dans le Nord-Isère.",
+    latitude: 45.5859,
+    longitude: 5.2725,
+    districts: ["Centre", "Champaret", "Champ Fleuri", "Pré Bénit"],
+    localContext:
+      "Bourgoin-Jallieu, sous-préfecture de l'Isère (28 000 habitants) sur l'axe Lyon-Grenoble, accueille plusieurs boucheries halal qui servent les familles berjalliennes et des communes voisines. Klik&Go vous simplifie la vie : commandez en ligne, payez en ligne ou sur place, récupérez votre viande au créneau choisi. Frais de service : 0,99€ par commande.",
+    specialty: "agneau, viande pour grillades, bœuf charolais, volailles",
+  },
+  {
+    slug: "vienne",
+    name: "Vienne",
+    region: "Isère",
+    description:
+      "Boucheries halal à Vienne. Click & collect halal au sud de Lyon, dans le département de l'Isère.",
+    latitude: 45.5240,
+    longitude: 4.8744,
+    districts: ["Centre", "Estressin", "Malissol"],
+    localContext:
+      "Vienne, sous-préfecture de l'Isère (29 000 habitants) sur les bords du Rhône, abrite plusieurs boucheries halal certifiées qui servent les familles viennoises et l'agglomération de Vienne Condrieu. Klik&Go simplifie votre achat : commandez en ligne, récupérez sans attendre au créneau choisi. Frais de service : 0,99€.",
+    specialty: "agneau, viande pour grillades, brochettes, bœuf",
+  },
+  // ── Loire ──
+  {
+    slug: "roanne",
+    name: "Roanne",
+    region: "Loire",
+    description:
+      "Boucheries halal à Roanne. Click & collect halal au nord de la Loire, retrait rapide pour votre viande halal fraîche.",
+    latitude: 46.0367,
+    longitude: 4.0689,
+    districts: ["Centre", "Mâtel", "Le Bourg"],
+    localContext:
+      "Roanne, sous-préfecture de la Loire (35 000 habitants) au cœur de la plaine roannaise, accueille plusieurs boucheries halal qui servent les familles roannaises et l'agglomération. Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs du Forez et du Beaujolais. Commandez en ligne, payez en ligne ou sur place, récupérez votre viande au créneau choisi. Frais de service : 0,99€.",
+    specialty: "agneau, bœuf charolais, viande pour grillades",
+  },
+  {
+    slug: "firminy",
+    name: "Firminy",
+    region: "Loire",
+    description:
+      "Boucheries halal à Firminy. Commandez votre viande halal en ligne et récupérez en click & collect dans la vallée de l'Ondaine.",
+    latitude: 45.3878,
+    longitude: 4.2867,
+    districts: ["Centre", "Le Chambon-Feugerolles", "Vert-Bois"],
+    localContext:
+      "Firminy, commune de la vallée de l'Ondaine (16 000 habitants) au sud de Saint-Étienne, abrite une communauté musulmane historique et plusieurs boucheries halal de quartier. Les boucheries halal firminoises proposent une viande halal certifiée issue d'élevages du Forez et du Pilat. Avec Klik&Go, commandez en ligne et récupérez sans attente. Frais de service : 0,99€ par commande.",
+    specialty: "agneau du Pilat, viande pour mijoté, brochettes",
+  },
+  // ── Haute-Savoie ──
+  {
+    slug: "annemasse",
+    name: "Annemasse",
+    region: "Haute-Savoie",
+    description:
+      "Boucheries halal à Annemasse. Click & collect halal en Haute-Savoie, à proximité de la frontière suisse.",
+    latitude: 46.1934,
+    longitude: 6.2349,
+    districts: ["Centre", "Vétraz-Monthoux", "Romagny"],
+    localContext:
+      "Annemasse, commune de Haute-Savoie (35 000 habitants) à la frontière suisse, accueille plusieurs boucheries halal certifiées dans le centre-ville et autour de la gare. Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs haut-savoyards et de l'Ain. Commandez en ligne, récupérez sans attendre. Frais de service : 0,99€.",
+    specialty: "agneau, bœuf, viande pour grillades, volailles fermières",
+  },
+  {
+    slug: "thonon-les-bains",
+    name: "Thonon-les-Bains",
+    region: "Haute-Savoie",
+    description:
+      "Boucheries halal à Thonon-les-Bains. Commandez en ligne votre viande halal et récupérez en click & collect au bord du lac Léman.",
+    latitude: 46.3719,
+    longitude: 6.4781,
+    districts: ["Centre", "Châtelard", "Concise"],
+    localContext:
+      "Thonon-les-Bains, sous-préfecture de Haute-Savoie (35 000 habitants) sur les rives du lac Léman, accueille plusieurs boucheries halal qui servent les familles thononaises. Les boucheries halal thononaises proposent une viande halal certifiée issue d'élevages du Chablais. Avec Klik&Go, commandez votre viande en ligne et récupérez-la sans file d'attente. Frais de service : 0,99€.",
+    specialty: "agneau du Chablais, viande pour grillades au lac, volailles fermières",
+  },
+  {
+    slug: "cluses",
+    name: "Cluses",
+    region: "Haute-Savoie",
+    description:
+      "Boucheries halal à Cluses. Click & collect halal dans la vallée de l'Arve, retrait rapide pour votre viande halal fraîche.",
+    latitude: 46.0628,
+    longitude: 6.5825,
+    districts: ["Centre", "Sardagne", "Saint-Vincent"],
+    localContext:
+      "Cluses, commune de Haute-Savoie (18 000 habitants) au cœur de la vallée de l'Arve, accueille plusieurs boucheries halal qui servent les familles clusiennes et l'agglomération de la vallée de l'Arve (Marnaz, Scionzier, Magland). Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs des Aravis et du Faucigny. Frais de service : 0,99€.",
+    specialty: "agneau des Aravis, viande pour grillades, bœuf",
+  },
+  // ── Savoie ──
+  {
+    slug: "albertville",
+    name: "Albertville",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Albertville. Commandez en ligne votre viande halal et récupérez en click & collect en Tarentaise.",
+    latitude: 45.6764,
+    longitude: 6.3925,
+    districts: ["Centre", "Conflans", "Saint-Sigismond"],
+    localContext:
+      "Albertville, sous-préfecture de Savoie (19 000 habitants) en Tarentaise (ville olympique 1992), accueille plusieurs boucheries halal qui servent les familles albertvilloises et l'agglomération du Beaufortain. Les boucheries halal albertvilloises proposent une viande halal certifiée issue d'élevages savoyards. Avec Klik&Go, commandez en ligne et récupérez votre viande sans attendre. Frais de service : 0,99€.",
+    specialty: "agneau de Tarentaise, viande pour grillades, bœuf des Bauges",
+  },
+  {
+    slug: "saint-jean-de-maurienne",
+    name: "Saint-Jean-de-Maurienne",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Saint-Jean-de-Maurienne. Click & collect halal en Maurienne, retrait rapide pour votre viande halal fraîche.",
+    latitude: 45.2767,
+    longitude: 6.3489,
+    districts: ["Centre", "Saint-Julien", "Le Pré"],
+    localContext:
+      "Saint-Jean-de-Maurienne, sous-préfecture de Savoie (8 000 habitants) en vallée de Maurienne, accueille des boucheries halal qui servent les familles mauriennaises et l'agglomération de la vallée. Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs alpins. Commandez en ligne et récupérez sans attendre au créneau choisi. Frais de service : 0,99€.",
+    specialty: "agneau de Maurienne, viande pour mijoté, brochettes",
+  },
 ] as const;
+
+/**
+ * Métadonnées départementales pour la création des hub pages /boucheries-halal/[departement].
+ * Sprint 1 (mai 2026) — pivot annuaire local.
+ */
+export type SeoDepartment = {
+  slug: string;
+  name: string;
+  region: string;
+  /** Slugs de villes (depuis SEO_CITIES) qui appartiennent à ce département */
+  citySlugs: readonly string[];
+  description: string;
+  /** Contexte régional pour la page hub (≥250 mots) */
+  context: string;
+};
+
+export const SEO_DEPARTMENTS: readonly SeoDepartment[] = [
+  {
+    slug: "savoie",
+    name: "Savoie",
+    region: "Auvergne-Rhône-Alpes",
+    citySlugs: ["chambery", "aix-les-bains", "cognin", "bissy", "la-motte-servolex", "albertville", "saint-jean-de-maurienne"],
+    description:
+      "Annuaire des boucheries halal en Savoie. Trouvez votre boucherie halal en Savoie : Chambéry, Aix-les-Bains, Albertville, Saint-Jean-de-Maurienne. Commandez en ligne avec Klik&Go.",
+    context:
+      "La Savoie compte plus de 430 000 habitants répartis entre la cluse chambérienne, le bassin aixois et les vallées alpines (Tarentaize, Maurienne, Beaufortain). La communauté musulmane savoyarde est historiquement implantée à Chambéry (quartiers de Bissy, Cognin, Chambéry-le-Haut), Aix-les-Bains et dans la vallée de la Maurienne. Klik&Go référence les boucheries halal certifiées de toute la Savoie pour vous permettre de commander en ligne et de récupérer votre viande halal en click & collect, sans frais de service supérieurs à 0,99€ par commande. Les bouchers partenaires sélectionnent leurs viandes auprès d'éleveurs savoyards : agneaux des Bauges, bœuf alpin, volailles fermières des Dombes.",
+  },
+  {
+    slug: "haute-savoie",
+    name: "Haute-Savoie",
+    region: "Auvergne-Rhône-Alpes",
+    citySlugs: ["annecy", "annemasse", "thonon-les-bains", "cluses"],
+    description:
+      "Annuaire des boucheries halal en Haute-Savoie. Annecy, Annemasse, Thonon-les-Bains, Cluses — commandez votre viande halal en ligne avec Klik&Go.",
+    context:
+      "La Haute-Savoie, frontalière de la Suisse et de l'Italie, compte plus de 830 000 habitants. Les communautés musulmanes haut-savoyardes sont installées à Annecy (Cran-Gevrier, Seynod, Meythet), Annemasse, Thonon-les-Bains et dans la vallée de l'Arve (Cluses, Sallanches). Klik&Go référence les boucheries halal certifiées de tout le département pour vous permettre de commander en ligne. Frais de service : 0,99€ par commande, pas d'abonnement, retrait en boutique au créneau choisi.",
+  },
+  {
+    slug: "isere",
+    name: "Isère",
+    region: "Auvergne-Rhône-Alpes",
+    citySlugs: ["grenoble", "echirolles", "saint-martin-dheres", "fontaine", "voiron", "bourgoin-jallieu", "vienne"],
+    description:
+      "Annuaire des boucheries halal en Isère. Grenoble, Échirolles, Saint-Martin-d'Hères, Voiron, Bourgoin-Jallieu — commandez en ligne avec Klik&Go.",
+    context:
+      "L'Isère, 8e département le plus peuplé de France (1,3M habitants), abrite l'une des plus anciennes communautés musulmanes du sud-est, principalement dans l'agglomération grenobloise (Villeneuve, Mistral, Teisseire, Échirolles, Saint-Martin-d'Hères, Fontaine) et le Nord-Isère (Bourgoin-Jallieu, l'Isle d'Abeau, Vienne). Klik&Go référence les boucheries halal certifiées de tout le département pour vous permettre de commander en ligne et de récupérer votre viande halal en click & collect. Frais de service : 0,99€ par commande.",
+  },
+  {
+    slug: "rhone",
+    name: "Rhône",
+    region: "Auvergne-Rhône-Alpes",
+    citySlugs: ["lyon", "villeurbanne", "venissieux", "vaulx-en-velin", "bron", "saint-priest", "meyzieu", "rillieux-la-pape", "givors", "oullins", "decines-charpieu"],
+    description:
+      "Annuaire des boucheries halal dans le Rhône et le Grand Lyon. Lyon, Villeurbanne, Vénissieux, Vaulx-en-Velin, Bron, Saint-Priest — commandez en ligne avec Klik&Go.",
+    context:
+      "Le département du Rhône, dominé par la métropole de Lyon (1,4M habitants), abrite l'une des plus grandes communautés musulmanes de France après Paris et Marseille. Le Grand Lyon — Lyon (Guillotière, Vaise, Croix-Rousse, Gerland, Part-Dieu), Villeurbanne (Gratte-Ciel, Tonkin, Cusset), Vénissieux (Minguettes, Parilly), Vaulx-en-Velin, Bron, Saint-Priest, Meyzieu — concentre des centaines de boucheries halal de quartier. Klik&Go référence les boucheries halal certifiées de tout le département pour vous permettre de commander en ligne et de récupérer votre viande halal en click & collect. Les bouchers partenaires sélectionnent leurs viandes auprès d'éleveurs du Beaujolais, du Bugey et du Sud-Lyonnais.",
+  },
+  {
+    slug: "loire",
+    name: "Loire",
+    region: "Auvergne-Rhône-Alpes",
+    citySlugs: ["saint-etienne", "roanne", "firminy"],
+    description:
+      "Annuaire des boucheries halal dans la Loire. Saint-Étienne, Roanne, Firminy — commandez en ligne avec Klik&Go et récupérez en click & collect.",
+    context:
+      "La Loire, département de la région Auvergne-Rhône-Alpes (760 000 habitants), abrite une communauté musulmane historiquement implantée à Saint-Étienne (Bellevue, Tarentaize, Beaubrun, Crêt-de-Roc, Montreynaud), dans la vallée de l'Ondaine (Firminy, Le Chambon-Feugerolles) et à Roanne. Les boucheries halal de la Loire proposent une viande halal certifiée issue principalement d'élevages du Forez, du Pilat et du Roannais. Klik&Go référence les boucheries halal certifiées de tout le département pour commander en ligne avec retrait en boutique. Frais de service : 0,99€.",
+  },
+] as const;
+
+/**
+ * Helper : trouve le département d'une ville à partir de son slug.
+ */
+export function getDepartmentForCity(citySlug: string): SeoDepartment | undefined {
+  return SEO_DEPARTMENTS.find((d) => d.citySlugs.includes(citySlug));
+}
