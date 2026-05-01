@@ -228,7 +228,14 @@ export default function KitchenOrderCard({
   }
 
   // ── PENDING COMPACT VIEW (not yet expanded) ──
+  // Shows item preview (3 first items + "+N more") so the boucher can decide
+  // what to prep without clicking VOIR. Click VOIR for the full detail view
+  // with customer note + prep-time selector.
   if (order.status === "PENDING" && !expanded) {
+    const PREVIEW_MAX = 3;
+    const previewItems = order.items.slice(0, PREVIEW_MAX);
+    const remainingCount = order.items.length - previewItems.length;
+
     return (
       <div
         className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} overflow-hidden transition-colors`}
@@ -242,44 +249,76 @@ export default function KitchenOrderCard({
             </span>
           </div>
         )}
-        <div className="px-3 py-2.5 flex items-center justify-between">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-[800] text-lg leading-none text-white tracking-tight">
-                {ticketNumber}
-              </span>
-              <span className="text-xs text-[#78716C] leading-none truncate">
-                {clientName}
-              </span>
-              {order.isPro && (
-                <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
-                  PRO
+        <div className="px-3 py-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-[800] text-lg leading-none text-white tracking-tight">
+                  {ticketNumber}
                 </span>
-              )}
-              {isFidele && (
-                <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">FIDÈLE</span>
-              )}
-            </div>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-xs text-gray-500">
-                {order.items.length} article{order.items.length > 1 ? "s" : ""}
-              </span>
-              <span className="text-sm font-bold text-white">{formatPrice(order.totalCents)}</span>
-              {!isScheduled && (pickupTime || isAsap) && (
-                <span className="text-xs font-bold text-amber-400">
-                  <Clock size={12} className="inline mr-0.5" />{pickupTime || "Des que possible"}
+                <span className="text-xs text-[#78716C] leading-none truncate">
+                  {clientName}
                 </span>
-              )}
-              <span className="text-xs text-gray-600">{timeSince(order.createdAt)}</span>
+                {order.isPro && (
+                  <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
+                    PRO
+                  </span>
+                )}
+                {isFidele && (
+                  <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">FIDÈLE</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-xs text-gray-500">
+                  {order.items.length} article{order.items.length > 1 ? "s" : ""}
+                </span>
+                <span className="text-sm font-bold text-white">{formatPrice(order.totalCents)}</span>
+                {!isScheduled && (pickupTime || isAsap) && (
+                  <span className="text-xs font-bold text-amber-400">
+                    <Clock size={12} className="inline mr-0.5" />{pickupTime || `~${shopPrepTime} min`}
+                  </span>
+                )}
+                <span className="text-xs text-gray-600">{timeSince(order.createdAt)}</span>
+              </div>
             </div>
+            <button
+              onClick={handleView}
+              className="shrink-0 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
+            >
+              <Eye size={16} />
+              VOIR
+            </button>
           </div>
-          <button
-            onClick={handleView}
-            className="shrink-0 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
-          >
-            <Eye size={16} />
-            VOIR
-          </button>
+
+          {/* ── Items preview (3 first items, then "+N more") ── */}
+          <div className="mt-2 pt-2 border-t border-white/[0.06] space-y-0.5">
+            {previewItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-2 text-xs">
+                <span className="text-white font-bold text-[13px] tabular-nums shrink-0 min-w-[28px]">
+                  {item.quantity}
+                </span>
+                <span className="text-[#A8A29E] shrink-0">
+                  {formatUnit(item.product?.unit || item.unit)}
+                </span>
+                <span className="text-[#D6D3D1] truncate flex-1">
+                  {item.product?.name || item.name}
+                </span>
+                {(item.product?.unit === "KG" || item.unit === "KG") && item.weightGrams && (
+                  <span className="text-blue-400 text-[10px] shrink-0">{item.weightGrams}g</span>
+                )}
+                {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") && item.sliceCount && (
+                  <span className="text-amber-400 text-[10px] shrink-0">
+                    {item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""}
+                  </span>
+                )}
+              </div>
+            ))}
+            {remainingCount > 0 && (
+              <div className="text-[11px] text-gray-500 italic pl-[36px]">
+                + {remainingCount} autre{remainingCount > 1 ? "s" : ""} article{remainingCount > 1 ? "s" : ""}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
