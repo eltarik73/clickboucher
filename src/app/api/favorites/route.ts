@@ -8,8 +8,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const clerkId = await getServerUserId();
+    // Anonymous users have no favorites — return empty array (was 401 before, which
+    // caused console errors on the homepage for non-logged-in visitors).
     if (!clerkId) {
-      return apiError("UNAUTHORIZED", "Authentification requise");
+      return apiSuccess([]);
     }
 
     const baseUser = await getOrCreateUser(clerkId);

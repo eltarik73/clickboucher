@@ -120,6 +120,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider localization={frFR} dynamic>
       <html lang="fr" suppressHydrationWarning>
         <head>
+          {/* New mobile-web-app-capable meta — coexists with apple-mobile-web-app-capable
+              auto-generated from `appleWebApp` metadata. Without this, Chrome 117+ warns. */}
+          <meta name="mobile-web-app-capable" content="yes" />
           {/* DNS preconnect for critical third parties — saves 100-300ms on LCP (audit P-06). */}
           <link rel="preconnect" href="https://clerk.klikandgo.app" crossOrigin="" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />

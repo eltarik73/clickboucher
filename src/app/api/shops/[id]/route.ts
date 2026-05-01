@@ -91,10 +91,51 @@ export async function PATCH(
       delete (data as Record<string, unknown>).bannerUrl;
     }
 
+    // Capture pricing-relevant fields BEFORE the update so we can detect a change.
+    const pricingFieldsChanged =
+      data.commissionMarkupPercent !== undefined ||
+      data.priceRoundingEnabled !== undefined;
+
     const updated = await prisma.shop.update({
       where: { id },
       data,
     });
+
+    // When the shop's markup or rounding flag changes, recompute every product's
+    // online priceCents from its boutiquePriceCents so the catalog stays consistent.
+    // Without this, only the next product the boucher edits picks up the new markup.
+    if (pricingFieldsChanged) {
+      const { computeOnlinePriceCents, getEffectiveCommissionRate } = await import(
+        "@/lib/services/stripe/commission"
+      );
+      const effRate = getEffectiveCommissionRate({
+        tier: updated.tier,
+        earlyAdopterUntil: updated.earlyAdopterUntil,
+      });
+      // Stream product updates in batches; only touch products with a real boutique price.
+      const products = await prisma.product.findMany({
+        where: { shopId: id, boutiquePriceCents: { not: null, gt: 0 } },
+        select: { id: true, boutiquePriceCents: true, priceCents: true },
+      });
+      const updates = products
+        .map((p) => ({
+          id: p.id,
+          newPrice: computeOnlinePriceCents(
+            p.boutiquePriceCents ?? 0,
+            effRate,
+            updated.commissionMarkupPercent,
+            updated.priceRoundingEnabled,
+          ),
+        }))
+        .filter((u) => u.newPrice !== products.find((p) => p.id === u.id)!.priceCents);
+      if (updates.length > 0) {
+        await prisma.$transaction(
+          updates.map((u) =>
+            prisma.product.update({ where: { id: u.id }, data: { priceCents: u.newPrice } }),
+          ),
+        );
+      }
+    }
 
     return apiSuccess(updated);
   } catch (error) {
