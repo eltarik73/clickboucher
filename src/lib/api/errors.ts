@@ -6,6 +6,17 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import * as Sentry from "@sentry/nextjs";
 
+// Make BigInt JSON-serializable globally — Prisma returns BigInt for fields like
+// `Shop.monthlyGmvCents` and `NextResponse.json` calls JSON.stringify which throws
+// "Do not know how to serialize a BigInt" without this. Returning a plain `Number`
+// is safe for our domain (GMV stays well below Number.MAX_SAFE_INTEGER 2^53).
+// The `as never` cast satisfies TS — BigInt.prototype.toJSON is not in the lib types.
+if (typeof (BigInt.prototype as { toJSON?: unknown }).toJSON === "undefined") {
+  (BigInt.prototype as { toJSON?: () => number }).toJSON = function () {
+    return Number(this);
+  };
+}
+
 export type ApiErrorCode =
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
