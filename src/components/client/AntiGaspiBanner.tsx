@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { resolveProductImage } from "@/lib/product-images";
 import { ProductQuickAdd, type QuickAddProduct, type QuickAddShop } from "./ProductQuickAdd";
 
@@ -63,7 +63,8 @@ export function AntiGaspiBanner({ products, shop }: { products: AntiGaspiProduct
                 className="flex-shrink-0 w-[120px] bg-white dark:bg-[#1a1a1a] rounded-xl overflow-hidden border border-emerald-200/50 dark:border-emerald-800/20 text-left hover:shadow-md transition-shadow active:scale-[0.97]"
               >
                 <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-white/5">
-                  <Image
+                  <SafeImage
+                    type="product"
                     src={imgSrc}
                     alt={p.name}
                     fill
