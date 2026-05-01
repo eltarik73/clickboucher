@@ -104,18 +104,6 @@ function FaqItem({
 }
 
 // ─────────────────────────────────────────────────
-// PACK FEATURE LINE
-// ─────────────────────────────────────────────────
-function Feature({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-2.5 text-sm">
-      <Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-      <span>{children}</span>
-    </li>
-  );
-}
-
-// ─────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────
 export default function EspaceBoucherPage() {
@@ -232,52 +220,144 @@ export default function EspaceBoucherPage() {
       </section>
 
       {/* ══════════════════════════════════════════ */}
-      {/* OFFRE — 100% gratuit, commission par commande */}
+      {/* OFFRE — Premium dark pricing card           */}
       {/* ══════════════════════════════════════════ */}
-      <section className="max-w-4xl mx-auto px-5 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-display">
-            100% gratuit pour votre boucherie
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-2xl mx-auto">
-            Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement
-            sur une petite commission par commande encaissée. Vous ne payez que si
-            vous vendez.
-          </p>
-        </div>
+      <section className="relative bg-[#0a0a0a] py-32 px-5 overflow-hidden">
+        {/* Subtle radial glow */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-60"
+          style={{
+            background:
+              "radial-gradient(ellipse 800px 400px at 50% 50%, rgba(220,38,38,0.08), transparent 70%)",
+          }}
+        />
+        {/* Grid pattern subtle */}
+        <div
+          className="absolute inset-0 opacity-[0.025] pointer-events-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundSize: "32px 32px",
+          }}
+        />
 
-        <div className="bg-white dark:bg-[#141414] border-2 border-[#DC2626] rounded-2xl p-8 shadow-lg max-w-2xl mx-auto">
-          <div className="text-center mb-6">
-            <span className="inline-block text-xs font-semibold text-[#DC2626] bg-[#DC2626]/10 px-3 py-1 rounded-full mb-4">
-              Tout inclus
+        <div className="relative max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-16 animate-fade-up">
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-semibold tracking-[2px] uppercase text-gray-400 mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
+              Tarification
             </span>
-            <div className="flex items-baseline justify-center gap-1">
-              <span className="text-5xl font-bold text-gray-900 dark:text-white">0&euro;</span>
-              <span className="text-lg text-gray-500 dark:text-gray-400">/mois</span>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Commission uniquement sur les commandes encaissées
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-white font-display tracking-tight leading-[1.05]">
+              Tout ce dont vous avez besoin,
+              <br />
+              <span className="font-serif italic font-normal text-[#FCA5A5]">
+                pour zéro euro.
+              </span>
+            </h2>
+            <p className="text-gray-400 mt-6 max-w-xl mx-auto text-base leading-relaxed">
+              Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement
+              via une petite commission sur les commandes encaissées —
+              <span className="text-gray-300"> vous ne payez que si vous vendez.</span>
             </p>
           </div>
 
-          <ul className="space-y-3 text-gray-700 dark:text-gray-300 mb-8">
-            <Feature>Vitrine en ligne dédiée à votre boucherie</Feature>
-            <Feature>Catalogue produits illimité avec photos</Feature>
-            <Feature>Commandes click &amp; collect avec QR code retrait</Feature>
-            <Feature>Mode Cuisine temps réel pour gérer vos commandes</Feature>
-            <Feature>Notifications clients automatiques</Feature>
-            <Feature>Programme de fidélité intégré</Feature>
-            <Feature>Promotions &amp; offres flash</Feature>
-            <Feature>Statistiques &amp; analytics complètes</Feature>
-            <Feature>Support 7j/7</Feature>
-          </ul>
-
-          <Link
-            href="/inscription-boucher"
-            className="block w-full text-center bg-[#DC2626] text-white rounded-xl py-3 font-semibold hover:bg-[#b91c1c] transition-colors shadow-md"
+          {/* Pricing card — glassmorphism dark */}
+          <div
+            className="relative max-w-2xl mx-auto rounded-3xl overflow-hidden animate-fade-up"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
+              boxShadow:
+                "inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 80px -20px rgba(220,38,38,0.15), 0 0 0 1px rgba(255,255,255,0.06)",
+              animationDelay: "100ms",
+            }}
           >
-            Ajouter ma boucherie gratuitement
-          </Link>
+            {/* Top gradient accent */}
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#DC2626]/60 to-transparent" />
+
+            <div className="p-10 sm:p-12">
+              {/* Price hero */}
+              <div className="text-center pb-10 border-b border-white/[0.06]">
+                <span className="inline-block text-[10px] font-bold tracking-[3px] uppercase text-[#FCA5A5] bg-[#DC2626]/15 border border-[#DC2626]/25 px-3 py-1.5 rounded-full mb-6">
+                  Tout inclus
+                </span>
+                <div className="flex items-baseline justify-center gap-2">
+                  <span className="text-7xl sm:text-8xl font-semibold text-white tracking-[-0.04em] leading-none">
+                    0
+                  </span>
+                  <span className="text-4xl sm:text-5xl font-serif italic font-normal text-white/90 leading-none">
+                    €
+                  </span>
+                  <span className="text-base text-gray-500 ml-1 self-end mb-2">
+                    / mois
+                  </span>
+                </div>
+                <p className="text-sm text-gray-400 mt-4 max-w-sm mx-auto">
+                  Commission transparente uniquement sur les commandes encaissées
+                </p>
+              </div>
+
+              {/* Features grid 2 cols */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 py-10 border-b border-white/[0.06]">
+                {[
+                  "Vitrine en ligne dédiée",
+                  "Catalogue produits illimité",
+                  "Click & collect avec QR code",
+                  "Mode Cuisine temps réel",
+                  "Notifications clients auto",
+                  "Programme de fidélité intégré",
+                  "Promotions & offres flash",
+                  "Statistiques & analytics",
+                  "Support 7j/7",
+                ].map((feature) => (
+                  <div key={feature} className="flex items-start gap-2.5">
+                    <div className="shrink-0 w-4 h-4 mt-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                      <Check size={10} className="text-emerald-400" strokeWidth={3} />
+                    </div>
+                    <span className="text-sm text-gray-300 leading-relaxed">
+                      {feature}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <div className="pt-8">
+                <Link
+                  href="/inscription-boucher"
+                  className="group relative block w-full text-center overflow-hidden rounded-2xl bg-[#DC2626] hover:bg-[#b91c1c] py-4 px-6 font-semibold text-white text-base shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] hover:shadow-[0_20px_50px_-10px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-[1.015] active:scale-[0.99]"
+                >
+                  <span className="relative z-10 inline-flex items-center gap-2">
+                    Ajouter ma boucherie gratuitement
+                    <span className="transition-transform group-hover:translate-x-1">→</span>
+                  </span>
+                  {/* Shimmer overlay on hover */}
+                  <span
+                    className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"
+                    style={{
+                      background:
+                        "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)",
+                    }}
+                  />
+                </Link>
+                <div className="flex items-center justify-center gap-x-5 gap-y-1 flex-wrap mt-5 text-[11px] text-gray-500">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check size={11} className="text-emerald-500" />
+                    Sans engagement
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check size={11} className="text-emerald-500" />
+                    Aucune carte requise
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Check size={11} className="text-emerald-500" />
+                    Validation sous 24h
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
