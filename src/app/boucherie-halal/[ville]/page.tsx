@@ -11,6 +11,11 @@ import { ShopCard } from "@/components/shop/ShopCard";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
+// ISR — revalidate at most once per hour. Shop list rarely changes per city,
+// so a static-with-occasional-revalidation strategy is the right tradeoff
+// (audit SEO HIGH #6).
+export const revalidate = 3600;
+
 // ── Generate static pages for each city ──
 export async function generateStaticParams() {
   return SEO_CITIES.map((city) => ({ ville: city.slug }));

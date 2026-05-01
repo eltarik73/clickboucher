@@ -67,7 +67,9 @@ interface ShopSchemaProps {
 export function ShopSchema({ shop }: ShopSchemaProps) {
   const schema: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "Store",
+    // Hybrid type unlocks both retail rich results AND Local Pack inclusion
+    // (audit SEO MED #13).
+    "@type": ["Store", "LocalBusiness"],
     "@id": `${SITE_URL}/boutique/${shop.slug}`,
     name: shop.name,
     url: `${SITE_URL}/boutique/${shop.slug}`,

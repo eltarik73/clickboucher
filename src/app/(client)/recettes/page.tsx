@@ -13,18 +13,6 @@ export const metadata: Metadata = {
   title: "Recettes halal — Tajine, couscous, kefta, BBQ",
   description:
     "Plus de 50 recettes halal faciles avec quantités de viande précises : tajine d'agneau, couscous royal, brochettes, kefta, shawarma. Commandez la viande halal en click & collect chez votre boucher de proximité.",
-  keywords: [
-    "recettes halal",
-    "recettes viande halal",
-    "tajine agneau",
-    "couscous royal",
-    "kefta",
-    "brochettes halal",
-    "merguez maison",
-    "shawarma",
-    "ramadan",
-    "BBQ halal",
-  ],
   alternates: { canonical: `${SITE_URL}/recettes` },
   openGraph: {
     type: "website",

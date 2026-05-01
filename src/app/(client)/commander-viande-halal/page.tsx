@@ -11,16 +11,6 @@ export const metadata: Metadata = {
   title: "Commander de la viande halal en ligne — Boucher halal de proximité",
   description:
     "Commandez votre viande halal en ligne chez votre boucher de proximité. Bœuf, agneau, veau, volaille halal certifiée. Retrait en boutique en 30 min, frais 0,99€.",
-  keywords: [
-    "commander viande halal",
-    "commander viande halal en ligne",
-    "acheter viande halal en ligne",
-    "viande halal en ligne",
-    "commande viande halal",
-    "boucherie halal en ligne",
-    "boucher halal proximité",
-    "viande halal fraîche",
-  ],
   alternates: { canonical: `${SITE_URL}/commander-viande-halal` },
   openGraph: {
     type: "website",

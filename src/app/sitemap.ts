@@ -75,36 +75,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.7,
     },
-    {
-      url: `${BASE_URL}/bons-plans/anti-gaspi`,
-      lastModified: bonsPlansLastMod,
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
-    {
-      url: `${BASE_URL}/bons-plans/promos`,
-      lastModified: bonsPlansLastMod,
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
-    {
-      url: `${BASE_URL}/bons-plans/vente-flash`,
-      lastModified: bonsPlansLastMod,
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
-    {
-      url: `${BASE_URL}/bons-plans/packs`,
-      lastModified: bonsPlansLastMod,
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
-    {
-      url: `${BASE_URL}/bons-plans/ramadan`,
-      lastModified: bonsPlansLastMod,
-      changeFrequency: "daily",
-      priority: 0.6,
-    },
+    // /bons-plans/{anti-gaspi,promos,vente-flash,packs,ramadan} are noindex
+    // (transient promotional pages) — removed from sitemap to fix the
+    // "submitted URL marked noindex" Search Console error (audit SEO HIGH #4).
     {
       url: `${BASE_URL}/recettes`,
       lastModified: recipesIndexLastMod,
@@ -117,11 +90,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    // /avantages is a private loyalty page (noindex) — removed from sitemap.
     {
-      url: `${BASE_URL}/avantages`,
+      url: `${BASE_URL}/contact`,
       lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "monthly",
-      priority: 0.5,
+      changeFrequency: "yearly",
+      priority: 0.4,
+    },
+    {
+      url: `${BASE_URL}/a-propos`,
+      lastModified: STATIC_CONTENT_UPDATED,
+      changeFrequency: "yearly",
+      priority: 0.4,
     },
     {
       url: `${BASE_URL}/presse`,

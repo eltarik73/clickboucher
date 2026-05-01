@@ -10,13 +10,6 @@ export const metadata: Metadata = {
   title: "Espace presse — Dossier presse Klik&Go",
   description:
     "Dossier de presse Klik&Go : la marketplace click & collect des boucheries halal en Auvergne-Rhône-Alpes. Logos, photos HD, chiffres clés, contact presse.",
-  keywords: [
-    "klik and go presse",
-    "klikandgo dossier presse",
-    "boucherie halal startup",
-    "marketplace halal France",
-    "click and collect halal",
-  ],
   alternates: { canonical: `${SITE_URL}/presse` },
   openGraph: {
     type: "website",

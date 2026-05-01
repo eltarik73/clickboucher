@@ -3,10 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
   description: "Politique de confidentialité de Klik&Go. Découvrez comment nous protégeons vos données personnelles conformément au RGPD et à la loi Informatique et Libertés.",
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/politique-de-confidentialite` },
+  openGraph: {
+    title: "Politique de confidentialité | Klik&Go",
+    description: "Comment Klik&Go protège vos données personnelles (RGPD).",
+    url: `${SITE_URL}/politique-de-confidentialite`,
+    siteName: "Klik&Go",
+    locale: "fr_FR",
+    type: "website",
+  },
 };
 
 export default function PolitiqueConfidentialite() {

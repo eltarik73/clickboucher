@@ -3,10 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
 export const metadata: Metadata = {
   title: "Conditions Générales de Vente",
   description: "Conditions Générales de Vente de Klik&Go. Modalités de commande, retrait en boutique, paiement, remboursement et responsabilités pour le click & collect.",
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/cgv` },
+  openGraph: {
+    title: "Conditions Générales de Vente | Klik&Go",
+    description: "CGV — modalités de commande, retrait, paiement, remboursement.",
+    url: `${SITE_URL}/cgv`,
+    siteName: "Klik&Go",
+    locale: "fr_FR",
+    type: "website",
+  },
 };
 
 export default function CGV() {

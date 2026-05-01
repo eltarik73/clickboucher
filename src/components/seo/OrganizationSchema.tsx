@@ -30,8 +30,14 @@ export function OrganizationSchema() {
       contactType: "customer service",
       email: "contact@klikandgo.app",
       availableLanguage: ["French"],
+      areaServed: "FR",
     },
-    sameAs: [],
+    // sameAs: profils sociaux officiels — utilisés par les LLMs pour vérifier
+    // l'identité de la marque. À compléter quand les comptes seront créés:
+    // "https://www.linkedin.com/company/klikandgo",
+    // "https://www.instagram.com/klikandgo",
+    // "https://www.facebook.com/klikandgo",
+    // sameAs: [...],
   };
 
   const website = {

@@ -17,6 +17,7 @@ import {
 } from "@/components/shop/ShopProductsClient";
 import { ReviewList } from "@/components/shop/ReviewList";
 import { LoyaltyBadge } from "@/components/shop/LoyaltyBadge";
+import { EarliestPickupTime } from "@/components/shop/EarliestPickupTime";
 import { ShopSchema } from "@/components/seo/ShopSchema";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ProductSchema } from "@/components/seo/ProductSchema";
@@ -415,13 +416,7 @@ export default async function BoutiquePage({
               🔥 {ordersThisWeek > 100 ? "Plus de 100 commandes" : `${ordersThisWeek} commande${ordersThisWeek > 1 ? "s" : ""}`} cette semaine
             </p>
           )}
-          <p className="text-xs font-medium text-gray-900 dark:text-gray-300 mt-1">
-            Retrait le plus tot :{" "}
-            {new Date(Date.now() + effectiveTime * 60_000).toLocaleTimeString(
-              "fr-FR",
-              { hour: "2-digit", minute: "2-digit" }
-            )}
-          </p>
+          <EarliestPickupTime minutesFromNow={effectiveTime} />
           {/* SEO: link to city page */}
           {(() => {
             const cityMatch = SEO_CITIES.find((c) =>

@@ -55,16 +55,7 @@ export const metadata: Metadata = {
   },
   description:
     "Commandez en ligne chez votre boucherie halal de proximité. Click & collect rapide à Chambéry, Grenoble, Lyon, Saint-Étienne. Viande halal fraîche, retrait en boutique.",
-  keywords: [
-    "boucherie halal",
-    "click and collect",
-    "viande halal",
-    "commande en ligne",
-    "halal",
-    "Chambéry",
-    "Grenoble",
-    "Lyon",
-  ],
+  // `keywords` removed: ignored by Google since 2009 and Bing since 2014.
   authors: [{ name: "Klik&Go" }],
   creator: "Klik&Go",
   publisher: "Klik&Go",

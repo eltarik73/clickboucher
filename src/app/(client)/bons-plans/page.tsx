@@ -11,15 +11,6 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 export const metadata: Metadata = {
   title: "Bons plans & promos boucherie halal",
   description: "Toutes les promotions et offres flash des boucheries halal près de chez vous : anti-gaspi, packs, vente flash, ramadan. Économisez sur la viande halal en click & collect.",
-  keywords: [
-    "bons plans halal",
-    "promo boucherie halal",
-    "viande halal pas chère",
-    "anti gaspi viande",
-    "vente flash halal",
-    "promo ramadan",
-    "packs viande halal",
-  ],
   alternates: { canonical: `${SITE_URL}/bons-plans` },
   openGraph: {
     type: "website",

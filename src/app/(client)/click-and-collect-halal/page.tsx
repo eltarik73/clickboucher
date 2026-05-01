@@ -11,16 +11,6 @@ export const metadata: Metadata = {
   title: "Click & Collect halal — Commandez votre viande halal en ligne",
   description:
     "Click and collect viande halal : commandez en ligne chez votre boucher halal et récupérez votre commande en boutique en moins de 30 minutes. Sans frais cachés.",
-  keywords: [
-    "click and collect halal",
-    "boucherie halal click and collect",
-    "click and collect viande halal",
-    "boucher halal en ligne",
-    "boucherie halal en ligne",
-    "commander viande halal en ligne",
-    "click collect halal",
-    "viande halal en ligne",
-  ],
   alternates: { canonical: `${SITE_URL}/click-and-collect-halal` },
   openGraph: {
     type: "website",

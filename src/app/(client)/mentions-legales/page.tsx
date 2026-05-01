@@ -3,10 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
 export const metadata: Metadata = {
   title: "Mentions légales",
   description: "Mentions légales de Klik&Go. Informations sur l'éditeur, l'hébergeur et les conditions d'utilisation du service de click & collect pour boucheries halal.",
   robots: { index: true, follow: true },
+  alternates: { canonical: `${SITE_URL}/mentions-legales` },
+  openGraph: {
+    title: "Mentions légales | Klik&Go",
+    description: "Informations légales sur l'éditeur Klik&Go.",
+    url: `${SITE_URL}/mentions-legales`,
+    siteName: "Klik&Go",
+    locale: "fr_FR",
+    type: "website",
+  },
 };
 
 export default function MentionsLegales() {

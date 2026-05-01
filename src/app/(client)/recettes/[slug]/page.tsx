@@ -41,14 +41,6 @@ export async function generateMetadata({
   return {
     title,
     description,
-    keywords: [
-      "recette halal",
-      `recette ${recipe.meatType}`,
-      recipe.title.toLowerCase(),
-      ...recipe.tags,
-      "viande halal",
-      "click and collect viande",
-    ],
     alternates: { canonical: url },
     openGraph: {
       type: "article",
