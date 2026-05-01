@@ -40,7 +40,6 @@ export async function GET() {
       staleOrders,
       pausedShops,
       totalCommission,
-      shopsByPlanRaw,
       ordersLast7DaysRaw,
     ] = await Promise.all([
       // Total revenue (COMPLETED + PICKED_UP)
@@ -140,12 +139,6 @@ export async function GET() {
         _sum: { commissionCents: true },
       }),
 
-      // Shops by plan
-      prisma.subscription.groupBy({
-        by: ["plan"],
-        _count: true,
-      }),
-
       // Orders last 7 days (one query, group in JS)
       prisma.order.findMany({
         where: { createdAt: { gte: days7[0] } },
@@ -176,12 +169,6 @@ export async function GET() {
       revenue: revenueMap.get(s.id) || 0,
     }));
 
-    // Build shopsByPlan map
-    const shopsByPlan: Record<string, number> = { STARTER: 0, PRO: 0, PREMIUM: 0 };
-    for (const row of shopsByPlanRaw) {
-      shopsByPlan[row.plan] = row._count;
-    }
-
     // Build ordersLast7Days chart data
     const ordersLast7Days = days7.map((dayStart, i) => {
       const dayEnd = i < 6 ? days7[i + 1] : new Date(dayStart.getTime() + 86400000);
@@ -210,7 +197,6 @@ export async function GET() {
       pendingProRequests,
       avgRating: avgRating._avg.rating || 0,
       totalCommissionCents: totalCommission._sum.commissionCents || 0,
-      shopsByPlan,
       ordersLast7Days,
       topShops,
       alerts: {

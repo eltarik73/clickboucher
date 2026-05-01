@@ -10,7 +10,6 @@ import {
   BarChart3,
   Settings,
   CreditCard,
-  Crown,
   Headphones,
   X,
 } from "lucide-react";
@@ -20,7 +19,6 @@ const NAV_ITEMS = [
   { label: "Boucheries", href: "/admin/shops", icon: Store },
   { label: "Utilisateurs", href: "/admin/users", icon: Users },
   { label: "Commandes", href: "/admin/orders", icon: Package },
-  { label: "Formules", href: "/admin/formules", icon: Crown },
   { label: "Commission", href: "/admin/commission", icon: CreditCard },
   { label: "Support", href: "/admin/support", icon: Headphones },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },

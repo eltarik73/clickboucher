@@ -799,29 +799,6 @@ export default function StatistiquesPage() {
           </Card>
         )}
 
-        {/* ── Upsell Banner (STARTER only) ── */}
-        {plan === "STARTER" && (
-          <Link href="/boucher/dashboard/abonnement">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#DC2626] to-[#991b1b] p-5 shadow-lg">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="w-5 h-5 text-white" />
-                  <span className="text-sm font-bold text-white">Plan Pro</span>
-                </div>
-                <p className="text-white/90 text-sm leading-relaxed mb-3">
-                  Passez au plan Pro pour débloquer les statistiques avancées : graphiques de revenus, distribution horaire, top produits et clients.
-                </p>
-                <div className="inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 transition-colors rounded-lg px-3 py-1.5 text-white text-sm font-medium">
-                  Découvrir les offres
-                  <ArrowLeft size={14} className="rotate-180" />
-                </div>
-              </div>
-            </div>
-          </Link>
-        )}
-
       </div>
     </div>
   );

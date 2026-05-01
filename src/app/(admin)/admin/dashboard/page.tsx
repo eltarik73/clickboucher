@@ -13,7 +13,6 @@ import {
   TrendingUp,
   Star,
   CreditCard,
-  Crown,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -30,7 +29,6 @@ type Stats = {
   pendingProRequests: number;
   avgRating: number;
   totalCommissionCents: number;
-  shopsByPlan: Record<string, number>;
   ordersLast7Days: { date: string; orders: number; revenue: number }[];
   topShops: {
     id: string;
@@ -208,81 +206,32 @@ export default function AdminDashboardPage() {
         })}
       </div>
 
-      {/* Charts row */}
-      <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-        {/* Orders last 7 days bar chart */}
-        <div className="md:col-span-2 bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
-          <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4">
-            Commandes (7 derniers jours)
-          </h2>
-          <div className="flex items-end gap-2 h-40">
-            {stats.ordersLast7Days.map((day) => {
-              const pct = (day.orders / maxOrders) * 100;
-              const dayLabel = new Date(day.date + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short" });
-              return (
-                <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-xs font-semibold text-gray-900 dark:text-[#f8f6f3]">
-                    {day.orders}
-                  </span>
-                  <div className="w-full bg-gray-100 dark:bg-white/5 rounded-t-md relative" style={{ height: "100px" }}>
-                    <div
-                      className="absolute bottom-0 left-0 right-0 bg-[#DC2626] rounded-t-md transition-all duration-500"
-                      style={{ height: `${Math.max(pct, 4)}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 capitalize">
-                    {dayLabel}
-                  </span>
+      {/* Orders last 7 days bar chart */}
+      <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
+        <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4">
+          Commandes (7 derniers jours)
+        </h2>
+        <div className="flex items-end gap-2 h-40">
+          {stats.ordersLast7Days.map((day) => {
+            const pct = (day.orders / maxOrders) * 100;
+            const dayLabel = new Date(day.date + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short" });
+            return (
+              <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+                <span className="text-xs font-semibold text-gray-900 dark:text-[#f8f6f3]">
+                  {day.orders}
+                </span>
+                <div className="w-full bg-gray-100 dark:bg-white/5 rounded-t-md relative" style={{ height: "100px" }}>
+                  <div
+                    className="absolute bottom-0 left-0 right-0 bg-[#DC2626] rounded-t-md transition-all duration-500"
+                    style={{ height: `${Math.max(pct, 4)}%` }}
+                  />
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Shops by plan */}
-        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-5">
-          <h2 className="font-semibold text-gray-900 dark:text-[#f8f6f3] mb-4 flex items-center gap-2">
-            <Crown size={16} className="text-amber-500" />
-            Répartition formules
-          </h2>
-          <div className="space-y-4">
-            {(["STARTER", "PRO", "PREMIUM"] as const).map((plan) => {
-              const count = stats.shopsByPlan[plan] || 0;
-              const total = Object.values(stats.shopsByPlan).reduce((s, v) => s + v, 0) || 1;
-              const pct = Math.round((count / total) * 100);
-              const colors: Record<string, string> = {
-                STARTER: "bg-gray-400",
-                PRO: "bg-blue-500",
-                PREMIUM: "bg-amber-500",
-              };
-              return (
-                <div key={plan}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {plan}
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
-                      {count}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${colors[plan]}`}
-                      style={{ width: `${Math.max(pct, 2)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            <div className="pt-2 border-t border-gray-100 dark:border-white/10">
-              <Link
-                href="/admin/formules"
-                className="text-xs text-[#DC2626] font-medium hover:underline"
-              >
-                Gérer les formules →
-              </Link>
-            </div>
-          </div>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 capitalize">
+                  {dayLabel}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

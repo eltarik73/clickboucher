@@ -34,17 +34,10 @@ export async function PATCH(
     }
 
     if (data.suspended) {
-      // Suspend: hide shop + update subscription
-      await prisma.$transaction([
-        prisma.shop.update({
-          where: { id: shopId },
-          data: { visible: false, status: "CLOSED", closedMessage: data.reason || "Boutique suspendue par l'administration" },
-        }),
-        prisma.subscription.updateMany({
-          where: { shopId },
-          data: { status: "SUSPENDED", adminNote: data.reason },
-        }),
-      ]);
+      await prisma.shop.update({
+        where: { id: shopId },
+        data: { visible: false, status: "CLOSED", closedMessage: data.reason || "Boutique suspendue par l'administration" },
+      });
 
       await writeAuditLog({
         actorId: admin.userId,
@@ -56,17 +49,10 @@ export async function PATCH(
 
       return apiSuccess({ suspended: true });
     } else {
-      // Reactivate
-      await prisma.$transaction([
-        prisma.shop.update({
-          where: { id: shopId },
-          data: { visible: true, status: "OPEN", closedMessage: null },
-        }),
-        prisma.subscription.updateMany({
-          where: { shopId },
-          data: { status: "ACTIVE", adminNote: null },
-        }),
-      ]);
+      await prisma.shop.update({
+        where: { id: shopId },
+        data: { visible: true, status: "OPEN", closedMessage: null },
+      });
 
       await writeAuditLog({
         actorId: admin.userId,

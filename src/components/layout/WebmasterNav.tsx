@@ -16,7 +16,6 @@ import {
   Flag,
   Shield,
   BarChart3,
-  Crown,
   Trophy,
   Megaphone,
   Users,
@@ -71,7 +70,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { key: "demandes",   label: "Demandes PRO",  href: "/webmaster/demandes",     icon: UserCheck },
       { key: "support",    label: "Support",       href: "/webmaster/support",      icon: Headphones },
-      { key: "plans",      label: "Plans & Avis",  href: "/webmaster/plans",        icon: Crown },
     ],
   },
   {

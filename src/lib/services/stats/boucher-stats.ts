@@ -92,13 +92,10 @@ async function computeStats(
   shopRating: number,
   shopRatingCount: number
 ) {
-  // ── Subscription check ──
-  const subscription = await prisma.subscription.findUnique({
-    where: { shopId },
-  });
-  const plan: "STARTER" | "PRO" | "PREMIUM" = subscription?.plan ?? "STARTER";
-  const isPro = plan === "PRO" || plan === "PREMIUM";
-  const isPremium = plan === "PREMIUM";
+  // All shops get full stats — Klik&Go is free with commission-only pricing.
+  const plan: "STARTER" | "PRO" | "PREMIUM" = "PREMIUM";
+  const isPro = true;
+  const isPremium = true;
   const { start, end } = getDateRange(period);
 
   // ── Fetch orders for current + previous period ──

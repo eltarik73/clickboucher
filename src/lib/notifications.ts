@@ -407,7 +407,7 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
       return {
         title: "⏳ Essai bientôt terminé",
         body: data.message || `L'essai de ${data.shopName} se termine bientôt`,
-        url: `${baseUrl}/boucher/dashboard/abonnement`,
+        url: `${baseUrl}/boucher/dashboard`,
       };
     case "SCHEDULED_REMINDER":
       return data.customerName

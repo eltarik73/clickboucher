@@ -215,12 +215,12 @@ export default function EspaceBoucherPage() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
-            <a
-              href="#packs"
+            <Link
+              href="/inscription-boucher"
               className="bg-[#DC2626] text-white rounded-xl py-3 px-8 font-semibold hover:bg-[#b91c1c] transition-colors shadow-lg shadow-[#DC2626]/20"
             >
               Ajouter ma boucherie
-            </a>
+            </Link>
             <Link
               href="/sign-in?redirect_url=/espace-boucher"
               className="border border-white/30 text-white rounded-xl py-3 px-8 font-medium hover:bg-white/5 transition-colors"
@@ -232,129 +232,52 @@ export default function EspaceBoucherPage() {
       </section>
 
       {/* ══════════════════════════════════════════ */}
-      {/* PACKS TARIFAIRES                          */}
+      {/* OFFRE — 100% gratuit, commission par commande */}
       {/* ══════════════════════════════════════════ */}
-      <section
-        id="packs"
-        className="max-w-6xl mx-auto px-5 py-20"
-      >
-        <div className="text-center mb-14">
+      <section className="max-w-4xl mx-auto px-5 py-20">
+        <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-display">
-            Choisissez votre formule
+            100% gratuit pour votre boucherie
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            30 jours d&apos;essai gratuit sur tous les packs. Sans engagement.
+          <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-2xl mx-auto">
+            Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement
+            sur une petite commission par commande encaissée. Vous ne payez que si
+            vous vendez.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-          {/* ── PACK ESSENTIEL ── */}
-          <div className="bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 rounded-2xl p-7 relative">
-            <span className="inline-block text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-[#0a0a0a] px-3 py-1 rounded-full mb-4">
-              Pour démarrer
-            </span>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-              Essentiel
-            </h3>
-            <div className="flex items-baseline gap-1 mt-2">
-              <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                49&euro;
-              </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">/mois</span>
-            </div>
-            <ul className="mt-6 space-y-3 text-gray-700 dark:text-gray-300">
-              <Feature>Votre vitrine en ligne (page boucherie dédiée)</Feature>
-              <Feature>Catalogue produits illimité avec photos</Feature>
-              <Feature>Commandes click &amp; collect avec QR code</Feature>
-              <Feature>Système de tickets &amp; suivi en temps réel</Feature>
-              <Feature>Notifications clients automatiques</Feature>
-              <Feature>Tableau de bord &amp; statistiques de base</Feature>
-              <Feature>Support par email</Feature>
-            </ul>
-            <Link
-              href="/inscription-boucher?pack=essentiel"
-              className="mt-8 block w-full text-center border-2 border-[#DC2626] text-[#DC2626] rounded-xl py-3 font-semibold hover:bg-[#DC2626] hover:text-white transition-colors"
-            >
-              Choisir l&apos;Essentiel
-            </Link>
-          </div>
-
-          {/* ── PACK PREMIUM ── */}
-          <div className="bg-white dark:bg-[#141414] border-2 border-[#DC2626] rounded-2xl p-7 shadow-lg relative">
-            <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#DC2626] text-white px-4 py-1 rounded-full text-xs font-bold">
-              POPULAIRE
-            </span>
+        <div className="bg-white dark:bg-[#141414] border-2 border-[#DC2626] rounded-2xl p-8 shadow-lg max-w-2xl mx-auto">
+          <div className="text-center mb-6">
             <span className="inline-block text-xs font-semibold text-[#DC2626] bg-[#DC2626]/10 px-3 py-1 rounded-full mb-4">
-              Le plus choisi
+              Tout inclus
             </span>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-              Premium
-            </h3>
-            <div className="flex items-baseline gap-1 mt-2">
-              <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                99&euro;
-              </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">/mois</span>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-5xl font-bold text-gray-900 dark:text-white">0&euro;</span>
+              <span className="text-lg text-gray-500 dark:text-gray-400">/mois</span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Tout le pack Essentiel, plus :
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              Commission uniquement sur les commandes encaissées
             </p>
-            <ul className="mt-6 space-y-3 text-gray-700 dark:text-gray-300">
-              <Feature>
-                Chat IA — vos clients commandent en langage naturel
-              </Feature>
-              <Feature>
-                Assistant IA qui recommande vos produits et conseille les
-                quantités
-              </Feature>
-              <Feature>
-                Suggestions intelligentes d&apos;alternatives en cas de rupture
-              </Feature>
-              <Feature>Programme de fidélité intégré</Feature>
-              <Feature>Promotions &amp; offres flash automatisées</Feature>
-              <Feature>Statistiques avancées &amp; analytics</Feature>
-              <Feature>Support prioritaire 7j/7</Feature>
-            </ul>
-            <Link
-              href="/inscription-boucher?pack=premium"
-              className="mt-8 block w-full text-center bg-[#DC2626] text-white rounded-xl py-3 font-semibold hover:bg-[#b91c1c] transition-colors shadow-md"
-            >
-              Choisir le Premium
-            </Link>
           </div>
 
-          {/* ── PACK ENTREPRISE ── */}
-          <div className="bg-[#1a1a1a] border border-[#333] rounded-2xl p-7 relative">
-            <span className="inline-block text-xs font-semibold text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full mb-4">
-              Solution complète
-            </span>
-            <h3 className="text-xl font-bold text-white">Entreprise</h3>
-            <div className="flex items-baseline gap-1 mt-2">
-              <span className="text-3xl font-bold text-white">199&euro;</span>
-              <span className="text-sm text-gray-500">/mois</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Tout le pack Premium, plus :
-            </p>
-            <ul className="mt-6 space-y-3 text-gray-300">
-              <Feature>Intégration caisse enregistreuse (POS)</Feature>
-              <Feature>
-                Synchronisation stock temps réel avec votre caisse
-              </Feature>
-              <Feature>Développements sur-mesure selon vos besoins</Feature>
-              <Feature>Prise en compte des demandes d&apos;évolution</Feature>
-              <Feature>Multi-points de vente</Feature>
-              <Feature>API personnalisée</Feature>
-              <Feature>Account manager dédié</Feature>
-              <Feature>Formation équipe incluse</Feature>
-            </ul>
-            <a
-              href="mailto:contact@klikandgo.app"
-              className="mt-8 block w-full text-center bg-white text-[#1a1a1a] rounded-xl py-3 font-bold hover:bg-gray-100 transition-colors"
-            >
-              Nous contacter
-            </a>
-          </div>
+          <ul className="space-y-3 text-gray-700 dark:text-gray-300 mb-8">
+            <Feature>Vitrine en ligne dédiée à votre boucherie</Feature>
+            <Feature>Catalogue produits illimité avec photos</Feature>
+            <Feature>Commandes click &amp; collect avec QR code retrait</Feature>
+            <Feature>Mode Cuisine temps réel pour gérer vos commandes</Feature>
+            <Feature>Notifications clients automatiques</Feature>
+            <Feature>Programme de fidélité intégré</Feature>
+            <Feature>Promotions &amp; offres flash</Feature>
+            <Feature>Statistiques &amp; analytics complètes</Feature>
+            <Feature>Support 7j/7</Feature>
+          </ul>
+
+          <Link
+            href="/inscription-boucher"
+            className="block w-full text-center bg-[#DC2626] text-white rounded-xl py-3 font-semibold hover:bg-[#b91c1c] transition-colors shadow-md"
+          >
+            Ajouter ma boucherie gratuitement
+          </Link>
         </div>
       </section>
 
@@ -416,8 +339,8 @@ export default function EspaceBoucherPage() {
         </h2>
         <div className="space-y-3">
           <FaqItem
-            question="Puis-je essayer gratuitement ?"
-            answer="Oui, tous nos packs incluent une période d'essai gratuite de 30 jours. Aucune carte bancaire requise. Vous pouvez annuler à tout moment."
+            question="Combien ça coûte vraiment ?"
+            answer="Klik&Go est 100% gratuit pour votre boucherie : aucun abonnement, aucun frais fixe, aucun engagement. Nous prélevons uniquement une petite commission sur chaque commande encaissée — vous ne payez que si vous vendez."
           />
           <FaqItem
             question="Ai-je besoin de matériel spécifique ?"
@@ -428,12 +351,12 @@ export default function EspaceBoucherPage() {
             answer="Votre boucherie peut être en ligne en moins de 24 heures. Notre équipe valide votre inscription et vous accompagne pour la mise en route."
           />
           <FaqItem
-            question="Puis-je changer de formule ?"
-            answer="Bien sûr ! Vous pouvez passer d'un pack à un autre à tout moment. Le changement prend effet immédiatement."
+            question="Comment sont gérées les commandes ?"
+            answer="Vous recevez une notification pour chaque nouvelle commande. Vous pouvez accepter, préparer et signaler les commandes prêtes depuis votre tableau de bord Mode Cuisine."
           />
           <FaqItem
-            question="Comment sont gérées les commandes ?"
-            answer="Vous recevez une notification pour chaque nouvelle commande. Vous pouvez accepter, préparer et signaler les commandes prêtes depuis votre tableau de bord."
+            question="Quand suis-je payé ?"
+            answer="Les paiements en ligne sont versés automatiquement sur votre compte bancaire via Stripe. Pour les paiements sur place, vous encaissez directement votre client en boutique au moment du retrait."
           />
         </div>
       </section>

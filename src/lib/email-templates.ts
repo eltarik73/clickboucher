@@ -241,7 +241,7 @@ export function trialExpiring(data: {
       ${data.message ? esc(data.message) : `L'essai gratuit de <strong>${esc(data.shopName || "votre boutique")}</strong> se termine dans 7 jours.`}
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Passez au paiement pour continuer à recevoir des commandes sans interruption.</p>
-    ${button(`${baseUrl}/boucher/dashboard/abonnement`, "Gérer mon abonnement")}
+    ${button(`${baseUrl}/boucher/dashboard`, "Accéder à mon espace")}
   `);
 }
 

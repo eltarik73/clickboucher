@@ -11,8 +11,6 @@ export const dynamic = "force-dynamic";
 
 const validateSchema = z.object({
   approved: z.boolean(),
-  plan: z.enum(["STARTER", "PRO", "PREMIUM"]).optional().default("STARTER"),
-  trialDays: z.number().int().min(0).max(90).optional().default(14),
   adminNote: z.string().max(500).optional(),
 });
 
@@ -37,38 +35,11 @@ export async function PATCH(
     }
 
     if (data.approved) {
-      // Approve: make visible + create/update subscription with trial
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + data.trialDays);
+      await prisma.shop.update({
+        where: { id: shopId },
+        data: { visible: true, onboardingCompleted: true },
+      });
 
-      await prisma.$transaction([
-        prisma.shop.update({
-          where: { id: shopId },
-          data: { visible: true, onboardingCompleted: true },
-        }),
-        prisma.subscription.upsert({
-          where: { shopId },
-          create: {
-            shopId,
-            plan: data.plan,
-            status: "TRIAL",
-            trialEndsAt,
-            validatedAt: new Date(),
-            validatedBy: admin.userId,
-            adminNote: data.adminNote,
-          },
-          update: {
-            plan: data.plan,
-            status: "TRIAL",
-            trialEndsAt,
-            validatedAt: new Date(),
-            validatedBy: admin.userId,
-            adminNote: data.adminNote,
-          },
-        }),
-      ]);
-
-      // Process referral if applicable
       if (shop.referredByShop) {
         try {
           const referrerShop = await prisma.shop.findUnique({
@@ -77,7 +48,6 @@ export async function PATCH(
           });
 
           if (referrerShop) {
-            // Create referral record
             await prisma.referral.create({
               data: {
                 referrerShopId: referrerShop.id,
@@ -87,32 +57,6 @@ export async function PATCH(
               },
             });
 
-            // +30 days for referrer
-            const referrerSub = await prisma.subscription.findUnique({
-              where: { shopId: referrerShop.id },
-            });
-            if (referrerSub) {
-              const currentEnd = referrerSub.currentPeriodEnd || referrerSub.trialEndsAt || new Date();
-              const newEnd = new Date(currentEnd);
-              newEnd.setDate(newEnd.getDate() + 30);
-
-              await prisma.subscription.update({
-                where: { shopId: referrerShop.id },
-                data: referrerSub.status === "TRIAL"
-                  ? { trialEndsAt: newEnd }
-                  : { currentPeriodEnd: newEnd },
-              });
-            }
-
-            // +30 days for referred (on top of trial)
-            const newTrialEnd = new Date(trialEndsAt);
-            newTrialEnd.setDate(newTrialEnd.getDate() + 30);
-            await prisma.subscription.update({
-              where: { shopId },
-              data: { trialEndsAt: newTrialEnd },
-            });
-
-            // Notify both
             const referrerOwner = await prisma.user.findUnique({
               where: { clerkId: referrerShop.ownerId },
               select: { id: true },
@@ -121,7 +65,7 @@ export async function PATCH(
               await sendNotification("ACCOUNT_APPROVED", {
                 userId: referrerOwner.id,
                 shopName: referrerShop.name,
-                message: `🎉 Parrainage validé ! Vous bénéficiez d'1 mois gratuit supplémentaire grâce au parrainage de ${shop.name}.`,
+                message: `🎉 Parrainage validé ! ${shop.name} a rejoint Klik&Go grâce à votre parrainage.`,
               });
             }
           }
@@ -130,7 +74,6 @@ export async function PATCH(
         }
       }
 
-      // Notify the approved boucher
       const owner = await prisma.user.findUnique({
         where: { clerkId: shop.ownerId },
         select: { id: true },
@@ -147,24 +90,15 @@ export async function PATCH(
         action: "shop.validate",
         target: "Shop",
         targetId: shopId,
-        details: { plan: data.plan, trialDays: data.trialDays },
+        details: { adminNote: data.adminNote },
       });
 
-      return apiSuccess({ approved: true, plan: data.plan, trialEndsAt });
+      return apiSuccess({ approved: true });
     } else {
-      // Reject: make invisible
       await prisma.shop.update({
         where: { id: shopId },
         data: { visible: false },
       });
-
-      if (data.adminNote) {
-        await prisma.subscription.upsert({
-          where: { shopId },
-          create: { shopId, plan: "STARTER", status: "CANCELLED", adminNote: data.adminNote },
-          update: { status: "CANCELLED", adminNote: data.adminNote },
-        });
-      }
 
       await writeAuditLog({
         actorId: admin.userId,
