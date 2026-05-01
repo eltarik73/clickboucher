@@ -59,6 +59,13 @@ export async function PATCH(
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
+    // Test mode bypass — when a tester is impersonating BOUCHER/ADMIN, the
+    // synthetic clerkId has no DB user. getAuthenticatedBoucher resolves the
+    // first-shop / ownership consistently across the codebase, so reuse it
+    // here. (Outside test mode the function still checks Clerk auth.)
+    const { getAuthenticatedBoucher } = await import("@/lib/boucher-auth");
+    const boucherAuth = await getAuthenticatedBoucher();
+
     // Check role via DB lookup (not Clerk publicMetadata)
     const dbUser = await prisma.user.findUnique({
       where: { clerkId: userId },
@@ -77,7 +84,13 @@ export async function PATCH(
         return apiError("NOT_FOUND", "Boucherie introuvable");
       }
 
-      if (shop.ownerId !== userId && shop.ownerId !== dbUser?.id) {
+      const isOwner =
+        shop.ownerId === userId ||
+        shop.ownerId === dbUser?.id ||
+        // Test mode: the test boucher owns whatever shop getAuthenticatedBoucher resolved.
+        (!boucherAuth.error && boucherAuth.shopId === id);
+
+      if (!isOwner) {
         return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
       }
     }
