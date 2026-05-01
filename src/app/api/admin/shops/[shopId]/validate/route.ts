@@ -5,7 +5,10 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { sendNotification } from "@/lib/notifications";
 import { writeAuditLog } from "@/lib/audit-log";
+import { notifyIndexNow } from "@/lib/indexnow";
 import { z } from "zod";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +38,29 @@ export async function PATCH(
     }
 
     if (data.approved) {
-      await prisma.shop.update({
+      const updatedShop = await prisma.shop.update({
         where: { id: shopId },
         data: { visible: true, onboardingCompleted: true },
+        select: { slug: true, city: true },
       });
+
+      // Notify Bing/IndexNow that the new shop page + sitemap are indexable
+      // (audit GEO 2026 — IndexNow protocol for instant reindexation).
+      const indexNowUrls: string[] = [
+        `${SITE_URL}/sitemap.xml`,
+        `${SITE_URL}/boutique/${updatedShop.slug}`,
+        SITE_URL,
+      ];
+      if (updatedShop.city) {
+        const citySlug = updatedShop.city
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+        indexNowUrls.push(`${SITE_URL}/boucherie-halal/${citySlug}`);
+      }
+      notifyIndexNow(indexNowUrls).catch(() => {}); // fire-and-forget
 
       if (shop.referredByShop) {
         try {

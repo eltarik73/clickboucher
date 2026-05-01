@@ -3,9 +3,11 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, ShieldCheck, Truck, Award, Banknote } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { LastUpdated } from "@/components/seo/LastUpdated";
 import { SEO_CITIES } from "@/lib/seo/cities";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+const PAGE_LAST_UPDATED = "2026-05-01";
 
 export const metadata: Metadata = {
   title: "Commander de la viande halal en ligne — Boucher halal de proximité",
@@ -108,6 +110,7 @@ export default async function CommanderViandeHalalPage() {
             boucher de proximité parmi {shopCount}+ boucheries halal certifiées. Retrait en boutique en
             moins de 30 minutes. Pas d&apos;abonnement, frais de service 0,99 € par commande.
           </p>
+          <LastUpdated date={PAGE_LAST_UPDATED} className="mt-4 text-white/60" />
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/"

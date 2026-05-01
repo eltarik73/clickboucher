@@ -3,7 +3,10 @@ import Link from "next/link";
 import { ArrowLeft, Check, Clock, MapPin, ShieldCheck, Smartphone, Store } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { LastUpdated } from "@/components/seo/LastUpdated";
 import { SEO_CITIES } from "@/lib/seo/cities";
+
+const PAGE_LAST_UPDATED = "2026-05-01";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -100,6 +103,7 @@ export default async function ClickAndCollectHalalPage() {
             Commandez votre <strong>viande halal en ligne</strong> chez {shopCount}+ boucheries halal partenaires.
             Payez en ligne, récupérez en boutique en moins de 30 minutes. Frais de service 0,99 € — sans commission cachée.
           </p>
+          <LastUpdated date={PAGE_LAST_UPDATED} className="mt-4 text-white/60" />
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/"

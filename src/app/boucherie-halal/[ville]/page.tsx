@@ -7,7 +7,10 @@ import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ShopSchema } from "@/components/seo/ShopSchema";
+import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
+
+const PAGE_LAST_UPDATED = "2026-05-01";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -174,6 +177,7 @@ export default async function CityPage({
             <MapPin size={14} />
             <span>{city.name}, {city.region} — Auvergne-Rhône-Alpes</span>
           </div>
+          <LastUpdated date={PAGE_LAST_UPDATED} className="mt-4 text-white/50" />
         </div>
       </section>
 
