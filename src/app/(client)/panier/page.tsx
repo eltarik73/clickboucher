@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
-import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X, Tag, Loader2, Gift, Trophy } from "lucide-react";
+import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X, Tag, Loader2, Gift, Trophy, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, type CartItem } from "@/lib/hooks/use-cart";
+import { SERVICE_FEE_CENTS } from "@/lib/services/stripe/commission";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OrderCountdown } from "@/components/checkout/OrderCountdown";
@@ -312,7 +313,14 @@ export default function PanierPage() {
     setPromoError("");
   };
 
-  const finalTotal = appliedPromo ? Math.max(0, totalCents - appliedPromo.discountCents) : totalCents;
+  // Klik&Go service fee — added to every order, regardless of payment mode (sur place
+  // or en ligne). Visible in the cart breakdown for transparency. Set to 0 here when
+  // a free-fees promo (FREE_FEES) is applied.
+  const serviceFeeCents = appliedPromo?.type === "FREE_FEES" ? 0 : SERVICE_FEE_CENTS;
+  const subtotalAfterDiscount = appliedPromo
+    ? Math.max(0, totalCents - appliedPromo.discountCents)
+    : totalCents;
+  const finalTotal = subtotalAfterDiscount + serviceFeeCents;
 
   function navigateDate(dir: number) {
     const d = new Date(selectedDate);
@@ -567,35 +575,44 @@ export default function PanierPage() {
 
         {/* Total */}
         <div className="mt-5 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-          {appliedPromo ? (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Sous-total</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">{fmtPrice(totalCents)}</span>
-              </div>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-sm text-emerald-600 dark:text-emerald-400">Reduction</span>
-                <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                  -{fmtPrice(appliedPromo.discountCents)}
-                </span>
-              </div>
-              <div className="border-t border-[#ece8e3] dark:border-white/10 mt-2 pt-2 flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">Total</span>
-                <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                  {fmtPrice(finalTotal)}
-                </span>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Total estime</span>
-              <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                {fmtPrice(totalCents)}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Sous-total</span>
+            <span className="text-sm text-gray-700 dark:text-gray-200">{fmtPrice(totalCents)}</span>
+          </div>
+          {appliedPromo && (
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-sm text-emerald-600 dark:text-emerald-400">
+                {appliedPromo.label || "Réduction"}
+              </span>
+              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                -{fmtPrice(appliedPromo.discountCents)}
               </span>
             </div>
           )}
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              Frais de service Klik&amp;Go
+              <span title="0,99€ fixes par commande, payés par le client. Reversés à Klik&Go (commission boucher absorbée par la plateforme).">
+                <Info size={12} className="text-gray-400" />
+              </span>
+            </span>
+            <span
+              className={`text-sm ${
+                serviceFeeCents === 0 ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-gray-700 dark:text-gray-200"
+              }`}
+            >
+              {serviceFeeCents === 0 ? "Offerts" : fmtPrice(serviceFeeCents)}
+            </span>
+          </div>
+          <div className="border-t border-[#ece8e3] dark:border-white/10 mt-2 pt-2 flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">Total à payer</span>
+            <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
+              {fmtPrice(finalTotal)}
+            </span>
+          </div>
           <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
-            Le poids exact sera ajuste au retrait. Paiement sur place.
+            Le poids exact sera ajusté au retrait
+            {paymentMethod === "ON_PICKUP" ? " — paiement sur place." : "."}
           </p>
         </div>
 
