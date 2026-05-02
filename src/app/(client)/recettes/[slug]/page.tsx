@@ -38,10 +38,20 @@ export async function generateMetadata({
     : `${SITE_URL}/og-image.png`;
   const title = `${recipe.title} — Recette halal facile`;
   const description = `${recipe.description} Pour ${recipe.servings} personnes en ${recipe.totalTime} min. ${recipe.meatQuantity} de viande halal — commande click & collect chez votre boucher.`;
+
+  // Mars 2026 Core Update : Google rejette en masse le contenu IA thin.
+  // GSC remontait 32 recettes en "Détectée non indexée". On noindex les
+  // recettes générées qui n'ont pas été manuellement reviewées (featured),
+  // pour préserver le signal de qualité du domaine entier.
+  const shouldNoIndex = recipe.aiGenerated && !recipe.featured;
+
   return {
     title,
     description,
     alternates: { canonical: url },
+    ...(shouldNoIndex && {
+      robots: { index: false, follow: true },
+    }),
     openGraph: {
       type: "article",
       title: `${title} | Klik&Go`,

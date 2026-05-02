@@ -22,7 +22,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     orderBy: { updatedAt: "desc" },
   }),
     prisma.recipe.findMany({
-      where: { published: true },
+      // Exclude AI-generated recipes that aren't manually featured —
+      // Mars 2026 Core Update penalizes thin AI bulk content. We keep
+      // the seeded hand-curated recipes (aiGenerated=false) AND any
+      // AI recipe a webmaster has explicitly featured.
+      where: { published: true, OR: [{ aiGenerated: false }, { featured: true }] },
       select: { slug: true, updatedAt: true },
     }),
     // Only list SEO cities that have at least one visible shop — otherwise
