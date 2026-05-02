@@ -203,6 +203,31 @@ export default async function BoutiquePage({
     },
   });
 
+  // Top 2 reviews with text — embedded in ProductSchema for rich snippets
+  // (GSC asked for "review" field on Product. Reviews are per-shop in our model.)
+  const topReviewsRaw = shop.ratingCount > 0
+    ? await prisma.review.findMany({
+        where: { shopId: shop.id, comment: { not: null } },
+        orderBy: { createdAt: "desc" },
+        take: 2,
+        select: {
+          rating: true,
+          comment: true,
+          createdAt: true,
+          user: { select: { firstName: true, lastName: true } },
+        },
+      })
+    : [];
+
+  const topReviews = topReviewsRaw.map((r) => ({
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.createdAt,
+    authorName:
+      `${r.user?.firstName ?? "Client"} ${(r.user?.lastName ?? "").charAt(0)}`.trim() ||
+      "Client",
+  }));
+
   // Serialize for client component (strip Prisma internals / Date objects)
   const categories: CategoryData[] = shop.categories.map((c) => ({
     id: c.id,
@@ -296,7 +321,13 @@ export default async function BoutiquePage({
             inStock: p.inStock,
             category: p.categories[0],
           }}
-          shop={{ name: shop.name, slug: shop.slug }}
+          shop={{
+            name: shop.name,
+            slug: shop.slug,
+            rating: shop.rating,
+            ratingCount: shop.ratingCount,
+          }}
+          reviews={topReviews}
         />
       ))}
       <div className="mx-auto max-w-5xl">
