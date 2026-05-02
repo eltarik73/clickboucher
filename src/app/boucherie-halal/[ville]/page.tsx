@@ -33,14 +33,11 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
-  // Check if any shops exist in this city — if not, noindex to avoid thin content
-  const shopCount = await prisma.shop.count({
-    where: {
-      visible: true,
-      city: { contains: city.name, mode: "insensitive" },
-    },
-  });
-
+  // Pages SEO villes — toujours indexables. Phase d'acquisition : on veut
+  // référencer la page même sans boucher actif pour capter "boucherie halal
+  // [ville]" et faire venir des bouchers (CTA "Vous êtes boucher halal ?
+  // Inscrivez-vous"). Le contenu est suffisamment unique grâce à city.intro
+  // (450+ mots par ville) pour ne pas être considéré thin.
   const title = `Boucherie halal à ${city.name} — Click & Collect`;
   return {
     title,
@@ -60,7 +57,6 @@ export async function generateMetadata({
     alternates: {
       canonical: `${SITE_URL}/boucherie-halal/${city.slug}`,
     },
-    robots: shopCount === 0 ? { index: false, follow: true } : undefined,
   };
 }
 
