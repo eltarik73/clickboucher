@@ -36,6 +36,7 @@ const cormorant = Cormorant_Garamond({
   weight: ["500"],
   variable: "--font-serif",
   display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = {

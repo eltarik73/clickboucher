@@ -65,7 +65,7 @@ export function ShopCard({
     return (
       <Link
         href={`/boutique/${shop.slug}`}
-        className="flex gap-4 p-3 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none"
+        className="flex gap-4 p-3 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-shadow focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none"
       >
         <div className={`relative w-24 h-24 rounded-xl overflow-hidden shrink-0 ${isClosed ? "opacity-60 grayscale" : ""}`}>
           <SafeImage
@@ -139,7 +139,7 @@ export function ShopCard({
   return (
     <Link
       href={`/boutique/${shop.slug}`}
-      className="group bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none"
+      className="group bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none"
     >
       {/* Image */}
       <div className={`relative h-36 sm:h-48 overflow-hidden ${isClosed ? "opacity-70 grayscale" : ""}`}>
@@ -204,7 +204,7 @@ export function ShopCard({
 
         {/* Hover CTA */}
         {isOpen && (
-          <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+          <div className="absolute inset-x-4 bottom-4 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-300 translate-y-2 group-hover:translate-y-0">
             <span className="block w-full py-2.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-xl shadow-lg text-center text-sm">
               Voir la boutique
             </span>
