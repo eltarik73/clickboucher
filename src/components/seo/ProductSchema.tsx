@@ -1,4 +1,11 @@
+import { resolveProductImage } from "@/lib/product-images";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+
+// Fallback OG image used when a product has no imageUrl AND no category match.
+// GSC > Fiches de marchand flagge "Champ image manquant" comme critique sans
+// cela ; sans image, le produit est exclu de Google Shopping rich results.
+const DEFAULT_PRODUCT_IMAGE = `${SITE_URL}/og-image.png`;
 
 interface ProductSchemaProps {
   product: {
@@ -30,12 +37,23 @@ interface ProductSchemaProps {
 }
 
 export function ProductSchema({ product, shop, reviews }: ProductSchemaProps) {
+  // GSC > Fiches de marchand exige TOUJOURS un champ "image". Resolution :
+  // 1. imageUrl du produit (Replicate/Blob/upload) si dispo
+  // 2. resolveProductImage() = mapping local /img/products/*.jpg par nom/categorie
+  // 3. fallback ultime sur og-image.png
+  const rawImage =
+    product.imageUrl ||
+    resolveProductImage({
+      name: product.name,
+      imageUrl: null,
+      category: product.category?.name ?? "",
+    }) ||
+    DEFAULT_PRODUCT_IMAGE;
+
   // Normalize image URL → absolute (schema.org recommends absolute URLs for rich results)
-  const absoluteImage = product.imageUrl
-    ? product.imageUrl.startsWith("http")
-      ? product.imageUrl
-      : `${SITE_URL}${product.imageUrl.startsWith("/") ? "" : "/"}${product.imageUrl}`
-    : null;
+  const absoluteImage = rawImage.startsWith("http")
+    ? rawImage
+    : `${SITE_URL}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`;
 
   const hasRating =
     typeof shop.rating === "number" &&
@@ -52,7 +70,7 @@ export function ProductSchema({ product, shop, reviews }: ProductSchemaProps) {
     "@type": "Product",
     name: product.name,
     ...(product.description && { description: product.description }),
-    ...(absoluteImage && { image: absoluteImage }),
+    image: absoluteImage,
     sku: product.id,
     brand: {
       "@type": "Brand",
@@ -70,6 +88,47 @@ export function ProductSchema({ product, shop, reviews }: ProductSchemaProps) {
       seller: {
         "@type": "Organization",
         name: shop.name,
+      },
+      // GSC > Fiches de marchand : sans shippingDetails, 60+ produits sont
+      // flagged "Améliorer l'apparence". Klik&Go = click & collect uniquement
+      // (pas de livraison) → on déclare un Offer avec retrait gratuit en boutique.
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: "0.00",
+          currency: "EUR",
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "FR",
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 0,
+            unitCode: "DAY",
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 1,
+            unitCode: "HUR",
+          },
+        },
+      },
+      // Politique de retour : viande = produit périssable click & collect,
+      // remboursement uniquement sur défaut produit signalé au retrait.
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "FR",
+        returnPolicyCategory:
+          "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 1,
+        returnMethod: "https://schema.org/ReturnAtKiosk",
+        returnFees: "https://schema.org/FreeReturn",
       },
     },
     ...(product.category?.name && { category: product.category.name }),
