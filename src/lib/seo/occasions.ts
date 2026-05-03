@@ -11,8 +11,14 @@ export type SeoOccasion = {
   name: string;
   /** Mot-clé principal pour title */
   keyword: string;
-  /** Catégorie événement Schema.org */
-  eventType: "FoodEvent" | "Event";
+  /** Catégorie événement Schema.org. Si absent OU pas de eventStart →
+   *  on utilise WebPage au lieu de Event (GSC refuse Event sans startDate). */
+  eventType?: "FoodEvent" | "Event";
+  /** Date de l'évènement (ISO yyyy-mm-dd) — REQUIS pour schema Event.
+   *  Renseigné uniquement pour les occasions à date fixe (Aïd, Ramadan).
+   *  Mariage/aqiqa/méchoui/barbecue/buffet = pas de date → WebPage schema. */
+  eventStart?: string;
+  eventEnd?: string;
   /** Description courte pour metadata */
   shortDescription: string;
   /** Intro éditoriale unique 250+ mots (E-E-A-T, anti-thin) */
@@ -32,6 +38,11 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     name: "Aïd al-Adha",
     keyword: "viande aïd al-adha",
     eventType: "Event",
+    // Aïd al-Adha 1447 AH ~ 26 mai 2026 (calcul lunaire — date Saudi
+    // Arabia ; en France, +1j possible selon Mosquée de Paris). Festivités
+    // sur 4 jours. Bumper l'an prochain pour 1448 AH.
+    eventStart: "2026-05-26",
+    eventEnd: "2026-05-30",
     shortDescription:
       "Commandez votre mouton ou agneau halal pour l'Aïd al-Adha 2026. Sacrifice rituel, découpe, conditionnement par votre boucher partenaire Klik&Go.",
     intro:
@@ -49,7 +60,8 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     slug: "mechoui",
     name: "Méchoui",
     keyword: "méchoui",
-    eventType: "FoodEvent",
+    // Pas de eventType : pas de date fixe → WebPage schema (Event sans
+    // startDate refusé par GSC).
     shortDescription:
       "Commandez votre méchoui halal — agneau entier rôti, parfait pour mariages, événements familiaux et fêtes communautaires.",
     intro:
@@ -67,7 +79,7 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     slug: "mariage",
     name: "Mariage",
     keyword: "viande mariage halal",
-    eventType: "Event",
+    // Pas de eventType : date personnelle, pas universelle → WebPage schema.
     shortDescription:
       "Commandez la viande halal de votre mariage : agneau, bœuf, volaille, méchoui, brochettes — packs sur mesure.",
     intro:
@@ -86,6 +98,10 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     name: "Ramadan",
     keyword: "viande ramadan",
     eventType: "FoodEvent",
+    // Ramadan 1448 AH = ~6 fév au 8 mars 2027 (Ramadan 2026 est passé).
+    // Bumper chaque année après l'iftar du dernier jour.
+    eventStart: "2027-02-06",
+    eventEnd: "2027-03-08",
     shortDescription:
       "Commandez votre viande halal pour le Ramadan : packs iftar, suhour, repas familiaux. Click & collect pour briser le jeûne sans stress.",
     intro:
@@ -103,7 +119,7 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     slug: "aqiqa",
     name: "Aqiqa",
     keyword: "viande aqiqa",
-    eventType: "Event",
+    // Pas de eventType : date dépend de la naissance, pas universelle → WebPage.
     shortDescription:
       "Commandez votre mouton halal pour l'aqiqa (naissance bébé) — sacrifice et préparation par votre boucher.",
     intro:
@@ -121,7 +137,7 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     slug: "barbecue",
     name: "Barbecue halal",
     keyword: "barbecue halal",
-    eventType: "FoodEvent",
+    // Pas de eventType : catégorie de produit pas un événement → WebPage.
     shortDescription:
       "Pack barbecue halal — merguez, brochettes, côtes d'agneau, marinades — préparé par votre boucher pour vos grillades.",
     intro:
@@ -139,7 +155,7 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     slug: "buffet",
     name: "Buffet halal",
     keyword: "buffet halal",
-    eventType: "FoodEvent",
+    // Pas de eventType : catégorie de produit pas un événement → WebPage.
     shortDescription:
       "Commandez votre buffet halal pour événements professionnels, anniversaires, baptêmes — pack viande complet.",
     intro:

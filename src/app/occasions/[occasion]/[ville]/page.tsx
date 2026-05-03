@@ -108,27 +108,74 @@ export default async function OccasionCityPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": occasion.eventType,
-            name: `${occasion.name} halal à ${city.name}`,
-            description: occasion.shortDescription,
-            location: {
-              "@type": "City",
-              name: city.name,
-              address: {
-                "@type": "PostalAddress",
-                addressLocality: city.name,
-                addressRegion: city.region,
-                addressCountry: "FR",
-              },
-            },
-            organizer: {
-              "@type": "Organization",
-              name: "Klik&Go",
-              url: SITE_URL,
-            },
-          }),
+          __html: JSON.stringify(
+            // Schema Event uniquement si on a une vraie date fixe (Aïd, Ramadan).
+            // Sinon WebPage : GSC refuse Event sans startDate (audit 2026-05-03).
+            occasion.eventType && occasion.eventStart
+              ? {
+                  "@context": "https://schema.org",
+                  "@type": occasion.eventType,
+                  name: `${occasion.name} halal à ${city.name}`,
+                  description: occasion.shortDescription,
+                  startDate: occasion.eventStart,
+                  ...(occasion.eventEnd && { endDate: occasion.eventEnd }),
+                  eventStatus: "https://schema.org/EventScheduled",
+                  eventAttendanceMode:
+                    "https://schema.org/OfflineEventAttendanceMode",
+                  image: [`${SITE_URL}/og-image.png`],
+                  location: {
+                    "@type": "City",
+                    name: city.name,
+                    address: {
+                      "@type": "PostalAddress",
+                      addressLocality: city.name,
+                      addressRegion: city.region,
+                      addressCountry: "FR",
+                    },
+                  },
+                  organizer: {
+                    "@type": "Organization",
+                    name: "Klik&Go",
+                    url: SITE_URL,
+                  },
+                  offers: {
+                    "@type": "Offer",
+                    url: `${SITE_URL}/occasions/${occasion.slug}/${city.slug}`,
+                    price: "0",
+                    priceCurrency: "EUR",
+                    availability: "https://schema.org/InStock",
+                    validFrom: new Date().toISOString().split("T")[0],
+                  },
+                }
+              : {
+                  "@context": "https://schema.org",
+                  "@type": "WebPage",
+                  name: `${occasion.name} halal à ${city.name}`,
+                  description: occasion.shortDescription,
+                  url: `${SITE_URL}/occasions/${occasion.slug}/${city.slug}`,
+                  inLanguage: "fr-FR",
+                  isPartOf: {
+                    "@type": "WebSite",
+                    name: "Klik&Go",
+                    url: SITE_URL,
+                  },
+                  about: {
+                    "@type": "Place",
+                    name: city.name,
+                    address: {
+                      "@type": "PostalAddress",
+                      addressLocality: city.name,
+                      addressRegion: city.region,
+                      addressCountry: "FR",
+                    },
+                  },
+                  publisher: {
+                    "@type": "Organization",
+                    name: "Klik&Go",
+                    url: SITE_URL,
+                  },
+                },
+          ),
         }}
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
