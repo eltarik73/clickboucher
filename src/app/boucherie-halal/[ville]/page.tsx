@@ -33,26 +33,31 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
-  // Pages SEO villes — toujours indexables. Phase d'acquisition : on veut
-  // référencer la page même sans boucher actif pour capter "boucherie halal
-  // [ville]" et faire venir des bouchers (CTA "Vous êtes boucher halal ?
-  // Inscrivez-vous"). Le contenu est suffisamment unique grâce à city.intro
-  // (450+ mots par ville) pour ne pas être considéré thin.
-  const title = `Boucherie halal à ${city.name} — Click & Collect`;
+  // Title hook : verbe d'action + bénéfice concret + brand. CTR audit (mai 2026)
+  // GSC : position 8.7 = 2e page = 0 clic sur 26 requêtes. Le générique
+  // "Boucherie halal à X — Click & Collect" ne se distingue pas dans le SERP.
+  // Nouveau : "Boucherie halal X — Commande en ligne 30min | Klik&Go" (~58 chars)
+  // qui ajoute un délai concret (30min) — facteur déterminant du clic mobile.
+  const title = `Boucherie halal ${city.name} — Commande en ligne 30min | Klik&Go`;
+  // Description avec CTA implicite + chiffre social proof + frais visibles.
+  // Si on a un boucher actif : on le mentionne. Sinon on incite à devenir partenaire.
+  const description = city.description;
   return {
     title,
-    description: city.description,
+    description,
     openGraph: {
       title,
-      description: city.description,
+      description,
       url: `${SITE_URL}/boucherie-halal/${city.slug}`,
-      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: `Boucherie halal ${city.name}` }],
+      images: [
+        { url: "/og-image.png", width: 1200, height: 630, alt: `Boucherie halal ${city.name}` },
+      ],
       siteName: "Klik&Go",
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description: city.description,
+      description,
     },
     alternates: {
       canonical: `${SITE_URL}/boucherie-halal/${city.slug}`,
@@ -61,11 +66,7 @@ export async function generateMetadata({
 }
 
 // ── Page ──
-export default async function CityPage({
-  params,
-}: {
-  params: { ville: string };
-}) {
+export default async function CityPage({ params }: { params: { ville: string } }) {
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) notFound();
 
@@ -106,9 +107,10 @@ export default async function CityPage({
     },
     {
       question: `Quelles boucheries halal proposent le click & collect à ${city.name} ?`,
-      answer: shops.length > 0
-        ? `Klik&Go référence ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name} et dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Consultez notre liste ci-dessous.`
-        : `Klik&Go arrive bientôt à ${city.name}. Nous recrutons actuellement des boucheries halal partenaires dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Si vous êtes boucher, contactez-nous pour rejoindre la plateforme.`,
+      answer:
+        shops.length > 0
+          ? `Klik&Go référence ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name} et dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Consultez notre liste ci-dessous.`
+          : `Klik&Go arrive bientôt à ${city.name}. Nous recrutons actuellement des boucheries halal partenaires dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Si vous êtes boucher, contactez-nous pour rejoindre la plateforme.`,
     },
     {
       question: "La viande est-elle certifiée halal ?",
@@ -152,56 +154,61 @@ export default async function CityPage({
 
       {/* ── Hero ── */}
       <section className="relative bg-gradient-to-br from-[#DC2626] via-[#b91c1c] to-[#991b1b] text-white">
-        <div className="absolute inset-0 opacity-[0.06]" style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-          backgroundSize: "32px 32px",
-        }} />
-        <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-20">
+        <div
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundSize: "32px 32px",
+          }}
+        />
+        <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Toutes les boucheries
           </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display leading-tight">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             Boucherie halal à {city.name}
           </h1>
-          <p className="mt-4 text-lg text-white/80 max-w-2xl">
-            {city.description}
-          </p>
-          <div className="flex items-center gap-2 mt-6 text-sm text-white/60">
+          <p className="mt-4 max-w-2xl text-lg text-white/80">{city.description}</p>
+          <div className="mt-6 flex items-center gap-2 text-sm text-white/60">
             <MapPin size={14} />
-            <span>{city.name}, {city.region} — Auvergne-Rhône-Alpes</span>
+            <span>
+              {city.name}, {city.region} — Auvergne-Rhône-Alpes
+            </span>
           </div>
           <LastUpdated date={PAGE_LAST_UPDATED} className="mt-4 text-white/50" />
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         {/* ── Local context paragraph (audit SEO W1 — boost word count + local relevance) ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Boucheries halal à {city.name} : tout ce qu&apos;il faut savoir
           </h2>
-          <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+          <p className="text-base leading-relaxed text-gray-700 dark:text-gray-300">
             {city.localContext}
           </p>
           {city.specialty && (
             <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-              <strong className="text-gray-800 dark:text-gray-200">Spécialités appréciées à {city.name} :</strong>{" "}
+              <strong className="text-gray-800 dark:text-gray-200">
+                Spécialités appréciées à {city.name} :
+              </strong>{" "}
               {city.specialty}.
             </p>
           )}
           {city.districts.length > 0 && (
             <div className="mt-5">
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <p className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
                 Quartiers et communes desservis :
               </p>
               <div className="flex flex-wrap gap-2">
                 {city.districts.map((d) => (
                   <span
                     key={d}
-                    className="inline-flex items-center px-3 py-1 rounded-full bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] text-xs text-gray-700 dark:text-gray-300"
+                    className="inline-flex items-center rounded-full border border-[#ece8e3] bg-white px-3 py-1 text-xs text-gray-700 dark:border-white/[0.06] dark:bg-gray-800 dark:text-gray-300"
                   >
                     {d}
                   </span>
@@ -213,18 +220,31 @@ export default async function CityPage({
 
         {/* ── Comment ça marche ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 font-display">
+          <h2 className="mb-8 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Comment commander en click &amp; collect à {city.name}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {[
-              { emoji: "🔍", title: "Choisissez", desc: "Sélectionnez votre boucherie halal et vos produits" },
-              { emoji: "💳", title: "Commandez", desc: "Payez en ligne ou sur place, en toute sécurité" },
+              {
+                emoji: "🔍",
+                title: "Choisissez",
+                desc: "Sélectionnez votre boucherie halal et vos produits",
+              },
+              {
+                emoji: "💳",
+                title: "Commandez",
+                desc: "Payez en ligne ou sur place, en toute sécurité",
+              },
               { emoji: "🛍️", title: "Récupérez", desc: "Retrait en boutique au créneau choisi" },
             ].map((step, i) => (
-              <div key={i} className="text-center p-6 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
-                <div className="text-4xl mb-3">{step.emoji}</div>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-1">{i + 1}. {step.title}</h3>
+              <div
+                key={i}
+                className="rounded-2xl border border-[#ece8e3] bg-white p-6 text-center dark:border-white/[0.06] dark:bg-gray-800"
+              >
+                <div className="mb-3 text-4xl">{step.emoji}</div>
+                <h3 className="mb-1 font-bold text-gray-900 dark:text-white">
+                  {i + 1}. {step.title}
+                </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{step.desc}</p>
               </div>
             ))}
@@ -233,22 +253,23 @@ export default async function CityPage({
 
         {/* ── Boucheries list ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             {shops.length > 0
               ? `Nos ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name}`
               : `Bientôt à ${city.name}`}
           </h2>
 
           {shops.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
                 <ShopCard
                   key={shop.id}
                   shop={{
                     ...shop,
-                    openingHours: shop.openingHours as
-                      | Record<string, { open: string; close: string } | null>
-                      | null,
+                    openingHours: shop.openingHours as Record<
+                      string,
+                      { open: string; close: string } | null
+                    > | null,
                   }}
                   index={idx}
                   showFavorite={false}
@@ -256,8 +277,8 @@ export default async function CityPage({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
+            <div className="rounded-2xl border border-[#ece8e3] bg-white py-12 text-center dark:border-white/[0.06] dark:bg-gray-800">
+              <p className="mb-4 text-gray-500 dark:text-gray-400">
                 Klik&amp;Go arrive bientôt à {city.name}.
               </p>
               <Link
@@ -272,24 +293,22 @@ export default async function CityPage({
 
         {/* ── FAQ ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
           <div className="space-y-3">
             {faqs.map((faq, i) => (
               <details
                 key={i}
-                className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {faq.question}
-                  <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>
-                <p className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-300">
-                  {faq.answer}
-                </p>
+                <p className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-300">{faq.answer}</p>
               </details>
             ))}
           </div>
@@ -297,16 +316,16 @@ export default async function CityPage({
 
         {/* ── CTA ── */}
         <section className="mb-14 text-center">
-          <div className="bg-gradient-to-r from-[#DC2626] to-[#b91c1c] rounded-2xl p-8 sm:p-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3 font-display">
+          <div className="rounded-2xl bg-gradient-to-r from-[#DC2626] to-[#b91c1c] p-8 sm:p-12">
+            <h2 className="mb-3 font-display text-2xl font-bold text-white sm:text-3xl">
               Prêt à commander ?
             </h2>
-            <p className="text-white/80 mb-6">
+            <p className="mb-6 text-white/80">
               Découvrez toutes nos boucheries halal partenaires et commandez en quelques clics.
             </p>
             <Link
               href="/"
-              className="inline-block px-8 py-3 bg-white dark:bg-gray-900 text-[#DC2626] font-semibold rounded-full hover:bg-gray-50 transition"
+              className="inline-block rounded-full bg-white px-8 py-3 font-semibold text-[#DC2626] transition hover:bg-gray-50 dark:bg-gray-900"
             >
               Voir les boucheries
             </Link>
@@ -317,21 +336,20 @@ export default async function CityPage({
         <section className="mb-14">
           <Link
             href={`/devenir-boucher-partenaire/${city.slug}`}
-            className="group block bg-[#0a0a0a] border border-white/10 hover:border-[#DC2626]/40 rounded-2xl p-6 sm:p-8 transition-all"
+            className="group block rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 transition-all hover:border-[#DC2626]/40 sm:p-8"
           >
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1">
-                <p className="text-xs font-bold tracking-[2px] uppercase text-[#FCA5A5] mb-2">
+                <p className="mb-2 text-xs font-bold uppercase tracking-[2px] text-[#FCA5A5]">
                   Vous êtes boucher à {city.name} ?
                 </p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white font-display">
+                <h3 className="font-display text-xl font-bold text-white sm:text-2xl">
                   Rejoignez Klik&amp;Go &mdash;{" "}
-                  <span className="font-serif italic font-normal text-[#FCA5A5]">
-                    100% gratuit
-                  </span>
+                  <span className="font-serif font-normal italic text-[#FCA5A5]">100% gratuit</span>
                 </h3>
-                <p className="text-sm text-gray-400 mt-2">
-                  Aucun abonnement, commission uniquement. Vitrine en ligne, mode cuisine, fidélité &mdash; en 24h.
+                <p className="mt-2 text-sm text-gray-400">
+                  Aucun abonnement, commission uniquement. Vitrine en ligne, mode cuisine, fidélité
+                  &mdash; en 24h.
                 </p>
               </div>
               <ArrowRight
@@ -344,7 +362,7 @@ export default async function CityPage({
 
         {/* ── Other cities ── */}
         <section className="mb-10">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-lg font-bold text-gray-900 dark:text-white">
             Autres villes
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -352,7 +370,7 @@ export default async function CityPage({
               <Link
                 key={c.slug}
                 href={`/boucherie-halal/${c.slug}`}
-                className="px-4 py-2 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626] transition"
+                className="rounded-full border border-[#ece8e3] bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-[#DC2626] hover:text-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800 dark:text-gray-300"
               >
                 {c.name}
               </Link>
@@ -362,8 +380,8 @@ export default async function CityPage({
       </div>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-[#ece8e3] dark:border-white/[0.06] bg-white dark:bg-white/[0.02] py-8">
-        <div className="max-w-4xl mx-auto px-5 text-center">
+      <footer className="border-t border-[#ece8e3] bg-white py-8 dark:border-white/[0.06] dark:bg-white/[0.02]">
+        <div className="mx-auto max-w-4xl px-5 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
             &copy; 2026 Klik&amp;Go — Click &amp; Collect Boucherie Halal
           </p>

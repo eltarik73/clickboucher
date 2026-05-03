@@ -81,10 +81,16 @@ export function ProductSchema({ product, shop, reviews }: ProductSchemaProps) {
       url: `${SITE_URL}/boutique/${shop.slug}`,
       priceCurrency: "EUR",
       price: (product.priceCents / 100).toFixed(2),
+      // Google Shopping 2026 recommande priceValidUntil ; sans ce champ, le prix
+      // peut disparaître du SERP au bout de 6 mois. On choisit +30j (cohérent
+      // avec le rythme de mise à jour des catalogues bouchers).
+      priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      // GSC > Fiches de marchand recommande itemCondition pour Shopping rich
+      // results. Pour de la viande fraîche click & collect, NewCondition est
+      // l'unique valeur applicable (la viande n'est jamais "Used"/"Refurbished").
+      itemCondition: "https://schema.org/NewCondition",
       availability:
-        product.inStock !== false
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
+        product.inStock !== false ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       seller: {
         "@type": "Organization",
         name: shop.name,
@@ -124,8 +130,7 @@ export function ProductSchema({ product, shop, reviews }: ProductSchemaProps) {
       hasMerchantReturnPolicy: {
         "@type": "MerchantReturnPolicy",
         applicableCountry: "FR",
-        returnPolicyCategory:
-          "https://schema.org/MerchantReturnFiniteReturnWindow",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
         merchantReturnDays: 1,
         returnMethod: "https://schema.org/ReturnAtKiosk",
         returnFees: "https://schema.org/FreeReturn",
@@ -155,8 +160,7 @@ export function ProductSchema({ product, shop, reviews }: ProductSchemaProps) {
       },
       author: { "@type": "Person", name: r.authorName },
       reviewBody: r.comment,
-      datePublished:
-        r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+      datePublished: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
     }));
   }
 
