@@ -33,12 +33,14 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
-  // Title hook : verbe d'action + bénéfice concret + brand. CTR audit (mai 2026)
+  // Title hook : verbe d'action + bénéfice concret. CTR audit (mai 2026)
   // GSC : position 8.7 = 2e page = 0 clic sur 26 requêtes. Le générique
   // "Boucherie halal à X — Click & Collect" ne se distingue pas dans le SERP.
-  // Nouveau : "Boucherie halal X — Commande en ligne 30min | Klik&Go" (~58 chars)
+  // Nouveau : "Boucherie halal X — Commande en ligne 30min" (~45 chars)
   // qui ajoute un délai concret (30min) — facteur déterminant du clic mobile.
-  const title = `Boucherie halal ${city.name} — Commande en ligne 30min | Klik&Go`;
+  // Le suffixe " | Klik&Go" est ajouté automatiquement par le titleTemplate
+  // du layout racine — ne PAS le dupliquer ici (sinon "X | Klik&Go | Klik&Go").
+  const title = `Boucherie halal ${city.name} — Commande en ligne 30min`;
   // Description avec CTA implicite + chiffre social proof + frais visibles.
   // Si on a un boucher actif : on le mentionne. Sinon on incite à devenir partenaire.
   const description = city.description;
