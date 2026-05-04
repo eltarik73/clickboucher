@@ -61,7 +61,16 @@ export const SEO_CITIES: readonly SeoCity[] = [
       "Boucheries halal à Lyon : commandez en ligne et récupérez en boutique. Click & collect dans tout le Grand Lyon, Villeurbanne, Vénissieux, Vaulx-en-Velin.",
     latitude: 45.764,
     longitude: 4.8357,
-    districts: ["La Guillotière", "Vaise", "Croix-Rousse", "Gerland", "Villeurbanne", "Vénissieux", "Vaulx-en-Velin", "Bron"],
+    districts: [
+      "La Guillotière",
+      "Vaise",
+      "Croix-Rousse",
+      "Gerland",
+      "Villeurbanne",
+      "Vénissieux",
+      "Vaulx-en-Velin",
+      "Bron",
+    ],
     localContext:
       "Lyon, métropole de plus d'un million d'habitants, possède l'une des plus grandes communautés musulmanes de France après Paris et Marseille. Le Grand Lyon — La Guillotière, Vaise, Gerland, mais aussi Villeurbanne, Vénissieux, Vaulx-en-Velin et Bron — concentre des dizaines de boucheries halal de quartier, héritières d'une tradition d'accueil et de mixité culinaire qui fait la richesse de la gastronomie lyonnaise. Les boucheries halal partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs locaux du Beaujolais, du Bugey et du Sud-Lyonnais : agneau, bœuf charolais, volailles fermières des Dombes. Commandez en ligne depuis votre canapé, payez en quelques clics et récupérez votre viande au créneau de votre choix. Plus besoin de chercher une place de parking sur le cours Gambetta ou avenue Berthelot. Pratique pour les grandes commandes du Ramadan ou de l'Aïd, comme pour la viande quotidienne.",
     specialty: "couscous-merguez, viande pour mâchon, agneau, volailles des Dombes",
@@ -74,7 +83,14 @@ export const SEO_CITIES: readonly SeoCity[] = [
       "Trouvez votre boucherie halal à Saint-Étienne. Commande en ligne, retrait en boutique. Viande halal fraîche et de qualité dans la Loire.",
     latitude: 45.4397,
     longitude: 4.3872,
-    districts: ["Bellevue", "Tarentaize", "Beaubrun", "Le Crêt-de-Roc", "Montreynaud", "Centre-Deux"],
+    districts: [
+      "Bellevue",
+      "Tarentaize",
+      "Beaubrun",
+      "Le Crêt-de-Roc",
+      "Montreynaud",
+      "Centre-Deux",
+    ],
     localContext:
       "Saint-Étienne, capitale de la Loire et ancienne capitale du design, compte une communauté musulmane historiquement présente depuis les vagues d'immigration ouvrière du XXe siècle. Les boucheries halal de Saint-Étienne — Bellevue, Tarentaize, Beaubrun, Crêt-de-Roc, Montreynaud — proposent une viande halal certifiée issue principalement d'élevages du Forez et du Pilat. Avec Klik&Go, commandez votre viande halal en ligne et récupérez-la en boutique au créneau qui vous convient : pratique pour les familles, les étudiants des deux universités stéphanoises, et tous ceux qui veulent gagner du temps sans sacrifier la qualité. Pas de frais d'abonnement, juste 0,99€ de frais de service par commande.",
     specialty: "agneau du Pilat, bœuf charolais, viande pour grillades",
@@ -296,7 +312,7 @@ export const SEO_CITIES: readonly SeoCity[] = [
     description:
       "Boucheries halal à Fontaine. Click & collect halal à Grenoble Ouest, retrait rapide pour votre viande halal fraîche.",
     latitude: 45.1944,
-    longitude: 5.6850,
+    longitude: 5.685,
     districts: ["Centre", "Bastille", "Bouvignier"],
     localContext:
       "Fontaine, commune de l'agglomération grenobloise (23 000 habitants), accueille plusieurs boucheries halal qui servent les familles de Fontaine, Sassenage et des communes voisines. Klik&Go vous fait gagner du temps : commandez en ligne et récupérez votre commande au créneau choisi. Frais de service : 0,99€.",
@@ -334,7 +350,7 @@ export const SEO_CITIES: readonly SeoCity[] = [
     region: "Isère",
     description:
       "Boucheries halal à Vienne. Click & collect halal au sud de Lyon, dans le département de l'Isère.",
-    latitude: 45.5240,
+    latitude: 45.524,
     longitude: 4.8744,
     districts: ["Centre", "Estressin", "Malissol"],
     localContext:
@@ -435,6 +451,115 @@ export const SEO_CITIES: readonly SeoCity[] = [
       "Saint-Jean-de-Maurienne, sous-préfecture de Savoie (8 000 habitants) en vallée de Maurienne, accueille des boucheries halal qui servent les familles mauriennaises et l'agglomération de la vallée. Les bouchers partenaires Klik&Go sélectionnent leurs viandes auprès d'éleveurs alpins. Commandez en ligne et récupérez sans attendre au créneau choisi. Frais de service : 0,99€.",
     specialty: "agneau de Maurienne, viande pour mijoté, brochettes",
   },
+  // ── Sprint 2 (mai 2026) — Cluse chambérienne et alentours immédiats ──
+  // Demande user 2026-05-04 : prioriser les villes autour de Chambéry
+  // qui ont déjà des boucheries halal. Ces communes sont à <15 min de
+  // voiture de Chambéry, partagent la même clientèle, et représentent
+  // collectivement +40 000 habitants supplémentaires en bassin SEO.
+  {
+    slug: "pont-de-beauvoisin",
+    name: "Pont-de-Beauvoisin",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Pont-de-Beauvoisin. Click & collect halal entre Savoie et Isère, retrait rapide pour votre viande halal fraîche.",
+    latitude: 45.5358,
+    longitude: 5.6731,
+    districts: ["Centre", "Saint-Béron", "Verel-de-Montbel"],
+    localContext:
+      "Pont-de-Beauvoisin, ville-frontière entre Savoie et Isère (3 500 habitants côté savoyard, 8 000 avec l'agglomération iséroise jumelle), est un carrefour historique entre Chambéry, Voiron et Lyon. La communauté musulmane locale s'approvisionne en viande halal dans les boucheries du centre-ville et des communes environnantes (Saint-Béron, Verel-de-Montbel, Domessin). Avec Klik&Go, plus besoin de faire 30 km jusqu'à Chambéry ou Voiron : commandez en ligne, payez en ligne ou sur place, et récupérez votre commande halal au créneau choisi. Idéal pour les familles ponti-beauvoisinoises et les actifs travaillant sur l'axe Chambéry-Lyon. Frais de service : 0,99€ par commande.",
+    specialty: "agneau, viande pour grillades, kefta halal, volailles fermières",
+  },
+  {
+    slug: "montmelian",
+    name: "Montmélian",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Montmélian. Commandez en ligne et récupérez votre viande halal en click & collect dans la combe de Savoie.",
+    latitude: 45.5008,
+    longitude: 6.0497,
+    districts: ["Centre", "La Combe", "Les Marches"],
+    localContext:
+      "Montmélian, commune de Savoie (4 500 habitants) à 15 km à l'est de Chambéry sur l'axe vers Albertville et la Tarentaise, accueille une communauté musulmane installée notamment autour de la zone d'activité et du centre historique. Les boucheries halal montmélianaises proposent une viande halal certifiée pour les familles de la combe de Savoie (Les Marches, Coise, Saint-Pierre-d'Albigny). Klik&Go vous permet de commander en ligne pendant la pause déjeuner et de récupérer votre viande en sortant du travail, sans détour par Chambéry. Frais de service : 0,99€ par commande, pas d'abonnement.",
+    specialty: "agneau, viande pour mijoté savoyard, bœuf des Bauges, volailles",
+  },
+  {
+    slug: "le-bourget-du-lac",
+    name: "Le Bourget-du-Lac",
+    region: "Savoie",
+    description:
+      "Boucheries halal au Bourget-du-Lac. Click & collect halal sur les rives du lac du Bourget, retrait rapide pour votre viande halal fraîche.",
+    latitude: 45.6486,
+    longitude: 5.8639,
+    districts: ["Centre", "Bourdeau", "Le Tremblay"],
+    localContext:
+      "Le Bourget-du-Lac, commune de Savoie (10 000 habitants) sur la rive sud du lac du Bourget entre Chambéry et Aix-les-Bains, héberge le campus Savoie Technolac et une communauté musulmane mêlée d'étudiants, chercheurs et familles. Les boucheries halal du Bourget-du-Lac et des communes voisines (Drumettaz-Clarafond, Voglans) servent une clientèle exigeante et internationale. Klik&Go vous évite les bouchons d'été sur la rive du lac : commandez en ligne, récupérez à votre créneau, et profitez du lac. Idéal pour les barbecues du week-end et les fêtes de l'Aïd. Frais de service : 0,99€.",
+    specialty: "viande pour grillades au lac, agneau, brochettes, volailles fermières",
+  },
+  {
+    slug: "la-ravoire",
+    name: "La Ravoire",
+    region: "Savoie",
+    description:
+      "Boucheries halal à La Ravoire. Commandez votre viande halal en ligne et récupérez en click & collect en banlieue sud-est de Chambéry.",
+    latitude: 45.5544,
+    longitude: 5.9533,
+    districts: ["Centre", "Vallon", "Mâche", "Féjaz"],
+    localContext:
+      "La Ravoire, deuxième commune de l'agglomération chambérienne (9 500 habitants), jouxte directement Chambéry au sud-est. La ville accueille une communauté musulmane active dans les quartiers de Vallon et de Mâche, et plusieurs boucheries halal certifiées y sont implantées. Avec Klik&Go, commandez votre viande halal en ligne et récupérez-la sans détour par le centre de Chambéry, idéal pour les familles ravoiriennes et les actifs des zones d'activité environnantes. Frais de service : 0,99€ par commande, pas d'abonnement, pas de surprise.",
+    specialty: "agneau, viande pour kefta, brochettes, volailles fermières",
+  },
+  {
+    slug: "challes-les-eaux",
+    name: "Challes-les-Eaux",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Challes-les-Eaux. Click & collect halal au sud de Chambéry, retrait rapide pour votre viande halal fraîche.",
+    latitude: 45.545,
+    longitude: 5.9764,
+    districts: ["Centre", "Triviers", "Villaret"],
+    localContext:
+      "Challes-les-Eaux, commune thermale de Savoie (5 500 habitants) au sud immédiat de Chambéry, accueille curistes et familles toute l'année. La proximité avec Chambéry et La Ravoire fait que les boucheries halal de la zone servent une clientèle élargie aux communes du Saint-Cassin, Saint-Jeoire-Prieuré et Sonnaz. Avec Klik&Go, commandez votre viande halal en ligne et récupérez-la au créneau choisi. Frais de service : 0,99€ par commande.",
+    specialty: "agneau de Chartreuse, viande pour grillades, volailles, brochettes",
+  },
+  {
+    slug: "saint-alban-leysse",
+    name: "Saint-Alban-Leysse",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Saint-Alban-Leysse. Commandez en ligne et récupérez votre viande halal en click & collect en banlieue nord-est de Chambéry.",
+    latitude: 45.5806,
+    longitude: 5.9522,
+    districts: ["Centre", "Plainpalais", "Croix-Rouge"],
+    localContext:
+      "Saint-Alban-Leysse, commune de l'agglomération chambérienne (6 000 habitants) au pied du massif des Bauges, est une porte d'entrée naturelle pour les randonneurs et une zone résidentielle prisée des familles chambériennes. Les boucheries halal de Saint-Alban et des communes voisines (Bassens, Verel-Pragondran) proposent une viande halal certifiée issue d'élevages des Bauges. Klik&Go vous fait gagner du temps : commandez en ligne, récupérez sans attendre au créneau choisi. Frais de service : 0,99€ par commande.",
+    specialty: "agneau des Bauges, bœuf alpin, viande pour mijoté, brochettes",
+  },
+  {
+    slug: "barberaz",
+    name: "Barberaz",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Barberaz. Click & collect halal en banlieue sud de Chambéry, retrait rapide en boutique.",
+    latitude: 45.5631,
+    longitude: 5.9489,
+    districts: ["Centre", "Pré Hibou", "Mérande"],
+    localContext:
+      "Barberaz, commune de l'agglomération chambérienne (5 000 habitants) au sud immédiat de Chambéry, entre La Ravoire et Saint-Alban-Leysse, accueille une communauté musulmane installée de longue date. Les boucheries halal de Barberaz servent les familles barberalines et celles des communes voisines (Cognin, Chambéry-le-Haut). Klik&Go simplifie votre achat : commandez en ligne, payez en ligne ou sur place, récupérez votre viande au créneau choisi. Frais de service : 0,99€.",
+    specialty: "agneau, viande pour kefta, brochettes halal, volailles",
+  },
+  {
+    slug: "jacob-bellecombette",
+    name: "Jacob-Bellecombette",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Jacob-Bellecombette. Commandez votre viande halal en click & collect en banlieue ouest de Chambéry.",
+    latitude: 45.5519,
+    longitude: 5.9097,
+    districts: ["Jacob", "Bellecombette", "Le Tremblay"],
+    localContext:
+      "Jacob-Bellecombette, commune résidentielle de l'agglomération chambérienne (3 500 habitants) au sud-ouest de Chambéry, abrite une partie de l'Université Savoie Mont Blanc et une population mélangée d'étudiants, enseignants et familles. Les boucheries halal de la zone (Jacob, Cognin, Chambéry sud) servent une clientèle régulière. Avec Klik&Go, commandez votre viande halal en ligne et récupérez-la au créneau choisi. Frais de service : 0,99€ par commande.",
+    specialty: "agneau, viande pour grillades, brochettes, volailles fermières",
+  },
 ] as const;
 
 /**
@@ -457,9 +582,26 @@ export const SEO_DEPARTMENTS: readonly SeoDepartment[] = [
     slug: "savoie",
     name: "Savoie",
     region: "Auvergne-Rhône-Alpes",
-    citySlugs: ["chambery", "aix-les-bains", "cognin", "bissy", "la-motte-servolex", "albertville", "saint-jean-de-maurienne"],
+    citySlugs: [
+      "chambery",
+      "aix-les-bains",
+      "cognin",
+      "bissy",
+      "la-motte-servolex",
+      "albertville",
+      "saint-jean-de-maurienne",
+      // Sprint 2 (mai 2026) — cluse chambérienne et alentours immédiats
+      "pont-de-beauvoisin",
+      "montmelian",
+      "le-bourget-du-lac",
+      "la-ravoire",
+      "challes-les-eaux",
+      "saint-alban-leysse",
+      "barberaz",
+      "jacob-bellecombette",
+    ],
     description:
-      "Annuaire des boucheries halal en Savoie. Trouvez votre boucherie halal en Savoie : Chambéry, Aix-les-Bains, Albertville, Saint-Jean-de-Maurienne. Commandez en ligne avec Klik&Go.",
+      "Annuaire des boucheries halal en Savoie. Chambéry, Aix-les-Bains, Albertville et tout le bassin chambérien (La Ravoire, Challes-les-Eaux, Le Bourget-du-Lac…). Commandez en ligne avec Klik&Go.",
     context:
       "La Savoie compte plus de 430 000 habitants répartis entre la cluse chambérienne, le bassin aixois et les vallées alpines (Tarentaize, Maurienne, Beaufortain). La communauté musulmane savoyarde est historiquement implantée à Chambéry (quartiers de Bissy, Cognin, Chambéry-le-Haut), Aix-les-Bains et dans la vallée de la Maurienne. Klik&Go référence les boucheries halal certifiées de toute la Savoie pour vous permettre de commander en ligne et de récupérer votre viande halal en click & collect, sans frais de service supérieurs à 0,99€ par commande. Les bouchers partenaires sélectionnent leurs viandes auprès d'éleveurs savoyards : agneaux des Bauges, bœuf alpin, volailles fermières des Dombes.",
   },
@@ -477,7 +619,15 @@ export const SEO_DEPARTMENTS: readonly SeoDepartment[] = [
     slug: "isere",
     name: "Isère",
     region: "Auvergne-Rhône-Alpes",
-    citySlugs: ["grenoble", "echirolles", "saint-martin-dheres", "fontaine", "voiron", "bourgoin-jallieu", "vienne"],
+    citySlugs: [
+      "grenoble",
+      "echirolles",
+      "saint-martin-dheres",
+      "fontaine",
+      "voiron",
+      "bourgoin-jallieu",
+      "vienne",
+    ],
     description:
       "Annuaire des boucheries halal en Isère. Grenoble, Échirolles, Saint-Martin-d'Hères, Voiron, Bourgoin-Jallieu — commandez en ligne avec Klik&Go.",
     context:
@@ -487,7 +637,19 @@ export const SEO_DEPARTMENTS: readonly SeoDepartment[] = [
     slug: "rhone",
     name: "Rhône",
     region: "Auvergne-Rhône-Alpes",
-    citySlugs: ["lyon", "villeurbanne", "venissieux", "vaulx-en-velin", "bron", "saint-priest", "meyzieu", "rillieux-la-pape", "givors", "oullins", "decines-charpieu"],
+    citySlugs: [
+      "lyon",
+      "villeurbanne",
+      "venissieux",
+      "vaulx-en-velin",
+      "bron",
+      "saint-priest",
+      "meyzieu",
+      "rillieux-la-pape",
+      "givors",
+      "oullins",
+      "decines-charpieu",
+    ],
     description:
       "Annuaire des boucheries halal dans le Rhône et le Grand Lyon. Lyon, Villeurbanne, Vénissieux, Vaulx-en-Velin, Bron, Saint-Priest — commandez en ligne avec Klik&Go.",
     context:
