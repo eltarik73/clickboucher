@@ -25,7 +25,7 @@ function normalizeTime(value: string): string | null {
 type HoursValue = { open?: string | null; close?: string | null } | null | undefined;
 
 function buildOpeningHoursSpec(
-  openingHours: Record<string, HoursValue> | null | undefined,
+  openingHours: Record<string, HoursValue> | null | undefined
 ): Array<Record<string, unknown>> {
   if (!openingHours || typeof openingHours !== "object") return [];
   const out: Array<Record<string, unknown>> = [];
@@ -77,7 +77,14 @@ export function ShopSchema({ shop }: ShopSchemaProps) {
     url: `${SITE_URL}/boutique/${shop.slug}`,
     ...(shop.description && { description: shop.description }),
     ...(shop.phone && { telephone: shop.phone }),
-    ...(shop.imageUrl && { image: shop.imageUrl }),
+    // Image en URL ABSOLUE — schema.org Rich Results exige des URLs absolues.
+    // Sinon Google les rejette silencieusement et le panneau Local Business
+    // reste sans visuel. Audit bot quotidien 2026-05-04 (Agent B).
+    ...(shop.imageUrl && {
+      image: shop.imageUrl.startsWith("http")
+        ? shop.imageUrl
+        : `${SITE_URL}${shop.imageUrl.startsWith("/") ? "" : "/"}${shop.imageUrl}`,
+    }),
     priceRange: "€€",
     currenciesAccepted: "EUR",
     paymentAccepted: "Cash, Credit Card",
@@ -108,7 +115,7 @@ export function ShopSchema({ shop }: ShopSchemaProps) {
   }
 
   const openingSpec = buildOpeningHoursSpec(
-    shop.openingHours as Record<string, HoursValue> | null | undefined,
+    shop.openingHours as Record<string, HoursValue> | null | undefined
   );
   if (openingSpec.length > 0) {
     schema.openingHoursSpecification = openingSpec;
