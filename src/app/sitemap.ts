@@ -17,10 +17,10 @@ const LEGAL_CONTENT_UPDATED = new Date("2026-01-01T00:00:00Z");
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [shops, recipes, shopCities, latestShop, latestProduct] = await Promise.all([
     prisma.shop.findMany({
-    where: { visible: true },
-    select: { slug: true, updatedAt: true },
-    orderBy: { updatedAt: "desc" },
-  }),
+      where: { visible: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { updatedAt: "desc" },
+    }),
     prisma.recipe.findMany({
       // Exclude AI-generated recipes that aren't manually featured —
       // Mars 2026 Core Update penalizes thin AI bulk content. We keep
@@ -57,9 +57,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .map((s) => s.city?.toLowerCase().trim())
       .filter(Boolean)
       .flatMap((c) =>
-        SEO_CITIES.filter((city) =>
-          c!.includes(city.name.toLowerCase())
-        ).map((city) => city.slug)
+        SEO_CITIES.filter((city) => c!.includes(city.name.toLowerCase())).map((city) => city.slug)
       )
   );
 
@@ -167,16 +165,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // Include ALL SEO city pages — they're SSG'd from `SEO_CITIES` config and
-  // already render shops geographically near each city, so they're never empty
-  // (audit SEO QW1). Pages with at least one local shop get higher priority
-  // because they show direct results; pages without local shops still serve
-  // SEO intent (FAQ + nearby shops + breadcrumb).
-  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.map((city) => ({
+  // Include ONLY SEO city pages with at least 1 visible shop.
+  // Audit GSC mai 2026 : 11 pages "Explorée non indexée" + 69 "Détectée non
+  // indexée" sur des villes vides (sans shop). Sources programmatic SEO 2026
+  // (SEORAF, JourneyH, Metaflow) recommandent de noindex + exclude sitemap
+  // les pages sans inventaire pour ne pas dégrader le signal qualité du
+  // domaine (Mars 2026 Core Update penalise lourdement le thin content).
+  // Les pages sont noindex côté code (cf generateMetadata) et flip à index
+  // dès qu'un shop s'inscrit dans cette ville. Le re-add au sitemap se
+  // fait alors automatiquement au prochain rebuild ISR.
+  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.filter((city) =>
+    populatedCitySlugs.has(city.slug)
+  ).map((city) => ({
     url: `${BASE_URL}/boucherie-halal/${city.slug}`,
     lastModified: latestShop?.updatedAt ?? STATIC_CONTENT_UPDATED,
     changeFrequency: "weekly" as const,
-    priority: populatedCitySlugs.has(city.slug) ? 0.8 : 0.6,
+    priority: 0.8,
   }));
 
   // Acquisition landing pages targeting bouchers in each SEO city.
@@ -207,9 +211,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Pages "ouverte dimanche" par ville (top 15 — Sprint 4).
   const SUNDAY_CITIES = [
-    "lyon", "grenoble", "saint-etienne", "chambery", "annecy", "aix-les-bains",
-    "villeurbanne", "venissieux", "vaulx-en-velin", "annemasse", "voiron",
-    "echirolles", "bron", "saint-priest", "bourgoin-jallieu",
+    "lyon",
+    "grenoble",
+    "saint-etienne",
+    "chambery",
+    "annecy",
+    "aix-les-bains",
+    "villeurbanne",
+    "venissieux",
+    "vaulx-en-velin",
+    "annemasse",
+    "voiron",
+    "echirolles",
+    "bron",
+    "saint-priest",
+    "bourgoin-jallieu",
   ];
   const sundayPages: MetadataRoute.Sitemap = SUNDAY_CITIES.map((slug) => ({
     url: `${BASE_URL}/boucheries-halal-ouvertes-dimanche/${slug}`,

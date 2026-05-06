@@ -33,20 +33,35 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
-  // Title hook : verbe d'action + bénéfice concret. CTR audit (mai 2026)
-  // GSC : position 8.7 = 2e page = 0 clic sur 26 requêtes. Le générique
-  // "Boucherie halal à X — Click & Collect" ne se distingue pas dans le SERP.
-  // Nouveau : "Boucherie halal X — Commande en ligne 30min" (~45 chars)
-  // qui ajoute un délai concret (30min) — facteur déterminant du clic mobile.
+  // Compte les shops actifs dans la ville. Si 0 → noindex.
+  // Justification (audit GSC mai 2026 + Google Mars 2026 Core Update) :
+  // les marketplaces qui exposent des "category pages" sans inventaire
+  // (cf SEORAF Programmatic SEO 2026, JourneyH Marketplace Playbook,
+  // Metaflow scaled-content guidance) sont penalisées : Google les classe
+  // "Explorée non indexée" et le bruit thin pénalise le ranking global du
+  // domaine. Stratégie correcte : noindex tant que shopCount === 0,
+  // flip à index dès qu'un boucher s'inscrit. La page reste accessible
+  // (URL valide, contenu utile pour acquisition boucher direct), elle
+  // n'est juste pas pushée à Google tant qu'elle n'apporte pas de valeur
+  // marketplace réelle.
+  const shopCount = await prisma.shop.count({
+    where: {
+      visible: true,
+      city: { contains: city.name, mode: "insensitive" },
+    },
+  });
+  const shouldNoIndex = shopCount === 0;
+
+  // Title hook : "Commande en ligne 30min" ajoute un délai concret —
+  // facteur déterminant du clic mobile (audit GSC CTR mai 2026).
   // Le suffixe " | Klik&Go" est ajouté automatiquement par le titleTemplate
-  // du layout racine — ne PAS le dupliquer ici (sinon "X | Klik&Go | Klik&Go").
+  // du layout racine — ne PAS le dupliquer ici.
   const title = `Boucherie halal ${city.name} — Commande en ligne 30min`;
-  // Description avec CTA implicite + chiffre social proof + frais visibles.
-  // Si on a un boucher actif : on le mentionne. Sinon on incite à devenir partenaire.
   const description = city.description;
   return {
     title,
     description,
+    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     openGraph: {
       title,
       description,
