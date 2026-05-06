@@ -69,7 +69,9 @@ const getShop = cache(async (slug: string): Promise<ShopWithProducts | null> => 
 
   // Cache for 60 seconds
   if (shop) {
-    try { await redis.set(cacheKey, JSON.stringify(shop), { ex: 60 }); } catch {}
+    try {
+      await redis.set(cacheKey, JSON.stringify(shop), { ex: 60 });
+    } catch {}
   }
 
   return shop;
@@ -128,11 +130,7 @@ function prepTimeClasses(minutes: number) {
 
 // ── Page (Server Component) ──────────────────────
 
-export default async function BoutiquePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function BoutiquePage({ params }: { params: { slug: string } }) {
   const { slug } = params;
 
   let shop;
@@ -154,18 +152,25 @@ export default async function BoutiquePage({
       status: "ACTIVE",
       startDate: { lte: now },
       endDate: { gt: now },
-      OR: [
-        { shopId: shop.id },
-        { proposals: { some: { shopId: shop.id, status: "ACCEPTED" } } },
-      ],
+      OR: [{ shopId: shop.id }, { proposals: { some: { shopId: shop.id, status: "ACCEPTED" } } }],
     },
     select: {
-      id: true, name: true, code: true, type: true, discountValue: true,
-      diffBanner: true, bannerTitle: true, bannerSubtitle: true, bannerColor: true, bannerImageUrl: true,
+      id: true,
+      name: true,
+      code: true,
+      type: true,
+      discountValue: true,
+      diffBanner: true,
+      bannerTitle: true,
+      bannerSubtitle: true,
+      bannerColor: true,
+      bannerImageUrl: true,
       eligibleProducts: {
         where: { shopId: shop.id },
         select: {
-          product: { select: { id: true, name: true, imageUrl: true, priceCents: true, unit: true } },
+          product: {
+            select: { id: true, name: true, imageUrl: true, priceCents: true, unit: true },
+          },
         },
       },
     },
@@ -189,8 +194,7 @@ export default async function BoutiquePage({
     }))
   );
 
-  const effectiveTime =
-    shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
+  const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
   const heroImg = shop.imageUrl || getShopImage(0);
 
   // Social proof — orders completed this week (only display if ≥ 5)
@@ -205,27 +209,27 @@ export default async function BoutiquePage({
 
   // Top 2 reviews with text — embedded in ProductSchema for rich snippets
   // (GSC asked for "review" field on Product. Reviews are per-shop in our model.)
-  const topReviewsRaw = shop.ratingCount > 0
-    ? await prisma.review.findMany({
-        where: { shopId: shop.id, comment: { not: null } },
-        orderBy: { createdAt: "desc" },
-        take: 2,
-        select: {
-          rating: true,
-          comment: true,
-          createdAt: true,
-          user: { select: { firstName: true, lastName: true } },
-        },
-      })
-    : [];
+  const topReviewsRaw =
+    shop.ratingCount > 0
+      ? await prisma.review.findMany({
+          where: { shopId: shop.id, comment: { not: null } },
+          orderBy: { createdAt: "desc" },
+          take: 2,
+          select: {
+            rating: true,
+            comment: true,
+            createdAt: true,
+            user: { select: { firstName: true, lastName: true } },
+          },
+        })
+      : [];
 
   const topReviews = topReviewsRaw.map((r) => ({
     rating: r.rating,
     comment: r.comment,
     createdAt: r.createdAt,
     authorName:
-      `${r.user?.firstName ?? "Client"} ${(r.user?.lastName ?? "").charAt(0)}`.trim() ||
-      "Client",
+      `${r.user?.firstName ?? "Client"} ${(r.user?.lastName ?? "").charAt(0)}`.trim() || "Client",
   }));
 
   // Serialize for client component (strip Prisma internals / Date objects)
@@ -264,7 +268,7 @@ export default async function BoutiquePage({
     minWeightG: p.minWeightG,
     weightStepG: p.weightStepG,
     maxWeightG: p.maxWeightG,
-    sliceOptions: p.sliceOptions as ProductData["sliceOptions"] ?? null,
+    sliceOptions: (p.sliceOptions as ProductData["sliceOptions"]) ?? null,
     variants: p.variants ?? [],
     weightPerPiece: p.weightPerPiece ?? null,
     pieceLabel: p.pieceLabel ?? null,
@@ -300,7 +304,7 @@ export default async function BoutiquePage({
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <ShopSchema shop={shop} />
+      <ShopSchema shop={shop} reviews={topReviews} />
       <BreadcrumbSchema
         items={[
           { name: "Accueil", url: `${SITE_URL}` },
@@ -327,14 +331,13 @@ export default async function BoutiquePage({
             rating: shop.rating,
             ratingCount: shop.ratingCount,
           }}
-          reviews={topReviews}
         />
       ))}
       <div className="mx-auto max-w-5xl">
         {/* ═══════════════════════════════════════════ */}
         {/* HERO */}
         {/* ═══════════════════════════════════════════ */}
-        <div className="relative mx-3 mt-3 rounded-[24px] overflow-hidden h-[300px]">
+        <div className="relative mx-3 mt-3 h-[300px] overflow-hidden rounded-[24px]">
           {shop.imageUrl ? (
             <>
               <Image
@@ -352,65 +355,66 @@ export default async function BoutiquePage({
             <>
               {/* Gradient fallback when no shop image */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#DC2626] via-[#991b1b] to-[#450a0a]" />
-              <div className="absolute inset-0 opacity-10" style={{
-                backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-                backgroundSize: "24px 24px",
-              }} />
+              <div
+                className="absolute inset-0 opacity-10"
+                style={{
+                  backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+                  backgroundSize: "24px 24px",
+                }}
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
             </>
           )}
 
           {/* Back button + Favorite */}
-          <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+          <div className="absolute left-4 right-4 top-4 z-10 flex items-center justify-between">
             <Link
               href="/"
               aria-label="Retour aux boucheries"
-              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-lg"
             >
               <ArrowLeft size={17} className="text-[#333]" />
             </Link>
-            <div className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white/85 backdrop-blur-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-white/85 shadow-[0_2px_8px_rgba(0,0,0,0.08)] backdrop-blur-lg">
               <FavoriteButton shopId={shop.id} size={18} />
             </div>
           </div>
 
           {/* Shop info overlay */}
           <div className="absolute bottom-6 left-5 right-5">
-            <h1 className="text-white text-[28px] sm:text-[30px] font-bold leading-[1.05]">
+            <h1 className="text-[28px] font-bold leading-[1.05] text-white sm:text-[30px]">
               {shop.name}
             </h1>
-            <div className="flex flex-wrap gap-2 mt-2.5">
+            <div className="mt-2.5 flex flex-wrap gap-2">
               {/* Rating */}
-              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-xl px-3 py-1.5 rounded-[10px]">
-                <Star size={12} className="text-yellow-300 fill-yellow-300" />
+              <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
+                <Star size={12} className="fill-yellow-300 text-yellow-300" />
                 <span className="text-xs font-bold text-white">
                   {shop.rating.toFixed(1)} · {shop.ratingCount} avis
                 </span>
               </div>
 
               {/* Prep time */}
-              <div className="flex items-center gap-1 bg-white/20 backdrop-blur-xl px-3 py-1.5 rounded-[10px]">
+              <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
                 <Clock size={11} className="text-white" />
-                <span
-                  className={`text-xs font-bold ${prepTimeClasses(effectiveTime)}`}
-                >
+                <span className={`text-xs font-bold ${prepTimeClasses(effectiveTime)}`}>
                   {effectiveTime} min
                 </span>
                 {effectiveTime <= 15 && (
-                  <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                 )}
               </div>
 
               {/* Busy mode badge */}
               {shop.status === "BUSY" && (
-                <span className="px-3 py-1.5 bg-amber-500/80 backdrop-blur-xl text-white text-xs font-bold rounded-[10px]">
+                <span className="rounded-[10px] bg-amber-500/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-xl">
                   Mode occupé
                 </span>
               )}
 
               {/* Paused badge */}
               {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
-                <span className="px-3 py-1.5 bg-amber-500/80 backdrop-blur-xl text-white text-xs font-bold rounded-[10px]">
+                <span className="rounded-[10px] bg-amber-500/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-xl">
                   Pause
                 </span>
               )}
@@ -429,22 +433,26 @@ export default async function BoutiquePage({
             </span>
           </div>
           {shop.phone && (
-            <div className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 mt-1">
+            <div className="mt-1 flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300">
               <Phone size={12} />
               <a
                 href={`tel:${shop.phone.replace(/[^\d+]/g, "")}`}
-                className="hover:text-[#DC2626] transition-colors"
+                className="transition-colors hover:text-[#DC2626]"
               >
                 {shop.phone}
               </a>
             </div>
           )}
           {shop.description && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{shop.description}</p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{shop.description}</p>
           )}
           {ordersThisWeek >= 5 && (
-            <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 mt-1">
-              🔥 {ordersThisWeek > 100 ? "Plus de 100 commandes" : `${ordersThisWeek} commande${ordersThisWeek > 1 ? "s" : ""}`} cette semaine
+            <p className="mt-1 text-xs font-semibold text-orange-600 dark:text-orange-400">
+              🔥{" "}
+              {ordersThisWeek > 100
+                ? "Plus de 100 commandes"
+                : `${ordersThisWeek} commande${ordersThisWeek > 1 ? "s" : ""}`}{" "}
+              cette semaine
             </p>
           )}
           <EarliestPickupTime minutesFromNow={effectiveTime} />
@@ -456,7 +464,7 @@ export default async function BoutiquePage({
             return cityMatch ? (
               <Link
                 href={`/boucherie-halal/${cityMatch.slug}`}
-                className="inline-block text-xs text-[#DC2626] hover:underline mt-1.5"
+                className="mt-1.5 inline-block text-xs text-[#DC2626] hover:underline"
               >
                 Toutes les boucheries halal à {cityMatch.name} &rarr;
               </Link>
@@ -466,14 +474,19 @@ export default async function BoutiquePage({
 
         {/* ── Pause banner (visible to clients) ── */}
         {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
-          <div className="mx-5 mb-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/30 rounded-xl flex items-center gap-2">
-            <Clock size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+          <div className="mx-5 mb-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-700/30 dark:bg-amber-900/20">
+            <Clock size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
               Commandes temporairement suspendues
               {shop.pauseEndsAt && (
-                <> — Reprise estimée à{" "}
+                <>
+                  {" "}
+                  — Reprise estimée à{" "}
                   <span className="font-bold">
-                    {new Date(shop.pauseEndsAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(shop.pauseEndsAt).toLocaleTimeString("fr-FR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </>
               )}
@@ -492,12 +505,17 @@ export default async function BoutiquePage({
             color={bannerOffer.bannerColor || "red"}
             imageUrl={bannerOffer.bannerImageUrl}
             discountLabel={
-              bannerOffer.type === "PERCENT" ? `-${bannerOffer.discountValue}%`
-              : bannerOffer.type === "AMOUNT" ? `-${bannerOffer.discountValue}€`
-              : bannerOffer.type === "FREE_FEES" ? "Frais offerts"
-              : bannerOffer.type === "BOGO" ? "1+1 offert"
-              : bannerOffer.type === "BUNDLE" ? `Pack -${bannerOffer.discountValue}€`
-              : bannerOffer.name
+              bannerOffer.type === "PERCENT"
+                ? `-${bannerOffer.discountValue}%`
+                : bannerOffer.type === "AMOUNT"
+                  ? `-${bannerOffer.discountValue}€`
+                  : bannerOffer.type === "FREE_FEES"
+                    ? "Frais offerts"
+                    : bannerOffer.type === "BOGO"
+                      ? "1+1 offert"
+                      : bannerOffer.type === "BUNDLE"
+                        ? `Pack -${bannerOffer.discountValue}€`
+                        : bannerOffer.name
             }
           />
         )}
@@ -517,15 +535,20 @@ export default async function BoutiquePage({
         {/* ═══════════════════════════════════════════ */}
         <AntiGaspiBanner
           shop={{ id: shop.id, name: shop.name, slug: shop.slug }}
-          products={products.filter(p => p.isAntiGaspi && p.inStock).map(p => ({
-            id: p.id, name: p.name, imageUrl: p.imageUrl, priceCents: p.priceCents,
-            unit: p.unit,
-            antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
-            antiGaspiStock: p.antiGaspiStock ?? null,
-            antiGaspiReason: p.antiGaspiReason ?? null,
-            category: p.categories[0] || { name: "" },
-            images: p.images,
-          }))}
+          products={products
+            .filter((p) => p.isAntiGaspi && p.inStock)
+            .map((p) => ({
+              id: p.id,
+              name: p.name,
+              imageUrl: p.imageUrl,
+              priceCents: p.priceCents,
+              unit: p.unit,
+              antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
+              antiGaspiStock: p.antiGaspiStock ?? null,
+              antiGaspiReason: p.antiGaspiReason ?? null,
+              category: p.categories[0] || { name: "" },
+              images: p.images,
+            }))}
         />
 
         {/* ═══════════════════════════════════════════ */}
@@ -541,11 +564,7 @@ export default async function BoutiquePage({
         {/* ═══════════════════════════════════════════ */}
         {/* REVIEWS */}
         {/* ═══════════════════════════════════════════ */}
-        <ReviewList
-          shopId={shop.id}
-          rating={shop.rating}
-          ratingCount={shop.ratingCount}
-        />
+        <ReviewList shopId={shop.id} rating={shop.rating} ratingCount={shop.ratingCount} />
       </div>
     </div>
   );

@@ -62,9 +62,19 @@ interface ShopSchemaProps {
     ratingCount?: number | null;
     openingHours?: Record<string, HoursValue> | null | unknown;
   };
+  // Reviews vivent au niveau Shop (et non Product) car les avis concernent
+  // la boucherie en tant qu'entité — pas chaque produit individuellement.
+  // Les passer au Product duplique les mêmes avis sur N produits → Google
+  // détecte le pattern et ignore les rich snippets (audit bot 2026-05-06 Agent B).
+  reviews?: Array<{
+    rating: number;
+    comment: string | null;
+    authorName: string;
+    createdAt: Date | string;
+  }>;
 }
 
-export function ShopSchema({ shop }: ShopSchemaProps) {
+export function ShopSchema({ shop, reviews }: ShopSchemaProps) {
   const schema: Record<string, unknown> = {
     "@context": "https://schema.org",
     // Triple-type : Store (retail rich results) + LocalBusiness (Pack Local)
@@ -129,6 +139,26 @@ export function ShopSchema({ shop }: ShopSchemaProps) {
       bestRating: 5,
       worstRating: 1,
     };
+  }
+
+  // Embed reviews on the Shop (LocalBusiness) — c'est l'entité reviewable.
+  // Limité à 2 avis pour éviter de gonfler le payload SSR sans bénéfice SERP.
+  const reviewsWithText = (reviews ?? [])
+    .filter((r) => r.comment && r.comment.trim().length > 0)
+    .slice(0, 2);
+  if (reviewsWithText.length > 0) {
+    schema.review = reviewsWithText.map((r) => ({
+      "@type": "Review",
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: r.rating,
+        bestRating: 5,
+        worstRating: 1,
+      },
+      author: { "@type": "Person", name: r.authorName },
+      reviewBody: r.comment,
+      datePublished: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+    }));
   }
 
   schema.potentialAction = {
