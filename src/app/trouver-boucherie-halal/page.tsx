@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MapPin, Search } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { SpeakableSchema } from "@/components/seo/SpeakableSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { GeoLocator } from "./GeoLocator";
 
@@ -29,7 +30,9 @@ export const metadata: Metadata = {
     description:
       "Géolocalisation instantanée. Trouvez votre boucherie halal la plus proche avec Klik&Go.",
     url: `${SITE_URL}/trouver-boucherie-halal`,
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Boucherie halal près de moi" }],
+    images: [
+      { url: "/og-image.png", width: 1200, height: 630, alt: "Boucherie halal près de moi" },
+    ],
     siteName: "Klik&Go",
   },
   twitter: {
@@ -75,6 +78,10 @@ export default async function FindButcherPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
+      <SpeakableSchema
+        url={`${SITE_URL}/trouver-boucherie-halal`}
+        cssSelectors={["h1", '[data-purpose="ai-summary"]']}
+      />
       <BreadcrumbSchema
         items={[
           { name: "Accueil", url: SITE_URL },
@@ -101,16 +108,13 @@ export default async function FindButcherPage() {
         }}
       />
       {/* TLDR for AI parsers (GPTBot, ClaudeBot, PerplexityBot) */}
-      <section
-        className="sr-only"
-        aria-label="Résumé"
-        data-purpose="ai-summary"
-      >
+      <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>
-          <strong>En bref :</strong> Klik&amp;Go référence les boucheries halal certifiées en Auvergne-Rhône-Alpes
-          (Savoie, Haute-Savoie, Isère, Rhône, Loire). Activez la géolocalisation pour trouver les boucheries halal
-          les plus proches de votre position. Commande en ligne possible chez les boucheries partenaires, retrait en
-          boutique au créneau choisi. Frais de service : 0,99€ par commande.
+          <strong>En bref :</strong> Klik&amp;Go référence les boucheries halal certifiées en
+          Auvergne-Rhône-Alpes (Savoie, Haute-Savoie, Isère, Rhône, Loire). Activez la
+          géolocalisation pour trouver les boucheries halal les plus proches de votre position.
+          Commande en ligne possible chez les boucheries partenaires, retrait en boutique au créneau
+          choisi. Frais de service : 0,99€ par commande.
         </p>
       </section>
 
@@ -123,21 +127,21 @@ export default async function FindButcherPage() {
             backgroundSize: "32px 32px",
           }}
         />
-        <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-20">
+        <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Accueil
           </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display leading-tight">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             Trouver une boucherie halal près de chez moi
           </h1>
-          <p className="mt-4 text-lg text-white/80 max-w-2xl">
-            Activez la géolocalisation pour découvrir les boucheries halal certifiées les plus proches de votre
-            position. Commandez en ligne ou rendez-vous directement en boutique.
+          <p className="mt-4 max-w-2xl text-lg text-white/80">
+            Activez la géolocalisation pour découvrir les boucheries halal certifiées les plus
+            proches de votre position. Commandez en ligne ou rendez-vous directement en boutique.
           </p>
-          <div className="flex items-center gap-2 mt-6 text-sm text-white/60">
+          <div className="mt-6 flex items-center gap-2 text-sm text-white/60">
             <MapPin size={14} />
             <span>{shops.length} boucheries halal référencées en Auvergne-Rhône-Alpes</span>
           </div>
@@ -146,17 +150,17 @@ export default async function FindButcherPage() {
       </section>
 
       {/* ── Geolocator (client component) ── */}
-      <div className="max-w-4xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         <GeoLocator shops={shopsForClient} />
       </div>
 
       {/* ── Pourquoi Klik&Go ── */}
-      <div className="max-w-4xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Pourquoi utiliser Klik&amp;Go pour trouver une boucherie halal ?
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               {
                 emoji: "📍",
@@ -176,10 +180,12 @@ export default async function FindButcherPage() {
             ].map((item, i) => (
               <div
                 key={i}
-                className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] text-center"
+                className="rounded-2xl border border-[#ece8e3] bg-white p-5 text-center dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <div className="text-3xl mb-2">{item.emoji}</div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1">{item.title}</h3>
+                <div className="mb-2 text-3xl">{item.emoji}</div>
+                <h3 className="mb-1 text-base font-bold text-gray-900 dark:text-white">
+                  {item.title}
+                </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
               </div>
             ))}
@@ -188,7 +194,7 @@ export default async function FindButcherPage() {
 
         {/* ── FAQ ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
           <script
@@ -255,11 +261,11 @@ export default async function FindButcherPage() {
             ].map((faq, i) => (
               <details
                 key={i}
-                className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {faq.q}
-                  <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>
@@ -270,17 +276,18 @@ export default async function FindButcherPage() {
         </section>
 
         {/* ── Call to action ── */}
-        <section className="text-center py-10 bg-gradient-to-br from-[#DC2626]/5 to-transparent rounded-2xl">
+        <section className="rounded-2xl bg-gradient-to-br from-[#DC2626]/5 to-transparent py-10 text-center">
           <Search className="mx-auto mb-3 text-[#DC2626]" size={32} />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 font-display">
+          <h2 className="mb-2 font-display text-xl font-bold text-gray-900 dark:text-white">
             Vous préférez chercher par ville ?
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-5 max-w-md mx-auto">
-            Consultez notre annuaire complet des boucheries halal en Rhône-Alpes, par ville et par quartier.
+          <p className="mx-auto mb-5 max-w-md text-sm text-gray-500 dark:text-gray-400">
+            Consultez notre annuaire complet des boucheries halal en Rhône-Alpes, par ville et par
+            quartier.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center justify-center px-6 py-3 bg-[#DC2626] text-white rounded-xl font-semibold hover:bg-[#b91c1c] transition"
+            className="inline-flex items-center justify-center rounded-xl bg-[#DC2626] px-6 py-3 font-semibold text-white transition hover:bg-[#b91c1c]"
           >
             Voir toutes les boucheries
           </Link>

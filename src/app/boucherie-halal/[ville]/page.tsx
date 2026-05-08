@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ShopSchema } from "@/components/seo/ShopSchema";
+import { SpeakableSchema } from "@/components/seo/SpeakableSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
 
@@ -144,6 +145,10 @@ export default async function CityPage({ params }: { params: { ville: string } }
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* ── SEO Schemas ── */}
+      <SpeakableSchema
+        url={`${SITE_URL}/boucherie-halal/${city.slug}`}
+        cssSelectors={["h1", '[data-purpose="ai-summary"]', ".faq-summary"]}
+      />
       <BreadcrumbSchema
         items={[
           { name: "Accueil", url: SITE_URL },
