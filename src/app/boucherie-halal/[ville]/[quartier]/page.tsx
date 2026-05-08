@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 import { ArrowRight, MapPin, Train } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
-import { SEO_DISTRICTS, getDistrictsByCity, getCityDistrictCombinations } from "@/lib/seo/districts";
+import {
+  SEO_DISTRICTS,
+  getDistrictsByCity,
+  getCityDistrictCombinations,
+} from "@/lib/seo/districts";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
@@ -24,14 +28,24 @@ export async function generateMetadata({
   params: { ville: string; quartier: string };
 }): Promise<Metadata> {
   const district = SEO_DISTRICTS.find(
-    (d) => d.citySlug === params.ville && d.slug === params.quartier,
+    (d) => d.citySlug === params.ville && d.slug === params.quartier
   );
   if (!district) return { title: "Quartier introuvable" };
+
+  // Best practice 2026 : noindex auto si shopCount === 0 (Mars Core Update).
+  const shopCount = await prisma.shop.count({
+    where: {
+      visible: true,
+      city: { contains: district.cityName, mode: "insensitive" },
+    },
+  });
+  const shouldNoIndex = shopCount === 0;
 
   const title = `Boucherie halal à ${district.name} (${district.cityName})`;
   return {
     title,
     description: district.description,
+    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     keywords: [
       `boucherie halal ${district.name.toLowerCase()}`,
       `boucherie halal ${district.name.toLowerCase()} ${district.cityName.toLowerCase()}`,
@@ -57,7 +71,7 @@ export default async function DistrictPage({
   params: { ville: string; quartier: string };
 }) {
   const district = SEO_DISTRICTS.find(
-    (d) => d.citySlug === params.ville && d.slug === params.quartier,
+    (d) => d.citySlug === params.ville && d.slug === params.quartier
   );
   if (!district) notFound();
 
@@ -90,7 +104,9 @@ export default async function DistrictPage({
     take: 6,
   });
 
-  const otherDistricts = getDistrictsByCity(district.citySlug).filter((d) => d.slug !== district.slug);
+  const otherDistricts = getDistrictsByCity(district.citySlug).filter(
+    (d) => d.slug !== district.slug
+  );
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
@@ -130,12 +146,11 @@ export default async function DistrictPage({
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>
-          <strong>En bref :</strong> Quartier {district.name} à {city.name} ({district.zipCode || city.region}).
-          {district.transports?.length
-            ? ` Accès : ${district.transports.join(", ")}.`
-            : ""}{" "}
-          Boucheries halal certifiées référencées par Klik&amp;Go. Click &amp; collect possible chez les
-          partenaires, retrait au créneau choisi. Frais de service : 0,99€ par commande.
+          <strong>En bref :</strong> Quartier {district.name} à {city.name} (
+          {district.zipCode || city.region}).
+          {district.transports?.length ? ` Accès : ${district.transports.join(", ")}.` : ""}{" "}
+          Boucheries halal certifiées référencées par Klik&amp;Go. Click &amp; collect possible chez
+          les partenaires, retrait au créneau choisi. Frais de service : 0,99€ par commande.
         </p>
       </section>
 
@@ -148,19 +163,22 @@ export default async function DistrictPage({
             backgroundSize: "32px 32px",
           }}
         />
-        <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-20">
+        <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
             href={`/boucherie-halal/${city.slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Toutes boucheries halal {city.name}
           </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display leading-tight">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             Boucherie halal à {district.name}
           </h1>
-          <p className="mt-2 text-lg text-white/90">{district.cityName}{district.zipCode ? ` • ${district.zipCode}` : ""}</p>
-          <p className="mt-4 text-base text-white/80 max-w-2xl">{district.description}</p>
-          <div className="flex flex-wrap items-center gap-3 mt-6 text-sm text-white/60">
+          <p className="mt-2 text-lg text-white/90">
+            {district.cityName}
+            {district.zipCode ? ` • ${district.zipCode}` : ""}
+          </p>
+          <p className="mt-4 max-w-2xl text-base text-white/80">{district.description}</p>
+          <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-white/60">
             <span className="inline-flex items-center gap-1.5">
               <MapPin size={14} />
               Quartier {district.name}, {city.name}
@@ -176,23 +194,25 @@ export default async function DistrictPage({
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         {/* ── Contexte quartier (E-E-A-T) ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Boucheries halal à {district.name} : présentation du quartier
           </h2>
-          <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">{district.context}</p>
+          <p className="text-base leading-relaxed text-gray-700 dark:text-gray-300">
+            {district.context}
+          </p>
           {district.transports && district.transports.length > 0 && (
             <div className="mt-5">
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <p className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
                 Transports proches :
               </p>
               <div className="flex flex-wrap gap-2">
                 {district.transports.map((t) => (
                   <span
                     key={t}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] text-xs text-gray-700 dark:text-gray-300"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#ece8e3] bg-white px-3 py-1 text-xs text-gray-700 dark:border-white/[0.06] dark:bg-gray-800 dark:text-gray-300"
                   >
                     <Train size={11} />
                     {t}
@@ -205,15 +225,15 @@ export default async function DistrictPage({
 
         {/* ── Liste boucheries (de la ville parente — manque filtre district précis) ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 font-display">
+          <h2 className="mb-2 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Boucheries halal {city.name} & {district.name}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
             Boucheries halal partenaires Klik&amp;Go à {city.name} et alentours
           </p>
 
           {shops.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
                 <ShopCard
                   key={shop.id}
@@ -230,8 +250,8 @@ export default async function DistrictPage({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
-              <p className="text-gray-600 dark:text-gray-300 font-medium mb-1">
+            <div className="rounded-2xl border border-[#ece8e3] bg-white py-12 text-center dark:border-white/[0.06] dark:bg-gray-800">
+              <p className="mb-1 font-medium text-gray-600 dark:text-gray-300">
                 Klik&amp;Go arrive bientôt à {city.name}
               </p>
               <Link
@@ -247,17 +267,17 @@ export default async function DistrictPage({
         {/* ── Autres quartiers de la ville ── */}
         {otherDistricts.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+            <h2 className="mb-4 font-display text-xl font-bold text-gray-900 dark:text-white">
               Autres quartiers de {city.name}
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {otherDistricts.map((d) => (
                 <Link
                   key={d.slug}
                   href={`/boucherie-halal/${d.citySlug}/${d.slug}`}
-                  className="block p-3 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] transition text-center"
+                  className="block rounded-xl border border-[#ece8e3] bg-white p-3 text-center transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
                 >
-                  <p className="font-semibold text-gray-900 dark:text-white text-xs">{d.name}</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white">{d.name}</p>
                 </Link>
               ))}
             </div>
@@ -266,7 +286,7 @@ export default async function DistrictPage({
 
         {/* ── FAQ quartier ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
           <script
@@ -325,11 +345,11 @@ export default async function DistrictPage({
             ].map((faq, i) => (
               <details
                 key={i}
-                className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {faq.q}
-                  <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>

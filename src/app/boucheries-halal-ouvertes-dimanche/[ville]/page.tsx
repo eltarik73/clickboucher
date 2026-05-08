@@ -44,11 +44,24 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
+  // Best practice 2026 : noindex auto si shopCount === 0 (Mars Core Update).
+  // Pour la page "ouverte dimanche", il faudrait aussi vérifier que l'un des
+  // shops a effectivement un horaire dimanche, mais à ce stade (BDD test) on
+  // se contente de la présence d'au moins 1 shop dans la ville.
+  const shopCount = await prisma.shop.count({
+    where: {
+      visible: true,
+      city: { contains: city.name, mode: "insensitive" },
+    },
+  });
+  const shouldNoIndex = shopCount === 0;
+
   const title = `Boucherie halal ouverte le dimanche à ${city.name}`;
   const description = `Trouvez les boucheries halal ouvertes le dimanche à ${city.name}. Horaires temps réel, click & collect, retrait en boutique. Klik&Go référence les boucheries halal certifiées de ${city.name}.`;
   return {
     title,
     description,
+    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     keywords: [
       `boucherie halal ouverte dimanche ${city.name.toLowerCase()}`,
       `boucherie halal ${city.name.toLowerCase()} dimanche`,
@@ -68,11 +81,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function SundayCityPage({
-  params,
-}: {
-  params: { ville: string };
-}) {
+export default async function SundayCityPage({ params }: { params: { ville: string } }) {
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) notFound();
 
@@ -167,10 +176,12 @@ export default async function SundayCityPage({
                   openingHoursSpecification: {
                     "@type": "OpeningHoursSpecification",
                     dayOfWeek: "Sunday",
-                    opens: (s.openingHours as Record<string, { open: string; close: string } | null>)?.sun
-                      ?.open,
-                    closes: (s.openingHours as Record<string, { open: string; close: string } | null>)?.sun
-                      ?.close,
+                    opens: (
+                      s.openingHours as Record<string, { open: string; close: string } | null>
+                    )?.sun?.open,
+                    closes: (
+                      s.openingHours as Record<string, { open: string; close: string } | null>
+                    )?.sun?.close,
                   },
                 },
               })),
@@ -180,10 +191,11 @@ export default async function SundayCityPage({
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>
-          <strong>En bref :</strong> {sundayShops.length} boucherie{sundayShops.length > 1 ? "s" : ""} halal
-          ouverte{sundayShops.length > 1 ? "s" : ""} le dimanche à {city.name} référencée
-          {sundayShops.length > 1 ? "s" : ""} par Klik&amp;Go. Horaires précis, click &amp; collect possible,
-          retrait en boutique au créneau choisi.
+          <strong>En bref :</strong> {sundayShops.length} boucherie
+          {sundayShops.length > 1 ? "s" : ""} halal ouverte{sundayShops.length > 1 ? "s" : ""} le
+          dimanche à {city.name} référencée
+          {sundayShops.length > 1 ? "s" : ""} par Klik&amp;Go. Horaires précis, click &amp; collect
+          possible, retrait en boutique au créneau choisi.
         </p>
       </section>
 
@@ -196,21 +208,22 @@ export default async function SundayCityPage({
             backgroundSize: "32px 32px",
           }}
         />
-        <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-20">
+        <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
             href={`/boucherie-halal/${city.slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Toutes boucheries halal {city.name}
           </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display leading-tight">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             Boucherie halal ouverte le dimanche à {city.name}
           </h1>
-          <p className="mt-4 text-lg text-white/80 max-w-2xl">
-            Trouvez les boucheries halal certifiées ouvertes le dimanche à {city.name} et son agglomération.
-            Horaires précis, click &amp; collect possible, retrait en boutique sans file d&apos;attente.
+          <p className="mt-4 max-w-2xl text-lg text-white/80">
+            Trouvez les boucheries halal certifiées ouvertes le dimanche à {city.name} et son
+            agglomération. Horaires précis, click &amp; collect possible, retrait en boutique sans
+            file d&apos;attente.
           </p>
-          <div className="flex items-center gap-2 mt-6 text-sm text-white/60">
+          <div className="mt-6 flex items-center gap-2 text-sm text-white/60">
             <CalendarClock size={14} />
             <span>
               {sundayShops.length} boucherie{sundayShops.length > 1 ? "s" : ""} halal ouverte
@@ -221,17 +234,17 @@ export default async function SundayCityPage({
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         {/* ── Liste boucheries ouvertes dimanche ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             {sundayShops.length > 0
               ? `${sundayShops.length} boucherie${sundayShops.length > 1 ? "s" : ""} halal ouverte${sundayShops.length > 1 ? "s" : ""} le dimanche`
               : `Bientôt à ${city.name}`}
           </h2>
 
           {sundayShops.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {sundayShops.map((shop, idx) => (
                 <ShopCard
                   key={shop.id}
@@ -248,14 +261,14 @@ export default async function SundayCityPage({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
-              <CalendarClock className="mx-auto text-gray-400 mb-3" size={32} />
-              <p className="text-gray-600 dark:text-gray-300 font-medium mb-1">
+            <div className="rounded-2xl border border-[#ece8e3] bg-white py-12 text-center dark:border-white/[0.06] dark:bg-gray-800">
+              <CalendarClock className="mx-auto mb-3 text-gray-400" size={32} />
+              <p className="mb-1 font-medium text-gray-600 dark:text-gray-300">
                 Aucune boucherie partenaire ouverte le dimanche à {city.name} pour l&apos;instant
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-md mx-auto">
-                Klik&amp;Go ajoute régulièrement de nouvelles boucheries partenaires. Voici les autres options
-                pour {city.name} :
+              <p className="mx-auto mb-5 max-w-md text-sm text-gray-500 dark:text-gray-400">
+                Klik&amp;Go ajoute régulièrement de nouvelles boucheries partenaires. Voici les
+                autres options pour {city.name} :
               </p>
               <Link
                 href={`/boucherie-halal/${city.slug}`}
@@ -268,35 +281,36 @@ export default async function SundayCityPage({
         </section>
 
         {/* ── Pourquoi le dimanche est important ── */}
-        <section className="mb-14 bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 border border-[#ece8e3] dark:border-white/[0.06]">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+        <section className="mb-14 rounded-2xl border border-[#ece8e3] bg-white p-6 dark:border-white/[0.06] dark:bg-gray-800 sm:p-8">
+          <h2 className="mb-4 font-display text-xl font-bold text-gray-900 dark:text-white">
             Pourquoi commander le dimanche à {city.name} ?
           </h2>
-          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+          <div className="space-y-3 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
             <p>
-              Le dimanche est traditionnellement le jour des grands repas familiaux. À {city.name}, plusieurs
-              boucheries halal restent ouvertes — souvent en matinée — pour vous permettre d&apos;acheter votre
-              viande halal fraîche pour le déjeuner ou le dîner.
+              Le dimanche est traditionnellement le jour des grands repas familiaux. À {city.name},
+              plusieurs boucheries halal restent ouvertes — souvent en matinée — pour vous permettre
+              d&apos;acheter votre viande halal fraîche pour le déjeuner ou le dîner.
             </p>
             <p>
-              Avec Klik&amp;Go, vous évitez la file d&apos;attente : commandez en ligne dès le samedi soir,
-              choisissez votre créneau dimanche matin, et récupérez votre commande en quelques minutes.
-              Pratique pour les réunions de famille, les méchouis, les barbecues d&apos;été ou simplement le
-              gigot du dimanche.
+              Avec Klik&amp;Go, vous évitez la file d&apos;attente : commandez en ligne dès le
+              samedi soir, choisissez votre créneau dimanche matin, et récupérez votre commande en
+              quelques minutes. Pratique pour les réunions de famille, les méchouis, les barbecues
+              d&apos;été ou simplement le gigot du dimanche.
             </p>
             <p>
-              <strong>Frais de service :</strong> 0,99€ par commande. Pas d&apos;abonnement, pas de surcoût
-              sur les prix des produits. Le boucher fixe ses prix, vous payez en ligne ou sur place.
+              <strong>Frais de service :</strong> 0,99€ par commande. Pas d&apos;abonnement, pas de
+              surcoût sur les prix des produits. Le boucher fixe ses prix, vous payez en ligne ou
+              sur place.
             </p>
           </div>
         </section>
 
         {/* ── Autres villes dimanche ── */}
         <section className="mb-14">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-xl font-bold text-gray-900 dark:text-white">
             Boucherie halal ouverte dimanche dans d&apos;autres villes
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {ELIGIBLE_CITIES.filter((s) => s !== city.slug).map((slug) => {
               const c = SEO_CITIES.find((x) => x.slug === slug);
               if (!c) return null;
@@ -304,9 +318,9 @@ export default async function SundayCityPage({
                 <Link
                   key={slug}
                   href={`/boucheries-halal-ouvertes-dimanche/${slug}`}
-                  className="block p-3 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] transition text-center"
+                  className="block rounded-xl border border-[#ece8e3] bg-white p-3 text-center transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
                 >
-                  <p className="font-semibold text-gray-900 dark:text-white text-xs">{c.name}</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white">{c.name}</p>
                 </Link>
               );
             })}
@@ -315,7 +329,7 @@ export default async function SundayCityPage({
 
         {/* ── FAQ ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
           <script
@@ -330,9 +344,10 @@ export default async function SundayCityPage({
                     name: `Quelles boucheries halal sont ouvertes le dimanche à ${city.name} ?`,
                     acceptedAnswer: {
                       "@type": "Answer",
-                      text: sundayShops.length > 0
-                        ? `Klik&Go référence ${sundayShops.length} boucherie${sundayShops.length > 1 ? "s" : ""} halal ouverte${sundayShops.length > 1 ? "s" : ""} le dimanche à ${city.name} : ${sundayShops.map((s) => s.name).join(", ")}.`
-                        : `Klik&Go arrive bientôt à ${city.name} avec des boucheries halal ouvertes le dimanche. En attendant, consultez les autres boucheries halal partenaires.`,
+                      text:
+                        sundayShops.length > 0
+                          ? `Klik&Go référence ${sundayShops.length} boucherie${sundayShops.length > 1 ? "s" : ""} halal ouverte${sundayShops.length > 1 ? "s" : ""} le dimanche à ${city.name} : ${sundayShops.map((s) => s.name).join(", ")}.`
+                          : `Klik&Go arrive bientôt à ${city.name} avec des boucheries halal ouvertes le dimanche. En attendant, consultez les autres boucheries halal partenaires.`,
                     },
                   },
                   {
@@ -387,11 +402,11 @@ export default async function SundayCityPage({
             ].map((faq, i) => (
               <details
                 key={i}
-                className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {faq.q}
-                  <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>

@@ -31,12 +31,25 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!occasion || !city) return { title: "Page introuvable" };
 
+  // Best practice 2026 (Mars Core Update + Helpful Content classifier always-on) :
+  // pages programmatic sans inventory = signal thin. Noindex auto tant que
+  // shopCount === 0, flip à index dès qu'un boucher s'inscrit dans la ville.
+  // Sources : NicoDigital, SEOteric, JourneyH Marketplace Playbook 2026.
+  const shopCount = await prisma.shop.count({
+    where: {
+      visible: true,
+      city: { contains: city.name, mode: "insensitive" },
+    },
+  });
+  const shouldNoIndex = shopCount === 0;
+
   const title = `${occasion.name} halal à ${city.name} — Commander en ligne`;
   const description = `${occasion.shortDescription} Click & collect chez votre boucherie halal partenaire à ${city.name} et alentours.`;
 
   return {
     title,
     description,
+    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     keywords: [
       `${occasion.keyword} ${city.name.toLowerCase()}`,
       `commander ${occasion.keyword} ${city.name.toLowerCase()}`,
@@ -120,8 +133,7 @@ export default async function OccasionCityPage({
                   startDate: occasion.eventStart,
                   ...(occasion.eventEnd && { endDate: occasion.eventEnd }),
                   eventStatus: "https://schema.org/EventScheduled",
-                  eventAttendanceMode:
-                    "https://schema.org/OfflineEventAttendanceMode",
+                  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
                   image: [`${SITE_URL}/og-image.png`],
                   location: {
                     "@type": "City",
@@ -174,15 +186,15 @@ export default async function OccasionCityPage({
                     name: "Klik&Go",
                     url: SITE_URL,
                   },
-                },
+                }
           ),
         }}
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>
-          <strong>En bref :</strong> Commandez votre {occasion.name.toLowerCase()} halal à {city.name} chez les
-          boucheries partenaires Klik&amp;Go. {occasion.bookingDelay}. Click &amp; collect, retrait en boutique.
-          Frais de service 0,99€.
+          <strong>En bref :</strong> Commandez votre {occasion.name.toLowerCase()} halal à{" "}
+          {city.name} chez les boucheries partenaires Klik&amp;Go. {occasion.bookingDelay}. Click
+          &amp; collect, retrait en boutique. Frais de service 0,99€.
         </p>
       </section>
 
@@ -195,18 +207,18 @@ export default async function OccasionCityPage({
             backgroundSize: "32px 32px",
           }}
         />
-        <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-20">
+        <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
             href={`/boucherie-halal/${city.slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Boucheries halal {city.name}
           </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display leading-tight">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             {occasion.name} halal à {city.name}
           </h1>
-          <p className="mt-4 text-lg text-white/80 max-w-2xl">{occasion.shortDescription}</p>
-          <div className="flex flex-wrap items-center gap-4 mt-6 text-sm text-white/60">
+          <p className="mt-4 max-w-2xl text-lg text-white/80">{occasion.shortDescription}</p>
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-white/60">
             <span className="inline-flex items-center gap-1.5">
               <MapPin size={14} />
               {city.name}, {city.region}
@@ -220,46 +232,48 @@ export default async function OccasionCityPage({
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         {/* ── Intro occasion (E-E-A-T, 250+ mots unique) ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-2xl font-bold text-gray-900 dark:text-white">
             {occasion.name} halal à {city.name} : tout ce qu&apos;il faut savoir
           </h2>
-          <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">{occasion.intro}</p>
+          <p className="text-base leading-relaxed text-gray-700 dark:text-gray-300">
+            {occasion.intro}
+          </p>
         </section>
 
         {/* ── Quantité (calculatrice / serving tip) ── */}
-        <section className="mb-12 bg-gradient-to-br from-[#DC2626]/5 to-transparent rounded-2xl p-6 sm:p-8 border border-[#DC2626]/20">
+        <section className="mb-12 rounded-2xl border border-[#DC2626]/20 bg-gradient-to-br from-[#DC2626]/5 to-transparent p-6 sm:p-8">
           <div className="flex items-start gap-4">
-            <div className="shrink-0 w-12 h-12 rounded-full bg-[#DC2626]/10 flex items-center justify-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#DC2626]/10">
               <Info className="text-[#DC2626]" size={22} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 font-display">
+              <h3 className="mb-2 font-display text-lg font-bold text-gray-900 dark:text-white">
                 {occasion.servingTip.question}
               </h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+              <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
                 {occasion.servingTip.answer}
               </p>
-              <p className="mt-3 text-xs text-[#DC2626] font-semibold">{occasion.bookingDelay}</p>
+              <p className="mt-3 text-xs font-semibold text-[#DC2626]">{occasion.bookingDelay}</p>
             </div>
           </div>
         </section>
 
         {/* ── Liste boucheries ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 font-display">
+          <h2 className="mb-2 font-display text-2xl font-bold text-gray-900 dark:text-white">
             {shops.length > 0
               ? `${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal pour ${occasion.name.toLowerCase()} à ${city.name}`
               : `Bientôt à ${city.name}`}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
             Demandez votre devis directement chez nos boucheries partenaires
           </p>
 
           {shops.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
                 <ShopCard
                   key={shop.id}
@@ -276,11 +290,11 @@ export default async function OccasionCityPage({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
-              <p className="text-gray-600 dark:text-gray-300 font-medium mb-1">
+            <div className="rounded-2xl border border-[#ece8e3] bg-white py-12 text-center dark:border-white/[0.06] dark:bg-gray-800">
+              <p className="mb-1 font-medium text-gray-600 dark:text-gray-300">
                 Klik&amp;Go arrive bientôt à {city.name}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-md mx-auto">
+              <p className="mx-auto mb-5 max-w-md text-sm text-gray-500 dark:text-gray-400">
                 Voir les villes voisines couvertes :
               </p>
               <div className="flex flex-wrap justify-center gap-2">
@@ -288,7 +302,7 @@ export default async function OccasionCityPage({
                   <Link
                     key={c.slug}
                     href={`/occasions/${occasion.slug}/${c.slug}`}
-                    className="text-xs px-3 py-1.5 rounded-full bg-[#DC2626]/10 text-[#DC2626] font-semibold hover:bg-[#DC2626]/20 transition"
+                    className="rounded-full bg-[#DC2626]/10 px-3 py-1.5 text-xs font-semibold text-[#DC2626] transition hover:bg-[#DC2626]/20"
                   >
                     {occasion.name} à {c.name}
                   </Link>
@@ -300,17 +314,19 @@ export default async function OccasionCityPage({
 
         {/* ── Autres occasions ── */}
         <section className="mb-12">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-xl font-bold text-gray-900 dark:text-white">
             Autres occasions à {city.name}
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {otherOccasions.map((o) => (
               <Link
                 key={o.slug}
                 href={`/occasions/${o.slug}/${city.slug}`}
-                className="group block p-4 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] hover:shadow-md transition"
+                className="group block rounded-xl border border-[#ece8e3] bg-white p-4 transition hover:border-[#DC2626] hover:shadow-md dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <p className="font-semibold text-gray-900 dark:text-white text-sm mb-0.5">{o.name}</p>
+                <p className="mb-0.5 text-sm font-semibold text-gray-900 dark:text-white">
+                  {o.name}
+                </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">à {city.name}</p>
               </Link>
             ))}
@@ -319,17 +335,17 @@ export default async function OccasionCityPage({
 
         {/* ── Autres villes ── */}
         <section className="mb-12">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-xl font-bold text-gray-900 dark:text-white">
             {occasion.name} dans d&apos;autres villes
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {otherCities.map((c) => (
               <Link
                 key={c.slug}
                 href={`/occasions/${occasion.slug}/${c.slug}`}
-                className="block p-3 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] transition text-center"
+                className="block rounded-xl border border-[#ece8e3] bg-white p-3 text-center transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <p className="font-semibold text-gray-900 dark:text-white text-xs">{c.name}</p>
+                <p className="text-xs font-semibold text-gray-900 dark:text-white">{c.name}</p>
               </Link>
             ))}
           </div>
@@ -337,7 +353,7 @@ export default async function OccasionCityPage({
 
         {/* ── FAQ ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
           <script
@@ -383,11 +399,11 @@ export default async function OccasionCityPage({
             ].map((faq, i) => (
               <details
                 key={i}
-                className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {faq.q}
-                  <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>

@@ -227,36 +227,48 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "saint-priest",
     "bourgoin-jallieu",
   ];
-  const sundayPages: MetadataRoute.Sitemap = SUNDAY_CITIES.map((slug) => ({
+  // Best practice 2026 : exclure les villes sans shop des sitemaps programmatic.
+  // Mars 2026 Core Update penalise le thin content. Pages restent accessibles
+  // par URL directe (acquisition boucher), juste pas pushed à Google.
+  // Sources : NicoDigital, SEOteric, JourneyH Marketplace Playbook.
+  const sundayPages: MetadataRoute.Sitemap = SUNDAY_CITIES.filter((slug) =>
+    populatedCitySlugs.has(slug)
+  ).map((slug) => ({
     url: `${BASE_URL}/boucheries-halal-ouvertes-dimanche/${slug}`,
     lastModified: STATIC_CONTENT_UPDATED,
     changeFrequency: "daily" as const, // horaires changent souvent
     priority: 0.75,
   }));
 
-  // Pages produit × ville (Sprint 5) — ~84 pages SSG
-  const productCityPages: MetadataRoute.Sitemap = getProductCityCombinations().map((combo) => ({
-    url: `${BASE_URL}/produits/${combo.produit}/${combo.ville}`,
-    lastModified: STATIC_CONTENT_UPDATED,
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
+  // Pages produit × ville (Sprint 5) — filtre par populatedCitySlugs
+  const productCityPages: MetadataRoute.Sitemap = getProductCityCombinations()
+    .filter((combo) => populatedCitySlugs.has(combo.ville))
+    .map((combo) => ({
+      url: `${BASE_URL}/produits/${combo.produit}/${combo.ville}`,
+      lastModified: STATIC_CONTENT_UPDATED,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
 
-  // Pages quartier (Sprint 6) — 12 quartiers prioritaires (Lyon, Grenoble, etc.)
-  const districtPages: MetadataRoute.Sitemap = getCityDistrictCombinations().map((combo) => ({
-    url: `${BASE_URL}/boucherie-halal/${combo.ville}/${combo.quartier}`,
-    lastModified: STATIC_CONTENT_UPDATED,
-    changeFrequency: "weekly" as const,
-    priority: 0.75,
-  }));
+  // Pages quartier (Sprint 6) — filtre par populatedCitySlugs (ville parent)
+  const districtPages: MetadataRoute.Sitemap = getCityDistrictCombinations()
+    .filter((combo) => populatedCitySlugs.has(combo.ville))
+    .map((combo) => ({
+      url: `${BASE_URL}/boucherie-halal/${combo.ville}/${combo.quartier}`,
+      lastModified: STATIC_CONTENT_UPDATED,
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    }));
 
-  // Pages occasion x ville (Sprint 7) — 6 occasions x 8 villes = 48 pages SSG
-  const occasionPages: MetadataRoute.Sitemap = getOccasionCityCombinations().map((combo) => ({
-    url: `${BASE_URL}/occasions/${combo.occasion}/${combo.ville}`,
-    lastModified: STATIC_CONTENT_UPDATED,
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
+  // Pages occasion × ville (Sprint 7) — filtre par populatedCitySlugs
+  const occasionPages: MetadataRoute.Sitemap = getOccasionCityCombinations()
+    .filter((combo) => populatedCitySlugs.has(combo.ville))
+    .map((combo) => ({
+      url: `${BASE_URL}/occasions/${combo.occasion}/${combo.ville}`,
+      lastModified: STATIC_CONTENT_UPDATED,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
 
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
     url: `${BASE_URL}/recettes/${r.slug}`,

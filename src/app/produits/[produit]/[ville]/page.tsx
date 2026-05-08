@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 import { ArrowRight, MapPin, ChefHat, Info } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
-import { SEO_PRODUCTS, PRODUCT_VILLE_PRIORITY_SLUGS, getProductCityCombinations } from "@/lib/seo/products";
+import {
+  SEO_PRODUCTS,
+  PRODUCT_VILLE_PRIORITY_SLUGS,
+  getProductCityCombinations,
+} from "@/lib/seo/products";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
@@ -27,12 +31,23 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!product || !city) return { title: "Page introuvable" };
 
+  // Best practice 2026 : noindex auto si shopCount === 0 (page programmatic
+  // sans inventory = signal thin penalty Mars 2026 Core Update).
+  const shopCount = await prisma.shop.count({
+    where: {
+      visible: true,
+      city: { contains: city.name, mode: "insensitive" },
+    },
+  });
+  const shouldNoIndex = shopCount === 0;
+
   const title = `${product.name} à ${city.name} — Click & Collect`;
   const description = `${product.shortDescription} Trouvez les meilleurs ${product.pluralKeyword} à ${city.name}. Commande en ligne, retrait en boutique chez votre boucherie halal partenaire Klik&Go.`;
 
   return {
     title,
     description,
+    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     keywords: [
       `${product.keyword} ${city.name.toLowerCase()}`,
       `${product.pluralKeyword} ${city.name.toLowerCase()}`,
@@ -119,7 +134,8 @@ export default async function ProductCityPage({
             offers: {
               "@type": "AggregateOffer",
               priceCurrency: "EUR",
-              availability: shops.length > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+              availability:
+                shops.length > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
               offerCount: shops.length,
               areaServed: { "@type": "City", name: city.name },
             },
@@ -128,10 +144,11 @@ export default async function ProductCityPage({
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>
-          <strong>En bref :</strong> {product.shortDescription} Disponible chez {shops.length} boucherie
-          {shops.length > 1 ? "s" : ""} halal partenaire{shops.length > 1 ? "s" : ""} Klik&amp;Go à {city.name}
-          ({city.region}). Commande en ligne, paiement en ligne ou sur place, retrait en boutique au créneau
-          choisi. Frais de service : 0,99€ par commande.
+          <strong>En bref :</strong> {product.shortDescription} Disponible chez {shops.length}{" "}
+          boucherie
+          {shops.length > 1 ? "s" : ""} halal partenaire{shops.length > 1 ? "s" : ""} Klik&amp;Go à{" "}
+          {city.name}({city.region}). Commande en ligne, paiement en ligne ou sur place, retrait en
+          boutique au créneau choisi. Frais de service : 0,99€ par commande.
         </p>
       </section>
 
@@ -144,18 +161,18 @@ export default async function ProductCityPage({
             backgroundSize: "32px 32px",
           }}
         />
-        <div className="relative max-w-4xl mx-auto px-5 py-14 sm:py-20">
+        <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
             href={`/boucherie-halal/${city.slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Boucheries halal {city.name}
           </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display leading-tight">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             {product.name} à {city.name}
           </h1>
-          <p className="mt-4 text-lg text-white/80 max-w-2xl">{product.shortDescription}</p>
-          <div className="flex flex-wrap items-center gap-4 mt-6 text-sm text-white/60">
+          <p className="mt-4 max-w-2xl text-lg text-white/80">{product.shortDescription}</p>
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-white/60">
             <span className="inline-flex items-center gap-1.5">
               <MapPin size={14} />
               {city.name}, {city.region}
@@ -169,28 +186,30 @@ export default async function ProductCityPage({
         </div>
       </section>
 
-      <div className="max-w-4xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         {/* ── Intro produit (250+ mots, contenu unique) ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-2xl font-bold text-gray-900 dark:text-white">
             {product.name} : ce qu&apos;il faut savoir
           </h2>
-          <p className="text-base text-gray-700 dark:text-gray-300 leading-relaxed">{product.intro}</p>
+          <p className="text-base leading-relaxed text-gray-700 dark:text-gray-300">
+            {product.intro}
+          </p>
         </section>
 
         {/* ── Liste boucheries qui vendent ce produit à cette ville ── */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             {shops.length > 0
               ? `${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal à ${city.name}`
               : `Bientôt à ${city.name}`}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
             Commandez votre {product.name.toLowerCase()} directement chez nos boucheries partenaires
           </p>
 
           {shops.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
                 <ShopCard
                   key={shop.id}
@@ -207,20 +226,20 @@ export default async function ProductCityPage({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]">
-              <p className="text-gray-600 dark:text-gray-300 font-medium mb-1">
+            <div className="rounded-2xl border border-[#ece8e3] bg-white py-12 text-center dark:border-white/[0.06] dark:bg-gray-800">
+              <p className="mb-1 font-medium text-gray-600 dark:text-gray-300">
                 Klik&amp;Go arrive bientôt à {city.name}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5 max-w-md mx-auto">
-                Nous recrutons activement des boucheries halal partenaires à {city.name}. En attendant, voici
-                les villes proches couvertes :
+              <p className="mx-auto mb-5 max-w-md text-sm text-gray-500 dark:text-gray-400">
+                Nous recrutons activement des boucheries halal partenaires à {city.name}. En
+                attendant, voici les villes proches couvertes :
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 {otherCities.slice(0, 4).map((c) => (
                   <Link
                     key={c.slug}
                     href={`/produits/${product.slug}/${c.slug}`}
-                    className="text-xs px-3 py-1.5 rounded-full bg-[#DC2626]/10 text-[#DC2626] font-semibold hover:bg-[#DC2626]/20 transition"
+                    className="rounded-full bg-[#DC2626]/10 px-3 py-1.5 text-xs font-semibold text-[#DC2626] transition hover:bg-[#DC2626]/20"
                   >
                     {product.name} à {c.name}
                   </Link>
@@ -232,16 +251,16 @@ export default async function ProductCityPage({
 
         {/* ── Conseils cuisson (E-E-A-T) ── */}
         {product.cookingTips && (
-          <section className="mb-12 bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 border border-[#ece8e3] dark:border-white/[0.06]">
+          <section className="mb-12 rounded-2xl border border-[#ece8e3] bg-white p-6 dark:border-white/[0.06] dark:bg-gray-800 sm:p-8">
             <div className="flex items-start gap-4">
-              <div className="shrink-0 w-12 h-12 rounded-full bg-[#DC2626]/10 flex items-center justify-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#DC2626]/10">
                 <ChefHat className="text-[#DC2626]" size={22} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 font-display">
+                <h2 className="mb-2 font-display text-xl font-bold text-gray-900 dark:text-white">
                   Conseils de cuisson — {product.name}
                 </h2>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
                   {product.cookingTips}
                 </p>
               </div>
@@ -251,16 +270,18 @@ export default async function ProductCityPage({
 
         {/* ── Spécialité ville (utilise SEO_CITIES.specialty) ── */}
         {city.specialty && (
-          <section className="mb-12 bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 border border-[#ece8e3] dark:border-white/[0.06]">
+          <section className="mb-12 rounded-2xl border border-[#ece8e3] bg-white p-6 dark:border-white/[0.06] dark:bg-gray-800 sm:p-8">
             <div className="flex items-start gap-4">
-              <div className="shrink-0 w-12 h-12 rounded-full bg-[#DC2626]/10 flex items-center justify-center">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#DC2626]/10">
                 <Info className="text-[#DC2626]" size={22} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2 font-display">
+                <h2 className="mb-2 font-display text-xl font-bold text-gray-900 dark:text-white">
                   Spécialités viande à {city.name}
                 </h2>
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{city.specialty}.</p>
+                <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                  {city.specialty}.
+                </p>
               </div>
             </div>
           </section>
@@ -268,17 +289,19 @@ export default async function ProductCityPage({
 
         {/* ── Autres produits ── */}
         <section className="mb-12">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-xl font-bold text-gray-900 dark:text-white">
             Autres produits halal à {city.name}
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
             {otherProducts.map((p) => (
               <Link
                 key={p.slug}
                 href={`/produits/${p.slug}/${city.slug}`}
-                className="group block p-4 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] hover:shadow-md transition"
+                className="group block rounded-xl border border-[#ece8e3] bg-white p-4 transition hover:border-[#DC2626] hover:shadow-md dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <p className="font-semibold text-gray-900 dark:text-white text-sm mb-0.5">{p.name}</p>
+                <p className="mb-0.5 text-sm font-semibold text-gray-900 dark:text-white">
+                  {p.name}
+                </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">à {city.name}</p>
               </Link>
             ))}
@@ -287,17 +310,17 @@ export default async function ProductCityPage({
 
         {/* ── Autres villes pour ce produit ── */}
         <section className="mb-12">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+          <h2 className="mb-4 font-display text-xl font-bold text-gray-900 dark:text-white">
             {product.name} dans d&apos;autres villes
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {otherCities.map((c) => (
               <Link
                 key={c.slug}
                 href={`/produits/${product.slug}/${c.slug}`}
-                className="block p-3 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] transition text-center"
+                className="block rounded-xl border border-[#ece8e3] bg-white p-3 text-center transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <p className="font-semibold text-gray-900 dark:text-white text-xs">{c.name}</p>
+                <p className="text-xs font-semibold text-gray-900 dark:text-white">{c.name}</p>
               </Link>
             ))}
           </div>
@@ -306,7 +329,7 @@ export default async function ProductCityPage({
         {/* ── FAQ ── */}
         {product.servingQuestion && (
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+            <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
               Questions fréquentes
             </h2>
             <script
@@ -364,11 +387,11 @@ export default async function ProductCityPage({
               ].map((faq, i) => (
                 <details
                   key={i}
-                  className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                  className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
                 >
-                  <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                  <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
                     {faq.q}
-                    <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                    <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                       ▼
                     </span>
                   </summary>
