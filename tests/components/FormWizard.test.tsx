@@ -1,5 +1,9 @@
 import { describe, test, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render } from "@testing-library/react";
+// @testing-library/react v16 ne re-exporte plus screen + fireEvent dans ses
+// .d.ts (rupture vs v14/v15). Les fonctions runtime existent toujours mais
+// le typecheck CI strict echoue. Source de verite officielle : dom.
+import { screen, fireEvent } from "@testing-library/dom";
 import { FormWizard, WizardStep } from "@/components/ui/FormWizard";
 
 const baseSteps: WizardStep[] = [
@@ -32,13 +36,7 @@ describe("FormWizard", () => {
 
   test("calls onComplete on last step", () => {
     const onComplete = vi.fn();
-    render(
-      <FormWizard
-        steps={baseSteps}
-        onComplete={onComplete}
-        initialStep={1}
-      />
-    );
+    render(<FormWizard steps={baseSteps} onComplete={onComplete} initialStep={1} />);
     fireEvent.click(screen.getByText(/Confirmer/));
     expect(onComplete).toHaveBeenCalled();
   });
@@ -63,13 +61,7 @@ describe("FormWizard", () => {
   });
 
   test("Précédent navigates back", () => {
-    render(
-      <FormWizard
-        steps={baseSteps}
-        onComplete={() => {}}
-        initialStep={1}
-      />
-    );
+    render(<FormWizard steps={baseSteps} onComplete={() => {}} initialStep={1} />);
     fireEvent.click(screen.getByText(/Précédent/));
     expect(screen.getByText("Content A")).toBeInTheDocument();
   });
