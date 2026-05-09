@@ -460,25 +460,28 @@ export default async function DevenirBoucherPartenaireVille({
           >
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#DC2626]/60 to-transparent" />
             <div className="p-8 sm:p-12">
-              <div className="mb-5 flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={16} className="fill-[#FCA5A5] text-[#FCA5A5]" />
-                ))}
+              <div className="mb-5 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#DC2626]/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[1.5px] text-[#FCA5A5]">
+                  Notre promesse
+                </span>
               </div>
 
+              {/* Manifest honnête — pas de fake review (audit Bing 2026-05-09 :
+                  même témoignage répété sur 45 pages = signal manipulation). */}
               <blockquote className="font-serif text-xl italic leading-relaxed text-white sm:text-2xl">
-                &laquo; Avant Klik&amp;Go, le samedi matin c&apos;était la queue jusque dans la rue.
-                Maintenant mes clients commandent la veille, je prépare tranquille, et tout le monde
-                est servi en deux minutes. Et c&apos;est gratuit. &raquo;
+                &laquo; Le samedi matin avec la file qui dépasse sur le trottoir, ça doit être un
+                souvenir, pas une fatalité. Klik&amp;Go fait simple : tes clients commandent la
+                veille, tu prépares tranquille, ils retirent en deux minutes. Pas d&apos;abonnement,
+                pas de frais cachés &mdash; tu paies seulement quand tu vends. &raquo;
               </blockquote>
 
               <div className="mt-6 flex items-center gap-4 border-t border-white/[0.06] pt-6">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#DC2626] to-[#b91c1c] font-bold text-white">
-                  Y
+                  K
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Yacine</p>
-                  <p className="text-xs text-gray-400">Boucherie El Houda &middot; {city.name}</p>
+                  <p className="text-sm font-semibold text-white">L&apos;équipe Klik&amp;Go</p>
+                  <p className="text-xs text-gray-400">Notre engagement à {city.name}</p>
                 </div>
               </div>
             </div>

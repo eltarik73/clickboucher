@@ -29,9 +29,17 @@ export async function generateMetadata({
       : `Soyez la première boucherie halal partenaire Klik&Go à ${city.name}.`;
   const description = `Boucher halal à ${city.name} ? Rejoignez Klik&Go : 100% gratuit, commission uniquement, aucun abonnement. Vitrine en ligne, mode cuisine, click & collect. ${shopCountStr}`;
 
+  // Audit Bing 2026-05-09 : 45 pages /devenir-boucher-partenaire/[ville]
+  // étaient indexables sans noindex auto → signal "thin/duplicate content"
+  // (Mars 2026 Core Update). On noindex tant qu'il n'y a pas au moins 1
+  // boucherie dans la ville pour faire du contenu unique pertinent.
+  // Same pattern que /boucherie-halal/[ville]/layout.tsx (commit 018ba6a).
+  const shouldNoIndex = shopCount === 0;
+
   return {
     title,
     description,
+    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     openGraph: {
       title,
       description,
