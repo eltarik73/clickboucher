@@ -71,3 +71,30 @@ export async function getBoucherOwnerUserId(): Promise<string | null> {
 
 /** Expose isTestActivated for admin-auth and boucher-auth */
 export { isTestActivated };
+
+/**
+ * Resolve the user's role for permission checks.
+ * Audit sécurité 2026-05-09 : remplace l'ancien pattern
+ *   `currentUser().publicMetadata.role` qui peut être stale si webhook
+ *   Clerk a échoué. La DB est la source de vérité pour les rôles.
+ *
+ * Returns the role string ("ADMIN", "BOUCHER", "CLIENT", etc.) or undefined.
+ * En mode test, retourne le role testé (ADMIN ⇒ "admin" pour isAdmin).
+ */
+export async function resolveUserRole(): Promise<string | undefined> {
+  if (isTestActivated()) {
+    const testRole = getTestRole();
+    return testRole === "ADMIN" ? "admin" : undefined;
+  }
+
+  const userId = await getServerUserId();
+  if (!userId) return undefined;
+
+  // Lazy import to avoid circular dependency
+  const { default: prisma } = await import("@/lib/prisma");
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { role: true },
+  });
+  return dbUser?.role;
+}

@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+// Audit sécurité 2026-05-09 : retiré currentUser, utilise resolveUserRole (DB)
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
+import { resolveUserRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -56,14 +56,7 @@ export async function POST(req: NextRequest) {
     const data = createCategorySchema.parse(body);
 
     // Verify ownership via shopId (admin bypass)
-    let role: string | undefined;
-    if (isTestActivated()) {
-      const testRole = getTestRole();
-      role = testRole === "ADMIN" ? "admin" : undefined;
-    } else {
-      const user = await currentUser();
-      role = (user?.publicMetadata as Record<string, string>)?.role;
-    }
+    const role = await resolveUserRole();
     if (!isAdmin(role)) {
       if (data.shopId !== authShopId) return apiError("FORBIDDEN", "Non autorise");
     }
@@ -106,14 +99,7 @@ export async function PATCH(req: NextRequest) {
     });
     if (!category) return apiError("NOT_FOUND", "Categorie introuvable");
 
-    let role: string | undefined;
-    if (isTestActivated()) {
-      const testRole = getTestRole();
-      role = testRole === "ADMIN" ? "admin" : undefined;
-    } else {
-      const user = await currentUser();
-      role = (user?.publicMetadata as Record<string, string>)?.role;
-    }
+    const role = await resolveUserRole();
     if (!isAdmin(role) && category.shopId !== authShopId) {
       return apiError("FORBIDDEN", "Non autorise");
     }
@@ -151,20 +137,16 @@ export async function DELETE(req: NextRequest) {
     });
     if (!category) return apiError("NOT_FOUND", "Categorie introuvable");
 
-    let role: string | undefined;
-    if (isTestActivated()) {
-      const testRole = getTestRole();
-      role = testRole === "ADMIN" ? "admin" : undefined;
-    } else {
-      const user = await currentUser();
-      role = (user?.publicMetadata as Record<string, string>)?.role;
-    }
+    const role = await resolveUserRole();
     if (!isAdmin(role) && category.shopId !== authShopId) {
       return apiError("FORBIDDEN", "Non autorise");
     }
 
     if (category._count.products > 0) {
-      return apiError("VALIDATION_ERROR", `Impossible de supprimer : ${category._count.products} produit(s) dans cette categorie`);
+      return apiError(
+        "VALIDATION_ERROR",
+        `Impossible de supprimer : ${category._count.products} produit(s) dans cette categorie`
+      );
     }
 
     await prisma.category.delete({ where: { id: data.id } });

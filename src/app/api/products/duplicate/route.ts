@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+// Audit sécurité 2026-05-09 : retiré currentUser, utilise resolveUserRole (DB)
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
+import { resolveUserRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -35,15 +35,8 @@ export async function POST(req: NextRequest) {
     });
     if (!original) return apiError("NOT_FOUND", "Produit introuvable");
 
-    // Verify ownership
-    let role: string | undefined;
-    if (isTestActivated()) {
-      const testRole = getTestRole();
-      role = testRole === "ADMIN" ? "admin" : undefined;
-    } else {
-      const user = await currentUser();
-      role = (user?.publicMetadata as Record<string, string>)?.role;
-    }
+    // Verify ownership (audit sécurité 2026-05-09 : DB lookup)
+    const role = await resolveUserRole();
     if (!isAdmin(role) && original.shopId !== authShopId) {
       return apiError("FORBIDDEN", "Non autorise");
     }
@@ -77,24 +70,26 @@ export async function POST(req: NextRequest) {
         vatRate: original.vatRate,
         sliceOptions: original.sliceOptions as object | undefined,
         isActive: false, // Start inactive
-        labels: original.labels.length > 0
-          ? {
-              create: original.labels.map((l) => ({
-                name: l.name,
-                color: l.color,
-              })),
-            }
-          : undefined,
-        images: original.images.length > 0
-          ? {
-              create: original.images.map((img) => ({
-                url: img.url,
-                alt: img.alt,
-                order: img.order,
-                isPrimary: img.isPrimary,
-              })),
-            }
-          : undefined,
+        labels:
+          original.labels.length > 0
+            ? {
+                create: original.labels.map((l) => ({
+                  name: l.name,
+                  color: l.color,
+                })),
+              }
+            : undefined,
+        images:
+          original.images.length > 0
+            ? {
+                create: original.images.map((img) => ({
+                  url: img.url,
+                  alt: img.alt,
+                  order: img.order,
+                  isPrimary: img.isPrimary,
+                })),
+              }
+            : undefined,
       },
       include: {
         categories: true,

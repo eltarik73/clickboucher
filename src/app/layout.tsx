@@ -19,8 +19,13 @@ const TestRoleSwitcher = dynamic(
   () => import("@/components/test/TestRoleSwitcher").then((m) => m.TestRoleSwitcher),
   { ssr: false }
 );
+// Cookie consent RGPD (audit CTO #2 2026-05-09) — lazy car bandeau visible
+// uniquement après hydration côté client.
+const AnalyticsConsent = dynamic(
+  () => import("@/components/AnalyticsConsent").then((m) => m.AnalyticsConsent),
+  { ssr: false }
+);
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
-import Script from "next/script";
 import "@/styles/globals.css";
 
 const dmSans = DM_Sans({
@@ -151,14 +156,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
           <link rel="dns-prefetch" href="https://api.stripe.com" />
           <link rel="dns-prefetch" href="https://js.stripe.com" />
-          {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
-            <Script
-              defer
-              data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
-              src="https://plausible.io/js/script.js"
-              strategy="lazyOnload"
-            />
-          )}
+          {/* Plausible déplacé dans <AnalyticsConsent /> (RGPD : ne charge que
+              si l'utilisateur a consenti via le bandeau bottom). */}
         </head>
         <body
           className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 antialiased dark:bg-black dark:text-white`}
@@ -183,6 +182,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SpeedInsights />
               <Analytics />
               <InstallPrompt />
+              <AnalyticsConsent />
               <TestRoleSwitcher />
             </NotificationProvider>
           </ThemeProvider>

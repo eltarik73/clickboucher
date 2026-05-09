@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { getServerUserId } from "@/lib/auth/server-auth";
+// Audit sécurité 2026-05-09 : retiré currentUser Clerk au profit de DB lookup.
+import { getServerUserId, resolveUserRole } from "@/lib/auth/server-auth";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
@@ -61,7 +60,10 @@ const PRODUCT_SELECT = {
   snoozeEndsAt: true,
   snoozeReason: true,
   categories: { select: { id: true, name: true, emoji: true } },
-  images: { orderBy: { order: "asc" as const }, select: { id: true, url: true, alt: true, order: true, isPrimary: true } },
+  images: {
+    orderBy: { order: "asc" as const },
+    select: { id: true, url: true, alt: true, order: true, isPrimary: true },
+  },
   labels: { select: { id: true, name: true, color: true } },
 };
 
@@ -100,7 +102,8 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Cache lookup for unfiltered product lists ──
-    const hasFilters = query.categoryId || query.inStock || query.featured || query.tag || query.search;
+    const hasFilters =
+      query.categoryId || query.inStock || query.featured || query.tag || query.search;
     const productsCacheKey = !hasFilters && query.shopId ? `products:shop:${query.shopId}` : null;
 
     if (productsCacheKey) {
@@ -163,15 +166,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createProductSchema.parse(body);
 
-    // Verify ownership via shopId (admin bypass)
-    let role: string | undefined;
-    if (isTestActivated()) {
-      const testRole = getTestRole();
-      role = testRole === "ADMIN" ? "admin" : undefined;
-    } else {
-      const user = await currentUser();
-      role = (user?.publicMetadata as Record<string, string>)?.role;
-    }
+    // Audit sécurité 2026-05-09 : resolveUserRole = DB lookup
+    const role = await resolveUserRole();
     if (!isAdmin(role)) {
       if (data.shopId !== authShopId) {
         return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
@@ -184,7 +180,10 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     if (cats.length !== data.categoryIds.length) {
-      return apiError("VALIDATION_ERROR", "Une ou plusieurs catégories n'appartiennent pas à cette boucherie");
+      return apiError(
+        "VALIDATION_ERROR",
+        "Une ou plusieurs catégories n'appartiennent pas à cette boucherie"
+      );
     }
 
     const product = await prisma.product.create({
