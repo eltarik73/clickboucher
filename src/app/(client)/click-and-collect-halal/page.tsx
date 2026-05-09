@@ -12,7 +12,9 @@ const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
-  title: "Click & Collect halal — Commandez votre viande halal en ligne",
+  // Title court (~50 chars) — titleTemplate root ajoute " | Klik&Go" auto.
+  // Bing flagué > 70 chars en encoding HTML &amp; (commit Bing audit 2026-05-09).
+  title: "Click & Collect halal — Boucher en ligne",
   description:
     "Click and collect viande halal : commandez en ligne chez votre boucher halal et récupérez votre commande en boutique en moins de 30 minutes. Sans frais cachés.",
   alternates: { canonical: `${SITE_URL}/click-and-collect-halal` },

@@ -14,7 +14,9 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Trouver une boucherie halal près de chez moi — Klik&Go",
+  // Retire "— Klik&Go" du title car titleTemplate root ajoute " | Klik&Go"
+  // → évite "Klik&Go | Klik&Go" doublon (audit Bing 2026-05-09 : title 75 chars).
+  title: "Trouver une boucherie halal près de chez moi",
   description:
     "Trouvez la boucherie halal la plus proche de chez vous en Auvergne-Rhône-Alpes. Géolocalisation instantanée, filtres ouverte maintenant, click & collect possible. Plus de 50 boucheries halal référencées.",
   keywords: [
@@ -88,25 +90,9 @@ export default async function FindButcherPage() {
           { name: "Trouver une boucherie halal", url: `${SITE_URL}/trouver-boucherie-halal` },
         ]}
       />
-      {/* Schema WebSite + SearchAction (sitelinks searchbox) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            url: SITE_URL,
-            potentialAction: {
-              "@type": "SearchAction",
-              target: {
-                "@type": "EntryPoint",
-                urlTemplate: `${SITE_URL}/recherche?q={search_term_string}`,
-              },
-              "query-input": "required name=search_term_string",
-            },
-          }),
-        }}
-      />
+      {/* WebSite + SearchAction déjà fournis par OrganizationSchema dans le
+          root layout — pas de doublon ici (Bing audit 2026-05-09 a flagué
+          le double WebSite schema). */}
       {/* TLDR for AI parsers (GPTBot, ClaudeBot, PerplexityBot) */}
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>

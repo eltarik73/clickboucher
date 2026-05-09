@@ -20,7 +20,9 @@ export async function generateMetadata({
     },
   });
 
-  const title = `Devenir partenaire boucher à ${city.name} — Klik&Go (100% gratuit)`;
+  // Title court — titleTemplate root ajoute " | Klik&Go" auto.
+  // Audit Bing 2026-05-09 : doublon "Klik&Go" supprimé. 84 chars → ~58.
+  const title = `Devenir boucher partenaire à ${city.name} (100% gratuit)`;
   const shopCountStr =
     shopCount > 0
       ? `${shopCount} boucherie${shopCount > 1 ? "s" : ""} déjà inscrite${shopCount > 1 ? "s" : ""} à ${city.name}.`

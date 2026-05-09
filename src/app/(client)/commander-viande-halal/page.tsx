@@ -11,7 +11,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 const PAGE_LAST_UPDATED = "2026-05-01";
 
 export const metadata: Metadata = {
-  title: "Commander de la viande halal en ligne — Boucher halal de proximité",
+  // Title court — titleTemplate root ajoute " | Klik&Go" auto (Bing audit 2026-05-09).
+  title: "Commander viande halal en ligne — Boucher proche",
   description:
     "Commandez votre viande halal en ligne chez votre boucher de proximité. Bœuf, agneau, veau, volaille halal certifiée. Retrait en boutique en 30 min, frais 0,99€.",
   alternates: { canonical: `${SITE_URL}/commander-viande-halal` },
