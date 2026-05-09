@@ -1145,6 +1145,10 @@ model Order {
   @@index([status, expiresAt])
   @@index([createdAt, status])
   @@index([offerId])
+  // Audit CTO #1 perf 2026-05-09 : commandes programmées (cron qui bascule
+  // les ASAP 30 min avant le pickupSlotStart) — sans index, full scan Order
+  // toutes les 5 min sur Mode Cuisine. Index combiné = lookup O(log n).
+  @@index([shopId, pickupSlotStart])
   @@map("orders")
 }
 

@@ -33,12 +33,20 @@ export async function GET(req: NextRequest) {
         data: { abandonedAt: new Date() },
       });
 
-      for (const cart of abandonedCarts) {
-        await sendNotification("CART_ABANDONED", {
-          userId: cart.userId,
-          shopName: cart.shop.name,
-          nbItems: cart.items.length,
-        });
+      // Audit CTO #1 perf 2026-05-09 : Promise.allSettled batché pour éviter
+      // timeout 30s à scale + résilience aux erreurs partielles Resend.
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < abandonedCarts.length; i += BATCH_SIZE) {
+        const chunk = abandonedCarts.slice(i, i + BATCH_SIZE);
+        await Promise.allSettled(
+          chunk.map((cart) =>
+            sendNotification("CART_ABANDONED", {
+              userId: cart.userId,
+              shopName: cart.shop.name,
+              nbItems: cart.items.length,
+            })
+          )
+        );
       }
     }
 
