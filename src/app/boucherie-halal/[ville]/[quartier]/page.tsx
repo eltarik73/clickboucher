@@ -78,9 +78,21 @@ export default async function DistrictPage({
   const city = SEO_CITIES.find((c) => c.slug === district.citySlug);
   if (!city) notFound();
 
-  // Fetch shops in the same city (we don't have district-precise filter yet)
-  const shops = await prisma.shop.findMany({
-    where: { visible: true, city: { contains: city.name, mode: "insensitive" } },
+  // Audit Bing 2026-05-09 : implémenté le filtre district réel.
+  // Heuristique : on filtre les shops de la ville par address contenant
+  // (a) le code postal du quartier OU (b) le nom du quartier (case insensitive).
+  // Si 0 résultat → fallback sur tous les shops de la ville (préserve l'UX et
+  // évite que le crawler voie une page vide). On bump take à 12 pour les villes
+  // denses comme Lyon où plusieurs quartiers ont 5+ boutiques.
+  const districtShops = await prisma.shop.findMany({
+    where: {
+      visible: true,
+      city: { contains: city.name, mode: "insensitive" },
+      OR: [
+        ...(district.zipCode ? [{ address: { contains: district.zipCode } }] : []),
+        { address: { contains: district.name, mode: "insensitive" as const } },
+      ],
+    },
     select: {
       id: true,
       slug: true,
@@ -101,8 +113,40 @@ export default async function DistrictPage({
       openingHours: true,
     },
     orderBy: { rating: "desc" },
-    take: 6,
+    take: 12,
   });
+
+  const shops =
+    districtShops.length > 0
+      ? districtShops
+      : await prisma.shop.findMany({
+          where: { visible: true, city: { contains: city.name, mode: "insensitive" } },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            address: true,
+            city: true,
+            description: true,
+            imageUrl: true,
+            rating: true,
+            ratingCount: true,
+            prepTimeMin: true,
+            busyMode: true,
+            busyExtraMin: true,
+            status: true,
+            phone: true,
+            latitude: true,
+            longitude: true,
+            openingHours: true,
+          },
+          orderBy: { rating: "desc" },
+          take: 6,
+        });
+
+  // Signal pour l'UI : true si on liste des shops vraiment dans le quartier,
+  // false si on est en mode fallback (ville entière).
+  const isDistrictPrecise = districtShops.length > 0;
 
   const otherDistricts = getDistrictsByCity(district.citySlug).filter(
     (d) => d.slug !== district.slug
@@ -223,13 +267,17 @@ export default async function DistrictPage({
           )}
         </section>
 
-        {/* ── Liste boucheries (de la ville parente — manque filtre district précis) ── */}
+        {/* ── Liste boucheries (filtrage district précis si possible) ── */}
         <section className="mb-12">
           <h2 className="mb-2 font-display text-2xl font-bold text-gray-900 dark:text-white">
-            Boucheries halal {city.name} & {district.name}
+            {isDistrictPrecise
+              ? `Boucheries halal à ${district.name}`
+              : `Boucheries halal ${city.name} & ${district.name}`}
           </h2>
           <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
-            Boucheries halal partenaires Klik&amp;Go à {city.name} et alentours
+            {isDistrictPrecise
+              ? `${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} Klik&Go directement dans le quartier ${district.name}.`
+              : `Aucune boucherie partenaire encore directement dans ${district.name} — voici les boucheries halal Klik&Go les plus proches dans ${city.name}.`}
           </p>
 
           {shops.length > 0 ? (

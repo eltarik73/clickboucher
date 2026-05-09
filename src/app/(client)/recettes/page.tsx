@@ -3,11 +3,14 @@ export const revalidate = 60;
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChefHat, Clock, Users, Beef } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { SafeImage } from "@/components/ui/SafeImage";
+import { LastUpdated } from "@/components/seo/LastUpdated";
+import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+const PAGE_LAST_UPDATED = "2026-05-09";
 
 export const metadata: Metadata = {
   title: "Recettes halal — Tajine, couscous, kefta, BBQ",
@@ -19,7 +22,8 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     siteName: "Klik&Go",
     title: "Recettes halal — Tajine, couscous, kefta, BBQ | Klik&Go",
-    description: "Plus de 50 recettes halal faciles avec quantités de viande précises. Commandez la viande halal en click & collect.",
+    description:
+      "Plus de 50 recettes halal faciles avec quantités de viande précises. Commandez la viande halal en click & collect.",
     url: `${SITE_URL}/recettes`,
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Recettes halal Klik&Go" }],
   },
@@ -89,41 +93,149 @@ export default async function RecettesPage({
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
+      <BreadcrumbSchema
+        items={[
+          { name: "Accueil", url: SITE_URL },
+          { name: "Recettes halal", url: `${SITE_URL}/recettes` },
+        ]}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
       />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-4xl px-4 py-8">
         {/* Back + Hero */}
-        <div className="flex items-center gap-3 mb-1">
+        <div className="mb-1 flex items-center gap-3">
           <Link
             href="/"
-            className="w-11 h-11 flex items-center justify-center rounded-xl bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shrink-0"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white transition-colors hover:bg-gray-50 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/5"
             aria-label="Retour"
           >
             <ArrowLeft size={18} className="text-gray-700 dark:text-gray-300" />
           </Link>
-          <h1 className="text-3xl font-black text-[#1C1512] dark:text-white">
-            Nos recettes 🍖
-          </h1>
+          <h1 className="text-3xl font-black text-[#1C1512] dark:text-white">Recettes halal 🍖</h1>
         </div>
-        <p className="text-gray-500 dark:text-gray-400 mt-1 pl-14">
-          Des idées de plats avec les viandes de vos boucheries halal préférées.
+        <p className="mt-1 pl-14 text-gray-500 dark:text-gray-400">
+          {recipes.length}+ recettes halal faciles avec quantités précises et lien direct vers la
+          boucherie partenaire.
         </p>
+        <LastUpdated date={PAGE_LAST_UPDATED} className="mt-2 pl-14" />
+
+        {/* ── Intro éditoriale (signal contenu unique anti-thin) ── */}
+        <section className="mt-6 rounded-3xl border border-[#ece8e3] bg-white p-6 dark:border-white/[0.06] dark:bg-gray-800/60">
+          <h2 className="font-display text-lg font-bold text-[#1C1512] dark:text-white">
+            Pourquoi cuisiner halal avec Klik&amp;Go ?
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+            Toutes nos recettes affichent la <strong>quantité exacte de viande halal</strong> à
+            commander pour le nombre de convives indiqué &mdash; fini le calcul de tête au comptoir.
+            En un clic, vous commandez la viande certifiée halal chez votre boucher de proximité,
+            vous la récupérez au créneau choisi, et vous attaquez la recette le soir même. Chaque
+            fiche détaille les ingrédients, le temps de préparation, le matériel nécessaire et la
+            valeur nutritionnelle estimée. Bœuf, agneau, veau, volaille, kefta, merguez maison,
+            plats de fête (Aïd, Ramadan), recettes rapides du soir, BBQ d&apos;été : il y en a pour
+            tous les goûts et tous les niveaux.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {[
+              {
+                icon: Beef,
+                title: "Quantités précises",
+                desc: "g de viande par personne calculé pour chaque recette",
+              },
+              {
+                icon: Clock,
+                title: "Temps réaliste",
+                desc: "Prépa + cuisson testés et validés en cuisine",
+              },
+              {
+                icon: Users,
+                title: "Adaptable convives",
+                desc: "Multipliez les portions, le panier suit",
+              },
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#DC2626]/10 text-[#DC2626]">
+                  <item.icon size={14} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-[#1C1512] dark:text-white">
+                    {item.title}
+                  </div>
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400">{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Hub catégories (différenciation contenu + maillage interne) ── */}
+        <section className="mt-6">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-[#1C1512] dark:text-white">
+            <ChefHat size={16} className="text-[#DC2626]" />
+            Nos univers de recettes halal
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                tag: "ramadan",
+                label: "Spécial Ramadan",
+                desc: "Plats de rupture du jeûne, harira, soupes, msemen sucrés-salés.",
+                emoji: "🌙",
+              },
+              {
+                tag: "bbq",
+                label: "BBQ &amp; brochettes",
+                desc: "Brochettes de bœuf, agneau marinés, kefta &mdash; saison estivale.",
+                emoji: "🔥",
+              },
+              {
+                tag: "rapide",
+                label: "Recettes rapides",
+                desc: "Moins de 30 minutes total &mdash; idéal soirées semaine.",
+                emoji: "⏱",
+              },
+              {
+                tag: "famille",
+                label: "Plats famille",
+                desc: "Tajines, couscous, plats généreux pour 4 à 8 convives.",
+                emoji: "👨‍👩‍👧‍👦",
+              },
+            ].map((cat) => (
+              <Link
+                key={cat.tag}
+                href={`/recettes?tag=${cat.tag}`}
+                className="group flex gap-3 rounded-2xl border border-[#ece8e3] bg-white p-4 transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
+              >
+                <div className="text-2xl">{cat.emoji}</div>
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="text-sm font-bold text-[#1C1512] dark:text-white"
+                    dangerouslySetInnerHTML={{ __html: cat.label }}
+                  />
+                  <p
+                    className="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400"
+                    dangerouslySetInnerHTML={{ __html: cat.desc }}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
 
         {/* Filtres tags */}
         <div
-          className="flex gap-2 overflow-x-auto py-4 -mx-4 px-4"
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 py-4"
           style={{ scrollbarWidth: "none" }}
         >
           {TAGS.map((t) => (
             <Link
               key={t.id || "all"}
               href={t.id ? `/recettes?tag=${t.id}` : "/recettes"}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition ${
+              className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition ${
                 tag === t.id || (!tag && !t.id)
                   ? "bg-[#DC2626] text-white"
-                  : "bg-white dark:bg-white/[0.06] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/10 hover:border-[#DC2626]"
+                  : "border border-gray-200 bg-white text-gray-600 hover:border-[#DC2626] dark:border-white/10 dark:bg-white/[0.06] dark:text-gray-400"
               }`}
             >
               {t.icon ? `${t.icon} ` : ""}
@@ -134,9 +246,9 @@ export default async function RecettesPage({
 
         {/* Recette du jour (featured) */}
         {featured && (
-          <Link href={`/recettes/${featured.slug}`} className="block mb-6">
-            <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-md hover:shadow-lg transition border border-[#ece8e3]/60 dark:border-white/[0.06]">
-              <div className="h-52 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
+          <Link href={`/recettes/${featured.slug}`} className="mb-6 block">
+            <div className="overflow-hidden rounded-3xl border border-[#ece8e3]/60 bg-white shadow-md transition hover:shadow-lg dark:border-white/[0.06] dark:bg-gray-800">
+              <div className="relative h-52 overflow-hidden bg-gray-200 dark:bg-white/5">
                 {featured.imageUrl ? (
                   <SafeImage
                     src={featured.imageUrl}
@@ -147,14 +259,12 @@ export default async function RecettesPage({
                     priority
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-5xl">
-                    🍖
-                  </div>
+                  <div className="flex h-full w-full items-center justify-center text-5xl">🍖</div>
                 )}
-                <div className="absolute top-3 left-3 bg-[#DC2626] text-white px-3 py-1 rounded-lg text-xs font-bold">
+                <div className="absolute left-3 top-3 rounded-lg bg-[#DC2626] px-3 py-1 text-xs font-bold text-white">
                   Recette du jour
                 </div>
-                <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur text-white px-3 py-1 rounded-lg text-xs font-semibold">
+                <div className="absolute bottom-3 right-3 rounded-lg bg-black/50 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
                   ⏱ {featured.totalTime} min
                 </div>
               </div>
@@ -162,17 +272,17 @@ export default async function RecettesPage({
                 <h2 className="text-xl font-extrabold text-[#1C1512] dark:text-white">
                   {featured.title}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{featured.description}</p>
-                <div className="flex gap-3 mt-3 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {featured.description}
+                </p>
+                <div className="mt-3 flex gap-3 text-xs text-gray-500 dark:text-gray-400">
                   <span>👤 {featured.servings} pers.</span>
                   <span>📊 {featured.difficulty}</span>
                 </div>
                 {/* Viande nécessaire */}
-                <div className="mt-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl">
-                  <div className="text-xs font-bold text-[#DC2626]">
-                    🥩 {featured.meatQuantity}
-                  </div>
-                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                <div className="mt-3 rounded-xl border border-red-100 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-900/20">
+                  <div className="text-xs font-bold text-[#DC2626]">🥩 {featured.meatQuantity}</div>
+                  <div className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">
                     Disponible chez nos boucheries partenaires
                   </div>
                 </div>
@@ -187,9 +297,9 @@ export default async function RecettesPage({
             <Link
               key={recipe.id}
               href={`/recettes/${recipe.slug}`}
-              className="flex gap-3 bg-white dark:bg-gray-800 rounded-2xl p-3 border border-[#ece8e3]/60 dark:border-white/[0.06] hover:shadow-sm transition"
+              className="flex gap-3 rounded-2xl border border-[#ece8e3]/60 bg-white p-3 transition hover:shadow-sm dark:border-white/[0.06] dark:bg-gray-800"
             >
-              <div className="w-24 h-24 rounded-xl bg-gray-200 dark:bg-white/5 overflow-hidden flex-shrink-0 relative">
+              <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gray-200 dark:bg-white/5">
                 {recipe.imageUrl ? (
                   <SafeImage
                     src={recipe.imageUrl}
@@ -199,27 +309,25 @@ export default async function RecettesPage({
                     sizes="96px"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-2xl">
-                    🍖
-                  </div>
+                  <div className="flex h-full w-full items-center justify-center text-2xl">🍖</div>
                 )}
               </div>
-              <div className="flex-1 flex flex-col justify-center min-w-0">
-                <h3 className="font-bold text-sm text-[#1C1512] dark:text-white line-clamp-2">
+              <div className="flex min-w-0 flex-1 flex-col justify-center">
+                <h3 className="line-clamp-2 text-sm font-bold text-[#1C1512] dark:text-white">
                   {recipe.title}
                 </h3>
-                <div className="text-xs font-semibold text-[#DC2626] mt-1">
+                <div className="mt-1 text-xs font-semibold text-[#DC2626]">
                   🥩 {recipe.meatQuantity}
                 </div>
-                <div className="flex gap-2 mt-1">
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                <div className="mt-1 flex gap-2">
+                  <span className="rounded bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 dark:bg-white/5 dark:text-gray-400">
                     ⏱ {recipe.totalTime} min
                   </span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                  <span className="rounded bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 dark:bg-white/5 dark:text-gray-400">
                     {recipe.difficulty}
                   </span>
                   {recipe.tags[0] && (
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded">
+                    <span className="rounded bg-gray-50 px-2 py-0.5 text-[10px] text-gray-500 dark:bg-white/5 dark:text-gray-400">
                       {recipe.tags[0]}
                     </span>
                   )}
@@ -231,17 +339,17 @@ export default async function RecettesPage({
 
         {/* Empty */}
         {recipes.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-3xl mb-3">🍖</div>
+          <div className="py-16 text-center">
+            <div className="mb-3 text-3xl">🍖</div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
               Aucune recette pour le moment
             </p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+            <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
               De nouvelles recettes sont ajoutées chaque jour !
             </p>
             <Link
               href="/"
-              className="inline-block mt-4 px-4 py-2 bg-[#DC2626] text-white text-xs font-semibold rounded-full hover:bg-[#b91c1c] transition-colors"
+              className="mt-4 inline-block rounded-full bg-[#DC2626] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#b91c1c]"
             >
               Découvrir les boutiques
             </Link>
