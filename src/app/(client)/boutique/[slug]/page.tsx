@@ -25,6 +25,10 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 import { OfferBanner } from "@/components/client/OfferBanner";
 import { OfferProductSection } from "@/components/client/OfferProductSection";
 import { AntiGaspiBanner } from "@/components/client/AntiGaspiBanner";
+// Audit CTO #3 UX 2026-05-09 : horaires d'ouverture manquaient sur la page
+// boutique (-8 à -15% conversion estimé pour décision tardive).
+import { OpeningHoursAccordion } from "@/components/shop/OpeningHoursAccordion";
+import type { OpeningHours } from "@/lib/shop-hours";
 
 // ── Cached shop query with Redis (shared between generateMetadata & page) ──
 
@@ -471,6 +475,9 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
             ) : null;
           })()}
         </div>
+
+        {/* ── Horaires d'ouverture (audit CTO #3 UX 2026-05-09) ── */}
+        <OpeningHoursAccordion hours={shop.openingHours as OpeningHours | null} />
 
         {/* ── Pause banner (visible to clients) ── */}
         {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (

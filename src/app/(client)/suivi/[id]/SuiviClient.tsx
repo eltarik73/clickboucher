@@ -139,49 +139,85 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
             updatedAt: json.data.updatedAt ?? prev.updatedAt,
             displayNumber: json.data.displayNumber ?? prev.displayNumber,
             items: json.data.items?.length ? json.data.items : prev.items,
-            priceAdjustment: json.data.priceAdjustment !== undefined
-              ? json.data.priceAdjustment
-              : prev.priceAdjustment,
+            priceAdjustment:
+              json.data.priceAdjustment !== undefined
+                ? json.data.priceAdjustment
+                : prev.priceAdjustment,
           }));
         }
       }
     } catch {}
   }, [order.id]);
 
+  // ── Polling adaptatif + Page Visibility (audit CTO #3 UX 2026-05-09) ──
+  // - Si onglet caché : pause polling (économie batterie + bande passante)
+  // - Cadence : 3s pendant PREPARING/ACCEPTED (high anticipation), 5s en
+  //   PENDING, 10s en READY (déjà notifié), aucun polling en terminal
+  // - Refresh immédiat au retour sur l'onglet
   useEffect(() => {
     if (isTerminal) return;
-    const iv = setInterval(fetchStatus, 5_000);
-    return () => clearInterval(iv);
-  }, [fetchStatus, isTerminal]);
+
+    let intervalMs = 5_000;
+    if (order.status === "ACCEPTED" || order.status === "PREPARING") intervalMs = 3_000;
+    else if (order.status === "READY") intervalMs = 10_000;
+
+    let iv: ReturnType<typeof setInterval> | null = null;
+
+    const start = () => {
+      if (iv) return;
+      iv = setInterval(fetchStatus, intervalMs);
+    };
+    const stop = () => {
+      if (iv) {
+        clearInterval(iv);
+        iv = null;
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchStatus(); // refresh immédiat
+        start();
+      } else {
+        stop();
+      }
+    };
+
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [fetchStatus, isTerminal, order.status]);
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-3">
-        <div className="max-w-[500px] mx-auto flex items-center gap-3">
+      <header className="sticky top-0 z-10 border-b border-[#ece8e3] bg-[#f8f6f3]/95 px-5 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/95">
+        <div className="mx-auto flex max-w-[500px] items-center gap-3">
           <Link
             href="/commandes"
-            className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
+            className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#ece8e3] bg-white shadow-sm dark:border-white/10 dark:bg-[#141414]"
           >
             <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
           </Link>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-gray-900 dark:text-white">
-              Suivi commande
-            </h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm font-bold text-gray-900 dark:text-white">Suivi commande</h1>
             <p className="text-xs text-gray-500 dark:text-gray-400">{order.shop.name}</p>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[500px] mx-auto px-5 py-6 space-y-5">
+      <main className="mx-auto max-w-[500px] space-y-5 px-5 py-6">
         {/* ══════════════════════════════════════════════ */}
         {/* HERO — Big ticket number (shown to boucher) */}
         {/* ══════════════════════════════════════════════ */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 py-10 px-6 text-center">
+        <div className="rounded-2xl border border-[#ece8e3] bg-white px-6 py-10 text-center dark:border-white/10 dark:bg-[#141414]">
           {isCollected ? (
             <>
-              <div className="text-5xl mb-3">✅</div>
+              <div className="mb-3 text-5xl">✅</div>
               <p className="text-lg font-bold text-gray-900 dark:text-white">
                 Commande retirée — Merci !
               </p>
@@ -189,12 +225,12 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           ) : (
             <>
               <div
-                className="text-[72px] leading-none font-black text-[#DC2626] tracking-tight"
+                className="text-[72px] font-black leading-none tracking-tight text-[#DC2626]"
                 style={{ fontFamily: "var(--font-body), sans-serif" }}
               >
                 {order.displayNumber}
               </div>
-              <div className="mt-3 text-[28px] font-bold text-gray-900 dark:text-white leading-tight">
+              <div className="mt-3 text-[28px] font-bold leading-tight text-gray-900 dark:text-white">
                 {customerName}
               </div>
               {order.user.customerNumber && (
@@ -202,8 +238,10 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
                   Client {order.user.customerNumber}
                 </div>
               )}
-              <p className="mt-4 text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                Présentez ce numéro au comptoir<br />pour retirer votre commande.
+              <p className="mt-4 text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">
+                Présentez ce numéro au comptoir
+                <br />
+                pour retirer votre commande.
               </p>
             </>
           )}
@@ -213,9 +251,10 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* 30-min reminder banner */}
         {/* ══════════════════════════════════════════════ */}
         {readyOver30 && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl p-4 text-center animate-pulse">
+          <div className="animate-pulse rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-800/40 dark:bg-amber-900/20">
             <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-              ⏰ Votre commande {order.displayNumber} vous attend au comptoir depuis {Math.round(readySince / 60000)} minutes !
+              ⏰ Votre commande {order.displayNumber} vous attend au comptoir depuis{" "}
+              {Math.round(readySince / 60000)} minutes !
             </p>
           </div>
         )}
@@ -223,9 +262,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* ══════════════════════════════════════════════ */}
         {/* STATUS BADGE */}
         {/* ══════════════════════════════════════════════ */}
-        {!isCollected && (
-          <StatusBadge status={order.status} />
-        )}
+        {!isCollected && <StatusBadge status={order.status} />}
 
         {/* ══════════════════════════════════════════════ */}
         {/* PRICE ADJUSTMENT BANNER */}
@@ -241,38 +278,44 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* ══════════════════════════════════════════════ */}
         {/* TIMELINE */}
         {/* ══════════════════════════════════════════════ */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-5">
+        <div className="rounded-2xl border border-[#ece8e3] bg-white p-5 dark:border-white/10 dark:bg-[#141414]">
           <div className="space-y-0">
             {STEPS.map((step, i) => {
               const isDone = i < stepIdx;
               const isCurrent = i === stepIdx;
               const isFuture = i > stepIdx;
               const time =
-                step.key === "PENDING" ? fmtTime(order.createdAt)
-                : step.key === "ACCEPTED" && isDone ? fmtTime(order.updatedAt)
-                : step.key === "READY" && order.actualReady ? fmtTime(order.actualReady)
-                : step.key === "PICKED_UP" && order.pickedUpAt ? fmtTime(order.pickedUpAt)
-                : null;
+                step.key === "PENDING"
+                  ? fmtTime(order.createdAt)
+                  : step.key === "ACCEPTED" && isDone
+                    ? fmtTime(order.updatedAt)
+                    : step.key === "READY" && order.actualReady
+                      ? fmtTime(order.actualReady)
+                      : step.key === "PICKED_UP" && order.pickedUpAt
+                        ? fmtTime(order.pickedUpAt)
+                        : null;
 
               return (
                 <div key={step.key} className="flex items-start gap-3">
                   {/* Dot + line */}
                   <div className="flex flex-col items-center">
                     <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-sm shrink-0 ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm ${
                         isDone
                           ? "bg-emerald-100 dark:bg-emerald-900/30"
                           : isCurrent
-                          ? "bg-blue-100 dark:bg-blue-900/30 animate-pulse"
-                          : "bg-gray-100 dark:bg-white/5"
+                            ? "animate-pulse bg-blue-100 dark:bg-blue-900/30"
+                            : "bg-gray-100 dark:bg-white/5"
                       }`}
                     >
                       {isDone ? "✅" : isCurrent ? "🔵" : "○"}
                     </div>
                     {i < STEPS.length - 1 && (
                       <div
-                        className={`w-0.5 h-8 ${
-                          isDone ? "bg-emerald-300 dark:bg-emerald-700" : "bg-gray-200 dark:bg-white/10"
+                        className={`h-8 w-0.5 ${
+                          isDone
+                            ? "bg-emerald-300 dark:bg-emerald-700"
+                            : "bg-gray-200 dark:bg-white/10"
                         }`}
                       />
                     )}
@@ -282,7 +325,9 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
                   <div className="pt-1">
                     <span
                       className={`text-sm font-semibold ${
-                        isFuture ? "text-gray-500 dark:text-gray-400 dark:text-gray-600" : "text-gray-900 dark:text-white"
+                        isFuture
+                          ? "text-gray-500 dark:text-gray-400 dark:text-gray-600"
+                          : "text-gray-900 dark:text-white"
                       }`}
                     >
                       {step.label}
@@ -300,29 +345,29 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* ══════════════════════════════════════════════ */}
         {/* ITEMS */}
         {/* ══════════════════════════════════════════════ */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-5">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Détails</h3>
+        <div className="rounded-2xl border border-[#ece8e3] bg-white p-5 dark:border-white/10 dark:bg-[#141414]">
+          <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white">Détails</h3>
           <div className="space-y-2">
             {order.items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
                 <div className="min-w-0">
                   <span className="text-gray-900 dark:text-white">{item.name}</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-1.5">{fmtQty(item)}</span>
+                  <span className="ml-1.5 text-gray-500 dark:text-gray-400">{fmtQty(item)}</span>
                 </div>
-                <span className="font-semibold text-gray-900 dark:text-white shrink-0">
+                <span className="shrink-0 font-semibold text-gray-900 dark:text-white">
                   {fmtPrice(item.totalCents)}
                 </span>
               </div>
             ))}
           </div>
-          <div className="border-t border-[#ece8e3] dark:border-white/10 pt-3 mt-3 flex justify-between">
+          <div className="mt-3 flex justify-between border-t border-[#ece8e3] pt-3 dark:border-white/10">
             <span className="text-sm font-bold text-gray-900 dark:text-white">Total</span>
             <span className="text-lg font-extrabold text-gray-900 dark:text-white">
               {fmtPrice(order.totalCents)}
             </span>
           </div>
           {order.customerNote && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 italic">
+            <p className="mt-3 text-xs italic text-gray-500 dark:text-gray-400">
               Note : {order.customerNote}
             </p>
           )}
@@ -332,8 +377,8 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* BOUCHER NOTE */}
         {/* ══════════════════════════════════════════════ */}
         {order.boucherNote && (
-          <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-200/60 dark:border-amber-800/30 p-4">
-            <div className="flex items-center gap-2 mb-1.5">
+          <div className="rounded-2xl border border-amber-200/60 bg-amber-50 p-4 dark:border-amber-800/30 dark:bg-amber-900/10">
+            <div className="mb-1.5 flex items-center gap-2">
               <MessageSquare size={14} className="text-amber-600 dark:text-amber-400" />
               <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
                 Message du boucher
@@ -346,8 +391,8 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         {/* ══════════════════════════════════════════════ */}
         {/* SHOP INFO */}
         {/* ══════════════════════════════════════════════ */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 p-4">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">
+        <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
+          <h3 className="mb-2 text-sm font-bold text-gray-900 dark:text-white">
             📍 {order.shop.name}
           </h3>
           <p className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -357,7 +402,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           {order.shop.phone && (
             <a
               href={`tel:${order.shop.phone}`}
-              className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 mt-1.5"
+              className="mt-1.5 flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400"
             >
               <Phone size={12} />
               {order.shop.phone}
@@ -406,20 +451,26 @@ function EstimatedCountdown({ estimatedReady }: { estimatedReady: string }) {
   const seconds = Math.floor((absDiff % 60_000) / 1000);
 
   return (
-    <div className={`rounded-2xl border p-5 text-center ${
-      isLate
-        ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40"
-        : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/40"
-    }`}>
-      <p className={`text-xs font-medium mb-1 ${isLate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"}`}>
+    <div
+      className={`rounded-2xl border p-5 text-center ${
+        isLate
+          ? "border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/20"
+          : "border-blue-200 bg-blue-50 dark:border-blue-800/40 dark:bg-blue-900/20"
+      }`}
+    >
+      <p
+        className={`mb-1 text-xs font-medium ${isLate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"}`}
+      >
         {isLate ? "Retrait estimé dépassé de" : "Prête dans environ"}
       </p>
-      <p className={`text-3xl font-black tabular-nums tracking-tight ${
-        isLate ? "text-amber-800 dark:text-amber-300" : "text-blue-800 dark:text-blue-300"
-      }`}>
+      <p
+        className={`text-3xl font-black tabular-nums tracking-tight ${
+          isLate ? "text-amber-800 dark:text-amber-300" : "text-blue-800 dark:text-blue-300"
+        }`}
+      >
         {minutes > 0 ? `${minutes} min ${seconds.toString().padStart(2, "0")}s` : `${seconds}s`}
       </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
         Retrait estimé : {fmtTime(estimatedReady)}
       </p>
     </div>
@@ -430,14 +481,46 @@ function EstimatedCountdown({ estimatedReady }: { estimatedReady: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; color: string; bg: string }> = {
-    PENDING: { label: "📦 En attente de validation", color: "text-amber-800 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40" },
-    ACCEPTED: { label: "✅ Commande acceptée", color: "text-blue-800 dark:text-blue-300", bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/40" },
-    PREPARING: { label: "👨‍🍳 En préparation", color: "text-indigo-800 dark:text-indigo-300", bg: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/40" },
-    READY: { label: "🎉 Commande prête !", color: "text-emerald-800 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40" },
-    DENIED: { label: "❌ Commande refusée", color: "text-red-800 dark:text-red-300", bg: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40" },
-    CANCELLED: { label: "🚫 Commande annulée", color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40" },
-    AUTO_CANCELLED: { label: "⏰ Commande expirée", color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40" },
-    PARTIALLY_DENIED: { label: "⚠️ Partiellement refusée", color: "text-orange-800 dark:text-orange-300", bg: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/40" },
+    PENDING: {
+      label: "📦 En attente de validation",
+      color: "text-amber-800 dark:text-amber-300",
+      bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40",
+    },
+    ACCEPTED: {
+      label: "✅ Commande acceptée",
+      color: "text-blue-800 dark:text-blue-300",
+      bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/40",
+    },
+    PREPARING: {
+      label: "👨‍🍳 En préparation",
+      color: "text-indigo-800 dark:text-indigo-300",
+      bg: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/40",
+    },
+    READY: {
+      label: "🎉 Commande prête !",
+      color: "text-emerald-800 dark:text-emerald-300",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40",
+    },
+    DENIED: {
+      label: "❌ Commande refusée",
+      color: "text-red-800 dark:text-red-300",
+      bg: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40",
+    },
+    CANCELLED: {
+      label: "🚫 Commande annulée",
+      color: "text-gray-600 dark:text-gray-400",
+      bg: "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40",
+    },
+    AUTO_CANCELLED: {
+      label: "⏰ Commande expirée",
+      color: "text-gray-600 dark:text-gray-400",
+      bg: "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40",
+    },
+    PARTIALLY_DENIED: {
+      label: "⚠️ Partiellement refusée",
+      color: "text-orange-800 dark:text-orange-300",
+      bg: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/40",
+    },
   };
 
   const c = config[status] || config.PENDING;
