@@ -8,7 +8,6 @@
   "crons": [
     { "path": "/api/cron/auto-cancel", "schedule": "0 1 * * *" },
     { "path": "/api/cron/busy-end", "schedule": "0 2 * * *" },
-    { "path": "/api/cron/trial-expiry", "schedule": "30 2 * * *" },
     { "path": "/api/cron/performance-refresh", "schedule": "0 3 * * *" },
     { "path": "/api/cron/recipes", "schedule": "30 3 * * *" },
     { "path": "/api/cron/abandoned-carts", "schedule": "0 4 * * *" },
@@ -17,8 +16,8 @@
     { "path": "/api/cron/ready-reminder", "schedule": "0 7 * * *" },
     { "path": "/api/cron/recurring-orders", "schedule": "0 8 * * *" },
     { "path": "/api/cron/calendar-alerts", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/weekly-report", "schedule": "0 9 * * 1" },
-    { "path": "/api/cron/recalc-shop-tiers", "schedule": "0 3 1 * *" },
-    { "path": "/api/cron/prospect-relances", "schedule": "0 9 * * *" }
+    { "path": "/api/cron/prospect-relances", "schedule": "15 9 * * *" },
+    { "path": "/api/cron/weekly-report", "schedule": "30 9 * * 1" },
+    { "path": "/api/cron/recalc-shop-tiers", "schedule": "0 3 1 * *" }
   ]
 }

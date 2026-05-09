@@ -25,15 +25,15 @@ export async function GET(req: NextRequest) {
     if (expiredOrders.length > 0) {
       // Batch update all expired orders at once
       await prisma.order.updateMany({
-        where: { id: { in: expiredOrders.map(o => o.id) } },
+        where: { id: { in: expiredOrders.map((o) => o.id) } },
         data: { status: "AUTO_CANCELLED", autoCancelledAt: now },
       });
 
-      // Check auto-pause for each unique shop
-      const uniqueShopIds = [...new Set(expiredOrders.map(o => o.shopId))];
-      for (const shopId of uniqueShopIds) {
-        await checkAutoPause(shopId);
-      }
+      // Check auto-pause for each unique shop EN PARALLÈLE
+      // Audit CTO #1 2026-05-09 : séquentiel timeout 30s à >100 boutiques.
+      // Promise.allSettled = ne plante pas si 1 shop échoue.
+      const uniqueShopIds = [...new Set(expiredOrders.map((o) => o.shopId))];
+      await Promise.allSettled(uniqueShopIds.map((shopId) => checkAutoPause(shopId)));
     }
 
     return apiSuccess({

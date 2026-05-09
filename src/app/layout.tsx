@@ -9,10 +9,16 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import dynamic from "next/dynamic";
 
-const ServiceWorkerRegistration = dynamic(() => import("@/components/pwa/ServiceWorkerRegistration"), { ssr: false });
+const ServiceWorkerRegistration = dynamic(
+  () => import("@/components/pwa/ServiceWorkerRegistration"),
+  { ssr: false }
+);
 const InstallPrompt = dynamic(() => import("@/components/pwa/InstallPrompt"), { ssr: false });
 const OfflineBanner = dynamic(() => import("@/components/pwa/OfflineBanner"), { ssr: false });
-const TestRoleSwitcher = dynamic(() => import("@/components/test/TestRoleSwitcher").then(m => m.TestRoleSwitcher), { ssr: false });
+const TestRoleSwitcher = dynamic(
+  () => import("@/components/test/TestRoleSwitcher").then((m) => m.TestRoleSwitcher),
+  { ssr: false }
+);
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
 import Script from "next/script";
 import "@/styles/globals.css";
@@ -80,13 +86,16 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: "Klik&Go",
     title: "Klik&Go — Click & Collect Boucherie Halal",
-    description: "Commandez en ligne chez votre boucherie halal de proximité. Viande fraîche, retrait rapide en boutique.",
-    images: [{
-      url: "/og-image.png",
-      width: 1200,
-      height: 630,
-      alt: "Klik&Go - Click & Collect Boucherie Halal",
-    }],
+    description:
+      "Commandez en ligne chez votre boucherie halal de proximité. Viande fraîche, retrait rapide en boutique.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Klik&Go - Click & Collect Boucherie Halal",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -151,14 +160,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             />
           )}
         </head>
-        <body className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 dark:bg-black dark:text-white antialiased`}>
+        <body
+          className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 antialiased dark:bg-black dark:text-white`}
+        >
           <OrganizationSchema />
+          {/* WCAG 2.4.1 — Skip link pour utilisateurs clavier/screen readers
+              (audit a11y 2026-05-09). Visuellement caché sauf au focus. */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[#DC2626] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+          >
+            Aller au contenu
+          </a>
           <ThemeProvider>
             <Toaster position="top-center" richColors />
             <NotificationProvider>
               <ServiceWorkerRegistration />
               <OfflineBanner />
-              <main style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>{children}</main>
+              <main id="main-content" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+                {children}
+              </main>
               <SpeedInsights />
               <Analytics />
               <InstallPrompt />

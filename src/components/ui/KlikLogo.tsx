@@ -3,12 +3,15 @@
  * Réutilisable partout : header, sidebar, splash, email preview, etc.
  */
 export function KlikLogo({ size = 40, className = "" }: { size?: number; className?: string }) {
+  // Audit mobile 2026-05-09 : width/height sur attribut SVG écrasaient les
+  // utilities Tailwind (w-20 sm:w-[100px]) → on bascule en style inline pour
+  // que className puisse override responsive correctement.
   return (
     <svg
       viewBox="0 0 100 100"
-      width={size}
-      height={size}
+      style={{ width: size, height: size }}
       className={`rounded-full ${className}`}
+      role="img"
       aria-label="Klik&Go"
     >
       <defs>
@@ -51,9 +54,14 @@ export function KlikWordmark({
   };
 
   return (
-    <span className={`font-extrabold tracking-tight ${sizeClasses[size]} ${className}`} style={{ fontWeight: 800 }}>
+    <span
+      className={`font-extrabold tracking-tight ${sizeClasses[size]} ${className}`}
+      style={{ fontWeight: 800 }}
+    >
       <span className="text-gray-900 dark:text-white">Klik</span>
-      <span className="text-[#DC2626] not-italic" style={{ fontWeight: 900 }}>&amp;</span>
+      <span className="not-italic text-[#DC2626]" style={{ fontWeight: 900 }}>
+        &amp;
+      </span>
       <span className="text-gray-900 dark:text-white">Go</span>
     </span>
   );
