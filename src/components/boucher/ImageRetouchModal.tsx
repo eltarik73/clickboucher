@@ -144,16 +144,24 @@ export default function ImageRetouchModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-5xl h-[95vh] sm:h-[90vh] bg-white dark:bg-[#0a0a0a] rounded-2xl shadow-elevated border border-gray-200 dark:border-white/10 flex flex-col overflow-hidden font-[var(--font-outfit)]">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="image-retouch-title"
+    >
+      <div className="flex h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white font-[var(--font-outfit)] shadow-elevated dark:border-white/10 dark:bg-[#0a0a0a] sm:h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-white/10">
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 dark:border-white/10 sm:px-6">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <ImageIcon size={20} className="text-[#DC2626]" />
+            <h2
+              id="image-retouch-title"
+              className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white sm:text-xl"
+            >
+              <ImageIcon size={20} className="text-[#DC2626]" aria-hidden="true" />
               Retoucher une photo
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+            <p className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <Check size={12} className="text-green-500" />
               L'original reste toujours disponible
             </p>
@@ -162,33 +170,33 @@ export default function ImageRetouchModal({
             type="button"
             onClick={onClose}
             aria-label="Fermer"
-            className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
           >
             <X size={20} className="text-gray-700 dark:text-gray-300" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-5">
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-6">
           {error && (
-            <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
               {error}
             </div>
           )}
 
           {/* Section 1: source */}
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               1. Photo source
             </div>
             {sourceUrl ? (
               <div className="relative">
-                <div className="aspect-[4/3] max-w-md rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                <div className="aspect-[4/3] max-w-md overflow-hidden rounded-xl border border-gray-200 bg-gray-100 dark:border-white/10 dark:bg-white/5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={proxied(sourceUrl)}
                     alt="source"
-                    className="w-full h-full object-cover object-center"
+                    className="h-full w-full object-cover object-center"
                   />
                 </div>
                 <button
@@ -197,7 +205,7 @@ export default function ImageRetouchModal({
                     setSourceUrl(null);
                     setSourceFile(null);
                   }}
-                  className="mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-[#DC2626]"
+                  className="mt-2 text-xs font-semibold text-gray-500 hover:text-[#DC2626] dark:text-gray-400"
                 >
                   Changer d'image
                 </button>
@@ -206,7 +214,7 @@ export default function ImageRetouchModal({
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full max-w-md aspect-[4/3] rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-2 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-colors"
+                className="flex aspect-[4/3] w-full max-w-md flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 transition-colors hover:border-[#DC2626] hover:text-[#DC2626] dark:border-white/15 dark:text-gray-400"
               >
                 <Upload size={32} />
                 <span className="text-sm font-medium">Choisis ou glisse ta photo</span>
@@ -224,10 +232,10 @@ export default function ImageRetouchModal({
 
           {/* Section 2: preset */}
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               2. Style de retouche
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {PRESET_OPTIONS.map(({ value, label, Icon }) => {
                 const active = preset === value;
                 return (
@@ -236,10 +244,10 @@ export default function ImageRetouchModal({
                     type="button"
                     onClick={() => setPreset(value)}
                     className={[
-                      "min-h-[80px] rounded-xl px-3 py-2 flex flex-col items-center justify-center gap-1.5 border transition-colors text-center",
+                      "flex min-h-[80px] flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-center transition-colors",
                       active
-                        ? "bg-[#DC2626] border-[#DC2626] text-white"
-                        : "bg-gray-100 dark:bg-white/5 border-transparent text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626]",
+                        ? "border-[#DC2626] bg-[#DC2626] text-white"
+                        : "border-transparent bg-gray-100 text-gray-700 hover:border-[#DC2626] hover:text-[#DC2626] dark:bg-white/5 dark:text-gray-300",
                     ].join(" ")}
                   >
                     <Icon size={20} />
@@ -255,7 +263,7 @@ export default function ImageRetouchModal({
             <button
               type="button"
               onClick={() => setShowCustom((v) => !v)}
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-[#DC2626]"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-[#DC2626] dark:text-gray-400"
             >
               3. Instructions spécifiques (optionnel) {showCustom ? "▲" : "▼"}
             </button>
@@ -266,7 +274,7 @@ export default function ImageRetouchModal({
                 rows={2}
                 placeholder="Ex: ajouter de la vapeur, renforcer le rouge de la viande..."
                 maxLength={300}
-                className="mt-2 w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] px-3 py-2.5 text-sm text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                className="mt-2 w-full resize-none rounded-xl border border-[#ece8e3] bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#141414] dark:text-white"
               />
             )}
           </div>
@@ -276,7 +284,7 @@ export default function ImageRetouchModal({
             type="button"
             onClick={retouch}
             disabled={loading || !sourceUrl}
-            className="w-full h-12 rounded-xl bg-[#DC2626] hover:bg-[#b91c1c] text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#DC2626] text-sm font-semibold text-white transition-colors hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? (
               <>
@@ -293,14 +301,14 @@ export default function ImageRetouchModal({
 
           {/* Results */}
           {loading && (
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_2fr]">
               {sourceUrl && (
-                <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5">
+                <div className="aspect-square overflow-hidden rounded-xl bg-gray-100 dark:bg-white/5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={proxied(sourceUrl)}
                     alt="original"
-                    className="w-full h-full object-cover object-center opacity-60"
+                    className="h-full w-full object-cover object-center opacity-60"
                   />
                 </div>
               )}
@@ -308,7 +316,7 @@ export default function ImageRetouchModal({
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="aspect-square rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse"
+                    className="aspect-square animate-pulse rounded-xl bg-gray-100 dark:bg-white/5"
                   />
                 ))}
               </div>
@@ -316,22 +324,22 @@ export default function ImageRetouchModal({
           )}
 
           {!loading && results.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_2fr]">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Original
                 </div>
-                <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                <div className="aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-100 dark:border-white/10 dark:bg-white/5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={proxied(originalServerUrl || sourceUrl || "")}
                     alt="original"
-                    className="w-full h-full object-cover object-center"
+                    className="h-full w-full object-cover object-center"
                   />
                 </div>
               </div>
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                   Variantes retouchées
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -340,16 +348,16 @@ export default function ImageRetouchModal({
                       key={img.id + idx}
                       type="button"
                       onClick={() => pick(img)}
-                      className="relative block w-full aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-[#DC2626] transition-all group"
+                      className="group relative block aspect-square w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-100 transition-all hover:border-[#DC2626] dark:border-white/10 dark:bg-white/5"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={proxied(img.url)}
                         alt="retouche"
-                        className="w-full h-full object-cover object-center"
+                        className="h-full w-full object-cover object-center"
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-[#DC2626] text-white text-xs font-semibold px-3 py-1.5 rounded-full">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
+                        <span className="rounded-full bg-[#DC2626] px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
                           Utiliser cette image
                         </span>
                       </div>
@@ -362,12 +370,12 @@ export default function ImageRetouchModal({
         </div>
 
         {/* Footer link */}
-        <div className="shrink-0 border-t border-[#ece8e3] dark:border-white/10 px-4 sm:px-6 py-3 bg-gray-50 dark:bg-white/5">
+        <div className="shrink-0 border-t border-[#ece8e3] bg-gray-50 px-4 py-3 dark:border-white/10 dark:bg-white/5 sm:px-6">
           <a
             href="/boucher/images"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#DC2626] hover:underline min-h-[44px]"
+            className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-[#DC2626] hover:underline"
           >
             📚 Voir mes images précédentes
           </a>

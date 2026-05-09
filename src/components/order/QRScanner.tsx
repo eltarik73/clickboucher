@@ -36,7 +36,9 @@ export default function QRScanner({ onScan, onClose }: Props) {
           { fps: 10, qrbox: { width: 250, height: 250 } },
           async (decodedText: string) => {
             setScanning(false);
-            try { await scanner?.stop(); } catch {}
+            try {
+              await scanner?.stop();
+            } catch {}
             const res = await onScan(decodedText);
             setResult({
               success: res.success,
@@ -53,21 +55,34 @@ export default function QRScanner({ onScan, onClose }: Props) {
     initScanner();
 
     return () => {
-      try { scanner?.stop(); } catch {}
+      try {
+        scanner?.stop();
+      } catch {}
     };
   }, [onScan]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#141414] rounded-2xl w-full max-w-sm overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="qr-scanner-title"
+    >
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white dark:bg-[#141414]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/10">
+        <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-white/10">
           <div className="flex items-center gap-2">
-            <Camera className="w-5 h-5 text-red-600" />
-            <h3 className="font-semibold text-gray-900 dark:text-white">Scanner le QR</h3>
+            <Camera className="h-5 w-5 text-red-600" aria-hidden="true" />
+            <h3 id="qr-scanner-title" className="font-semibold text-gray-900 dark:text-white">
+              Scanner le QR
+            </h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10">
-            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-white/10"
+            aria-label="Fermer le scanner"
+          >
+            <X className="h-5 w-5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
           </button>
         </div>
 
@@ -78,10 +93,10 @@ export default function QRScanner({ onScan, onClose }: Props) {
               <div
                 id="qr-scanner-region"
                 ref={scannerRef}
-                className="w-full aspect-square rounded-lg overflow-hidden bg-black"
+                className="aspect-square w-full overflow-hidden rounded-lg bg-black"
               />
               {scanning && (
-                <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
+                <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
                   Placez le QR code du client dans le cadre
                 </p>
               )}
@@ -89,16 +104,18 @@ export default function QRScanner({ onScan, onClose }: Props) {
           )}
 
           {result && (
-            <div className={`flex flex-col items-center gap-3 py-8 ${result.success ? "text-green-600" : "text-red-600"}`}>
+            <div
+              className={`flex flex-col items-center gap-3 py-8 ${result.success ? "text-green-600" : "text-red-600"}`}
+            >
               {result.success ? (
-                <CheckCircle className="w-16 h-16" />
+                <CheckCircle className="h-16 w-16" />
               ) : (
-                <AlertCircle className="w-16 h-16" />
+                <AlertCircle className="h-16 w-16" />
               )}
               <p className="text-lg font-semibold">{result.message}</p>
               <button
                 onClick={onClose}
-                className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                className="mt-4 rounded-lg bg-red-600 px-6 py-2 text-white transition hover:bg-red-700"
               >
                 Fermer
               </button>
@@ -107,11 +124,11 @@ export default function QRScanner({ onScan, onClose }: Props) {
 
           {error && (
             <div className="flex flex-col items-center gap-3 py-8 text-red-600">
-              <AlertCircle className="w-12 h-12" />
-              <p className="text-sm text-center">{error}</p>
+              <AlertCircle className="h-12 w-12" />
+              <p className="text-center text-sm">{error}</p>
               <button
                 onClick={onClose}
-                className="mt-4 px-6 py-2 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 rounded-lg"
+                className="mt-4 rounded-lg bg-gray-200 px-6 py-2 text-gray-700 dark:bg-white/10 dark:text-gray-300"
               >
                 Fermer
               </button>
