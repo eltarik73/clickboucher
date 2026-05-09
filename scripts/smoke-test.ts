@@ -1,3 +1,6 @@
+// Make this file a module to avoid global scope conflicts with other scripts
+export {};
+
 /**
  * 🧪 KLIK&GO — Smoke Test Script
  * Verifies all pages and API routes respond correctly.
@@ -31,9 +34,8 @@ async function testUrl(
     });
 
     const ok = expectedStatuses.includes(res.status);
-    const redirectUrl = res.status >= 300 && res.status < 400
-      ? res.headers.get("location") || undefined
-      : undefined;
+    const redirectUrl =
+      res.status >= 300 && res.status < 400 ? res.headers.get("location") || undefined : undefined;
 
     return { url: path, method, status: res.status, ok, redirectUrl };
   } catch (error) {
@@ -87,7 +89,9 @@ async function main() {
     const icon = result.ok ? "✅" : "❌";
     const redirect = result.redirectUrl ? ` → ${result.redirectUrl}` : "";
     const err = result.error ? ` (${result.error})` : "";
-    console.log(`   ${icon} ${result.status || "ERR"} ${page.label} (${page.path})${redirect}${err}`);
+    console.log(
+      `   ${icon} ${result.status || "ERR"} ${page.label} (${page.path})${redirect}${err}`
+    );
   }
 
   // ── API Routes ──
