@@ -10,15 +10,47 @@ import type { Product as ProductV2, ProductImage as ProductImageType } from "@/t
 
 // ── Types ────────────────────────────────────────
 
-export type ProductCardData = Pick<ProductV2,
-  "id" | "shopId" | "name" | "description" | "imageUrl" | "priceCents" | "unit" |
-  "inStock" | "tags" | "origin" | "halalOrg" | "race" | "popular" |
-  "promoPct" | "promoEnd" | "promoType" | "freshness" | "customerNote" |
-  "variants" | "weightPerPiece" | "pieceLabel" | "weightMargin" | "minWeightG" |
-  "promoFixedCents" | "packOldPriceCents" | "packContent" | "packWeight" | "cutOptions" |
-  "originRegion" | "raceDescription" | "elevageMode" | "elevageDetail" |
-  "halalMethod" | "freshDate" | "freshDetail" |
-  "isAntiGaspi" | "antiGaspiOrigPriceCents" | "antiGaspiStock" | "antiGaspiReason"
+export type ProductCardData = Pick<
+  ProductV2,
+  | "id"
+  | "shopId"
+  | "name"
+  | "description"
+  | "imageUrl"
+  | "priceCents"
+  | "unit"
+  | "inStock"
+  | "tags"
+  | "origin"
+  | "halalOrg"
+  | "race"
+  | "popular"
+  | "promoPct"
+  | "promoEnd"
+  | "promoType"
+  | "freshness"
+  | "customerNote"
+  | "variants"
+  | "weightPerPiece"
+  | "pieceLabel"
+  | "weightMargin"
+  | "minWeightG"
+  | "promoFixedCents"
+  | "packOldPriceCents"
+  | "packContent"
+  | "packWeight"
+  | "cutOptions"
+  | "originRegion"
+  | "raceDescription"
+  | "elevageMode"
+  | "elevageDetail"
+  | "halalMethod"
+  | "freshDate"
+  | "freshDetail"
+  | "isAntiGaspi"
+  | "antiGaspiOrigPriceCents"
+  | "antiGaspiStock"
+  | "antiGaspiReason"
 > & {
   category: { id: string; name: string; emoji: string | null };
   images: ProductImageType[];
@@ -60,63 +92,86 @@ const HALAL_LABEL_NAMES = new Set([
   "halal service",
 ]);
 
-const PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' fill='%231a1a1a'%3E%3Crect width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='%23333'%3E🥩%3C/text%3E%3C/svg%3E";
+const PLACEHOLDER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' fill='%231a1a1a'%3E%3Crect width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='%23333'%3E🥩%3C/text%3E%3C/svg%3E";
 
 // ── Main Component ──────────────────────────────
 
-export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty = 0, onIncrement, onDecrement, style }: Props) {
+export function ProductCard({
+  product,
+  productIndex = 0,
+  onAdd,
+  onTap,
+  cartQty = 0,
+  onIncrement,
+  onDecrement,
+  style,
+}: Props) {
   const [animating, setAnimating] = useState(false);
-  const imgSrc = product.images.length > 0
-    ? product.images[0].url
-    : resolveProductImage({ name: product.name, imageUrl: product.imageUrl, category: product.category.name });
-  const hasPromo = (product.promoPct != null && product.promoPct > 0) || (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
+  const imgSrc =
+    product.images.length > 0
+      ? product.images[0].url
+      : resolveProductImage({
+          name: product.name,
+          imageUrl: product.imageUrl,
+          category: product.category.name,
+        });
+  const hasPromo =
+    (product.promoPct != null && product.promoPct > 0) ||
+    (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
   const isAntiGaspi = product.isAntiGaspi && product.antiGaspiOrigPriceCents;
   const outOfStock = !product.inStock;
   const isEager = productIndex < 4;
   const isSheetUnit = product.unit === "KG" || product.unit === "TRANCHE";
   const showStepper = cartQty > 0 && !isSheetUnit;
 
-  const handleAdd = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (outOfStock) return;
-    onAdd();
-    if (!isSheetUnit) {
-      setAnimating(true);
-      setTimeout(() => setAnimating(false), 600);
-    }
-  }, [onAdd, outOfStock, isSheetUnit]);
+  const handleAdd = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (outOfStock) return;
+      onAdd();
+      if (!isSheetUnit) {
+        setAnimating(true);
+        setTimeout(() => setAnimating(false), 600);
+      }
+    },
+    [onAdd, outOfStock, isSheetUnit]
+  );
 
-  const handleIncrement = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onIncrement) onIncrement();
-  }, [onIncrement]);
+  const handleIncrement = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onIncrement) onIncrement();
+    },
+    [onIncrement]
+  );
 
-  const handleDecrement = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDecrement) onDecrement();
-  }, [onDecrement]);
+  const handleDecrement = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onDecrement) onDecrement();
+    },
+    [onDecrement]
+  );
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (onTap && (e.key === "Enter" || e.key === " ")) {
-      e.preventDefault();
-      onTap();
-    }
-  }, [onTap]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (onTap && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        onTap();
+      }
+    },
+    [onTap]
+  );
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl
-        bg-white dark:bg-[#141414]
-        border border-gray-200 dark:border-white/[0.06]
-        transition-transform duration-200 ease-out
-        hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)]
-        ${outOfStock ? "opacity-50" : ""}
-        ${isAntiGaspi ? "ring-1 ring-emerald-300/50 dark:ring-emerald-700/50" : ""}
-        ${onTap ? "cursor-pointer" : ""}
-        focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none`}
+      className={`group relative overflow-hidden rounded-xl border border-gray-200 bg-white transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(0,0,0,0.4)] dark:border-white/[0.06] dark:bg-[#141414] ${outOfStock ? "opacity-50" : ""} ${isAntiGaspi ? "ring-1 ring-emerald-300/50 dark:ring-emerald-700/50" : ""} ${onTap ? "cursor-pointer" : ""} outline-none focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2`}
       style={style}
       onClick={onTap}
-      {...(onTap ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown, "aria-label": `Voir ${product.name}` } : {})}
+      {...(onTap
+        ? { role: "button", tabIndex: 0, onKeyDown: handleKeyDown, "aria-label": product.name }
+        : {})}
     >
       {/* ── Image 4:3 ── */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
@@ -129,18 +184,19 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
           quality={70}
           priority={isEager}
           loading={isEager ? "eager" : "lazy"}
-          onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER; }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = PLACEHOLDER;
+          }}
         />
 
         {/* Anti-gaspi badge — top-left (priority over promo) */}
         {isAntiGaspi ? (
-          <div className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[11px] font-bold text-white bg-emerald-600 shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
+          <div className="absolute left-1 top-1 z-10 rounded bg-emerald-600 px-1.5 py-0.5 text-[11px] font-bold text-white shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
             Anti-Gaspi
           </div>
         ) : hasPromo ? (
           <div
-            className={`absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded text-[11px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)]
-              ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#EF4444]"}`}
+            className={`absolute left-1 top-1 z-10 rounded px-1.5 py-0.5 text-[11px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)] ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#EF4444]"}`}
           >
             {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
               ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
@@ -149,45 +205,62 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
         ) : null}
 
         {/* Traçabilité shield — top-right */}
-        {(product.originRegion || product.elevageMode || product.raceDescription || product.halalMethod || product.freshDetail || product.origin || product.halalOrg) && !outOfStock && (
-          <div className="absolute top-1 right-1 z-10 w-6 h-6 rounded-md bg-green-600/90 backdrop-blur flex items-center justify-center shadow-sm">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <polyline points="9 12 11 14 15 10"/>
-            </svg>
-          </div>
-        )}
+        {(product.originRegion ||
+          product.elevageMode ||
+          product.raceDescription ||
+          product.halalMethod ||
+          product.freshDetail ||
+          product.origin ||
+          product.halalOrg) &&
+          !outOfStock && (
+            <div className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-md bg-green-600/90 shadow-sm backdrop-blur">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2.5"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <polyline points="9 12 11 14 15 10" />
+              </svg>
+            </div>
+          )}
 
         {/* Out of stock overlay */}
         {outOfStock && (
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
-            <span className="text-white text-[11px] font-bold bg-black/60 px-2 py-0.5 rounded-full">Indisponible</span>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30">
+            <span className="rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white">
+              Indisponible
+            </span>
           </div>
         )}
       </div>
 
       {/* ── Info zone ── */}
-      <div className="px-2 pt-1.5 pb-2">
+      <div className="px-2 pb-2 pt-1.5">
         {/* Nom — 12px, semibold, 1 ligne tronquée */}
-        <h3 className="text-[12px] font-semibold leading-tight text-[#1A1A1A] dark:text-[#F5F5F5] truncate mb-[3px]">
+        <h3 className="mb-[3px] truncate text-[12px] font-semibold leading-tight text-[#1A1A1A] dark:text-[#F5F5F5]">
           {product.name}
         </h3>
 
         {/* Badges — mini pills sous le nom */}
         {(product.origin || product.halalOrg || product.unit === "TRANCHE") && (
-          <div className="flex items-center gap-[3px] mb-1">
+          <div className="mb-1 flex items-center gap-[3px]">
             {product.unit === "TRANCHE" && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] bg-amber-500/[0.12] dark:bg-amber-500/[0.12] text-amber-600 dark:text-amber-400 shrink-0">
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[3px] bg-amber-500/[0.12] px-[5px] py-px text-[10px] font-semibold text-amber-600 dark:bg-amber-500/[0.12] dark:text-amber-400">
                 A la tranche
               </span>
             )}
             {product.origin && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] bg-blue-500/[0.12] dark:bg-blue-500/[0.12] text-blue-500 dark:text-blue-400 shrink-0">
-                {getFlag(product.origin)}<span className="hidden md:inline lg:hidden"> {product.origin}</span>
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[3px] bg-blue-500/[0.12] px-[5px] py-px text-[10px] font-semibold text-blue-500 dark:bg-blue-500/[0.12] dark:text-blue-400">
+                {getFlag(product.origin)}
+                <span className="hidden md:inline lg:hidden"> {product.origin}</span>
               </span>
             )}
             {product.halalOrg && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] bg-emerald-500/[0.12] dark:bg-emerald-500/[0.12] text-emerald-500 dark:text-emerald-400 shrink-0">
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[3px] bg-emerald-500/[0.12] px-[5px] py-px text-[10px] font-semibold text-emerald-500 dark:bg-emerald-500/[0.12] dark:text-emerald-400">
                 ☪<span className="hidden md:inline lg:hidden"> {product.halalOrg}</span>
               </span>
             )}
@@ -197,7 +270,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                 return (
                   <span
                     key={l.id}
-                    className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-[5px] py-px rounded-[3px] shrink-0 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20"
+                    className="inline-flex shrink-0 items-center gap-0.5 rounded-[3px] bg-emerald-50 px-[5px] py-px text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-300"
                     title={`Certifié ${l.name}`}
                   >
                     <span aria-hidden="true">☪</span>
@@ -208,7 +281,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               return (
                 <span
                   key={l.id}
-                  className="text-[10px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
+                  className="shrink-0 rounded-[3px] px-[5px] py-px text-[10px] font-semibold"
                   style={{
                     backgroundColor: l.color ? `${l.color}1F` : "rgba(251,191,36,0.12)",
                     color: l.color || "#FBBF24",
@@ -223,25 +296,27 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
 
         {/* Prix + bouton "+" */}
         <div className="flex items-center justify-between">
-          <div className="flex flex-col min-w-0">
+          <div className="flex min-w-0 flex-col">
             <div className="flex items-baseline gap-0.5">
               {isAntiGaspi ? (
                 <>
                   <span className="text-[13px] font-bold text-emerald-600">
                     {fmtPrice(product.priceCents)}
                   </span>
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">
+                  <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
                     {fmtPrice(product.antiGaspiOrigPriceCents!)}
                   </span>
                 </>
               ) : hasPromo ? (
                 <>
                   <span className="text-[13px] font-bold text-[#DC2626]">
-                    {fmtPrice(product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
-                      ? Math.max(0, product.priceCents - product.promoFixedCents)
-                      : promoPrice(product.priceCents, product.promoPct!))}
+                    {fmtPrice(
+                      product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+                        ? Math.max(0, product.priceCents - product.promoFixedCents)
+                        : promoPrice(product.priceCents, product.promoPct!)
+                    )}
                   </span>
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">
+                  <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
                     {fmtPrice(product.priceCents)}
                   </span>
                 </>
@@ -250,7 +325,7 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
                   <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
                     {fmtPrice(product.priceCents)}
                   </span>
-                  <span className="text-[11px] text-gray-500 dark:text-gray-400 line-through">
+                  <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
                     {fmtPrice(product.packOldPriceCents)}
                   </span>
                 </>
@@ -262,21 +337,24 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
             </div>
             {/* Estimation /kg → total au poids min */}
-            {(product.unit === "KG" || product.unit === "TRANCHE") && product.minWeightG && product.minWeightG > 0 && (() => {
-              const effectivePerKg = isAntiGaspi
-                ? product.priceCents
-                : hasPromo
-                  ? (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
+            {(product.unit === "KG" || product.unit === "TRANCHE") &&
+              product.minWeightG &&
+              product.minWeightG > 0 &&
+              (() => {
+                const effectivePerKg = isAntiGaspi
+                  ? product.priceCents
+                  : hasPromo
+                    ? product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
                       ? Math.max(0, product.priceCents - product.promoFixedCents)
-                      : promoPrice(product.priceCents, product.promoPct!))
-                  : product.priceCents;
-              const estimateCents = Math.round((effectivePerKg * product.minWeightG) / 1000);
-              return (
-                <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
-                  ≈ {fmtPrice(estimateCents)} pour {product.minWeightG}g
-                </span>
-              );
-            })()}
+                      : promoPrice(product.priceCents, product.promoPct!)
+                    : product.priceCents;
+                const estimateCents = Math.round((effectivePerKg * product.minWeightG) / 1000);
+                return (
+                  <span className="text-[11px] leading-tight text-gray-500 dark:text-gray-400">
+                    ≈ {fmtPrice(estimateCents)} pour {product.minWeightG}g
+                  </span>
+                );
+              })()}
             {isAntiGaspi && product.antiGaspiStock !== null && product.antiGaspiStock <= 5 && (
               <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400">
                 Plus que {product.antiGaspiStock} !
@@ -285,24 +363,24 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
           </div>
 
           {/* Add / Stepper */}
-          {!outOfStock && (
-            showStepper ? (
+          {!outOfStock &&
+            (showStepper ? (
               /* Inline quantity stepper [-] qty [+] */
-              <div className="flex items-center gap-0 rounded-xl overflow-hidden border border-[#DC2626]/20">
+              <div className="flex items-center gap-0 overflow-hidden rounded-xl border border-[#DC2626]/20">
                 <button
                   onClick={handleDecrement}
                   aria-label="Diminuer la quantité"
-                  className="w-11 h-11 flex items-center justify-center bg-[#DC2626]/10 text-[#DC2626] hover:bg-[#DC2626]/20 active:scale-90 transition-all"
+                  className="flex h-11 w-11 items-center justify-center bg-[#DC2626]/10 text-[#DC2626] transition-all hover:bg-[#DC2626]/20 active:scale-90"
                 >
                   <Minus size={14} strokeWidth={2.5} />
                 </button>
-                <span className="w-[24px] text-center text-[12px] font-bold text-gray-900 dark:text-white tabular-nums">
+                <span className="w-[24px] text-center text-[12px] font-bold tabular-nums text-gray-900 dark:text-white">
                   {cartQty}
                 </span>
                 <button
                   onClick={handleIncrement}
                   aria-label="Augmenter la quantité"
-                  className="w-11 h-11 flex items-center justify-center bg-[#DC2626] text-white hover:bg-[#b91c1c] active:scale-90 transition-all"
+                  className="flex h-11 w-11 items-center justify-center bg-[#DC2626] text-white transition-all hover:bg-[#b91c1c] active:scale-90"
                 >
                   <Plus size={14} strokeWidth={2.5} />
                 </button>
@@ -312,17 +390,17 @@ export function ProductCard({ product, productIndex = 0, onAdd, onTap, cartQty =
               <button
                 onClick={handleAdd}
                 aria-label="Ajouter au panier"
-                className={`w-11 h-11 rounded-xl flex items-center justify-center
-                  transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92]
-                  ${animating
-                    ? "bg-emerald-500 text-white"
-                    : "bg-[#DC2626] text-white"
-                  }`}
+                className={`flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-150 hover:scale-[1.12] active:scale-[0.92] ${
+                  animating ? "bg-emerald-500 text-white" : "bg-[#DC2626] text-white"
+                }`}
               >
-                {animating ? <Check size={14} strokeWidth={3} /> : <Plus size={16} strokeWidth={2.5} />}
+                {animating ? (
+                  <Check size={14} strokeWidth={3} />
+                ) : (
+                  <Plus size={16} strokeWidth={2.5} />
+                )}
               </button>
-            )
-          )}
+            ))}
         </div>
       </div>
     </div>
