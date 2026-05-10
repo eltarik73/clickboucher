@@ -53,11 +53,10 @@ export async function generateMetadata({
   });
   const shouldNoIndex = shopCount === 0;
 
-  // Title hook : "Commande en ligne 30min" ajoute un délai concret —
-  // facteur déterminant du clic mobile (audit GSC CTR mai 2026).
-  // Le suffixe " | Klik&Go" est ajouté automatiquement par le titleTemplate
-  // du layout racine — ne PAS le dupliquer ici.
-  const title = `Boucherie halal ${city.name} — Commande en ligne 30min`;
+  // Title hook : "Commande 30min" garde le délai concret tout en restant
+  // sous 65 chars Bing (audit Site Scan #3 du 2026-05-10 : 3 villes longues
+  // dépassaient avec "Commande en ligne 30min"). Suffix " | Klik&Go" auto.
+  const title = `Boucherie halal ${city.name} — Commande 30min`;
   const description = city.description;
   return {
     title,

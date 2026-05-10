@@ -78,7 +78,7 @@ export default async function AProposPage() {
       <div className="mx-auto max-w-3xl px-5 py-10">
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition hover:text-[#DC2626] dark:text-gray-400"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-600 transition hover:text-[#DC2626] dark:text-gray-400"
         >
           <ArrowLeft size={14} /> Retour à l&apos;accueil
         </Link>
@@ -109,7 +109,7 @@ export default async function AProposPage() {
               <div className="font-display text-2xl font-black text-gray-900 dark:text-white">
                 {stat.value}
               </div>
-              <div className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+              <div className="mt-0.5 text-[11px] text-gray-600 dark:text-gray-400">
                 {stat.label}
               </div>
             </div>
@@ -197,7 +197,7 @@ export default async function AProposPage() {
                   <div className="text-sm font-bold text-gray-900 dark:text-white">
                     {value.title}
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
                     {value.desc}
                   </p>
                 </div>
@@ -237,7 +237,7 @@ export default async function AProposPage() {
                 <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
                   {step.title}
                 </div>
-                <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                <p className="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
                   {step.desc}
                 </p>
               </div>

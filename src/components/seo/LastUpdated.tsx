@@ -15,7 +15,7 @@ export function LastUpdated({ date, className = "" }: Props) {
     year: "numeric",
   });
   return (
-    <p className={`text-[11px] text-gray-500 dark:text-gray-400 ${className}`}>
+    <p className={`text-[11px] text-gray-600 dark:text-gray-400 ${className}`}>
       Mis à jour le{" "}
       <time dateTime={date} className="tabular-nums">
         {formatted}

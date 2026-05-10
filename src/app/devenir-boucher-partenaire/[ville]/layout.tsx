@@ -20,9 +20,10 @@ export async function generateMetadata({
     },
   });
 
-  // Title court — titleTemplate root ajoute " | Klik&Go" auto.
-  // Audit Bing 2026-05-09 : doublon "Klik&Go" supprimé. 84 chars → ~58.
-  const title = `Devenir boucher partenaire à ${city.name} (100% gratuit)`;
+  // Title court — titleTemplate root ajoute " | Klik&Go" auto (~11 chars).
+  // Audit Bing Site Scan #3 (2026-05-10) : 7 villes longues > 65 chars total.
+  // Nouveau format : "Boucher partenaire {Ville} — Gratuit" → 35-50 chars + 11 = max ~62.
+  const title = `Boucher partenaire ${city.name} — 100% gratuit`;
   const shopCountStr =
     shopCount > 0
       ? `${shopCount} boucherie${shopCount > 1 ? "s" : ""} déjà inscrite${shopCount > 1 ? "s" : ""} à ${city.name}.`
