@@ -18,15 +18,7 @@ import {
 // ─────────────────────────────────────────────────
 // ANIMATED COUNTER
 // ─────────────────────────────────────────────────
-function AnimatedStat({
-  value,
-  suffix,
-  label,
-}: {
-  value: number;
-  suffix: string;
-  label: string;
-}) {
+function AnimatedStat({ value, suffix, label }: { value: number; suffix: string; label: string }) {
   const [count, setCount] = useState(value);
   const ref = useRef<HTMLDivElement>(null);
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -59,11 +51,11 @@ function AnimatedStat({
 
   return (
     <div ref={ref} className="text-center">
-      <p className="text-3xl sm:text-4xl font-bold text-white">
+      <p className="text-3xl font-bold text-white sm:text-4xl">
         {count}
         {suffix}
       </p>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{label}</p>
     </div>
   );
 }
@@ -71,31 +63,25 @@ function AnimatedStat({
 // ─────────────────────────────────────────────────
 // FAQ ITEM
 // ─────────────────────────────────────────────────
-function FaqItem({
-  question,
-  answer,
-}: {
-  question: string;
-  answer: string;
-}) {
+function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-[#ece8e3] dark:border-white/10 rounded-xl overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-[#ece8e3] dark:border-white/10">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+        className="flex w-full items-center justify-between p-5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
       >
-        <span className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
+        <span className="text-sm font-semibold text-gray-900 dark:text-white sm:text-base">
           {question}
         </span>
         {open ? (
-          <ChevronUp size={18} className="text-gray-500 dark:text-gray-400 shrink-0 ml-4" />
+          <ChevronUp size={18} className="ml-4 shrink-0 text-gray-500 dark:text-gray-400" />
         ) : (
-          <ChevronDown size={18} className="text-gray-500 dark:text-gray-400 shrink-0 ml-4" />
+          <ChevronDown size={18} className="ml-4 shrink-0 text-gray-500 dark:text-gray-400" />
         )}
       </button>
       {open && (
-        <div className="px-5 pb-5 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+        <div className="px-5 pb-5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
           {answer}
         </div>
       )}
@@ -114,16 +100,18 @@ export default function EspaceBoucherPage() {
   // Boucher connected → show dashboard access button
   if (isLoaded && isSignedIn && (role === "boucher" || role === "admin" || role === "webmaster")) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-5">
-        <div className="bg-[#141414] border border-white/10 rounded-2xl p-8 text-center max-w-sm w-full">
-          <div className="w-14 h-14 bg-[#DC2626]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0a0a0a] px-5">
+        <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#141414] p-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DC2626]/10">
             <Store size={28} className="text-[#DC2626]" />
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">Bienvenue, {user.firstName} !</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Accédez à votre espace boucher pour gérer votre boucherie.</p>
+          <h1 className="mb-2 text-xl font-bold text-white">Bienvenue, {user.firstName} !</h1>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+            Accédez à votre espace boucher pour gérer votre boucherie.
+          </p>
           <button
             onClick={() => router.push("/boucher/dashboard")}
-            className="w-full bg-[#DC2626] text-white rounded-xl py-3 font-semibold hover:bg-[#b91c1c] transition-colors"
+            className="w-full rounded-xl bg-[#DC2626] py-3 font-semibold text-white transition-colors hover:bg-[#b91c1c]"
           >
             Accéder à mon dashboard →
           </button>
@@ -137,37 +125,34 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       {/* HERO                                      */}
       {/* ══════════════════════════════════════════ */}
-      <section className="relative bg-[#1a1a1a] overflow-hidden">
+      <section className="relative overflow-hidden bg-[#1a1a1a]">
         {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
             backgroundSize: "32px 32px",
           }}
         />
 
         {/* Header */}
         <header className="relative z-10 border-b border-white/5">
-          <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
             <Link
               href="/"
-              className="flex items-center gap-2.5 text-white hover:text-gray-300 transition"
+              className="flex items-center gap-2.5 text-white transition hover:text-gray-300"
             >
               <ArrowLeft size={18} />
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 bg-[#DC2626] rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-base">K</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#DC2626]">
+                  <span className="text-base font-bold text-white">K</span>
                 </div>
-                <span className="text-lg font-bold tracking-tight">
-                  Klik&Go
-                </span>
+                <span className="text-lg font-bold tracking-tight">Klik&Go</span>
               </div>
             </Link>
             <Link
               href="/sign-in?redirect_url=/espace-boucher"
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-white transition"
+              className="text-sm text-gray-500 transition hover:text-white dark:text-gray-400"
             >
               Se connecter
             </Link>
@@ -175,43 +160,43 @@ export default function EspaceBoucherPage() {
         </header>
 
         {/* Hero content */}
-        <div className="relative z-10 max-w-4xl mx-auto px-5 py-20 sm:py-28 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-sm text-gray-500 dark:text-gray-400 mb-8">
+        <div className="relative z-10 mx-auto max-w-4xl px-5 py-20 text-center sm:py-28">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-gray-500 dark:text-gray-400">
             <Store size={14} />
             Espace professionnel boucher
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-[1.15]">
+          <h1 className="text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl lg:text-5xl">
             Développez votre boucherie
             <br />
             <span className="text-[#DC2626]">avec Klik&Go</span>
           </h1>
 
-          <p className="mt-5 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-            Rejoignez les boucheries de Chambéry qui ont supprimé les files
-            d&apos;attente et augmenté leur chiffre d&apos;affaires.
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
+            Rejoignez les boucheries de Chambéry qui ont supprimé les files d&apos;attente et
+            augmenté leur chiffre d&apos;affaires.
           </p>
 
           {/* Stats */}
-          <div className="flex items-center justify-center gap-8 sm:gap-16 mt-12">
+          <div className="mt-12 flex items-center justify-center gap-8 sm:gap-16">
             <AnimatedStat value={10} suffix="+" label="boucheries" />
-            <div className="w-px h-12 bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
             <AnimatedStat value={2000} suffix="+" label="commandes" />
-            <div className="w-px h-12 bg-white/10" />
+            <div className="h-12 w-px bg-white/10" />
             <AnimatedStat value={4} suffix=".7★" label="satisfaction" />
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
+          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/inscription-boucher"
-              className="bg-[#DC2626] text-white rounded-xl py-3 px-8 font-semibold hover:bg-[#b91c1c] transition-colors shadow-lg shadow-[#DC2626]/20"
+              className="rounded-xl bg-[#DC2626] px-8 py-3 font-semibold text-white shadow-lg shadow-[#DC2626]/20 transition-colors hover:bg-[#b91c1c]"
             >
               Ajouter ma boucherie
             </Link>
             <Link
               href="/sign-in?redirect_url=/espace-boucher"
-              className="border border-white/30 text-white rounded-xl py-3 px-8 font-medium hover:bg-white/5 transition-colors"
+              className="rounded-xl border border-white/30 px-8 py-3 font-medium text-white transition-colors hover:bg-white/5"
             >
               Se connecter
             </Link>
@@ -222,10 +207,10 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       {/* OFFRE — Premium dark pricing card           */}
       {/* ══════════════════════════════════════════ */}
-      <section className="relative bg-[#0a0a0a] py-32 px-5 overflow-hidden">
+      <section className="relative overflow-hidden bg-[#0a0a0a] px-5 py-32">
         {/* Subtle radial glow */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-60"
+          className="pointer-events-none absolute inset-0 opacity-60"
           style={{
             background:
               "radial-gradient(ellipse 800px 400px at 50% 50%, rgba(220,38,38,0.08), transparent 70%)",
@@ -233,38 +218,35 @@ export default function EspaceBoucherPage() {
         />
         {/* Grid pattern subtle */}
         <div
-          className="absolute inset-0 opacity-[0.025] pointer-events-none"
+          className="pointer-events-none absolute inset-0 opacity-[0.025]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
             backgroundSize: "32px 32px",
           }}
         />
 
-        <div className="relative max-w-4xl mx-auto">
+        <div className="relative mx-auto max-w-4xl">
           {/* Header */}
-          <div className="text-center mb-16 animate-fade-up">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/10 text-[11px] font-semibold tracking-[2px] uppercase text-gray-400 mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
+          <div className="mb-16 animate-fade-up text-center">
+            <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[2px] text-gray-400">
+              <span className="h-1.5 w-1.5 animate-pulse-soft rounded-full bg-emerald-400" />
               Tarification
             </span>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-white font-display tracking-tight leading-[1.05]">
+            <h2 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
               Tout ce dont vous avez besoin,
               <br />
-              <span className="font-serif italic font-normal text-[#FCA5A5]">
-                pour zéro euro.
-              </span>
+              <span className="font-serif font-normal italic text-[#FCA5A5]">pour zéro euro.</span>
             </h2>
-            <p className="text-gray-400 mt-6 max-w-xl mx-auto text-base leading-relaxed">
-              Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement
-              via une petite commission sur les commandes encaissées —
+            <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-gray-400">
+              Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement via une petite
+              commission sur les commandes encaissées —
               <span className="text-gray-300"> vous ne payez que si vous vendez.</span>
             </p>
           </div>
 
           {/* Pricing card — glassmorphism dark */}
           <div
-            className="relative max-w-2xl mx-auto rounded-3xl overflow-hidden animate-fade-up"
+            className="relative mx-auto max-w-2xl animate-fade-up overflow-hidden rounded-3xl"
             style={{
               background:
                 "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
@@ -274,32 +256,30 @@ export default function EspaceBoucherPage() {
             }}
           >
             {/* Top gradient accent */}
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#DC2626]/60 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#DC2626]/60 to-transparent" />
 
             <div className="p-10 sm:p-12">
               {/* Price hero */}
-              <div className="text-center pb-10 border-b border-white/[0.06]">
-                <span className="inline-block text-[10px] font-bold tracking-[3px] uppercase text-[#FCA5A5] bg-[#DC2626]/15 border border-[#DC2626]/25 px-3 py-1.5 rounded-full mb-6">
+              <div className="border-b border-white/[0.06] pb-10 text-center">
+                <span className="mb-6 inline-block rounded-full border border-[#DC2626]/25 bg-[#DC2626]/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[3px] text-[#FCA5A5]">
                   Tout inclus
                 </span>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-7xl sm:text-8xl font-semibold text-white tracking-[-0.04em] leading-none">
+                  <span className="text-7xl font-semibold leading-none tracking-[-0.04em] text-white sm:text-8xl">
                     0
                   </span>
-                  <span className="text-4xl sm:text-5xl font-serif italic font-normal text-white/90 leading-none">
+                  <span className="font-serif text-4xl font-normal italic leading-none text-white/90 sm:text-5xl">
                     €
                   </span>
-                  <span className="text-base text-gray-500 ml-1 self-end mb-2">
-                    / mois
-                  </span>
+                  <span className="mb-2 ml-1 self-end text-base text-gray-500">/ mois</span>
                 </div>
-                <p className="text-sm text-gray-400 mt-4 max-w-sm mx-auto">
+                <p className="mx-auto mt-4 max-w-sm text-sm text-gray-400">
                   Commission transparente uniquement sur les commandes encaissées
                 </p>
               </div>
 
               {/* Features grid 2 cols */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 py-10 border-b border-white/[0.06]">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3.5 border-b border-white/[0.06] py-10 sm:grid-cols-2">
                 {[
                   "Vitrine en ligne dédiée",
                   "Catalogue produits illimité",
@@ -312,12 +292,10 @@ export default function EspaceBoucherPage() {
                   "Support 7j/7",
                 ].map((feature) => (
                   <div key={feature} className="flex items-start gap-2.5">
-                    <div className="shrink-0 w-4 h-4 mt-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                    <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/15">
                       <Check size={10} className="text-emerald-400" strokeWidth={3} />
                     </div>
-                    <span className="text-sm text-gray-300 leading-relaxed">
-                      {feature}
-                    </span>
+                    <span className="text-sm leading-relaxed text-gray-300">{feature}</span>
                   </div>
                 ))}
               </div>
@@ -326,7 +304,7 @@ export default function EspaceBoucherPage() {
               <div className="pt-8">
                 <Link
                   href="/inscription-boucher"
-                  className="group relative block w-full text-center overflow-hidden rounded-2xl bg-[#DC2626] hover:bg-[#b91c1c] py-4 px-6 font-semibold text-white text-base shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] hover:shadow-[0_20px_50px_-10px_rgba(220,38,38,0.7)] transition-all duration-300 hover:scale-[1.015] active:scale-[0.99]"
+                  className="group relative block w-full overflow-hidden rounded-2xl bg-[#DC2626] px-6 py-4 text-center text-base font-semibold text-white shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] transition-all duration-300 hover:scale-[1.015] hover:bg-[#b91c1c] hover:shadow-[0_20px_50px_-10px_rgba(220,38,38,0.7)] active:scale-[0.99]"
                 >
                   <span className="relative z-10 inline-flex items-center gap-2">
                     Ajouter ma boucherie gratuitement
@@ -334,14 +312,14 @@ export default function EspaceBoucherPage() {
                   </span>
                   {/* Shimmer overlay on hover */}
                   <span
-                    className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none"
+                    className="pointer-events-none absolute inset-0 -translate-x-full transition-transform duration-1000 ease-out group-hover:translate-x-full"
                     style={{
                       background:
                         "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%)",
                     }}
                   />
                 </Link>
-                <div className="flex items-center justify-center gap-x-5 gap-y-1 flex-wrap mt-5 text-[11px] text-gray-500">
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[11px] text-gray-500">
                   <span className="inline-flex items-center gap-1.5">
                     <Check size={11} className="text-emerald-500" />
                     Sans engagement
@@ -364,46 +342,41 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       {/* COMMENT CA MARCHE                         */}
       {/* ══════════════════════════════════════════ */}
-      <section className="bg-white dark:bg-[#141414] border-y border-[#ece8e3] dark:border-white/10 py-16">
-        <div className="max-w-4xl mx-auto px-5 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-display mb-12">
+      <section className="border-y border-[#ece8e3] bg-white py-16 dark:border-white/10 dark:bg-[#141414]">
+        <div className="mx-auto max-w-4xl px-5 text-center">
+          <h2 className="mb-12 font-display text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
             Comment ça marche ?
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
             <div>
-              <div className="w-14 h-14 bg-[#DC2626]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DC2626]/10">
                 <Users size={24} className="text-[#DC2626]" />
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                1. Inscription
-              </h3>
+              <h3 className="mb-2 font-bold text-gray-900 dark:text-white">1. Inscription</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Remplissez le formulaire avec les informations de votre
-                boucherie. C&apos;est rapide et gratuit.
+                Remplissez le formulaire avec les informations de votre boucherie. C&apos;est rapide
+                et gratuit.
               </p>
             </div>
             <div>
-              <div className="w-14 h-14 bg-[#DC2626]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DC2626]/10">
                 <Settings size={24} className="text-[#DC2626]" />
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white mb-2">
-                2. Configuration
-              </h3>
+              <h3 className="mb-2 font-bold text-gray-900 dark:text-white">2. Configuration</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Ajoutez vos produits, définissez vos horaires et personnalisez
-                votre vitrine en ligne.
+                Ajoutez vos produits, définissez vos horaires et personnalisez votre vitrine en
+                ligne.
               </p>
             </div>
             <div>
-              <div className="w-14 h-14 bg-[#DC2626]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#DC2626]/10">
                 <Zap size={24} className="text-[#DC2626]" />
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white mb-2">
+              <h3 className="mb-2 font-bold text-gray-900 dark:text-white">
                 3. C&apos;est parti !
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Recevez vos premières commandes click &amp; collect et
-                développez votre activité.
+                Recevez vos premières commandes click &amp; collect et développez votre activité.
               </p>
             </div>
           </div>
@@ -413,8 +386,8 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       {/* FAQ                                       */}
       {/* ══════════════════════════════════════════ */}
-      <section className="max-w-3xl mx-auto px-5 py-16">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white font-display text-center mb-10">
+      <section className="mx-auto max-w-3xl px-5 py-16">
+        <h2 className="mb-10 text-center font-display text-2xl font-bold text-gray-900 dark:text-white">
           Questions fréquentes
         </h2>
         <div className="space-y-3">
@@ -444,28 +417,38 @@ export default function EspaceBoucherPage() {
       {/* ══════════════════════════════════════════ */}
       {/* FOOTER                                    */}
       {/* ══════════════════════════════════════════ */}
+      {/* Audit a11y 2026-05-10 : text-gray-500 (#6B7280) sur bg-#1a1a1a = ratio 4.0 FAIL.
+          text-gray-400 (#9CA3AF) sur même fond = ratio 6.0 PASS AA. */}
       <footer className="bg-[#1a1a1a] py-12">
-        <div className="max-w-4xl mx-auto px-5 text-center">
-          <h3 className="text-xl font-bold text-white mb-3">
-            Des questions ? Contactez-nous
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
+        <div className="mx-auto max-w-4xl px-5 text-center">
+          <h2 className="mb-3 text-xl font-bold text-white">Des questions ? Contactez-nous</h2>
+          <p className="text-sm text-gray-400">
             <a
               href="mailto:contact@klikandgo.app"
-              className="hover:text-white transition"
+              className="underline underline-offset-2 transition hover:text-white"
             >
               contact@klikandgo.app
             </a>
           </p>
-          <div className="flex justify-center gap-4 mt-6 text-xs text-gray-500">
-            <a href="/mentions-legales" className="hover:text-gray-300 transition">Mentions légales</a>
-            <a href="/cgv" className="hover:text-gray-300 transition">CGV</a>
-            <a href="/politique-de-confidentialite" className="hover:text-gray-300 transition">Confidentialité</a>
+          <div className="mt-6 flex justify-center gap-4 text-xs text-gray-400">
+            <a
+              href="/mentions-legales"
+              className="underline underline-offset-2 transition hover:text-white"
+            >
+              Mentions légales
+            </a>
+            <a href="/cgv" className="underline underline-offset-2 transition hover:text-white">
+              CGV
+            </a>
+            <a
+              href="/politique-de-confidentialite"
+              className="underline underline-offset-2 transition hover:text-white"
+            >
+              Confidentialité
+            </a>
           </div>
-          <div className="mt-8 pt-8 border-t border-white/10">
-            <p className="text-sm text-gray-500">
-              &copy; 2026 Klik&amp;Go
-            </p>
+          <div className="mt-8 border-t border-white/10 pt-8">
+            <p className="text-sm text-gray-400">&copy; 2026 Klik&amp;Go</p>
           </div>
         </div>
       </footer>

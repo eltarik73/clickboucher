@@ -204,10 +204,12 @@ export default async function CommanderViandeHalalPage() {
               >
                 <div>
                   <div className="text-sm font-bold text-[#1C1512] dark:text-white">{s.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">{s.city}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">{s.city}</div>
                 </div>
                 {s.rating > 0 && (
-                  <div className="text-xs font-semibold text-amber-600">
+                  // Audit a11y 2026-05-10 : text-amber-600 (#D97706) sur bg-white
+                  // = ratio 3.9 FAIL AA small text. text-amber-700 (#B45309) = 5.5 PASS.
+                  <div className="text-xs font-semibold text-amber-700 dark:text-amber-400">
                     ⭐ {s.rating.toFixed(1)} ({s.ratingCount})
                   </div>
                 )}
