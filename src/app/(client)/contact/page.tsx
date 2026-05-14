@@ -124,7 +124,7 @@ export default function ContactPage() {
       <div className="mx-auto max-w-3xl px-5 py-10">
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition hover:text-[#DC2626] dark:text-gray-400"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-600 transition hover:text-[#DC2626] dark:text-gray-400"
         >
           <ArrowLeft size={14} /> Retour à l&apos;accueil
         </Link>
@@ -243,11 +243,17 @@ export default function ContactPage() {
             Klik&amp;Go &mdash; Plateforme de click &amp; collect pour boucheries halal en France.
             Édité par Klik&amp;Go SAS, dont le siège social est en France. Hébergement : Vercel (US)
             pour le frontend, Railway (EU) pour la base de données. Retrouvez nos{" "}
-            <Link href="/mentions-legales" className="text-[#DC2626] hover:underline">
+            <Link
+              href="/mentions-legales"
+              className="text-[#DC2626] underline underline-offset-2 hover:no-underline"
+            >
               mentions légales
             </Link>{" "}
             et notre{" "}
-            <Link href="/politique-de-confidentialite" className="text-[#DC2626] hover:underline">
+            <Link
+              href="/politique-de-confidentialite"
+              className="text-[#DC2626] underline underline-offset-2 hover:no-underline"
+            >
               politique de confidentialité
             </Link>
             .

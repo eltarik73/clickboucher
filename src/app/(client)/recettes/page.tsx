@@ -115,7 +115,7 @@ export default async function RecettesPage({
           </Link>
           <h1 className="text-3xl font-black text-[#1C1512] dark:text-white">Recettes halal 🍖</h1>
         </div>
-        <p className="mt-1 pl-14 text-gray-500 dark:text-gray-400">
+        <p className="mt-1 pl-14 text-gray-600 dark:text-gray-400">
           {recipes.length}+ recettes halal faciles avec quantités précises et lien direct vers la
           boucherie partenaire.
         </p>
@@ -280,9 +280,13 @@ export default async function RecettesPage({
                   <span>📊 {featured.difficulty}</span>
                 </div>
                 {/* Viande nécessaire */}
+                {/* Audit a11y 2026-05-10 : text-[#DC2626] sur bg-red-50 = ratio 4.0 FAIL AA small text.
+                    text-[#991b1b] (red-800) = ratio ~7.0 PASS. text-gray-500 → text-gray-700 sur fond rouge léger. */}
                 <div className="mt-3 rounded-xl border border-red-100 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-900/20">
-                  <div className="text-xs font-bold text-[#DC2626]">🥩 {featured.meatQuantity}</div>
-                  <div className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                  <div className="text-xs font-bold text-[#991b1b] dark:text-red-300">
+                    🥩 {featured.meatQuantity}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-gray-700 dark:text-gray-300">
                     Disponible chez nos boucheries partenaires
                   </div>
                 </div>
