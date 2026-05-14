@@ -34,24 +34,14 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
-  // Compte les shops actifs dans la ville. Si 0 → noindex.
-  // Justification (audit GSC mai 2026 + Google Mars 2026 Core Update) :
-  // les marketplaces qui exposent des "category pages" sans inventaire
-  // (cf SEORAF Programmatic SEO 2026, JourneyH Marketplace Playbook,
-  // Metaflow scaled-content guidance) sont penalisées : Google les classe
-  // "Explorée non indexée" et le bruit thin pénalise le ranking global du
-  // domaine. Stratégie correcte : noindex tant que shopCount === 0,
-  // flip à index dès qu'un boucher s'inscrit. La page reste accessible
-  // (URL valide, contenu utile pour acquisition boucher direct), elle
-  // n'est juste pas pushée à Google tant qu'elle n'apporte pas de valeur
-  // marketplace réelle.
-  const shopCount = await prisma.shop.count({
-    where: {
-      visible: true,
-      city: { contains: city.name, mode: "insensitive" },
-    },
-  });
-  const shouldNoIndex = shopCount === 0;
+  // REVERT noindex auto (2026-05-10) :
+  // User feedback : "je ne trouve plus klikandgo quand je tape boucherie
+  // halal chambery ou aix-les-bains alors qu'avant on trouvait".
+  // Le noindex auto (ex-commit 018ba6a) était trop agressif. Les pages
+  // SEO_CITIES principales contiennent du contenu unique riche
+  // (city.localContext + city.specialty + city.districts + FAQ dynamique,
+  // ~700+ mots), c'est suffisant pour ne pas être considéré "thin content"
+  // par Mars 2026 Core Update. On garde donc index par défaut.
 
   // Title hook : "Commande 30min" garde le délai concret tout en restant
   // sous 65 chars Bing (audit Site Scan #3 du 2026-05-10 : 3 villes longues
@@ -61,7 +51,6 @@ export async function generateMetadata({
   return {
     title,
     description,
-    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     openGraph: {
       title,
       description,

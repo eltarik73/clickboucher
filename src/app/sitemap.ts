@@ -174,9 +174,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Les pages sont noindex côté code (cf generateMetadata) et flip à index
   // dès qu'un shop s'inscrit dans cette ville. Le re-add au sitemap se
   // fait alors automatiquement au prochain rebuild ISR.
-  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.filter((city) =>
-    populatedCitySlugs.has(city.slug)
-  ).map((city) => ({
+  // REVERT 2026-05-10 : on n'exclut PLUS les villes sans shop du sitemap.
+  // User feedback : Klik&Go n'apparaissait plus sur Google pour "boucherie
+  // halal chambery" et "aix-les-bains" car ces pages étaient noindex+exclu
+  // du sitemap. Les SEO_CITIES principales contiennent du contenu unique
+  // riche (700+ mots par ville), ce qui justifie l'indexation même sans
+  // boutique active — la page sert aussi l'acquisition boucher.
+  const cityPages: MetadataRoute.Sitemap = SEO_CITIES.map((city) => ({
     url: `${BASE_URL}/boucherie-halal/${city.slug}`,
     lastModified: latestShop?.updatedAt ?? STATIC_CONTENT_UPDATED,
     changeFrequency: "weekly" as const,
