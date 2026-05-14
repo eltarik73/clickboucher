@@ -94,16 +94,40 @@ if (shop.reviews.length > 0) {
 
 **Test à appliquer** : "Si l'AI Mode Google peut répondre aussi bien ou mieux que ma page en synthétisant d'autres sources, ma page est à risque."
 
-**Règles strictes** :
+**🚨 RÈGLE OR — NUANCE SUR LE noindex AUTO 🚨**
 
-1. **Pages programmatic sans inventory réel** → `noindex + follow` (déjà appliqué pattern Klik&Go : `if (shopCount === 0) → noindex`)
-2. **Pages avec contenu identique à 95%** entre instances → noindex sauf si ajout d'un bloc unique 200+ mots par instance
-3. **Pages "city × product" type** : doivent contenir au moins :
-   - Liste réelle de shops dans la ville (si vide → noindex)
-   - Texte localisé non-template (history, transports, démographie locale)
-   - Schema spécifique (FoodEstablishment + Product spécifiques)
-4. **Sitemap** : ne référencer QUE les pages indexables (filter par `populatedSlugs.has(slug)`)
-5. **Test obligatoire avant push** : `curl https://klikandgo.app/[page] | grep '<meta name="robots"'` doit montrer `noindex` sur les variantes vides
+❌ **INTERDIT** : appliquer `noindex` automatique à TOUTES les pages programmatic sans réfléchir au contenu.
+
+✅ **AUTORISÉ** : `noindex` ciblé selon la **densité de contenu unique par instance**.
+
+**Le test décisif** (avant tout `if (count === 0) → noindex`) :
+
+> "La page contient-elle ≥ 500 mots de contenu unique par instance (non-template) ?"
+>
+> - OUI → INDEX, même sans inventaire (page utile pour acquisition + ranking branding)
+> - NON → noindex justifié
+
+**Erreur commise 2026-05-10** (commit `4fc4897` revert de `018ba6a`) :
+J'ai ajouté `if (shopCount === 0) → noindex` sur `/boucherie-halal/[ville]` qui avait pourtant 700+ mots de contenu unique par ville (`city.localContext` + `city.specialty` + `city.districts` + FAQ dynamique). Résultat : 5/6 villes SEO_CITIES sortent de l'index Google. User retombe sur "je ne trouve plus klikandgo quand je tape boucherie halal aix-les-bains alors qu'avant on trouvait". Coût : -ranking sur 5 mots-clés cibles + perte de confiance utilisateur. **À NE JAMAIS REPRODUIRE**.
+
+**Règles nuancées** :
+
+1. **Pages SEO ciblées BUSINESS-CRITICAL** (villes cibles, master pages, hubs) :
+   - **TOUJOURS index**, MÊME si inventaire vide
+   - Justification : contenu unique riche + objectif acquisition (boucher, partenaire) + ranking branding
+   - Klik&Go : `/boucherie-halal/[ville]`, `/devenir-boucher-partenaire/[ville]`, `/boucheries-halal/[région]` = INDEX par défaut
+
+2. **Pages programmatic "long-tail" sans contenu unique** (combinaisons multiples sans value-add) :
+   - `noindex` justifié si l'instance n'ajoute rien aux pages parent
+   - Klik&Go : `/produits/[meat]/[ville]/[district]` si vide × 100 combinaisons
+
+3. **Pages avec contenu identique à 95%** entre instances → noindex sauf si ajout d'un bloc unique 200+ mots par instance
+
+4. **Sitemap** : référencer TOUTES les pages indexables (inclure les villes principales même vides). **NE PAS** filter par `populatedSlugs` si la page contient du contenu unique.
+
+5. **Avant tout `noindex` auto, demander au user** : "Cette page fait-elle partie du business-critical SEO ? Si oui je ne mets PAS noindex."
+
+6. **Test obligatoire avant push** : `curl https://klikandgo.app/[page] | grep '<meta name="robots"'` — vérifier le résultat sur les villes principales attendues en index.
 
 ### E. AUCUN SOUS-DOMAINE TECHNIQUE INDEXÉ
 
@@ -279,12 +303,13 @@ grep -A 3 "SEO_CITIES\.map\|SEO_DISTRICTS\.map" src/app/sitemap.ts | grep -v "fi
 
 ## 📚 LEÇONS DE MES ERREURS PASSÉES (à NE PLUS reproduire)
 
-| Date       | Erreur                                                                                            | Coût                      | Fix                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
-| 2026-05-02 | Retiré noindex sur villes vides → 247 pages "Détectée non indexée"                                | 4 jours bruit thin        | commit `90258b6` reverted                                       |
-| 2026-05-04 | Créé 8 villes programmatic SEO sans inventory → +178 "Détectée non indexée"                       | bruit thin domain         | commit `1716b9f` rollback partial                               |
-| 2026-05-06 | 20 Products partagent mêmes reviews shop → Google ignore tous les Product rich snippets           | 100% rich snippets perdus | commit `6e52544` reviews migrées vers ShopSchema                |
-| 2026-05-09 | Témoignage "Yacine Boucherie El Houda" identique sur 45 pages /devenir-boucher-partenaire/[ville] | risque pénalité Mars Core | commit `f048ae3` remplacé par "L'équipe Klik&Go" + noindex auto |
+| Date           | Erreur                                                                                                                                                                                                                          | Coût                                                   | Fix                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| 2026-05-02     | Retiré noindex sur villes vides → 247 pages "Détectée non indexée"                                                                                                                                                              | 4 jours bruit thin                                     | commit `90258b6` reverted                                                                          |
+| 2026-05-04     | Créé 8 villes programmatic SEO sans inventory → +178 "Détectée non indexée"                                                                                                                                                     | bruit thin domain                                      | commit `1716b9f` rollback partial                                                                  |
+| 2026-05-06     | 20 Products partagent mêmes reviews shop → Google ignore tous les Product rich snippets                                                                                                                                         | 100% rich snippets perdus                              | commit `6e52544` reviews migrées vers ShopSchema                                                   |
+| 2026-05-09     | Témoignage "Yacine Boucherie El Houda" identique sur 45 pages /devenir-boucher-partenaire/[ville]                                                                                                                               | risque pénalité Mars Core                              | commit `f048ae3` remplacé par "L'équipe Klik&Go" + noindex auto                                    |
+| **2026-05-10** | **🚨 noindex auto sur /boucherie-halal/[ville] alors que pages contiennent 700+ mots unique → 5/6 villes SEO_CITIES sortent de l'index Google. User retombe : "je ne trouve plus klikandgo sur boucherie halal aix-les-bains"** | **-ranking 5 mots-clés cibles + perte confiance user** | **commit `4fc4897` REVERT noindex + sitemap inclut toutes SEO_CITIES + règle OR ajoutée au skill** |
 
 **Pattern récurrent** : "ajout sans vérifier les algos 2026". Le hook PreToolUse ne suffit pas si je n'ai pas RELU ce skill avant. **Ce skill DOIT être consulté chaque session SEO.**
 
