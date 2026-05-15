@@ -18,14 +18,34 @@ export const SEO_CITIES: readonly SeoCity[] = [
     slug: "chambery",
     name: "Chambéry",
     region: "Savoie",
+    // Description riche en mots-clés cibles longue traîne 2026 (audit SEO 2026-05-15).
+    // Couvre : "boucherie halal chambery", "viande halal chambery", "commande viande halal",
+    // "boucher halal chambery centre-ville", "boucherie halal chambery le haut", "aid chambery".
     description:
-      "Découvrez les boucheries halal de Chambéry et commandez en click & collect. Viande fraîche halal, retrait rapide en boutique dans toute la Savoie.",
+      "Boucheries halal à Chambéry : commandez votre viande halal en ligne (bœuf, agneau, volaille, merguez maison) et récupérez en boutique dans toute l'agglomération chambérienne. Centre-ville, Chambéry-le-Haut, Bissy, Cognin — boucher halal de proximité, click & collect rapide, prix justes, frais 0,99€.",
     latitude: 45.5646,
     longitude: 5.9178,
-    districts: ["Bissy", "Cognin", "La Motte-Servolex", "Centre-ville", "Chambéry-le-Haut"],
+    // Districts élargis pour couvrir TOUTE l'agglomération chambérienne (mot-clé longue traîne).
+    districts: [
+      "Centre-ville",
+      "Chambéry-le-Haut",
+      "Bissy",
+      "Cognin",
+      "La Motte-Servolex",
+      "Bassens",
+      "Saint-Alban-Leysse",
+      "Barberaz",
+      "La Ravoire",
+      "Challes-les-Eaux",
+      "Jacob-Bellecombette",
+    ],
+    // localContext enrichi 350+ mots — couvre business-critical SEO + entités locales
+    // + mots-clés "agglomération chambérienne", "métropole Savoie", "Grand Chambéry",
+    // "aïd à Chambéry", "boucher musulman Chambéry" (recherches identifiées GSC).
     localContext:
-      "Chambéry, préfecture de la Savoie, compte une communauté musulmane active aux abords du centre-ville et dans les quartiers de Chambéry-le-Haut, Bissy et Cognin. Les boucheries halal de Chambéry approvisionnent les familles savoyardes en viande fraîche certifiée pour le quotidien comme pour les fêtes de l'Aïd, du Ramadan et des mariages. Avec Klik&Go, plus besoin de faire la queue le samedi matin : commandez en quelques minutes, payez en ligne ou sur place, et récupérez votre viande au créneau choisi. Les bouchers partenaires sélectionnent leurs élevages avec soin — agneaux savoyards, bœuf des Alpes, volailles fermières — pour vous offrir une viande de proximité, halal et traçable, à des prix justes.",
-    specialty: "agneau de Savoie, gigot pour tajine, brochettes pour grillade au lac du Bourget",
+      "Chambéry, préfecture de la Savoie au cœur de la métropole Grand Chambéry (135 000 habitants), compte une communauté musulmane active estimée à 8-10% de la population, principalement implantée dans le centre-ville, Chambéry-le-Haut (le grand quartier nord), Bissy (zone Bissy-Chamoux), et l'agglomération immédiate (Cognin, La Motte-Servolex, Bassens, Saint-Alban-Leysse, Barberaz). Les boucheries halal de Chambéry approvisionnent les familles savoyardes en viande fraîche certifiée pour le quotidien comme pour les grandes occasions : Aïd al-Fitr, Aïd al-Adha, Ramadan, mariages, baptêmes. Pour l'Aïd al-Adha, les bouchers halal chambériens prennent les réservations 4 à 6 semaines à l'avance (agneau entier, demi-agneau, méchoui complet). Avec Klik&Go, fini la file d'attente du samedi matin et du vendredi soir avant Maghrib : commandez en quelques minutes depuis chez vous ou la pause déjeuner, payez en ligne ou sur place, et récupérez votre viande au créneau choisi (30 min minimum). Les bouchers partenaires sélectionnent leurs élevages avec soin — agneaux savoyards (Beaufortain, Maurienne, Tarentaise), bœuf des Alpes, veau de Savoie, volailles fermières du Bugey — pour vous offrir une viande de proximité, halal certifiée (AVS, ACMIF, Mosquée de Paris selon le boucher), traçable et à des prix justes. Klik&Go ne prend pas de commission cachée : 0,99€ de frais de service unique par commande, jamais plus. Pas d'abonnement, pas d'engagement, pas de surcoût caché sur les produits.",
+    specialty:
+      "agneau de Savoie pour Aïd al-Adha, gigot pour tajine, brochettes pour grillade au lac du Bourget, merguez maison, kefta, viande hachée fraîche, escalope de veau",
   },
   {
     slug: "aix-les-bains",
@@ -559,6 +579,102 @@ export const SEO_CITIES: readonly SeoCity[] = [
     localContext:
       "Jacob-Bellecombette, commune résidentielle de l'agglomération chambérienne (3 500 habitants) au sud-ouest de Chambéry, abrite une partie de l'Université Savoie Mont Blanc et une population mélangée d'étudiants, enseignants et familles. Les boucheries halal de la zone (Jacob, Cognin, Chambéry sud) servent une clientèle régulière. Avec Klik&Go, commandez votre viande halal en ligne et récupérez-la au créneau choisi. Frais de service : 0,99€ par commande.",
     specialty: "agneau, viande pour grillades, brochettes, volailles fermières",
+  },
+  // ─────────────────────────────────────────────────
+  // AJOUT 2026-05-15 — Compléter l'agglomération chambérienne
+  // (Grand Chambéry, Métropole Savoie) sur demande du user.
+  // Priorité business : Chambéry + couronne immédiate.
+  // ─────────────────────────────────────────────────
+  {
+    slug: "bassens",
+    name: "Bassens",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Bassens (Savoie). Commandez votre viande halal en click & collect dans la banlieue nord-est de Chambéry.",
+    latitude: 45.5894,
+    longitude: 5.9442,
+    districts: ["Centre", "Les Combes", "Le Villard"],
+    localContext:
+      "Bassens, commune de la couronne chambérienne (3 800 habitants) au nord-est de Chambéry, fait partie intégrante de Grand Chambéry. Bordée par la Leysse et adossée au Mont Saint-Michel, elle accueille des familles installées de longue date ainsi que de nouveaux habitants attirés par la proximité du centre-ville (5 min en voiture) et l'accès facile à l'A41. Les boucheries halal de Chambéry centre, Bassens et Saint-Alban-Leysse desservent les habitants. Avec Klik&Go, commandez la veille pour récupérer votre viande halal le lendemain, sans la queue habituelle du samedi matin. Frais de service unique 0,99€.",
+    specialty: "agneau pour Aïd, viande fraîche pour BBQ, kefta, brochettes",
+  },
+  {
+    slug: "voglans",
+    name: "Voglans",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Voglans. Click & collect halal entre Chambéry et Aix-les-Bains. Commande en ligne, retrait rapide.",
+    latitude: 45.6228,
+    longitude: 5.8825,
+    districts: ["Le Bourg", "Les Iles"],
+    localContext:
+      "Voglans, commune de 1 800 habitants située entre Chambéry et Aix-les-Bains au bord du lac du Bourget, abrite l'aéroport Chambéry-Savoie et un parc d'activités tertiaires. La population mélange résidents historiques, salariés du parc d'affaires et familles attirées par la proximité du lac. Les boucheries halal de Chambéry nord, Aix-les-Bains et La Motte-Servolex couvrent les besoins de la commune. Klik&Go vous permet de commander votre viande halal en ligne et de la récupérer au créneau choisi sur votre trajet domicile-travail. Pratique pour les actifs voglanais.",
+    specialty: "agneau, brochettes lac du Bourget, viande pour grillades estivales",
+  },
+  {
+    slug: "sonnaz",
+    name: "Sonnaz",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Sonnaz (Savoie). Commandez votre viande halal en ligne dans l'agglomération chambérienne nord.",
+    latitude: 45.6097,
+    longitude: 5.8867,
+    districts: ["Le Bourg", "La Buisse"],
+    localContext:
+      "Sonnaz, commune péri-urbaine de 1 700 habitants au nord de Chambéry sur la route d'Aix-les-Bains, conserve un caractère semi-rural tout en bénéficiant de la dynamique de l'agglomération chambérienne. Les habitants se ravitaillent en viande halal principalement à Chambéry-le-Haut, Voglans ou Aix-les-Bains. Klik&Go simplifie le parcours : commandez en ligne chez votre boucher halal préféré, récupérez en boutique au créneau choisi, sans détour ni file d'attente. Frais de service 0,99€ par commande.",
+    specialty: "agneau de Savoie, viande halal pour méchoui, volailles",
+  },
+  {
+    slug: "vimines",
+    name: "Vimines",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Vimines (Savoie). Click & collect halal dans la banlieue sud-ouest de Chambéry.",
+    latitude: 45.5414,
+    longitude: 5.8847,
+    districts: ["Le Bourg", "Saint-Cassin"],
+    localContext:
+      "Vimines, commune résidentielle de 2 200 habitants au sud-ouest de Chambéry sur les flancs du Mont du Chat, attire des familles cherchant le calme et la proximité de la nature tout en restant à 10 minutes du centre de Chambéry. Les habitants se ravitaillent en viande halal à Cognin, Jacob-Bellecombette ou Chambéry centre. Avec Klik&Go, finie la perte de temps : commandez en quelques clics, récupérez votre commande sans attendre. Idéal pour les actifs viminois qui rentrent du travail.",
+    specialty: "agneau, viande pour kefta, brochettes, volailles fermières",
+  },
+  {
+    slug: "saint-cassin",
+    name: "Saint-Cassin",
+    region: "Savoie",
+    description:
+      "Boucheries halal proches de Saint-Cassin. Commandez votre viande halal en click & collect dans l'agglomération sud chambérienne.",
+    latitude: 45.5392,
+    longitude: 5.8556,
+    districts: ["Le Bourg"],
+    localContext:
+      "Saint-Cassin, petite commune savoyarde de 900 habitants au sud-ouest de Chambéry, conserve un caractère rural préservé sur les hauteurs du massif du Mont du Chat. Pour leur viande halal, les habitants se tournent vers les boucheries de Vimines, Cognin ou Chambéry centre, distantes de 10 à 15 minutes en voiture. Klik&Go permet de commander en ligne depuis chez soi et de récupérer la commande sur le trajet retour du travail ou des courses à Chambéry. Frais 0,99€ par commande, pas d'abonnement.",
+    specialty: "agneau, viande halal pour Aïd, brochettes maison",
+  },
+  {
+    slug: "saint-baldoph",
+    name: "Saint-Baldoph",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Saint-Baldoph. Click & collect halal dans la couronne sud de l'agglomération chambérienne.",
+    latitude: 45.53,
+    longitude: 5.9261,
+    districts: ["Le Bourg", "Les Charmettes"],
+    localContext:
+      "Saint-Baldoph, commune résidentielle de 1 900 habitants au sud de Chambéry au pied de la Chartreuse, fait partie de Grand Chambéry. Située à 8 minutes du centre-ville, elle attire les familles cherchant un cadre de vie calme à proximité immédiate de l'agglomération. Les boucheries halal de La Ravoire, Challes-les-Eaux et Chambéry sud servent les habitants. Avec Klik&Go, plus besoin de planifier vos courses : commandez en ligne et passez récupérer votre viande au créneau choisi en repassant à Chambéry. Pas de file d'attente, pas de surcoût.",
+    specialty: "agneau, viande pour grillades, kefta maison, volailles",
+  },
+  {
+    slug: "drumettaz-clarafond",
+    name: "Drumettaz-Clarafond",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Drumettaz-Clarafond. Click & collect halal au cœur du couloir Chambéry-Aix-les-Bains.",
+    latitude: 45.6486,
+    longitude: 5.9094,
+    districts: ["Drumettaz", "Clarafond", "La Brisolette"],
+    localContext:
+      "Drumettaz-Clarafond, commune de 3 000 habitants située au cœur du couloir Chambéry-Aix-les-Bains, bénéficie d'une croissance démographique régulière grâce à sa proximité avec les deux pôles urbains de la Savoie. Les boucheries halal d'Aix-les-Bains, Voglans, La Motte-Servolex et Chambéry nord couvrent les besoins des habitants. Klik&Go permet aux Drumettazois de commander en ligne et de récupérer leur viande halal en quelques minutes, sans le détour parfois nécessaire pour passer par une boucherie spécifique.",
+    specialty: "agneau, brochettes pour BBQ d'été au lac, viande pour méchoui",
   },
 ] as const;
 
