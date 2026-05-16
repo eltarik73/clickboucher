@@ -264,15 +264,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.75,
     }));
 
-  // Pages occasion × ville (Sprint 7) — filtre par populatedCitySlugs
-  const occasionPages: MetadataRoute.Sitemap = getOccasionCityCombinations()
-    .filter((combo) => populatedCitySlugs.has(combo.ville))
-    .map((combo) => ({
-      url: `${BASE_URL}/occasions/${combo.occasion}/${combo.ville}`,
-      lastModified: STATIC_CONTENT_UPDATED,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    }));
+  // Pages occasion × ville — TOUJOURS inclure (business-critical).
+  // Aïd al-Adha, Ramadan, etc. × villes cibles = pages SEO acquisition.
+  // Erreur 2026-05-09 à NE PLUS REFAIRE : filter populatedCitySlugs a sorti
+  // 5/6 villes SEO_CITIES de l'index. Cf skill seo-anti-penalty règle OR.
+  const occasionPages: MetadataRoute.Sitemap = getOccasionCityCombinations().map((combo) => ({
+    url: `${BASE_URL}/occasions/${combo.occasion}/${combo.ville}`,
+    lastModified: STATIC_CONTENT_UPDATED,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
 
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
     url: `${BASE_URL}/recettes/${r.slug}`,

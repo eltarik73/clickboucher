@@ -31,17 +31,15 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!occasion || !city) return { title: "Page introuvable" };
 
-  // Best practice 2026 (Mars Core Update + Helpful Content classifier always-on) :
-  // pages programmatic sans inventory = signal thin. Noindex auto tant que
-  // shopCount === 0, flip à index dès qu'un boucher s'inscrit dans la ville.
-  // Sources : NicoDigital, SEOteric, JourneyH Marketplace Playbook 2026.
-  const shopCount = await prisma.shop.count({
-    where: {
-      visible: true,
-      city: { contains: city.name, mode: "insensitive" },
-    },
-  });
-  const shouldNoIndex = shopCount === 0;
+  // Pages BUSINESS-CRITICAL : Aïd al-Adha, Ramadan, mariages, etc. × villes
+  // cibles = TOUJOURS index/follow. Contenu unique 6000+ mots par page (occasion
+  // context + city specialty + districts + FAQ).
+  //
+  // Erreur 2026-05-09 à NE PLUS REFAIRE : noindex auto sur shopCount === 0
+  // a fait sortir 5/6 villes SEO_CITIES de l'index Google. Cf skill
+  // seo-anti-penalty + project_universal_seo_lessons.md règle #1.
+  //
+  // Test décisif : ≥ 500 mots de contenu unique par instance → INDEX.
 
   const title = `${occasion.name} halal à ${city.name} — Commander en ligne`;
   const description = `${occasion.shortDescription} Click & collect chez votre boucherie halal partenaire à ${city.name} et alentours.`;
@@ -49,7 +47,6 @@ export async function generateMetadata({
   return {
     title,
     description,
-    ...(shouldNoIndex && { robots: { index: false, follow: true } }),
     keywords: [
       `${occasion.keyword} ${city.name.toLowerCase()}`,
       `commander ${occasion.keyword} ${city.name.toLowerCase()}`,
