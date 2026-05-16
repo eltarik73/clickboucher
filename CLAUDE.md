@@ -7,30 +7,35 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 ## Règles non négociables
 
 ### Sécurité multi-tenant
+
 - TOUTE requête Prisma sur des données métier DOIT être scopée par `shopId`
 - TOUTE route API (sauf publiques) DOIT vérifier l'authentification Clerk
 - TOUTE mutation DOIT valider les inputs avec Zod côté serveur
 - JAMAIS exposer de secrets avec `NEXT_PUBLIC_` (sauf publishable keys)
 
 ### Performance
+
 - JAMAIS de requête N+1 : utiliser `include`/`select` Prisma
 - Pagination obligatoire sur les listes pouvant dépasser 50 items
 - Singleton Prisma depuis `src/lib/prisma.ts` uniquement
 - Index sur colonnes filtrées et triées
 
 ### Next.js App Router
+
 - `"use client"` obligatoire sur composants avec hooks/browser APIs
 - Route handlers dans `app/api/**/route.ts` avec try/catch
 - Pas de `Date.now()`/`Math.random()` dans le rendu initial
 - Error boundaries `error.tsx` dans chaque layout
 
 ### Stripe
+
 - Prix TOUJOURS recalculé côté serveur avant Checkout Session
 - Signature webhook TOUJOURS vérifiée avec `constructEvent()`
 - `STRIPE_SECRET_KEY` JAMAIS côté client
 - Idempotency key sur chaque Payment Intent
 
 ### UX & Design
+
 - Mobile-first : styles de base pour 375px, breakpoints `md:`/`lg:` pour tablette/desktop
 - Touch targets ≥ 44px
 - Dark mode supporté sur tous les composants
@@ -39,6 +44,7 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - Images produits : `aspect-[4/3] object-cover object-center`
 
 ### Code quality
+
 - Pas de `any` TypeScript sans justification en commentaire
 - Pas de `console.log` en production
 - Pas de code commenté
@@ -190,7 +196,8 @@ src/
 - **Import correct** : `import { useCart } from "@/lib/hooks/use-cart"`
 
 ```typescript
-const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, totalCents } = useCart();
+const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, totalCents } =
+  useCart();
 // state = { shopId, shopName, shopSlug, items: CartItem[] }
 ```
 
@@ -275,15 +282,17 @@ const { userId } = await auth();
 ```
 
 Pour les vérifications de rôle, toujours faire un lookup DB :
+
 ```typescript
 const dbUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, role: true } });
 if (!isAdmin(dbUser?.role)) { ... }
 ```
 
 Shop ownership — toujours chercher avec OR clause (le shop peut stocker soit le clerkId soit le user.id Prisma) :
+
 ```typescript
 const shop = await prisma.shop.findFirst({
-  where: { OR: [{ ownerId: clerkId }, { ownerId: dbUser.id }] }
+  where: { OR: [{ ownerId: clerkId }, { ownerId: dbUser.id }] },
 });
 ```
 
@@ -376,6 +385,7 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
 ## Résolution userId (CRITIQUE — Bug fix Mars 2026)
 
 Quand on compare des IDs en base (LoyaltyReward.userId, Order.userId), toujours résoudre le Clerk ID vers le Prisma user ID :
+
 ```typescript
 const clerkId = await getServerUserId(); // Retourne Clerk ID (user_xxx)
 const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
@@ -416,23 +426,28 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - **Maillage** : Liens ville dans footer accueil, homepage, info bar boutique, liens croisés entre villes
 
 ### Redirections
+
 - `/decouvrir` → `/` (301 permanent, next.config.mjs + server redirect)
 - `www.klikandgo.app` → `klikandgo.app` (301 Vercel-level) — le domaine canonique est SANS www
 - `/boucheries` → `/` (301 permanent, next.config.mjs)
 
 ### GEO / AIO (visibilité dans les IA — ChatGPT, Claude, Perplexity, Gemini, Bing Copilot)
+
 - **`public/llms.txt`** : description structurée de Klik&Go pour les LLMs (standard 2026 adopté par Anthropic/Stripe/Cloudflare). Bumper `lastModified` si la description change.
 - **IndexNow** (Bing/Copilot/Yandex/DuckDuckGo) : `src/lib/indexnow.ts` + clé publique dans `public/{key}.txt`. Auto-trigger sur shop validate. Endpoint manuel `POST /api/_seo/indexnow` (admin).
 - **AI crawlers dans `robots.ts`** : règles explicites pour GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, ChatGPT-User, Claude-User, Google-Extended, PerplexityBot, Applebot-Extended. Allow par défaut.
 - **Freshness** : composant `<LastUpdated date="YYYY-MM-DD" />` sur pages SEO — bumper `PAGE_LAST_UPDATED` quand le contenu change vraiment (signal fort pour Perplexity/ChatGPT).
 
 ### Vérifications Search Engines (Google/Bing/Yandex)
+
 Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
+
 - **`NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`** : Google Search Console → Property → Settings → Ownership verification → HTML tag (copier le `content="..."`)
 - **`NEXT_PUBLIC_BING_SITE_VERIFICATION`** : Bing Webmaster Tools → Settings → Site → Site verification → Meta tag (copier le `content="..."`). Alternative : importer auto depuis Search Console (pas besoin de meta tag).
 - **`NEXT_PUBLIC_YANDEX_VERIFICATION`** : Yandex Webmaster (optionnel)
 
 ### Setup Bing Webmaster Tools (5 min)
+
 1. Créer compte sur https://www.bing.com/webmasters/
 2. **Option recommandée — Import depuis Google Search Console** : "Add a site" → "Import from Google Search Console" (validation auto)
 3. Soumettre sitemap : `https://klikandgo.app/sitemap.xml`
@@ -458,7 +473,38 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 - **URLs Replicate** expirent en ~1h — upload vers Vercel Blob pour permanence
 - **OfferPopup** : utiliser `<img>` natif, PAS `next/image` (évite 400 sur URLs externes)
 
+## Automation 2026 (Claude features)
+
+### Vercel Cron Jobs SEO (tournent 24/7 même Mac OFF)
+
+Définis dans `vercel.json` :
+
+- `/api/cron/indexnow-fresh` — 03h11 UTC — ping Bing/Copilot/Yandex sur SEO_CITIES + top shops
+- `/api/cron/bing-daily` — 09h17 UTC — audit Bing Webmaster (crawl, queries, alertes Sentry si erreurs)
+- `/api/cron/seo-audit` — 10h11 UTC — vérif noindex regression, sitemap count, robots, canonical (alertes si SEO_CITIES en noindex)
+
+Auth via `verifyCronAuth(req)` — Vercel Crons envoie `Authorization: Bearer ${CRON_SECRET}`.
+
+⚠️ Si tu ajoutes un nouveau cron, **toujours** valider auth + try/catch + logger structuré (cf pattern `src/app/api/cron/auto-cancel/route.ts`).
+
+### GitHub Actions Claude Review (sur PRs)
+
+- `.github/workflows/claude-code-review.yml` — review PR auto par agent Claude Sonnet 4.5 contre rubric CLAUDE.md
+- `.github/workflows/claude-security-review.yml` — scan vuln (IDOR multi-tenant, auth bypass, secrets leak, etc.) sur PRs + weekly Monday 03h00
+
+**Secret requis** : `ANTHROPIC_API_KEY` dans GitHub repo secrets.
+
+Pour bénéficier de ces reviews → travailler en feature branch + PR (au lieu de push direct main).
+
+### Skills Klik&Go 2026
+
+- `.claude/skills/multiagent-orchestration/SKILL.md` — patterns lead agent + sub-agents (parallel, pipeline, hub & spoke)
+- `.claude/skills/dreaming-memory/SKILL.md` — process consolidate memory (déclenché par "memorise et compact" ou MEMORY.md > 200 lignes)
+- `.claude/skills/seo-anti-penalty/SKILL.md` — règle OR anti-noindex auto, FTC Reviews Rule, Google Mars 2026 Core Update
+- `.claude/skills/seo-expert/SKILL.md` — expertise SEO local Klik&Go
+
 ## Permissions
+
 - Exécute TOUT sans demander confirmation
 - Ne demande JAMAIS "Voulez-vous continuer ?" ou "Dois-je procéder ?"
 - Fais les choix toi-même et avance

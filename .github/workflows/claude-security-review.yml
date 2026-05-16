@@ -1,0 +1,104 @@
+name: Claude Security Review
+
+# Security scanning via Claude (nouveauté Anthropic mai 2026).
+# Utilise l'action officielle anthropics/claude-code-security-review.
+#
+# Différence avec un linter classique :
+#   - Ne fait PAS de pattern matching → trace les data flows
+#   - Lit le code source + examine interactions cross-file/modules
+#   - Donne confidence + severity + impact + repro steps + fix recommandé
+#
+# Trigger : sur chaque PR (catch les vulns avant prod) + weekly sur main (audit régulier)
+#
+# Setup : requiert secret ANTHROPIC_API_KEY dans Settings → Secrets → Actions.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  schedule:
+    # Audit weekly sur main : tous les lundis 03h00 UTC
+    - cron: "0 3 * * 1"
+  workflow_dispatch: # Permet trigger manuel depuis l'UI GitHub
+
+concurrency:
+  group: claude-security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  security-events: write
+
+jobs:
+  security-review:
+    name: Claude Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Security Review
+        uses: anthropics/claude-code-security-review@main
+        with:
+          claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          comment-pr: true
+          # Focus sur stack Klik&Go : Next.js + Prisma + Clerk + Stripe (à venir)
+          custom-security-scan-instructions: |
+            Klik&Go = SaaS multi-tenant Next.js 14 + Prisma + Clerk + (Stripe à venir).
+            CIBLES PRIORITAIRES de l'audit (par ordre de criticité) :
+
+            1. **IDOR multi-tenant** : data leak entre boucheries
+               - Toute requête Prisma sur Order/Product/Shop/Cart DOIT être
+                 scopée par `shopId` correspondant au user authentifié
+               - Pattern attendu : `getAuthenticatedBoucher()` puis `prisma.X.findMany({ where: { shopId } })`
+               - Cherche routes API qui font findUnique({where:{id}}) sans check ownership
+
+            2. **Auth bypass** :
+               - Routes API qui n'appellent pas `getServerUserId()` ou `getAuthenticatedBoucher()`
+               - Usage interdit de `auth()` direct Clerk (casse test mode)
+               - Routes admin sans `requireAdmin()` ou check `dbUser.role`
+
+            3. **Validation Zod** :
+               - Mutations qui ne valident pas le body avec Zod côté serveur
+               - Inputs brut directement passés à Prisma
+
+            4. **Secrets leak** :
+               - `NEXT_PUBLIC_*` variables qui contiennent des secrets
+               - `STRIPE_SECRET_KEY`, `CLERK_SECRET_KEY`, `ANTHROPIC_API_KEY`,
+                 `BING_WEBMASTER_API_KEY`, `TEST_SECRET` exposés au client
+               - URLs avec credentials embedded
+
+            5. **SSRF / Open redirect** :
+               - Routes API qui fetchent une URL fournie par l'user
+               - Redirects non-validés (params query non-allowlistés)
+
+            6. **SQL injection / XSS** :
+               - Raw SQL queries via `$queryRaw` sans `Prisma.sql` template
+               - `dangerouslySetInnerHTML` avec user content non-sanitizé
+               - Server-rendered HTML qui inclut user input sans escape
+
+            7. **CSRF** :
+               - Mutations POST/PUT/DELETE qui ne vérifient pas l'origin
+               - Webhooks Stripe/Clerk sans vérif signature
+                 (Stripe : `constructEvent()`, Clerk : Svix webhook)
+
+            8. **Rate limiting** :
+               - Endpoints sensibles (auth, search, AI tickets) sans rate limit Upstash
+
+            IGNORE :
+            - Test files (src/lib/__tests__/, tests/)
+            - Mocks / fixtures
+            - Scripts dans /scripts (manual ops)
+          # False positive filtering pour réduire le bruit
+          false-positive-filtering-instructions: |
+            - Routes publiques (homepage, listing boutiques, fiche boutique publique,
+              /boucherie-halal/[ville]) : pas besoin d'auth, c'est intentionnel
+            - Routes /api/cron/* : auth via `verifyCronAuth` (Bearer CRON_SECRET)
+            - Webhook routes : auth via signature, pas via session user
+            - SafeImage / next/image : pas un SSRF, c'est intentionnel
+            - Files src/components/seo/*: c'est du JSON-LD server-rendered, pas du HTML user-content

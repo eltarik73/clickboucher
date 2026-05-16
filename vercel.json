@@ -18,6 +18,9 @@
     { "path": "/api/cron/calendar-alerts", "schedule": "0 9 * * *" },
     { "path": "/api/cron/prospect-relances", "schedule": "15 9 * * *" },
     { "path": "/api/cron/weekly-report", "schedule": "30 9 * * 1" },
-    { "path": "/api/cron/recalc-shop-tiers", "schedule": "0 3 1 * *" }
+    { "path": "/api/cron/recalc-shop-tiers", "schedule": "0 3 1 * *" },
+    { "path": "/api/cron/indexnow-fresh", "schedule": "11 3 * * *" },
+    { "path": "/api/cron/bing-daily", "schedule": "17 9 * * *" },
+    { "path": "/api/cron/seo-audit", "schedule": "11 10 * * *" }
   ]
 }

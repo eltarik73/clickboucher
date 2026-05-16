@@ -1,0 +1,86 @@
+name: Claude Code Review
+
+# Agent-based PR review (nouveauté Claude Code 2026).
+# Anthropic interne : 16% → 54% des PRs ont du substantive review après adoption.
+#
+# Trigger : sur chaque PR ouverte/updated vers main.
+# Modèle : Claude Sonnet 4.5 (rapide + bon ratio qualité/coût).
+#
+# Setup : requiert secret ANTHROPIC_API_KEY dans Settings → Secrets → Actions.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  claude-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Skip if PR is from Dependabot or if title starts with [skip-review]
+    if: |
+      github.actor != 'dependabot[bot]' &&
+      !startsWith(github.event.pull_request.title, '[skip-review]')
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude PR Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Rubric Klik&Go — encode les règles non-négociables de CLAUDE.md
+          prompt: |
+            Tu reviewes une PR pour Klik&Go (Next.js 14 + Prisma + Clerk).
+
+            ## Règles non-négociables (CLAUDE.md)
+            1. **Multi-tenant** : toute requête Prisma sur données métier DOIT être scopée par `shopId`
+            2. **Auth API** : utiliser `getServerUserId()` ou `getAuthenticatedBoucher()`,
+               JAMAIS `auth()` direct de Clerk (casse le test mode)
+            3. **Validation** : toute mutation DOIT valider inputs avec Zod côté serveur
+            4. **Secrets** : JAMAIS exposer secrets avec `NEXT_PUBLIC_` (sauf publishable keys)
+            5. **SEO** : JAMAIS appliquer `noindex` auto sur pages business-critical
+               (villes SEO_CITIES, masters, hubs régionaux, devenir-partenaire/[ville])
+               → cf skill seo-anti-penalty pour règle OR détaillée
+            6. **Sitemap** : JAMAIS filter populatedSlugs sur SEO_CITIES (inclure toutes)
+            7. **Pas de** `console.log` en prod, `any` TS sans commentaire justifié,
+               code commenté, fichiers > 300 lignes (sauf justifié)
+            8. **Prix toujours en centimes** (`priceCents`, `totalCents`)
+            9. **Imports panier** : `@/lib/hooks/use-cart` (pas `useCart`)
+            10. **Try/catch** dans chaque route handler avec logger structuré
+
+            ## Ce que tu cherches en priorité
+            - Régressions SEO (noindex, sitemap, robots, schemas)
+            - Routes API sans scope shopId / sans auth
+            - Bugs multi-tenant (data leak entre boucheries)
+            - Fuites de secrets, IDOR
+            - Régressions performance (N+1 queries, bundle size)
+            - Tests manquants pour helpers purs ajoutés dans `src/lib/**`
+
+            ## Comment commenter
+            - Niveau **BLOCKER** : violation règle non-négociable → demande fix avant merge
+            - Niveau **WARNING** : amélioration recommandée → suggestion
+            - Niveau **NIT** : style/perf mineur → mention seulement si vraiment utile
+            - Si tout est bon : poste un seul commentaire "✅ Review OK"
+
+            Ne commente PAS sur :
+            - Le formatting (Prettier le fait)
+            - Le lint (ESLint le fait)
+            - Le typing (tsc le fait)
+            - Les noms de variables (pas important)
+          # Sonnet 4.5 = bon ratio qualité/coût pour reviews
+          model: claude-sonnet-4-5
+          # Trigger phrase optionnelle pour re-review manuel : "/claude review"
+          trigger_phrases: "/claude review"
