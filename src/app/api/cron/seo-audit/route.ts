@@ -154,7 +154,39 @@ export async function GET(req: NextRequest) {
       });
     });
 
-    // 5. Devenir-boucher-partenaire (B2B pages, business-critical)
+    // 5. Pages Aid al-Adha — business-critical (saisonnier, J-11 mai 2026)
+    // Bug détecté 2026-05-16 : noindex auto pareil que SEO_CITIES (commit ee6d0f8 REVERT)
+    const aidCities = ["chambery", "aix-les-bains", "grenoble", "lyon", "annecy", "saint-etienne"];
+    const aidChecks = await Promise.all(
+      aidCities.map(async (slug) => {
+        const html = await fetchHtml(`${SITE_URL}/occasions/aid-al-adha/${slug}`);
+        if (!html) return { slug, status: "error" as const, robots: "fetch_failed" };
+        const robots = extractRobotsMeta(html) ?? "missing";
+        return {
+          slug,
+          status: hasNoindex(html) ? ("error" as const) : ("ok" as const),
+          robots,
+        };
+      })
+    );
+    const aidNoindexCount = aidChecks.filter((c) => c.status === "error").length;
+    if (aidNoindexCount > 0) {
+      alerts.push(
+        `${aidNoindexCount} pages Aid al-Adha en NOINDEX ! ${aidChecks
+          .filter((c) => c.status === "error")
+          .map((c) => c.slug)
+          .join(", ")}`
+      );
+    }
+    aidChecks.forEach((c) => {
+      results.push({
+        url: `/occasions/aid-al-adha/${c.slug}`,
+        status: c.status,
+        detail: `robots=${c.robots}`,
+      });
+    });
+
+    // 6. Devenir-boucher-partenaire (B2B pages, business-critical)
     const partnerCheck = await fetchHtml(`${SITE_URL}/devenir-boucher-partenaire/chambery`);
     if (partnerCheck && hasNoindex(partnerCheck)) {
       alerts.push("Devenir-boucher Chambéry en NOINDEX !");
