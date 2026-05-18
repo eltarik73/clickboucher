@@ -52,13 +52,26 @@ export const SEO_CITIES: readonly SeoCity[] = [
     name: "Aix-les-Bains",
     region: "Savoie",
     description:
-      "Commandez votre viande halal en ligne à Aix-les-Bains. Boucheries halal partenaires en Savoie, retrait en boutique rapide et pratique.",
+      "Boucheries halal à Aix-les-Bains et Communauté d'Agglomération Grand Lac (CALB). Commandez votre viande halal en ligne (bœuf, agneau, volaille, merguez maison) et récupérez en boutique dans toute l'agglomération aixoise. Centre-ville, Marlioz, Mémard, Sierroz, Lafin, Grésy-sur-Aix, Le Bourget-du-Lac — boucher halal de proximité, click & collect rapide, frais 0,99€.",
     latitude: 45.6884,
     longitude: 5.9153,
-    districts: ["Centre", "Mémard", "Sierroz", "Marlioz", "Choudy"],
+    districts: [
+      "Centre-ville",
+      "Mémard",
+      "Sierroz",
+      "Marlioz",
+      "Choudy",
+      "Lafin",
+      "Boucher",
+      "Franklin Roosevelt",
+      "Casino-Thermes",
+      "Bois Vidal",
+      "Liberté",
+    ],
     localContext:
-      "Aix-les-Bains, station thermale au bord du lac du Bourget, attire chaque été curistes et visiteurs et compte une communauté musulmane installée de longue date. Les boucheries halal d'Aix-les-Bains approvisionnent les familles aixoises en viande fraîche halal, du quotidien aux grandes occasions. Klik&Go vous permet de commander en ligne en quelques minutes : choisissez votre boucher de quartier, sélectionnez vos pièces, payez en ligne ou sur place, et récupérez votre viande au créneau choisi. Idéal pour préparer un méchoui en famille ou des grillades sur les rives du lac sans perdre de temps. Pas de frais cachés, juste 0,99€ de service. La viande halal sélectionnée par les bouchers locaux d'Aix-les-Bains est issue d'élevages savoyards et alpins.",
-    specialty: "agneau pour tajine, viande fraîche pour grillades au lac, volailles fermières",
+      "Aix-les-Bains, ville thermale de 30 000 habitants au bord du lac du Bourget, est le cœur de la Communauté d'Agglomération Grand Lac (CALB, 40 communes, 75 000 habitants). La ville compte une communauté musulmane installée depuis les vagues d'immigration ouvrière du XXe siècle, particulièrement présente dans les quartiers Sierroz, Lafin, Mémard, Boucher et Franklin Roosevelt. Saison thermale oblige (de mars à novembre), Aix-les-Bains accueille en plus chaque année des dizaines de milliers de curistes et touristes, ce qui double la demande estivale en viande fraîche pour les grillades au bord du lac, méchouis familiaux et repas de mariage. Les boucheries halal d'Aix-les-Bains et de l'agglomération (Grésy-sur-Aix, Le Bourget-du-Lac, Tresserve, Brison-Saint-Innocent, Voglans, Drumettaz-Clarafond, Mouxy) approvisionnent les familles aixoises en viande halal certifiée pour le quotidien comme pour les grandes occasions : Aïd al-Fitr, Aïd al-Adha, Ramadan, mariages, baptêmes. Pour l'Aïd al-Adha, les bouchers halal aixois prennent les réservations 4 à 6 semaines à l'avance (agneau entier, demi-agneau, méchoui complet 15-25 kg). Avec Klik&Go, fini la file d'attente du samedi matin sur les avenues Marie-de-Solms et Lord Revelstoke : commandez en quelques minutes depuis chez vous ou la pause cure, payez en ligne ou sur place, et récupérez votre viande au créneau choisi (30 min minimum). Les bouchers partenaires sélectionnent leurs élevages avec soin — agneaux savoyards (Beaufortain, Bauges, Massif des Bauges), bœuf des Alpes, veau de la Combe de Savoie, volailles fermières du Bugey et de la Dombes — pour une viande halal de proximité, certifiée (AVS, ACMIF, Mosquée de Paris selon le boucher), traçable et à prix juste. Klik&Go ne prend pas de commission cachée : 0,99€ de frais de service unique par commande, jamais plus. Pas d'abonnement, pas d'engagement.",
+    specialty:
+      "agneau de Savoie pour Aïd al-Adha, méchoui complet pour grillades au lac du Bourget, merguez maison, kefta, viande hachée fraîche, escalope de veau, brochettes, volailles fermières du Bugey",
   },
   {
     slug: "grenoble",
@@ -675,6 +688,116 @@ export const SEO_CITIES: readonly SeoCity[] = [
     localContext:
       "Drumettaz-Clarafond, commune de 3 000 habitants située au cœur du couloir Chambéry-Aix-les-Bains, bénéficie d'une croissance démographique régulière grâce à sa proximité avec les deux pôles urbains de la Savoie. Les boucheries halal d'Aix-les-Bains, Voglans, La Motte-Servolex et Chambéry nord couvrent les besoins des habitants. Klik&Go permet aux Drumettazois de commander en ligne et de récupérer leur viande halal en quelques minutes, sans le détour parfois nécessaire pour passer par une boucherie spécifique.",
     specialty: "agneau, brochettes pour BBQ d'été au lac, viande pour méchoui",
+  },
+  // === AGGLO AIX-LES-BAINS / GRAND LAC (CALB) — Sprint mai 2026 ===
+  {
+    slug: "gresy-sur-aix",
+    name: "Grésy-sur-Aix",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Grésy-sur-Aix. Click & collect halal dans la première couronne nord d'Aix-les-Bains, axe Annecy.",
+    latitude: 45.7233,
+    longitude: 5.9358,
+    districts: ["Centre", "Antoger", "Le Mollard", "Saint-Victor", "Saint-Pierre"],
+    localContext:
+      "Grésy-sur-Aix, commune de 4 000 habitants en première couronne nord d'Aix-les-Bains sur l'axe Annecy (D1201), fait partie de la Communauté d'Agglomération Grand Lac (CALB). La commune a connu une forte croissance démographique avec l'arrivée de familles attirées par sa proximité immédiate avec Aix-les-Bains (5 min en voiture), son cadre verdoyant adossé au massif du Revard, et l'accès direct à la voie rapide A41. Les boucheries halal d'Aix-les-Bains centre (Sierroz, Lafin, Mémard) et de Grésy-sur-Aix desservent les habitants. Avec Klik&Go, commandez la veille pour récupérer votre viande halal le lendemain au créneau qui vous arrange, sans la queue habituelle du samedi matin. Pratique pour les grandes occasions (Aïd al-Adha, mariages) comme pour le quotidien. Frais de service unique 0,99€, sans surcoût caché.",
+    specialty: "agneau pour Aïd, viande pour grillades estivales, méchoui familial, merguez maison",
+  },
+  {
+    slug: "tresserve",
+    name: "Tresserve",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Tresserve. Click & collect halal sur la péninsule du lac du Bourget, agglomération Aix-les-Bains.",
+    latitude: 45.6709,
+    longitude: 5.8959,
+    districts: ["Centre", "Le Plat", "Les Tournelles", "Pré Tampin"],
+    localContext:
+      "Tresserve, commune de 3 000 habitants sur la péninsule rive est du lac du Bourget, fait partie intégrante de la Communauté d'Agglomération Grand Lac (CALB) au sud d'Aix-les-Bains. Bénéficiant d'une situation exceptionnelle entre lac et collines, la commune accueille à la fois des résidents permanents et des résidences secondaires de la métropole lyonnaise et chambérienne. Les boucheries halal d'Aix-les-Bains, du Bourget-du-Lac et de Tresserve approvisionnent les habitants en viande halal certifiée. Klik&Go permet aux Tresservois de commander en ligne et de récupérer leur viande au créneau choisi, particulièrement pratique l'été pour préparer barbecues et méchouis sur la plage du Lido ou en bord de lac sans perdre de temps. Service de 0,99€ par commande, jamais plus.",
+    specialty:
+      "agneau pour méchoui de bord de lac, brochettes pour BBQ estival, viande hachée fraîche, kefta, escalopes de poulet pour terrasse",
+  },
+  {
+    slug: "mouxy",
+    name: "Mouxy",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Mouxy. Click & collect halal sur les hauteurs d'Aix-les-Bains, en route vers le Revard.",
+    latitude: 45.6856,
+    longitude: 5.9436,
+    districts: ["Centre", "Le Tomet", "La Croix"],
+    localContext:
+      "Mouxy, commune de 1 000 habitants sur les premières hauteurs à l'est d'Aix-les-Bains, à 5 minutes en voiture du centre thermal, sur la route du Mont Revard. Petite commune résidentielle de la Communauté d'Agglomération Grand Lac (CALB), Mouxy accueille des familles aixoises qui ont choisi le calme et la vue panoramique sur le lac du Bourget. Les boucheries halal d'Aix-les-Bains centre (avenues Marie-de-Solms, Boucher, Lafin) et de l'agglomération couvrent les besoins des Mouxyards. Klik&Go évite le détour en ville le samedi matin : commandez en quelques minutes, récupérez votre viande halal au créneau choisi, frais unique 0,99€. Pratique aussi pour les grandes occasions familiales.",
+    specialty: "agneau pour Aïd, viande halal pour grillades, brochettes, merguez maison",
+  },
+  {
+    slug: "brison-saint-innocent",
+    name: "Brison-Saint-Innocent",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Brison-Saint-Innocent. Click & collect halal au nord d'Aix-les-Bains, rive est du lac du Bourget.",
+    latitude: 45.7211,
+    longitude: 5.8783,
+    districts: ["Brison-les-Oliviers", "Saint-Innocent", "Grumeau", "Centre"],
+    localContext:
+      "Brison-Saint-Innocent, commune de 2 000 habitants juste au nord d'Aix-les-Bains sur la rive est du lac du Bourget, fait partie de la Communauté d'Agglomération Grand Lac (CALB). Réputée pour son climat doux et son ensoleillement exceptionnel pour la région (parfois surnommée « la riviera savoyarde »), la commune compte une population active mêlant résidents permanents, navetteurs vers Aix-les-Bains et Chambéry, et propriétaires de résidences secondaires. Les boucheries halal d'Aix-les-Bains centre (Sierroz, Lafin), de Grésy-sur-Aix et de la rive est du lac desservent les habitants de Brison-Saint-Innocent. Klik&Go évite le détour systématique en centre-ville d'Aix : commandez en ligne, choisissez votre créneau de retrait, récupérez votre viande halal en quelques minutes. Frais unique 0,99€ par commande, pas d'abonnement.",
+    specialty:
+      "agneau pour méchoui ensoleillé, brochettes pour BBQ au bord du lac, viande pour mariages et grandes tablées",
+  },
+  {
+    slug: "mery",
+    name: "Méry",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Méry. Click & collect halal entre Aix-les-Bains et Chambéry, agglomération Grand Lac.",
+    latitude: 45.6633,
+    longitude: 5.9119,
+    districts: ["Centre", "Saint-Maurice", "Champagneux"],
+    localContext:
+      "Méry, commune de 1 400 habitants située entre Chambéry et Aix-les-Bains sur l'axe Voglans-Drumettaz, appartient à la Communauté d'Agglomération Grand Lac (CALB). Petite commune résidentielle en croissance, Méry bénéficie d'une position centrale qui permet à ses habitants d'accéder aussi bien aux services chambériens qu'aux commerces aixois en moins de 10 minutes. Les boucheries halal de Voglans, Aix-les-Bains, Drumettaz-Clarafond et La Motte-Servolex desservent les Mérysiens. Avec Klik&Go, commandez votre viande halal en ligne, choisissez le boucher partenaire de votre choix dans l'agglomération, et récupérez au créneau qui vous arrange. Frais de service unique 0,99€, sans abonnement ni surcoût caché.",
+    specialty: "agneau, viande pour BBQ familial, kefta, viande hachée fraîche pour quotidien",
+  },
+  {
+    slug: "albens",
+    name: "Albens",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Albens (Entrelacs). Click & collect halal au nord du lac du Bourget, axe Annecy-Aix-les-Bains.",
+    latitude: 45.7886,
+    longitude: 5.9483,
+    districts: ["Albens centre", "Saint-Germain", "Cessens", "Saint-Girod"],
+    localContext:
+      "Albens (commune historique aujourd'hui intégrée à Entrelacs depuis 2016), pôle local de 5 000 habitants au nord du lac du Bourget sur l'axe Aix-les-Bains - Annecy (D1201, 15 min de chaque), constitue un bourg actif avec ses commerces, écoles et marchés hebdomadaires. La commune appartient à la Communauté de Communes de la Cluse des Hôpitaux et bénéficie d'une croissance démographique soutenue grâce à sa position entre les deux pôles thermaux savoyards. Les boucheries halal d'Aix-les-Bains, de Grésy-sur-Aix et d'Annecy desservent les Albanais. Klik&Go permet aux habitants de commander en ligne et de récupérer leur viande halal sans devoir faire 15 minutes de voiture pour Aix ou Annecy. Frais unique 0,99€ par commande.",
+    specialty:
+      "agneau de Savoie pour Aïd, méchoui pour fêtes de village, viande pour grandes tablées familiales",
+  },
+  {
+    slug: "yenne",
+    name: "Yenne",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Yenne. Click & collect halal au sud du lac du Bourget, vallée du Rhône, axe Lyon-Chambéry.",
+    latitude: 45.7044,
+    longitude: 5.7611,
+    districts: ["Centre", "Lépin-le-Lac", "Saint-Paul", "Sainte-Marie"],
+    localContext:
+      "Yenne, chef-lieu de canton de 3 000 habitants au sud du lac du Bourget dans la vallée du Rhône, constitue le pôle commercial et administratif de l'Avant-Pays Savoyard. Sa position stratégique sur l'axe Lyon-Chambéry (A43, sortie Yenne) et à 20 minutes d'Aix-les-Bains en fait un nœud naturel pour les habitants du Bugey, de la Chautagne et de l'Avant-Pays. La commune accueille un marché hebdomadaire dynamique et des commerces de proximité. Les boucheries halal d'Aix-les-Bains, de Belley (Ain voisin) et de Chambéry desservent les Yennois. Avec Klik&Go, plus besoin de programmer un détour de 20 minutes : commandez votre viande halal en ligne, choisissez le boucher partenaire le plus pratique, récupérez au créneau qui vous arrange. Frais unique 0,99€.",
+    specialty:
+      "agneau, viande pour grandes occasions familiales, méchoui, viande pour mariages et baptêmes",
+  },
+  {
+    slug: "pugny-chatenod",
+    name: "Pugny-Chatenod",
+    region: "Savoie",
+    description:
+      "Boucheries halal à Pugny-Chatenod. Click & collect halal sur les hauteurs est d'Aix-les-Bains, vers le Revard.",
+    latitude: 45.6961,
+    longitude: 5.96,
+    districts: ["Pugny", "Chatenod", "Le Mollard"],
+    localContext:
+      "Pugny-Chatenod, petite commune de 700 habitants sur les pentes à l'est d'Aix-les-Bains en direction du Mont Revard, fait partie de la Communauté d'Agglomération Grand Lac (CALB). Commune résidentielle de haut perchée offrant une vue exceptionnelle sur le lac du Bourget, Pugny-Chatenod accueille des familles aixoises qui ont choisi la tranquillité montagnarde tout en restant à 10 minutes du centre-ville. Les boucheries halal d'Aix-les-Bains centre (avenues Marie-de-Solms, Boucher, Sierroz) et de l'agglomération desservent les Pugnatois. Klik&Go évite le détour systématique en ville : commandez en ligne, récupérez votre viande halal au créneau choisi à Aix-les-Bains ou commune voisine. Service 0,99€ par commande.",
+    specialty:
+      "agneau pour Aïd, méchoui montagne, brochettes pour repas en altitude, viande pour familles",
   },
 ] as const;
 
