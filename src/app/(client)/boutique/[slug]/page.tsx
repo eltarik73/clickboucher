@@ -92,8 +92,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const shop = await getShop(params.slug);
 
+  // Audit 2026-06-12 : déclencher le 404 ici (avant le flush des headers en
+  // streaming ISR) au lieu de retourner un title — sinon la page renvoyait
+  // HTTP 200 + double meta robots contradictoire (soft-404). getShop est
+  // mémoïsé (cache() + Redis), donc zéro requête supplémentaire pour le body.
   if (!shop) {
-    return { title: "Boucherie introuvable" };
+    notFound();
   }
 
   const title = `${shop.name} — Boucherie Halal à ${shop.city || "votre ville"}`;

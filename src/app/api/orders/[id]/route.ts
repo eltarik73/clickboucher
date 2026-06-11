@@ -9,10 +9,7 @@ import { autoApproveExpiredAdjustment } from "@/lib/price-adjustment";
 
 // ── GET /api/orders/[id] ───────────────────────
 // Authenticated — order detail (client owner, boucher owner, or admin)
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
 
@@ -33,8 +30,29 @@ export async function GET(
       where: { id },
       include: {
         items: { include: { product: true } },
-        shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, phone: true, ownerId: true } },
-        user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true, customerNumber: true, guestToken: true } },
+        shop: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            imageUrl: true,
+            address: true,
+            city: true,
+            phone: true,
+            ownerId: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            clerkId: true,
+            customerNumber: true,
+            guestToken: true,
+          },
+        },
         priceAdjustment: true,
       },
     });
@@ -48,23 +66,43 @@ export async function GET(
       if (!order.user.guestToken || order.user.guestToken !== guestTokenQuery) {
         return apiError("FORBIDDEN", "Token invalide");
       }
-      return apiSuccess(order);
+      return apiSuccess(sanitizeOrder(order));
     }
 
     // Auto-approve/escalate expired price adjustment if any
     const pa = order.priceAdjustment;
-    const shouldCheck = pa?.status === "PENDING" && (
-      (pa.autoApproveAt && new Date() >= new Date(pa.autoApproveAt)) ||
-      (pa.escalateAt && new Date() >= new Date(pa.escalateAt))
-    );
+    const shouldCheck =
+      pa?.status === "PENDING" &&
+      ((pa.autoApproveAt && new Date() >= new Date(pa.autoApproveAt)) ||
+        (pa.escalateAt && new Date() >= new Date(pa.escalateAt)));
     if (shouldCheck) {
       await autoApproveExpiredAdjustment(id);
       const refreshed = await prisma.order.findUnique({
         where: { id },
         include: {
           items: { include: { product: true } },
-          shop: { select: { id: true, name: true, slug: true, imageUrl: true, address: true, city: true, phone: true, ownerId: true } },
-          user: { select: { id: true, firstName: true, lastName: true, email: true, clerkId: true, customerNumber: true } },
+          shop: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              imageUrl: true,
+              address: true,
+              city: true,
+              phone: true,
+              ownerId: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              clerkId: true,
+              customerNumber: true,
+            },
+          },
           priceAdjustment: true,
         },
       });
@@ -95,8 +133,21 @@ export async function GET(
       }
     }
 
-    return apiSuccess(order);
+    return apiSuccess(sanitizeOrder(order));
   } catch (error) {
     return handleApiError(error);
   }
+}
+
+// Strip the guest magic-link credential from the response payload. The token
+// is only used server-side for the guest permission check (above) and must
+// never be returned to any viewer (client, boucher, or admin) — leaking it
+// would hand out guest access to the order.
+// Audit sécurité 2026-06-12.
+function sanitizeOrder<T extends { user: { guestToken?: string | null } }>(order: T): T {
+  if (order.user && "guestToken" in order.user) {
+    const { guestToken: _guestToken, ...userWithoutToken } = order.user;
+    return { ...order, user: userWithoutToken } as unknown as T;
+  }
+  return order;
 }

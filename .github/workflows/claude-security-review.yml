@@ -36,9 +36,14 @@ jobs:
     name: Claude Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Skip les PRs Dependabot : GitHub ne transmet PAS les Actions secrets aux
+    # workflows déclenchés par dependabot[bot] (store séparé), donc
+    # ANTHROPIC_API_KEY est vide → échec systématique. Le scan weekly sur main
+    # couvre déjà ces bumps. (audit 2026-06-12, aligné sur claude-code-review.yml)
+    if: github.actor != 'dependabot[bot]'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

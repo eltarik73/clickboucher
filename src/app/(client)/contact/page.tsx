@@ -8,7 +8,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 const PAGE_LAST_UPDATED = "2026-05-09";
 
 export const metadata: Metadata = {
-  title: "Contact — Support client Klik&Go",
+  // Le titleTemplate root ("%s | Klik&Go") ajoute déjà la marque (audit 2026-06-12).
+  title: "Contact — Support client",
   description:
     "Contactez l'équipe Klik&Go : support client (réponse 48h ouvrées), boucherie partenaire, presse, partenariats. Email contact@klikandgo.app, horaires lun-ven 9h-18h.",
   alternates: { canonical: `${SITE_URL}/contact` },

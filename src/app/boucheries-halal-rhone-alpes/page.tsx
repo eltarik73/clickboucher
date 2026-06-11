@@ -12,7 +12,9 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Annuaire des boucheries halal en Auvergne-Rhône-Alpes — Klik&Go",
+  // Le titleTemplate root ("%s | Klik&Go") ajoute déjà la marque — ne pas la
+  // répéter ici sinon "… | Klik&Go | Klik&Go" (bug SEO récurrent, audit 2026-06-12).
+  title: "Annuaire des boucheries halal en Auvergne-Rhône-Alpes",
   description:
     "Annuaire complet des boucheries halal en Auvergne-Rhône-Alpes : Lyon, Grenoble, Saint-Étienne, Chambéry, Annecy, Aix-les-Bains. Plus de 30 villes couvertes, click & collect, retrait en boutique.",
   keywords: [
@@ -30,7 +32,9 @@ export const metadata: Metadata = {
     description:
       "30+ villes couvertes : Lyon, Grenoble, Saint-Étienne, Chambéry, Annecy. Click & collect, retrait en boutique.",
     url: `${SITE_URL}/boucheries-halal-rhone-alpes`,
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Boucheries halal Rhône-Alpes" }],
+    images: [
+      { url: "/og-image.png", width: 1200, height: 630, alt: "Boucheries halal Rhône-Alpes" },
+    ],
     siteName: "Klik&Go",
   },
   twitter: { card: "summary_large_image", title: "Annuaire boucheries halal Rhône-Alpes" },
@@ -48,7 +52,20 @@ export default async function RegionalHubPage() {
 
   // Top 12 cities for the hero (most populated regions)
   const topCities = SEO_CITIES.filter((c) =>
-    ["lyon", "grenoble", "saint-etienne", "chambery", "annecy", "aix-les-bains", "villeurbanne", "venissieux", "annemasse", "voiron", "bourgoin-jallieu", "roanne"].includes(c.slug),
+    [
+      "lyon",
+      "grenoble",
+      "saint-etienne",
+      "chambery",
+      "annecy",
+      "aix-les-bains",
+      "villeurbanne",
+      "venissieux",
+      "annemasse",
+      "voiron",
+      "bourgoin-jallieu",
+      "roanne",
+    ].includes(c.slug)
   );
 
   return (
@@ -101,11 +118,12 @@ export default async function RegionalHubPage() {
       {/* TLDR for AI parsers */}
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>
-          <strong>En bref :</strong> Klik&amp;Go référence les boucheries halal certifiées dans toute la région
-          Auvergne-Rhône-Alpes (5 départements : Savoie, Haute-Savoie, Isère, Rhône, Loire). Plus de 30 villes
-          couvertes : Lyon, Grenoble, Saint-Étienne, Chambéry, Annecy, Villeurbanne, Vénissieux, Vaulx-en-Velin,
-          Aix-les-Bains, Annemasse, Roanne. Commande en ligne possible chez les boucheries partenaires, retrait en
-          boutique au créneau choisi. Frais de service : 0,99€ par commande.
+          <strong>En bref :</strong> Klik&amp;Go référence les boucheries halal certifiées dans
+          toute la région Auvergne-Rhône-Alpes (5 départements : Savoie, Haute-Savoie, Isère, Rhône,
+          Loire). Plus de 30 villes couvertes : Lyon, Grenoble, Saint-Étienne, Chambéry, Annecy,
+          Villeurbanne, Vénissieux, Vaulx-en-Velin, Aix-les-Bains, Annemasse, Roanne. Commande en
+          ligne possible chez les boucheries partenaires, retrait en boutique au créneau choisi.
+          Frais de service : 0,99€ par commande.
         </p>
       </section>
 
@@ -118,22 +136,22 @@ export default async function RegionalHubPage() {
             backgroundSize: "32px 32px",
           }}
         />
-        <div className="relative max-w-5xl mx-auto px-5 py-14 sm:py-20">
+        <div className="relative mx-auto max-w-5xl px-5 py-14 sm:py-20">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white mb-6 transition"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Accueil
           </Link>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display leading-tight">
+          <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             Boucheries halal en Auvergne-Rhône-Alpes
           </h1>
-          <p className="mt-4 text-lg text-white/80 max-w-3xl">
-            L&apos;annuaire de référence des boucheries halal certifiées en Rhône-Alpes : Savoie, Haute-Savoie,
-            Isère, Rhône et Loire. Plus de 30 villes couvertes, commandez en ligne et récupérez votre viande en
-            click &amp; collect.
+          <p className="mt-4 max-w-3xl text-lg text-white/80">
+            L&apos;annuaire de référence des boucheries halal certifiées en Rhône-Alpes : Savoie,
+            Haute-Savoie, Isère, Rhône et Loire. Plus de 30 villes couvertes, commandez en ligne et
+            récupérez votre viande en click &amp; collect.
           </p>
-          <div className="flex flex-wrap items-center gap-4 mt-6 text-sm text-white/60">
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-white/60">
             <span className="inline-flex items-center gap-1.5">
               <MapPin size={14} />
               {SEO_CITIES.length} villes référencées
@@ -152,14 +170,14 @@ export default async function RegionalHubPage() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/trouver-boucherie-halal"
-              className="inline-flex items-center gap-2 px-5 py-3 bg-white text-[#DC2626] rounded-xl font-semibold hover:bg-white/90 transition"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-[#DC2626] transition hover:bg-white/90"
             >
               <Search size={18} />
               Trouver près de moi
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-5 py-3 bg-white/10 backdrop-blur text-white rounded-xl font-semibold hover:bg-white/20 transition border border-white/20"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 font-semibold text-white backdrop-blur transition hover:bg-white/20"
             >
               Voir toutes les boucheries
             </Link>
@@ -167,27 +185,27 @@ export default async function RegionalHubPage() {
         </div>
       </section>
 
-      <div className="max-w-5xl mx-auto px-5 py-10">
+      <div className="mx-auto max-w-5xl px-5 py-10">
         {/* ── Top 12 villes (carrousel cards) ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Les 12 villes les plus actives
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {topCities.map((city) => (
               <Link
                 key={city.slug}
                 href={`/boucherie-halal/${city.slug}`}
-                className="group block p-4 bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] hover:shadow-md transition"
+                className="group block rounded-xl border border-[#ece8e3] bg-white p-4 transition hover:border-[#DC2626] hover:shadow-md dark:border-white/[0.06] dark:bg-gray-800"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{city.region}</p>
-                    <p className="font-bold text-gray-900 dark:text-white text-sm">{city.name}</p>
+                    <p className="mb-0.5 text-xs text-gray-500 dark:text-gray-400">{city.region}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">{city.name}</p>
                   </div>
                   <ArrowRight
                     size={16}
-                    className="text-gray-400 group-hover:text-[#DC2626] group-hover:translate-x-0.5 transition"
+                    className="text-gray-400 transition group-hover:translate-x-0.5 group-hover:text-[#DC2626]"
                   />
                 </div>
               </Link>
@@ -197,34 +215,34 @@ export default async function RegionalHubPage() {
 
         {/* ── Pages départementales ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 font-display">
+          <h2 className="mb-2 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Par département
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
             5 départements couverts en Auvergne-Rhône-Alpes
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {citiesByDept.map((dept) => (
               <Link
                 key={dept.slug}
                 href={`/boucheries-halal/${dept.slug}`}
-                className="group block p-5 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] hover:border-[#DC2626] hover:shadow-md transition"
+                className="group block rounded-2xl border border-[#ece8e3] bg-white p-5 transition hover:border-[#DC2626] hover:shadow-md dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="mb-3 flex items-start justify-between gap-3">
                   <h3 className="font-bold text-gray-900 dark:text-white">{dept.name}</h3>
                   <ArrowRight
                     size={18}
-                    className="text-gray-400 group-hover:text-[#DC2626] group-hover:translate-x-1 transition shrink-0 mt-0.5"
+                    className="mt-0.5 shrink-0 text-gray-400 transition group-hover:translate-x-1 group-hover:text-[#DC2626]"
                   />
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
                   {dept.cities.length} villes référencées
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {dept.cities.slice(0, 4).map((c) => (
                     <span
                       key={c.slug}
-                      className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                     >
                       {c.name}
                     </span>
@@ -239,45 +257,48 @@ export default async function RegionalHubPage() {
         </section>
 
         {/* ── Contenu éditorial / E-E-A-T ── */}
-        <section className="mb-14 bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 border border-[#ece8e3] dark:border-white/[0.06]">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">
+        <section className="mb-14 rounded-2xl border border-[#ece8e3] bg-white p-6 dark:border-white/[0.06] dark:bg-gray-800 sm:p-8">
+          <h2 className="mb-4 font-display text-2xl font-bold text-gray-900 dark:text-white">
             La référence des boucheries halal en Rhône-Alpes
           </h2>
-          <div className="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 space-y-3">
+          <div className="prose prose-sm dark:prose-invert max-w-none space-y-3 text-gray-700 dark:text-gray-300">
             <p>
-              L&apos;Auvergne-Rhône-Alpes est la deuxième région la plus peuplée de France avec plus de 8 millions
-              d&apos;habitants, et abrite l&apos;une des plus importantes communautés musulmanes du pays. Lyon, Grenoble,
-              Saint-Étienne, Chambéry, Annecy, Villeurbanne, Vénissieux, Vaulx-en-Velin et leurs agglomérations
-              concentrent des centaines de boucheries halal de proximité, héritières de plusieurs générations
+              L&apos;Auvergne-Rhône-Alpes est la deuxième région la plus peuplée de France avec plus
+              de 8 millions d&apos;habitants, et abrite l&apos;une des plus importantes communautés
+              musulmanes du pays. Lyon, Grenoble, Saint-Étienne, Chambéry, Annecy, Villeurbanne,
+              Vénissieux, Vaulx-en-Velin et leurs agglomérations concentrent des centaines de
+              boucheries halal de proximité, héritières de plusieurs générations
               d&apos;artisans-bouchers.
             </p>
             <p>
-              <strong>Klik&amp;Go</strong> est l&apos;annuaire spécialisé qui référence les boucheries halal
-              certifiées de toute la région. Pour chaque ville, vous trouvez les coordonnées, horaires,
-              spécialités et la possibilité de commander en ligne chez les boucheries partenaires. Notre
-              géolocalisation vous permet aussi de trouver instantanément la boucherie halal la plus proche de
-              chez vous.
+              <strong>Klik&amp;Go</strong> est l&apos;annuaire spécialisé qui référence les
+              boucheries halal certifiées de toute la région. Pour chaque ville, vous trouvez les
+              coordonnées, horaires, spécialités et la possibilité de commander en ligne chez les
+              boucheries partenaires. Notre géolocalisation vous permet aussi de trouver
+              instantanément la boucherie halal la plus proche de chez vous.
             </p>
             <p>
-              Toutes nos boucheries partenaires sont vérifiées halal, sélectionnent leurs viandes auprès
-              d&apos;éleveurs locaux (Beaujolais, Bauges, Forez, Pilat, Aravis, Dombes, Chablais), et proposent
-              des produits frais en click &amp; collect : viande quotidienne, mais aussi spécialités pour le
-              Ramadan, l&apos;Aïd al-Adha, les mariages et les méchouis.
+              Toutes nos boucheries partenaires sont vérifiées halal, sélectionnent leurs viandes
+              auprès d&apos;éleveurs locaux (Beaujolais, Bauges, Forez, Pilat, Aravis, Dombes,
+              Chablais), et proposent des produits frais en click &amp; collect : viande
+              quotidienne, mais aussi spécialités pour le Ramadan, l&apos;Aïd al-Adha, les mariages
+              et les méchouis.
             </p>
             <p>
-              <strong>Frais de service Klik&amp;Go :</strong> seulement 0,99€ par commande, pas d&apos;abonnement,
-              pas de surcoût sur les prix des produits. Le boucher fixe ses prix, vous payez en ligne ou sur place,
-              vous récupérez votre commande au créneau qui vous arrange.
+              <strong>Frais de service Klik&amp;Go :</strong> seulement 0,99€ par commande, pas
+              d&apos;abonnement, pas de surcoût sur les prix des produits. Le boucher fixe ses prix,
+              vous payez en ligne ou sur place, vous récupérez votre commande au créneau qui vous
+              arrange.
             </p>
           </div>
         </section>
 
         {/* ── 4 piliers ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Pourquoi choisir Klik&amp;Go ?
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 emoji: "📍",
@@ -302,11 +323,15 @@ export default async function RegionalHubPage() {
             ].map((item, i) => (
               <div
                 key={i}
-                className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06]"
+                className="rounded-2xl border border-[#ece8e3] bg-white p-5 dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <div className="text-3xl mb-2">{item.emoji}</div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{item.title}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{item.desc}</p>
+                <div className="mb-2 text-3xl">{item.emoji}</div>
+                <h3 className="mb-1 text-sm font-bold text-gray-900 dark:text-white">
+                  {item.title}
+                </h3>
+                <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                  {item.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -314,7 +339,7 @@ export default async function RegionalHubPage() {
 
         {/* ── FAQ régionale ── */}
         <section className="mb-14">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+          <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
           <script
@@ -393,11 +418,11 @@ export default async function RegionalHubPage() {
             ].map((faq, i) => (
               <details
                 key={i}
-                className="group bg-white dark:bg-gray-800 rounded-xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden"
+                className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium text-gray-900 dark:text-white text-sm">
+                <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
                   {faq.q}
-                  <span className="text-gray-500 dark:text-gray-400 group-open:rotate-180 transition-transform ml-3 shrink-0">
+                  <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>

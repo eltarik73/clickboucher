@@ -1,9 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import { isTestActivated, getTestRole } from "@/lib/auth/server-auth";
+import { resolveUserRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
@@ -24,17 +23,12 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { shopId, categoryIds } = reorderSchema.parse(body);
 
-    // Verify ownership via shopId
-    let role: string | undefined;
-    if (isTestActivated()) {
-      const testRole = getTestRole();
-      role = testRole === "ADMIN" ? "admin" : undefined;
-    } else {
-      const user = await currentUser();
-      role = (user?.publicMetadata as Record<string, string>)?.role;
-    }
-    if (!isAdmin(role)) {
-      if (shopId !== authShopId) return apiError("FORBIDDEN", "Non autorise");
+    // Verify ownership via shopId.
+    // Audit sécurité 2026-06-12 : retiré currentUser/publicMetadata, utilise
+    // resolveUserRole (DB) — aligné sur categories/route.ts (fix 2026-05-09).
+    const role = await resolveUserRole();
+    if (!isAdmin(role) && shopId !== authShopId) {
+      return apiError("FORBIDDEN", "Non autorise");
     }
 
     // Validate all categories belong to this shop
@@ -42,8 +36,8 @@ export async function PATCH(req: NextRequest) {
       where: { id: { in: categoryIds } },
       select: { id: true, shopId: true },
     });
-    const allBelongToShop = categories.length === categoryIds.length &&
-      categories.every((c) => c.shopId === shopId);
+    const allBelongToShop =
+      categories.length === categoryIds.length && categories.every((c) => c.shopId === shopId);
     if (!allBelongToShop) {
       return apiError("FORBIDDEN", "Certaines categories n'appartiennent pas a cette boucherie");
     }

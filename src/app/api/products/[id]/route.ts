@@ -15,11 +15,11 @@ const PRODUCT_INCLUDE = {
 };
 
 // ── GET /api/products/[id] ─────────────────────
-// Public — product detail with all relations
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Public — product detail with all relations.
+// Audit sécurité 2026-06-12 : proPriceCents (tarif B2B) masqué pour les
+// non-CLIENT_PRO, aligné sur /api/products (listing). Le cache public ne sert
+// que la version masquée — la réponse pro n'est jamais mise en cache partagé.
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
 
@@ -32,7 +32,23 @@ export async function GET(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    return apiCached(product, 60);
+    let isPro = false;
+    try {
+      const uid = await getServerUserId();
+      if (uid) {
+        const u = await prisma.user.findUnique({ where: { clerkId: uid }, select: { role: true } });
+        isPro = u?.role === "CLIENT_PRO";
+      }
+    } catch {
+      // Not logged in — standard prices only.
+    }
+
+    if (isPro) {
+      // Per-user pricing must not land in the shared CDN cache.
+      return apiSuccess(product);
+    }
+    const { proPriceCents: _proPriceCents, ...publicProduct } = product;
+    return apiCached(publicProduct, 60);
   } catch (error) {
     return handleApiError(error);
   }
@@ -40,10 +56,7 @@ export async function GET(
 
 // ── PATCH /api/products/[id] ───────────────────
 // Boucher (owner) or Admin — update product
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
     const authId = await getServerUserId();
@@ -63,8 +76,15 @@ export async function PATCH(
     }
 
     // Check ownership: match by clerkId or DB userId
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: authId }, select: { id: true, role: true } });
-    if (!isAdmin(dbUser?.role) && product.shop.ownerId !== userId && product.shop.ownerId !== dbUser?.id) {
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId: authId },
+      select: { id: true, role: true },
+    });
+    if (
+      !isAdmin(dbUser?.role) &&
+      product.shop.ownerId !== userId &&
+      product.shop.ownerId !== dbUser?.id
+    ) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 
@@ -78,7 +98,10 @@ export async function PATCH(
         select: { id: true },
       });
       if (cats.length !== data.categoryIds.length) {
-        return apiError("VALIDATION_ERROR", "Une ou plusieurs catégories n'appartiennent pas à cette boucherie");
+        return apiError(
+          "VALIDATION_ERROR",
+          "Une ou plusieurs catégories n'appartiennent pas à cette boucherie"
+        );
       }
     }
 
@@ -145,10 +168,7 @@ export async function PATCH(
 
 // ── DELETE /api/products/[id] ──────────────────
 // Boucher (owner) or Admin — delete product
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
     const authId = await getServerUserId();
@@ -170,8 +190,15 @@ export async function DELETE(
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    const delUser = await prisma.user.findUnique({ where: { clerkId: authId }, select: { id: true, role: true } });
-    if (!isAdmin(delUser?.role) && product.shop.ownerId !== userId && product.shop.ownerId !== delUser?.id) {
+    const delUser = await prisma.user.findUnique({
+      where: { clerkId: authId },
+      select: { id: true, role: true },
+    });
+    if (
+      !isAdmin(delUser?.role) &&
+      product.shop.ownerId !== userId &&
+      product.shop.ownerId !== delUser?.id
+    ) {
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 

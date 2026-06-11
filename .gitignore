@@ -51,6 +51,10 @@ __MACOSX/
 .vercel
 .claude/skills/gstack/browse/dist/
 .claude/skills/gstack/bun.lock
+# Worktrees Claude Code — ne jamais committer (gitlinks fantômes cassent la CI)
+.claude/worktrees/
+# Artefacts d'audit locaux (screenshots, kits) — scratch, pas versionnés
+.audit-session/
 .playwright-mcp/
 product-form-check.md
 search-modal.md

@@ -33,7 +33,7 @@ jobs:
       !startsWith(github.event.pull_request.title, '[skip-review]')
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -80,7 +80,9 @@ jobs:
             - Le lint (ESLint le fait)
             - Le typing (tsc le fait)
             - Les noms de variables (pas important)
-          # Sonnet 4.5 = bon ratio qualité/coût pour reviews
-          model: claude-sonnet-4-5
-          # Trigger phrase optionnelle pour re-review manuel : "/claude review"
-          trigger_phrases: "/claude review"
+          # Modèle passé via claude_args (l'input `model` n'existe pas dans
+          # claude-code-action@v1 — il était silencieusement ignoré). Audit 2026-06-12.
+          claude_args: "--model claude-sonnet-4-6"
+          # Trigger phrase pour re-review manuel (input singulier `trigger_phrase`,
+          # pas `trigger_phrases` qui était ignoré).
+          trigger_phrase: "/claude review"

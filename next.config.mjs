@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: process.env.VERCEL ? undefined : "standalone",
+  // Masque "x-powered-by: Next.js" (réduit le fingerprinting — audit 2026-06-12).
+  poweredByHeader: false,
   experimental: {
     instrumentationHook: true,
     optimizePackageImports: [
@@ -36,6 +38,11 @@ const nextConfig = {
       // Common 404s reported by audit — map to nearest existing page
       { source: "/cgu", destination: "/cgv", permanent: true },
       { source: "/confidentialite", destination: "/politique-de-confidentialite", permanent: true },
+      // Hubs « devinables » sans segment ville (404 → page utile, capte les liens
+      // externes + jus SEO). Les routes réelles sont /[…]/[ville]. Audit 2026-06-12.
+      { source: "/devenir-boucher-partenaire", destination: "/espace-boucher", permanent: true },
+      { source: "/devenir-boucher", destination: "/espace-boucher", permanent: true },
+      { source: "/occasions", destination: "/trouver-boucherie-halal", permanent: true },
       // Boucher area aliases — sidebar uses /shop/offers but boucher namespace is more discoverable
       { source: "/boucher/offres", destination: "/shop/offers", permanent: true },
       { source: "/boucher/offers", destination: "/shop/offers", permanent: true },

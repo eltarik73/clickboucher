@@ -12,7 +12,9 @@ const PAGE_LAST_UPDATED = "2026-05-09";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "À propos de Klik&Go — Notre mission, notre équipe",
+  // La marque est intégrée au titre ("À propos de Klik&Go") — on bypasse le
+  // titleTemplate root via absolute pour éviter "… | Klik&Go" en double (audit 2026-06-12).
+  title: { absolute: "À propos de Klik&Go — Notre mission, notre équipe" },
   description:
     "Klik&Go est la première plateforme click & collect dédiée aux boucheries halal en France. Notre mission : zéro file d'attente, 100% halal certifié, 0,99€ de frais. Découvrez notre histoire, notre équipe et nos valeurs.",
   alternates: { canonical: `${SITE_URL}/a-propos` },
