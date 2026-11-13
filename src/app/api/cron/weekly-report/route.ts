@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
 
     const shopIds = shops.map(s => s.id);
 
-    // Batch fetch ALL data in 3 queries instead of 4*N
-    const [orderStats, revenueStats, topProducts] = await Promise.all([
+    // Batch fetch order stats for ALL shops in 2 queries instead of per-shop queries
+    const [orderStats, revenueStats] = await Promise.all([
       prisma.order.groupBy({
         by: ["shopId"],
         where: { shopId: { in: shopIds }, status: { in: ["COMPLETED", "PICKED_UP"] }, createdAt: { gte: weekAgo } },
@@ -30,13 +30,6 @@ export async function GET(req: NextRequest) {
         by: ["shopId"],
         where: { shopId: { in: shopIds }, status: { in: ["COMPLETED", "PICKED_UP"] }, createdAt: { gte: weekAgo } },
         _sum: { totalCents: true },
-      }),
-      prisma.orderItem.groupBy({
-        by: ["name"],
-        where: { order: { shopId: { in: shopIds }, status: { in: ["COMPLETED", "PICKED_UP"] }, createdAt: { gte: weekAgo } } },
-        _sum: { totalCents: true },
-        orderBy: { _sum: { totalCents: "desc" } },
-        take: 50,
       }),
     ]);
 

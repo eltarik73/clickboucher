@@ -10,9 +10,6 @@ updates:
       timezone: Europe/Paris
     open-pull-requests-limit: 5
     versioning-strategy: increase
-    labels:
-      - dependencies
-      - automated
     commit-message:
       prefix: chore
       prefix-development: chore(dev)
@@ -52,6 +49,23 @@ updates:
       - dependency-name: "@prisma/*"
         update-types:
           - version-update:semver-major
+      # Stripe : chaque mineure change le littéral `apiVersion` typé dans
+      # src/lib/stripe.ts (échec tsc) — montée de version manuelle uniquement
+      - dependency-name: stripe
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
+      # sharp est en 0.x : une mineure peut être cassante
+      - dependency-name: sharp
+        update-types:
+          - version-update:semver-minor
+      # Alignés sur Next 14 / Node 20 — majeures à monter avec le framework
+      - dependency-name: eslint-config-next
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
 
   # GitHub Actions versions
   - package-ecosystem: github-actions
@@ -62,9 +76,6 @@ updates:
       time: "06:00"
       timezone: Europe/Paris
     open-pull-requests-limit: 3
-    labels:
-      - ci
-      - automated
     commit-message:
       prefix: ci
       include: scope

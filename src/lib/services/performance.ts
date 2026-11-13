@@ -260,8 +260,13 @@ export async function generateAlerts(
 
 /**
  * Full refresh: calculate metrics, update Shop, generate alerts.
+ *
+ * `keepUpdatedAt` : valeur de Shop.updatedAt à conserver telle quelle. Le cron
+ * quotidien la fournit pour que ce recalcul technique ne touche pas updatedAt
+ * (lastmod du sitemap) ; metricsUpdatedAt trace le rafraîchissement. Sans
+ * valeur, Prisma met updatedAt à jour automatiquement (@updatedAt).
  */
-export async function refreshShopMetrics(shopId: string) {
+export async function refreshShopMetrics(shopId: string, keepUpdatedAt?: Date) {
   const metrics = await calculateShopMetrics(shopId);
   const score = computePerformanceScore(metrics);
 
@@ -276,6 +281,7 @@ export async function refreshShopMetrics(shopId: string) {
       cachedAvgRating: metrics.avgRating,
       performanceScore: score,
       metricsUpdatedAt: new Date(),
+      updatedAt: keepUpdatedAt,
     },
   });
 
@@ -290,12 +296,12 @@ export async function refreshShopMetrics(shopId: string) {
 export async function refreshAllShopMetrics() {
   const shops = await prisma.shop.findMany({
     where: { visible: true },
-    select: { id: true },
+    select: { id: true, updatedAt: true },
   });
 
   for (const shop of shops) {
     try {
-      await refreshShopMetrics(shop.id);
+      await refreshShopMetrics(shop.id, shop.updatedAt);
     } catch (error) {
       console.error(`[Performance] Error refreshing shop ${shop.id}:`, error);
     }

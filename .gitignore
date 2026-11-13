@@ -69,3 +69,6 @@ shop-page.md
 # prospect-scraper output (keep dir, ignore CSVs)
 /prospect-scraper-output/*.csv
 !/prospect-scraper-output/.gitkeep
+
+# Lanceur local de vérification (ports / mode test propres à la machine)
+.claude/launch.json

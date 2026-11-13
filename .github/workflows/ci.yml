@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Fake DATABASE_URL — Prisma needs a value to generate; never connects in CI
+  # DATABASE_URL du service Postgres des jobs test/build (lint/typecheck ne s'y connectent pas)
   DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
   DIRECT_DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci?schema=public"
   # Valid-format Clerk fake keys (Clerk validates prefix + base64 shape at build)
@@ -133,3 +133,60 @@ jobs:
 
       - name: Vitest run
         run: npm run test:run
+
+  build:
+    name: Build (next build + prerender check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # `next build` prérend les pages publiques (statique/ISR) en interrogeant
+    # Prisma : il lui faut une vraie base. Le DATABASE_URL / DIRECT_DATABASE_URL
+    # du workflow (ci:ci@localhost:5432/ci) pointe sur ce service.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-20-
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Apply Prisma schema to CI database
+        run: npx prisma db push --skip-generate --accept-data-loss
+
+      # prisma generate + next build. scripts/prisma-migrate-prod-only.mjs sort
+      # sans migrer hors production Vercel (VERCEL_ENV absent ici).
+      - name: Next.js build
+        run: npm run build
+
+      # Échoue si /, /cgv, /a-propos, /boucherie-halal/chambery ou /sitemap.xml
+      # ne sont plus prérendus, ou si moins de 250 routes le sont.
+      - name: Check prerendered routes
+        run: node scripts/check-prerender.mjs

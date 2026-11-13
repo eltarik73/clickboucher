@@ -20,6 +20,37 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - Singleton Prisma depuis `src/lib/prisma.ts` uniquement
 - Index sur colonnes filtrées et triées
 
+### Coût CPU Vercel (CRITIQUE — panne du 2026-11-05)
+
+Le site a été mis hors ligne 402 `DEPLOYMENT_DISABLED` : quota « Fluid Active CPU » dépassé,
+alors que le trafic humain était quasi nul. Chaque exécution de middleware ou de fonction est
+facturée, y compris pour les bots. Règles :
+
+- **JAMAIS la prop `dynamic` sur `<ClerkProvider>`** (`src/app/layout.tsx`) : elle bascule TOUTE
+  l'app en rendu par requête (298 routes sur 308) et rend `revalidate` inopérant.
+  Conséquence à connaître : `useAuth()` / `useUser()` valent `isLoaded: false` au premier rendu →
+  toujours tester `isLoaded` et mettre les flags d'auth dans les deps des effets.
+- **`config.matcher` du middleware = liste blanche** (`src/middleware.ts`). Le middleware ne tourne
+  que sur les routes protégées et l'API authentifiée. Toute nouvelle famille protégée doit être
+  ajoutée aux `createRouteMatcher` ET au matcher ; un handler API exclu du matcher ne doit jamais
+  importer `server-auth` / `boucher-auth` / `admin-auth`
+  (verrouillé par `src/lib/__tests__/middleware-matcher.test.ts`).
+- **ISR sur segment dynamique** : `revalidate` seul ne suffit pas, il faut `generateStaticParams`
+  (au besoin `return []` pour de l'ISR à la demande). `/boutique/[slug]` reste volontairement
+  dynamique (données live + appel Upstash `no-store`).
+- **Aucun appel API au montage pour un visiteur anonyme** : conditionner sur
+  `(isLoaded && isSignedIn) || hasTestModeCookie()` (`src/lib/test-mode-client.ts`).
+- **Liens en masse** (footer, sidebars) : `prefetch={false}`.
+- **Polling** : jamais de `setInterval` nu. Utiliser `useVisiblePolling` (pause onglet caché,
+  backoff sur erreur) ; le mode cuisine a sa propre boucle dans `use-order-polling.ts`.
+- **Pas de `new Date()` / `Date.now()` dans le rendu initial** d'un composant rendu côté serveur
+  (pages statiques/ISR) : calculer après montage.
+- **Le build exige une base joignable** (≈ 290 pages prérendues interrogent Prisma). Ne pas
+  « réparer » un build sans DB avec des try/catch à valeur par défaut : cela figerait des listes
+  vides et des `noindex` dans le cache ISR.
+- Garde-fou CI : job `build` + `scripts/check-prerender.mjs` (échoue si `/`, `/cgv`, `/a-propos`,
+  une page ville ou le sitemap ne sont plus prérendus).
+
 ### Next.js App Router
 
 - `"use client"` obligatoire sur composants avec hooks/browser APIs
@@ -86,8 +117,16 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
   - `lint` → `npm run lint` (ESLint)
   - `typecheck` → `npx tsc --noEmit`
   - `test` → `npm run test:run` (vitest, avec service Postgres 16)
+  - `build` → `npm run build` sur Postgres 16 (schema poussé) puis `node scripts/check-prerender.mjs`
+    (échoue si les pages publiques ne sont plus prérendues — cf. « Coût CPU Vercel »)
+- **Uptime** : `.github/workflows/uptime.yml` — toutes les 6 h, échoue si `/` ou `/sitemap.xml`
+  ne répondent pas 200 ou portent `x-vercel-error`. Contrôle EXTERNE au projet Vercel (les crons
+  internes ne tournent pas quand le projet est en pause), mais PAS suffisant seul : dépôt public,
+  GitHub désactive les workflows planifiés après 60 jours sans commit (arrivé à Claude Security
+  Review le 2026-08-31). Prévoir en plus un moniteur externe (Sentry Uptime, UptimeRobot…) sur
+  `https://klikandgo.app/` ; après une longue pause : `gh workflow enable Uptime`.
 - **Cache** : `node_modules` + `~/.npm` indexés sur `package-lock.json`. Concurrency cancel-in-progress par ref.
-- **Env stub** : `DATABASE_URL` factice, clés Clerk fake (format valide pour passer la validation au build).
+- **Env stub** : `DATABASE_URL` pointe sur le service Postgres 16 des jobs `test` et `build` ; clés Clerk fake (format valide).
 - **Dependabot** : `.github/dependabot.yml` — npm + GitHub Actions, hebdo lundi 06:00 Paris, max 5 PRs npm + 3 PRs CI. Majeurs Next/React/Clerk/Prisma ignorés (upgrade manuel).
 - **PR template** : `.github/pull_request_template.md` — checklist build/lint/typecheck/test + screenshots si UI.
 - **Vercel preview** : géré nativement par l'intégration GitHub-Vercel — pas de workflow custom.
@@ -98,7 +137,7 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - **UI** : Tailwind CSS + shadcn/ui + Lucide React
 - **Auth** : Clerk (3 rôles : CLIENT, BOUCHER, ADMIN)
 - **ORM** : Prisma + PostgreSQL (Railway)
-- **State** : Zustand + React Context (panier)
+- **State** : React Context + useReducer (panier)
 - **AI** : Anthropic SDK (support tickets)
 - **Paiement** : Paiement sur place uniquement (Stripe à venir — pas encore implémenté)
 - **Notifications** : Resend (email), web-push, Svix (webhooks)
@@ -131,7 +170,7 @@ npm run db:reset     # prisma migrate reset
 src/
 ├── app/
 │   ├── (client)/                 # Route group client
-│   │   ├── page.tsx              # Homepage (boutiques + offres, ISR 60s)
+│   │   ├── page.tsx              # Homepage (boutiques + offres, ISR 300s)
 │   │   ├── decouvrir/            # Redirect → / (legacy)
 │   │   ├── boutique/[slug]/       # Détail boutique + produits
 │   │   ├── panier/               # Panier
@@ -153,7 +192,7 @@ src/
 │   ├── boucherie-halal/[ville]/   # Pages SEO par ville (SSG)
 │   ├── robots.ts                 # robots.txt dynamique
 │   ├── sitemap.ts                # Sitemap XML (shops + villes)
-│   ├── opengraph-image.tsx       # OG image dynamique (Edge)
+│   ├── opengraph-image.tsx       # OG image (prérendue au build, runtime Node)
 │   └── api/                      # 27+ groupes de routes API
 │       ├── shops/  orders/  products/  cart/  payments/
 │       ├── auth/  users/  webhooks/  admin/  onboarding/
@@ -243,6 +282,15 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 - **Règle** : `Prénom.N` partout (ex: Tarik.B, Fatima.A)
 - **Logique** : `firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()` + `.` + `lastName.charAt(0).toUpperCase()`
 - **Appliqué dans** : OrderTicket, KitchenOrderCard, HistoryCard (page commandes)
+
+## Horaires & fuseau (Europe/Paris)
+
+- **Clés de jour** : `openingHours` est stocké avec des clés FRANÇAISES (`lundi` … `dimanche`) par
+  les réglages boucher, le seed et les créneaux. Toujours lire via `getDayHours(openingHours, jsDay)`
+  de `src/lib/shop-hours.ts` (accepte aussi `mon` … `sun`) — ne jamais indexer `hours.mon` à la main.
+- **Fuseau** : les fonctions Vercel tournent en UTC. Pour « aujourd'hui », « maintenant » ou
+  « ouvert / fermé » côté serveur, passer par `src/lib/paris-time.ts`
+  (`getParisWallClock`, `toParisWallClockDate`, `parisWallClockToUtc`), jamais `new Date().getHours()`.
 
 ## Créneaux de Retrait (Pickup Slots)
 
@@ -351,7 +399,10 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
 
 ## Monitoring (Sentry)
 
-- **SDK** : `@sentry/nextjs` configuré dans `sentry.client.config.ts` / `sentry.server.config.ts` / `sentry.edge.config.ts` (racine).
+- **SDK** : `@sentry/nextjs` configuré dans `sentry.client.config.ts` / `sentry.server.config.ts` (racine).
+- **Edge / middleware** : volontairement NON instrumenté (`webpack.autoInstrumentMiddleware: false`,
+  `sentry.edge.config.ts` n'est plus chargé par `src/instrumentation.ts`) — le SDK edge alourdissait
+  chaque cold start du middleware. Ses erreurs restent dans les logs Vercel.
 - **Wrapping** : `next.config.mjs` enveloppe avec `withSentryConfig` (org `klikandgo`, project `klikandgo-web`, `silent: true`, `hideSourceMaps: true`, `disableLogger: true`).
 - **Activation** : SDK initialisé uniquement si `SENTRY_DSN` (ou `NEXT_PUBLIC_SENTRY_DSN`) est défini ET `TEST_MODE !== "true"`.
 - **Sample rates** : prod → traces 10%, replay session 5%, replay on error 100%. Dev → traces 100%, replay 0%.
@@ -408,7 +459,7 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - **robots.ts** : Bloque /api/, /dashboard/, /admin/, /checkout/, /boucher/, /panier/, /profil/, /commandes/
 - **noindex** : Pages privées (checkout, panier, commandes, profil, onboarding) avec `robots: { index: false }`
 - **Sitemap** : Pages statiques + boutiques (DB) + villes (SEO_CITIES)
-- **OG Image** : `opengraph-image.tsx` — Edge runtime, 1200×630 PNG
+- **OG Image** : `opengraph-image.tsx` — prérendue au build (runtime Node), 1200×630 PNG
 - **Analytics** : Plausible (RGPD), conditionnel sur `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`
 
 ### JSON-LD Schemas (`src/components/seo/`)
@@ -434,7 +485,7 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 ### GEO / AIO (visibilité dans les IA — ChatGPT, Claude, Perplexity, Gemini, Bing Copilot)
 
 - **`public/llms.txt`** : description structurée de Klik&Go pour les LLMs (standard 2026 adopté par Anthropic/Stripe/Cloudflare). Bumper `lastModified` si la description change.
-- **IndexNow** (Bing/Copilot/Yandex/DuckDuckGo) : `src/lib/indexnow.ts` + clé publique dans `public/{key}.txt`. Auto-trigger sur shop validate. Endpoint manuel `POST /api/_seo/indexnow` (admin).
+- **IndexNow** (Bing/Copilot/Yandex/DuckDuckGo) : `src/lib/indexnow.ts` + clé publique dans `public/{key}.txt`. Auto-trigger sur shop validate. Endpoint manuel `POST /api/seo/indexnow` (admin).
 - **AI crawlers dans `robots.ts`** : règles explicites pour GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, ChatGPT-User, Claude-User, Google-Extended, PerplexityBot, Applebot-Extended. Allow par défaut.
 - **Freshness** : composant `<LastUpdated date="YYYY-MM-DD" />` sur pages SEO — bumper `PAGE_LAST_UPDATED` quand le contenu change vraiment (signal fort pour Perplexity/ChatGPT).
 
@@ -487,10 +538,14 @@ Auth via `verifyCronAuth(req)` — Vercel Crons envoie `Authorization: Bearer ${
 
 ⚠️ Si tu ajoutes un nouveau cron, **toujours** valider auth + try/catch + logger structuré (cf pattern `src/app/api/cron/auto-cancel/route.ts`).
 
+Le cron `/api/cron/recipes` a été retiré de `vercel.json` (2026-11) : il appelait un modèle Claude
+retiré et échouait chaque jour depuis le 2026-06-15. Pour le rétablir : migrer `recipe-generator.ts`
+vers un modèle actif, augmenter `maxDuration` de la route, créer les recettes en `featured: false`.
+
 ### GitHub Actions Claude Review (sur PRs)
 
 - `.github/workflows/claude-code-review.yml` — review PR auto par agent Claude Sonnet 4.5 contre rubric CLAUDE.md
-- `.github/workflows/claude-security-review.yml` — scan vuln (IDOR multi-tenant, auth bypass, secrets leak, etc.) sur PRs + weekly Monday 03h00
+- `.github/workflows/claude-security-review.yml` — scan vuln (IDOR multi-tenant, auth bypass, secrets leak, etc.) sur PRs uniquement (le déclencheur planifié a été retiré : il ne scannait rien hors PR et a fait désactiver le workflow pour inactivité)
 
 **Secret requis** : `ANTHROPIC_API_KEY` dans GitHub repo secrets.
 

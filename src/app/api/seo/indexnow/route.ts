@@ -1,5 +1,7 @@
-// POST /api/_seo/indexnow — admin-only manual IndexNow ping
+// POST /api/seo/indexnow — admin-only manual IndexNow ping
 // Body: { urls: string[] }
+// (Pas de dossier `_seo` : App Router ignore les dossiers préfixés par « _ »,
+// la route n'était donc jamais construite.)
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
     await notifyIndexNow(urls);
     return apiSuccess({ submitted: urls.length });
   } catch (error) {
-    return handleApiError(error, "_seo/indexnow");
+    return handleApiError(error, "seo/indexnow");
   }
 }
 

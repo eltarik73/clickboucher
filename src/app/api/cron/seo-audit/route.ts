@@ -16,6 +16,7 @@
 // Alerte Sentry si :
 //   - sitemap < 100 URLs (régression majeure)
 //   - 1+ page critique en noindex (la fameuse erreur 2026-05-09)
+//   - 1+ page critique qui ne répond pas 200 (redirection, 4xx, 5xx, timeout)
 //   - title manquant ou canonical absent
 //
 // Lecon ajoutée au skill seo-anti-penalty 2026-05-15
@@ -37,13 +38,20 @@ type CheckResult = {
   detail: string;
 };
 
+// Voit ce qu'un crawler voit : en-tête Accept de navigateur (le middleware
+// Clerk ne redirige que les requêtes HTML) et redirections NON suivies — une
+// 3xx, 4xx ou 5xx sur une URL auditée compte comme un échec (null).
 async function fetchHtml(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; KlikGoSeoAudit/1.0)" },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; KlikGoSeoAudit/1.0)",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+      redirect: "manual",
       signal: AbortSignal.timeout(10000),
     });
-    if (!res.ok) return null;
+    if (res.status !== 200) return null;
     return await res.text();
   } catch {
     return null;
@@ -146,6 +154,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const cityFetchFailed = cityChecks.filter((c) => c.robots === "fetch_failed");
+    if (cityFetchFailed.length > 0) {
+      alerts.push(
+        `${cityFetchFailed.length} SEO_CITIES non-200 : ${cityFetchFailed
+          .map((c) => c.city)
+          .join(", ")}`
+      );
+    }
+
     cityChecks.forEach((c) => {
       results.push({
         url: `/boucherie-halal/${c.city}`,
@@ -200,6 +217,13 @@ export async function GET(req: NextRequest) {
         url: "/devenir-boucher-partenaire/chambery",
         status: "ok",
         detail: "index, follow",
+      });
+    } else {
+      alerts.push("Devenir-boucher Chambéry non-200");
+      results.push({
+        url: "/devenir-boucher-partenaire/chambery",
+        status: "error",
+        detail: "fetch_failed",
       });
     }
 

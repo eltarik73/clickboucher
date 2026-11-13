@@ -9,7 +9,6 @@
     { "path": "/api/cron/auto-cancel", "schedule": "0 1 * * *" },
     { "path": "/api/cron/busy-end", "schedule": "0 2 * * *" },
     { "path": "/api/cron/performance-refresh", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/recipes", "schedule": "30 3 * * *" },
     { "path": "/api/cron/abandoned-carts", "schedule": "0 4 * * *" },
     { "path": "/api/cron/unsnooze", "schedule": "0 5 * * *" },
     { "path": "/api/cron/vacation-end", "schedule": "0 6 * * *" },

@@ -8,7 +8,12 @@ name: Claude Security Review
 #   - Lit le code source + examine interactions cross-file/modules
 #   - Donne confidence + severity + impact + repro steps + fix recommandé
 #
-# Trigger : sur chaque PR (catch les vulns avant prod) + weekly sur main (audit régulier)
+# Trigger : sur chaque PR vers main (catch les vulns avant prod).
+# L'action ne scanne QUE les événements pull_request : pour tout autre événement
+# elle sort avec "ClaudeCode only runs on pull requests, skipping". L'ancien cron
+# hebdo n'a donc jamais audité main, et c'est lui qui a fait désactiver le
+# workflow par GitHub (disabled_inactivity) — supprimé (audit 2026-11).
+# Réactivation : `gh workflow enable "Claude Security Review"`.
 #
 # Setup : requiert secret ANTHROPIC_API_KEY dans Settings → Secrets → Actions.
 
@@ -16,10 +21,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [main]
-  schedule:
-    # Audit weekly sur main : tous les lundis 03h00 UTC
-    - cron: "0 3 * * 1"
-  workflow_dispatch: # Permet trigger manuel depuis l'UI GitHub
+  workflow_dispatch: # Run manuel = vérif de démarrage uniquement (aucun scan hors PR)
 
 concurrency:
   group: claude-security-${{ github.event.pull_request.number || github.ref }}
@@ -38,8 +40,9 @@ jobs:
     timeout-minutes: 15
     # Skip les PRs Dependabot : GitHub ne transmet PAS les Actions secrets aux
     # workflows déclenchés par dependabot[bot] (store séparé), donc
-    # ANTHROPIC_API_KEY est vide → échec systématique. Le scan weekly sur main
-    # couvre déjà ces bumps. (audit 2026-06-12, aligné sur claude-code-review.yml)
+    # ANTHROPIC_API_KEY est vide → échec systématique. Ces bumps ne sont donc
+    # PAS scannés par Claude (aucun autre déclencheur ne les couvre) : seule la
+    # CI les valide. (audit 2026-06-12, aligné sur claude-code-review.yml)
     if: github.actor != 'dependabot[bot]'
 
     steps:
@@ -48,62 +51,18 @@ jobs:
           fetch-depth: 0
 
       - name: Claude Security Review
-        uses: anthropics/claude-code-security-review@main
+        # Épinglé sur un SHA de commit (main au 2026-02-11) : l'action reçoit
+        # ANTHROPIC_API_KEY et un token pull-requests:write, une ref mutable
+        # (@main) pourrait être réécrite à notre insu.
+        uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda
         with:
           claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Modèle explicite : le défaut de l'action à ce SHA est
+          # claude-opus-4-1-20250805, retiré le 2026-08-05 (échec sur chaque PR).
+          claude-model: claude-sonnet-5-5
           comment-pr: true
-          # Focus sur stack Klik&Go : Next.js + Prisma + Clerk + Stripe (à venir)
-          custom-security-scan-instructions: |
-            Klik&Go = SaaS multi-tenant Next.js 14 + Prisma + Clerk + (Stripe à venir).
-            CIBLES PRIORITAIRES de l'audit (par ordre de criticité) :
-
-            1. **IDOR multi-tenant** : data leak entre boucheries
-               - Toute requête Prisma sur Order/Product/Shop/Cart DOIT être
-                 scopée par `shopId` correspondant au user authentifié
-               - Pattern attendu : `getAuthenticatedBoucher()` puis `prisma.X.findMany({ where: { shopId } })`
-               - Cherche routes API qui font findUnique({where:{id}}) sans check ownership
-
-            2. **Auth bypass** :
-               - Routes API qui n'appellent pas `getServerUserId()` ou `getAuthenticatedBoucher()`
-               - Usage interdit de `auth()` direct Clerk (casse test mode)
-               - Routes admin sans `requireAdmin()` ou check `dbUser.role`
-
-            3. **Validation Zod** :
-               - Mutations qui ne valident pas le body avec Zod côté serveur
-               - Inputs brut directement passés à Prisma
-
-            4. **Secrets leak** :
-               - `NEXT_PUBLIC_*` variables qui contiennent des secrets
-               - `STRIPE_SECRET_KEY`, `CLERK_SECRET_KEY`, `ANTHROPIC_API_KEY`,
-                 `BING_WEBMASTER_API_KEY`, `TEST_SECRET` exposés au client
-               - URLs avec credentials embedded
-
-            5. **SSRF / Open redirect** :
-               - Routes API qui fetchent une URL fournie par l'user
-               - Redirects non-validés (params query non-allowlistés)
-
-            6. **SQL injection / XSS** :
-               - Raw SQL queries via `$queryRaw` sans `Prisma.sql` template
-               - `dangerouslySetInnerHTML` avec user content non-sanitizé
-               - Server-rendered HTML qui inclut user input sans escape
-
-            7. **CSRF** :
-               - Mutations POST/PUT/DELETE qui ne vérifient pas l'origin
-               - Webhooks Stripe/Clerk sans vérif signature
-                 (Stripe : `constructEvent()`, Clerk : Svix webhook)
-
-            8. **Rate limiting** :
-               - Endpoints sensibles (auth, search, AI tickets) sans rate limit Upstash
-
-            IGNORE :
-            - Test files (src/lib/__tests__/, tests/)
-            - Mocks / fixtures
-            - Scripts dans /scripts (manual ops)
-          # False positive filtering pour réduire le bruit
-          false-positive-filtering-instructions: |
-            - Routes publiques (homepage, listing boutiques, fiche boutique publique,
-              /boucherie-halal/[ville]) : pas besoin d'auth, c'est intentionnel
-            - Routes /api/cron/* : auth via `verifyCronAuth` (Bearer CRON_SECRET)
-            - Webhook routes : auth via signature, pas via session user
-            - SafeImage / next/image : pas un SSRF, c'est intentionnel
-            - Files src/components/seo/*: c'est du JSON-LD server-rendered, pas du HTML user-content
+          # Focus Klik&Go (Next.js + Prisma + Clerk). L'input attend un CHEMIN de
+          # fichier et l'action fait `cd "$ACTION_PATH"` avant de le lire : chemin
+          # ABSOLU obligatoire (du texte inline ou un chemin relatif est ignoré
+          # sans erreur — c'était le cas jusqu'ici).
+          custom-security-scan-instructions: ${{ github.workspace }}/.github/security/scan-instructions.txt

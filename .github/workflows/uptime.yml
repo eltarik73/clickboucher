@@ -1,0 +1,68 @@
+name: Uptime
+
+# Sonde externe : vérifie depuis GitHub (et non depuis Vercel) que klikandgo.app
+# répond. Tous les autres moniteurs (crons seo-audit / bing-daily, Sentry)
+# tournent sur le projet Vercel lui-même : quand Vercel l'a suspendu le
+# 2026-11-05 (quota CPU dépassé), plus rien ne tournait et aucune alerte n'est
+# partie pendant une semaine.
+#
+# Alerte : un run en échec déclenche l'e-mail GitHub Actions habituel, envoyé au
+# dernier compte ayant modifié la ligne `cron` ci-dessous.
+#
+# ⚠️ LIMITE CONNUE : ce dépôt est public, GitHub y désactive les workflows
+# planifiés après 60 jours sans activité (aucun commit). C'est arrivé à
+# « Claude Security Review » (disabled_inactivity depuis le 2026-08-31). Sur le
+# même calendrier (dernier commit 2026-06-12, panne 2026-11-05), cette sonde
+# aurait été coupée fin août et n'aurait rien signalé : elle ne suffit PAS
+# seule. À compléter par un moniteur externe sans cette limite (Sentry Uptime,
+# UptimeRobot, Better Stack…) sur https://klikandgo.app/.
+# Réactivation : onglet Actions → Uptime → "Enable workflow", ou
+# `gh workflow enable Uptime`.
+
+on:
+  schedule:
+    # Toutes les 6 heures (minute 17 pour éviter le pic de début d'heure)
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+# Aucun accès au dépôt ni aux secrets : simple requête HTTP publique.
+permissions: {}
+
+jobs:
+  probe:
+    name: Probe klikandgo.app
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check homepage and sitemap
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+          headers="$(mktemp)"
+          failed=0
+
+          for url in "https://klikandgo.app/" "https://klikandgo.app/sitemap.xml"; do
+            ok=0
+            for attempt in 1 2 3; do
+              status="$(curl --silent --show-error --max-time 30 --user-agent "$UA" \
+                --output /dev/null --dump-header "$headers" --write-out '%{http_code}' "$url")" || status="000"
+              vercel_error="$(grep -i '^x-vercel-error:' "$headers" | tr -d '\r' || true)"
+              if [ "$status" = "200" ] && [ -z "$vercel_error" ]; then
+                ok=1
+                break
+              fi
+              echo "Tentative $attempt/3 : $url → HTTP $status $vercel_error"
+              if [ "$attempt" -lt 3 ]; then sleep 15; fi
+            done
+
+            if [ "$ok" = "1" ]; then
+              echo "OK : $url → HTTP 200"
+            else
+              echo "::error title=klikandgo.app indisponible::$url → HTTP $status $vercel_error (attendu : 200 sans en-tête x-vercel-error)"
+              failed=1
+            fi
+          done
+
+          if [ "$failed" = "1" ]; then
+            echo "Le site ne répond pas correctement. Vérifier le statut du projet sur vercel.com (projet suspendu, quota dépassé, déploiement en erreur)."
+            exit 1
+          fi
