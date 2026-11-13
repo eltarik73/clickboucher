@@ -1,5 +1,5 @@
 // src/app/(client)/recettes/[slug]/page.tsx — Détail recette halal IA
-export const revalidate = 60;
+export const revalidate = 3600;
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -23,6 +23,14 @@ type Step = {
   number: number;
   text: string;
 };
+
+// Liste vide = ISR à la demande : chaque chemin est rendu une fois à la première
+// visite puis servi depuis le cache (sans generateStaticParams, une route à
+// segment dynamique est rendue à CHAQUE requête, même avec `revalidate`).
+// ⚠️ Suppose que <ClerkProvider> n'a PAS la prop `dynamic` (sinon 500 au runtime).
+export function generateStaticParams() {
+  return [];
+}
 
 export async function generateMetadata({
   params,

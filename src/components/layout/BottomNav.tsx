@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, Tag, ShoppingBag, User, LogIn } from "lucide-react";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { useAuth, UserButton } from "@clerk/nextjs";
 import { useCart } from "@/lib/hooks/use-cart";
 import { useTestAuth } from "@/hooks/useTestAuth";
 
@@ -26,6 +26,10 @@ export function BottomNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const { enabled: testEnabled, activated: testActivated } = useTestAuth();
+  // useAuth() vaut isLoaded:false côté serveur et au 1er rendu client (pages
+  // statiques) : on rend alors le lien « Connexion », comme <SignedOut> le
+  // faisait, sans trou dans la barre ni mismatch d'hydratation.
+  const { isSignedIn } = useAuth();
 
   // Don't show on boucher/admin/webmaster pages
   if (
@@ -86,32 +90,28 @@ export function BottomNav() {
               Test
             </span>
           </div>
+        ) : isSignedIn ? (
+          <div className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] px-2 py-1.5">
+            <UserButton afterSignOutUrl="/" />
+            <span className="text-[10px] leading-none font-medium text-gray-500 dark:text-gray-400">
+              Profil
+            </span>
+          </div>
         ) : (
-          <>
-            <SignedIn>
-              <div className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] px-2 py-1.5">
-                <UserButton afterSignOutUrl="/" />
-                <span className="text-[10px] leading-none font-medium text-gray-500 dark:text-gray-400">
-                  Profil
-                </span>
-              </div>
-            </SignedIn>
-            <SignedOut>
-              <Link
-                href="/sign-in"
-                className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] px-2 py-1.5 rounded-xl transition-colors ${
-                  pathname === "/sign-in"
-                    ? "text-[#DC2626]"
-                    : "text-gray-500 dark:text-gray-400"
-                }`}
-              >
-                <LogIn size={22} strokeWidth={1.8} />
-                <span className="text-[10px] leading-none font-medium">
-                  Connexion
-                </span>
-              </Link>
-            </SignedOut>
-          </>
+          <Link
+            href="/sign-in"
+            prefetch={false}
+            className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] px-2 py-1.5 rounded-xl transition-colors ${
+              pathname === "/sign-in"
+                ? "text-[#DC2626]"
+                : "text-gray-500 dark:text-gray-400"
+            }`}
+          >
+            <LogIn size={22} strokeWidth={1.8} />
+            <span className="text-[10px] leading-none font-medium">
+              Connexion
+            </span>
+          </Link>
         )}
       </div>
     </nav>

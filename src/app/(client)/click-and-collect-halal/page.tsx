@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 3600;
+export const revalidate = 86400; // contenu éditorial + compteurs : 1 régénération / jour suffit
 
 export default async function ClickAndCollectHalalPage() {
   const shopCount = await prisma.shop.count({ where: { visible: true } });

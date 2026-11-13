@@ -1,7 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { hasTestModeCookie } from "@/lib/test-mode-client";
 
 // ── Types ────────────────────────────────────
 
@@ -154,18 +156,55 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 const CartContext = createContext<CartContextType | null>(null);
 
+// useLayoutEffect côté navigateur (avant le premier affichage), useEffect côté serveur.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(cartReducer, initialState, loadState);
+  // Premier rendu = panier vide, côté serveur COMME côté client. Le panier de
+  // sessionStorage est relu juste après le montage (effet ci-dessous) : le lire
+  // dans l'initialiseur du reducer faisait diverger le HTML statique et le rendu
+  // client → erreur d'hydratation React sur chaque page dès qu'un panier existait.
+  const [state, dispatch] = useReducer(cartReducer, initialState);
+  const [hydrated, setHydrated] = useState(false);
   const syncTimer = useRef<ReturnType<typeof setTimeout>>();
   const initialLoadDone = useRef(false);
   const [pendingSwitch, setPendingSwitch] = useState<PendingShopSwitch | null>(null);
 
-  // Persist to sessionStorage
+  // Le panier en base n'existe que pour un utilisateur connecté (/api/cart répond
+  // vide ou 401 sinon). On n'appelle donc l'API que si Clerk confirme la session
+  // — ou en mode test, où Clerk se voit « déconnecté ». Attendre Clerk garantit
+  // aussi que la requête part avec un jeton de session rafraîchi.
+  // Lu dans des effets/refs uniquement : aucun impact sur le HTML rendu.
+  const { isLoaded, isSignedIn } = useAuth();
+  const testMode = hasTestModeCookie();
+  const canSync = (isLoaded && !!isSignedIn) || testMode;
+  const knownAnonymousRef = useRef(false);
+  knownAnonymousRef.current = isLoaded && !isSignedIn && !testMode;
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const dbLoadStarted = useRef(false);
+  const skipNextSync = useRef(false);
+
+  // Relecture du panier local, une fois, avant le premier affichage (pas de flash
+  // « panier vide »). Ce n'est pas une modification de l'utilisateur : pas de
+  // renvoi vers la base.
+  useIsomorphicLayoutEffect(() => {
+    const stored = loadState();
+    if (stored.items.length > 0) {
+      skipNextSync.current = true;
+      dispatch({ type: "SET_STATE", payload: stored });
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist to sessionStorage — jamais avant la relecture, sinon l'état vide
+  // initial écraserait le panier stocké.
   useEffect(() => {
+    if (!hydrated) return;
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch { /* SSR or quota exceeded — ignore */ }
-  }, [state]);
+  }, [state, hydrated]);
 
   // DB sync: debounced POST to /api/cart on every state change
   useEffect(() => {
@@ -174,9 +213,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Le panier vient d'être restauré depuis la base : inutile de le lui renvoyer
+    // (cela réinitialisait aussi abandonedAt / reminderSentAt côté serveur).
+    if (skipNextSync.current) {
+      skipNextSync.current = false;
+      return;
+    }
+
     if (syncTimer.current) clearTimeout(syncTimer.current);
 
     syncTimer.current = setTimeout(() => {
+      // Visiteur anonyme confirmé : pas de panier en base, l'appel finirait en 401.
+      // Tant que Clerk charge encore, on envoie comme avant (aucune perte de sync).
+      if (knownAnonymousRef.current) return;
+
       if (!state.shopId || state.items.length === 0) {
         // Clear DB cart
         fetch("/api/cart", { method: "DELETE" }).catch(() => {});
@@ -191,7 +241,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           items: state.items.map((i) => ({
             productId: i.productId || i.id,
             quantity: i.quantity,
-            weightGrams: i.weightGrams,
+            // null (article sans poids revenu de la base) → omis : l'API refuse null
+            weightGrams: i.weightGrams ?? undefined,
           })),
         }),
       }).catch(() => {});
@@ -202,12 +253,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state]);
 
-  // On mount: try loading from DB if sessionStorage is empty
+  // Dès que la session est confirmée : restaurer le panier depuis la base si le
+  // panier local est vide (une seule fois par montage).
   useEffect(() => {
+    if (!hydrated || !canSync || dbLoadStarted.current) return;
+    dbLoadStarted.current = true;
+
     async function loadFromDB() {
       try {
-        const localState = loadState();
-        if (localState.items.length > 0) return; // Local has data, don't overwrite
+        if (stateRef.current.items.length > 0) return; // Local has data, don't overwrite
 
         const res = await fetch("/api/cart");
         if (!res.ok) return;
@@ -215,6 +269,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const dbCart = json.data;
         if (!dbCart || !dbCart.items || dbCart.items.length === 0) return;
 
+        // Ne jamais écraser des articles ajoutés pendant l'attente de Clerk ou du GET
+        if (stateRef.current.items.length > 0) return;
+
+        skipNextSync.current = true;
         dispatch({
           type: "SET_STATE",
           payload: {
@@ -230,7 +288,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 priceCents: i.priceCents,
                 unit: i.unit,
                 quantity: i.quantity,
-                weightGrams: i.weightGrams,
+                weightGrams: i.weightGrams ?? undefined,
               })
             ),
           },
@@ -240,8 +298,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
     }
     loadFromDB();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canSync, hydrated]);
 
   const addItem = useCallback(
     (item: CartItem, shop: { id: string; name: string; slug: string }) => {
@@ -263,7 +320,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const updateWeight = useCallback((id: string, weightGrams: number) => dispatch({ type: "UPDATE_WEIGHT", payload: { id, weightGrams } }), []);
   const clear = useCallback(() => {
     dispatch({ type: "CLEAR" });
-    fetch("/api/cart", { method: "DELETE" }).catch(() => {});
+    if (!knownAnonymousRef.current) {
+      fetch("/api/cart", { method: "DELETE" }).catch(() => {});
+    }
   }, []);
 
   const itemCount = useMemo(() => state.items.reduce((sum, i) => sum + i.quantity, 0), [state.items]);

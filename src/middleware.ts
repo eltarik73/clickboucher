@@ -94,6 +94,12 @@ async function getUserRole(userId: string): Promise<string | undefined> {
 }
 
 const isOnboardingRoute = createRouteMatcher(["/onboarding"]);
+const isSignRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+
+// Séparateurs de chemin encodés (%2F, %5C) : jamais légitimes dans nos routes,
+// et decodeURI (utilisé par createRouteMatcher) ne les décode pas — on les refuse
+// pour qu'un chemin du type /admin%2Fdashboard ne puisse pas esquiver les règles.
+const ENCODED_SEPARATOR_RE = /%(?:2f|5c)/i;
 
 // ── Public routes: bypass Clerk ENTIRELY (no JWT verification, no cookie processing) ──
 const isPublicRoute = createRouteMatcher([
@@ -124,7 +130,6 @@ const isPublicRoute = createRouteMatcher([
 // ── Clerk middleware: only for auth-required routes ──
 const handleClerkAuth = clerkMiddleware(async (auth, req) => {
   // sign-in/sign-up: Clerk handles natively, no extra logic needed
-  const isSignRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
   if (isSignRoute(req)) return;
 
   const { userId } = await auth();
@@ -202,8 +207,21 @@ export default function middleware(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  // Public routes: zero Clerk overhead (no JWT verification, no redirections)
-  if (isPublicRoute(req)) {
+  if (ENCODED_SEPARATOR_RE.test(req.nextUrl.pathname)) {
+    return new NextResponse(null, { status: 400 });
+  }
+
+  // Public routes: zero Clerk overhead (no JWT verification, no redirections).
+  // Filet de sécurité : avec le matcher ci-dessous, seuls les chemins
+  // percent-encodés d'une page publique arrivent encore ici.
+  let isPublic: boolean;
+  try {
+    isPublic = isPublicRoute(req);
+  } catch {
+    // createRouteMatcher lève MalformedURLError sur un encodage invalide (/boutique/%)
+    return new NextResponse(null, { status: 400 });
+  }
+  if (isPublic) {
     return NextResponse.next();
   }
 
@@ -211,9 +229,48 @@ export default function middleware(req: NextRequest, event: NextFetchEvent) {
   return handleClerkAuth(req, event);
 }
 
+// ── Matcher : liste blanche ──────────────────────────────────────────────────
+// Le middleware ne s'exécute QUE là où il sert à quelque chose. Chaque exécution
+// est facturée en CPU par Vercel : l'ancien matcher « tout sauf les assets »
+// représentait 55 % du quota (panne du 2026-11-05). Pages publiques, fichiers
+// statiques, robots/sitemap et scans de bots ne passent plus ici.
+//
+// ⚠️ Toute nouvelle famille protégée ajoutée dans les createRouteMatcher
+// ci-dessus DOIT aussi être ajoutée ici (verrouillé par
+// src/lib/__tests__/middleware-matcher.test.ts). Next exige des littéraux.
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    // Pages gardées par une règle de ce fichier — mêmes chaînes que isAdminRoute,
+    // isWebmasterRoute, isBoucherRoute, isOnboardingRoute, isProtectedRoute
+    "/admin",
+    "/admin/(.*)",
+    "/webmaster",
+    "/webmaster/(.*)",
+    "/boucher",
+    "/boucher/(.*)",
+    "/onboarding",
+    "/checkout(.*)",
+    "/commandes(.*)",
+    "/profil(.*)",
+    "/chat(.*)",
+    // Pages dont le Server Component appelle auth() (qui lève sans clerkMiddleware)
+    "/admin-login",
+    "/suivi/(.*)",
+    // Clerk sign-in / sign-up (comportement inchangé)
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+    // Pages connectées qui lancent un fetch authentifié dès le montage : on garde
+    // le rafraîchissement de session côté serveur sur la requête document
+    "/commande/(.*)",
+    "/shop/offers",
+    "/dashboard/marketing",
+    // Tout chemin percent-encodé (hors /_next : les chunks de routes dynamiques
+    // contiennent %5B…%5D) : createRouteMatcher le normalise puis applique les
+    // règles (ferme le contournement /%61dmin/… — GHSA-vqx2-fgx2-5wq9)
+    "/((?!_next/).*%[0-9A-Fa-f]{2}.*)",
+    // API : tout sauf les handlers qui n'appellent jamais Clerk (crons, webhooks
+    // signés, health, test-mode, geo, shops/nearby). Un handler exclu ne doit
+    // JAMAIS importer server-auth / boucher-auth / admin-auth (test dédié).
+    "/api/((?!cron(?:/|$)|webhooks/|payments/webhook$|health$|test-mode/|geo$|shops/nearby$).*)",
   ],
 };

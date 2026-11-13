@@ -7,7 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 import { ShopCard, type ShopCardData } from "@/components/shop/ShopCard";
 
 export default function FavorisPage() {
-  const { userId } = useAuth();
+  const { userId, isLoaded } = useAuth();
   const [shops, setShops] = useState<ShopCardData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,9 +24,12 @@ export default function FavorisPage() {
   }, []);
 
   useEffect(() => {
+    // Tant que Clerk n'a pas chargé, on garde le squelette (sinon un utilisateur
+    // connecté voit brièvement « Connectez-vous »).
+    if (!isLoaded) return;
     if (userId) fetchFavorites();
     else setLoading(false);
-  }, [userId, fetchFavorites]);
+  }, [isLoaded, userId, fetchFavorites]);
 
   const stickyHeader = (
     <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
@@ -69,6 +72,7 @@ export default function FavorisPage() {
             </p>
             <Link
               href="/sign-in"
+              prefetch={false}
               className="px-6 py-2.5 bg-[#DC2626] text-white font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors"
             >
               Se connecter

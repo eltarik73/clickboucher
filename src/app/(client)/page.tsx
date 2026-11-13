@@ -1,4 +1,4 @@
-export const revalidate = 60; // ISR — rebuild every 60s
+export const revalidate = 300; // ISR — régénération au plus toutes les 5 min (la liste est rafraîchie côté client par NearbyShops)
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -238,8 +238,12 @@ export default async function HomePage() {
       return 0;
     });
   } catch (error) {
+    // Sous ISR, une erreur avalée mettrait en cache une page d'accueil vide pour
+    // toute la fenêtre. En production (build + runtime) on la relance : Next garde
+    // la dernière bonne version, et un build sans base échoue au lieu de publier
+    // une page vide. Le repli ci-dessous ne sert qu'en développement.
+    if (process.env.NODE_ENV === "production") throw error;
     dbError = true;
-    void error;
   }
 
   return (
@@ -265,6 +269,7 @@ export default async function HomePage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/recettes"
+                prefetch={false}
                 className="hidden sm:inline text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
               >
                 Recettes
@@ -354,6 +359,7 @@ export default async function HomePage() {
             </h2>
             <Link
               href="/recettes"
+              prefetch={false}
               className="text-xs font-bold text-[#991B1B] hover:text-[#7F1D1D] underline-offset-2 hover:underline transition"
             >
               Tout voir →
@@ -430,7 +436,7 @@ export default async function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <KlikGoLogo />
             <nav className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-              <Link href="/recettes" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <Link href="/recettes" prefetch={false} className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 Recettes
               </Link>
               <Link href="/mentions-legales" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -447,7 +453,7 @@ export default async function HomePage() {
               </a>
             </nav>
           </div>
-          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">&copy; 2026 Klik&amp;Go</p>
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">&copy; {new Date().getFullYear()} Klik&amp;Go</p>
         </div>
       </footer>
 

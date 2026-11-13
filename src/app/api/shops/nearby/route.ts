@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
-import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const cacheKey = `nearby:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
     try {
       const cached = await redis.get<unknown>(cacheKey);
-      if (cached) return apiSuccess(cached);
+      if (cached) return apiCached(cached, 60);
     } catch {
       // Redis down — continue without cache
     }

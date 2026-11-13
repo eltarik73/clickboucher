@@ -8,6 +8,14 @@ export const metadata: Metadata = {
     "Connectez-vous à votre compte Klik&Go pour commander chez votre boucher halal et suivre vos commandes.",
 };
 
+// Liste vide = ISR à la demande : chaque chemin est rendu une fois à la première
+// visite puis servi depuis le cache (sans generateStaticParams, une route à
+// segment dynamique est rendue à CHAQUE requête, même avec `revalidate`).
+// ⚠️ Suppose que <ClerkProvider> n'a PAS la prop `dynamic` (sinon 500 au runtime).
+export function generateStaticParams() {
+  return [];
+}
+
 export default function SignInPage() {
   return (
     <div className="min-h-screen bg-stone-50 grid place-items-center">

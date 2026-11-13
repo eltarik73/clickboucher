@@ -1,5 +1,5 @@
 // src/app/(client)/bons-plans/ramadan/page.tsx — Ramadan seasonal offers
-export const revalidate = 60;
+export const revalidate = 300;
 
 import type { Metadata } from "next";
 import Link from "next/link";

@@ -1,5 +1,5 @@
 // src/app/(client)/bons-plans/packs/page.tsx — Pack deals
-export const revalidate = 60;
+export const revalidate = 300;
 
 import type { Metadata } from "next";
 import Image from "next/image";

@@ -8,11 +8,29 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { TEST_USERS, type TestRole } from "@/lib/auth/test-auth";
+import { hasTestModeCookie, urlHasTestModeParam } from "@/lib/test-mode-client";
 
 type StatusResp = {
   success: boolean;
   data?: { enabled: boolean; activated: boolean; role: string | null };
 };
+
+// Le hook est monté jusqu'à 3 fois par page (TestRoleSwitcher, BottomNav,
+// AuthButton) : on mutualise uniquement les appels CONCURRENTS. Pas de cache
+// durable — une instance montée après l'activation doit voir le nouvel état.
+let statusInFlight: Promise<StatusResp | null> | null = null;
+
+function fetchStatusShared(): Promise<StatusResp | null> {
+  if (!statusInFlight) {
+    statusInFlight = fetch("/api/test-mode/status", { credentials: "include" })
+      .then((r) => r.json() as Promise<StatusResp>)
+      .catch(() => null)
+      .finally(() => {
+        statusInFlight = null;
+      });
+  }
+  return statusInFlight;
+}
 
 export function useTestAuth() {
   const [enabled, setEnabled] = useState(false);
@@ -20,17 +38,17 @@ export function useTestAuth() {
   const [role, setRole] = useState<TestRole>("CLIENT");
 
   useEffect(() => {
+    // Sans cookie d'activation ni ?testmode= dans l'URL, le serveur répondrait
+    // activated:false et tous les consommateurs exigent enabled && activated :
+    // inutile d'appeler l'API (1 middleware + 1 fonction par instance et par
+    // page vue, pour 100 % des visiteurs de prod).
+    if (!hasTestModeCookie() && !urlHasTestModeParam()) return;
+
     let cancelled = false;
 
     (async () => {
       // 1. Check current activation status from server
-      let status: StatusResp | null = null;
-      try {
-        const r = await fetch("/api/test-mode/status", { credentials: "include" });
-        status = (await r.json()) as StatusResp;
-      } catch {
-        status = null;
-      }
+      const status = await fetchStatusShared();
       if (cancelled) return;
 
       const isEnabled = !!status?.data?.enabled;

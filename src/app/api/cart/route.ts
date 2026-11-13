@@ -74,7 +74,7 @@ const syncCartSchema = z.object({
     z.object({
       productId: z.string().min(1),
       quantity: z.number().min(0.01),
-      weightGrams: z.number().int().optional(),
+      weightGrams: z.number().int().nullish(),
       itemNote: z.string().max(300).optional(),
     })
   ),
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
             cartId: c.id,
             productId: item.productId,
             quantity: item.quantity,
-            weightGrams: item.weightGrams,
+            weightGrams: item.weightGrams ?? undefined,
             itemNote: item.itemNote,
           })),
         });

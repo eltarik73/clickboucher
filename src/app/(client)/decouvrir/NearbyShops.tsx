@@ -2,8 +2,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { ShopCard, type ShopCardData } from "@/components/shop/ShopCard";
 import { MapPin, Loader2 } from "lucide-react";
+import { hasTestModeCookie } from "@/lib/test-mode-client";
 
 type Props = {
   initialShops: ShopCardData[];
@@ -16,8 +18,13 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
   const [geoActive, setGeoActive] = useState(false);
   // Hydrate favorites client-side so the homepage stays ISR-cacheable (no auth() on server)
   const [hydratedFavorites, setHydratedFavorites] = useState<string[]>(favoriteIds);
+  // Les favoris n'existent que pour un utilisateur connecté : pas d'appel API
+  // pour les visiteurs anonymes (l'API leur répond [] de toute façon).
+  const { isLoaded, isSignedIn } = useAuth();
+  const canLoadFavorites = (isLoaded && !!isSignedIn) || hasTestModeCookie();
 
   useEffect(() => {
+    if (!canLoadFavorites) return;
     let cancelled = false;
     (async () => {
       try {
@@ -35,14 +42,21 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canLoadFavorites]);
 
-  const fetchNearby = useCallback(async (lat: number, lng: number) => {
+  // `silent` = géolocalisation IP implicite (aucune action du visiteur) : si
+  // aucune boutique n'est dans le rayon, on garde la liste rendue par le serveur
+  // au lieu de la remplacer par une liste vide.
+  const fetchNearby = useCallback(async (lat: number, lng: number, silent = false) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/shops/nearby?lat=${lat}&lng=${lng}&radius=15`);
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
+        const hasNear = json.data.some(
+          (s: { distance?: number | null }) => typeof s.distance === "number"
+        );
+        if (silent && !hasNear) return;
         setShops(json.data);
         setGeoActive(true);
       }
@@ -78,7 +92,7 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
         const lat = Number(json?.data?.lat);
         const lng = Number(json?.data?.lng);
         if (!cancelled && isFinite(lat) && isFinite(lng) && lat !== 0 && lng !== 0) {
-          fetchNearby(lat, lng);
+          fetchNearby(lat, lng, true);
         }
       } catch {
         // Fall back to initial (server-rendered) ordering

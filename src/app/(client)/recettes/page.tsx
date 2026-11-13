@@ -205,6 +205,7 @@ export default async function RecettesPage({
               <Link
                 key={cat.tag}
                 href={`/recettes?tag=${cat.tag}`}
+                prefetch={false}
                 className="group flex gap-3 rounded-2xl border border-[#ece8e3] bg-white p-4 transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
               >
                 <div className="text-2xl">{cat.emoji}</div>
@@ -232,6 +233,7 @@ export default async function RecettesPage({
             <Link
               key={t.id || "all"}
               href={t.id ? `/recettes?tag=${t.id}` : "/recettes"}
+              prefetch={false}
               className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition ${
                 tag === t.id || (!tag && !t.id)
                   ? "bg-[#DC2626] text-white"

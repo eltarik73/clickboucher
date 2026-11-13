@@ -9,7 +9,7 @@ import { LastUpdated } from "@/components/seo/LastUpdated";
 const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // contenu éditorial + compteurs : 1 régénération / jour suffit
 
 export const metadata: Metadata = {
   // Le titleTemplate root ("%s | Klik&Go") ajoute déjà la marque — ne pas la

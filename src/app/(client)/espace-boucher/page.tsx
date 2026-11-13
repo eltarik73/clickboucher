@@ -152,6 +152,7 @@ export default function EspaceBoucherPage() {
             </Link>
             <Link
               href="/sign-in?redirect_url=/espace-boucher"
+              prefetch={false}
               className="text-sm text-gray-500 transition hover:text-white dark:text-gray-400"
             >
               Se connecter
@@ -196,6 +197,7 @@ export default function EspaceBoucherPage() {
             </Link>
             <Link
               href="/sign-in?redirect_url=/espace-boucher"
+              prefetch={false}
               className="rounded-xl border border-white/30 px-8 py-3 font-medium text-white transition-colors hover:bg-white/5"
             >
               Se connecter
@@ -448,7 +450,7 @@ export default function EspaceBoucherPage() {
             </a>
           </div>
           <div className="mt-8 border-t border-white/10 pt-8">
-            <p className="text-sm text-gray-400">&copy; 2026 Klik&amp;Go</p>
+            <p className="text-sm text-gray-400" suppressHydrationWarning>&copy; {new Date().getFullYear()} Klik&amp;Go</p>
           </div>
         </div>
       </footer>

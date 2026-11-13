@@ -19,7 +19,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 // Static-with-revalidation — page content is built from city config + a partner
 // count that rarely changes. SSG with hourly revalidation is the right tradeoff.
-export const revalidate = 3600;
+export const revalidate = 86400; // contenu éditorial + compteurs : 1 régénération / jour suffit
 
 export async function generateStaticParams() {
   return SEO_CITIES.map((city) => ({ ville: city.slug }));
@@ -135,6 +135,7 @@ export default async function DevenirBoucherPartenaireVille({
             </Link>
             <Link
               href="/sign-in?redirect_url=/espace-boucher"
+              prefetch={false}
               className="text-sm text-gray-400 transition hover:text-white"
             >
               Se connecter
@@ -609,7 +610,7 @@ export default async function DevenirBoucherPartenaireVille({
       <footer className="border-t border-white/[0.05] bg-[#0a0a0a] py-10">
         <div className="mx-auto max-w-4xl px-5 text-center">
           <p className="text-xs text-gray-500">
-            &copy; 2026 Klik&amp;Go &middot; Click &amp; Collect pour boucheries halal de proximité
+            &copy; {new Date().getFullYear()} Klik&amp;Go &middot; Click &amp; Collect pour boucheries halal de proximité
             &middot;{" "}
             <Link href="/mentions-legales" className="hover:text-gray-300">
               Mentions légales

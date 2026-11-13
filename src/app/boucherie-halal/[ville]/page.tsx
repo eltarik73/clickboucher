@@ -393,7 +393,7 @@ export default async function CityPage({ params }: { params: { ville: string } }
       <footer className="border-t border-[#ece8e3] bg-white py-8 dark:border-white/[0.06] dark:bg-white/[0.02]">
         <div className="mx-auto max-w-4xl px-5 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            &copy; 2026 Klik&amp;Go — Click &amp; Collect Boucherie Halal
+            &copy; {new Date().getFullYear()} Klik&amp;Go — Click &amp; Collect Boucherie Halal
           </p>
         </div>
       </footer>

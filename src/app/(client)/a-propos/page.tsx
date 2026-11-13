@@ -9,7 +9,7 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 const PAGE_LAST_UPDATED = "2026-05-09";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // contenu éditorial + compteurs : 1 régénération / jour suffit
 
 export const metadata: Metadata = {
   // La marque est intégrée au titre ("À propos de Klik&Go") — on bypasse le

@@ -125,7 +125,8 @@ export default function InscriptionProPage() {
               Connectez-vous pour demander un compte professionnel.
             </p>
             <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
-              <Link href="/sign-in?redirect_url=/inscription-pro">Se connecter</Link>
+              <Link href="/sign-in?redirect_url=/inscription-pro"
+              prefetch={false}>Se connecter</Link>
             </Button>
           </div>
         </main>

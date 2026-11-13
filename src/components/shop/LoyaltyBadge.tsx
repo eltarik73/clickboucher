@@ -2,7 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Gift } from "lucide-react";
+import { hasTestModeCookie } from "@/lib/test-mode-client";
 
 interface Props {
   shopId: string;
@@ -19,8 +21,13 @@ interface LoyaltyStatus {
 
 export function LoyaltyBadge({ shopId }: Props) {
   const [status, setStatus] = useState<LoyaltyStatus | null>(null);
+  // La fidélité est par utilisateur : l'API répond { active: false } aux anonymes,
+  // on ne l'appelle donc qu'une fois la session confirmée (ou en mode test).
+  const { isLoaded, isSignedIn } = useAuth();
+  const canLoad = (isLoaded && !!isSignedIn) || hasTestModeCookie();
 
   useEffect(() => {
+    if (!canLoad) return;
     fetch(`/api/loyalty?shopId=${shopId}`)
       .then((res) => {
         if (!res.ok) return null;
@@ -30,7 +37,7 @@ export function LoyaltyBadge({ shopId }: Props) {
         if (data?.success) setStatus(data.data);
       })
       .catch(() => {});
-  }, [shopId]);
+  }, [shopId, canLoad]);
 
   if (!status || !status.active) return null;
 

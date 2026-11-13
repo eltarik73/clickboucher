@@ -1,5 +1,13 @@
-import Link from "next/link";
+import NextLink from "next/link";
+import type { ComponentProps } from "react";
 import { SEO_CITIES } from "@/lib/seo/cities";
+
+// Ce footer (≈ 130 liens) est rendu sur chaque page client. Avec le prefetch par
+// défaut de next/link, chaque vue déclenchait autant de requêtes RSC dès que le
+// footer entrait dans le viewport. Les ancres et href restent identiques (SEO).
+function Link(props: ComponentProps<typeof NextLink>) {
+  return <NextLink prefetch={false} {...props} />;
+}
 
 export function SeoFooter() {
   return (
@@ -251,7 +259,10 @@ export function SeoFooter() {
       </div>
 
       <div className="border-t border-gray-200 dark:border-white/[0.06]">
-        <div className="mx-auto max-w-6xl px-4 py-5 text-center text-xs text-gray-600 dark:text-gray-400">
+        <div
+          className="mx-auto max-w-6xl px-4 py-5 text-center text-xs text-gray-600 dark:text-gray-400"
+          suppressHydrationWarning
+        >
           © {new Date().getFullYear()} Klik&Go — Click & Collect pour boucheries halal de proximité.
         </div>
       </div>

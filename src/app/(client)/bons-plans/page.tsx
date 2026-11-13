@@ -1,6 +1,6 @@
 // src/app/(client)/bons-plans/page.tsx — All active promos across all shops
 // ISR: cached, revalidated every 60s (promos don't change every second)
-export const revalidate = 60;
+export const revalidate = 300;
 
 import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
@@ -125,8 +125,10 @@ export default async function BonsPlansPage() {
       shopName: o.shop?.name || null,
       shopSlug: o.shop?.slug || null,
     }));
-  } catch {
-    // Promo fetch failed — continue with empty lists
+  } catch (error) {
+    // En production on relance : sous ISR, Next garde alors la dernière bonne page
+    // au lieu de mettre en cache des listes vides. Repli silencieux en dev uniquement.
+    if (process.env.NODE_ENV === "production") throw error;
   }
 
   // Extract unique categories

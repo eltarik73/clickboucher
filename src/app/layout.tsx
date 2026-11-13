@@ -143,8 +143,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // ⚠️ NE PAS remettre la prop `dynamic` sur ClerkProvider : elle appelle
+  // headers() à chaque requête et bascule TOUTE l'app en rendu dynamique
+  // (298 routes sur 308, ISR ignoré) — cause de la panne quota CPU du 2026-11-05.
+  // Sans elle, useAuth()/useUser() valent isLoaded:false au premier rendu.
   return (
-    <ClerkProvider localization={frFR} dynamic>
+    <ClerkProvider localization={frFR}>
       <html lang="fr" suppressHydrationWarning>
         <head>
           {/* New mobile-web-app-capable meta — coexists with apple-mobile-web-app-capable

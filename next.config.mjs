@@ -116,6 +116,9 @@ try {
     silent: true,
     hideSourceMaps: true,
     disableLogger: true,
+    // Ne pas envelopper le middleware avec Sentry : il s'exécute sur chaque
+    // requête protégée/API et chaque ms de cold start y est facturée en CPU.
+    webpack: { autoInstrumentMiddleware: false },
     // Skip source map upload at build time when no auth token is present
     // (e.g. local dev, CI without Sentry secrets)
     dryRun: !process.env.SENTRY_AUTH_TOKEN,
