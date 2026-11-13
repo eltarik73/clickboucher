@@ -10,6 +10,9 @@ export async function GET(req: NextRequest) {
     if (!verifyCronAuth(req)) return apiError("UNAUTHORIZED", "Invalid cron secret");
 
     const now = new Date();
+    // Même remise à zéro que endVacationMode (src/lib/shop-status.ts) :
+    // setVacationMode masque la boutique (visible: false), il faut donc la
+    // ré-afficher ici, sinon elle reste absente des listes et du sitemap.
     const result = await prisma.shop.updateMany({
       where: {
         vacationMode: true,
@@ -21,6 +24,7 @@ export async function GET(req: NextRequest) {
         vacationStart: null,
         vacationEnd: null,
         vacationMessage: null,
+        visible: true,
       },
     });
 

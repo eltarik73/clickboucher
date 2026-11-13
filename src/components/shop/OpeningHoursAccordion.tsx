@@ -3,33 +3,33 @@
 // page boutique → estimation -8 à -15% conversion (décision tardive bloquée).
 // Composant Server par défaut (pas d'interactivité besoin), <details> natif.
 import { Clock } from "lucide-react";
-import { getShopStatus, type OpeningHours } from "@/lib/shop-hours";
+import { getDayHours, getShopStatus, type DayHours, type OpeningHours } from "@/lib/shop-hours";
+import { toParisWallClockDate } from "@/lib/paris-time";
 
-const DAYS_FR: { key: string; label: string }[] = [
-  { key: "mon", label: "Lundi" },
-  { key: "tue", label: "Mardi" },
-  { key: "wed", label: "Mercredi" },
-  { key: "thu", label: "Jeudi" },
-  { key: "fri", label: "Vendredi" },
-  { key: "sat", label: "Samedi" },
-  { key: "sun", label: "Dimanche" },
+// jsDay : 0 = dimanche … 6 = samedi (Date#getDay()). Affichage du lundi au dimanche.
+const DAYS_FR: { jsDay: number; label: string }[] = [
+  { jsDay: 1, label: "Lundi" },
+  { jsDay: 2, label: "Mardi" },
+  { jsDay: 3, label: "Mercredi" },
+  { jsDay: 4, label: "Jeudi" },
+  { jsDay: 5, label: "Vendredi" },
+  { jsDay: 6, label: "Samedi" },
+  { jsDay: 0, label: "Dimanche" },
 ];
 
-function jsDayToKey(jsDay: number): string {
-  // 0 = Sunday, 1 = Monday … 6 = Saturday
-  return ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][jsDay];
-}
-
-function fmtRange(value: { open: string; close: string } | null | undefined): string {
-  if (!value || !value.open || !value.close) return "Fermé";
+function fmtRange(value: DayHours | null): string {
+  if (!value) return "Fermé";
   return `${value.open} – ${value.close}`;
 }
 
 export function OpeningHoursAccordion({ hours }: { hours: OpeningHours | null | undefined }) {
   if (!hours || Object.keys(hours).length === 0) return null;
 
-  const status = getShopStatus(hours);
-  const todayKey = jsDayToKey(new Date().getDay());
+  // Rendu serveur : l'horloge du runtime est en UTC sur Vercel, les boutiques
+  // sont en France → statut et jour courant calculés en heure de Paris.
+  const nowParis = toParisWallClockDate();
+  const status = getShopStatus(hours, nowParis);
+  const today = nowParis.getDay();
 
   const statusLabel =
     status.status === "OPEN"
@@ -61,11 +61,11 @@ export function OpeningHoursAccordion({ hours }: { hours: OpeningHours | null | 
         </span>
       </summary>
       <ul className="border-t border-[#ece8e3] bg-[#f8f6f3] px-4 py-3 dark:border-white/10 dark:bg-black/20">
-        {DAYS_FR.map(({ key, label }) => {
-          const isToday = key === todayKey;
+        {DAYS_FR.map(({ jsDay, label }) => {
+          const isToday = jsDay === today;
           return (
             <li
-              key={key}
+              key={jsDay}
               className={`flex items-center justify-between py-1 text-sm ${
                 isToday
                   ? "font-bold text-gray-900 dark:text-white"
@@ -79,7 +79,7 @@ export function OpeningHoursAccordion({ hours }: { hours: OpeningHours | null | 
                 )}
               </span>
               <span>
-                {fmtRange(hours[key] as { open: string; close: string } | null | undefined)}
+                {fmtRange(getDayHours(hours, jsDay))}
               </span>
             </li>
           );

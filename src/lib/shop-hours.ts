@@ -1,7 +1,9 @@
 // src/lib/shop-hours.ts — Compute shop open/closing status from opening hours JSON
 //
 // Shape of openingHours (as stored in Prisma): Record<DayKey, { open: "HH:MM"; close: "HH:MM" }>
-// where DayKey is "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat".
+// DayKey réellement enregistré par l'app (réglages boucher, seed, créneaux de retrait) :
+// "lundi" | "mardi" | "mercredi" | "jeudi" | "vendredi" | "samedi" | "dimanche".
+// Les clés anglaises courtes ("sun" | "mon" | … | "sat") restent acceptées.
 // Days without an entry (or with empty strings) are treated as closed for that day.
 
 export type OpeningHours = Record<string, { open: string; close: string } | null | undefined>;
@@ -12,6 +14,24 @@ export type ShopStatus =
   | { status: "CLOSED" };
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+const DAY_KEYS_FR = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"] as const;
+
+export type DayHours = { open: string; close: string };
+
+/**
+ * Horaires d'un jour (0 = dimanche … 6 = samedi, comme Date#getDay()).
+ * Accepte les clés françaises (celles que l'app enregistre) et, à défaut, les
+ * clés anglaises courtes. Retourne null si le jour est fermé ou non renseigné.
+ */
+export function getDayHours(
+  openingHours: OpeningHours | null | undefined,
+  jsDay: number,
+): DayHours | null {
+  if (!openingHours || typeof openingHours !== "object") return null;
+  const day = openingHours[DAY_KEYS_FR[jsDay]] ?? openingHours[DAY_KEYS[jsDay]];
+  if (!day || !day.open || !day.close) return null;
+  return { open: day.open, close: day.close };
+}
 
 function parseHHMM(value: string): number | null {
   const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
@@ -32,13 +52,8 @@ export function getShopStatus(
   now: Date = new Date(),
   closingSoonMinutes = 60,
 ): ShopStatus {
-  if (!openingHours || typeof openingHours !== "object") {
-    return { status: "CLOSED" };
-  }
-
-  const dayKey = DAY_KEYS[now.getDay()];
-  const day = openingHours[dayKey];
-  if (!day || !day.open || !day.close) return { status: "CLOSED" };
+  const day = getDayHours(openingHours, now.getDay());
+  if (!day) return { status: "CLOSED" };
 
   const openMin = parseHHMM(day.open);
   const closeMin = parseHHMM(day.close);

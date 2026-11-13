@@ -3,6 +3,7 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { earliestPickupMinutes, getParisWallClock, parisWallClockToUtc } from "@/lib/paris-time";
 
 export const dynamic = "force-dynamic";
 
@@ -69,23 +70,30 @@ export async function GET(
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
 
-    const now = new Date();
-    const isToday = dateStr === now.toISOString().slice(0, 10);
+    // "Aujourd'hui" et "maintenant" en heure de Paris : le serveur tourne en UTC
+    // (Vercel), son horloge proposerait des créneaux déjà passés de 1 à 2 h.
+    const paris = getParisWallClock();
+    // Jour déjà écoulé à Paris (ex. panier ouvert entre 00h et 02h, qui envoie
+    // encore la date UTC de la veille) : aucun créneau à proposer.
+    if (dateStr < paris.dateKey) {
+      return apiSuccess({ slots: [], message: "Date passée" });
+    }
+    const isToday = dateStr === paris.dateKey;
     // Minimum pickup: now + 10 min margin, rounded UP to next slot boundary
-    // 13h09 → 13h30 | 13h22 → 14h00 | 14h31 → 15h00
-    const rawMin = now.getHours() * 60 + now.getMinutes() + 10;
-    const remainder = rawMin % intervalMin;
-    const nowMinutes = isToday ? (remainder === 0 ? rawMin : rawMin + intervalMin - remainder) : 0;
+    // 13h09 → 13h30 | 13h22 → 14h00 | 14h05 → 14h30 | 14h31 → 15h00
+    const nowMinutes = isToday ? earliestPickupMinutes(paris.minutesOfDay, intervalMin) : 0;
 
-    // Count existing orders per slot for this date
-    const dayStart = new Date(dateStr + "T00:00:00Z");
-    const dayEnd = new Date(dateStr + "T23:59:59Z");
+    // Count existing orders per slot for this date. Les commandes stockent
+    // l'instant réel du créneau : on convertit donc la journée et chaque créneau
+    // de l'heure de Paris vers UTC (sinon les compteurs sont décalés de 1 à 2 h).
+    const dayStart = parisWallClockToUtc(dateStr, 0);
+    const dayEnd = parisWallClockToUtc(dateStr, 24 * 60);
 
     const orders = await prisma.order.findMany({
       where: {
         shopId: id,
         status: { notIn: ["CANCELLED", "DENIED", "AUTO_CANCELLED"] },
-        pickupSlotStart: { gte: dayStart, lte: dayEnd },
+        pickupSlotStart: { gte: dayStart, lt: dayEnd },
       },
       select: { pickupSlotStart: true },
     });
@@ -108,8 +116,7 @@ export async function GET(
       const h2 = Math.floor((min + intervalMin) / 60);
       const m2 = (min + intervalMin) % 60;
 
-      const slotStart = new Date(`${dateStr}T${String(h1).padStart(2, "0")}:${String(m1).padStart(2, "0")}:00Z`);
-      const key = slotStart.toISOString();
+      const key = parisWallClockToUtc(dateStr, min).toISOString();
       const count = slotCounts[key] || 0;
       const remaining = maxPerSlot - count;
 

@@ -1,7 +1,15 @@
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
-// Map short DB day keys → schema.org dayOfWeek
+// Clés de jour en base → schema.org dayOfWeek. L'app enregistre des clés
+// françaises (lundi … dimanche) ; les clés anglaises courtes restent acceptées.
 const DAY_MAP: Record<string, string> = {
+  lundi: "Monday",
+  mardi: "Tuesday",
+  mercredi: "Wednesday",
+  jeudi: "Thursday",
+  vendredi: "Friday",
+  samedi: "Saturday",
+  dimanche: "Sunday",
   mon: "Monday",
   tue: "Tuesday",
   wed: "Wednesday",

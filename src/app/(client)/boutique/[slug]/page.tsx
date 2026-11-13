@@ -1,4 +1,8 @@
-export const revalidate = 30; // ISR — rebuild every 30s
+// Pas d'ISR ici : sans generateStaticParams, ce segment dynamique est rendu à
+// chaque requête et `revalidate` seul ne met pas la page en cache. Ne pas
+// ajouter generateStaticParams tel quel : getShop lit Upstash (fetch no-store),
+// ce qui fait échouer la génération statique en production.
+export const revalidate = 30;
 
 import { cache } from "react";
 import type { Metadata } from "next";
@@ -93,7 +97,7 @@ export async function generateMetadata({
   const shop = await getShop(params.slug);
 
   // Audit 2026-06-12 : déclencher le 404 ici (avant le flush des headers en
-  // streaming ISR) au lieu de retourner un title — sinon la page renvoyait
+  // streaming) au lieu de retourner un title — sinon la page renvoyait
   // HTTP 200 + double meta robots contradictoire (soft-404). getShop est
   // mémoïsé (cache() + Redis), donc zéro requête supplémentaire pour le body.
   if (!shop) {
@@ -150,8 +154,9 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
 
   if (!shop) notFound();
 
-  // Favorites & proStatus are handled client-side (FavoriteButton + ShopProductsClient)
-  // Removing server-side auth() allows this page to be ISR-cached (revalidate: 30s)
+  // Favorites & proStatus are handled client-side (FavoriteButton + ShopProductsClient),
+  // so this page needs no server-side auth(). It is still rendered on every request
+  // (not ISR-cached — see the note on `revalidate` at the top of this file).
 
   // Fetch active offers for this shop (banner + eligible products)
   const now = new Date();
@@ -497,6 +502,7 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
                     {new Date(shop.pauseEndsAt).toLocaleTimeString("fr-FR", {
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: "Europe/Paris",
                     })}
                   </span>
                 </>

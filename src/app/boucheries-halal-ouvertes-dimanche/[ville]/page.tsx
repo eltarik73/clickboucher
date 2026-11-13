@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getDayHours, type OpeningHours } from "@/lib/shop-hours";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarClock, MapPin, ArrowRight } from "lucide-react";
@@ -109,13 +110,10 @@ export default async function SundayCityPage({ params }: { params: { ville: stri
     orderBy: { rating: "desc" },
   });
 
-  // Filter shops open on Sunday (sun key in openingHours JSON)
-  const sundayShops = shops.filter((s) => {
-    const oh = s.openingHours as Record<string, { open: string; close: string } | null> | null;
-    if (!oh) return false;
-    const sun = oh.sun;
-    return !!(sun && sun.open && sun.close);
-  });
+  // Boutiques ouvertes le dimanche (jsDay 0) — clés françaises ou anglaises
+  const sundayShops = shops.filter(
+    (s) => getDayHours(s.openingHours as OpeningHours | null, 0) !== null
+  );
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
@@ -176,12 +174,8 @@ export default async function SundayCityPage({ params }: { params: { ville: stri
                   openingHoursSpecification: {
                     "@type": "OpeningHoursSpecification",
                     dayOfWeek: "Sunday",
-                    opens: (
-                      s.openingHours as Record<string, { open: string; close: string } | null>
-                    )?.sun?.open,
-                    closes: (
-                      s.openingHours as Record<string, { open: string; close: string } | null>
-                    )?.sun?.close,
+                    opens: getDayHours(s.openingHours as OpeningHours | null, 0)?.open,
+                    closes: getDayHours(s.openingHours as OpeningHours | null, 0)?.close,
                   },
                 },
               })),

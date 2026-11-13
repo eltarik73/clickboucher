@@ -11,6 +11,7 @@ import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { getNextDailyNumber, ensureCustomerNumber } from "@/lib/services/numbering.service";
 import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
 import { logger } from "@/lib/logger";
+import { PARIS_TIME_ZONE } from "@/lib/paris-time";
 
 type CreateErrorCode =
   | "VALIDATION_ERROR"
@@ -402,7 +403,11 @@ export async function createOrder(
 
   // ── Fire-and-forget: notifications + email + auto-busy ──
   const pickupTimeStr = isScheduled
-    ? new Date(data.pickupSlotStart!).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(data.pickupSlotStart!).toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: PARIS_TIME_ZONE,
+      })
     : undefined;
 
   Promise.all([

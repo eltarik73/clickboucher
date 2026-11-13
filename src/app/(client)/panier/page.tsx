@@ -16,6 +16,14 @@ import CartSuggestions from "@/components/cart/CartSuggestions";
 
 // ── Helpers ──────────────────────────────────────
 
+// Date locale du navigateur au format "YYYY-MM-DD". Ne pas utiliser
+// toISOString() : entre 00h et 02h en France, la date UTC est celle de la veille.
+function localDateKey(d: Date): string {
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
 function fmtPrice(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
@@ -138,7 +146,7 @@ export default function PanierPage() {
   const [paymentMethod, setPaymentMethod] = useState<"ON_PICKUP" | "ONLINE">("ON_PICKUP");
 
   // Pickup slots
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [selectedDate, setSelectedDate] = useState(() => localDateKey(new Date()));
   const [slots, setSlots] = useState<PickupSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<PickupSlot | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -168,8 +176,10 @@ export default function PanierPage() {
     type: string;
   } | null>(null);
 
-  // Available loyalty rewards
-  const [availableRewards, setAvailableRewards] = useState<{ code: string; rewardCents: number | null; rewardPercent: number | null; rewardType: string }[]>([]);
+  // Available loyalty rewards — GET /api/loyalty/available no longer exists
+  // (removed in d862811), so the list stays empty and the reward suggestion
+  // below stays hidden, exactly as when the call returned 404.
+  const [availableRewards] = useState<{ code: string; rewardCents: number | null; rewardPercent: number | null; rewardType: string }[]>([]);
 
   // Shop payment config
   const [shopAcceptOnline, setShopAcceptOnline] = useState(false);
@@ -202,15 +212,6 @@ export default function PanierPage() {
       })
       .catch(() => {});
   }, [state.shopId]);
-
-  // Fetch available loyalty rewards
-  useEffect(() => {
-    if (!isSignedIn) return;
-    fetch("/api/loyalty/available")
-      .then((r) => r.json())
-      .then((json) => { if (json.data?.rewards) setAvailableRewards(json.data.rewards); })
-      .catch(() => {});
-  }, [isSignedIn]);
 
   // Validate cart products still exist in the shop
   useEffect(() => {
@@ -254,7 +255,7 @@ export default function PanierPage() {
       const json = await res.json();
       let fetchedSlots: PickupSlot[] = json.data?.slots || [];
       // Client-side filter: hide slots whose start time has already passed (+ 10 min margin)
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateKey(new Date());
       if (selectedDate === today) {
         const now = new Date();
         const nowMin = now.getHours() * 60 + now.getMinutes() + 10;
@@ -323,11 +324,11 @@ export default function PanierPage() {
   const finalTotal = subtotalAfterDiscount + serviceFeeCents;
 
   function navigateDate(dir: number) {
-    const d = new Date(selectedDate);
+    const d = new Date(`${selectedDate}T00:00:00`);
     d.setDate(d.getDate() + dir);
-    const today = new Date().toISOString().slice(0, 10);
-    if (d.toISOString().slice(0, 10) < today) return;
-    setSelectedDate(d.toISOString().slice(0, 10));
+    const today = localDateKey(new Date());
+    if (localDateKey(d) < today) return;
+    setSelectedDate(localDateKey(d));
     setSelectedSlot(null);
   }
 
@@ -643,6 +644,7 @@ export default function PanierPage() {
                   </div>
                   <Link
                     href="/sign-in?redirect_url=/panier"
+              prefetch={false}
                     className="text-xs font-semibold text-[#DC2626] hover:underline whitespace-nowrap shrink-0"
                   >
                     J&apos;ai un compte
@@ -1027,7 +1029,7 @@ export default function PanierPage() {
           shopName={state.shopName}
           pickupLabel={
             timeMode === "slot" && selectedSlot
-              ? `Retrait : ${selectedDate === new Date().toISOString().slice(0, 10) ? "Aujourd'hui" : selectedDate} ${selectedSlot.start}-${selectedSlot.end}`
+              ? `Retrait : ${selectedDate === localDateKey(new Date()) ? "Aujourd'hui" : selectedDate} ${selectedSlot.start}-${selectedSlot.end}`
               : "Retrait : Des que possible"
           }
           onCancel={() => {

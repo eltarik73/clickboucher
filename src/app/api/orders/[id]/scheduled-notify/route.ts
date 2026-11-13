@@ -8,6 +8,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { PARIS_TIME_ZONE } from "@/lib/paris-time";
 
 export async function POST(
   _req: NextRequest,
@@ -73,6 +74,7 @@ export async function POST(
     const pickupTime = order.pickupSlotStart.toLocaleTimeString("fr-FR", {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: PARIS_TIME_ZONE,
     });
 
     // Send notification to client

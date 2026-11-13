@@ -5,7 +5,7 @@
 // availability or hide perfectly open shops.
 
 import { describe, it, expect } from "vitest";
-import { getShopStatus, formatClosingHint } from "@/lib/shop-hours";
+import { getShopStatus, getDayHours, formatClosingHint } from "@/lib/shop-hours";
 
 // Helpers — using a fixed Saturday "2024-06-01" so we always know which day
 // key (sat / sun / mon …) the function will pick.
@@ -66,5 +66,39 @@ describe("formatClosingHint", () => {
     expect(
       formatClosingHint({ status: "CLOSING_SOON", closesAt, minutesLeft: 45 }),
     ).toBe("Ferme à 19h05");
+  });
+});
+
+// Les boutiques enregistrent leurs horaires avec des clés françaises
+// (réglages boucher, seed, créneaux de retrait). Régression historique : les
+// lecteurs n'acceptaient que mon…sun, donc toute boutique apparaissait « Fermé ».
+describe("clés de jour françaises (format réellement stocké)", () => {
+  const HOURS_FR = {
+    lundi: { open: "09:00", close: "19:00" },
+    samedi: { open: "09:00", close: "19:00" },
+    dimanche: null,
+  };
+
+  it("getShopStatus lit les clés françaises", () => {
+    expect(getShopStatus(HOURS_FR, at("12:00")).status).toBe("OPEN");
+    expect(getShopStatus(HOURS_FR, at("08:00")).status).toBe("CLOSED");
+    expect(getShopStatus(HOURS_FR, at("18:30")).status).toBe("CLOSING_SOON");
+  });
+
+  it("getDayHours accepte les deux jeux de clés, le français d'abord", () => {
+    expect(getDayHours(HOURS_FR, 6)).toEqual({ open: "09:00", close: "19:00" });
+    expect(getDayHours(HOURS_FR, 1)).toEqual({ open: "09:00", close: "19:00" });
+    expect(getDayHours({ sat: { open: "10:00", close: "12:00" } }, 6)).toEqual({ open: "10:00", close: "12:00" });
+    expect(
+      getDayHours({ samedi: { open: "09:00", close: "19:00" }, sat: { open: "10:00", close: "12:00" } }, 6)
+    ).toEqual({ open: "09:00", close: "19:00" });
+  });
+
+  it("getDayHours renvoie null pour un jour fermé, absent ou incomplet", () => {
+    expect(getDayHours(HOURS_FR, 0)).toBeNull();
+    expect(getDayHours(HOURS_FR, 2)).toBeNull();
+    expect(getDayHours({ mardi: { open: "", close: "19:00" } }, 2)).toBeNull();
+    expect(getDayHours(null, 1)).toBeNull();
+    expect(getDayHours(undefined, 1)).toBeNull();
   });
 });
