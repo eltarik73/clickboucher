@@ -26,6 +26,8 @@ import {
   Settings,
   Pause,
   LayoutGrid,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 // Logo uses <a> tag for dashboard navigation (no client-side nav needed)
 import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
@@ -64,6 +66,10 @@ import { toast } from "sonner";
 // ─────────────────────────────────────────────
 type Tab = "nouvelles" | "en-cours" | "pretes" | "historique";
 const THIRTY_MIN = 30 * 60 * 1000;
+// Wi-Fi icon turns red when no poll has succeeded for this long (above the 15 s hidden-tab cadence)
+const CONNECTION_STALE_MS = 20_000;
+// Minimum delay between two shop-status refetches for the same expired pause
+const PAUSE_EXPIRY_RETRY_MS = 15_000;
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -118,6 +124,8 @@ export default function KitchenModePage() {
   const [shopStatus, setShopStatus] = useState("OPEN");
   const [shopPauseEndsAt, setShopPauseEndsAt] = useState<string | null>(null);
   const [pauseCountdownStr, setPauseCountdownStr] = useState<string | null>(null);
+  // Last refetch triggered by an expired pause (one per pauseEndsAt value, retried every 15 s at most)
+  const expiredPauseFetchRef = useRef<{ key: string; at: number } | null>(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [selectedPauseDuration, setSelectedPauseDuration] = useState(15);
 
@@ -148,9 +156,9 @@ export default function KitchenModePage() {
     return false;
   });
 
-  // Connected indicator
+  // Connected indicator — fed by the timestamp of the last successful poll
   const [connected, setConnected] = useState(true);
-  const lastFetchRef = useRef(Date.now());
+  const lastSuccessRef = useRef<number | null>(null);
 
   // Live clock (ticks every second)
   const [clockStr, setClockStr] = useState(() =>
@@ -185,6 +193,8 @@ export default function KitchenModePage() {
     readyCount,
     historyCount,
     refetch,
+    authExpired,
+    lastSuccessAt,
   } = useOrderPolling({
     intervalMs: 5000,
     onNewOrder: (order) => {
@@ -232,18 +242,22 @@ export default function KitchenModePage() {
   const { sendOrderNotification } = useKitchenNotifications(pendingCount);
   sendNotificationRef.current = sendOrderNotification;
 
-  // Track connection status
+  // Track connection status — green as soon as a poll succeeds…
   useEffect(() => {
-    if (!loading) {
-      lastFetchRef.current = Date.now();
-      setConnected(true);
-    }
+    if (lastSuccessAt === null) return;
+    lastSuccessRef.current = lastSuccessAt;
+    setConnected(true);
+  }, [lastSuccessAt]);
+
+  // …red once no poll has succeeded for CONNECTION_STALE_MS
+  useEffect(() => {
+    const mountedAt = Date.now();
     const checker = setInterval(() => {
-      const stale = Date.now() - lastFetchRef.current > 15_000;
-      setConnected(!stale);
+      const reference = lastSuccessRef.current ?? mountedAt;
+      setConnected(Date.now() - reference <= CONNECTION_STALE_MS);
     }, 5000);
     return () => clearInterval(checker);
-  }, [loading]);
+  }, []);
 
   // ── Fetch shop info (once + on status change) ──
   const fetchShopInfo = useCallback(async () => {
@@ -272,7 +286,13 @@ export default function KitchenModePage() {
         const diffMs = new Date(shopPauseEndsAt).getTime() - Date.now();
         if (diffMs <= 0) {
           setPauseCountdownStr(null);
-          fetchShopInfo();
+          // Pause over: refetch once per pauseEndsAt value, then at most every 15 s
+          // while the server still returns it (failed request, clock skew)
+          const last = expiredPauseFetchRef.current;
+          if (!last || last.key !== shopPauseEndsAt || Date.now() - last.at > PAUSE_EXPIRY_RETRY_MS) {
+            expiredPauseFetchRef.current = { key: shopPauseEndsAt, at: Date.now() };
+            fetchShopInfo();
+          }
         } else {
           const m = Math.floor(diffMs / 60000);
           const s = Math.floor((diffMs % 60000) / 1000);
@@ -687,6 +707,26 @@ export default function KitchenModePage() {
             </a>
           </div>
         </header>
+
+        {/* ── SESSION EXPIRED BANNER (3 consecutive 401/403 on the orders poll) ── */}
+        {authExpired && (
+          <div
+            role="alert"
+            className="shrink-0 px-3 sm:px-4 py-2 flex items-center justify-between gap-3 bg-red-500/15 border-b border-red-500/30"
+          >
+            <p className="text-sm font-bold text-red-300 min-w-0">
+              <AlertTriangle size={14} className="inline mr-1.5 -mt-0.5" />
+              Session expirée
+              <span className="font-medium text-red-200/80"> — les nouvelles commandes ne s'affichent plus. Rechargez la page pour vous reconnecter.</span>
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="shrink-0 flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-4 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold rounded-lg transition-all text-sm"
+            >
+              <RefreshCw size={16} /> Recharger
+            </button>
+          </div>
+        )}
 
         {/* ── PAUSE BANNER (v3 — fond discret, countdown) ── */}
         {shopStatus === "PAUSED" && (

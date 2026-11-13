@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import { useVisiblePolling } from "@/hooks/useVisiblePolling";
 import {
   Clock,
   Store,
@@ -134,18 +135,17 @@ export default function WebmasterCapacitePage() {
         setCalendarEvents(d.data.calendarEvents);
         setTotalOrdersToday(d.data.totalOrdersToday);
       }
+      return Boolean(d.success);
     } catch {
       toast.error("Erreur de connexion au serveur");
+      return false;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-    const iv = setInterval(fetchData, 60_000); // refresh every minute
-    return () => clearInterval(iv);
-  }, [fetchData]);
+  // Rafraîchi chaque minute, uniquement onglet visible (backoff si l'API échoue)
+  useVisiblePolling(fetchData, 60_000);
 
   /* ── filter & sort ── */
   const filtered = shops

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -17,6 +17,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
+import { useVisiblePolling } from "@/hooks/useVisiblePolling";
 
 const NAV_ITEMS = [
   { key: "dashboard",  label: "Dashboard",   href: "/boucher/dashboard",  icon: LayoutDashboard },
@@ -52,16 +53,14 @@ export function BoucherNav() {
         const proposals = json.data?.proposals || [];
         setProposalCount(proposals.filter((p: { status: string }) => p.status === "PENDING").length);
       }
+      return ordersRes.ok;
     } catch {
-      // silent
+      return false;
     }
   }, []);
 
-  useEffect(() => {
-    fetchPending();
-    const interval = setInterval(fetchPending, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchPending]);
+  // Badges : rafraîchis toutes les 30 s, uniquement onglet visible (backoff si /api/orders échoue)
+  useVisiblePolling(fetchPending, 30_000);
 
   function getBadgeCount(badge: string | undefined): number {
     if (badge === "orders") return pendingCount;
@@ -75,7 +74,7 @@ export function BoucherNav() {
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-[#141414] border-r border-gray-200 dark:border-white/10 flex-col z-40">
         {/* Logo — valorized with glow */}
         <div className="px-5 py-6 border-b border-gray-100 dark:border-white/10">
-          <Link href="/boucher/dashboard" className="flex flex-col items-center gap-2">
+          <Link href="/boucher/dashboard" prefetch={false} className="flex flex-col items-center gap-2">
             <div className="relative">
               <div className="absolute inset-0 blur-2xl opacity-15 dark:opacity-30 bg-[#DC2626] rounded-full scale-150" />
               <KlikLogo size={48} className="relative z-10" />
@@ -91,6 +90,7 @@ export function BoucherNav() {
         <div className="px-3 pt-4 pb-2">
           <Link
             href="/boucher/commandes"
+            prefetch={false}
             className="flex items-center justify-center gap-2 bg-primary hover:bg-[#b91c1c] text-white font-bold py-3 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-[#DC2626]/25"
           >
             <ChefHat size={18} />
@@ -113,6 +113,7 @@ export function BoucherNav() {
               <Link
                 key={item.key}
                 href={item.href}
+                prefetch={false}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
@@ -145,6 +146,7 @@ export function BoucherNav() {
               <Link
                 key={item.key}
                 href={item.href}
+                prefetch={false}
                 className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
                   isActive ? "text-primary dark:text-primary" : "text-gray-500 dark:text-gray-400"
                 }`}

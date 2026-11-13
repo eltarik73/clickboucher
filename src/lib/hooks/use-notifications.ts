@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useVisiblePolling } from "@/hooks/useVisiblePolling";
 
 export type AppNotification = {
   id: string;
@@ -11,25 +12,24 @@ export type AppNotification = {
   createdAt: string;
 };
 
-export function useNotifications() {
+/** `enabled = false` : aucun appel réseau (visiteur non connecté). */
+export function useNotifications(enabled = true) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications");
-      if (!res.ok) return;
+      if (!res.ok) return false;
       const json = await res.json();
       setNotifications(json.data || []);
+      return true;
     } catch {
-      // silent
+      return false;
     }
   }, []);
 
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  // Rafraîchi toutes les 30 s, uniquement onglet visible (backoff si l'API échoue)
+  useVisiblePolling(fetchNotifications, 30_000, enabled);
 
   const markAsRead = useCallback(async (id: string) => {
     setNotifications((prev) =>

@@ -33,7 +33,7 @@ export function AdminSidebar() {
     <aside className="hidden md:flex flex-col w-[250px] h-screen bg-white dark:bg-[#141414] border-r border-gray-200 dark:border-white/10 shrink-0 sticky top-0">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100 dark:border-white/10">
-        <Link href="/admin/dashboard" className="flex items-center gap-2">
+        <Link href="/admin/dashboard" prefetch={false} className="flex items-center gap-2">
           <span className="text-lg font-bold text-[#DC2626]">Klik&Go</span>
           <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
             Admin
@@ -52,6 +52,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-[#DC2626]/10 text-[#DC2626]"
@@ -69,6 +70,7 @@ export function AdminSidebar() {
       <div className="px-6 py-4 border-t border-gray-100 dark:border-white/10">
         <Link
           href="/"
+          prefetch={false}
           className="text-xs text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors"
         >
           ← Retour au site
@@ -94,6 +96,7 @@ export function AdminMobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
                 isActive
                   ? "text-[#DC2626]"
@@ -136,6 +139,7 @@ export function AdminMobileHeader({
         </div>
         <Link
           href="/"
+          prefetch={false}
           className="text-xs text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors"
         >
           ← Site
@@ -171,6 +175,7 @@ export function AdminMobileHeader({
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     onClick={onToggle}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   LayoutDashboard,
   Store,
@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
+import { useVisiblePolling } from "@/hooks/useVisiblePolling";
 
 type NavItem = {
   key: string;
@@ -106,20 +107,17 @@ export function WebmasterNav() {
   const fetchAlerts = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/stats");
-      if (res.ok) {
-        const json = await res.json();
-        setPendingCount(json.data?.pendingOrders || 0);
-      }
+      if (!res.ok) return false;
+      const json = await res.json();
+      setPendingCount(json.data?.pendingOrders || 0);
+      return true;
     } catch {
-      // silent
+      return false;
     }
   }, []);
 
-  useEffect(() => {
-    fetchAlerts();
-    const interval = setInterval(fetchAlerts, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchAlerts]);
+  // Badge : rafraîchi toutes les 30 s, uniquement onglet visible (backoff si l'API échoue)
+  useVisiblePolling(fetchAlerts, 30_000);
 
   function isActive(item: NavItem) {
     if (item.exact) return pathname === item.href;
@@ -141,7 +139,7 @@ export function WebmasterNav() {
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-[220px] bg-white dark:bg-[#141414] border-r border-gray-200 dark:border-white/10 flex-col z-40">
         {/* Logo */}
         <div className="px-5 py-5 border-b border-gray-100 dark:border-white/10">
-          <Link href="/webmaster" className="flex items-center gap-2.5">
+          <Link href="/webmaster" prefetch={false} className="flex items-center gap-2.5">
             <KlikLogo size={32} />
             <div>
               <KlikWordmark size="sm" />
@@ -186,6 +184,7 @@ export function WebmasterNav() {
                         <Link
                           key={item.key}
                           href={item.href}
+                          prefetch={false}
                           className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                             active
                               ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
@@ -244,6 +243,7 @@ export function WebmasterNav() {
                         <Link
                           key={item.key}
                           href={item.href}
+                          prefetch={false}
                           onClick={() => setShowMoreMenu(false)}
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                             active
@@ -280,6 +280,7 @@ export function WebmasterNav() {
               <Link
                 key={item.key}
                 href={item.href}
+                prefetch={false}
                 className={`flex flex-col items-center gap-0.5 py-2 px-2 text-xs transition-colors ${
                   active ? "text-primary dark:text-primary" : "text-gray-500 dark:text-gray-400"
                 }`}

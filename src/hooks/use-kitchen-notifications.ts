@@ -87,17 +87,22 @@ export function useKitchenNotifications(pendingCount: number) {
     const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
     const total = (order.totalCents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 
-    const notification = new Notification("Nouvelle commande !", {
-      body: `Commande ${ticketNumber} - ${itemCount} article${itemCount > 1 ? "s" : ""} - ${total}`,
-      icon: "/icons/icon-192.png",
-      tag: `order-${order.id}`,
-      requireInteraction: true,
-    });
+    try {
+      const notification = new Notification("Nouvelle commande !", {
+        body: `Commande ${ticketNumber} - ${itemCount} article${itemCount > 1 ? "s" : ""} - ${total}`,
+        icon: "/icons/icon-192.png",
+        tag: `order-${order.id}`,
+        requireInteraction: true,
+      });
 
-    notification.onclick = () => {
-      window.focus();
-      notification.close();
-    };
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    } catch {
+      // Android Chrome refuse `new Notification()` (réservé au service worker) :
+      // l'overlay et le son alertent déjà, on n'interrompt pas le traitement.
+    }
   }, []);
 
   // ── Favicon helpers ──

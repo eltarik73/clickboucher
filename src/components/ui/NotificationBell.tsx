@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Bell, CheckCheck } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import { useNotifications, type AppNotification } from "@/lib/hooks/use-notifications";
+import { hasTestModeCookie } from "@/lib/test-mode-client";
 import Link from "next/link";
 
 const TYPE_LABELS: Record<string, { icon: string; color: string }> = {
@@ -35,7 +37,10 @@ function timeAgo(dateStr: string): string {
 }
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { isLoaded, isSignedIn } = useAuth();
+  // La cloche reste affichée pour tous ; seul le réseau est réservé aux connectés (ou session de test)
+  const canFetch = (isLoaded && !!isSignedIn) || hasTestModeCookie();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(canFetch);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

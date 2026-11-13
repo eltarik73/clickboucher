@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Send, Bot, User, Shield, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Bot, User, Shield, Loader2, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+
+// 30 essais × 2 s = 60 s : au-delà, la réponse de l'IA n'arrivera plus toute seule
+const MAX_AI_POLLS = 30;
 
 type Message = {
   id: string;
@@ -26,6 +30,9 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [waitingAI, setWaitingAI] = useState(false);
+  const [aiTimedOut, setAiTimedOut] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const pollAttemptsRef = useRef(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   async function load() {
@@ -47,31 +54,70 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [ticket?.messages]);
 
-  // Poll for AI response when waiting
+  // Loads the ticket again; true when it holds more messages than `knownCount`
+  const fetchNewMessages = useCallback(
+    async (knownCount: number): Promise<boolean> => {
+      try {
+        const res = await fetch(`/api/support/tickets/${ticketId}`);
+        if (!res.ok) return false;
+        const json = await res.json();
+        const data = json.data || json;
+        if (data?.messages?.length > knownCount) {
+          setTicket(data);
+          setAiTimedOut(false);
+          return true;
+        }
+      } catch {
+        /* ignore — next attempt will retry */
+      }
+      return false;
+    },
+    [ticketId]
+  );
+
+  // Poll for AI response when waiting (capped at MAX_AI_POLLS attempts)
   useEffect(() => {
     if (!waitingAI) return;
+    const knownCount = ticket?.messages?.length || 0;
     const interval = setInterval(async () => {
-      const res = await fetch(`/api/support/tickets/${ticketId}`);
-      const json = await res.json();
-      const data = json.data || json;
-      if (data?.messages?.length > (ticket?.messages?.length || 0)) {
-        setTicket(data);
+      pollAttemptsRef.current += 1;
+      const lastAttempt = pollAttemptsRef.current >= MAX_AI_POLLS;
+      if (lastAttempt) clearInterval(interval);
+      const gotReply = await fetchNewMessages(knownCount);
+      if (gotReply) {
         setWaitingAI(false);
+      } else if (lastAttempt) {
+        setWaitingAI(false);
+        setAiTimedOut(true);
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, [waitingAI, ticketId, ticket?.messages?.length]);
+  }, [waitingAI, fetchNewMessages, ticket?.messages?.length]);
+
+  async function retryAI() {
+    if (retrying) return;
+    setRetrying(true);
+    const gotReply = await fetchNewMessages(ticket?.messages?.length || 0);
+    if (!gotReply) toast.info("Toujours pas de réponse pour le moment.");
+    setRetrying(false);
+  }
 
   async function sendMessage() {
     if (!message.trim() || sending) return;
     setSending(true);
 
     try {
-      await fetch(`/api/support/tickets/${ticketId}`, {
+      const res = await fetch(`/api/support/tickets/${ticketId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: message }),
       });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        toast.error(json?.error?.message || "Message non envoyé. Réessayez.");
+        return;
+      }
 
       // Optimistically add the user message
       setTicket((prev) =>
@@ -87,7 +133,11 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
       );
 
       setMessage("");
+      pollAttemptsRef.current = 0;
+      setAiTimedOut(false);
       setWaitingAI(true);
+    } catch {
+      toast.error("Message non envoyé. Vérifiez votre connexion et réessayez.");
     } finally {
       setSending(false);
     }
@@ -199,6 +249,28 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
                 <Loader2 size={14} className="animate-spin" />
                 L&apos;IA rédige sa réponse...
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI reply did not arrive in time */}
+        {aiTimedOut && !waitingAI && (
+          <div className="flex gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+              <Bot size={14} className="text-white" />
+            </div>
+            <div className="rounded-2xl px-4 py-3 bg-purple-50 dark:bg-purple-500/10">
+              <p className="text-sm text-purple-600 dark:text-purple-400">
+                La réponse tarde à arriver.
+              </p>
+              <button
+                onClick={retryAI}
+                disabled={retrying}
+                className="mt-1 inline-flex items-center gap-2 min-h-[44px] text-sm font-semibold text-purple-700 dark:text-purple-300 hover:underline disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={retrying ? "animate-spin" : ""} />
+                Réessayer
+              </button>
             </div>
           </div>
         )}

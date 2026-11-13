@@ -2,6 +2,7 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import {
   pauseShop,
@@ -59,11 +60,24 @@ export async function GET() {
     });
     if (!shop) return apiError("NOT_FOUND", "Boutique introuvable");
 
+    // A timed pause that has just expired may still be cached as PAUSED in Redis (60s):
+    // drop the cached status so getShopStatus() runs its expiry logic against the DB.
+    const pauseExpired = !!(shop.paused && shop.pauseEndsAt && shop.pauseEndsAt < new Date());
+    if (pauseExpired) {
+      await redis.del(`shop:status:${shop.id}`);
+    }
+
     // Refresh status (auto-expire timers)
     const currentStatus = await getShopStatus(shop.id);
 
+    // The row above was read before the expiry ran: mirror the fields getShopStatus() just
+    // cleared. If the status is still PAUSED (cache bust failed, shop re-paused meanwhile),
+    // keep the row as read so the client retries instead of showing a pause with no end.
+    const pauseCleared = pauseExpired && currentStatus !== "PAUSED";
+
     return apiSuccess({
       ...shop,
+      ...(pauseCleared ? { paused: false, pausedAt: null, pauseReason: null, pauseEndsAt: null } : {}),
       status: currentStatus,
       effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
     });

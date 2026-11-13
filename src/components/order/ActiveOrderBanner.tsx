@@ -1,10 +1,12 @@
 // src/components/order/ActiveOrderBanner.tsx — Floating mini-tracker for active orders
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { Clock, ChefHat, Package, ChevronRight } from "lucide-react";
+import { useVisiblePolling } from "@/hooks/useVisiblePolling";
+import { hasTestModeCookie } from "@/lib/test-mode-client";
 
 interface ActiveOrder {
   id: string;
@@ -22,38 +24,37 @@ const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; color: 
 };
 
 export function ActiveOrderBanner() {
-  const { isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const [order, setOrder] = useState<ActiveOrder | null>(null);
 
-  useEffect(() => {
-    if (!isSignedIn) return;
-
-    async function fetchActive() {
-      try {
-        const res = await fetch("/api/orders");
-        if (!res.ok) return;
-        const json = await res.json();
-        const orders = json.data || json || [];
-        // Find the most recent non-terminal order
-        const active = orders.find((o: { status: string }) =>
-          ["PENDING", "ACCEPTED", "PREPARING", "READY"].includes(o.status)
-        );
-        if (active) {
-          setOrder({
-            id: active.id,
-            orderNumber: active.orderNumber,
-            status: active.status,
-            shopName: active.shop?.name || "",
-            estimatedReady: active.estimatedReady || null,
-          });
-        }
-      } catch {}
+  const fetchActive = useCallback(async () => {
+    try {
+      const res = await fetch("/api/orders");
+      if (!res.ok) return false;
+      const json = await res.json();
+      const orders = json.data || json || [];
+      // Find the most recent non-terminal order
+      const active = orders.find((o: { status: string }) =>
+        ["PENDING", "ACCEPTED", "PREPARING", "READY"].includes(o.status)
+      );
+      if (active) {
+        setOrder({
+          id: active.id,
+          orderNumber: active.orderNumber,
+          status: active.status,
+          shopName: active.shop?.name || "",
+          estimatedReady: active.estimatedReady || null,
+        });
+      }
+      return true;
+    } catch {
+      return false;
     }
+  }, []);
 
-    fetchActive();
-    const iv = setInterval(fetchActive, 30_000);
-    return () => clearInterval(iv);
-  }, [isSignedIn]);
+  // Connecté (ou session de test) : rafraîchi toutes les 30 s, uniquement onglet visible
+  const canPoll = (isLoaded && !!isSignedIn) || hasTestModeCookie();
+  useVisiblePolling(fetchActive, 30_000, canPoll);
 
   if (!order) return null;
 

@@ -1,10 +1,12 @@
 // src/components/order/OrderTracker.tsx — Glass effect order tracker for homepage
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { Package, Timer, X } from "lucide-react";
+import { useVisiblePolling } from "@/hooks/useVisiblePolling";
+import { hasTestModeCookie } from "@/lib/test-mode-client";
 
 interface ActiveOrder {
   id: string;
@@ -27,15 +29,15 @@ function getStepIndex(status: string): number {
 }
 
 export function OrderTracker() {
-  const { isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const [order, setOrder] = useState<ActiveOrder | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const [prevStatus, setPrevStatus] = useState<string | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
 
   const fetchActive = useCallback(async () => {
     try {
       const res = await fetch("/api/orders");
-      if (!res.ok) return;
+      if (!res.ok) return false;
       const json = await res.json();
       const orders = json.data || json || [];
       const active = orders.find((o: { status: string }) =>
@@ -49,23 +51,23 @@ export function OrderTracker() {
           shopName: active.shop?.name || "",
           estimatedReady: active.estimatedReady || null,
         };
-        if (prevStatus && newOrder.status !== prevStatus) {
+        if (prevStatusRef.current && newOrder.status !== prevStatusRef.current) {
           setDismissed(false);
         }
-        setPrevStatus(newOrder.status);
+        prevStatusRef.current = newOrder.status;
         setOrder(newOrder);
       } else {
         setOrder(null);
       }
-    } catch {}
-  }, [prevStatus]);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
-  useEffect(() => {
-    if (!isSignedIn) return;
-    fetchActive();
-    const iv = setInterval(fetchActive, 30_000);
-    return () => clearInterval(iv);
-  }, [isSignedIn, fetchActive]);
+  // Connecté (ou session de test) : rafraîchi toutes les 30 s, uniquement onglet visible
+  const canPoll = (isLoaded && !!isSignedIn) || hasTestModeCookie();
+  useVisiblePolling(fetchActive, 30_000, canPoll);
 
   if (!order || dismissed) return null;
 

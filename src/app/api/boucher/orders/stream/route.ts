@@ -1,7 +1,6 @@
 // src/app/api/boucher/orders/stream/route.ts — SSE real-time stream (Uber Eats WebSocket replacement)
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
-import { redis } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -38,25 +37,12 @@ export async function GET() {
 
       interval = setInterval(async () => {
         try {
-          // Fetch current state
-          const [pendingOrders, currentShop] = await Promise.all([
+          // Fetch current state — pending ids only (cheap diff every tick)
+          const [pendingRows, currentShop] = await Promise.all([
             prisma.order.findMany({
               where: { shopId, status: "PENDING" },
               take: 200,
-              select: {
-                id: true,
-                orderNumber: true,
-                totalCents: true,
-                createdAt: true,
-                expiresAt: true,
-                customerNote: true,
-                pickupSlotStart: true,
-                pickupSlotEnd: true,
-                items: {
-                  select: { name: true, quantity: true, unit: true, priceCents: true },
-                },
-                user: { select: { firstName: true, lastName: true } },
-              },
+              select: { id: true },
               orderBy: { createdAt: "desc" },
             }),
             prisma.shop.findUnique({
@@ -65,12 +51,34 @@ export async function GET() {
             }),
           ]);
 
-          const currentPendingIds = pendingOrders.map((o) => o.id);
+          const currentPendingIds = pendingRows.map((o) => o.id);
 
-          // Detect new orders
-          const newOrders = pendingOrders.filter(
-            (o) => !lastPendingIds.includes(o.id)
-          );
+          // Detect new orders — load details only for ids not announced yet.
+          // lastPendingIds is updated before the next await so a slow details query
+          // can never make an overlapping tick announce the same order twice.
+          const newIds = currentPendingIds.filter((id) => !lastPendingIds.includes(id));
+          lastPendingIds = currentPendingIds;
+          const newOrders =
+            newIds.length > 0
+              ? await prisma.order.findMany({
+                  where: { shopId, id: { in: newIds } },
+                  select: {
+                    id: true,
+                    orderNumber: true,
+                    totalCents: true,
+                    createdAt: true,
+                    expiresAt: true,
+                    customerNote: true,
+                    pickupSlotStart: true,
+                    pickupSlotEnd: true,
+                    items: {
+                      select: { name: true, quantity: true, unit: true, priceCents: true },
+                    },
+                    user: { select: { firstName: true, lastName: true } },
+                  },
+                  orderBy: { createdAt: "desc" },
+                })
+              : [];
 
           // Send new order events
           for (const order of newOrders) {
@@ -97,8 +105,6 @@ export async function GET() {
             lastStatus = currentShop.status;
           }
 
-          lastPendingIds = currentPendingIds;
-
           // Heartbeat
           controller.enqueue(
             encoder.encode(
@@ -109,9 +115,6 @@ export async function GET() {
               })}\n\n`
             )
           );
-
-          // Update lastSeenAt via Redis (avoid DB write every poll)
-          redis.set(`shop:lastSeen:${shopId}`, Date.now().toString(), { ex: 300 }).catch(() => {});
         } catch {
           if (interval) clearInterval(interval);
           try { controller.close(); } catch { /* already closed */ }

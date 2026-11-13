@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Copy, AlertTriangle, RefreshCw, Trash2, Loader2, MessageSquare } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
 import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
+import { startVisiblePolling, nextOrderPollDelay } from "@/hooks/useVisiblePolling";
 
 // ── Types ────────────────────────────────────────
 
@@ -279,43 +280,61 @@ export default function CommandePage({
   const [submittingAlts, setSubmittingAlts] = useState(false);
 
   const orderId = params.id;
+  const orderLoadedRef = useRef(false);
 
-  const fetchOrder = useCallback(async () => {
-    if (!orderId) return;
+  // Renvoie le statut HTTP (0 = erreur réseau) et le statut de la commande si elle a été chargée
+  const fetchOrder = useCallback(async (): Promise<{ httpStatus: number; orderStatus: string | null }> => {
+    if (!orderId) return { httpStatus: 0, orderStatus: null };
+    let httpStatus = 0;
     try {
       const res = await fetch(`/api/orders/${orderId}`);
+      httpStatus = res.status;
       const data = await res.json();
       if (data.success) {
+        orderLoadedRef.current = true;
         setOrder(data.data);
         setError(null);
         if (data.data.rating !== null) setRatingDone(true);
-      } else {
-        setError(data.error?.message || "Erreur");
+        return { httpStatus, orderStatus: data.data.status as string };
       }
+      // Une fois la commande affichée, un échec ponctuel du polling ne doit pas
+      // remplacer la page (QR code de retrait) par l'écran d'erreur.
+      if (!orderLoadedRef.current) setError(data.error?.message || "Erreur");
     } catch {
-      setError("Erreur reseau");
+      if (!orderLoadedRef.current) setError("Erreur reseau");
     } finally {
       setLoading(false);
     }
+    return { httpStatus, orderStatus: null };
   }, [orderId]);
 
-  // Initial fetch + polling
+  // Initial fetch + polling : 5 s tant que l'onglet est visible, arrêt sur statut terminal.
+  // Échecs : 404 = arrêt ; 401/403 avant tout chargement = 3 essais puis arrêt (écran d'erreur) ;
+  // sinon backoff 5 → 60 s, remis à zéro au retour sur l'onglet (visibilité, focus, réseau).
   useEffect(() => {
     if (!orderId) return;
-    fetchOrder();
+    let failures = 0;
+    let everLoaded = false;
 
-    const iv = setInterval(() => {
-      setOrder((prev) => {
-        if (prev && TERMINAL.includes(prev.status)) {
-          clearInterval(iv);
-          return prev;
+    return startVisiblePolling(
+      async () => {
+        const { httpStatus, orderStatus } = await fetchOrder();
+        if (orderStatus !== null) {
+          everLoaded = true;
+          failures = 0;
+          if (TERMINAL.includes(orderStatus)) return null;
+        } else {
+          failures += 1;
         }
-        fetchOrder();
-        return prev;
-      });
-    }, 5000);
-
-    return () => clearInterval(iv);
+        return nextOrderPollDelay({ httpStatus, everLoaded, failures });
+      },
+      {
+        onWake: () => {
+          failures = 0;
+        },
+        wakeOn: ["focus", "online"],
+      }
+    );
   }, [orderId, fetchOrder]);
 
   // Fetch alternatives when PARTIALLY_DENIED

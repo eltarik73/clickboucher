@@ -13,19 +13,13 @@ type Props = {
 export default function OrderAlertOverlay({ order, onDismiss }: Props) {
   const [visible, setVisible] = useState(false);
 
+  // L'alerte (overlay + son) reste active tant que le boucher n'a pas réagi :
+  // tap, « VOIR », acceptation/refus, ou plus aucune commande en attente.
+  // Pas de minuterie d'auto-fermeture : l'ancienne (8 s) n'expirait jamais tant
+  // que la page se re-rendait à chaque poll, et coupait le son en onglet caché.
   useEffect(() => {
-    if (order) {
-      setVisible(true);
-      // Auto-dismiss after 8 seconds
-      const timer = setTimeout(() => {
-        setVisible(false);
-        onDismiss();
-      }, 8000);
-      return () => clearTimeout(timer);
-    } else {
-      setVisible(false);
-    }
-  }, [order, onDismiss]);
+    setVisible(!!order);
+  }, [order]);
 
   if (!visible || !order) return null;
 
