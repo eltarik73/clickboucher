@@ -1,6 +1,7 @@
 // src/components/shop/ShopCard.tsx — Unified shop card with variants
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MapPin, Clock, Star, Tag } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -50,9 +51,17 @@ export function ShopCard({
   const imgSrc = shop.imageUrl || getShopImage(index);
   const isOpen = shop.status === "OPEN" || shop.status === "BUSY";
   const isClosed = shop.status === "CLOSED" || shop.status === "VACATION";
-  const hoursStatus = isOpen && shop.openingHours ? getShopStatus(shop.openingHours) : null;
-  const closingSoonHint =
-    hoursStatus && hoursStatus.status === "CLOSING_SOON" ? formatClosingHint(hoursStatus) : null;
+
+  // "Ferme bientôt" dépend de l'heure courante : calculé après le montage pour
+  // que le HTML serveur (ISR, horloge UTC) et le premier rendu client soient
+  // identiques, puis évalué à l'heure locale du visiteur.
+  const [closingSoonHint, setClosingSoonHint] = useState<string | null>(null);
+  useEffect(() => {
+    const hoursStatus = isOpen && shop.openingHours ? getShopStatus(shop.openingHours) : null;
+    setClosingSoonHint(
+      hoursStatus && hoursStatus.status === "CLOSING_SOON" ? formatClosingHint(hoursStatus) : null
+    );
+  }, [isOpen, shop.openingHours]);
 
   const prepBadgeClasses =
     effectiveTime <= 15

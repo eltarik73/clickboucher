@@ -183,10 +183,6 @@ export default function StatistiquesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-promos state (PREMIUM only)
-  const [autoPromos, setAutoPromos] = useState<{ enabled: boolean } | null>(null);
-  const [autoPromosLoading, setAutoPromosLoading] = useState(false);
-
   const fetchStats = useCallback(async (p: Period) => {
     setLoading(true);
     setError(null);
@@ -202,49 +198,16 @@ export default function StatistiquesPage() {
     }
   }, []);
 
-  const fetchAutoPromos = useCallback(async () => {
-    try {
-      const res = await fetch("/api/boucher/stats/auto-promos");
-      if (res.ok) {
-        const json = await res.json();
-        setAutoPromos(json.data);
-      }
-    } catch {
-      // silent
-    }
-  }, []);
-
-  async function toggleAutoPromos(enabled: boolean) {
-    setAutoPromosLoading(true);
-    try {
-      const res = await fetch("/api/boucher/stats/auto-promos", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setAutoPromos(json.data);
-        toast.success(enabled ? "Promos automatiques activées" : "Promos automatiques désactivées");
-      } else {
-        toast.error("Erreur lors de la mise à jour");
-      }
-    } catch {
-      toast.error("Erreur de connexion");
-    } finally {
-      setAutoPromosLoading(false);
-    }
+  // /api/boucher/stats/auto-promos no longer exists (removed in 1733897): the
+  // setting can be neither read nor saved. Until the feature is restored or the
+  // switch removed, toggling it reports the same failure the 404 produced.
+  function toggleAutoPromos() {
+    toast.error("Erreur lors de la mise à jour");
   }
 
   useEffect(() => {
     fetchStats(period);
   }, [period, fetchStats]);
-
-  useEffect(() => {
-    if (stats) {
-      fetchAutoPromos();
-    }
-  }, [stats, fetchAutoPromos]);
 
   // ── Export CSV ──
   async function exportCSV() {
@@ -774,9 +737,9 @@ export default function StatistiquesPage() {
                   </p>
                 </div>
                 <Switch
-                  checked={autoPromos?.enabled ?? false}
+                  checked={false}
                   onCheckedChange={toggleAutoPromos}
-                  disabled={autoPromosLoading || stats.offPeakHours.length === 0}
+                  disabled={stats.offPeakHours.length === 0}
                 />
               </div>
             </CardContent>

@@ -22,7 +22,6 @@ import {
   Flame,
   Star,
   ArrowUpRight,
-  Loader2,
   CheckCircle,
 } from "lucide-react";
 
@@ -121,7 +120,6 @@ export default function WebmasterCataloguePage() {
   const [promoteProduct, setPromoteProduct] = useState<Product | null>(null);
   const [globalCategories, setGlobalCategories] = useState<{ id: string; name: string; emoji: string | null }[]>([]);
   const [promoteCatId, setPromoteCatId] = useState("");
-  const [promoting, setPromoting] = useState(false);
   const [promoteResult, setPromoteResult] = useState<string | null>(null);
 
   // Filters
@@ -238,28 +236,12 @@ export default function WebmasterCataloguePage() {
     }
   };
 
-  const handlePromote = async () => {
+  // POST /api/webmaster/catalog/promote no longer exists (removed in 1733897).
+  // Until the action is restored or the button removed, confirming the dialog
+  // shows the same failure the 404 produced.
+  const handlePromote = () => {
     if (!promoteProduct || !promoteCatId) return;
-    setPromoting(true);
-    setPromoteResult(null);
-    try {
-      const res = await fetch("/api/webmaster/catalog/promote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId: promoteProduct.id, categoryId: promoteCatId }),
-      });
-      const d = await res.json();
-      if (d.success) {
-        setPromoteResult("ok");
-        setTimeout(() => { setPromoteProduct(null); setPromoteResult(null); }, 1500);
-      } else {
-        setPromoteResult(d.error?.message || "Erreur");
-      }
-    } catch {
-      setPromoteResult("Erreur reseau");
-    } finally {
-      setPromoting(false);
-    }
+    setPromoteResult("Erreur reseau");
   };
 
   const hasFilters =
@@ -584,10 +566,10 @@ export default function WebmasterCataloguePage() {
                 </button>
                 <button
                   onClick={handlePromote}
-                  disabled={!promoteCatId || promoting}
+                  disabled={!promoteCatId}
                   className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition flex items-center justify-center gap-1.5"
                 >
-                  {promoting ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpRight size={14} />}
+                  <ArrowUpRight size={14} />
                   Promouvoir
                 </button>
               </div>

@@ -20,9 +20,12 @@ function getRemaining(endStr: string) {
 }
 
 export function FlashCountdown({ promoEnd, compact = false }: Props) {
-  const [remaining, setRemaining] = useState(() => getRemaining(promoEnd));
+  // Calculé après montage : Date.now() dans le rendu initial ferait diverger le
+  // HTML statique (ISR) et le premier rendu client.
+  const [remaining, setRemaining] = useState<ReturnType<typeof getRemaining>>(null);
 
   useEffect(() => {
+    setRemaining(getRemaining(promoEnd));
     const interval = setInterval(() => {
       const r = getRemaining(promoEnd);
       setRemaining(r);

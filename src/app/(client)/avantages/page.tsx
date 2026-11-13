@@ -1,7 +1,7 @@
 // src/app/(client)/avantages/page.tsx — Client loyalty & promo advantages page
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Trophy,
@@ -10,7 +10,6 @@ import {
   Check,
   Clock,
   ChevronRight,
-  Loader2,
   Tag,
   Star,
   ArrowLeft,
@@ -70,26 +69,12 @@ function rewardValueLabel(r: { rewardType: string; rewardCents: number | null; r
 }
 
 export default function AvantagesPage() {
-  const [loyalty, setLoyalty] = useState<LoyaltyStatus | null>(null);
+  // GET /api/loyalty/status no longer exists (removed in d862811), so no loyalty
+  // status is loaded: the loyalty sections below stay hidden, exactly as when
+  // the call returned 404. Wire a new endpoint here to bring them back.
+  const [loyalty] = useState<LoyaltyStatus | null>(null);
   const [promos] = useState<ActivePromo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const loyaltyRes = await fetch("/api/loyalty/status");
-      if (loyaltyRes.ok) {
-        const json = await loyaltyRes.json();
-        setLoyalty(json.data);
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code).then(() => {
@@ -98,14 +83,6 @@ export default function AvantagesPage() {
       setTimeout(() => setCopiedCode(null), 2000);
     });
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="animate-spin text-red-600" size={32} />
-      </div>
-    );
-  }
 
   const progressPct = loyalty?.nextTier
     ? Math.round(((loyalty.totalOrders % (loyalty.nextTier.minOrders)) / loyalty.nextTier.minOrders) * 100)

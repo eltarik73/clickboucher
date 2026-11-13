@@ -1,11 +1,15 @@
-export const dynamic = "force-dynamic";
+// ISR 1 h : le handler ne lit pas la requête, inutile de le régénérer à chaque
+// fetch de crawler. Volontairement SANS try/catch autour des requêtes Prisma :
+// une erreur DB doit faire échouer la régénération pour que l'ISR continue de
+// servir le dernier sitemap valide (jamais un sitemap amputé des boutiques).
+export const revalidate = 3600;
 
 import type { MetadataRoute } from "next";
 import prisma from "@/lib/prisma";
 import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
 import { getProductCityCombinations } from "@/lib/seo/products";
 import { getCityDistrictCombinations } from "@/lib/seo/districts";
-import { getOccasionCityCombinations } from "@/lib/seo/occasions";
+import { SEO_OCCASIONS, getOccasionCityCombinations } from "@/lib/seo/occasions";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -268,12 +272,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Aïd al-Adha, Ramadan, etc. × villes cibles = pages SEO acquisition.
   // Erreur 2026-05-09 à NE PLUS REFAIRE : filter populatedCitySlugs a sorti
   // 5/6 villes SEO_CITIES de l'index. Cf skill seo-anti-penalty règle OR.
-  const occasionPages: MetadataRoute.Sitemap = getOccasionCityCombinations().map((combo) => ({
-    url: `${BASE_URL}/occasions/${combo.occasion}/${combo.ville}`,
-    lastModified: STATIC_CONTENT_UPDATED,
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
+  // lastmod par occasion : seule une occasion dont le contenu a réellement
+  // changé (champ `lastUpdated`) reçoit une date plus récente — pas de bump
+  // global des 56 URLs quand une seule occasion est mise à jour.
+  const occasionPages: MetadataRoute.Sitemap = getOccasionCityCombinations().map((combo) => {
+    const occ = SEO_OCCASIONS.find((o) => o.slug === combo.occasion);
+    return {
+      url: `${BASE_URL}/occasions/${combo.occasion}/${combo.ville}`,
+      lastModified: occ?.lastUpdated
+        ? new Date(`${occ.lastUpdated}T00:00:00Z`)
+        : STATIC_CONTENT_UPDATED,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    };
+  });
 
   const recipePages: MetadataRoute.Sitemap = recipes.map((r) => ({
     url: `${BASE_URL}/recettes/${r.slug}`,

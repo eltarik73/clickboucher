@@ -1,7 +1,7 @@
 // src/app/(client)/bons-plans/BonsPlansClient.tsx — Client-side promo listing
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Tag, Copy, Check } from "lucide-react";
@@ -207,6 +207,13 @@ export function BonsPlansClient({ promos, categories, platformPromos = [] }: Pro
 function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
   const [copied, setCopied] = useState(false);
 
+  // Le temps restant dépend de l'heure courante : calculé après le montage
+  // pour que le HTML serveur (ISR) et le premier rendu client soient identiques.
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  useEffect(() => {
+    setTimeLeft(daysLeft(promo.endsAt));
+  }, [promo.endsAt]);
+
   const copyCode = () => {
     if (!promo.code) return;
     navigator.clipboard.writeText(promo.code);
@@ -263,9 +270,7 @@ function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
                 Automatique
               </span>
             )}
-            <span className="text-[10px] text-gray-500 dark:text-gray-400">
-              {daysLeft(promo.endsAt)}
-            </span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">{timeLeft}</span>
           </div>
         </div>
       </div>

@@ -225,7 +225,10 @@ export default async function OccasionCityPage({
               {occasion.bookingDelay.split(":")[1]?.trim() || "Commander à l'avance"}
             </span>
           </div>
-          <LastUpdated date={PAGE_LAST_UPDATED} className="mt-4 text-white/50" />
+          <LastUpdated
+            date={occasion.lastUpdated ?? PAGE_LAST_UPDATED}
+            className="mt-4 text-white/50"
+          />
         </div>
       </section>
 

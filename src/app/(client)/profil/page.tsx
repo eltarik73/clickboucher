@@ -84,8 +84,10 @@ export default function ProfilPage() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Loyalty state
-  const [loyalty, setLoyalty] = useState<{
+  // Loyalty state — GET /api/loyalty/status no longer exists (removed in
+  // d862811), so nothing is loaded and the "Ma fidelite" section stays hidden,
+  // exactly as when the call returned 404. Wire a new endpoint here to bring it back.
+  const [loyalty] = useState<{
     totalOrders: number;
     tier: string;
     badge: string | null;
@@ -115,14 +117,6 @@ export default function ProfilPage() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
-
-    // Fetch loyalty status
-    fetch("/api/loyalty/status")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.data) setLoyalty(data.data);
-      })
-      .catch(() => {});
   }, [isLoaded, isSignedIn]);
 
   const handleSavePrefs = async () => {

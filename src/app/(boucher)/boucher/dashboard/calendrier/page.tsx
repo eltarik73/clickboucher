@@ -79,7 +79,60 @@ const RELIGIOUS_EVENTS = [
     alertDaysBefore: 21,
     suggestedProducts: ["Mouton entier", "Demi-mouton", "Gigot", "Épaule", "Côtelettes d'agneau"],
   },
+  {
+    id: "ramadan-2027",
+    name: "Ramadan",
+    description: "Mois sacré du jeûne. Forte demande en viande pour le ftour et le shour.",
+    date: "2027-02-08",
+    endDate: "2027-03-08",
+    type: "ramadan",
+    emoji: "🌙",
+    alertDaysBefore: 14,
+    suggestedProducts: ["Agneau", "Bœuf haché", "Brochettes", "Merguez", "Viande pour tajine"],
+  },
+  {
+    id: "aid-fitr-2027",
+    name: "Aïd el-Fitr",
+    description: "Fête de la rupture du jeûne. Commandes familiales importantes.",
+    date: "2027-03-09",
+    type: "aid",
+    emoji: "🎉",
+    alertDaysBefore: 7,
+    suggestedProducts: ["Gigot d'agneau", "Épaule d'agneau", "Méchoui", "Brochettes", "Kefta"],
+  },
+  {
+    id: "aid-adha-2027",
+    name: "Aïd el-Adha",
+    description: "Fête du sacrifice. Pic de demande en mouton entier et pièces d'agneau.",
+    date: "2027-05-16",
+    type: "aid",
+    emoji: "🐑",
+    alertDaysBefore: 21,
+    suggestedProducts: ["Mouton entier", "Demi-mouton", "Gigot", "Épaule", "Côtelettes d'agneau"],
+  },
+  {
+    id: "mawlid-2027",
+    name: "Mawlid (Naissance du Prophète)",
+    description: "Célébration de la naissance du Prophète. Demande modérée en viandes festives.",
+    date: "2027-08-14",
+    type: "mawlid",
+    emoji: "✨",
+    alertDaysBefore: 7,
+    suggestedProducts: ["Gigot", "Brochettes", "Viande hachée"],
+  },
 ];
+
+// Built-in dates are lunar approximations (±1 day). A global DB event within
+// 2 days of a built-in one is the same event (row added by the webmaster so the
+// alert cron fires) and must not be listed a second time.
+const DUPLICATE_WINDOW_MS = 2 * 86_400_000;
+
+function duplicatesBuiltInEvent(dateStr: string): boolean {
+  const time = new Date(dateStr).getTime();
+  return RELIGIOUS_EVENTS.some(
+    (r) => Math.abs(new Date(r.date).getTime() - time) <= DUPLICATE_WINDOW_MS
+  );
+}
 
 function daysUntil(dateStr: string): number {
   const diff = new Date(dateStr).getTime() - Date.now();
@@ -117,6 +170,11 @@ export default function CalendrierPage() {
   const [formType, setFormType] = useState("fermeture");
   const [formDesc, setFormDesc] = useState("");
   const [formSaving, setFormSaving] = useState(false);
+  // Page prérendue au build : l'année, les « J-N » et la bannière « à venir »
+  // dépendent de l'horloge → rendus uniquement après montage (sinon le HTML
+  // statique et le premier rendu client divergent).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     // Load global events
@@ -174,11 +232,12 @@ export default function CalendrierPage() {
     } catch { /* ignore */ }
   }
 
-  // Merge events, deduplicating boucher's custom events that appear in both dbEvents and myEvents
+  // Merge events, deduplicating boucher's custom events that appear in both dbEvents and myEvents,
+  // and global DB events that repeat a built-in religious event
   const myEventIds = new Set(myEvents.map((e) => e.id));
   const allEvents = [
     ...RELIGIOUS_EVENTS,
-    ...dbEvents.filter((e) => !myEventIds.has(e.id)),
+    ...dbEvents.filter((e) => !myEventIds.has(e.id) && !duplicatesBuiltInEvent(e.date)),
     ...myEvents.map((e) => ({
       ...e,
       emoji: e.emoji || "📅",
@@ -194,6 +253,10 @@ export default function CalendrierPage() {
   const upcoming = allEvents
     .filter((e) => daysUntil(e.date) > 0 && daysUntil(e.date) <= 30)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]" />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">

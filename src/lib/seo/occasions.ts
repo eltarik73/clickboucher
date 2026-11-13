@@ -30,6 +30,10 @@ export type SeoOccasion = {
   /** Saison où la page est plus active */
   season?: "spring" | "summer" | "ramadan" | "year-round";
   priority: "P0" | "P1" | "P2";
+  /** Date (ISO yyyy-mm-dd) de la dernière vraie modification du contenu de
+   *  CETTE occasion. Si absent → date commune du template (page + sitemap).
+   *  À renseigner uniquement quand le texte de l'occasion change réellement. */
+  lastUpdated?: string;
 };
 
 export const SEO_OCCASIONS: readonly SeoOccasion[] = [
@@ -38,21 +42,25 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     name: "Aïd al-Adha",
     keyword: "viande aïd al-adha",
     eventType: "Event",
-    // Aïd al-Adha 1447 AH ~ 26 mai 2026 (calcul lunaire — date Saudi
-    // Arabia ; en France, +1j possible selon Mosquée de Paris). Festivités
-    // sur 4 jours. Bumper l'an prochain pour 1448 AH.
-    eventStart: "2026-05-26",
-    eventEnd: "2026-05-30",
+    // Aïd al-Adha 1448 AH ~ 16 mai 2027 (calcul lunaire : conjonction le
+    // 6 mai 2027 ; +1j possible selon l'observation de la lune, annonce
+    // officielle début mai 2027). Festivités sur 4 jours. Prochain bump après
+    // le 20 mai 2027, pour 1449 AH (~5 mai 2028).
+    // bookingDelay : pas de ":" — la page affiche `bookingDelay.split(":")[1]`
+    // dans le hero et doit garder le libellé de repli pour l'Aïd.
+    eventStart: "2027-05-16",
+    eventEnd: "2027-05-20",
+    lastUpdated: "2026-11-13",
     shortDescription:
-      "Commandez votre mouton ou agneau halal pour l'Aïd al-Adha 2026. Sacrifice rituel, découpe, conditionnement par votre boucher partenaire Klik&Go.",
+      "Commandez votre mouton ou agneau halal pour l'Aïd al-Adha 2027. Sacrifice rituel, découpe, conditionnement par votre boucher partenaire Klik&Go.",
     intro:
-      "L'Aïd al-Adha (Aïd el-Kebir) est la plus grande fête religieuse musulmane, célébrant le sacrifice d'Abraham. Le 7e jour du mois de Dhul-Hijjah, chaque famille musulmane sacrifie un mouton, une chèvre, une vache ou un chameau, partagé en trois parts égales : la famille, les voisins et amis, et les pauvres. En 2026, l'Aïd al-Adha tombe en juin. Sur Klik&Go, les boucheries halal partenaires vous accompagnent pour la commande, le sacrifice rituel certifié halal, la découpe selon vos besoins (en parts familiales, conditionné sous vide ou en barquettes), et la mise à disposition au créneau choisi. Vous pouvez commander un mouton entier (12-18 kg vivant, soit 6-9 kg de viande nette), une demi-bête, ou directement des morceaux pré-découpés (gigot, épaule, côtelettes, abats). Anticipez : les boucheries halal ont énormément de commandes pendant l'Aïd, le carnet se remplit vite — réservez idéalement 3-4 semaines avant la date.",
+      "L'Aïd al-Adha (Aïd el-Kebir) est la plus grande fête religieuse musulmane, célébrant le sacrifice d'Abraham. Le 10e jour du mois de Dhul-Hijjah, chaque famille musulmane sacrifie un mouton, une chèvre, une vache ou un chameau, partagé en trois parts égales : la famille, les voisins et amis, et les pauvres. En 2027, l'Aïd al-Adha est attendu autour du 16 mai (date définitive annoncée début mai, selon l'observation de la lune). Sur Klik&Go, les boucheries halal partenaires vous accompagnent pour la commande, le sacrifice rituel certifié halal, la découpe selon vos besoins (en parts familiales, conditionné sous vide ou en barquettes), et la mise à disposition au créneau choisi. Vous pouvez commander un mouton entier (12-18 kg vivant, soit 6-9 kg de viande nette), une demi-bête, ou directement des morceaux pré-découpés (gigot, épaule, côtelettes, abats). Anticipez : les boucheries halal ont énormément de commandes pendant l'Aïd, le carnet se remplit vite — réservez idéalement 3-4 semaines avant la date.",
     servingTip: {
-      question: "Quelle quantité d'agneau / mouton pour l'Aïd 2026 ?",
+      question: "Quelle quantité d'agneau / mouton pour l'Aïd 2027 ?",
       answer:
         "Pour une famille de 5 personnes, comptez un mouton entier (12-15 kg vivant, soit 6-8 kg de viande nette). Pour 8-10 personnes, un agneau de 18-20 kg. La règle traditionnelle : 1/3 famille (~2-3 kg), 1/3 voisins (~2-3 kg), 1/3 pauvres (~2-3 kg).",
     },
-    bookingDelay: "RÉSERVEZ 3-4 SEMAINES AVANT — les bouchers halal saturent vite leur carnet de commandes pour l'Aïd. En 2026, Aïd al-Adha tombe en juin, réservez dès mai.",
+    bookingDelay: "RÉSERVEZ 3-4 SEMAINES AVANT — les bouchers halal saturent vite leur carnet de commandes pour l'Aïd. En 2027, l'Aïd al-Adha est attendu mi-mai, réservez dès la mi-avril.",
     season: "summer",
     priority: "P0",
   },
@@ -98,9 +106,10 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     name: "Ramadan",
     keyword: "viande ramadan",
     eventType: "FoodEvent",
-    // Ramadan 1448 AH = ~6 fév au 8 mars 2027 (Ramadan 2026 est passé).
+    // Ramadan 1448 AH ≈ 8 fév – 8/9 mars 2027 ; Aïd el-Fitr 9 ou 10 mars 2027
+    // (conjonction le 6 fév 2027 après le coucher du soleil à La Mecque).
     // Bumper chaque année après l'iftar du dernier jour.
-    eventStart: "2027-02-06",
+    eventStart: "2027-02-08",
     eventEnd: "2027-03-08",
     shortDescription:
       "Commandez votre viande halal pour le Ramadan : packs iftar, suhour, repas familiaux. Click & collect pour briser le jeûne sans stress.",

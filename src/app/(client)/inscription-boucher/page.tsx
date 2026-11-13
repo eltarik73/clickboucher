@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { ArrowLeft, Store, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, Store, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,22 +13,7 @@ const inputCls =
   "border-[#ece8e3] dark:border-white/10 dark:bg-[#0a0a0a] focus-visible:ring-[#DC2626]/30 focus-visible:border-[#DC2626]";
 
 export default function InscriptionBoucherPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex items-center justify-center">
-          <Loader2 size={32} className="animate-spin text-[#DC2626]" />
-        </div>
-      }
-    >
-      <InscriptionBoucherContent />
-    </Suspense>
-  );
-}
-
-function InscriptionBoucherContent() {
   const { isLoaded, isSignedIn } = useUser();
-  const searchParams = useSearchParams();
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -38,12 +22,18 @@ function InscriptionBoucherContent() {
   const [email, setEmail] = useState("");
   const [siret, setSiret] = useState("");
   const [description, setDescription] = useState("");
-  const [referralCode, setReferralCode] = useState(
-    searchParams.get("ref") || ""
-  );
+  const [referralCode, setReferralCode] = useState("");
   const [acceptCgv, setAcceptCgv] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Code de parrainage (?ref=…) lu après le montage plutôt qu'avec
+  // useSearchParams() : la page reste prérendue en statique avec le formulaire
+  // dans le HTML (useSearchParams forcerait un rendu client derrière un spinner).
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) setReferralCode(ref);
+  }, []);
 
   const siretValid = /^[0-9]{14}$/.test(siret);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -137,7 +127,7 @@ function InscriptionBoucherContent() {
               size="lg"
               asChild
             >
-              <Link href="/sign-in?redirect_url=/inscription-boucher">
+              <Link href="/sign-in?redirect_url=/inscription-boucher" prefetch={false}>
                 Se connecter
               </Link>
             </Button>
@@ -359,8 +349,6 @@ function InscriptionBoucherContent() {
 
         <p className="text-[11px] text-center text-gray-500 dark:text-gray-400">
           Votre boucherie sera validée par notre équipe sous 24h.
-          <br />
-          Essai gratuit de 30 jours, sans engagement.
         </p>
       </main>
     </div>
