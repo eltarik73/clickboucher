@@ -1,5 +1,11 @@
 {
   "regions": ["sfo1"],
+  "git": {
+    "deploymentEnabled": {
+      "dependabot/**": false,
+      "claude/**": false
+    }
+  },
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30

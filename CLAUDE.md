@@ -129,7 +129,15 @@ facturée, y compris pour les bots. Règles :
 - **Env stub** : `DATABASE_URL` pointe sur le service Postgres 16 des jobs `test` et `build` ; clés Clerk fake (format valide).
 - **Dependabot** : `.github/dependabot.yml` — npm + GitHub Actions, hebdo lundi 06:00 Paris, max 5 PRs npm + 3 PRs CI. Majeurs Next/React/Clerk/Prisma ignorés (upgrade manuel).
 - **PR template** : `.github/pull_request_template.md` — checklist build/lint/typecheck/test + screenshots si UI.
-- **Vercel preview** : géré nativement par l'intégration GitHub-Vercel — pas de workflow custom.
+- **Vercel preview** : l'environnement Preview de Vercel n'a PAS de `DATABASE_URL`, or le build
+  prérend ≈ 290 pages sur la base → tout déploiement de preview échouait
+  (`Environment variable not found: DATABASE_URL`). `vercel.json` (`git.deploymentEnabled`) désactive
+  donc les déploiements des branches `dependabot/**` et `claude/**` ; c'est le job CI `build` qui
+  valide ces branches. Seul `main` déploie (production).
+  Pour une vraie recette en ligne : créer une base Postgres DÉDIÉE (jamais celle de production —
+  le mode test y est autorisé et les URLs de preview sont publiques), y pousser le schéma + le seed,
+  définir `DATABASE_URL` / `DIRECT_DATABASE_URL` et les clés Clerk de dev sur l'environnement
+  Preview, puis retirer la ligne `claude/**` de `vercel.json`.
 
 ## Stack
 
