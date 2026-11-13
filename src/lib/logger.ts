@@ -2,6 +2,7 @@
 // Use this instead of console.log. Production emits JSON lines for ingestion.
 /* eslint-disable no-console */
 import * as Sentry from "@sentry/nextjs";
+import { isTestModeEnabled } from "@/lib/auth/test-mode-env";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -64,7 +65,7 @@ function emit(level: Level, message: unknown, ...extras: unknown[]) {
 
   // Send errors to Sentry only in production (and when DSN is configured)
   const sentryDsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
-  const isTestMode = process.env.TEST_MODE === "true";
+  const isTestMode = isTestModeEnabled();
   if (level === "error" && isProd && sentryDsn && !isTestMode) {
     try {
       if (context instanceof Error) {

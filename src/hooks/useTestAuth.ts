@@ -98,12 +98,21 @@ export function useTestAuth() {
     };
   }, []);
 
-  const switchRole = useCallback((newRole: TestRole) => {
+  const switchRole = useCallback(async (newRole: TestRole) => {
+    // Le rôle est lié au jeton de session signé : seul le serveur peut le changer.
+    try {
+      const resp = await fetch("/api/test-mode/activate", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (!resp.ok) return;
+    } catch {
+      return;
+    }
     setRole(newRole);
     sessionStorage.setItem("klikgo-test-role", newRole);
-    // Update cookie via server (re-activate with same secret-less request not possible)
-    // We just set the role cookie client-side here — the server already trusts an activated session.
-    document.cookie = `klikgo-test-role=${newRole};path=/;max-age=86400;SameSite=Lax`;
 
     const redirects: Record<TestRole, string> = {
       CLIENT: "/",

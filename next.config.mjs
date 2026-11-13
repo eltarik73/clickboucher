@@ -3,6 +3,12 @@ const nextConfig = {
   output: process.env.VERCEL ? undefined : "standalone",
   // Masque "x-powered-by: Next.js" (réduit le fingerprinting — audit 2026-06-12).
   poweredByHeader: false,
+  // Environnement de déploiement figé dans le bundle au build (VERCEL_ENV y est
+  // toujours défini sur Vercel). Sert à interdire le mode test en production même
+  // si la variable système n'était pas exposée au runtime (src/lib/auth/test-mode-env.ts).
+  env: {
+    KLIKGO_DEPLOY_ENV: process.env.VERCEL_ENV || "local",
+  },
   experimental: {
     instrumentationHook: true,
     optimizePackageImports: [

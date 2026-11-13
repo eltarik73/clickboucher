@@ -54,7 +54,7 @@ Chiffres clés : **173 routes API**, **50 modèles Prisma**, 1705 lignes de sche
 - **Fix** : retirer `unsafe-eval`, tester, réintroduire seulement si Clerk casse.
 
 ### 🟡 MINEUR — Secret de test en NEXT_PUBLIC
-- CLAUDE.md documente `NEXT_PUBLIC_TEST_SECRET=KlikTest2026!` → exposé au bundle client. Documenté comme tel, mais le "secret" perd tout sens.
+- CLAUDE.md documente `NEXT_PUBLIC_TEST_SECRET=<TEST_SECRET>!` → exposé au bundle client. Documenté comme tel, mais le "secret" perd tout sens.
 - **Fix** : côté serveur only, comparaison dans une route `/api/test-mode/activate`.
 
 ### 🟡 MINEUR — Webhook Clerk OK mais log d'erreur perdu

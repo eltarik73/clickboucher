@@ -651,7 +651,7 @@
 - Les pages ont ete accedees via HTTPS sur le site de production `klikandgo.app`
 - Certaines pages (boutique, favoris) retournent des skeletons en SSR car les donnees sont chargees cote client — ceci est le comportement normal en ISR
 - Les routes authentifiees (dashboard, commandes, checkout) n'ont pas pu etre testees en navigation directe — l'analyse repose sur le code source
-- Le test mode (`?testmode=KlikTest2026!`) existe mais n'a pas ete utilise pour simuler une session complete
+- Le test mode (`?testmode=<TEST_SECRET>!`) existe mais n'a pas ete utilise pour simuler une session complete
 - Les scores sont bases sur la combinaison observations live + analyse du code source des composants
 
 ---

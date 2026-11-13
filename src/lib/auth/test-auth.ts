@@ -1,6 +1,9 @@
 // @security: test-only — Mode test : simule l'authentification sans Clerk
-// Sécurisé par secret URL — s'active UNIQUEMENT via /api/test-mode/activate
-// Le secret est dans TEST_SECRET (server-only — JAMAIS NEXT_PUBLIC_*)
+// S'active UNIQUEMENT via /api/test-mode/activate, qui vérifie TEST_SECRET
+// (server-only — JAMAIS NEXT_PUBLIC_*) puis pose un jeton de session signé.
+// Impossible sur le déploiement de production Vercel (cf. ./test-mode-env).
+
+import { isTestModeEnabled } from "./test-mode-env";
 
 export type TestRole = "CLIENT" | "BOUCHER" | "ADMIN";
 
@@ -36,14 +39,12 @@ export const TEST_USERS = {
 
 /**
  * Server-only check: is test mode enabled at all?
- * Disabled in production unless ALLOW_TEST_IN_PROD="true" (escape hatch).
+ * JAMAIS sur le déploiement de production Vercel. Ailleurs : TEST_MODE="true",
+ * et sur un build de production (preview, `next start` local) il faut en plus
+ * ALLOW_TEST_IN_PROD="true". Règle unique dans ./test-mode-env.
  */
 export function isTestMode(): boolean {
-  if (process.env.TEST_MODE !== "true") return false;
-  if (process.env.NODE_ENV === "production" && process.env.ALLOW_TEST_IN_PROD !== "true") {
-    return false;
-  }
-  return true;
+  return isTestModeEnabled();
 }
 
 /** Server-only — returns the test secret (no NEXT_PUBLIC_ exposure). */

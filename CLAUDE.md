@@ -346,12 +346,26 @@ const shop = await prisma.shop.findFirst({
 
 ## Test Mode
 
-- Activation : `?testmode=<TEST_SECRET>` dans l'URL → fetch `/api/test-mode/activate` (server valide le secret) → set cookies
-- Cookies : `klikgo-test-activated=true` + `klikgo-test-role=CLIENT|BOUCHER|ADMIN`
-- Env vars (server-only, JAMAIS `NEXT_PUBLIC_*`) : `TEST_MODE=true`, `TEST_SECRET=...`
-- Désactivé automatiquement en production sauf si `ALLOW_TEST_IN_PROD=true` (escape hatch explicite)
-- Test users définis dans `@/lib/auth/test-auth.ts`
-- Le secret n'est JAMAIS exposé au bundle client — la validation se fait uniquement server-side via `/api/test-mode/activate`
+- **JAMAIS en production Vercel** : `isTestMode()` renvoie `false` dès que `VERCEL_ENV=production`
+  (ou la valeur figée au build `KLIKGO_DEPLOY_ENV`), quelles que soient les variables. Règle unique
+  dans `src/lib/auth/test-mode-env.ts`. Ne JAMAIS réintroduire d'échappatoire : jusqu'au 2026-11-13,
+  `TEST_MODE` + `ALLOW_TEST_IN_PROD` étaient définis en prod et deux cookies en clair donnaient
+  l'accès ADMIN à n'importe quel visiteur.
+- **Où il sert** : en local et sur les déploiements de preview/recette. `TEST_MODE=true` ; sur un
+  build de production hors prod Vercel (preview, `next start` local) il faut en plus
+  `ALLOW_TEST_IN_PROD=true`. `TEST_SECRET` : au moins 16 caractères, server-only.
+- **Activation** : `?testmode=<TEST_SECRET>` dans l'URL → `POST /api/test-mode/activate` (secret
+  vérifié côté serveur, comparaison à temps constant, limité en débit) → pose un **jeton de session
+  signé** (HMAC-SHA256, rôle + expiration 8 h) dans le cookie httpOnly `klikgo-test-session`.
+- **Ce que le serveur croit** : uniquement ce jeton (`src/lib/auth/test-session.ts` pour le middleware,
+  `test-session-node.ts` pour les helpers). Les cookies lisibles `klikgo-test-activated` et
+  `klikgo-test-role` ne sont que des indices d'interface, sans aucun droit.
+- **Changer de rôle** : `PATCH /api/test-mode/activate { role }` (session valide requise).
+  **Fermer** : `DELETE /api/test-mode/activate`.
+- **Scripts et tests** : s'activer par un POST (jar de cookies, ou `context.request.post` en
+  Playwright) ; poser les cookies à la main ne fonctionne plus.
+- Test users définis dans `@/lib/auth/test-auth.ts`. Le secret n'est jamais exposé au bundle client
+  et ne doit apparaître dans aucun fichier suivi par git.
 
 ## Performance (PageSpeed)
 
@@ -389,7 +403,7 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
 
 - `DATABASE_URL` : pooled (pgbouncer) — `?pgbouncer=true&connection_limit=1` sur Vercel. Utilisé par l'app au runtime.
 - `DIRECT_DATABASE_URL` : non-pooled (port 5432) — utilisé UNIQUEMENT par `prisma migrate deploy` pour les advisory locks/DDL. Voir `audit/migrations.md`.
-- `TEST_MODE` / `TEST_SECRET` : server-only, JAMAIS `NEXT_PUBLIC_*`. Le secret est validé côté serveur via `/api/test-mode/activate`. Désactivé en prod sauf si `ALLOW_TEST_IN_PROD=true`.
+- `TEST_MODE` / `TEST_SECRET` / `ALLOW_TEST_IN_PROD` : server-only, JAMAIS `NEXT_PUBLIC_*`. À définir uniquement sur les environnements de preview/recette et en local — jamais dans l'environnement Production de Vercel (le code l'ignore de toute façon). Voir « Test Mode ».
 - `NEXT_PUBLIC_SITE_URL` : URL canonique du site (`https://klikandgo.app`). Utilisé pour sitemap, OG, canonical.
 - `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` : Domaine Plausible Analytics (si défini, active le tracking RGPD).
 - `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` : DSN Sentry — server + client. Si absent, le SDK est no-op (zéro overhead).
@@ -404,11 +418,11 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
   `sentry.edge.config.ts` n'est plus chargé par `src/instrumentation.ts`) — le SDK edge alourdissait
   chaque cold start du middleware. Ses erreurs restent dans les logs Vercel.
 - **Wrapping** : `next.config.mjs` enveloppe avec `withSentryConfig` (org `klikandgo`, project `klikandgo-web`, `silent: true`, `hideSourceMaps: true`, `disableLogger: true`).
-- **Activation** : SDK initialisé uniquement si `SENTRY_DSN` (ou `NEXT_PUBLIC_SENTRY_DSN`) est défini ET `TEST_MODE !== "true"`.
+- **Activation** : SDK initialisé si `SENTRY_DSN` (ou `NEXT_PUBLIC_SENTRY_DSN`) est défini ET que le mode test n'est pas réellement actif (`isTestModeEnabled()`, donc toujours initialisé en production Vercel).
 - **Sample rates** : prod → traces 10%, replay session 5%, replay on error 100%. Dev → traces 100%, replay 0%.
 - **Bruit filtré** : `NEXT_REDIRECT`, `NEXT_NOT_FOUND`, `RouteError`, `ResizeObserver loop` — ignorés via `ignoreErrors` + `beforeSend` digest check.
 - **Logger** : `logger.error()` (depuis `src/lib/logger.ts`) appelle `Sentry.captureException()` automatiquement en prod (NODE_ENV=production + DSN présent + pas en test mode).
-- **Test mode** : Sentry désactivé entièrement quand `TEST_MODE=true` (zéro events).
+- **Test mode** : Sentry désactivé quand le mode test est réellement actif (local, preview). Jusqu'au 2026-11-13 il était lié à la seule variable `TEST_MODE`, définie en prod : aucune erreur serveur ne remontait.
 - **Source maps** : upload automatique au build Vercel si `SENTRY_AUTH_TOKEN` est défini, sinon `dryRun: true` (no-op).
 
 ## Marketing Hub V2 (ÉTAPE 17 — TERMINÉ)

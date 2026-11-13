@@ -33,13 +33,38 @@ describe("isTestMode", () => {
     expect(isTestMode()).toBe(true);
   });
 
-  it("should refuse to enable in production unless ALLOW_TEST_IN_PROD is explicitly set", () => {
-    // Critical security gate — without this guard, prod would accept fake users
+  it("should refuse to enable on a production build unless ALLOW_TEST_IN_PROD is explicitly set", () => {
+    // Build de production HORS prod Vercel (preview, `next start` local)
     process.env.TEST_MODE = "true";
     vi.stubEnv("NODE_ENV", "production");
+    delete process.env.VERCEL_ENV;
+    delete process.env.KLIKGO_DEPLOY_ENV;
     delete process.env.ALLOW_TEST_IN_PROD;
     expect(isTestMode()).toBe(false);
     process.env.ALLOW_TEST_IN_PROD = "true";
+    expect(isTestMode()).toBe(true);
+  });
+
+  it("should NEVER enable on the Vercel production deployment, whatever the flags", () => {
+    // Faille du 2026-11-13 : TEST_MODE + ALLOW_TEST_IN_PROD étaient définis en
+    // prod, et deux cookies en clair donnaient l'accès ADMIN à tout visiteur.
+    process.env.TEST_MODE = "true";
+    process.env.ALLOW_TEST_IN_PROD = "true";
+    vi.stubEnv("NODE_ENV", "production");
+
+    process.env.VERCEL_ENV = "production";
+    delete process.env.KLIKGO_DEPLOY_ENV;
+    expect(isTestMode()).toBe(false);
+
+    // Même si la variable système n'était pas exposée au runtime, la valeur
+    // figée au build suffit.
+    delete process.env.VERCEL_ENV;
+    process.env.KLIKGO_DEPLOY_ENV = "production";
+    expect(isTestMode()).toBe(false);
+
+    // Un déploiement de preview reste utilisable pour la recette.
+    process.env.VERCEL_ENV = "preview";
+    process.env.KLIKGO_DEPLOY_ENV = "preview";
     expect(isTestMode()).toBe(true);
   });
 });

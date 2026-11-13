@@ -1,6 +1,8 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
 import { Redis } from "@upstash/redis";
+import { isTestModeEnabled } from "@/lib/auth/test-mode-env";
+import { TEST_SESSION_COOKIE, verifyTestSession } from "@/lib/auth/test-session";
 
 // ── Upstash Redis client (Edge-compatible) ──
 // Used to share the role cache across middleware instances so that role
@@ -13,13 +15,14 @@ const edgeRedis =
       })
     : null;
 
-// @security: test-only — Bypass Clerk ONLY if secret was validated (cookie present)
-function isTestActivatedMiddleware(req: NextRequest): boolean {
-  if (process.env.TEST_MODE !== "true") return false;
-  if (process.env.NODE_ENV === "production" && process.env.ALLOW_TEST_IN_PROD !== "true") {
-    return false;
-  }
-  return req.cookies.get("klikgo-test-activated")?.value === "true";
+// @security: test-only — Bypass Clerk UNIQUEMENT sur présentation d'un jeton de
+// session de test signé et non expiré (jamais en production Vercel). Un cookie
+// en clair ne suffit pas : c'était la faille corrigée le 2026-11-13.
+async function isTestActivatedMiddleware(req: NextRequest): Promise<boolean> {
+  if (!isTestModeEnabled()) return false;
+  const token = req.cookies.get(TEST_SESSION_COOKIE)?.value;
+  if (!token) return false;
+  return (await verifyTestSession(token, process.env.TEST_SECRET)) !== null;
 }
 
 // IMPORTANT: matchers strict — utiliser /boucher$|/boucher/(.*) car
@@ -201,9 +204,9 @@ const handleClerkAuth = clerkMiddleware(async (auth, req) => {
 });
 
 // ── Main middleware: skip Clerk entirely for public routes ──
-export default function middleware(req: NextRequest, event: NextFetchEvent) {
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
   // Test mode bypass
-  if (isTestActivatedMiddleware(req)) {
+  if (await isTestActivatedMiddleware(req)) {
     return NextResponse.next();
   }
 

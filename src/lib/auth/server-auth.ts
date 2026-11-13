@@ -1,44 +1,47 @@
 // @security: test-only — Server-side auth wrapper with test mode bypass
-// In test mode, checks klikgo-test-activated cookie before bypassing
-// Without the activated cookie, falls through to normal Clerk auth
+//
+// Le contournement de Clerk n'est accordé que sur présentation du jeton de
+// session de test SIGNÉ (cookie httpOnly posé par /api/test-mode/activate après
+// vérification du secret), et jamais sur le déploiement de production Vercel.
+// Les cookies en clair klikgo-test-activated / klikgo-test-role ne sont que des
+// indices d'interface : ils ne donnent aucun droit.
 
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
-import { isTestMode, TEST_USERS, type TestRole } from "./test-auth";
+import { getTestSecret, isTestMode, TEST_USERS, type TestRole } from "./test-auth";
+import { TEST_SESSION_COOKIE } from "./test-session";
+import { verifyTestSessionSync } from "./test-session-node";
 
-/** Check if test mode is actually activated (secret was validated) */
-function isTestActivated(): boolean {
-  if (!isTestMode()) return false;
-  const cookieStore = cookies();
-  return cookieStore.get("klikgo-test-activated")?.value === "true";
+/**
+ * Rôle de la session de test en cours, ou null s'il n'y en a pas de valide
+ * (mode test désactivé, jeton absent, expiré ou mal signé).
+ */
+export function getTestRole(): TestRole | null {
+  if (!isTestMode()) return null;
+  const token = cookies().get(TEST_SESSION_COOKIE)?.value;
+  if (!token) return null;
+  return verifyTestSessionSync(token, getTestSecret());
+}
+
+/** Une session de test valide est-elle présente ? */
+export function isTestActivated(): boolean {
+  return getTestRole() !== null;
 }
 
 /**
  * Drop-in replacement for `const { userId } = await auth()`
- * In test mode (activated), returns the test user ID from the cookie.
+ * In test mode (valid signed session), returns the test user ID for the session role.
  * Otherwise, calls Clerk auth() normally.
  */
 export async function getServerUserId(): Promise<string | null> {
-  // @security: test-only — only bypass if secret was validated
-  if (isTestActivated()) {
-    const cookieStore = cookies();
-    const testRole = (cookieStore.get("klikgo-test-role")?.value || "CLIENT") as TestRole;
-    const user = TEST_USERS[testRole];
-    return user?.clerkId || null;
+  // @security: test-only — only bypass with a verified test session
+  const testRole = getTestRole();
+  if (testRole) {
+    return TEST_USERS[testRole].clerkId;
   }
 
   const { userId } = await auth();
   return userId;
-}
-
-/**
- * Get the test role from cookie (server-side).
- * Returns null if test mode is not activated.
- */
-export function getTestRole(): TestRole | null {
-  if (!isTestActivated()) return null;
-  const cookieStore = cookies();
-  return (cookieStore.get("klikgo-test-role")?.value || "CLIENT") as TestRole;
 }
 
 /**
@@ -48,9 +51,8 @@ export function getTestRole(): TestRole | null {
  * Outside test mode, behaves identically to getServerUserId().
  */
 export async function getBoucherOwnerUserId(): Promise<string | null> {
-  if (isTestActivated()) {
-    const cookieStore = cookies();
-    const testRole = (cookieStore.get("klikgo-test-role")?.value || "CLIENT") as TestRole;
+  const testRole = getTestRole();
+  if (testRole) {
     if (testRole === "BOUCHER" || testRole === "ADMIN") {
       // Lazy import to avoid circular dependency
       const { default: prisma } = await import("@/lib/prisma");
@@ -61,16 +63,12 @@ export async function getBoucherOwnerUserId(): Promise<string | null> {
       return firstShop?.ownerId || null;
     }
     // Non-boucher test role: return the regular test user ID
-    const user = TEST_USERS[testRole];
-    return user?.clerkId || null;
+    return TEST_USERS[testRole].clerkId;
   }
 
   const { userId } = await auth();
   return userId;
 }
-
-/** Expose isTestActivated for admin-auth and boucher-auth */
-export { isTestActivated };
 
 /**
  * Resolve the user's role for permission checks.
@@ -82,8 +80,8 @@ export { isTestActivated };
  * En mode test, retourne le role testé (ADMIN ⇒ "admin" pour isAdmin).
  */
 export async function resolveUserRole(): Promise<string | undefined> {
-  if (isTestActivated()) {
-    const testRole = getTestRole();
+  const testRole = getTestRole();
+  if (testRole) {
     return testRole === "ADMIN" ? "admin" : undefined;
   }
 
