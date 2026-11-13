@@ -13,6 +13,10 @@ import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { buildRetouchPrompt, RETOUCH_PRESETS } from "@/lib/image-prompts";
+import {
+  extensionForImageContentType,
+  parseSafeImageContentType,
+} from "@/lib/image-content-type";
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
 const PRIMARY_MODEL = "black-forest-labs/flux-kontext-pro";
@@ -35,12 +39,17 @@ async function uploadOriginal(
   if (file.size > MAX_UPLOAD_BYTES) {
     throw new Error("FILE_TOO_LARGE");
   }
-  const ext = (file.type.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "");
+  // Le type déclaré par le client n'est jamais stocké tel quel dans le Blob public.
+  const contentType = parseSafeImageContentType(file.type);
+  if (!contentType) {
+    throw new Error("UNSUPPORTED_TYPE");
+  }
+  const ext = extensionForImageContentType(contentType);
   const buf = Buffer.from(await file.arrayBuffer());
   const blob = await put(
     `shops/${shopId}/originals/${Date.now()}.${ext}`,
     buf,
-    { access: "public", contentType: file.type || "image/jpeg" }
+    { access: "public", contentType }
   );
   return blob.url;
 }
@@ -133,6 +142,12 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         if ((err as Error).message === "FILE_TOO_LARGE") {
           return apiError("VALIDATION_ERROR", "Image trop lourde (max 5MB)");
+        }
+        if ((err as Error).message === "UNSUPPORTED_TYPE") {
+          return apiError(
+            "VALIDATION_ERROR",
+            "Format d'image non supporté (JPG, PNG, WebP, GIF ou AVIF uniquement)"
+          );
         }
         throw err;
       }

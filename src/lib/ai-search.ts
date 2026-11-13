@@ -99,7 +99,6 @@ export async function searchProducts(
       name: true,
       description: true,
       priceCents: true,
-      proPriceCents: true,
       unit: true,
       promoPct: true,
       promoEnd: true,
@@ -137,9 +136,6 @@ export async function searchProducts(
   const results = scored.slice(0, limit).map(({ _score, ...product }) => ({
     ...product,
     price: (product.priceCents / 100).toFixed(2),
-    proPrice: product.proPriceCents
-      ? (product.proPriceCents / 100).toFixed(2)
-      : null,
     prepTime: product.shop.busyMode
       ? product.shop.prepTimeMin + product.shop.busyExtraMin
       : product.shop.prepTimeMin,

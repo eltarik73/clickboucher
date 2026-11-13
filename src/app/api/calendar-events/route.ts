@@ -6,8 +6,11 @@ export const revalidate = 60;
 
 export async function GET() {
   try {
+    // Route publique mise en cache CDN : événements globaux uniquement (shopId null).
+    // Les événements propres à une boutique passent par /api/boucher/calendar
+    // (authentifié, scopé par shopId).
     const events = await prisma.calendarEvent.findMany({
-      where: { active: true },
+      where: { active: true, shopId: null },
       orderBy: { date: "asc" },
     });
 

@@ -16,8 +16,8 @@ const PRODUCT_INCLUDE = {
 
 // ── GET /api/products/[id] ─────────────────────
 // Public — product detail with all relations.
-// Audit sécurité 2026-06-12 : proPriceCents (tarif B2B) masqué pour les
-// non-CLIENT_PRO, aligné sur /api/products (listing). Le cache public ne sert
+// Audit sécurité 2026-06-12 : proPriceCents (tarif B2B) masqué pour le public,
+// aligné sur /api/products (listing). Visible pour CLIENT_PRO, admin et propriétaire. Le cache public ne sert
 // que la version masquée — la réponse pro n'est jamais mise en cache partagé.
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -32,18 +32,28 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       return apiError("NOT_FOUND", "Produit introuvable");
     }
 
-    let isPro = false;
+    // Voient le tarif pro : les CLIENT_PRO, les admins et le propriétaire de la
+    // boutique. Sans ce dernier cas, le formulaire d'édition du boucher recevait
+    // le produit masqué et effaçait le prix pro à chaque enregistrement.
+    let canSeeProPrice = false;
     try {
       const uid = await getServerUserId();
       if (uid) {
-        const u = await prisma.user.findUnique({ where: { clerkId: uid }, select: { role: true } });
-        isPro = u?.role === "CLIENT_PRO";
+        const [u, shop, ownerUid] = await Promise.all([
+          prisma.user.findUnique({ where: { clerkId: uid }, select: { id: true, role: true } }),
+          prisma.shop.findUnique({ where: { id: product.shopId }, select: { ownerId: true } }),
+          getBoucherOwnerUserId(),
+        ]);
+        canSeeProPrice =
+          u?.role === "CLIENT_PRO" ||
+          isAdmin(u?.role) ||
+          (!!shop && (shop.ownerId === uid || shop.ownerId === u?.id || shop.ownerId === ownerUid));
       }
     } catch {
       // Not logged in — standard prices only.
     }
 
-    if (isPro) {
+    if (canSeeProPrice) {
       // Per-user pricing must not land in the shared CDN cache.
       return apiSuccess(product);
     }

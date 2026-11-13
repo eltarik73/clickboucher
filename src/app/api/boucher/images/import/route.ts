@@ -8,11 +8,37 @@ import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { put } from "@vercel/blob";
 import { logger } from "@/lib/logger";
+import {
+  extensionForImageContentType,
+  parseSafeImageContentType,
+} from "@/lib/image-content-type";
 import { z } from "zod";
 
 const VALID_USAGES = ["CAMPAIGN", "PROMO", "PRODUCT", "SOCIAL", "BANNER"] as const;
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const FETCH_TIMEOUT_MS = 10_000;
+
+// Seul appelant : ImageSearchModal, qui renvoie l'URL d'un résultat de
+// /api/boucher/images/search (Pexels `src.*`, Unsplash `urls.regular`).
+// Tout autre hôte = requête serveur vers une cible choisie par le client (SSRF).
+const ALLOWED_IMPORT_HOSTS = new Set([
+  "images.pexels.com",
+  "images.unsplash.com",
+  "plus.unsplash.com",
+]);
+
+function isAllowedImportUrl(raw: string): boolean {
+  try {
+    const target = new URL(raw);
+    return (
+      target.protocol === "https:" &&
+      target.port === "" &&
+      ALLOWED_IMPORT_HOSTS.has(target.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
 
 const importSchema = z.object({
   url: z.string().url(),
@@ -34,6 +60,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { url, source, query, usage } = importSchema.parse(body);
 
+    if (!isAllowedImportUrl(url)) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Source d'image non autorisée (Pexels ou Unsplash uniquement)"
+      );
+    }
+
     // Fetch image with timeout
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
@@ -51,6 +84,15 @@ export async function POST(req: NextRequest) {
       return apiError("NOT_FOUND", "Image source introuvable");
     }
 
+    // Le Content-Type amont n'est jamais stocké tel quel dans le Blob public.
+    const contentType = parseSafeImageContentType(imgRes.headers.get("content-type"));
+    if (!contentType) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Format d'image non supporté (JPG, PNG, WebP, GIF ou AVIF uniquement)"
+      );
+    }
+
     const contentLength = Number(imgRes.headers.get("content-length") || 0);
     if (contentLength && contentLength > MAX_BYTES) {
       return apiError("VALIDATION_ERROR", "Image trop volumineuse (>10 Mo)");
@@ -62,8 +104,7 @@ export async function POST(req: NextRequest) {
     }
     const buffer = Buffer.from(arrayBuffer);
 
-    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
-    const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+    const ext = extensionForImageContentType(contentType);
 
     const blob = await put(
       `shops/${auth.shopId}/imports/${Date.now()}-${source}.${ext}`,

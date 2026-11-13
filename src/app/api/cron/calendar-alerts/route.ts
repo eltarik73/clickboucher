@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     // Hoist shop.findMany OUTSIDE the event loop (was identical every iteration)
     const shops = await prisma.shop.findMany({
       where: { visible: true },
-      select: { ownerId: true, name: true },
+      select: { id: true, ownerId: true, name: true },
     });
 
     // Batch fetch ALL owners at once (instead of N per shop)
@@ -45,7 +45,12 @@ export async function GET(req: NextRequest) {
       const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
       if (diffDays === event.alertDaysBefore) {
-        for (const shop of shops) {
+        // Événement global (shopId null) → toutes les boutiques visibles.
+        // Événement propre à une boutique → uniquement cette boutique.
+        const recipients = event.shopId
+          ? shops.filter((s) => s.id === event.shopId)
+          : shops;
+        for (const shop of recipients) {
           try {
             const ownerId = ownerMap.get(shop.ownerId);
             if (ownerId) {

@@ -2,16 +2,13 @@
 import { NextRequest } from "next/server";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { generateDailyRecipe } from "@/lib/recipe-generator";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    // Vérifier le secret pour sécuriser l'endpoint
-    const secret = req.headers.get("x-cron-secret") || req.headers.get("authorization")?.replace("Bearer ", "");
-    if (secret !== process.env.CRON_SECRET) {
-      return apiError("UNAUTHORIZED", "Invalid cron secret");
-    }
+    if (!verifyCronAuth(req)) return apiError("UNAUTHORIZED", "Invalid cron secret");
 
     const recipe = await generateDailyRecipe();
     return apiSuccess({ title: recipe.title, slug: recipe.slug });

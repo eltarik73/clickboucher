@@ -2,6 +2,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { getServerUserId } from "@/lib/auth/server-auth";
+import { parseSafeImageContentType } from "@/lib/image-content-type";
 import { logger } from "@/lib/logger";
 
 const ALLOWED_HOSTS = new Set(["images.pexels.com", "images.unsplash.com"]);
@@ -9,6 +11,17 @@ const ALLOWED_HOST_SUFFIXES = [".public.blob.vercel-storage.com", ".replicate.de
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export async function GET(req: NextRequest) {
+  // Session obligatoire : tous les appelants sont des <img> same-origin de l'espace boucher.
+  let userId: string | null = null;
+  try {
+    userId = await getServerUserId();
+  } catch (err) {
+    logger.error("images/proxy auth failed", err);
+  }
+  if (!userId) {
+    return NextResponse.json({ error: "Authentification requise" }, { status: 401 });
+  }
+
   const urlParam = req.nextUrl.searchParams.get("url");
   if (!urlParam) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });
@@ -43,6 +56,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: `Upstream ${resp.status}` }, { status: 502 });
     }
 
+    // Ne jamais relayer le Content-Type amont tel quel : du HTML ou du SVG servi
+    // depuis notre origine pourrait y exécuter du script.
+    const contentType = parseSafeImageContentType(resp.headers.get("content-type"));
+    if (!contentType) {
+      return NextResponse.json({ error: "Type de contenu non autorisé" }, { status: 415 });
+    }
+
     const contentLength = resp.headers.get("content-length");
     if (contentLength && Number(contentLength) > MAX_BYTES) {
       return NextResponse.json({ error: "Too large" }, { status: 413 });
@@ -53,12 +73,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Too large" }, { status: 413 });
     }
 
-    const contentType = resp.headers.get("content-type") || "image/jpeg";
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400, s-maxage=86400",
+        // private : la route exige une session — un cache CDN partagé la contournerait
+        "Cache-Control": "private, max-age=86400",
       },
     });
   } catch (err) {

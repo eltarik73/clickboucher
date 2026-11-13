@@ -36,7 +36,17 @@ export async function PATCH(
     if (data.suspended) {
       await prisma.shop.update({
         where: { id: shopId },
-        data: { visible: false, status: "CLOSED", closedMessage: data.reason || "Boutique suspendue par l'administration" },
+        data: {
+          visible: false,
+          status: "CLOSED",
+          closedMessage: data.reason || "Boutique suspendue par l'administration",
+          // Fin des congés programmés : sinon leur expiration (cron vacation-end ou
+          // expiration paresseuse) remettrait la boutique suspendue en ligne.
+          vacationMode: false,
+          vacationStart: null,
+          vacationEnd: null,
+          vacationMessage: null,
+        },
       });
 
       await writeAuditLog({

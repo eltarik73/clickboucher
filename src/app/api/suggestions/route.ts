@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch full product data
     const products = await prisma.product.findMany({
-      where: { id: { in: suggestedIds } },
+      where: { id: { in: suggestedIds }, shopId },
       include: {
         categories: { select: { name: true } },
       },
@@ -80,7 +80,6 @@ export async function GET(req: NextRequest) {
         name: p.name,
         imageUrl: p.imageUrl,
         priceCents: p.priceCents,
-        proPriceCents: p.proPriceCents,
         unit: p.unit,
         category: p.categories?.[0]?.name,
         origin: p.origin,

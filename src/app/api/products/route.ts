@@ -101,10 +101,26 @@ export async function GET(req: NextRequest) {
       where.name = { contains: query.search, mode: "insensitive" };
     }
 
+    // Check if user is CLIENT_PRO to include proPriceCents.
+    // Résolu AVANT le cache : la réponse dépend du rôle, le cache ne doit pas.
+    let isPro = false;
+    try {
+      const uid = await getServerUserId();
+      if (uid) {
+        const u = await prisma.user.findUnique({ where: { clerkId: uid }, select: { role: true } });
+        isPro = u?.role === "CLIENT_PRO";
+      }
+    } catch {
+      // Not logged in — show standard prices
+    }
+
     // ── Cache lookup for unfiltered product lists ──
+    // La clé Redis ne contient que la variante masquée (sans proPriceCents) :
+    // les CLIENT_PRO ne lisent ni n'écrivent ce cache.
     const hasFilters =
       query.categoryId || query.inStock || query.featured || query.tag || query.search;
-    const productsCacheKey = !hasFilters && query.shopId ? `products:shop:${query.shopId}` : null;
+    const productsCacheKey =
+      !isPro && !hasFilters && query.shopId ? `products:shop:${query.shopId}` : null;
 
     if (productsCacheKey) {
       try {
@@ -121,18 +137,6 @@ export async function GET(req: NextRequest) {
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       take: 200,
     });
-
-    // Check if user is CLIENT_PRO to include proPriceCents
-    let isPro = false;
-    try {
-      const uid = await getServerUserId();
-      if (uid) {
-        const u = await prisma.user.findUnique({ where: { clerkId: uid }, select: { role: true } });
-        isPro = u?.role === "CLIENT_PRO";
-      }
-    } catch {
-      // Not logged in — show standard prices
-    }
 
     const data = products.map((p) => {
       if (isPro) return p;
