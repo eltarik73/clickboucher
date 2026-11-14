@@ -1,15 +1,31 @@
 // src/app/api/orders/[id]/status/route.ts — Lightweight order status endpoint (for polling)
 import { NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+/**
+ * The order as a query condition the caller may read: their own order, or an order of a shop whose
+ * ownerId is one of their ids (clerkId or Prisma id; the shop owner in test mode). The ownership is
+ * checked by the query, on columns that are not returned.
+ */
+async function readableOrder(orderId: string, clerkId: string): Promise<Prisma.OrderWhereInput> {
+  const [dbUser, testOwner] = await Promise.all([
+    prisma.user.findUnique({ where: { clerkId }, select: { id: true } }),
+    getBoucherOwnerUserId(),
+  ]);
+  const ownerIds = [clerkId, dbUser?.id, testOwner].filter(
+    (ownerId): ownerId is string => !!ownerId
+  );
+  return { id: orderId, OR: [{ user: { clerkId } }, { shop: { ownerId: { in: ownerIds } } }] };
+}
+
+// ── GET /api/orders/[id]/status ────────────────
+// For the customer and the butcher of the shop. An order outside the caller's reach is 404.
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
     const userId = await getServerUserId();
@@ -18,14 +34,15 @@ export async function GET(
       return apiError("UNAUTHORIZED", "Authentification requise");
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id },
+    const order = await prisma.order.findFirst({
+      where: await readableOrder(id, userId),
       select: {
         id: true,
         status: true,
         orderNumber: true,
         dailyNumber: true,
         displayNumber: true,
+        customerNumber: true,
         estimatedReady: true,
         actualReady: true,
         pickedUpAt: true,
@@ -51,7 +68,7 @@ export async function GET(
           },
         },
         shop: { select: { id: true, name: true, phone: true, address: true, city: true } },
-        user: { select: { clerkId: true, firstName: true, lastName: true, customerNumber: true } },
+        user: { select: { firstName: true, lastName: true } },
         priceAdjustment: {
           select: {
             id: true,
@@ -71,30 +88,6 @@ export async function GET(
 
     if (!order) {
       return apiError("NOT_FOUND", "Commande introuvable");
-    }
-
-    // Permission: client owner or shop owner
-    if (order.user.clerkId !== userId) {
-      // Check shop ownership with OR clause (ownerId may store clerkId OR dbUser.id;
-      // in test mode, getBoucherOwnerUserId() returns the real shop ownerId)
-      const [shop, dbUser, testOwner] = await Promise.all([
-        prisma.shop.findUnique({
-          where: { id: order.shop.id },
-          select: { ownerId: true },
-        }),
-        prisma.user.findUnique({
-          where: { clerkId: userId },
-          select: { id: true },
-        }),
-        getBoucherOwnerUserId(),
-      ]);
-      if (
-        shop?.ownerId !== userId &&
-        shop?.ownerId !== dbUser?.id &&
-        shop?.ownerId !== testOwner
-      ) {
-        return apiError("FORBIDDEN", "Accès refusé");
-      }
     }
 
     return apiSuccess(order);

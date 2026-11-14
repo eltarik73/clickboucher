@@ -134,6 +134,11 @@ jobs:
       - name: Vitest run
         run: npm run test:run
 
+      # Code applicatif contre le PostgreSQL du job, dans le schéma `itest` (créé par le setup
+      # global de Vitest) : le schéma `public` poussé plus haut n'est pas modifié.
+      - name: Integration tests (PostgreSQL réel)
+        run: npm run test:integration
+
   build:
     name: Build (next build + prerender check)
     runs-on: ubuntu-latest

@@ -17,19 +17,23 @@ export function BonsPlansNav() {
   const pathname = usePathname();
 
   return (
-    <div className="flex gap-1.5 overflow-x-auto py-3 sticky top-0 z-20 bg-[#f8f6f3] dark:bg-[#0a0a0a] -mx-4 px-4" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
+    <div
+      className="sticky top-0 z-20 flex gap-1.5 overflow-x-auto bg-[#f8f6f3] px-4 py-3 dark:bg-[#0a0a0a]"
+      style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+    >
       {TABS.map((tab) => {
-        const isActive = pathname === tab.href || (tab.href !== "/bons-plans" && pathname.startsWith(tab.href));
+        const isActive =
+          pathname === tab.href || (tab.href !== "/bons-plans" && pathname.startsWith(tab.href));
         const isAllActive = tab.href === "/bons-plans" && pathname === "/bons-plans";
 
         return (
           <Link
             key={tab.key}
             href={tab.href}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap ${
+            className={`flex-shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               isActive || isAllActive
                 ? "bg-[#DC2626] text-white"
-                : "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/15"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-400 dark:hover:bg-white/15"
             }`}
           >
             {tab.emoji && <span className="mr-1">{tab.emoji}</span>}

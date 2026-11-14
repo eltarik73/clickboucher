@@ -1,10 +1,13 @@
 import { NextRequest } from "next/server";
 
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { listOrders } from "@/lib/services/orders/list";
 import { createOrder } from "@/lib/services/orders/create";
+import { resolveOrderCustomer } from "@/lib/services/orders/customer";
+import { customerOrderById } from "@/lib/services/orders/customer-view";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +27,7 @@ export async function GET(req: NextRequest) {
     }
     return apiSuccess(result.orders);
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error, "orders GET");
   }
 }
 
@@ -43,13 +46,18 @@ export async function POST(req: NextRequest) {
       return apiError("CAPACITY_EXCEEDED", "Trop de commandes, veuillez patienter");
     }
 
-    const body = await req.json();
-    const result = await createOrder(body, userId);
-    if (!result.ok) {
-      return apiError(result.code, result.message, result.details as Record<string, string[]> | undefined);
+    const customer = await resolveOrderCustomer(userId);
+    if (!customer) {
+      return apiError("NOT_FOUND", "Utilisateur introuvable");
     }
-    return apiSuccess(result.order, result.status);
+
+    const body = await readJsonBody(req);
+    const result = await createOrder(body, customer);
+    if (!result.ok) {
+      return apiError(result.code, result.message, result.details);
+    }
+    return apiSuccess(await customerOrderById(result.order.id), result.status);
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error, "orders POST");
   }
 }

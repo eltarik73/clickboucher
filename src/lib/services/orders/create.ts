@@ -1,518 +1,334 @@
+// src/lib/services/orders/create.ts — creation of an order, for POST /api/orders (signed-in
+// customer) and POST /api/checkout/guest (guest customer).
+//
+// The order is created from the server's quote (quote.ts), never from amounts sent by the browser:
+// the browser sends what it wants and the « Total à payer » it confirmed, and any difference is
+// answered with PRICE_CHANGED. Numbers, discount consumption and limited stock are taken inside one
+// transaction (numbering.ts, discount-ledger.ts, limited-stock.ts), so either everything is
+// written or nothing is. An idempotency key makes a retried request return the order created by
+// the first one.
 import { randomUUID } from "crypto";
-import { Prisma } from "@prisma/client";
+import type { Order, OrderItem } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
-import { createOrderSchema } from "@/lib/validators";
 import { formatZodError } from "@/lib/api/errors";
-import { sendNotification } from "@/lib/notifications";
-import { getOrCreateUser } from "@/lib/get-or-create-user";
-import { getShopStatus, setBusyMode } from "@/lib/shop-status";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
-import { getNextDailyNumber, ensureCustomerNumber } from "@/lib/services/numbering.service";
-import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
-import { logger } from "@/lib/logger";
-import { PARIS_TIME_ZONE } from "@/lib/paris-time";
+import { lineUnits, toStoredQuantity } from "@/lib/pricing/line";
+import { uniqueViolationFields } from "@/lib/prisma-errors";
+import { computeOrderCommissionFromHt } from "@/lib/services/stripe/commission";
+import { formatPrice } from "@/lib/utils";
+import { createOrderSchema, type CreateOrderRequest } from "@/lib/validators/order";
+import { announceNewOrder } from "./announce";
+import { DiscountUnavailableError, consumeLoyaltyReward, consumeOffer } from "./discount-ledger";
+import { discountUnavailableMessage, type ResolvedDiscount } from "./discount";
+import { LimitedStockError, reserveLimitedStock, stockLinesFromItems } from "./limited-stock";
+import { allocateCustomerNumber, allocateDailyNumber, allocateOrderNumber } from "./numbering";
+import { prepareOrder, type OrderCustomer, type OrderQuote, type OrderShop } from "./quote";
+import { checkShopCanTakeOrder } from "./shop-capacity";
+import { ACCEPTED_EVENT_TYPE, stockUnitsPayload } from "./stock-hold";
+import { SYSTEM_ACTOR_ID } from "./transition";
 
-type CreateErrorCode =
+export type CreateOrderErrorCode =
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
   | "SERVICE_DISABLED"
   | "CAPACITY_EXCEEDED"
   | "PRODUCTS_MISSING"
-  | "STOCK_INSUFFICIENT";
+  | "STOCK_INSUFFICIENT"
+  | "PRICE_CHANGED"
+  | "CONFLICT";
+
+type CreatedOrder = Order & {
+  items: OrderItem[];
+  shop: { id: string; name: string; slug: string };
+};
 
 export type CreateOrderResult =
-  | { ok: true; order: unknown; status: 200 | 201 }
-  | { ok: false; code: CreateErrorCode; message: string; details?: Record<string, string[]> | { missingProductIds: string[] } };
+  | { ok: true; status: 201 | 200; order: CreatedOrder }
+  | { ok: false; code: CreateOrderErrorCode; message: string; details?: Record<string, string[]> };
+
+type Failure = Extract<CreateOrderResult, { ok: false }>;
+
+const STALE_CART_MESSAGE =
+  "Votre panier n'est plus à jour. Rechargez la page puis validez à nouveau votre commande.";
+const PRICE_CHANGED_MESSAGE =
+  "Les prix ou la disponibilité ont changé. Vérifiez le nouveau total avant de confirmer.";
+const KEY_ALREADY_USED_MESSAGE = "Cette demande a déjà été utilisée";
+const IDEMPOTENCY_COLUMN = "idempotency_key";
+const TRANSACTION_OPTIONS = { maxWait: 5000, timeout: 10000 } as const;
+const MINUTE_MS = 60_000;
+
+const createdOrderInclude = {
+  items: true,
+  shop: { select: { id: true, name: true, slug: true } },
+} as const;
+
+/** Order already created with this key: returned to its customer only. */
+async function findByIdempotencyKey(
+  idempotencyKey: string,
+  customerId: string
+): Promise<CreateOrderResult | null> {
+  const existing = await prisma.order.findUnique({
+    where: { idempotencyKey },
+    include: createdOrderInclude,
+  });
+  if (existing === null) return null;
+  if (existing.userId !== customerId)
+    return { ok: false, code: "CONFLICT", message: KEY_ALREADY_USED_MESSAGE };
+  return { ok: true, status: 200, order: existing };
+}
+
+/** Status, timers and QR code of a new order, as the shop is configured (auto-accept or not). */
+async function initialState(
+  shop: OrderShop,
+  request: CreateOrderRequest,
+  quote: OrderQuote,
+  now: Date
+) {
+  const itemCount = quote.lines.reduce((sum, line) => sum + lineUnits(line), 0);
+  const prepMinutes = await calculatePrepTime({
+    shopId: shop.id,
+    basePrepMin: shop.prepTimeMin,
+    busyMode: shop.busyMode,
+    busyExtraMin: shop.busyExtraMin,
+    itemCount,
+  });
+  const slotStart = request.pickupSlotStart ? new Date(request.pickupSlotStart) : null;
+  const scheduledFor = slotStart !== null && slotStart.getTime() > now.getTime() ? slotStart : null;
+  const accepted = shop.autoAccept;
+  return {
+    status: accepted ? ("ACCEPTED" as const) : ("PENDING" as const),
+    expiresAt: accepted ? null : new Date(now.getTime() + shop.acceptTimeoutMin * MINUTE_MS),
+    qrCode: accepted ? randomUUID() : null,
+    estimatedReady: accepted
+      ? (scheduledFor ?? new Date(now.getTime() + prepMinutes * MINUTE_MS))
+      : null,
+    prepMinutes,
+    scheduledFor,
+  };
+}
+
+type InitialState = Awaited<ReturnType<typeof initialState>>;
+
+interface Placement {
+  request: CreateOrderRequest;
+  customer: OrderCustomer;
+  shop: OrderShop;
+  quote: OrderQuote;
+  discount: ResolvedDiscount | null;
+  state: InitialState;
+  now: Date;
+}
+
+function insertOrder({
+  request,
+  customer,
+  shop,
+  quote,
+  discount,
+  state,
+  now,
+}: Placement): Promise<{ order: CreatedOrder; displayNumber: string }> {
+  return prisma.$transaction(async (tx) => {
+    if (discount?.offerId) {
+      await consumeOffer(tx, { offerId: discount.offerId, userId: customer.id, now });
+    }
+    const customerNumber = await allocateCustomerNumber(tx, shop.id, customer.id);
+    const { dailyNumber, displayNumber } = await allocateDailyNumber(tx, shop.id, now);
+    const orderNumber = await allocateOrderNumber(tx, now);
+
+    const order = await tx.order.create({
+      data: {
+        orderNumber,
+        dailyNumber,
+        displayNumber,
+        customerNumber,
+        userId: customer.id,
+        isPro: customer.role === "CLIENT_PRO",
+        shopId: shop.id,
+        status: state.status,
+        requestedTime: request.requestedTime,
+        customerNote: request.customerNote,
+        totalCents: quote.totalCents,
+        // Present commission model, out of this chantier: the shop's rate applied to totalCents.
+        commissionCents: shop.commissionEnabled
+          ? computeOrderCommissionFromHt(quote.totalCents, shop.commissionPct / 100)
+          : 0,
+        discountCents: quote.discount?.discountCents ?? 0,
+        discountAmount: (quote.discount?.discountCents ?? 0) / 100,
+        discountSource: discount?.source ?? null,
+        offerId: discount?.offerId ?? null,
+        loyaltyRewardId: discount?.loyaltyRewardId ?? null,
+        serviceFeeCents: quote.serviceFeeCents,
+        paymentMethod: quote.paymentMethod,
+        expiresAt: state.expiresAt,
+        qrCode: state.qrCode,
+        estimatedReady: state.estimatedReady,
+        idempotencyKey: request.idempotencyKey,
+        pickupSlotStart: request.pickupSlotStart ? new Date(request.pickupSlotStart) : null,
+        pickupSlotEnd: request.pickupSlotEnd ? new Date(request.pickupSlotEnd) : null,
+        items: {
+          create: quote.lines.map((line) => ({
+            productId: line.productId,
+            name: line.name,
+            unit: line.unit,
+            quantity: toStoredQuantity(line),
+            weightGrams: line.weightGrams,
+            priceCents: line.unitPriceCents,
+            totalCents: line.lineTotalCents,
+            estimatedPriceCents: line.lineTotalCents,
+            cutOption: line.cutOption,
+            cutPriceCents: line.cutPriceCents,
+            variant: line.variant,
+            sliceCount: line.sliceCount,
+            sliceThickness: line.sliceThickness,
+            pieceCount: line.pieceCount,
+            pieceLabel: line.pieceLabel,
+            itemNote: line.itemNote,
+          })),
+        },
+      },
+      include: createdOrderInclude,
+    });
+
+    if (discount?.loyaltyRewardId) {
+      await consumeLoyaltyReward(tx, {
+        rewardId: discount.loyaltyRewardId,
+        userId: customer.id,
+        orderId: order.id,
+        now,
+      });
+    }
+    if (state.status === "ACCEPTED") {
+      // Same record as the accept command: the units reserved are written into the ACCEPTED
+      // event, and every later release gives back exactly those units.
+      const stockLines = stockLinesFromItems(order.items);
+      await reserveLimitedStock(tx, shop.id, stockLines);
+      await tx.orderEvent.create({
+        data: {
+          orderId: order.id,
+          shopId: shop.id,
+          type: ACCEPTED_EVENT_TYPE,
+          actorId: SYSTEM_ACTOR_ID,
+          payloadJson: { auto: true, qrCode: state.qrCode, ...stockUnitsPayload(stockLines) },
+        },
+      });
+    }
+    return { order, displayNumber };
+  }, TRANSACTION_OPTIONS);
+}
 
 /**
- * Create a new order — called from POST /api/orders (Clerk users) and
- * POST /api/checkout/guest (anonymous users with shadow Prisma User).
- *
- * Handles idempotency, pricing, stock, throttling, slot validation, auto-cancel timer,
- * numbering and fire-and-forget notifications.
- *
- * @param body - Raw JSON body (already parsed from request)
- * @param userOrClerkId - Either a Clerk id string (Clerk-authenticated path) or
- *                       a pre-resolved Prisma User (guest checkout path).
+ * A request refused while a concurrent request with the same key and customer created the order
+ * (its code is then used, its stock taken, its key taken): the answer is that order, not the refusal.
  */
-export async function createOrder(
-  body: unknown,
-  userOrClerkId: string | { id: string; firstName: string; lastName: string; email: string; role: string; clerkId: string | null }
+async function replayOr(
+  request: CreateOrderRequest,
+  customer: OrderCustomer,
+  failure: Failure
 ): Promise<CreateOrderResult> {
-  const bodyRecord = (body ?? {}) as Record<string, unknown>;
+  return (await findByIdempotencyKey(request.idempotencyKey, customer.id)) ?? failure;
+}
 
-  // Idempotency check (anti double-commande)
-  const idempotencyKey = typeof bodyRecord.idempotencyKey === "string" ? bodyRecord.idempotencyKey : null;
-  if (idempotencyKey) {
-    const existing = await prisma.order.findUnique({
-      where: { idempotencyKey },
-      include: {
-        items: true,
-        shop: { select: { id: true, name: true, slug: true } },
-      },
-    });
-    if (existing) return { ok: true, order: existing, status: 200 };
+/**
+ * Failures the transaction can end with. The order a concurrent request created with the same key
+ * comes first; then the failures the customer can act on; anything else is rethrown.
+ */
+async function creationFailure(error: unknown, placement: Placement): Promise<CreateOrderResult> {
+  const replay = await findByIdempotencyKey(
+    placement.request.idempotencyKey,
+    placement.customer.id
+  );
+  if (replay !== null) return replay;
+  if (error instanceof DiscountUnavailableError) {
+    return { ok: false, code: "PRICE_CHANGED", message: discountUnavailableMessage(error.reason) };
   }
-
-  const parseResult = createOrderSchema.safeParse(body);
-  if (!parseResult.success) {
-    return {
-      ok: false,
-      code: "VALIDATION_ERROR",
-      message: "Donnees invalides",
-      details: formatZodError(parseResult.error),
-    };
-  }
-  const data = parseResult.data;
-
-  // ── Phase 1: Parallel fetch — user + shop + products ──
-  // Guest path passes a pre-resolved Prisma User; Clerk path passes a clerkId string.
-  const productIds = data.items.map((i) => i.productId);
-  const userPromise =
-    typeof userOrClerkId === "string" ? getOrCreateUser(userOrClerkId) : Promise.resolve(userOrClerkId);
-  const [user, shop, products] = await Promise.all([
-    userPromise,
-    prisma.shop.findUnique({
-      where: { id: data.shopId },
-      select: {
-        id: true,
-        name: true,
-        address: true,
-        city: true,
-        phone: true,
-        status: true,
-        autoAccept: true,
-        acceptTimeoutMin: true,
-        busyMode: true,
-        busyExtraMin: true,
-        prepTimeMin: true,
-        maxOrdersPerSlot: true,
-        maxOrdersPerHour: true,
-        autoBusyThreshold: true,
-        minOrderCents: true,
-        commissionPct: true,
-        commissionEnabled: true,
-        vatRate: true,
-      },
-    }),
-    prisma.product.findMany({
-      where: { id: { in: productIds }, shopId: data.shopId },
-    }),
-  ]);
-
-  if (!user) {
-    return { ok: false, code: "NOT_FOUND", message: "Utilisateur introuvable" };
-  }
-  if (!shop) {
-    return { ok: false, code: "NOT_FOUND", message: "Boucherie introuvable" };
-  }
-
-  const isPro = user.role === "CLIENT_PRO";
-
-  // ── Phase 2: Parallel checks — shop status + throttling + slot ──
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  const slotCheck = data.pickupSlotStart
-    ? prisma.order.count({
-        where: {
-          shopId: shop.id,
-          pickupSlotStart: new Date(data.pickupSlotStart),
-          status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
-        },
-      })
-    : Promise.resolve(0);
-
-  const [currentStatus, ordersLastHour, ordersInSlot] = await Promise.all([
-    getShopStatus(shop.id),
-    prisma.order.count({
-      where: {
-        shopId: shop.id,
-        createdAt: { gte: oneHourAgo },
-        status: { notIn: ["CANCELLED", "AUTO_CANCELLED", "DENIED"] },
-      },
-    }),
-    slotCheck,
-  ]);
-
-  if (currentStatus !== "OPEN" && currentStatus !== "BUSY") {
-    const messages: Record<string, string> = {
-      PAUSED: "La boucherie a temporairement mis les commandes en pause",
-      AUTO_PAUSED: "La boucherie est temporairement indisponible",
-      CLOSED: "La boucherie est actuellement fermée",
-      VACATION: "La boucherie est en vacances",
-    };
-    return {
-      ok: false,
-      code: "SERVICE_DISABLED",
-      message: messages[currentStatus] || "Boutique indisponible",
-    };
-  }
-
-  if (ordersLastHour >= shop.maxOrdersPerHour) {
-    return { ok: false, code: "CAPACITY_EXCEEDED", message: "La boutique est temporairement surchargée" };
-  }
-
-  if (data.pickupSlotStart && ordersInSlot >= shop.maxOrdersPerSlot) {
-    return { ok: false, code: "CAPACITY_EXCEEDED", message: "Ce créneau est complet" };
-  }
-
-  // Verify stock + snooze
-  const productMap = new Map(products.map((p) => [p.id, p]));
-
-  const missingProductIds: string[] = [];
-  const unavailableProducts: string[] = [];
-
-  for (const item of data.items) {
-    const product = productMap.get(item.productId);
-    if (!product) {
-      missingProductIds.push(item.productId);
-      continue;
-    }
-    if (!product.inStock) {
-      unavailableProducts.push(product.name);
-    }
-    if (product.snoozeType !== "NONE") {
-      unavailableProducts.push(product.name);
-    }
-    if (product.isAntiGaspi && product.antiGaspiStock !== null && item.quantity > product.antiGaspiStock) {
-      unavailableProducts.push(`${product.name} (stock limite: ${product.antiGaspiStock})`);
-    }
-    if (product.isFlashSale && product.flashSaleStock !== null && item.quantity > product.flashSaleStock) {
-      unavailableProducts.push(`${product.name} (stock limite: ${product.flashSaleStock})`);
-    }
-  }
-
-  if (missingProductIds.length > 0) {
-    return {
-      ok: false,
-      code: "PRODUCTS_MISSING",
-      message: `${missingProductIds.length} produit(s) introuvable(s) — ils ont peut-etre ete supprimes. Veuillez actualiser votre panier.`,
-      details: { missingProductIds },
-    };
-  }
-
-  if (unavailableProducts.length > 0) {
+  if (error instanceof LimitedStockError) {
+    const line = placement.quote.lines.find((candidate) => candidate.productId === error.productId);
+    if (line === undefined) throw error;
     return {
       ok: false,
       code: "STOCK_INSUFFICIENT",
-      message: `${unavailableProducts.join(", ")} — produit(s) indisponible(s)`,
+      message: `${line.name} — stock limité épuisé`,
+      details: { unavailableProductIds: [error.productId] },
     };
   }
-
-  // ── Calculate totalCents with promo + weight ──
-  let totalCents = 0;
-  const orderItems = data.items.map((item) => {
-    const product = productMap.get(item.productId)!;
-    let unitPrice = isPro && product.proPriceCents ? product.proPriceCents : product.priceCents;
-
-    if (item.cutPriceCents) {
-      unitPrice = item.cutPriceCents;
-    }
-
-    if (
-      product.promoPct &&
-      product.promoType !== "FIXED_AMOUNT" &&
-      product.promoEnd &&
-      new Date(product.promoEnd) > new Date()
-    ) {
-      unitPrice = Math.round(unitPrice * (1 - product.promoPct / 100));
-    }
-    if (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents) {
-      unitPrice = Math.max(0, unitPrice - product.promoFixedCents);
-    }
-
-    const weightGrams = item.weightGrams ?? null;
-    let itemTotal: number;
-    if (product.unit === "KG" && weightGrams) {
-      itemTotal = Math.round(unitPrice * (weightGrams / 1000) * item.quantity);
-    } else {
-      itemTotal = Math.round(unitPrice * item.quantity);
-    }
-
-    totalCents += itemTotal;
-    return {
-      productId: product.id,
-      name: product.name,
-      quantity: item.quantity,
-      unit: product.unit,
-      priceCents: unitPrice,
-      totalCents: itemTotal,
-      weightGrams,
-      itemNote: item.itemNote ?? null,
-      sliceCount: item.sliceCount ?? null,
-      sliceThickness: item.sliceThickness ?? null,
-      variant: item.variant ?? null,
-      pieceCount: item.pieceCount ?? null,
-      pieceLabel: item.pieceLabel ?? null,
-      cutOption: item.cutOption ?? null,
-      cutPriceCents: item.cutPriceCents ?? null,
-      estimatedPriceCents: itemTotal,
-    };
-  });
-
-  // ── Resolve offer/loyalty (read-only here — actual mutation happens inside the
-  // transaction below to keep coupon-consumption + order.create atomic) ──
-  let discountCents = 0;
-  let discountSource: string | null = null;
-  let offerId: string | null = null;
-  let loyaltyRewardId: string | null = null;
-
-  if (data.offerId && data.discountCents) {
-    const offer = await prisma.offer.findUnique({ where: { id: data.offerId } });
-    if (offer && offer.status === "ACTIVE" && new Date() >= offer.startDate && new Date() <= offer.endDate) {
-      discountCents = Math.min(data.discountCents, totalCents);
-      discountSource = offer.shopId ? "SHOP" : "PLATFORM";
-      offerId = offer.id;
-    }
-  } else if (data.loyaltyRewardId && data.discountCents) {
-    const reward = await prisma.loyaltyReward.findUnique({ where: { id: data.loyaltyRewardId } });
-    if (reward && !reward.usedAt && reward.userId === user.id) {
-      discountCents = Math.min(data.discountCents, totalCents);
-      discountSource = "LOYALTY";
-      loyaltyRewardId = reward.id;
-    }
+  if (uniqueViolationFields(error)?.includes(IDEMPOTENCY_COLUMN)) {
+    return { ok: false, code: "CONFLICT", message: KEY_ALREADY_USED_MESSAGE };
   }
+  throw error;
+}
 
-  const finalTotalCents = Math.max(0, totalCents - discountCents);
-
-  // ── Min order check (on original total before discount) ──
-  if (shop.minOrderCents > 0 && totalCents < shop.minOrderCents) {
+/** body = raw JSON without the guest identity fields; customer = Prisma user already resolved by the route. */
+export async function createOrder(
+  body: unknown,
+  customer: OrderCustomer
+): Promise<CreateOrderResult> {
+  const parsed = createOrderSchema.safeParse(body);
+  if (!parsed.success) {
     return {
       ok: false,
       code: "VALIDATION_ERROR",
-      message: `Commande minimum de ${(shop.minOrderCents / 100).toFixed(2)}€ requise`,
+      message: STALE_CART_MESSAGE,
+      details: formatZodError(parsed.error),
     };
   }
+  const request = parsed.data;
 
-  // ── Commission calc (on final total after discount) ──
-  const commissionCents = shop.commissionEnabled
-    ? Math.round(finalTotalCents * (shop.commissionPct / 100))
-    : 0;
+  const replay = await findByIdempotencyKey(request.idempotencyKey, customer.id);
+  if (replay !== null) return replay;
 
-  // ── Phase 3: Parallel — orderNumber + ticket numbering + prep time ──
-  const year = new Date().getFullYear();
-  const prefix = `KG-${year}-`;
-  const itemCount = data.items.reduce((sum, i) => sum + i.quantity, 0);
+  const now = new Date();
+  const prepared = await prepareOrder(request, customer, now);
+  if (!prepared.ok) return replayOr(request, customer, prepared);
+  const { quote, shop, discount } = prepared;
 
-  const [dailyResult, _customerNumber, prepMinutes] = await Promise.all([
-    getNextDailyNumber(data.shopId),
-    ensureCustomerNumber(user.id, data.shopId),
-    calculatePrepTime({
-      shopId: shop.id,
-      basePrepMin: shop.prepTimeMin,
-      busyMode: shop.busyMode,
-      busyExtraMin: shop.busyExtraMin,
-      itemCount,
-    }),
-  ]);
+  const refusal = priceRefusal(request, quote);
+  if (refusal !== null) return replayOr(request, customer, refusal);
 
-  const { dailyNumber, displayNumber } = dailyResult;
+  const capacity = await checkShopCanTakeOrder(shop, request, now);
+  if (!capacity.ok) return replayOr(request, customer, capacity);
 
-  // Scheduled order detection (notification purposes — NOT auto-accepted)
-  const isScheduled = !!data.pickupSlotStart && new Date(data.pickupSlotStart).getTime() > Date.now();
-
-  // Auto-cancel timer (Uber Eats style)
-  const expiresAt = new Date(Date.now() + shop.acceptTimeoutMin * 60 * 1000);
-  const initialStatus = shop.autoAccept ? "ACCEPTED" : "PENDING";
-
-  const qrCode = initialStatus === "ACCEPTED" ? randomUUID() : null;
-  const estimatedReady = shop.autoAccept
-    ? isScheduled
-      ? new Date(data.pickupSlotStart!)
-      : new Date(Date.now() + prepMinutes * 60_000)
-    : null;
-
-  // ── Race-safe orderNumber generation ──
-  // Under concurrent load, two simultaneous creates can compute the same next
-  // orderNumber and collide on the @unique constraint (P2002). We retry up to
-  // MAX_RETRIES times, recomputing the number from the latest DB row each pass.
-  const MAX_RETRIES = 3;
-  let order: Awaited<ReturnType<typeof createOrderRow>> | null = null;
-  let lastErr: unknown = null;
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const lastOrder = await prisma.order.findFirst({
-      where: { orderNumber: { startsWith: prefix } },
-      orderBy: { orderNumber: "desc" },
-      select: { orderNumber: true },
-    });
-    const nextNum = lastOrder ? parseInt(lastOrder.orderNumber.slice(prefix.length), 10) + 1 : 1;
-    const orderNumber = `${prefix}${String(nextNum + attempt).padStart(5, "0")}`;
-    try {
-      // Atomic: consume coupon/loyalty + create order in a single transaction.
-      // If the order.create fails, the offer/loyalty mutations roll back automatically.
-      order = await prisma.$transaction(async (tx) => {
-        if (offerId) {
-          await tx.offer.update({
-            where: { id: offerId },
-            data: { currentUses: { increment: 1 } },
-          });
-        }
-        if (loyaltyRewardId) {
-          await tx.loyaltyReward.update({
-            where: { id: loyaltyRewardId },
-            data: { usedAt: new Date() },
-          });
-        }
-        return createOrderRow(
-          {
-            orderNumber,
-            dailyNumber,
-            displayNumber,
-            userId: user.id,
-            isPro,
-            shopId: data.shopId,
-            initialStatus,
-            requestedTime: data.requestedTime,
-            customerNote: data.customerNote,
-            finalTotalCents,
-            commissionCents,
-            discountCents,
-            discountSource,
-            offerId,
-            loyaltyRewardId,
-            expiresAt: initialStatus === "PENDING" ? expiresAt : null,
-            idempotencyKey,
-            pickupSlotStart: data.pickupSlotStart ? new Date(data.pickupSlotStart) : null,
-            pickupSlotEnd: data.pickupSlotEnd ? new Date(data.pickupSlotEnd) : null,
-            qrCode,
-            estimatedReady,
-            paymentMethod: data.paymentMethod ?? "ON_PICKUP",
-            items: orderItems,
-          },
-          tx
-        );
-      });
-      break;
-    } catch (err) {
-      lastErr = err;
-      if (
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === "P2002" &&
-        attempt < MAX_RETRIES - 1
-      ) {
-        logger.warn("[orders/create] orderNumber collision, retrying", { attempt, orderNumber });
-        continue;
-      }
-      throw err;
-    }
-  }
-  if (!order) {
-    logger.error("[orders/create] orderNumber retry exhausted", { err: lastErr });
-    return { ok: false, code: "VALIDATION_ERROR", message: "Conflit de numéro de commande, réessayez" };
+  const placement: Placement = {
+    request,
+    customer,
+    shop,
+    quote,
+    discount,
+    state: await initialState(shop, request, quote, now),
+    now,
+  };
+  let created: { order: CreatedOrder; displayNumber: string };
+  try {
+    created = await insertOrder(placement);
+  } catch (error) {
+    return creationFailure(error, placement);
   }
 
-  // ── Fire-and-forget: notifications + email + auto-busy ──
-  const pickupTimeStr = isScheduled
-    ? new Date(data.pickupSlotStart!).toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: PARIS_TIME_ZONE,
-      })
-    : undefined;
-
-  Promise.all([
-    sendNotification("ORDER_PENDING", {
-      shopId: order.shopId,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      customerName: user.firstName,
-      slot: pickupTimeStr,
-    }),
-    sendOrderConfirmationEmail(user.email, {
-      orderId: order.id,
-      displayNumber,
-      customerFirstName: user.firstName,
-      items: orderItems.map((oi) => ({
-        name: oi.name,
-        quantity: oi.quantity,
-        unit: oi.unit,
-        totalCents: oi.totalCents,
-        weightGrams: oi.weightGrams,
-      })),
-      totalCents: finalTotalCents,
-      shopName: shop.name,
-      shopAddress: shop.address,
-      shopCity: shop.city,
-      prepTimeMin: isScheduled ? 0 : prepMinutes,
-    }),
-    prisma.order
-      .count({
-        where: {
-          shopId: shop.id,
-          status: { in: ["PENDING", "ACCEPTED", "PREPARING"] },
-        },
-      })
-      .then((activeOrders) => {
-        if (activeOrders >= shop.autoBusyThreshold && !shop.busyMode) {
-          return setBusyMode(shop.id, { extraMin: 15, durationMin: 30 });
-        }
-      }),
-  ]).catch((err) => logger.error("[orders/create] background error", { err }));
-
-  return { ok: true, order, status: 201 };
-}
-
-interface CreateOrderRowInput {
-  orderNumber: string;
-  dailyNumber: number;
-  displayNumber: string;
-  userId: string;
-  isPro: boolean;
-  shopId: string;
-  initialStatus: "PENDING" | "ACCEPTED";
-  requestedTime?: string;
-  customerNote?: string;
-  finalTotalCents: number;
-  commissionCents: number;
-  discountCents: number;
-  discountSource: string | null;
-  offerId: string | null;
-  loyaltyRewardId: string | null;
-  expiresAt: Date | null;
-  idempotencyKey: string | null;
-  pickupSlotStart: Date | null;
-  pickupSlotEnd: Date | null;
-  qrCode: string | null;
-  estimatedReady: Date | null;
-  paymentMethod: "ONLINE" | "ON_PICKUP";
-  // Looser typing on items: this matches the inline shape built upstream.
-  items: Array<Record<string, unknown>>;
-}
-
-async function createOrderRow(
-  input: CreateOrderRowInput,
-  client: Prisma.TransactionClient | typeof prisma = prisma
-) {
-  return client.order.create({
-    data: {
-      orderNumber: input.orderNumber,
-      dailyNumber: input.dailyNumber,
-      displayNumber: input.displayNumber,
-      userId: input.userId,
-      isPro: input.isPro,
-      shopId: input.shopId,
-      status: input.initialStatus,
-      requestedTime: input.requestedTime,
-      customerNote: input.customerNote,
-      totalCents: input.finalTotalCents,
-      commissionCents: input.commissionCents,
-      discountCents: input.discountCents > 0 ? input.discountCents : undefined,
-      discountAmount: input.discountCents > 0 ? input.discountCents / 100 : undefined,
-      discountSource: input.discountSource || undefined,
-      offerId: input.offerId || undefined,
-      loyaltyRewardId: input.loyaltyRewardId || undefined,
-      expiresAt: input.expiresAt,
-      idempotencyKey: input.idempotencyKey,
-      pickupSlotStart: input.pickupSlotStart,
-      pickupSlotEnd: input.pickupSlotEnd,
-      qrCode: input.qrCode,
-      estimatedReady: input.estimatedReady,
-      paymentMethod: input.paymentMethod,
-      items: { create: input.items as unknown as Prisma.OrderItemCreateWithoutOrderInput[] },
-    },
-    include: {
-      items: true,
-      shop: { select: { id: true, name: true, slug: true } },
-    },
+  await announceNewOrder({
+    ...created,
+    customer,
+    shop,
+    scheduledFor: placement.state.scheduledFor,
+    prepMinutes: placement.state.prepMinutes,
   });
+  return { ok: true, status: 201, order: created.order };
+}
+
+/** The quote the order would be created from differs from what the customer confirmed. */
+function priceRefusal(request: CreateOrderRequest, quote: OrderQuote): Failure | null {
+  if (quote.discountRejection !== null) {
+    return { ok: false, code: "PRICE_CHANGED", message: quote.discountRejection.message };
+  }
+  if (quote.belowMinimumOrder) {
+    return {
+      ok: false,
+      code: "VALIDATION_ERROR",
+      message: `Commande minimum de ${formatPrice(quote.minOrderCents)} requise`,
+    };
+  }
+  if (quote.amountDueCents !== request.expectedTotalCents) {
+    return { ok: false, code: "PRICE_CHANGED", message: PRICE_CHANGED_MESSAGE };
+  }
+  return null;
 }

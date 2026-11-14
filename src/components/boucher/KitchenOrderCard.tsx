@@ -20,13 +20,14 @@ import {
   CalendarClock,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
-import { printOrderTicket } from "./OrderTicket";
+import { formatItemQty, kitchenStoredLine, printOrderTicket } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
+import { formatCustomerNumber } from "@/lib/order-number-format";
+import { storedLineUnits } from "@/lib/pricing/line";
 // ORDER_STATUS_BORDER removed in v3 — tickets use uniform border style
 import { toast } from "sonner";
 import {
   formatPriceCents as formatPrice,
-  formatUnit,
   isAsapTime,
   formatTime,
   timeSince,
@@ -82,7 +83,7 @@ export default function KitchenOrderCard({
   const isFidele = order.user?.loyaltyBadge === "FIDELE";
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
-  const customerNum = order.user?.customerNumber;
+  const customerNum = formatCustomerNumber(order.customerNumber);
 
   // 30-min ready reminder
   const readySince = order.actualReady ? Date.now() - new Date(order.actualReady).getTime() : 0;
@@ -90,22 +91,27 @@ export default function KitchenOrderCard({
   const waitMinutes = Math.round(readySince / 60_000);
 
   // Late detection: estimated ready passed for ACCEPTED/PREPARING
-  const isLate = (order.status === "ACCEPTED" || order.status === "PREPARING")
-    && order.estimatedReady
-    && new Date(order.estimatedReady).getTime() < Date.now();
-  const lateMinutes = isLate && order.estimatedReady
-    ? Math.round((Date.now() - new Date(order.estimatedReady).getTime()) / 60_000)
-    : 0;
+  const isLate =
+    (order.status === "ACCEPTED" || order.status === "PREPARING") &&
+    order.estimatedReady &&
+    new Date(order.estimatedReady).getTime() < Date.now();
+  const lateMinutes =
+    isLate && order.estimatedReady
+      ? Math.round((Date.now() - new Date(order.estimatedReady).getTime()) / 60_000)
+      : 0;
 
   // Scheduled order detection
   const THIRTY_MIN = 30 * 60 * 1000;
-  const isScheduled = !!order.pickupSlotStart && new Date(order.pickupSlotStart).getTime() > Date.now();
-  const isScheduledFuture = isScheduled
-    && new Date(order.pickupSlotStart!).getTime() > Date.now() + THIRTY_MIN
-    && (order.status === "ACCEPTED" || order.status === "PREPARING");
-  const isScheduledSoon = isScheduled
-    && new Date(order.pickupSlotStart!).getTime() <= Date.now() + THIRTY_MIN
-    && (order.status === "ACCEPTED" || order.status === "PREPARING");
+  const isScheduled =
+    !!order.pickupSlotStart && new Date(order.pickupSlotStart).getTime() > Date.now();
+  const isScheduledFuture =
+    isScheduled &&
+    new Date(order.pickupSlotStart!).getTime() > Date.now() + THIRTY_MIN &&
+    (order.status === "ACCEPTED" || order.status === "PREPARING");
+  const isScheduledSoon =
+    isScheduled &&
+    new Date(order.pickupSlotStart!).getTime() <= Date.now() + THIRTY_MIN &&
+    (order.status === "ACCEPTED" || order.status === "PREPARING");
   const scheduledMs = order.pickupSlotStart
     ? new Date(order.pickupSlotStart).getTime() - Date.now()
     : 0;
@@ -151,32 +157,42 @@ export default function KitchenOrderCard({
 
   // ── SCHEDULED FUTURE COMPACT VIEW (>30min before pickup, no action buttons) ──
   if (isScheduledFuture) {
-    const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
+    const itemCount = order.items.reduce((s, i) => s + storedLineUnits(kitchenStoredLine(i)), 0);
     return (
-      <div className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} border-l-4 border-l-amber-500 px-3 py-2 opacity-70 transition-colors`}>
+      <div
+        className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} border-l-4 border-l-amber-500 px-3 py-2 opacity-70 transition-colors`}
+      >
         {/* Main row: #number  Name  |  Retrait HH:MM  countdown  🖨 */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-black text-base text-white shrink-0">{ticketNumber}</span>
-            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{clientName}</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="shrink-0 text-base font-black text-white">{ticketNumber}</span>
+            <span className="truncate text-sm font-medium text-gray-500 dark:text-gray-400">
+              {clientName}
+            </span>
             {order.isPro && (
-              <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded shrink-0">PRO</span>
+              <span className="shrink-0 rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
+                PRO
+              </span>
             )}
             {isFidele && (
-              <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded shrink-0">FIDÈLE</span>
+              <span className="shrink-0 rounded bg-yellow-500/20 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400">
+                FIDÈLE
+              </span>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <span className="text-sm font-bold text-[#FBBF24]">
-              <CalendarClock size={13} className="inline mr-1" />
+              <CalendarClock size={13} className="mr-1 inline" />
               {pickupTime}
             </span>
-            <span className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border ${getCountdownColor(scheduledMs)}`}>
+            <span
+              className={`rounded-lg border px-2.5 py-1.5 text-xs font-bold ${getCountdownColor(scheduledMs)}`}
+            >
               {formatCountdown(scheduledMs)}
             </span>
             <button
               onClick={silentPrint}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-500 transition-colors"
+              className="rounded-lg bg-white/5 p-2 text-gray-500 transition-colors hover:bg-white/10"
               title="Imprimer ticket"
             >
               <Printer size={14} />
@@ -184,11 +200,15 @@ export default function KitchenOrderCard({
           </div>
         </div>
         {/* Subtle secondary line: items count + total + note preview */}
-        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-600">
-          <span>{itemCount} article{itemCount > 1 ? "s" : ""}</span>
+        <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-600">
+          <span>
+            {itemCount} article{itemCount > 1 ? "s" : ""}
+          </span>
           <span className="font-medium text-gray-500">{formatPrice(order.totalCents)}</span>
           {order.customerNote && (
-            <span className="text-blue-400/50 truncate max-w-[200px]">&quot;{order.customerNote}&quot;</span>
+            <span className="max-w-[200px] truncate text-blue-400/50">
+              &quot;{order.customerNote}&quot;
+            </span>
           )}
         </div>
       </div>
@@ -210,8 +230,8 @@ export default function KitchenOrderCard({
       >
         {/* Orange banner for scheduled orders */}
         {isScheduled && pickupTime && (
-          <div className="bg-amber-500/20 border-b border-amber-500/30 px-3 py-2 flex items-center gap-1.5">
-            <CalendarClock size={14} className="text-amber-400 shrink-0" />
+          <div className="flex items-center gap-1.5 border-b border-amber-500/30 bg-amber-500/20 px-3 py-2">
+            <CalendarClock size={14} className="shrink-0 text-amber-400" />
             <span className="text-xs font-bold text-amber-300">
               PROGRAMMEE — Retrait a {pickupTime}
             </span>
@@ -221,29 +241,32 @@ export default function KitchenOrderCard({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="font-[800] text-lg leading-none text-white tracking-tight">
+                <span className="text-lg font-[800] leading-none tracking-tight text-white">
                   {ticketNumber}
                 </span>
-                <span className="text-xs text-[#78716C] leading-none truncate">
-                  {clientName}
-                </span>
+                <span className="truncate text-xs leading-none text-[#78716C]">{clientName}</span>
                 {order.isPro && (
-                  <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
+                  <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
                     PRO
                   </span>
                 )}
                 {isFidele && (
-                  <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">FIDÈLE</span>
+                  <span className="rounded bg-yellow-500/20 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400">
+                    FIDÈLE
+                  </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 mt-1">
+              <div className="mt-1 flex items-center gap-3">
                 <span className="text-xs text-gray-500">
                   {order.items.length} article{order.items.length > 1 ? "s" : ""}
                 </span>
-                <span className="text-sm font-bold text-white">{formatPrice(order.totalCents)}</span>
+                <span className="text-sm font-bold text-white">
+                  {formatPrice(order.totalCents)}
+                </span>
                 {!isScheduled && (pickupTime || isAsap) && (
                   <span className="text-xs font-bold text-amber-400">
-                    <Clock size={12} className="inline mr-0.5" />{pickupTime || `~${shopPrepTime} min`}
+                    <Clock size={12} className="mr-0.5 inline" />
+                    {pickupTime || `~${shopPrepTime} min`}
                   </span>
                 )}
                 <span className="text-xs text-gray-600">{timeSince(order.createdAt)}</span>
@@ -251,7 +274,7 @@ export default function KitchenOrderCard({
             </div>
             <button
               onClick={handleView}
-              className="shrink-0 flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
             >
               <Eye size={16} />
               VOIR
@@ -259,31 +282,27 @@ export default function KitchenOrderCard({
           </div>
 
           {/* ── Items preview (3 first items, then "+N more") ── */}
-          <div className="mt-2 pt-2 border-t border-white/[0.06] space-y-0.5">
+          <div className="mt-2 space-y-0.5 border-t border-white/[0.06] pt-2">
             {previewItems.map((item) => (
               <div key={item.id} className="flex items-center gap-2 text-xs">
-                <span className="text-white font-bold text-[13px] tabular-nums shrink-0 min-w-[28px]">
-                  {item.quantity}
+                <span className="min-w-[28px] shrink-0 text-[13px] font-bold tabular-nums text-white">
+                  {formatItemQty(item)}
                 </span>
-                <span className="text-[#A8A29E] shrink-0">
-                  {formatUnit(item.product?.unit || item.unit)}
-                </span>
-                <span className="text-[#D6D3D1] truncate flex-1">
+                <span className="flex-1 truncate text-[#D6D3D1]">
                   {item.product?.name || item.name}
                 </span>
-                {(item.product?.unit === "KG" || item.unit === "KG") && item.weightGrams && (
-                  <span className="text-blue-400 text-[10px] shrink-0">{item.weightGrams}g</span>
-                )}
-                {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") && item.sliceCount && (
-                  <span className="text-amber-400 text-[10px] shrink-0">
-                    {item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""}
-                  </span>
-                )}
+                {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") &&
+                  item.sliceCount && (
+                    <span className="shrink-0 text-[10px] text-amber-400">
+                      {item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""}
+                    </span>
+                  )}
               </div>
             ))}
             {remainingCount > 0 && (
-              <div className="text-[11px] text-gray-500 italic pl-[36px]">
-                + {remainingCount} autre{remainingCount > 1 ? "s" : ""} article{remainingCount > 1 ? "s" : ""}
+              <div className="pl-[36px] text-[11px] italic text-gray-500">
+                + {remainingCount} autre{remainingCount > 1 ? "s" : ""} article
+                {remainingCount > 1 ? "s" : ""}
               </div>
             )}
           </div>
@@ -294,12 +313,12 @@ export default function KitchenOrderCard({
 
   return (
     <div
-      className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} overflow-hidden transition-colors ${readyOver30 ? "ring-2 ring-amber-500/50 animate-pulse" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
+      className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} overflow-hidden transition-colors ${readyOver30 ? "animate-pulse ring-2 ring-amber-500/50" : ""} ${isLate ? "ring-2 ring-red-500/50" : ""}`}
     >
       {/* ── Scheduled banner (expanded PENDING) ── */}
       {order.status === "PENDING" && isScheduled && pickupTime && (
-        <div className="mx-3 mt-2 mb-1 px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg flex items-center gap-2">
-          <CalendarClock size={14} className="text-amber-400 shrink-0" />
+        <div className="mx-3 mb-1 mt-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/20 px-3 py-2">
+          <CalendarClock size={14} className="shrink-0 text-amber-400" />
           <span className="text-xs font-bold text-amber-300">
             PROGRAMMEE — Retrait a {pickupTime}
           </span>
@@ -308,7 +327,13 @@ export default function KitchenOrderCard({
 
       {/* ── Late banner (v3) ── */}
       {isLate && (
-        <div className="px-3 py-1.5 flex items-center justify-center gap-1.5" style={{ background: "rgba(239,68,68,0.1)", borderBottom: "1px solid rgba(239,68,68,0.15)" }}>
+        <div
+          className="flex items-center justify-center gap-1.5 px-3 py-1.5"
+          style={{
+            background: "rgba(239,68,68,0.1)",
+            borderBottom: "1px solid rgba(239,68,68,0.15)",
+          }}
+        >
           <span className="text-[10px] font-bold text-[#EF4444]">
             EN RETARD de {lateMinutes} min
           </span>
@@ -316,54 +341,54 @@ export default function KitchenOrderCard({
       )}
 
       {/* ── Header: #047 · Prénom ── */}
-      <div className="px-3 pt-2.5 pb-1.5 flex items-start justify-between">
+      <div className="flex items-start justify-between px-3 pb-1.5 pt-2.5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-[800] text-lg leading-none text-white tracking-tight">
+            <span className="text-lg font-[800] leading-none tracking-tight text-white">
               {ticketNumber}
             </span>
-            <span className="text-xs text-[#78716C] leading-none">
-              {clientName}
-            </span>
+            <span className="text-xs leading-none text-[#78716C]">{clientName}</span>
             {order.isPro && (
-              <span className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
                 PRO
               </span>
             )}
             {isFidele && (
-              <span className="text-[10px] font-bold bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">FIDÈLE</span>
+              <span className="rounded bg-yellow-500/20 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400">
+                FIDÈLE
+              </span>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="mt-1 flex items-center gap-3">
             {isScheduledSoon && pickupTime && (
-              <span className="text-[11px] font-bold bg-amber-500/10 text-[#FBBF24] px-2 py-0.5 rounded flex items-center gap-1">
+              <span className="flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-[#FBBF24]">
                 <CalendarClock size={11} /> {pickupTime}
               </span>
             )}
             {!isScheduledSoon && (pickupTime || isAsap) && (
               <span className="text-[11px] font-bold text-[#FBBF24]">
-                <Clock size={11} className="inline mr-0.5" /> {pickupTime ? `Retrait ${pickupTime}` : "Des que possible"}
+                <Clock size={11} className="mr-0.5 inline" />{" "}
+                {pickupTime ? `Retrait ${pickupTime}` : "Des que possible"}
               </span>
             )}
-            {customerNum && (
-              <span className="text-xs text-gray-500">Client {customerNum}</span>
-            )}
+            {customerNum && <span className="text-xs text-gray-500">Client {customerNum}</span>}
             {order.user?.phone && (
-              <a href={`tel:${order.user.phone}`} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+              <a
+                href={`tel:${order.user.phone}`}
+                className="flex items-center gap-1 text-xs text-blue-400 transition-colors hover:text-blue-300"
+              >
                 <Phone size={12} /> {order.user.phone}
               </a>
             )}
           </div>
         </div>
-        <div className="text-right flex flex-col items-end gap-0.5">
+        <div className="flex flex-col items-end gap-0.5 text-right">
           <span className="text-[11px] text-[#57534E]">
-            <Clock size={10} className="inline mr-0.5" />
+            <Clock size={10} className="mr-0.5 inline" />
             {formatTime(order.createdAt)}
           </span>
           {order.status === "PENDING" && (
-            <span className="text-[10px] text-[#57534E]">
-              {timeSince(order.createdAt)}
-            </span>
+            <span className="text-[10px] text-[#57534E]">{timeSince(order.createdAt)}</span>
           )}
           {(order.status === "ACCEPTED" || order.status === "PREPARING") && (
             <PrepTimer estimatedReady={order.estimatedReady} size="sm" />
@@ -373,7 +398,7 @@ export default function KitchenOrderCard({
 
       {/* ── 30min reminder badge ── */}
       {readyOver30 && (
-        <div className="mx-3 mb-1.5 px-3 py-1.5 bg-amber-500/20 border border-amber-500/30 rounded-lg text-center">
+        <div className="mx-3 mb-1.5 rounded-lg border border-amber-500/30 bg-amber-500/20 px-3 py-1.5 text-center">
           <span className="text-xs font-bold text-amber-400">
             En attente depuis {waitMinutes} min
           </span>
@@ -386,40 +411,42 @@ export default function KitchenOrderCard({
           {order.items.map((item) => (
             <div
               key={item.id}
-              className={`flex items-center gap-2 ${!item.available ? "opacity-40 line-through" : ""}`}
+              className={`flex items-center gap-2 ${!item.available ? "line-through opacity-40" : ""}`}
             >
               {item.product?.imageUrl ? (
                 <img
                   src={item.product.imageUrl}
                   alt={item.product?.name || item.name}
-                  className="w-7 h-7 rounded-[6px] object-cover shrink-0"
+                  className="h-7 w-7 shrink-0 rounded-[6px] object-cover"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-[6px] bg-white/5 shrink-0" />
+                <div className="h-7 w-7 shrink-0 rounded-[6px] bg-white/5" />
               )}
-              <span className="flex-1 min-w-0 text-xs text-[#A8A29E]">
-                <span className="text-white font-bold text-sm">
-                  {item.quantity}
-                </span>{" "}
-                {formatUnit(item.product?.unit || item.unit)} — <span className="text-[#A8A29E]">{item.product?.name || item.name}</span>
-                {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") && item.sliceCount && (
-                  <span className="ml-1 text-amber-400 text-[10px]">
-                    ({item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""})
-                  </span>
-                )}
-                {(item.product?.unit === "KG" || item.unit === "KG") && item.weightGrams && (
-                  <span className="ml-1 text-blue-400 text-[10px]">({item.weightGrams}g)</span>
-                )}
+              <span className="min-w-0 flex-1 text-xs text-[#A8A29E]">
+                <span className="text-sm font-bold text-white">{formatItemQty(item)}</span> —{" "}
+                <span className="text-[#A8A29E]">{item.product?.name || item.name}</span>
+                {(item.product?.unit === "TRANCHE" || item.unit === "TRANCHE") &&
+                  item.sliceCount && (
+                    <span className="ml-1 text-[10px] text-amber-400">
+                      ({item.sliceCount} tr.{item.sliceThickness ? ` ${item.sliceThickness}` : ""})
+                    </span>
+                  )}
                 {item.variant && (
-                  <span className="ml-1 text-pink-400 text-[10px] font-bold">[{item.variant}]</span>
+                  <span className="ml-1 text-[10px] font-bold text-pink-400">[{item.variant}]</span>
                 )}
                 {item.pieceCount && item.pieceLabel && (
-                  <span className="ml-1 text-cyan-400 text-[10px]">({item.pieceCount} {item.pieceLabel})</span>
+                  <span className="ml-1 text-[10px] text-cyan-400">
+                    ({item.pieceCount} {item.pieceLabel})
+                  </span>
                 )}
-                {item.cutOption && <span className="ml-1 text-amber-400 text-[10px] font-bold">[{item.cutOption}]</span>}
+                {item.cutOption && (
+                  <span className="ml-1 text-[10px] font-bold text-amber-400">
+                    [{item.cutOption}]
+                  </span>
+                )}
               </span>
-              <span className="text-[#57534E] text-xs shrink-0 ml-1">
-                {formatPrice(item.totalCents || item.priceCents * item.quantity)}
+              <span className="ml-1 shrink-0 text-xs text-[#57534E]">
+                {formatPrice(item.totalCents)}
               </span>
             </div>
           ))}
@@ -428,42 +455,44 @@ export default function KitchenOrderCard({
 
       {/* ── Price adjustment badge ── */}
       {order.priceAdjustment?.status === "PENDING" && (
-        <div className="mx-3 mb-1.5 px-3 py-1.5 bg-amber-500/15 border border-amber-500/30 rounded-lg">
-          <p className="text-xs font-bold text-amber-400 text-center">
+        <div className="mx-3 mb-1.5 rounded-lg border border-amber-500/30 bg-amber-500/15 px-3 py-1.5">
+          <p className="text-center text-xs font-bold text-amber-400">
             Ajustement en attente de validation client
           </p>
-          <p className="text-[10px] text-amber-400/70 text-center mt-0.5">
-            {formatPrice(order.priceAdjustment.originalTotal)} → {formatPrice(order.priceAdjustment.newTotal)}
+          <p className="mt-0.5 text-center text-[10px] text-amber-400/70">
+            {formatPrice(order.priceAdjustment.originalTotal)} →{" "}
+            {formatPrice(order.priceAdjustment.newTotal)}
           </p>
         </div>
       )}
 
       {order.priceAdjustment?.status === "AUTO_APPROVED" && (
-        <div className="mx-3 mb-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-          <p className="text-[10px] text-emerald-400 text-center">
+        <div className="mx-3 mb-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
+          <p className="text-center text-[10px] text-emerald-400">
             Prix ajuste ({formatPrice(order.priceAdjustment.newTotal)})
           </p>
         </div>
       )}
 
       {order.priceAdjustment?.status === "APPROVED" && (
-        <div className="mx-3 mb-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-          <p className="text-[10px] text-emerald-400 text-center">
+        <div className="mx-3 mb-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
+          <p className="text-center text-[10px] text-emerald-400">
             Accepte ({formatPrice(order.priceAdjustment.newTotal)})
           </p>
         </div>
       )}
 
       {order.priceAdjustment?.status === "REJECTED" && (
-        <div className="mx-3 mb-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <p className="text-[10px] text-red-400 text-center">
-            Ajustement refuse
-          </p>
+        <div className="mx-3 mb-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5">
+          <p className="text-center text-[10px] text-red-400">Ajustement refuse</p>
         </div>
       )}
 
       {/* ── Total (v3 — subtle bg) ── */}
-      <div className="mx-3 mb-1.5 px-3 py-1.5 flex justify-between items-center rounded-lg" style={{ background: "rgba(255,255,255,0.02)", borderTop: "1px solid #1A1A1A" }}>
+      <div
+        className="mx-3 mb-1.5 flex items-center justify-between rounded-lg px-3 py-1.5"
+        style={{ background: "rgba(255,255,255,0.02)", borderTop: "1px solid #1A1A1A" }}
+      >
         <span className="text-xs text-[#57534E]">Total</span>
         <span className="text-sm font-bold text-white">{formatPrice(order.totalCents)}</span>
       </div>
@@ -471,8 +500,8 @@ export default function KitchenOrderCard({
       {/* ── Customer note ── */}
       {order.customerNote && (
         <div className="px-3 pb-1.5">
-          <div className="bg-blue-500/10 rounded-lg px-2.5 py-1.5 flex items-start gap-1.5">
-            <MessageSquare size={12} className="text-blue-400 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-1.5 rounded-lg bg-blue-500/10 px-2.5 py-1.5">
+            <MessageSquare size={12} className="mt-0.5 shrink-0 text-blue-400" />
             <p className="text-xs text-blue-300">&quot;{order.customerNote}&quot;</p>
           </div>
         </div>
@@ -482,7 +511,7 @@ export default function KitchenOrderCard({
       {order.requestedTime && !pickupTime && !isAsap && (
         <div className="px-3 pb-1.5">
           <p className="text-[10px] text-gray-500">
-            <Clock size={10} className="inline mr-0.5" />
+            <Clock size={10} className="mr-0.5 inline" />
             Retrait souhaité : {formatTime(order.requestedTime)}
           </p>
         </div>
@@ -491,21 +520,20 @@ export default function KitchenOrderCard({
       {/* ══════════════════════════════════════════ */}
       {/* ── ACTIONS by status ── */}
       {/* ══════════════════════════════════════════ */}
-      <div className="px-3 pb-3 pt-1 space-y-1.5">
-
+      <div className="space-y-1.5 px-3 pb-3 pt-1">
         {/* ── PENDING (expanded): Accept / Deny (v3 buttons) ── */}
         {order.status === "PENDING" && !showAcceptForm && !showDenyForm && (
           <div className="flex gap-1.5">
             <button
               onClick={silentPrint}
-              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+              className="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
             >
               <Printer size={13} />
             </button>
             <button
               onClick={() => setShowDenyForm(true)}
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-1 bg-[#1C1C1E] hover:bg-[#262626] border border-[#333] text-[#EF4444] font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1 rounded-[9px] border border-[#333] bg-[#1C1C1E] p-[9px] text-xs font-bold text-[#EF4444] transition-all hover:bg-[#262626] disabled:opacity-50"
             >
               <XCircle size={13} /> Refuser
             </button>
@@ -519,7 +547,7 @@ export default function KitchenOrderCard({
                 }
               }}
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-1 bg-[#16A34A] hover:bg-[#15803D] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-[#16A34A] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#15803D] active:scale-95 disabled:opacity-50"
             >
               {loading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
               Accepter
@@ -529,19 +557,17 @@ export default function KitchenOrderCard({
 
         {/* ── Accept form (prep time selector — ASAP orders only) ── */}
         {order.status === "PENDING" && showAcceptForm && !isScheduled && (
-          <div className="bg-emerald-500/10 rounded-xl p-3 space-y-2 border border-emerald-500/20">
-            <p className="text-xs font-medium text-emerald-300">
-              Delai de preparation
-            </p>
-            <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
+            <p className="text-xs font-medium text-emerald-300">Delai de preparation</p>
+            <div className="flex flex-wrap items-center gap-1.5">
               {[10, 15, 20, 30, 45, 60].map((m) => (
                 <button
                   key={m}
                   onClick={() => setAcceptMinutes(m)}
-                  className={`px-2.5 min-h-[36px] py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`min-h-[36px] rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all ${
                     acceptMinutes === m
                       ? "bg-emerald-600 text-white"
-                      : "bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10"
+                      : "bg-white/5 text-gray-500 hover:bg-white/10 dark:text-gray-400"
                   }`}
                 >
                   {m}
@@ -551,7 +577,7 @@ export default function KitchenOrderCard({
                 type="number"
                 value={acceptMinutes}
                 onChange={(e) => setAcceptMinutes(Number(e.target.value))}
-                className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs text-center"
+                className="w-14 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-center text-xs text-white"
                 min={1}
                 max={480}
                 aria-label="Délai de préparation en minutes"
@@ -562,14 +588,18 @@ export default function KitchenOrderCard({
               <button
                 onClick={() => doAction("accept", { estimatedMinutes: acceptMinutes })}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition-all text-xs disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white transition-all hover:bg-emerald-700 disabled:opacity-50"
               >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                {loading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <CheckCircle size={14} />
+                )}
                 CONFIRMER
               </button>
               <button
                 onClick={() => setShowAcceptForm(false)}
-                className="px-3 py-2 rounded-xl bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10 transition-all text-xs"
+                className="rounded-xl bg-white/5 px-3 py-2 text-xs text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
               >
                 Annuler
               </button>
@@ -579,7 +609,7 @@ export default function KitchenOrderCard({
 
         {/* ── Deny form ── */}
         {order.status === "PENDING" && showDenyForm && (
-          <div className="bg-red-500/10 rounded-xl p-3 space-y-2 border border-red-500/20">
+          <div className="space-y-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3">
             <p className="text-xs font-medium text-red-300">Raison du refus</p>
             <div className="flex flex-wrap gap-1.5">
               {[
@@ -592,10 +622,10 @@ export default function KitchenOrderCard({
                 <button
                   key={reason}
                   onClick={() => setDenyReason(reason)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                     denyReason === reason
                       ? "bg-red-600 text-white"
-                      : "bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10"
+                      : "bg-white/5 text-gray-500 hover:bg-white/10 dark:text-gray-400"
                   }`}
                 >
                   {reason}
@@ -606,21 +636,24 @@ export default function KitchenOrderCard({
               value={denyReason}
               onChange={(e) => setDenyReason(e.target.value)}
               placeholder="Ou saisissez une raison..."
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs resize-none focus:outline-none focus:ring-2 focus:ring-red-500/40 placeholder-gray-600"
+              className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-red-500/40"
               rows={2}
             />
             <div className="flex gap-2">
               <button
                 onClick={() => doAction("deny", { reason: denyReason })}
                 disabled={loading || !denyReason.trim()}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-all text-xs disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white transition-all hover:bg-red-700 disabled:opacity-50"
               >
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                 Confirmer le refus
               </button>
               <button
-                onClick={() => { setShowDenyForm(false); setDenyReason(""); }}
-                className="px-3 py-2 rounded-xl bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10 transition-all text-xs"
+                onClick={() => {
+                  setShowDenyForm(false);
+                  setDenyReason("");
+                }}
+                className="rounded-xl bg-white/5 px-3 py-2 text-xs text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
               >
                 Annuler
               </button>
@@ -634,14 +667,14 @@ export default function KitchenOrderCard({
             <div className="flex gap-1.5">
               <button
                 onClick={silentPrint}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+                className="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
               >
                 <Printer size={13} />
               </button>
               {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
                 <button
                   onClick={() => onAdjustPrice(order)}
-                  className="flex-1 flex items-center justify-center gap-1 bg-[#92400E] hover:bg-[#78350F] text-[#FDE68A] font-bold p-[9px] rounded-[9px] transition-all text-xs"
+                  className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-[#92400E] p-[9px] text-xs font-bold text-[#FDE68A] transition-all hover:bg-[#78350F]"
                 >
                   <DollarSign size={13} /> Ajuster
                 </button>
@@ -649,14 +682,14 @@ export default function KitchenOrderCard({
               <button
                 onClick={() => doAction("start_preparing")}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
-                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-300 font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-300 transition-all hover:bg-white/10 disabled:opacity-50"
               >
                 <ChefHat size={13} /> Preparer
               </button>
               <button
                 onClick={() => doAction("mark_ready")}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
-                className="flex-1 flex items-center justify-center gap-1 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-[#2563EB] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#1D4ED8] active:scale-95 disabled:opacity-50"
               >
                 <CheckCircle size={13} /> Prete
               </button>
@@ -665,14 +698,14 @@ export default function KitchenOrderCard({
               <button
                 onClick={() => doAction("add_time", { addMinutes: 5 })}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
+                className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
                 <Timer size={11} /> +5 min
               </button>
               <button
                 onClick={() => doAction("add_time", { addMinutes: 10 })}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
+                className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
                 <Timer size={11} /> +10 min
               </button>
@@ -686,14 +719,14 @@ export default function KitchenOrderCard({
             <div className="flex gap-1.5">
               <button
                 onClick={silentPrint}
-                className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+                className="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
               >
                 <Printer size={13} />
               </button>
               {onAdjustPrice && order.priceAdjustment?.status !== "PENDING" && (
                 <button
                   onClick={() => onAdjustPrice(order)}
-                  className="flex-1 flex items-center justify-center gap-1 bg-[#92400E] hover:bg-[#78350F] text-[#FDE68A] font-bold p-[9px] rounded-[9px] transition-all text-xs"
+                  className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-[#92400E] p-[9px] text-xs font-bold text-[#FDE68A] transition-all hover:bg-[#78350F]"
                 >
                   <DollarSign size={13} /> Ajuster
                 </button>
@@ -701,9 +734,13 @@ export default function KitchenOrderCard({
               <button
                 onClick={() => doAction("mark_ready")}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
-                className="flex-[2] flex items-center justify-center gap-1 bg-[#2563EB] hover:bg-[#1D4ED8] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+                className="flex flex-[2] items-center justify-center gap-1 rounded-[9px] bg-[#2563EB] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#1D4ED8] active:scale-95 disabled:opacity-50"
               >
-                {loading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
+                {loading ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <CheckCircle size={13} />
+                )}
                 Prete !
               </button>
             </div>
@@ -711,14 +748,14 @@ export default function KitchenOrderCard({
               <button
                 onClick={() => doAction("add_time", { addMinutes: 5 })}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
+                className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
                 <Timer size={11} /> +5 min
               </button>
               <button
                 onClick={() => doAction("add_time", { addMinutes: 10 })}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 p-1.5 rounded-[9px] text-[10px] font-medium transition-all"
+                className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
                 <Timer size={11} /> +10 min
               </button>
@@ -731,7 +768,7 @@ export default function KitchenOrderCard({
           <div className="flex gap-1.5">
             <button
               onClick={silentPrint}
-              className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 p-[9px] rounded-[9px] text-xs font-bold transition-all shrink-0"
+              className="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
             >
               <Printer size={13} />
             </button>
@@ -744,7 +781,7 @@ export default function KitchenOrderCard({
                 doAction("confirm_pickup", { qrCode: order.qrCode });
               }}
               disabled={loading}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-[#16A34A] hover:bg-[#15803D] active:scale-95 text-white font-bold p-[9px] rounded-[9px] transition-all text-xs disabled:opacity-50"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] bg-[#16A34A] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#15803D] active:scale-95 disabled:opacity-50"
             >
               {loading ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle size={13} />}
               Recuperee

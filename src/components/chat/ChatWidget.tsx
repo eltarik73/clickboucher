@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Send, X, CheckCircle } from "lucide-react";
 import { useCart } from "@/lib/hooks/use-cart";
+import { normalizeCartLine } from "@/lib/cart/stored-cart";
 
 // ── Types ────────────────────────────────────────
 
@@ -96,7 +97,13 @@ function ButcherIcon({ size = 28 }: { size?: number }) {
       <circle cx="20" cy="18" r="7" fill="#FDDCB5" />
       <circle cx="17" cy="17" r="1.2" fill="#333" />
       <circle cx="23" cy="17" r="1.2" fill="#333" />
-      <path d="M17 20.5 Q20 23 23 20.5" stroke="#333" strokeWidth="1" strokeLinecap="round" fill="none" />
+      <path
+        d="M17 20.5 Q20 23 23 20.5"
+        stroke="#333"
+        strokeWidth="1"
+        strokeLinecap="round"
+        fill="none"
+      />
       <path d="M13 25 Q20 24 27 25 L28 36 Q20 37 12 36 Z" fill="white" />
       <line x1="20" y1="26" x2="20" y2="35" stroke="#ddd" strokeWidth="0.8" />
       <rect x="29" y="20" width="2" height="10" rx="0.5" fill="#888" />
@@ -111,14 +118,14 @@ function ButcherIcon({ size = 28 }: { size?: number }) {
 function TypingDots({ text }: { text?: string }) {
   return (
     <div className="flex justify-start">
-      <div className="bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/10 rounded-2xl rounded-bl-sm px-4 py-3">
+      <div className="rounded-2xl rounded-bl-sm border border-gray-100 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#1a1a1a]">
         {text ? (
           <span className="text-sm text-gray-500 dark:text-gray-400">{text}</span>
         ) : (
           <div className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
-            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
           </div>
         )}
       </div>
@@ -131,7 +138,7 @@ function TypingDots({ text }: { text?: string }) {
 function CartConfirmation({ name }: { name: string }) {
   return (
     <div className="flex justify-start">
-      <div className="bg-green-50 border border-green-200 rounded-xl p-2.5 text-green-700 text-xs flex items-center gap-2">
+      <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-2.5 text-xs text-green-700">
         <CheckCircle size={14} className="shrink-0" />
         <span className="font-medium">{name} ajouté au panier</span>
       </div>
@@ -141,24 +148,18 @@ function CartConfirmation({ name }: { name: string }) {
 
 // ── Quick Action Buttons (after cart add) ────────
 
-function QuickActions({
-  onOrder,
-  onContinue,
-}: {
-  onOrder: () => void;
-  onContinue: () => void;
-}) {
+function QuickActions({ onOrder, onContinue }: { onOrder: () => void; onContinue: () => void }) {
   return (
-    <div className="chat-buttons-appear flex flex-col gap-2 mt-2">
+    <div className="chat-buttons-appear mt-2 flex flex-col gap-2">
       <button
         onClick={onOrder}
-        className="bg-[#DC2626] text-white rounded-2xl py-3 px-6 font-semibold text-sm w-full text-center shadow-md hover:shadow-lg hover:bg-[#b91c1c] transition-all"
+        className="w-full rounded-2xl bg-[#DC2626] px-6 py-3 text-center text-sm font-semibold text-white shadow-md transition-all hover:bg-[#b91c1c] hover:shadow-lg"
       >
         &#128722; On commande !
       </button>
       <button
         onClick={onContinue}
-        className="bg-white dark:bg-[#141414] border-2 border-[#DC2626] text-[#DC2626] rounded-2xl py-3 px-6 font-semibold text-sm w-full text-center hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+        className="w-full rounded-2xl border-2 border-[#DC2626] bg-white px-6 py-3 text-center text-sm font-semibold text-[#DC2626] transition-all hover:bg-red-50 dark:bg-[#141414] dark:hover:bg-red-950/20"
       >
         &#10133; J&apos;ajoute autre chose
       </button>
@@ -186,16 +187,16 @@ function RecapActions({
   ].join("");
 
   return (
-    <div className="chat-buttons-appear flex flex-col items-center gap-2 mt-2">
+    <div className="chat-buttons-appear mt-2 flex flex-col items-center gap-2">
       <button
         onClick={onCheckout}
-        className="bg-[#DC2626] text-white rounded-2xl py-4 px-6 font-bold text-base w-full text-center shadow-lg hover:bg-[#b91c1c] transition-all animate-pulse"
+        className="w-full animate-pulse rounded-2xl bg-[#DC2626] px-6 py-4 text-center text-base font-bold text-white shadow-lg transition-all hover:bg-[#b91c1c]"
       >
         {label}
       </button>
       <button
         onClick={onModify}
-        className="text-sm text-gray-500 dark:text-gray-400 underline cursor-pointer hover:text-gray-600 transition-colors"
+        className="cursor-pointer text-sm text-gray-500 underline transition-colors hover:text-gray-600 dark:text-gray-400"
       >
         &#9999;&#65039; Modifier ma commande
       </button>
@@ -265,24 +266,24 @@ export function ChatWidget() {
       let hasCartAdd = false;
       for (const action of actions) {
         if (action.type === "add_to_cart") {
+          // The assistant writes quantity 1 and weightGrams for one portion; a weighed action
+          // without weight carries kilograms. The server prices the order from its own rows.
+          const item = normalizeCartLine({
+            productId: action.productId,
+            name: action.productName,
+            imageUrl: "",
+            unit: action.unit,
+            priceCents: action.priceCents,
+            quantity: action.quantity,
+            weightGrams: action.weightGrams,
+          });
+          if (item === null) continue;
           hasCartAdd = true;
-          addItem(
-            {
-              id: action.productId,
-              productId: action.productId,
-              name: action.productName,
-              imageUrl: "",
-              unit: (action.unit || "KG") as "KG" | "PIECE" | "BARQUETTE",
-              priceCents: action.priceCents,
-              quantity: action.quantity || 1,
-              weightGrams: action.weightGrams,
-            },
-            {
-              id: action.shopId,
-              name: action.shopName,
-              slug: action.shopSlug || action.shopId,
-            }
-          );
+          addItem(item, {
+            id: action.shopId,
+            name: action.shopName,
+            slug: action.shopSlug || action.shopId,
+          });
         }
       }
       return hasCartAdd;
@@ -369,10 +370,7 @@ export function ChatWidget() {
 
         const hasCheckout = actions.some((a) => a.type === "go_to_checkout");
 
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: clean, actions },
-        ]);
+        setMessages((prev) => [...prev, { role: "assistant", content: clean, actions }]);
 
         // Show quick action buttons after cart add (but not if checkout)
         if (addedToCart && !hasCheckout) {
@@ -386,8 +384,7 @@ export function ChatWidget() {
       } catch (err: unknown) {
         if (lastError === "rate_limit" && attempt < MAX_RETRIES) continue;
 
-        const errorMsg =
-          err instanceof Error ? err.message : "Erreur de connexion";
+        const errorMsg = err instanceof Error ? err.message : "Erreur de connexion";
         setMessages((prev) => [
           ...prev,
           {
@@ -408,27 +405,23 @@ export function ChatWidget() {
       {/* ═══ CHAT PANEL ═══ */}
       <div
         aria-hidden={!open}
-        className={`pointer-events-auto fixed bottom-20 right-4 left-4 sm:left-auto z-50 flex flex-col bg-white dark:bg-[#141414] rounded-[20px] shadow-[0_12px_48px_rgba(0,0,0,0.15)] overflow-hidden transition-all duration-300 origin-bottom ${
-          open
-            ? "visible scale-100 opacity-100"
-            : "invisible scale-90 opacity-0"
-        } sm:w-[360px] h-[70vh] sm:h-[480px]`}
+        className={`pointer-events-auto fixed bottom-20 left-4 right-4 z-50 flex origin-bottom flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_12px_48px_rgba(0,0,0,0.15)] transition-all duration-300 dark:bg-[#141414] sm:left-auto ${
+          open ? "visible scale-100 opacity-100" : "invisible scale-90 opacity-0"
+        } h-[70vh] sm:h-[480px] sm:w-[360px]`}
       >
         {/* Header */}
-        <div className="shrink-0 bg-[#DC2626] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
+        <div className="flex shrink-0 items-center gap-3 bg-[#DC2626] px-5 py-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
             <ButcherIcon size={26} />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white">Assistant Klik&Go</p>
-            <p className="text-xs text-white/80">
-              En ligne &bull; Commande directe
-            </p>
+            <p className="text-xs text-white/80">En ligne &bull; Commande directe</p>
           </div>
           <button
             aria-label="Fermer le chat"
             onClick={() => setOpen(false)}
-            className="text-white/70 hover:text-white transition-colors p-1"
+            className="p-1 text-white/70 transition-colors hover:text-white"
           >
             <X size={20} />
           </button>
@@ -437,30 +430,24 @@ export function ChatWidget() {
         {/* Messages */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto bg-[#f8f6f3] dark:bg-[#0a0a0a] px-4 py-4 space-y-3"
+          className="flex-1 space-y-3 overflow-y-auto bg-[#f8f6f3] px-4 py-4 dark:bg-[#0a0a0a]"
         >
           {messages.map((msg, i) => {
-            const isLastBot =
-              msg.role === "assistant" &&
-              i === messages.length - 1;
+            const isLastBot = msg.role === "assistant" && i === messages.length - 1;
             const msgIsRecap = msg.role === "assistant" && isRecapMessage(msg.content);
             const msgRecapInfo = msgIsRecap ? extractRecapInfo(msg.content) : null;
-            const hasCartActions =
-              msg.actions?.some((a) => a.type === "add_to_cart") ?? false;
-            const hasCheckout =
-              msg.actions?.some((a) => a.type === "go_to_checkout") ?? false;
+            const hasCartActions = msg.actions?.some((a) => a.type === "add_to_cart") ?? false;
+            const hasCheckout = msg.actions?.some((a) => a.type === "go_to_checkout") ?? false;
 
             return (
               <div key={i}>
                 {/* Message bubble */}
-                <div
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
+                <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[85%] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                    className={`max-w-[85%] whitespace-pre-wrap px-3 py-2.5 text-sm leading-relaxed ${
                       msg.role === "user"
-                        ? "bg-[#DC2626] text-white rounded-2xl rounded-br-sm"
-                        : "bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-white/10 text-gray-900 dark:text-white rounded-2xl rounded-bl-sm"
+                        ? "rounded-2xl rounded-br-sm bg-[#DC2626] text-white"
+                        : "rounded-2xl rounded-bl-sm border border-gray-100 bg-white text-gray-900 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
                     }`}
                   >
                     {msg.content}
@@ -473,10 +460,7 @@ export function ChatWidget() {
                     {msg.actions.map((action, j) => {
                       if (action.type === "add_to_cart") {
                         return (
-                          <CartConfirmation
-                            key={`cart-${i}-${j}`}
-                            name={action.productName}
-                          />
+                          <CartConfirmation key={`cart-${i}-${j}`} name={action.productName} />
                         );
                       }
                       return null;
@@ -524,7 +508,7 @@ export function ChatWidget() {
                 <button
                   key={s}
                   onClick={() => sendMessage(s)}
-                  className="px-3 py-1.5 text-xs font-medium border border-[#DC2626] text-[#DC2626] rounded-full hover:bg-[#DC2626] hover:text-white transition-colors"
+                  className="rounded-full border border-[#DC2626] px-3 py-1.5 text-xs font-medium text-[#DC2626] transition-colors hover:bg-[#DC2626] hover:text-white"
                 >
                   {s}
                 </button>
@@ -536,7 +520,7 @@ export function ChatWidget() {
         </div>
 
         {/* Input bar */}
-        <div className="shrink-0 border-t border-gray-100 dark:border-white/10 px-4 py-3 bg-white dark:bg-[#141414]">
+        <div className="shrink-0 border-t border-gray-100 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#141414]">
           <div className="flex items-center gap-2">
             <input
               ref={inputRef}
@@ -551,13 +535,13 @@ export function ChatWidget() {
               }}
               placeholder="Ex: 1kg d'entrecôte..."
               aria-label="Votre message"
-              className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1a1a] rounded-full text-sm text-gray-900 dark:text-white outline-none focus:border-[#DC2626] transition-colors placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500"
+              className="flex-1 rounded-full border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-500 focus:border-[#DC2626] dark:border-white/10 dark:bg-[#1a1a1a] dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
             />
             <button
               aria-label="Envoyer"
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || isLoading}
-              className="w-9 h-9 bg-[#DC2626] rounded-full flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#b91c1c] transition-colors shrink-0"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#DC2626] text-white transition-colors hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Send size={16} />
             </button>
@@ -570,7 +554,7 @@ export function ChatWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Ouvrir le chat"
-          className="pointer-events-auto fixed bottom-24 md:bottom-6 right-4 z-50 w-14 h-14 bg-[#DC2626] rounded-full flex items-center justify-center shadow-lg hover:bg-[#b91c1c] hover:shadow-xl transition-all animate-[chatBtnAppear_0.4s_ease]"
+          className="pointer-events-auto fixed bottom-24 right-4 z-50 flex h-14 w-14 animate-[chatBtnAppear_0.4s_ease] items-center justify-center rounded-full bg-[#DC2626] shadow-lg transition-all hover:bg-[#b91c1c] hover:shadow-xl md:bottom-6"
         >
           <ButcherIcon size={28} />
         </button>

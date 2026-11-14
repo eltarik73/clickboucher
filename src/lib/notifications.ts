@@ -3,9 +3,11 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { sendWhatsAppMessage, sendWhatsAppRaw } from "@/lib/whatsapp";
-import { sendPushNotification, PushSubscriptionData } from "@/lib/push";
+import { sendPushNotification, type PushPayload, type PushSubscriptionData } from "@/lib/push";
 import * as tpl from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
+import { notificationThrottle } from "@/lib/notification-policy";
+import { resolveNotificationRecipient } from "@/lib/notification-recipients";
 
 // ─────────────────────────────────────────────
 // Event types
@@ -18,6 +20,8 @@ export type NotifEvent =
   | "ORDER_READY"
   | "ORDER_PICKED_UP"
   | "ORDER_CANCELLED"
+  | "ORDER_CANCELLED_BY_CUSTOMER"
+  | "ORDER_EXPIRED"
   | "BOUCHER_NOTE"
   | "READY_REMINDER"
   | "STOCK_ISSUE"
@@ -127,6 +131,20 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         subject: `❌ Commande ${data.orderNumber} annulée`,
         html: tpl.orderCancelled(data),
         plainText: `Votre commande chez ${data.shopName} a été annulée. ${data.denyReason || ""}`,
+      };
+
+    case "ORDER_CANCELLED_BY_CUSTOMER":
+      return {
+        subject: `Commande #${data.orderNumber} annulée par le client`,
+        html: tpl.orderCancelledByCustomer(data),
+        plainText: `${data.customerName || "Le client"} a annulé la commande #${data.orderNumber}. Ne la préparez pas.`,
+      };
+
+    case "ORDER_EXPIRED":
+      return {
+        subject: `Commande ${data.orderNumber} annulée`,
+        html: tpl.orderExpired(data),
+        plainText: `${data.shopName} n'a pas répondu à temps : votre commande ${data.orderNumber} est annulée. Vous n'avez rien à payer.`,
       };
 
     case "BOUCHER_NOTE":
@@ -263,7 +281,8 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
       return {
         subject: `🏆 Récompense fidélité débloquée !`,
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>Bravo, vous avez débloqué une récompense !</h2><p>${data.message || `Votre bon de ${data.rewardAmount || ""} : <strong>${data.rewardCode || ""}</strong>`}</p><p>Utilisez ce code lors de votre prochaine commande.</p><a href="https://klikandgo.app/profil" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon profil</a></div>`,
-        plainText: data.message || `Récompense fidélité : ${data.rewardCode} (${data.rewardAmount})`,
+        plainText:
+          data.message || `Récompense fidélité : ${data.rewardCode} (${data.rewardAmount})`,
       };
 
     case "PROMO_NEW":
@@ -279,20 +298,13 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>⚡ Offre flash !</h2><p><strong>${data.promoLabel}</strong> chez ${data.shopName}.</p>${data.promoCode ? `<p>Code : <strong>${data.promoCode}</strong></p>` : ""}<p>Dépêchez-vous, l'offre est limitée dans le temps !</p><a href="https://klikandgo.app/" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">En profiter</a></div>`,
         plainText: `Offre flash chez ${data.shopName} : ${data.promoLabel}`,
       };
-
-    default:
-      return {
-        subject: `Notification Klik&Go`,
-        html: `<p>${data.message || "Nouvelle notification"}</p>`,
-        plainText: data.message || "Nouvelle notification",
-      };
   }
 }
 
 // ─────────────────────────────────────────────
 // Push notification title/body helpers
 // ─────────────────────────────────────────────
-function getPushPayload(event: NotifEvent, data: NotifData) {
+function getPushPayload(event: NotifEvent, data: NotifData): PushPayload {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const orderUrl = data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`;
   const orderTag = data.orderId ? `order-${data.orderId}` : undefined;
@@ -349,6 +361,20 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
       return {
         title: "❌ Commande annulée",
         body: data.denyReason || `Annulée par ${data.shopName}`,
+        url: orderUrl,
+        tag: orderTag,
+      };
+    case "ORDER_CANCELLED_BY_CUSTOMER":
+      return {
+        title: "Commande annulée par le client",
+        body: `#${data.orderNumber} de ${data.customerName || "un client"} — ne la préparez pas`,
+        url: `${baseUrl}/boucher/commandes`,
+        tag: orderTag,
+      };
+    case "ORDER_EXPIRED":
+      return {
+        title: "Commande annulée",
+        body: `${data.shopName} n'a pas répondu à temps. Vous n'avez rien à payer.`,
         url: orderUrl,
         tag: orderTag,
       };
@@ -507,81 +533,31 @@ function getPushPayload(event: NotifEvent, data: NotifData) {
 // ─────────────────────────────────────────────
 function getWhatsAppTemplateKey(event: NotifEvent): string | null {
   switch (event) {
-    case "ORDER_PENDING": return "NEW_ORDER";
-    case "ORDER_ACCEPTED": return "ORDER_CONFIRMED";
-    case "ORDER_READY": return "ORDER_READY";
-    case "ORDER_DENIED": return "ORDER_DENIED";
-    case "CART_ABANDONED": return "CART_ABANDONED";
-    case "ACCOUNT_APPROVED": return "ACCOUNT_APPROVED";
-    default: return null;
+    case "ORDER_PENDING":
+      return "NEW_ORDER";
+    case "ORDER_ACCEPTED":
+      return "ORDER_CONFIRMED";
+    case "ORDER_READY":
+      return "ORDER_READY";
+    case "ORDER_DENIED":
+      return "ORDER_DENIED";
+    case "CART_ABANDONED":
+      return "CART_ABANDONED";
+    case "ACCOUNT_APPROVED":
+      return "ACCOUNT_APPROVED";
+    default:
+      return null;
   }
 }
 
 // ─────────────────────────────────────────────
-// Rate limiting: 1 notification per type per user per hour
+// Marketing and digest events: 1 notification per type per user per hour
 // ─────────────────────────────────────────────
-async function checkNotifRateLimit(userId: string, event: string): Promise<boolean> {
-  try {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentCount = await prisma.notification.count({
-      where: {
-        userId,
-        type: event,
-        createdAt: { gte: oneHourAgo },
-      },
-    });
-    return recentCount === 0;
-  } catch {
-    return true; // Allow on error
-  }
-}
-
-// ─────────────────────────────────────────────
-// Resolve user with preferences
-// ─────────────────────────────────────────────
-type UserPrefs = {
-  id: string;
-  email: string;
-  phone: string | null;
-  notifEmail: boolean;
-  notifSms: boolean;
-  notifWhatsapp: boolean;
-  notifPush: boolean;
-  pushSubscription: unknown;
-};
-
-async function resolveUser(event: NotifEvent, data: NotifData): Promise<UserPrefs | null> {
-  // Events targeted at boucher (by shopId)
-  const boucherEvents: NotifEvent[] = ["ORDER_PENDING", "SCHEDULED_REMINDER", "PRICE_ADJUSTMENT_ACCEPTED", "PRICE_ADJUSTMENT_REJECTED", "PRICE_ADJUSTMENT_ESCALATED"];
-  if (boucherEvents.includes(event) && data.shopId) {
-    const shop = await prisma.shop.findUnique({
-      where: { id: data.shopId },
-      select: { ownerId: true },
-    });
-    if (shop?.ownerId) {
-      return prisma.user.findUnique({
-        where: { clerkId: shop.ownerId },
-        select: { id: true, email: true, phone: true, notifEmail: true, notifSms: true, notifWhatsapp: true, notifPush: true, pushSubscription: true },
-      });
-    }
-    return null;
-  }
-
-  if (data.userId) {
-    let user = await prisma.user.findUnique({
-      where: { clerkId: data.userId },
-      select: { id: true, email: true, phone: true, notifEmail: true, notifSms: true, notifWhatsapp: true, notifPush: true, pushSubscription: true },
-    });
-    if (!user) {
-      user = await prisma.user.findUnique({
-        where: { id: data.userId },
-        select: { id: true, email: true, phone: true, notifEmail: true, notifSms: true, notifWhatsapp: true, notifPush: true, pushSubscription: true },
-      });
-    }
-    return user;
-  }
-
-  return null;
+async function sentWithinLastHour(userId: string, event: NotifEvent): Promise<boolean> {
+  const recentCount = await prisma.notification.count({
+    where: { userId, type: event, createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } },
+  });
+  return recentCount > 0;
 }
 
 // ─────────────────────────────────────────────
@@ -592,15 +568,19 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
     const { subject, html, plainText } = getTemplate(event, data);
     const channels: string[] = [];
 
-    const user = await resolveUser(event, data);
+    const user = await resolveNotificationRecipient(event, data);
     if (!user) {
-      console.warn(`[notifications] No recipient found for ${event}`);
+      logger.warn(`[notifications] No recipient found for ${event}`, {
+        shopId: data.shopId,
+        userId: data.userId,
+      });
       return { sent: false, channels: [] };
     }
 
-    // Rate limit check
-    const allowed = await checkNotifRateLimit(user.id, event);
-    if (!allowed) {
+    if (
+      notificationThrottle(event) === "hourly-per-type" &&
+      (await sentWithinLastHour(user.id, event))
+    ) {
       logger.info(`[notifications] Rate limited: ${event} for user ${user.id}`);
       return { sent: false, channels: [], rateLimited: true };
     }
@@ -611,7 +591,7 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
         await sendEmail(user.email, subject, html);
         channels.push("email");
       } catch (e) {
-        console.error("[notifications][email] Error:", (e as Error).message);
+        logger.error("[notifications][email] Error", e);
       }
     }
 
@@ -633,16 +613,20 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
         }
         channels.push("whatsapp");
       } catch (e) {
-        console.error("[notifications][whatsapp] Error:", (e as Error).message);
+        logger.error("[notifications][whatsapp] Error", e);
       }
     }
 
     // ── Push ──
     // Promo push rate limit: max 3 promo pushes/week/user + respect pushPromoEnabled
-    const isPromoEvent = event === "PROMO_NEW" || event === "FLASH_OFFER" || event === "LOYALTY_REWARD_EARNED";
+    const isPromoEvent =
+      event === "PROMO_NEW" || event === "FLASH_OFFER" || event === "LOYALTY_REWARD_EARNED";
     let promoPushAllowed = true;
     if (isPromoEvent) {
-      const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { pushPromoEnabled: true } });
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { pushPromoEnabled: true },
+      });
       if (dbUser && !dbUser.pushPromoEnabled) promoPushAllowed = false;
       if (promoPushAllowed) {
         const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -670,11 +654,11 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
             await prisma.user.update({
               where: { id: user.id },
               data: { pushSubscription: Prisma.DbNull },
-            }).catch(() => {});
+            });
           }
         }
       } catch (e) {
-        console.error("[notifications][push] Error:", (e as Error).message);
+        logger.error("[notifications][push] Error", e);
       }
     }
 
@@ -693,8 +677,8 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
           where: { id: data.orderId },
           data: { notifSent: [...existing, logEntry] },
         });
-      } catch {
-        // Non-critical — don't fail the notification
+      } catch (e) {
+        logger.warn("[notifications][order-log] Error", { orderId: data.orderId, error: e });
       }
     }
 
@@ -706,17 +690,23 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
           type: event,
           message: plainText,
           orderId: data.orderId ?? null,
-          channel: channels.includes("push") ? "PUSH" : channels.includes("whatsapp") ? "WHATSAPP" : channels.includes("email") ? "EMAIL" : "PUSH",
+          channel: channels.includes("push")
+            ? "PUSH"
+            : channels.includes("whatsapp")
+              ? "WHATSAPP"
+              : channels.includes("email")
+                ? "EMAIL"
+                : "PUSH",
           delivered: channels.length > 0,
         },
       });
     } catch (e) {
-      console.error("[notifications][db] Error creating notification:", (e as Error).message);
+      logger.error("[notifications][db] Error creating notification", e);
     }
 
     return { sent: channels.length > 0, channels };
   } catch (error) {
-    console.error(`[notifications] Failed to send ${event}:`, error);
+    logger.error(`[notifications] Failed to send ${event}`, error);
     return { sent: false, channels: [] };
   }
 }

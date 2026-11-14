@@ -4,20 +4,24 @@ export const revalidate = 300;
 
 import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
+import { listPublicOffers, type PublicOffer } from "@/lib/public-offers";
+import { limitedStockOnSaleWhere } from "@/lib/pricing/limited-stock";
 import { BonsPlansClient } from "./BonsPlansClient";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
   title: "Bons plans & promos boucherie halal",
-  description: "Toutes les promotions et offres flash des boucheries halal près de chez vous : anti-gaspi, packs, vente flash, ramadan. Économisez sur la viande halal en click & collect.",
+  description:
+    "Toutes les promotions et offres flash des boucheries halal près de chez vous : anti-gaspi, packs, vente flash, ramadan. Économisez sur la viande halal en click & collect.",
   alternates: { canonical: `${SITE_URL}/bons-plans` },
   openGraph: {
     type: "website",
     locale: "fr_FR",
     siteName: "Klik&Go",
     title: "Bons plans & promos boucherie halal | Klik&Go",
-    description: "Promotions, anti-gaspi, packs et vente flash des boucheries halal. Économisez en click & collect.",
+    description:
+      "Promotions, anti-gaspi, packs et vente flash des boucheries halal. Économisez en click & collect.",
     url: `${SITE_URL}/bons-plans`,
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Bons plans halal Klik&Go" }],
   },
@@ -48,18 +52,7 @@ export default async function BonsPlansPage() {
     images: { url: string; isPrimary: boolean }[];
   }[] = [];
 
-  let platformPromos: {
-    id: string;
-    label: string;
-    description: string | null;
-    type: string;
-    valueCents: number | null;
-    valuePercent: number | null;
-    code: string | null;
-    endsAt: string;
-    shopName: string | null;
-    shopSlug: string | null;
-  }[] = [];
+  let platformPromos: PublicOffer[] = [];
 
   try {
     const now = new Date();
@@ -69,6 +62,7 @@ export default async function BonsPlansPage() {
       prisma.product.findMany({
         where: {
           inStock: true,
+          ...limitedStockOnSaleWhere,
           OR: [
             { promoPct: { gt: 0 }, promoEnd: null },
             { promoPct: { gt: 0 }, promoEnd: { gt: now } },
@@ -83,16 +77,8 @@ export default async function BonsPlansPage() {
         orderBy: [{ promoType: "asc" }, { promoPct: "desc" }],
       }),
 
-      // 2. Active offers (from Marketing Hub)
-      prisma.offer.findMany({
-        where: {
-          status: "ACTIVE",
-          startDate: { lte: now },
-          endDate: { gt: now },
-        },
-        include: { shop: { select: { name: true, slug: true } } },
-        orderBy: { createdAt: "desc" },
-      }),
+      // 2. Promo codes meant for every visitor (allow-list of src/lib/public-offers.ts)
+      listPublicOffers(now),
     ]);
 
     promos = products.map((p) => ({
@@ -113,18 +99,7 @@ export default async function BonsPlansPage() {
       images: p.images.map((i) => ({ url: i.url, isPrimary: i.isPrimary })),
     }));
 
-    platformPromos = promotions.map((o) => ({
-      id: o.id,
-      label: o.name,
-      description: null,
-      type: o.type,
-      valueCents: o.type === "AMOUNT" ? Math.round(o.discountValue * 100) : null,
-      valuePercent: o.type === "PERCENT" ? o.discountValue : null,
-      code: o.code,
-      endsAt: o.endDate.toISOString(),
-      shopName: o.shop?.name || null,
-      shopSlug: o.shop?.slug || null,
-    }));
+    platformPromos = promotions;
   } catch (error) {
     // En production on relance : sous ISR, Next garde alors la dernière bonne page
     // au lieu de mettre en cache des listes vides. Repli silencieux en dev uniquement.
@@ -142,5 +117,7 @@ export default async function BonsPlansPage() {
   }
   const categories = Array.from(categorySet.values());
 
-  return <BonsPlansClient promos={promos} categories={categories} platformPromos={platformPromos} />;
+  return (
+    <BonsPlansClient promos={promos} categories={categories} platformPromos={platformPromos} />
+  );
 }

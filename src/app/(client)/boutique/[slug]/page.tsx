@@ -27,6 +27,7 @@ import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { ProductSchema } from "@/components/seo/ProductSchema";
 import { SEO_CITIES } from "@/lib/seo/cities";
 import { OfferBanner } from "@/components/client/OfferBanner";
+import { listShopOffers } from "@/lib/public-offers";
 import { OfferProductSection } from "@/components/client/OfferProductSection";
 import { AntiGaspiBanner } from "@/components/client/AntiGaspiBanner";
 // Audit CTO #3 UX 2026-05-09 : horaires d'ouverture manquaient sur la page
@@ -158,36 +159,8 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
   // so this page needs no server-side auth(). It is still rendered on every request
   // (not ISR-cached — see the note on `revalidate` at the top of this file).
 
-  // Fetch active offers for this shop (banner + eligible products)
-  const now = new Date();
-  const activeOffers = await prisma.offer.findMany({
-    where: {
-      status: "ACTIVE",
-      startDate: { lte: now },
-      endDate: { gt: now },
-      OR: [{ shopId: shop.id }, { proposals: { some: { shopId: shop.id, status: "ACCEPTED" } } }],
-    },
-    select: {
-      id: true,
-      name: true,
-      code: true,
-      type: true,
-      discountValue: true,
-      diffBanner: true,
-      bannerTitle: true,
-      bannerSubtitle: true,
-      bannerColor: true,
-      bannerImageUrl: true,
-      eligibleProducts: {
-        where: { shopId: shop.id },
-        select: {
-          product: {
-            select: { id: true, name: true, imageUrl: true, priceCents: true, unit: true },
-          },
-        },
-      },
-    },
-  });
+  // Public offers of this shop (banner + eligible products): never a code meant for a segment.
+  const activeOffers = await listShopOffers(shop.id, new Date());
 
   // Banner offer (first with diffBanner)
   const bannerOffer = activeOffers.find((o) => o.diffBanner);
@@ -296,6 +269,8 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
     antiGaspiStock: p.antiGaspiStock ?? null,
     antiGaspiEndAt: p.antiGaspiEndAt ? p.antiGaspiEndAt.toISOString() : null,
     antiGaspiReason: p.antiGaspiReason ?? null,
+    isFlashSale: p.isFlashSale ?? false,
+    flashSaleStock: p.flashSaleStock ?? null,
     categories: p.categories.map((c) => ({
       id: c.id,
       name: c.name,
@@ -563,6 +538,12 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
               antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents ?? null,
               antiGaspiStock: p.antiGaspiStock ?? null,
               antiGaspiReason: p.antiGaspiReason ?? null,
+              promoPct: p.promoPct,
+              promoType: p.promoType,
+              promoFixedCents: p.promoFixedCents,
+              promoEnd: p.promoEnd,
+              isFlashSale: p.isFlashSale ?? false,
+              flashSaleStock: p.flashSaleStock ?? null,
               category: p.categories[0] || { name: "" },
               images: p.images,
             }))}

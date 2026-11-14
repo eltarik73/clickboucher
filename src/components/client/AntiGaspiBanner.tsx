@@ -4,6 +4,10 @@
 import { useState } from "react";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { resolveProductImage } from "@/lib/product-images";
+import { useMountedNow } from "@/components/product/ProductCard";
+import { displayedUnitPrice } from "@/lib/pricing/display";
+import { limitedStockLowCount, limitedStockSoldOut } from "@/lib/pricing/limited-stock";
+import { formatPrice } from "@/lib/utils";
 import { ProductQuickAdd, type QuickAddProduct, type QuickAddShop } from "./ProductQuickAdd";
 
 interface AntiGaspiProduct {
@@ -15,22 +19,39 @@ interface AntiGaspiProduct {
   antiGaspiOrigPriceCents: number | null;
   antiGaspiStock: number | null;
   antiGaspiReason: string | null;
+  /** The product promotion applies on top of the anti-gaspi price, as at the quote. */
+  promoPct: number | null;
+  promoType: string | null;
+  promoFixedCents: number | null;
+  /** ISO date, or null without end date. */
+  promoEnd: string | null;
+  /** A product can be in both limited modes: the smaller counter is what remains. */
+  isFlashSale?: boolean;
+  flashSaleStock?: number | null;
   category: { name: string };
   images: { url: string }[];
 }
 
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
+/** The banner shows anti-gaspi products only: that limited mode is on, flash sale maybe too. */
+function limitedStock(product: AntiGaspiProduct) {
+  return {
+    isAntiGaspi: true,
+    antiGaspiStock: product.antiGaspiStock,
+    isFlashSale: product.isFlashSale ?? false,
+    flashSaleStock: product.flashSaleStock ?? null,
+  };
 }
 
 export function AntiGaspiBanner({
-  products,
+  products: allProducts,
   shop,
 }: {
   products: AntiGaspiProduct[];
   shop: QuickAddShop;
 }) {
   const [selectedProduct, setSelectedProduct] = useState<QuickAddProduct | null>(null);
+  const now = useMountedNow();
+  const products = allProducts.filter((p) => !limitedStockSoldOut(limitedStock(p)));
 
   if (products.length === 0) return null;
 
@@ -61,6 +82,8 @@ export function AntiGaspiBanner({
                     imageUrl: p.imageUrl,
                     category: p.category.name,
                   });
+            const lowStock = limitedStockLowCount(limitedStock(p));
+            const price = displayedUnitPrice(p, now);
 
             return (
               <button
@@ -74,9 +97,12 @@ export function AntiGaspiBanner({
                     priceCents: p.priceCents,
                     unit: p.unit,
                     category: p.category.name,
-                    isAntiGaspi: true,
+                    ...limitedStock(p),
                     antiGaspiOrigPriceCents: p.antiGaspiOrigPriceCents,
-                    antiGaspiStock: p.antiGaspiStock,
+                    promoPct: p.promoPct,
+                    promoType: p.promoType,
+                    promoFixedCents: p.promoFixedCents,
+                    promoEnd: p.promoEnd,
                   })
                 }
                 className="w-[120px] flex-shrink-0 overflow-hidden rounded-xl border border-emerald-200/50 bg-white text-left transition-shadow hover:shadow-md active:scale-[0.97] dark:border-emerald-800/20 dark:bg-[#1a1a1a]"
@@ -91,9 +117,9 @@ export function AntiGaspiBanner({
                     className="object-cover"
                     quality={60}
                   />
-                  {p.antiGaspiStock !== null && p.antiGaspiStock <= 5 && (
+                  {lowStock !== null && (
                     <div className="absolute bottom-1 left-1 rounded bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                      Plus que {p.antiGaspiStock}
+                      Plus que {lowStock}
                     </div>
                   )}
                 </div>
@@ -103,11 +129,11 @@ export function AntiGaspiBanner({
                   </p>
                   <div className="mt-0.5 flex items-baseline gap-1">
                     <span className="text-[11px] font-bold text-emerald-600">
-                      {fmtPrice(p.priceCents)}
+                      {formatPrice(price.unitPriceCents)}
                     </span>
                     {p.antiGaspiOrigPriceCents && (
                       <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
-                        {fmtPrice(p.antiGaspiOrigPriceCents)}
+                        {formatPrice(p.antiGaspiOrigPriceCents)}
                       </span>
                     )}
                   </div>

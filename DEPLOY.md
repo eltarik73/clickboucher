@@ -235,7 +235,6 @@ curl https://<votre-app>.up.railway.app/api/cron?task=offers
 | `TWILIO_WHATSAPP_NUMBER` | — | — | Numero WhatsApp |
 | `NEXT_PUBLIC_APP_URL` | — | `localhost:3000` | URL publique de l'app |
 | `NEXT_PUBLIC_APP_NAME` | — | `ClickBoucher` | Nom affiche |
-| `WEIGHT_TOLERANCE_PERCENT` | — | `10` | Tolerance poids (%) |
 | `LAST_MINUTE_HOLD_MINUTES` | — | `10` | Duree reservation DM |
 | `CRON_SECRET` | — | — | Auth pour endpoint CRON |
 

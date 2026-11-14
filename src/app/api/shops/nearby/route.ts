@@ -3,13 +3,23 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { badgeLabelsByShop } from "@/lib/offer-badge-label";
+import { listBadgeOffers } from "@/lib/public-offers";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
 const nearbyQuerySchema = z.object({
-  lat: z.coerce.number().min(-90).max(90).refine((v) => isFinite(v), "Latitude invalide"),
-  lng: z.coerce.number().min(-180).max(180).refine((v) => isFinite(v), "Longitude invalide"),
+  lat: z.coerce
+    .number()
+    .min(-90)
+    .max(90)
+    .refine((v) => isFinite(v), "Latitude invalide"),
+  lng: z.coerce
+    .number()
+    .min(-180)
+    .max(180)
+    .refine((v) => isFinite(v), "Longitude invalide"),
   radius: z.coerce.number().min(1).max(100).default(15),
 });
 
@@ -88,10 +98,20 @@ export async function GET(req: NextRequest) {
           OR: [{ latitude: null }, { longitude: null }],
         },
         select: {
-          id: true, slug: true, name: true, address: true, city: true,
-          imageUrl: true, latitude: true, longitude: true,
-          prepTimeMin: true, busyMode: true, busyExtraMin: true,
-          status: true, rating: true, ratingCount: true,
+          id: true,
+          slug: true,
+          name: true,
+          address: true,
+          city: true,
+          imageUrl: true,
+          latitude: true,
+          longitude: true,
+          prepTimeMin: true,
+          busyMode: true,
+          busyExtraMin: true,
+          status: true,
+          rating: true,
+          ratingCount: true,
           openingHours: true,
         },
         orderBy: { rating: "desc" },
@@ -124,34 +144,11 @@ export async function GET(req: NextRequest) {
       distance: null as number | null,
     }));
 
-    // Fetch active offers for these shops
+    // Badges: only public offers (audience ALL, diffused as a badge, active, uses left).
     const allShopIds = [...nearbyNormalized, ...withoutCoordsNormalized].map((s) => s.id);
-    const activeOffers = allShopIds.length > 0
-      ? await prisma.offer.findMany({
-          where: {
-            shopId: { in: allShopIds },
-            status: "ACTIVE",
-            startDate: { lte: new Date() },
-            endDate: { gt: new Date() },
-            diffBadge: true,
-          },
-          select: { shopId: true, type: true, discountValue: true, name: true },
-          take: 200,
-        })
-      : [];
-
-    const shopPromoMap = new Map<string, string>();
-    for (const o of activeOffers) {
-      if (o.shopId && !shopPromoMap.has(o.shopId)) {
-        const shortLabel = o.type === "FREE_FEES" ? "Frais offerts"
-          : o.type === "PERCENT" ? `-${o.discountValue}%`
-          : o.type === "AMOUNT" ? `-${o.discountValue}€`
-          : o.type === "BOGO" ? "1+1 offert"
-          : o.type === "BUNDLE" ? "Pack"
-          : o.name;
-        shopPromoMap.set(o.shopId, shortLabel);
-      }
-    }
+    const activeOffers =
+      allShopIds.length > 0 ? await listBadgeOffers(new Date(), 200, allShopIds) : [];
+    const shopPromoMap = badgeLabelsByShop(activeOffers);
 
     const allShops = [...nearbyNormalized, ...withoutCoordsNormalized].map((s) => ({
       ...s,

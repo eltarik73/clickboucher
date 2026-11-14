@@ -1,116 +1,32 @@
+// src/app/api/orders/[id]/rate/route.ts — the customer rates a collected order (once).
 import { NextRequest } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
-import prisma from "@/lib/prisma";
 import { rateOrderSchema } from "@/lib/validators";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiError, handleApiError } from "@/lib/api/errors";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
+import { customerTransitionResponse } from "@/lib/services/orders/commands/http";
+import { customerUserId } from "@/lib/services/orders/commands/outcome";
+import { rateOrder } from "@/lib/services/orders/commands/rate";
 
 export const dynamic = "force-dynamic";
 
 // ── POST /api/orders/[id]/rate ─────────────────
-// Client — rate a completed/picked-up order
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
-    const userId = await getServerUserId();
+    const clerkId = await getServerUserId();
+    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
-    if (!userId) {
-      return apiError("UNAUTHORIZED", "Authentification requise");
-    }
-
-    const rl = await checkRateLimit(rateLimits.api, `order-rate:${userId}`);
+    const rl = await checkRateLimit(rateLimits.api, `order-rate:${clerkId}`);
     if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
-    const order = await prisma.order.findUnique({
-      where: { id },
-      select: {
-        status: true,
-        rating: true,
-        shopId: true,
-        user: { select: { clerkId: true } },
-      },
-    });
+    const data = rateOrderSchema.parse(await req.json());
+    const userId = await customerUserId(clerkId);
+    if (userId === null) return apiError("NOT_FOUND", "Commande introuvable");
 
-    if (!order) {
-      return apiError("NOT_FOUND", "Commande introuvable");
-    }
-    if (order.user.clerkId !== userId) {
-      return apiError("FORBIDDEN", "Cette commande ne vous appartient pas");
-    }
-    if (order.status !== "PICKED_UP" && order.status !== "COMPLETED") {
-      return apiError("VALIDATION_ERROR", "Vous ne pouvez noter qu'une commande récupérée");
-    }
-    if (order.rating !== null) {
-      return apiError("CONFLICT", "Vous avez déjà noté cette commande");
-    }
-
-    const body = await req.json();
-    const data = rateOrderSchema.parse(body);
-
-    // Update order with rating and mark as COMPLETED
-    const updated = await prisma.order.update({
-      where: { id },
-      data: {
-        rating: data.rating,
-        ratingComment: data.comment,
-        status: "COMPLETED",
-      },
-    });
-
-    // Update shop average rating
-    const shop = await prisma.shop.findUnique({
-      where: { id: order.shopId },
-      select: { rating: true, ratingCount: true },
-    });
-
-    if (shop) {
-      const newCount = shop.ratingCount + 1;
-      const newRating = (shop.rating * shop.ratingCount + data.rating) / newCount;
-
-      await prisma.shop.update({
-        where: { id: order.shopId },
-        data: {
-          rating: Math.round(newRating * 100) / 100,
-          ratingCount: newCount,
-        },
-      });
-    }
-
-    // ── Loyalty: increment orderCount when order completes ──
-    try {
-      const dbUser = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { id: true },
-      });
-
-      if (dbUser) {
-        const loyalty = await prisma.loyaltyPoint.upsert({
-          where: { userId_shopId: { userId: dbUser.id, shopId: order.shopId } },
-          create: { userId: dbUser.id, shopId: order.shopId, orderCount: 1, rewardsEarned: 0 },
-          update: { orderCount: { increment: 1 } },
-        });
-
-        // Check if a reward is earned
-        const rule = await prisma.loyaltyRule.findFirst({
-          where: { shopId: order.shopId, active: true },
-        });
-
-        if (rule && loyalty.orderCount % rule.ordersRequired === 0) {
-          await prisma.loyaltyPoint.update({
-            where: { id: loyalty.id },
-            data: { rewardsEarned: { increment: 1 } },
-          });
-        }
-      }
-    } catch {
-      // Loyalty error (non-blocking)
-    }
-
-    return apiSuccess(updated);
+    return await customerTransitionResponse(
+      await rateOrder({ orderId: params.id, userId, rating: data.rating, comment: data.comment })
+    );
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error, "orders/rate");
   }
 }

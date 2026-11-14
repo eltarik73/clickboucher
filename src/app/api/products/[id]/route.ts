@@ -2,65 +2,45 @@ import { NextRequest } from "next/server";
 import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators";
-import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, handleApiError, privateNoStore } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
+import { priceAudienceOf } from "@/lib/product-price-audience";
+import {
+  proProductSelect,
+  publicProductSelect,
+  type ProductPriceAudience,
+} from "@/lib/public-projections";
 
 export const dynamic = "force-dynamic";
+
+const SHOP_SUMMARY = { select: { id: true, name: true, slug: true } } as const;
 
 const PRODUCT_INCLUDE = {
   categories: true,
   images: { orderBy: { order: "asc" as const } },
   labels: true,
-  shop: { select: { id: true, name: true, slug: true } },
+  shop: SHOP_SUMMARY,
 };
 
+function findProduct(id: string, audience: ProductPriceAudience) {
+  if (audience === "MANAGER")
+    return prisma.product.findUnique({ where: { id }, include: PRODUCT_INCLUDE });
+  const select = audience === "PRO" ? proProductSelect : publicProductSelect;
+  return prisma.product.findUnique({ where: { id }, select: { ...select, shop: SHOP_SUMMARY } });
+}
+
 // ── GET /api/products/[id] ─────────────────────
-// Public — product detail with all relations.
-// Audit sécurité 2026-06-12 : proPriceCents (tarif B2B) masqué pour le public,
-// aligné sur /api/products (listing). Visible pour CLIENT_PRO, admin et propriétaire. Le cache public ne sert
-// que la version masquée — la réponse pro n'est jamais mise en cache partagé.
+// Public — product detail. Anonymous and ordinary callers get the allow-listed projection
+// (src/lib/public-projections.ts), CLIENT_PRO also gets proPriceCents. The shop owner and admins
+// get the full row: the butcher's edit form saves it back. One URL, three bodies: no response is
+// ever stored by a shared cache, or the owner could be served the public body and save it back.
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
-
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: PRODUCT_INCLUDE,
-    });
-
-    if (!product) {
-      return apiError("NOT_FOUND", "Produit introuvable");
-    }
-
-    // Voient le tarif pro : les CLIENT_PRO, les admins et le propriétaire de la
-    // boutique. Sans ce dernier cas, le formulaire d'édition du boucher recevait
-    // le produit masqué et effaçait le prix pro à chaque enregistrement.
-    let canSeeProPrice = false;
-    try {
-      const uid = await getServerUserId();
-      if (uid) {
-        const [u, shop, ownerUid] = await Promise.all([
-          prisma.user.findUnique({ where: { clerkId: uid }, select: { id: true, role: true } }),
-          prisma.shop.findUnique({ where: { id: product.shopId }, select: { ownerId: true } }),
-          getBoucherOwnerUserId(),
-        ]);
-        canSeeProPrice =
-          u?.role === "CLIENT_PRO" ||
-          isAdmin(u?.role) ||
-          (!!shop && (shop.ownerId === uid || shop.ownerId === u?.id || shop.ownerId === ownerUid));
-      }
-    } catch {
-      // Not logged in — standard prices only.
-    }
-
-    if (canSeeProPrice) {
-      // Per-user pricing must not land in the shared CDN cache.
-      return apiSuccess(product);
-    }
-    const { proPriceCents: _proPriceCents, ...publicProduct } = product;
-    return apiCached(publicProduct, 60);
+    const product = await findProduct(params.id, await priceAudienceOf({ productId: params.id }));
+    if (!product) return privateNoStore(apiError("NOT_FOUND", "Produit introuvable"));
+    return privateNoStore(apiSuccess(product));
   } catch (error) {
-    return handleApiError(error);
+    return privateNoStore(handleApiError(error));
   }
 }
 

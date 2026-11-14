@@ -1,10 +1,16 @@
 import type { NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 import { orderListQuerySchema } from "@/lib/validators";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
-import { autoApproveExpiredAdjustment } from "@/lib/price-adjustment";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { settleDueAdjustmentsWithin } from "@/lib/services/orders/adjustment-answers";
+import { listCustomerOrders } from "@/lib/services/orders/customer-view";
+import { orderInclude } from "@/lib/services/orders/order-read";
+
+/** The user-visible orders page: newest first. */
+const LIST_LIMIT = 50;
 
 const VALID_STATUSES = [
   "PENDING",
@@ -21,26 +27,6 @@ const VALID_STATUSES = [
 export type ListOrdersResult =
   | { ok: true; orders: unknown[] }
   | { ok: false; code: "UNAUTHORIZED" | "VALIDATION_ERROR"; message: string };
-
-const orderInclude = {
-  items: { include: { product: { select: { name: true, unit: true, vatRate: true, imageUrl: true } } } },
-  shop: {
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      imageUrl: true,
-      address: true,
-      city: true,
-      siret: true,
-      fullAddress: true,
-      vatRate: true,
-      priceAdjustmentThreshold: true,
-    },
-  },
-  user: { select: { firstName: true, lastName: true, customerNumber: true, phone: true, loyaltyBadge: true } },
-  priceAdjustment: true,
-} as const;
 
 /**
  * List orders for the currently authenticated user.
@@ -59,13 +45,14 @@ export async function listOrders(userId: string, req: NextRequest): Promise<List
   const raw = Object.fromEntries(req.nextUrl.searchParams);
   const query = orderListQuerySchema.parse(raw);
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.OrderWhereInput = {};
 
   if (query.status) {
-    if (!VALID_STATUSES.includes(query.status as (typeof VALID_STATUSES)[number])) {
+    const status = VALID_STATUSES.find((candidate) => candidate === query.status);
+    if (status === undefined) {
       return { ok: false, code: "VALIDATION_ERROR", message: "Statut de commande invalide" };
     }
-    where.status = query.status;
+    where.status = status;
   }
 
   if (role === "ADMIN") {
@@ -96,45 +83,19 @@ export async function listOrders(userId: string, req: NextRequest): Promise<List
     where.userId = user.id;
   }
 
-  // ── 1st findMany: fetch the user-visible orders page (limited to 50, newest first).
-  // We need the full list before we can identify which ones have an expired
-  // PriceAdjustment that must be auto-approved before being shown to the client.
+  // Due price adjustments are settled first, within the caller's own scope, so the list shows
+  // settled totals.
+  await settleDueAdjustmentsWithin(where, new Date());
+
+  // A customer reads the customer view of their orders; the shop and the admin read the full rows.
+  if (role !== "ADMIN" && role !== "BOUCHER") {
+    return { ok: true, orders: await listCustomerOrders(where, LIST_LIMIT) };
+  }
   const orders = await prisma.order.findMany({
     where,
     include: orderInclude,
     orderBy: { createdAt: "desc" },
-    take: 50,
+    take: LIST_LIMIT,
   });
-
-  // Auto-approve expired price adjustments (batch instead of N+1).
-  // The PriceAdjustment.autoApproveAt deadline is checked here rather than in a
-  // background job because clients/bouchers must see a consistent state on read.
-  const expiredAdjustmentOrderIds = orders
-    .filter((order) => {
-      const adj = (order as Record<string, unknown>).priceAdjustment as
-        | { status?: string; autoApproveAt?: Date }
-        | null;
-      return adj?.status === "PENDING" && adj.autoApproveAt && new Date() >= new Date(adj.autoApproveAt);
-    })
-    .map((o) => o.id);
-
-  // ── 2nd findMany: refetch ONLY the orders we just mutated.
-  // Why not merge into a single query? `autoApproveExpiredAdjustment` performs
-  // writes (update PriceAdjustment status + recompute order totals), so the
-  // first read is stale. Refetching just the mutated ids is cheaper than refetching
-  // all 50 orders, and we merge the updated rows back into the original list to
-  // preserve ordering (`createdAt desc`).
-  if (expiredAdjustmentOrderIds.length > 0) {
-    await Promise.all(expiredAdjustmentOrderIds.map((id) => autoApproveExpiredAdjustment(id)));
-
-    const refreshed = await prisma.order.findMany({
-      where: { id: { in: expiredAdjustmentOrderIds } },
-      include: orderInclude,
-    });
-    const refreshedMap = new Map(refreshed.map((o) => [o.id, o]));
-    const mergedOrders = orders.map((o) => refreshedMap.get(o.id) || o);
-    return { ok: true, orders: mergedOrders };
-  }
-
   return { ok: true, orders };
 }

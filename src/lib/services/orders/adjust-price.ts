@@ -1,14 +1,23 @@
-// Order price adjustment service (3-tier system).
-// Pure business logic — no Request/Response. Called from PATCH /api/orders/[id]/adjust-price.
-// Tier 1 (≤10% / decrease) → AUTO_APPROVED; Tier 2 (≤20%) → PENDING auto-approve after Ns;
-// Tier 3 (>20%) → PENDING client must approve, escalates to webmaster.
-import { Prisma } from "@prisma/client";
+// Order price adjustment service (3-tier system), for PATCH /api/orders/[id]/adjust-price.
+// Tier 1 (decrease or small increase) is applied at once; tier 2 waits for the customer and is
+// validated at its deadline; tier 3 needs the customer's answer and escalates to the webmaster.
+// Lines are re-priced by src/lib/pricing/adjustment.ts; the adjustment is applied by
+// adjustment-settlement.ts, the only writer of an adjusted total.
+import type { OrderItem, PriceAdjustment, Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
 import { computeTier, getPriceAdjConfig } from "@/lib/price-adjustment";
+import type { PriceAdjConfig } from "@/lib/price-adjustment-config";
 import { formatZodError } from "@/lib/api/errors";
+import { repriceLine, reweighLine, type AdjustedLine } from "@/lib/pricing/adjustment";
+import {
+  ADJUSTMENT_CREATION_STATUSES,
+  lockOrderForAdjustment,
+  settleAdjustmentInTx,
+  type AdjustmentSnapshotLine,
+} from "./adjustment-settlement";
 
 export const adjustPriceSchema = z.object({
   adjustmentType: z.enum(["WEIGHT", "PRICE", "MANUAL"]),
@@ -21,68 +30,127 @@ export const adjustPriceSchema = z.object({
         newPriceCents: z.number().int().min(0).optional(),
       })
     )
+    .max(50)
     .optional(),
   newTotalCents: z.number().int().min(0).optional(),
 });
 
-type AdjustPriceErrorCode =
-  | "VALIDATION_ERROR"
-  | "NOT_FOUND"
-  | "FORBIDDEN"
-  | "CONFLICT";
+type AdjustPriceInput = z.infer<typeof adjustPriceSchema>;
+
+type AdjustPriceErrorCode = "VALIDATION_ERROR" | "NOT_FOUND" | "CONFLICT";
+
+type Failure = {
+  ok: false;
+  code: AdjustPriceErrorCode;
+  message: string;
+  details?: Record<string, string[]>;
+};
 
 export type AdjustPriceResult =
-  | { ok: true; data: { adjustment: unknown; tier: 1 | 2 | 3; autoApproved: boolean } }
-  | {
-      ok: false;
-      code: AdjustPriceErrorCode;
-      message: string;
-      details?: Record<string, string[]>;
+  | { ok: true; data: { adjustment: PriceAdjustment; tier: 1 | 2 | 3; autoApproved: boolean } }
+  | Failure;
+
+const TRANSACTION_OPTIONS = { maxWait: 5_000, timeout: 10_000 } as const;
+
+const LINE_REFUSALS: Record<Extract<AdjustedLine, { ok: false }>["reason"], string> = {
+  QUANTITY_INVALID: "Quantité invalide : poids en grammes entiers, nombre entier pour les pièces",
+  PRICE_INVALID: "Prix invalide",
+  LINE_NOT_ADJUSTABLE: "Cette ligne ne peut pas être ajustée",
+};
+
+type AdjustableItem = Pick<
+  OrderItem,
+  "id" | "name" | "unit" | "quantity" | "weightGrams" | "priceCents" | "totalCents" | "available"
+>;
+
+/** New total and line changes of the request, computed from the locked order. */
+function planAdjustment(
+  data: AdjustPriceInput,
+  originalTotal: number,
+  items: readonly AdjustableItem[]
+): { newTotal: number; snapshot: AdjustmentSnapshotLine[] } | Failure {
+  if (data.adjustmentType === "MANUAL") {
+    if (data.newTotalCents === undefined) {
+      return { ok: false, code: "VALIDATION_ERROR", message: "Nouveau total manquant" };
+    }
+    return { newTotal: data.newTotalCents, snapshot: [] };
+  }
+  const changes = data.items ?? [];
+  if (changes.length === 0)
+    return { ok: false, code: "VALIDATION_ERROR", message: "Donnees d'ajustement manquantes" };
+  if (new Set(changes.map((change) => change.orderItemId)).size !== changes.length) {
+    return { ok: false, code: "VALIDATION_ERROR", message: "Article ajusté deux fois" };
+  }
+
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  const snapshot: AdjustmentSnapshotLine[] = [];
+  for (const change of changes) {
+    const item = itemById.get(change.orderItemId);
+    if (item === undefined || !item.available) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: "Article absent de la commande ou en rupture",
+      };
+    }
+    const line = {
+      unit: item.unit,
+      quantity: item.quantity,
+      weightGrams: item.weightGrams,
+      priceCents: item.priceCents,
     };
+    const adjusted =
+      data.adjustmentType === "WEIGHT"
+        ? change.newQuantity === undefined
+          ? null
+          : reweighLine(line, change.newQuantity)
+        : change.newPriceCents === undefined
+          ? null
+          : repriceLine(line, change.newPriceCents);
+    if (adjusted === null)
+      return { ok: false, code: "VALIDATION_ERROR", message: "Donnees d'ajustement manquantes" };
+    if (!adjusted.ok) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: `${item.name} : ${LINE_REFUSALS[adjusted.reason]}`,
+      };
+    }
+    snapshot.push({
+      orderItemId: item.id,
+      name: item.name,
+      unit: item.unit,
+      oldQuantity: item.quantity,
+      oldPriceCents: item.priceCents,
+      oldTotalCents: item.totalCents,
+      newTotalCents: adjusted.totalCents,
+      ...(data.adjustmentType === "WEIGHT"
+        ? { newQuantity: adjusted.quantity, priceCents: item.priceCents }
+        : { newPriceCents: adjusted.priceCents, quantity: item.quantity }),
+    });
+  }
+  const diff = snapshot.reduce((sum, line) => sum + line.newTotalCents - line.oldTotalCents, 0);
+  return { newTotal: Math.max(0, originalTotal + diff), snapshot };
+}
+
+function deadlines(tier: 1 | 2 | 3, config: PriceAdjConfig, now: Date) {
+  if (tier === 2)
+    return { autoApproveAt: new Date(now.getTime() + config.tier2AutoApproveSec * 1000) };
+  if (tier === 3)
+    return { escalateAt: new Date(now.getTime() + config.tier3EscalationMin * 60_000) };
+  return {};
+}
 
 /**
- * Create a price adjustment for an order.
- *
- * @param orderId - Order id (from URL param)
- * @param shopId - Authenticated boucher's shop id (already verified upstream)
- * @param body - Raw JSON body
+ * Creates a price adjustment for an order of the butcher's shop; tier 1 is applied in the same
+ * transaction. The order is locked first: no transition can change it in between.
  */
 export async function adjustOrderPrice(
   orderId: string,
   shopId: string,
-  body: unknown
+  body: unknown,
+  now: Date = new Date()
 ): Promise<AdjustPriceResult> {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      items: { include: { product: { select: { unit: true } } } },
-      shop: { select: { id: true, name: true, priceAdjustmentThreshold: true } },
-      user: { select: { id: true } },
-      priceAdjustment: true,
-    },
-  });
-
-  if (!order) return { ok: false, code: "NOT_FOUND", message: "Commande introuvable" };
-  if (order.shopId !== shopId) {
-    return { ok: false, code: "FORBIDDEN", message: "Pas votre boucherie" };
-  }
-
-  if (order.status !== "ACCEPTED" && order.status !== "PREPARING") {
-    return {
-      ok: false,
-      code: "VALIDATION_ERROR",
-      message: `Ajustement impossible (statut: ${order.status})`,
-    };
-  }
-
-  if (order.priceAdjustment && order.priceAdjustment.status === "PENDING") {
-    return {
-      ok: false,
-      code: "CONFLICT",
-      message: "Un ajustement est deja en attente pour cette commande",
-    };
-  }
-
   const parseResult = adjustPriceSchema.safeParse(body);
   if (!parseResult.success) {
     return {
@@ -93,219 +161,109 @@ export async function adjustOrderPrice(
     };
   }
   const data = parseResult.data;
-
   const config = await getPriceAdjConfig();
 
-  // ── Calculate new total ──
-  const originalTotal = order.totalCents;
-  let newTotal: number;
-  const itemsSnapshot: Record<string, unknown>[] = [];
-
-  if (data.adjustmentType === "MANUAL" && data.newTotalCents !== undefined) {
-    newTotal = data.newTotalCents;
-  } else if (data.items && data.items.length > 0) {
-    let totalDiff = 0;
-
-    for (const adj of data.items) {
-      const item = order.items.find((i) => i.id === adj.orderItemId);
-      if (!item) continue;
-
-      let newItemTotal = item.totalCents;
-
-      if (data.adjustmentType === "WEIGHT" && adj.newQuantity !== undefined) {
-        newItemTotal = Math.round(item.priceCents * adj.newQuantity);
-        itemsSnapshot.push({
-          orderItemId: item.id,
-          name: item.name,
-          oldQuantity: item.quantity,
-          newQuantity: adj.newQuantity,
-          unit: item.unit,
-          priceCents: item.priceCents,
-          oldTotalCents: item.totalCents,
-          newTotalCents: newItemTotal,
-        });
-      } else if (data.adjustmentType === "PRICE" && adj.newPriceCents !== undefined) {
-        newItemTotal = Math.round(adj.newPriceCents * item.quantity);
-        itemsSnapshot.push({
-          orderItemId: item.id,
-          name: item.name,
-          oldPriceCents: item.priceCents,
-          newPriceCents: adj.newPriceCents,
-          quantity: item.quantity,
-          oldTotalCents: item.totalCents,
-          newTotalCents: newItemTotal,
-        });
-      }
-
-      totalDiff += newItemTotal - item.totalCents;
+  const result = await prisma.$transaction(async (tx): Promise<AdjustPriceResult> => {
+    const order = await lockOrderForAdjustment(tx, orderId, { shopId });
+    if (order === null) return { ok: false, code: "NOT_FOUND", message: "Commande introuvable" };
+    if (!ADJUSTMENT_CREATION_STATUSES.includes(order.status)) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: `Ajustement impossible (statut: ${order.status})`,
+      };
+    }
+    const existing = await tx.priceAdjustment.findUnique({
+      where: { orderId },
+      select: { id: true, status: true },
+    });
+    if (existing?.status === "PENDING") {
+      return {
+        ok: false,
+        code: "CONFLICT",
+        message: "Un ajustement est deja en attente pour cette commande",
+      };
     }
 
-    newTotal = originalTotal + totalDiff;
-  } else {
-    return {
-      ok: false,
-      code: "VALIDATION_ERROR",
-      message: "Donnees d'ajustement manquantes",
-    };
-  }
+    const items = await tx.orderItem.findMany({
+      where: { orderId },
+      select: {
+        id: true,
+        name: true,
+        unit: true,
+        quantity: true,
+        weightGrams: true,
+        priceCents: true,
+        totalCents: true,
+        available: true,
+      },
+    });
+    const plan = planAdjustment(data, order.totalCents, items);
+    if ("ok" in plan) return plan;
 
-  // ── Hard cap safety net ──
-  const maxAllowed = Math.round(originalTotal * (1 + config.maxIncreasePct / 100));
-  if (newTotal > maxAllowed) {
-    return {
-      ok: false,
-      code: "VALIDATION_ERROR",
-      message: `L'ajustement ne peut pas depasser ${config.maxIncreasePct}% du prix initial`,
-    };
-  }
-
-  const tier = computeTier(originalTotal, newTotal, config.tier1MaxPct, config.tier2MaxPct);
-
-  // ── Delete previous resolved adjustment if exists ──
-  if (order.priceAdjustment && order.priceAdjustment.status !== "PENDING") {
-    await prisma.priceAdjustment.delete({ where: { id: order.priceAdjustment.id } });
-  }
-
-  const applyItemChanges = async () => {
-    if (!data.items) return;
-    const itemUpdates = [];
-    for (const adj of data.items) {
-      const snap = itemsSnapshot.find(
-        (s) => (s as { orderItemId: string }).orderItemId === adj.orderItemId
-      );
-      if (!snap) continue;
-      const updateData: Record<string, unknown> = {};
-      if (data.adjustmentType === "WEIGHT" && adj.newQuantity !== undefined) {
-        updateData.quantity = adj.newQuantity;
-        updateData.totalCents = (snap as { newTotalCents: number }).newTotalCents;
-      } else if (data.adjustmentType === "PRICE" && adj.newPriceCents !== undefined) {
-        updateData.priceCents = adj.newPriceCents;
-        updateData.totalCents = (snap as { newTotalCents: number }).newTotalCents;
-      }
-      if (Object.keys(updateData).length > 0) {
-        itemUpdates.push(
-          prisma.orderItem.update({ where: { id: adj.orderItemId }, data: updateData })
-        );
-      }
+    const maxAllowed = Math.round(order.totalCents * (1 + config.maxIncreasePct / 100));
+    if (plan.newTotal > maxAllowed) {
+      return {
+        ok: false,
+        code: "VALIDATION_ERROR",
+        message: `L'ajustement ne peut pas depasser ${config.maxIncreasePct}% du prix initial`,
+      };
     }
-    if (itemUpdates.length > 0) await prisma.$transaction(itemUpdates);
-  };
+    const tier = computeTier(
+      order.totalCents,
+      plan.newTotal,
+      config.tier1MaxPct,
+      config.tier2MaxPct
+    ) as 1 | 2 | 3;
 
-  const snapshotJson =
-    itemsSnapshot.length > 0
-      ? (itemsSnapshot as unknown as Prisma.InputJsonValue)
-      : undefined;
-
-  // ── TIER 1 — AUTO_APPROVED ──
-  if (tier === 1) {
-    const [adjustment] = await prisma.$transaction([
-      prisma.priceAdjustment.create({
-        data: {
-          orderId,
-          shopId: order.shop.id,
-          originalTotal,
-          newTotal,
-          reason: data.reason,
-          adjustmentType: data.adjustmentType,
-          status: "AUTO_APPROVED",
-          tier: 1,
-          itemsSnapshot: snapshotJson,
-          respondedAt: new Date(),
-        },
-      }),
-      prisma.order.update({
-        where: { id: orderId },
-        data: { totalCents: newTotal },
-      }),
-    ]);
-
-    await applyItemChanges();
-
-    try {
-      await sendNotification("PRICE_ADJUSTMENT_AUTO_APPROVED", {
-        userId: order.user.id,
-        orderId,
-        orderNumber: order.orderNumber,
-        shopName: order.shop.name,
-        originalTotal,
-        newTotal,
-        tier: 1,
-      });
-    } catch {
-      /* non-blocking */
-    }
-
-    return { ok: true, data: { adjustment, tier: 1, autoApproved: true } };
-  }
-
-  // ── TIER 2 — PENDING, auto-approve after Ns ──
-  if (tier === 2) {
-    const autoApproveAt = new Date(Date.now() + config.tier2AutoApproveSec * 1000);
-
-    const adjustment = await prisma.priceAdjustment.create({
+    // One adjustment row per order: a settled one is replaced by the new proposal.
+    if (existing !== null) await tx.priceAdjustment.delete({ where: { id: existing.id } });
+    const adjustment = await tx.priceAdjustment.create({
       data: {
         orderId,
-        shopId: order.shop.id,
-        originalTotal,
-        newTotal,
+        shopId,
+        originalTotal: order.totalCents,
+        newTotal: plan.newTotal,
         reason: data.reason,
         adjustmentType: data.adjustmentType,
         status: "PENDING",
-        tier: 2,
-        itemsSnapshot: snapshotJson,
-        autoApproveAt,
+        tier,
+        itemsSnapshot:
+          plan.snapshot.length > 0 ? (plan.snapshot as Prisma.InputJsonArray) : undefined,
+        ...deadlines(tier, config, now),
       },
     });
+    if (tier !== 1) return { ok: true, data: { adjustment, tier, autoApproved: false } };
 
-    try {
-      await sendNotification("PRICE_ADJUSTMENT_PENDING", {
-        userId: order.user.id,
-        orderId,
-        orderNumber: order.orderNumber,
-        shopName: order.shop.name,
-        originalTotal,
-        newTotal,
-        tier: 2,
-        autoApproveSeconds: config.tier2AutoApproveSec,
-      });
-    } catch {
-      /* non-blocking */
-    }
-
-    return { ok: true, data: { adjustment, tier: 2, autoApproved: false } };
-  }
-
-  // ── TIER 3 — PENDING, client MUST approve, escalation after Nm ──
-  const escalateAt = new Date(Date.now() + config.tier3EscalationMin * 60 * 1000);
-
-  const adjustment = await prisma.priceAdjustment.create({
-    data: {
+    const settled = await settleAdjustmentInTx(tx, {
       orderId,
-      shopId: order.shop.id,
-      originalTotal,
-      newTotal,
-      reason: data.reason,
-      adjustmentType: data.adjustmentType,
-      status: "PENDING",
-      tier: 3,
-      itemsSnapshot: snapshotJson,
-      escalateAt,
-    },
-  });
+      scope: { shopId },
+      settledAs: "AUTO_APPROVED",
+      now,
+    });
+    if (settled.kind !== "settled")
+      throw new Error(`Tier-1 adjustment of order ${orderId} not applied: ${settled.kind}`);
+    return { ok: true, data: { adjustment: settled.adjustment, tier: 1, autoApproved: true } };
+  }, TRANSACTION_OPTIONS);
+  if (!result.ok) return result;
 
-  try {
-    await sendNotification("PRICE_ADJUSTMENT_PENDING", {
-      userId: order.user.id,
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { id: orderId },
+    select: { userId: true, orderNumber: true, shop: { select: { name: true } } },
+  });
+  const { adjustment, tier } = result.data;
+  await sendNotification(
+    tier === 1 ? "PRICE_ADJUSTMENT_AUTO_APPROVED" : "PRICE_ADJUSTMENT_PENDING",
+    {
+      userId: order.userId,
       orderId,
       orderNumber: order.orderNumber,
       shopName: order.shop.name,
-      originalTotal,
-      newTotal,
-      tier: 3,
-    });
-  } catch {
-    /* non-blocking */
-  }
-
-  return { ok: true, data: { adjustment, tier: 3, autoApproved: false } };
+      originalTotal: adjustment.originalTotal,
+      newTotal: adjustment.newTotal,
+      tier,
+      ...(tier === 2 && { autoApproveSeconds: config.tier2AutoApproveSec }),
+    }
+  );
+  return result;
 }

@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import * as Sentry from "@sentry/nextjs";
 
+import { InvalidJsonBodyError } from "@/lib/api/request-body";
+
 // Make BigInt JSON-serializable globally — Prisma returns BigInt for fields like
 // `Shop.monthlyGmvCents` and `NextResponse.json` calls JSON.stringify which throws
 // "Do not know how to serialize a BigInt" without this. Returning a plain `Number`
@@ -31,6 +33,7 @@ export type ApiErrorCode =
   | "RESERVATION_EXPIRED"
   | "PAYMENT_FAILED"
   | "PRODUCTS_MISSING"
+  | "PRICE_CHANGED"
   | "RATE_LIMITED"
   | "INTERNAL_ERROR";
 
@@ -54,6 +57,7 @@ const STATUS_MAP: Record<ApiErrorCode, number> = {
   RESERVATION_EXPIRED: 410,
   PAYMENT_FAILED: 402,
   PRODUCTS_MISSING: 422,
+  PRICE_CHANGED: 409,
   RATE_LIMITED: 429,
   INTERNAL_ERROR: 500,
 };
@@ -92,14 +96,18 @@ export function apiCached<T>(data: T, maxAge = 60) {
 }
 
 /**
+ * Marks a response as never storable by a shared cache: for an answer that depends on who asks
+ * (role, shop ownership), a CDN keyed by URL would otherwise serve one caller's body to another.
+ */
+export function privateNoStore<T extends Response>(response: T): T {
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
+/**
  * Return a paginated success response
  */
-export function apiPaginated<T>(
-  data: T[],
-  total: number,
-  page: number,
-  perPage: number
-) {
+export function apiPaginated<T>(data: T[], total: number, page: number, perPage: number) {
   return NextResponse.json({
     success: true,
     data,
@@ -129,6 +137,11 @@ export function formatZodError(error: ZodError): Record<string, string[]> {
  * Wrap an API handler with try/catch + Zod validation error handling
  */
 export function handleApiError(error: unknown, context?: string) {
+  // A body that is not JSON is the caller's mistake (often a bot): a 400, never logged nor reported.
+  if (error instanceof InvalidJsonBodyError) {
+    return apiError("VALIDATION_ERROR", "Le corps de la requête n'est pas du JSON valide");
+  }
+
   const prefix = context ? `[API Error][${context}]` : "[API Error]";
 
   if (error instanceof ZodError) {
@@ -155,7 +168,10 @@ export function handleApiError(error: unknown, context?: string) {
     }
 
     // Prisma known errors
-    if (msg.includes("Record to update not found") || msg.includes("Record to delete does not exist")) {
+    if (
+      msg.includes("Record to update not found") ||
+      msg.includes("Record to delete does not exist")
+    ) {
       console.error(prefix, "Not found:", msg);
       return apiError("NOT_FOUND", "Ressource introuvable");
     }

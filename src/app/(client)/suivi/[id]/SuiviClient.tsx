@@ -5,14 +5,17 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Phone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
+import type { SaleUnit } from "@/lib/pricing/line";
+import { formatStoredLineQuantity } from "@/lib/pricing/format";
 
 // ── Types ──
 
 interface OrderItem {
   id: string;
   name: string;
+  /** Stored OrderItem.quantity: kilograms for KG and TRANCHE, a count otherwise. */
   quantity: number;
-  unit: string;
+  unit: SaleUnit;
   totalCents: number;
   weightGrams: number | null;
 }
@@ -34,6 +37,8 @@ interface OrderData {
   id: string;
   orderNumber: string;
   displayNumber: string;
+  /** Customer number in this shop, already formatted ("C-012"); null when the order has none. */
+  customerNumber: string | null;
   status: string;
   totalCents: number;
   customerNote: string | null;
@@ -45,7 +50,7 @@ interface OrderData {
   updatedAt: string;
   items: OrderItem[];
   shop: { id: string; name: string; address: string; city: string; phone: string };
-  user: { firstName: string; lastName: string; customerNumber: string | null };
+  user: { firstName: string; lastName: string };
   priceAdjustment: PriceAdjustmentData | null;
 }
 
@@ -60,13 +65,6 @@ function fmtTime(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function fmtQty(item: OrderItem) {
-  if (item.unit === "KG" && item.weightGrams) {
-    return `${(item.weightGrams / 1000).toFixed(1).replace(".", ",")} kg`;
-  }
-  return `${item.quantity}x`;
 }
 
 const TERMINAL = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
@@ -233,9 +231,9 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
               <div className="mt-3 text-[28px] font-bold leading-tight text-gray-900 dark:text-white">
                 {customerName}
               </div>
-              {order.user.customerNumber && (
+              {order.customerNumber && (
                 <div className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">
-                  Client {order.user.customerNumber}
+                  Client {order.customerNumber}
                 </div>
               )}
               <p className="mt-4 text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">
@@ -352,7 +350,9 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
               <div key={item.id} className="flex justify-between text-sm">
                 <div className="min-w-0">
                   <span className="text-gray-900 dark:text-white">{item.name}</span>
-                  <span className="ml-1.5 text-gray-500 dark:text-gray-400">{fmtQty(item)}</span>
+                  <span className="ml-1.5 text-gray-500 dark:text-gray-400">
+                    {formatStoredLineQuantity(item)}
+                  </span>
                 </div>
                 <span className="shrink-0 font-semibold text-gray-900 dark:text-white">
                   {fmtPrice(item.totalCents)}

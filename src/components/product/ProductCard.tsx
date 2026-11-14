@@ -1,11 +1,18 @@
 // src/components/product/ProductCard.tsx — V2 bis ultra-compact 4-col card with inline stepper
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { Plus, Check, Minus } from "lucide-react";
 import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
+import { displayedUnitPrice, promoBadgeLabel } from "@/lib/pricing/display";
+import { portionPriceCents } from "@/lib/pricing/line";
+import {
+  limitedStockLowCount,
+  limitedStockRemaining,
+  limitedStockSoldOut,
+} from "@/lib/pricing/limited-stock";
 import type { Product as ProductV2, ProductImage as ProductImageType } from "@/types";
 
 // ── Types ────────────────────────────────────────
@@ -51,6 +58,8 @@ export type ProductCardData = Pick<
   | "antiGaspiOrigPriceCents"
   | "antiGaspiStock"
   | "antiGaspiReason"
+  | "isFlashSale"
+  | "flashSaleStock"
 > & {
   category: { id: string; name: string; emoji: string | null };
   images: ProductImageType[];
@@ -78,8 +87,16 @@ function unitLabel(unit: string) {
   return unit === "KG" ? "/kg" : unit === "PIECE" ? "/pce" : unit === "TRANCHE" ? "/kg" : "/barq.";
 }
 
-function promoPrice(cents: number, pct: number) {
-  return Math.round(cents * (1 - pct / 100));
+/**
+ * The clock, read once after mount. null during the server render and the hydration render,
+ * which therefore never depend on the time (see displayedUnitPrice).
+ */
+export function useMountedNow(): Date | null {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+  }, []);
+  return now;
 }
 
 // Certification halal labels — badge distinct (vert + croissant)
@@ -108,6 +125,7 @@ export function ProductCard({
   style,
 }: Props) {
   const [animating, setAnimating] = useState(false);
+  const now = useMountedNow();
   const imgSrc =
     product.images.length > 0
       ? product.images[0].url
@@ -116,11 +134,14 @@ export function ProductCard({
           imageUrl: product.imageUrl,
           category: product.category.name,
         });
-  const hasPromo =
-    (product.promoPct != null && product.promoPct > 0) ||
-    (product.promoType === "FIXED_AMOUNT" && product.promoFixedCents);
+  const price = displayedUnitPrice(product, now);
+  const promo = price.promo;
   const isAntiGaspi = product.isAntiGaspi && product.antiGaspiOrigPriceCents;
-  const outOfStock = !product.inStock;
+  const soldOut = limitedStockSoldOut(product);
+  const outOfStock = !product.inStock || soldOut;
+  const lowStock = limitedStockLowCount(product);
+  const remaining = limitedStockRemaining(product);
+  const atStockLimit = remaining !== null && cartQty >= remaining;
   const isEager = productIndex < 4;
   const isSheetUnit = product.unit === "KG" || product.unit === "TRANCHE";
   const showStepper = cartQty > 0 && !isSheetUnit;
@@ -194,13 +215,11 @@ export function ProductCard({
           <div className="absolute left-1 top-1 z-10 rounded bg-emerald-600 px-1.5 py-0.5 text-[11px] font-bold text-white shadow-[0_2px_6px_rgba(16,185,129,0.4)]">
             Anti-Gaspi
           </div>
-        ) : hasPromo ? (
+        ) : promo ? (
           <div
             className={`absolute left-1 top-1 z-10 rounded px-1.5 py-0.5 text-[11px] font-bold text-white shadow-[0_2px_6px_rgba(239,68,68,0.4)] ${product.promoType === "FLASH" ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#EF4444]"}`}
           >
-            {product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
-              ? `-${(product.promoFixedCents / 100).toFixed(2).replace(".", ",")}\u20AC`
-              : `-${product.promoPct}%`}
+            {promoBadgeLabel(promo)}
           </div>
         ) : null}
 
@@ -232,7 +251,7 @@ export function ProductCard({
         {outOfStock && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30">
             <span className="rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white">
-              Indisponible
+              {soldOut ? "Épuisé" : "Indisponible"}
             </span>
           </div>
         )}
@@ -301,29 +320,25 @@ export function ProductCard({
               {isAntiGaspi ? (
                 <>
                   <span className="text-[13px] font-bold text-emerald-600">
-                    {fmtPrice(product.priceCents)}
+                    {fmtPrice(price.unitPriceCents)}
                   </span>
                   <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
                     {fmtPrice(product.antiGaspiOrigPriceCents!)}
                   </span>
                 </>
-              ) : hasPromo ? (
+              ) : promo ? (
                 <>
                   <span className="text-[13px] font-bold text-[#DC2626]">
-                    {fmtPrice(
-                      product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
-                        ? Math.max(0, product.priceCents - product.promoFixedCents)
-                        : promoPrice(product.priceCents, product.promoPct!)
-                    )}
+                    {fmtPrice(price.unitPriceCents)}
                   </span>
                   <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
-                    {fmtPrice(product.priceCents)}
+                    {fmtPrice(price.baseCents)}
                   </span>
                 </>
               ) : product.packOldPriceCents ? (
                 <>
                   <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
-                    {fmtPrice(product.priceCents)}
+                    {fmtPrice(price.unitPriceCents)}
                   </span>
                   <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
                     {fmtPrice(product.packOldPriceCents)}
@@ -331,7 +346,7 @@ export function ProductCard({
                 </>
               ) : (
                 <span className="text-[13px] font-bold text-[#1A1A1A] dark:text-white">
-                  {fmtPrice(product.priceCents)}
+                  {fmtPrice(price.unitPriceCents)}
                 </span>
               )}
               <span className="text-[10px] text-[#717171]">{unitLabel(product.unit)}</span>
@@ -339,25 +354,15 @@ export function ProductCard({
             {/* Estimation /kg → total au poids min */}
             {(product.unit === "KG" || product.unit === "TRANCHE") &&
               product.minWeightG &&
-              product.minWeightG > 0 &&
-              (() => {
-                const effectivePerKg = isAntiGaspi
-                  ? product.priceCents
-                  : hasPromo
-                    ? product.promoType === "FIXED_AMOUNT" && product.promoFixedCents
-                      ? Math.max(0, product.priceCents - product.promoFixedCents)
-                      : promoPrice(product.priceCents, product.promoPct!)
-                    : product.priceCents;
-                const estimateCents = Math.round((effectivePerKg * product.minWeightG) / 1000);
-                return (
-                  <span className="text-[11px] leading-tight text-gray-500 dark:text-gray-400">
-                    ≈ {fmtPrice(estimateCents)} pour {product.minWeightG}g
-                  </span>
-                );
-              })()}
-            {isAntiGaspi && product.antiGaspiStock !== null && product.antiGaspiStock <= 5 && (
+              product.minWeightG > 0 && (
+                <span className="text-[11px] leading-tight text-gray-500 dark:text-gray-400">
+                  ≈ {fmtPrice(portionPriceCents(price.unitPriceCents, product.minWeightG))} pour{" "}
+                  {product.minWeightG}g
+                </span>
+              )}
+            {!outOfStock && lowStock !== null && (
               <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400">
-                Plus que {product.antiGaspiStock} !
+                Plus que {lowStock} !
               </span>
             )}
           </div>
@@ -379,8 +384,9 @@ export function ProductCard({
                 </span>
                 <button
                   onClick={handleIncrement}
+                  disabled={atStockLimit}
                   aria-label="Augmenter la quantité"
-                  className="flex h-11 w-11 items-center justify-center bg-[#DC2626] text-white transition-all hover:bg-[#b91c1c] active:scale-90"
+                  className="flex h-11 w-11 items-center justify-center bg-[#DC2626] text-white transition-all hover:bg-[#b91c1c] active:scale-90 disabled:opacity-40"
                 >
                   <Plus size={14} strokeWidth={2.5} />
                 </button>

@@ -276,6 +276,11 @@ model User {
 
   pushSubscription Json? @map("push_subscription")
 
+  // HÉRITAGE — ne plus lire ni écrire. Ancien numéro client « C-012 », unique sur toute la
+  // plateforme alors qu'il était attribué par boutique (refus 409 à la première commande dans
+  // une deuxième boutique). Remplacé par ShopCustomer.number et Order.customerNumber.
+  // La colonne et son index unique restent pour le code antérieur au chantier 0 (déploiement,
+  // retour arrière) ; suppression prévue dans une étape de contraction ultérieure.
   customerNumber String? @unique @map("customer_number")
 
   referralCode String? @unique @map("referral_code")
@@ -303,6 +308,7 @@ model User {
   supportTickets  SupportTicket[]
   proAccesses     ProAccess[]
   shopMemberships ShopMember[]
+  shopCustomers   ShopCustomer[]
 
   @@map("users")
 }
@@ -473,6 +479,7 @@ model Shop {
   proAccesses       ProAccess[]
   dailyCounters     DailyCounter[]
   customerCounter   CustomerCounter?
+  shopCustomers     ShopCustomer[]
   calendarEvents    CalendarEvent[]
   apiKeys           ApiKey[]
   alerts            ShopAlert[]
@@ -1054,6 +1061,12 @@ model Order {
   dailyNumber   Int?    @map("daily_number")
   displayNumber String? @map("display_number")
 
+  // Numéro du client dans CETTE boutique (ShopCustomer.number), figé à la création de la
+  // commande et affiché « C-012 ». Null dans deux cas : commande antérieure au chantier 0 dont
+  // le client n'avait pas de numéro, et commande créée par le code antérieur après la migration
+  // (fenêtre de déploiement, retour arrière).
+  customerNumber Int? @map("customer_number")
+
   userId String  @map("user_id")
   user   User    @relation(fields: [userId], references: [id])
   isPro  Boolean @default(false) @map("is_pro")
@@ -1071,6 +1084,10 @@ model Order {
   pickupSlotStart DateTime? @map("pickup_slot_start")
   pickupSlotEnd   DateTime? @map("pickup_slot_end")
 
+  // totalCents = montant des marchandises que le boucher encaisse : somme des lignes
+  // (OrderItem.totalCents) moins la remise (discountCents). C'est la base de la commission,
+  // des ajustements de prix et des statistiques. Les frais de service n'en font PAS partie :
+  // montant à payer par le client = totalCents + serviceFeeCents.
   totalCents      Int @map("total_cents")
   vatAmountCents  Int @default(0) @map("vat_amount_cents")
   commissionCents Int @default(0) @map("commission_cents")
@@ -1096,11 +1113,14 @@ model Order {
 
   // ── Marketplace fees / Connect (destination charges) ──
   // platformFeeCents = total perçu par Klik&Go = commission % + frais service 0,99€
-  // serviceFeeCents = frais service fixe (99 cents)
+  // serviceFeeCents = frais de service facturés au client pour CETTE commande, stockés à part
+  //   de totalCents : 0 en paiement sur place (personne ne les encaisse), 99 en paiement en
+  //   ligne. Les commandes créées par le code antérieur au chantier 0 portent 99 (ancienne
+  //   valeur par défaut, que ce code écrit lui-même) : montant jamais encaissé.
   // stripeFeeCents = frais Stripe (≈ 1.4% + 25 cts FR) — pour reporting interne
   // shopPayoutCents = ce que reçoit le boucher (subtotal - commission %)
   platformFeeCents        Int     @default(0) @map("platform_fee_cents")
-  serviceFeeCents         Int     @default(99) @map("service_fee_cents")
+  serviceFeeCents         Int     @default(0) @map("service_fee_cents")
   stripeFeeCents          Int     @default(0) @map("stripe_fee_cents")
   shopPayoutCents         Int     @default(0) @map("shop_payout_cents")
   stripeCheckoutSessionId String? @map("stripe_checkout_session_id")
@@ -1163,6 +1183,13 @@ model OrderItem {
   productId   String  @map("product_id")
   product     Product @relation(fields: [productId], references: [id])
   name        String
+  // quantity = quantité dans l'unité de vente :
+  //   KG, TRANCHE      → kilogrammes (nombre de portions × weightGrams / 1000) ; l'ajustement
+  //                      de poids du boucher la réécrit avec les kilogrammes réellement pesés
+  //   PIECE, BARQUETTE → nombre de pièces ou de barquettes
+  // weightGrams = grammes d'UNE portion demandée (KG, TRANCHE) ; null pour PIECE et BARQUETTE.
+  // priceCents = prix unitaire facturé (au kilogramme ou à l'unité) ; totalCents = total de la ligne.
+  // Seul src/lib/pricing/line.ts convertit entre ligne de panier, stockage et affichage.
   quantity    Float
   unit        Unit
   priceCents  Int     @map("price_cents")
@@ -1303,6 +1330,38 @@ model CustomerCounter {
   shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@map("customer_counters")
+}
+
+// ══════════════════════════════════════════
+// SHOP CUSTOMER (numéro client d'un couple boutique / client)
+// Attribué dans la transaction de la première commande, depuis CustomerCounter.
+// Unique et stable dans la boutique, pas forcément sans trou.
+// ══════════════════════════════════════════
+
+model ShopCustomer {
+  shopId    String   @map("shop_id")
+  userId    String   @map("user_id")
+  number    Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([shopId, userId])
+  @@unique([shopId, number])
+  @@map("shop_customers")
+}
+
+// ══════════════════════════════════════════
+// ORDER NUMBER COUNTER (une ligne par année, heure de Paris)
+// Incrémenté dans la transaction de création de commande → « KG26-000166 ».
+// ══════════════════════════════════════════
+
+model OrderNumberCounter {
+  year       Int @id
+  lastNumber Int @default(0) @map("last_number")
+
+  @@map("order_number_counters")
 }
 
 // ══════════════════════════════════════════

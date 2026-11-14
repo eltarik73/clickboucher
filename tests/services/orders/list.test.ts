@@ -15,9 +15,9 @@ vi.mock("@/lib/prisma", () => ({ default: prismaMock }));
 const getOrCreateUserMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/get-or-create-user", () => ({ getOrCreateUser: getOrCreateUserMock }));
 
-const autoApproveMock = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/price-adjustment", () => ({
-  autoApproveExpiredAdjustment: autoApproveMock,
+const settleMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/services/orders/adjustment-answers", () => ({
+  settleDueAdjustmentsWithin: settleMock,
 }));
 
 const getAuthenticatedBoucherMock = vi.hoisted(() => vi.fn());
@@ -38,7 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   prismaMock.order.findMany.mockResolvedValue([]);
   prismaMock.shop.findMany.mockResolvedValue([]);
-  autoApproveMock.mockResolvedValue(undefined);
+  settleMock.mockResolvedValue(undefined);
 });
 
 describe("listOrders — CLIENT", () => {
@@ -84,30 +84,36 @@ describe("listOrders — ADMIN", () => {
   });
 });
 
-describe("listOrders — auto-approve expired PriceAdjustments", () => {
-  it("calls autoApproveExpiredAdjustment then refetches the mutated rows", async () => {
+describe("listOrders — due price adjustments", () => {
+  it("settles them within the caller's scope before reading the orders", async () => {
     getOrCreateUserMock.mockResolvedValue({ id: "user-db-1", role: "CLIENT" });
+    const calls: string[] = [];
+    settleMock.mockImplementation(async () => {
+      calls.push("settle");
+    });
+    prismaMock.order.findMany.mockImplementation(async () => {
+      calls.push("read");
+      return [];
+    });
 
-    const expiredOrder = {
-      id: "order-expired",
-      priceAdjustment: {
-        status: "PENDING",
-        autoApproveAt: new Date(Date.now() - 60_000), // 1 min in the past
-      },
-    };
-    const refreshedOrder = { id: "order-expired", priceAdjustment: { status: "AUTO_APPROVED" } };
+    await listOrders("user_clerk_1", makeReq());
 
-    prismaMock.order.findMany
-      .mockResolvedValueOnce([expiredOrder])   // 1st findMany
-      .mockResolvedValueOnce([refreshedOrder]); // 2nd findMany after auto-approve
+    expect(settleMock).toHaveBeenCalledWith({ userId: "user-db-1" }, expect.any(Date));
+    expect(calls).toEqual(["settle", "read"]);
+  });
+});
 
-    const result = await listOrders("user_clerk_1", makeReq());
+describe("listOrders — what a customer reads", () => {
+  it("selects the customer view, never the full rows", async () => {
+    getOrCreateUserMock.mockResolvedValue({ id: "user-db-1", role: "CLIENT" });
+    await listOrders("user_clerk_1", makeReq());
 
-    expect(autoApproveMock).toHaveBeenCalledWith("order-expired");
-    expect(prismaMock.order.findMany).toHaveBeenCalledTimes(2);
-    if (result.ok) {
-      expect(result.orders).toHaveLength(1);
-      expect((result.orders[0] as typeof refreshedOrder).priceAdjustment.status).toBe("AUTO_APPROVED");
-    }
+    const call = prismaMock.order.findMany.mock.calls[0][0];
+    expect(call.include).toBeUndefined();
+    expect(call.select.items.select.product).toEqual({
+      select: { name: true, unit: true, imageUrl: true },
+    });
+    expect(call.select.shop.select.ownerId).toBeUndefined();
+    expect(call.select.commissionCents).toBeUndefined();
   });
 });

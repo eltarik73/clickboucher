@@ -2,7 +2,10 @@
 "use client";
 
 import { SafeImage } from "@/components/ui/SafeImage";
-import type { CartItem as CartItemType } from "@/lib/hooks/useCart";
+import type { CartItem as CartItemType } from "@/lib/hooks/use-cart";
+import { cartLineTotalCents } from "@/lib/cart/cart-line";
+import { formatGrams } from "@/lib/pricing/format";
+import { formatPrice } from "@/lib/utils";
 
 interface Props {
   item: CartItemType;
@@ -11,36 +14,47 @@ interface Props {
 }
 
 export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
-  const effectivePrice = item.cutPriceCents ?? item.priceCents;
-  const price = effectivePrice / 100;
-  const totalPrice = item.unit === "KG" && item.weightGrams
-    ? Math.round((item.weightGrams / 1000) * effectivePrice) / 100 * item.quantity
-    : price * item.quantity;
+  const lineTotal = cartLineTotalCents(item);
 
   return (
-    <div className="flex gap-3 py-3 group">
+    <div className="group flex gap-3 py-3">
       {/* Image */}
-      <div className="w-14 h-14 rounded-xl bg-[#F5F3F0] dark:bg-white/10 overflow-hidden shrink-0">
+      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F5F3F0] dark:bg-white/10">
         {item.imageUrl ? (
-          <SafeImage type="product" src={item.imageUrl} alt={item.name} width={56} height={56} className="w-full h-full object-cover" />
+          <SafeImage
+            type="product"
+            src={item.imageUrl}
+            alt={item.name}
+            width={56}
+            height={56}
+            className="h-full w-full object-cover"
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🥩</div>
+          <div className="flex h-full w-full items-center justify-center text-xl opacity-30">
+            🥩
+          </div>
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         {/* Name + price */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
+            <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+              {item.name}
+            </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {item.quantity} x {price.toFixed(2)}€
-              {item.unit === "KG" && item.weightGrams && ` (${item.weightGrams}g)`}
+              {item.weightGrams === undefined
+                ? `${item.quantity} x ${formatPrice(item.priceCents)}`
+                : `${item.quantity} x ${formatGrams(item.weightGrams)} · ${formatPrice(item.priceCents)}/kg`}
               {item.unit === "TRANCHE" && item.sliceCount && (
-                <> — {item.sliceCount} tr.{item.thickness ? ` ${item.thickness}` : ""}</>
+                <>
+                  {" "}
+                  — {item.sliceCount} tr.{item.thickness ? ` ${item.thickness}` : ""}
+                </>
               )}
               {item.variant && (
-                <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#DC2626]/10 text-[#DC2626]">
+                <span className="ml-1 rounded bg-[#DC2626]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#DC2626]">
                   {item.variant}
                 </span>
               )}
@@ -50,30 +64,34 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
                 </span>
               )}
               {item.cutOption && (
-                <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] font-bold bg-amber-500/10 text-amber-600">
+                <span className="ml-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-bold text-amber-600">
                   {item.cutOption}
                 </span>
               )}
             </p>
           </div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white shrink-0">{totalPrice.toFixed(2)}€</p>
+          <p className="shrink-0 text-sm font-semibold text-gray-900 dark:text-white">
+            {formatPrice(lineTotal)}
+          </p>
         </div>
 
         {/* Quantity controls */}
-        <div className="flex items-center justify-between mt-2">
+        <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => onQuantityChange(item.id, item.quantity - 1)}
-              className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-gray-200 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20"
             >
               −
             </button>
-            <span className="text-sm font-medium text-gray-900 dark:text-white min-w-[32px] text-center">{item.quantity}</span>
+            <span className="min-w-[32px] text-center text-sm font-medium text-gray-900 dark:text-white">
+              {item.quantity}
+            </span>
             <button
               type="button"
               onClick={() => onQuantityChange(item.id, item.quantity + 1)}
-              className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-sm font-bold text-gray-600 transition-colors hover:bg-gray-200 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20"
             >
               +
             </button>
@@ -82,10 +100,18 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
             type="button"
             aria-label="Supprimer"
             onClick={() => onRemove(item.id)}
-            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg p-2 text-gray-500 opacity-100 transition-all hover:bg-red-50 hover:text-red-500 dark:text-gray-400 dark:hover:bg-red-950/30 sm:opacity-0 sm:group-hover:opacity-100"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>

@@ -1,18 +1,43 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { useUser } from "@clerk/nextjs";
-import { Trash2, Minus, Plus, ArrowLeft, ShoppingBag, Clock, CreditCard, Banknote, ChevronLeft, ChevronRight, X, Tag, Loader2, Gift, Trophy, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  ShoppingBag,
+  Clock,
+  CreditCard,
+  Banknote,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Tag,
+  Loader2,
+  Gift,
+  Info,
+} from "lucide-react";
 import { toast } from "sonner";
-import { useCart, type CartItem } from "@/lib/hooks/use-cart";
-import { SERVICE_FEE_CENTS } from "@/lib/services/stripe/commission";
+import { useCart } from "@/lib/hooks/use-cart";
+import { cartLineTotalCents, cartTotalCents } from "@/lib/cart/cart-line";
+import {
+  buildCheckoutSubmission,
+  buildQuoteRequest,
+  parseCheckoutAttempt,
+  prepareCheckoutAttempt,
+  refusedCartLines,
+  type CheckoutAttempt,
+  type CheckoutSelection,
+  type CheckoutSubmission,
+} from "@/lib/cart/order-payload";
+import { useOrderQuote } from "@/lib/hooks/use-order-quote";
+import { useCheckoutSession } from "@/lib/hooks/use-checkout-session";
+import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OrderCountdown } from "@/components/checkout/OrderCountdown";
 import CartSuggestions from "@/components/cart/CartSuggestions";
+import { CheckoutLineRow } from "@/components/cart/CheckoutLineRow";
 
 // ── Helpers ──────────────────────────────────────
 
@@ -24,105 +49,26 @@ function localDateKey(d: Date): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
+// Tentative de commande en cours : la même clé d'idempotence est renvoyée tant que
+// le contenu confirmé ne change pas, y compris après un rechargement de la page.
+const CHECKOUT_ATTEMPT_KEY = "klikgo-checkout-attempt";
+
+function readCheckoutAttempt(): CheckoutAttempt | null {
+  try {
+    return parseCheckoutAttempt(sessionStorage.getItem(CHECKOUT_ATTEMPT_KEY));
+  } catch (error) {
+    if (error instanceof DOMException) return null;
+    throw error;
+  }
 }
 
-function itemTotal(item: CartItem) {
-  if ((item.unit === "KG" || item.unit === "TRANCHE") && item.weightGrams) {
-    return Math.round((item.weightGrams / 1000) * item.priceCents) * item.quantity;
+function writeCheckoutAttempt(attempt: CheckoutAttempt | null) {
+  try {
+    if (attempt) sessionStorage.setItem(CHECKOUT_ATTEMPT_KEY, JSON.stringify(attempt));
+    else sessionStorage.removeItem(CHECKOUT_ATTEMPT_KEY);
+  } catch (error) {
+    if (!(error instanceof DOMException)) throw error;
   }
-  return item.priceCents * item.quantity;
-}
-
-const THICKNESS_LABELS: Record<string, string> = {
-  chiffonnade: "chiffonnade",
-  fine: "fine",
-  normale: "normale",
-  epaisse: "epaisse",
-};
-
-function qtyLabel(item: CartItem) {
-  if (item.unit === "TRANCHE" && item.sliceCount && item.thickness) {
-    const g = item.weightGrams ?? 0;
-    const weight = g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${g} g`;
-    return `${item.sliceCount} tranches (${THICKNESS_LABELS[item.thickness] || item.thickness}) — ~${weight}`;
-  }
-  if (item.unit === "KG" && item.weightGrams) {
-    const g = item.weightGrams;
-    const weight = g >= 1000 ? `${(g / 1000).toFixed(1)} kg` : `${g} g`;
-    return item.quantity > 1 ? `${item.quantity} × ${weight}` : weight;
-  }
-  const u = item.unit === "PIECE" ? "piece" : "barquette";
-  return `${item.quantity} ${u}${item.quantity > 1 ? "s" : ""}`;
-}
-
-// ── Cart Item Row ────────────────────────────────
-
-function CartItemRow({
-  item,
-  onUpdateQty,
-  onRemove,
-}: {
-  item: CartItem;
-  onUpdateQty: (qty: number) => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-3 bg-white dark:bg-[#141414] rounded-2xl p-3 border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-      {/* Image */}
-      <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden shrink-0">
-        <Image
-          src={item.imageUrl || "/img/products/boeuf-1.jpg"}
-          alt={item.name}
-          width={60}
-          height={60}
-          className="object-cover w-full h-full"
-        />
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-          {item.name}
-        </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{qtyLabel(item)}</p>
-        <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">
-          {fmtPrice(itemTotal(item))}
-        </p>
-      </div>
-
-      {/* Qty controls */}
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={() => onUpdateQty(item.quantity - 1)}
-          aria-label="Diminuer la quantité"
-          className="w-11 h-11 rounded-full border border-gray-100 dark:border-white/10 bg-white dark:bg-[#1a1a1a] flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-        >
-          <Minus size={16} />
-        </button>
-        <span className="text-sm font-bold text-gray-900 dark:text-white min-w-[20px] text-center">
-          {item.quantity}
-        </span>
-        <button
-          onClick={() => onUpdateQty(item.quantity + 1)}
-          aria-label="Augmenter la quantité"
-          className="w-11 h-11 rounded-full bg-[#DC2626] flex items-center justify-center text-white hover:bg-[#b91c1c] transition-colors"
-        >
-          <Plus size={16} />
-        </button>
-      </div>
-
-      {/* Delete */}
-      <button
-        onClick={onRemove}
-        aria-label="Supprimer du panier"
-        className="p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:text-[#DC2626] hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors shrink-0"
-      >
-        <Trash2 size={18} />
-      </button>
-    </div>
-  );
 }
 
 // ── Slot type ────────────────────────────────────
@@ -138,12 +84,11 @@ type PickupSlot = {
 
 export default function PanierPage() {
   const router = useRouter();
-  const { user, isSignedIn, isLoaded } = useUser();
-  const { state, updateQty, removeItem, clear, itemCount, totalCents } = useCart();
+  const { ready: sessionReady, signedIn } = useCheckoutSession();
+  const { state, updateQty, removeItem, clear, itemCount } = useCart();
 
   const [timeMode, setTimeMode] = useState<"asap" | "slot">("asap");
   const [customerNote, setCustomerNote] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"ON_PICKUP" | "ONLINE">("ON_PICKUP");
 
   // Pickup slots
   const [selectedDate, setSelectedDate] = useState(() => localDateKey(new Date()));
@@ -152,8 +97,7 @@ export default function PanierPage() {
   const [slotsLoading, setSlotsLoading] = useState(false);
 
   // Countdown overlay
-  const [showCountdown, setShowCountdown] = useState(false);
-  const [countdownOrderData, setCountdownOrderData] = useState<Record<string, unknown> | null>(null);
+  const [countdown, setCountdown] = useState<CheckoutSubmission | null>(null);
 
   // Clear cart dialog
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -161,90 +105,75 @@ export default function PanierPage() {
   // Guest checkout (Baymard +23%) — non-signed-in visitors can place an order
   // by providing email + name + optional phone. A magic link is sent for tracking.
   const [guestForm, setGuestForm] = useState({ email: "", firstName: "", lastName: "", phone: "" });
-  const [guestErrors, setGuestErrors] = useState<{ email?: string; firstName?: string; lastName?: string }>({});
+  const [guestErrors, setGuestErrors] = useState<{
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+  }>({});
 
-  // Promo code
-  const [promoCode, setPromoCode] = useState("");
-  const [promoLoading, setPromoLoading] = useState(false);
+  // Promo code: the input, and the code sent to the server quote once applied.
+  const [promoInput, setPromoInput] = useState("");
+  const [promoCode, setPromoCode] = useState<string | null>(null);
   const [promoError, setPromoError] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<{
-    discountCents: number;
-    offerId?: string;
-    loyaltyRewardId?: string;
-    source: string;
-    label: string;
-    type: string;
-  } | null>(null);
 
-  // Available loyalty rewards — GET /api/loyalty/available no longer exists
-  // (removed in d862811), so the list stays empty and the reward suggestion
-  // below stays hidden, exactly as when the call returned 404.
-  const [availableRewards] = useState<{ code: string; rewardCents: number | null; rewardPercent: number | null; rewardType: string }[]>([]);
+  // ── Server quote ───────────────────────────────
 
-  // Shop payment config
-  const [shopAcceptOnline, setShopAcceptOnline] = useState(false);
-  const [shopAcceptOnPickup, setShopAcceptOnPickup] = useState(true);
-  const [shopStripeReady, setShopStripeReady] = useState(false);
-
-  const role = user?.publicMetadata?.role as string | undefined;
-  const isPro = role === "client_pro";
-
-  // Online payment available only when shop opted-in AND Stripe Connect onboarding is complete
-  const onlinePaymentAvailable = shopAcceptOnline && shopStripeReady;
-
-  // Fetch shop payment config + validate cart products
-  useEffect(() => {
-    if (!state.shopId) return;
-    fetch(`/api/shops/${state.shopId}`)
-      .then((r) => r.json())
-      .then((json) => {
-        const shop = json.data || json;
-        const acceptOnline = shop.acceptOnline ?? false;
-        const acceptOnPickup = shop.acceptOnPickup ?? true;
-        const stripeReady = shop.stripeChargesEnabled ?? false;
-        setShopAcceptOnline(acceptOnline);
-        setShopAcceptOnPickup(acceptOnPickup);
-        setShopStripeReady(stripeReady);
-        // Default to ONLINE only if on-pickup is disabled and online is fully ready
-        if (!acceptOnPickup && acceptOnline && stripeReady) {
-          setPaymentMethod("ONLINE");
-        }
-      })
-      .catch(() => {});
-  }, [state.shopId]);
-
-  // Validate cart products still exist in the shop
-  useEffect(() => {
-    if (!state.shopId || state.items.length === 0) return;
-    const productIds = state.items
-      .map((i) => i.productId || i.id)
-      .filter(Boolean);
-    if (productIds.length === 0) return;
-
-    fetch(`/api/shops/${state.shopId}/products/validate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productIds }),
-    })
-      .then((r) => r.json())
-      .then((json) => {
-        const missingIds: string[] = json.data?.missingIds || [];
-        if (missingIds.length > 0) {
-          // Remove stale items from cart
-          for (const item of state.items) {
-            const pid = item.productId || item.id;
-            if (missingIds.includes(pid)) {
-              removeItem(item.id);
-            }
+  const selection = useMemo<CheckoutSelection | null>(() => {
+    if (!state.shopId || state.items.length === 0) return null;
+    const slot = timeMode === "slot" ? selectedSlot : null;
+    return {
+      shopId: state.shopId,
+      items: state.items,
+      promoCode,
+      requestedTime: slot ? `${selectedDate}T${slot.start}:00` : "asap",
+      pickupSlot: slot
+        ? {
+            startIso: new Date(`${selectedDate}T${slot.start}:00`).toISOString(),
+            endIso: new Date(`${selectedDate}T${slot.end}:00`).toISOString(),
           }
-          toast.error(
-            `${missingIds.length} produit(s) supprime(s) du panier (plus disponibles)`
-          );
-        }
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.shopId]);
+        : null,
+      customerNote,
+    };
+  }, [state.shopId, state.items, promoCode, timeMode, selectedSlot, selectedDate, customerNote]);
+
+  const quoteRequest = useMemo(
+    () => (selection ? buildQuoteRequest(selection) : null),
+    [selection]
+  );
+  const {
+    state: quoteState,
+    quote,
+    error: quoteError,
+    refresh: refreshQuote,
+  } = useOrderQuote(quoteRequest);
+
+  const refusedLines = useMemo(
+    () => (quoteState === "error" ? refusedCartLines(state.items, quoteError) : {}),
+    [quoteState, quoteError, state.items]
+  );
+  const refusedLineCount = Object.keys(refusedLines).length;
+
+  const removeMissingProducts = useCallback(
+    (missingProductIds: readonly string[]) => {
+      const stale = state.items.filter((item) => missingProductIds.includes(item.productId));
+      for (const item of stale) removeItem(item.id);
+      if (stale.length > 0) {
+        toast.error(`${stale.length} produit(s) retiré(s) du panier (plus disponibles)`);
+      }
+    },
+    [state.items, removeItem]
+  );
+
+  useEffect(() => {
+    if (quoteError?.code !== "PRODUCTS_MISSING") return;
+    removeMissingProducts(quoteError.details?.missingProductIds ?? []);
+  }, [quoteError, removeMissingProducts]);
+
+  useEffect(() => {
+    if (!quote?.discountRejection) return;
+    setPromoError(quote.discountRejection.message);
+    setPromoCode(null);
+  }, [quote]);
 
   // Fetch available slots when date or shop changes
   const fetchSlots = useCallback(async () => {
@@ -276,52 +205,18 @@ export default function PanierPage() {
     if (timeMode === "slot") fetchSlots();
   }, [timeMode, fetchSlots]);
 
-  const applyPromoCode = async () => {
-    const code = promoCode.trim();
+  const applyPromoCode = () => {
+    const code = promoInput.trim();
     if (!code) return;
-    setPromoLoading(true);
     setPromoError("");
-    try {
-      const res = await fetch("/api/offers/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, orderTotalCents: totalCents, shopId: state.shopId }),
-      });
-      const json = await res.json();
-      if (json.data?.valid) {
-        setAppliedPromo({
-          discountCents: json.data.discountCents || 0,
-          offerId: json.data.offerId,
-          loyaltyRewardId: json.data.loyaltyRewardId,
-          source: json.data.source,
-          label: json.data.label,
-          type: json.data.type,
-        });
-        toast.success(`Code "${code}" appliqué !`);
-      } else {
-        setPromoError(json.data?.error || "Code invalide");
-      }
-    } catch {
-      setPromoError("Erreur réseau");
-    } finally {
-      setPromoLoading(false);
-    }
+    setPromoCode(code);
   };
 
   const removePromo = () => {
-    setAppliedPromo(null);
-    setPromoCode("");
+    setPromoCode(null);
+    setPromoInput("");
     setPromoError("");
   };
-
-  // Klik&Go service fee — added to every order, regardless of payment mode (sur place
-  // or en ligne). Visible in the cart breakdown for transparency. Set to 0 here when
-  // a free-fees promo (FREE_FEES) is applied.
-  const serviceFeeCents = appliedPromo?.type === "FREE_FEES" ? 0 : SERVICE_FEE_CENTS;
-  const subtotalAfterDiscount = appliedPromo
-    ? Math.max(0, totalCents - appliedPromo.discountCents)
-    : totalCents;
-  const finalTotal = subtotalAfterDiscount + serviceFeeCents;
 
   function navigateDate(dir: number) {
     const d = new Date(`${selectedDate}T00:00:00`);
@@ -343,64 +238,29 @@ export default function PanierPage() {
     return Object.keys(errs).length === 0;
   };
 
+  const readyQuote = quoteState === "ready" ? quote : null;
+  const promoPending = promoCode !== null && quoteState === "loading";
+  const canConfirm =
+    readyQuote !== null &&
+    !readyQuote.belowMinimumOrder &&
+    !readyQuote.discountRejection &&
+    countdown === null &&
+    !(timeMode === "slot" && !selectedSlot);
+
   const handleOrder = () => {
-    if (!state.shopId || state.items.length === 0) return;
+    if (!selection || !readyQuote || !canConfirm) return;
     // Guest path — validate identity form before sending.
-    if (!isSignedIn && !validateGuestForm()) return;
+    if (!signedIn && !validateGuestForm()) return;
 
-    const requestedTime =
-      timeMode === "slot" && selectedSlot
-        ? `${selectedDate}T${selectedSlot.start}:00`
-        : "asap";
+    const { request, attempt } = prepareCheckoutAttempt(
+      selection,
+      readyQuote.amountDueCents,
+      readCheckoutAttempt(),
+      () => crypto.randomUUID()
+    );
+    writeCheckoutAttempt(attempt);
 
-    const orderBody: Record<string, unknown> = {
-      shopId: state.shopId,
-      items: state.items.map((i) => ({
-        productId: i.productId || i.id,
-        quantity: (i.unit === "KG" || i.unit === "TRANCHE") && i.weightGrams
-          ? (i.weightGrams / 1000) * i.quantity
-          : i.quantity,
-        ...(i.weightGrams && { weightGrams: i.weightGrams }),
-        ...(i.sliceCount && { sliceCount: i.sliceCount }),
-        ...(i.thickness && { sliceThickness: i.thickness }),
-        ...(i.variant && { variant: i.variant }),
-        ...(i.pieceCount && { pieceCount: i.pieceCount }),
-        ...(i.pieceLabel && { pieceLabel: i.pieceLabel }),
-        ...(i.cutOption && { cutOption: i.cutOption }),
-        ...(i.cutPriceCents && { cutPriceCents: i.cutPriceCents }),
-      })),
-      requestedTime,
-      customerNote: customerNote.trim() || undefined,
-      // Use the user-selected payment method (Stripe Connect marketplace flow)
-      paymentMethod: onlinePaymentAvailable ? paymentMethod : "ON_PICKUP",
-      ...(appliedPromo?.offerId && {
-        offerId: appliedPromo.offerId,
-        discountCents: appliedPromo.discountCents,
-        discountSource: appliedPromo.source,
-      }),
-      ...(appliedPromo?.loyaltyRewardId && !appliedPromo?.offerId && {
-        loyaltyRewardId: appliedPromo.loyaltyRewardId,
-        discountCents: appliedPromo.discountCents,
-        discountSource: "LOYALTY",
-      }),
-    };
-
-    if (timeMode === "slot" && selectedSlot) {
-      orderBody.pickupSlotStart = new Date(`${selectedDate}T${selectedSlot.start}:00`).toISOString();
-      orderBody.pickupSlotEnd = new Date(`${selectedDate}T${selectedSlot.end}:00`).toISOString();
-    }
-
-    if (!isSignedIn) {
-      // Attach guest identity — the OrderCountdown will POST to /api/checkout/guest.
-      orderBody.email = guestForm.email.trim();
-      orderBody.firstName = guestForm.firstName.trim();
-      orderBody.lastName = guestForm.lastName.trim();
-      if (guestForm.phone.trim()) orderBody.phone = guestForm.phone.trim();
-      orderBody.__endpoint = "/api/checkout/guest";
-    }
-
-    setCountdownOrderData(orderBody);
-    setShowCountdown(true);
+    setCountdown(buildCheckoutSubmission(request, signedIn ? null : guestForm));
   };
 
   const backHref = state.shopSlug ? `/boutique/${state.shopSlug}` : "/";
@@ -408,13 +268,13 @@ export default function PanierPage() {
   // ── Empty cart ──────────────────────────────────
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex flex-col">
+      <div className="flex min-h-screen flex-col bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         {/* Header */}
-        <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
-          <div className="max-w-xl mx-auto flex items-center gap-3">
+        <header className="sticky top-0 z-10 border-b border-[#ece8e3] bg-[#f8f6f3]/95 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/95">
+          <div className="mx-auto flex max-w-xl items-center gap-3">
             <Link
               href={backHref}
-              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#ece8e3] bg-white shadow-sm dark:border-white/10 dark:bg-[#141414]"
             >
               <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
             </Link>
@@ -422,19 +282,13 @@ export default function PanierPage() {
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-5">
-          <div className="text-6xl mb-4">🛒</div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Votre panier est vide
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center px-5">
+          <div className="mb-4 text-6xl">🛒</div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Votre panier est vide</h2>
+          <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
             Ajoutez des produits depuis une boucherie pour commencer.
           </p>
-          <Button
-            className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]"
-            size="lg"
-            asChild
-          >
+          <Button className="mt-6 bg-[#DC2626] hover:bg-[#b91c1c]" size="lg" asChild>
             <Link href="/">Découvrir les boucheries</Link>
           </Button>
         </div>
@@ -444,40 +298,35 @@ export default function PanierPage() {
 
   // ── Cart with items ─────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-8">
+    <div className="min-h-screen bg-[#f8f6f3] pb-8 dark:bg-[#0a0a0a]">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-10 border-b border-[#ece8e3] bg-[#f8f6f3]/95 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/95">
+        <div className="mx-auto flex max-w-xl items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href={backHref}
-              className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
+              className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#ece8e3] bg-white shadow-sm dark:border-white/10 dark:bg-[#141414]"
             >
               <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
             </Link>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white">Mon panier</h1>
           </div>
-          <span className="text-xs font-bold text-[#DC2626] bg-[#DC2626]/10 px-3 py-1.5 rounded-full">
+          <span className="rounded-full bg-[#DC2626]/10 px-3 py-1.5 text-xs font-bold text-[#DC2626]">
             {itemCount} article{itemCount > 1 ? "s" : ""}
           </span>
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-5 mt-6">
+      <main className="mx-auto mt-6 max-w-xl px-5">
         {/* Shop name + clear */}
-        <div className="flex items-center gap-2 mb-4">
+        <div className="mb-4 flex items-center gap-2">
           <ShoppingBag size={16} className="text-[#DC2626]" />
           <span className="text-sm font-semibold text-gray-900 dark:text-white">
             {state.shopName}
           </span>
-          {isPro && (
-            <span className="ml-auto text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-2 py-1 rounded-full">
-              Prix Pro appliques
-            </span>
-          )}
           <button
             onClick={() => setShowClearConfirm(true)}
-            className="ml-auto text-xs text-gray-500 dark:text-gray-400 hover:text-[#DC2626] transition-colors flex items-center gap-1"
+            className="ml-auto flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-[#DC2626] dark:text-gray-400"
           >
             <X size={12} />
             Vider
@@ -488,10 +337,12 @@ export default function PanierPage() {
         {/* CART ITEMS */}
         {/* ═══════════════════════════════════════════ */}
         <div className="flex flex-col gap-2.5">
-          {state.items.map((item) => (
-            <CartItemRow
+          {state.items.map((item, index) => (
+            <CheckoutLineRow
               key={item.id}
               item={item}
+              lineTotalCents={readyQuote?.lines[index]?.lineTotalCents ?? cartLineTotalCents(item)}
+              refusal={refusedLines[item.id]}
               onUpdateQty={(qty) => updateQty(item.id, qty)}
               onRemove={() => removeItem(item.id)}
             />
@@ -502,118 +353,126 @@ export default function PanierPage() {
         <CartSuggestions />
 
         {/* Promo code */}
-        {isSignedIn && (
-          <div className="mt-5 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
-            <div className="flex items-center gap-2 mb-3">
+        {signedIn && (
+          <div className="mt-5 rounded-2xl border border-[#ece8e3] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.03)] dark:border-white/10 dark:bg-[#141414]">
+            <div className="mb-3 flex items-center gap-2">
               <Tag size={16} className="text-[#DC2626]" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                Code promo ou fidelite
+                Code promo ou fidélité
               </span>
             </div>
 
-            {appliedPromo ? (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
-                <Gift size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <div className="flex-1 min-w-0">
+            {readyQuote?.discount ? (
+              <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950/20">
+                <Gift size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                    {appliedPromo.label}
+                    {readyQuote.discount.label}
                   </p>
                   <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    -{fmtPrice(appliedPromo.discountCents)}
+                    -{formatPrice(readyQuote.discount.discountCents)}
                   </p>
                 </div>
                 <button
                   onClick={removePromo}
-                  className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors"
+                  aria-label="Retirer le code promo"
+                  className="rounded-lg p-1.5 text-emerald-600 transition-colors hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
                 >
                   <X size={16} />
                 </button>
               </div>
             ) : (
               <div>
-                {/* Loyalty reward suggestion */}
-                {availableRewards.length > 0 && !appliedPromo && (
-                  <button
-                    onClick={() => { setPromoCode(availableRewards[0].code); }}
-                    className="w-full mb-3 flex items-center gap-2 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-left hover:bg-amber-100 dark:hover:bg-amber-950/30 transition-colors"
-                  >
-                    <Trophy size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span className="text-xs text-amber-800 dark:text-amber-300">
-                      Vous avez un bon de{" "}
-                      <span className="font-bold">
-                        {availableRewards[0].rewardType === "FIXED" && availableRewards[0].rewardCents
-                          ? fmtPrice(availableRewards[0].rewardCents)
-                          : `${availableRewards[0].rewardPercent}%`}
-                      </span>
-                      {" "}&mdash; Appliquer ?
-                    </span>
-                  </button>
-                )}
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={promoCode}
-                    onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(""); }}
+                    value={promoInput}
+                    onChange={(e) => {
+                      setPromoInput(e.target.value.toUpperCase());
+                      setPromoError("");
+                    }}
                     placeholder="Entrez un code..."
                     maxLength={30}
-                    className="flex-1 rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors uppercase"
+                    className="flex-1 rounded-xl border border-[#ece8e3] bg-white px-4 py-2.5 text-sm uppercase text-gray-900 transition-colors placeholder:text-gray-500 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
                   />
                   <button
                     onClick={applyPromoCode}
-                    disabled={promoLoading || !promoCode.trim()}
-                    className="px-4 py-2.5 rounded-xl bg-[#DC2626] text-white text-sm font-semibold hover:bg-[#b91c1c] disabled:opacity-50 transition-colors shrink-0 flex items-center gap-2"
+                    disabled={promoPending || !promoInput.trim()}
+                    className="flex shrink-0 items-center gap-2 rounded-xl bg-[#DC2626] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#b91c1c] disabled:opacity-50"
                   >
-                    {promoLoading ? <Loader2 size={14} className="animate-spin" /> : "Appliquer"}
+                    {promoPending ? <Loader2 size={14} className="animate-spin" /> : "Appliquer"}
                   </button>
                 </div>
-                {promoError && (
-                  <p className="text-xs text-red-500 mt-2">{promoError}</p>
-                )}
+                {promoError && <p className="mt-2 text-xs text-red-500">{promoError}</p>}
               </div>
             )}
           </div>
         )}
 
         {/* Total */}
-        <div className="mt-5 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_1px_4px_rgba(0,0,0,0.03)]">
+        <div className="mt-5 rounded-2xl border border-[#ece8e3] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.03)] dark:border-white/10 dark:bg-[#141414]">
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-500 dark:text-gray-400">Sous-total</span>
-            <span className="text-sm text-gray-700 dark:text-gray-200">{fmtPrice(totalCents)}</span>
+            <span className="text-sm text-gray-700 dark:text-gray-200">
+              {formatPrice(readyQuote ? readyQuote.subtotalCents : cartTotalCents(state.items))}
+            </span>
           </div>
-          {appliedPromo && (
-            <div className="flex items-center justify-between mt-1">
+          {readyQuote?.discount && (
+            <div className="mt-1 flex items-center justify-between">
               <span className="text-sm text-emerald-600 dark:text-emerald-400">
-                {appliedPromo.label || "Réduction"}
+                {readyQuote.discount.label || "Réduction"}
               </span>
               <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                -{fmtPrice(appliedPromo.discountCents)}
+                -{formatPrice(readyQuote.discount.discountCents)}
               </span>
             </div>
           )}
-          <div className="flex items-center justify-between mt-1">
-            <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-              Frais de service Klik&amp;Go
-              <span title="0,99€ fixes par commande, payés par le client. Reversés à Klik&Go (commission boucher absorbée par la plateforme).">
-                <Info size={12} className="text-gray-400" />
+          {readyQuote && readyQuote.serviceFeeCents > 0 && (
+            <div className="mt-1 flex items-center justify-between">
+              <span className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                Frais de service Klik&amp;Go
+                <span title="Frais fixes par commande, payés par le client et reversés à Klik&Go.">
+                  <Info size={12} className="text-gray-400" />
+                </span>
               </span>
+              <span className="text-sm text-gray-700 dark:text-gray-200">
+                {formatPrice(readyQuote.serviceFeeCents)}
+              </span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center justify-between border-t border-[#ece8e3] pt-2 dark:border-white/10">
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              Total à payer
             </span>
-            <span
-              className={`text-sm ${
-                serviceFeeCents === 0 ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-gray-700 dark:text-gray-200"
-              }`}
-            >
-              {serviceFeeCents === 0 ? "Offerts" : fmtPrice(serviceFeeCents)}
-            </span>
-          </div>
-          <div className="border-t border-[#ece8e3] dark:border-white/10 mt-2 pt-2 flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">Total à payer</span>
             <span className="text-2xl font-extrabold text-gray-900 dark:text-white">
-              {fmtPrice(finalTotal)}
+              {formatPrice(readyQuote ? readyQuote.amountDueCents : cartTotalCents(state.items))}
             </span>
           </div>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5">
-            Le poids exact sera ajusté au retrait
-            {paymentMethod === "ON_PICKUP" ? " — paiement sur place." : "."}
+          {quoteState === "loading" && (
+            <p
+              className="mt-1.5 flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400"
+              aria-live="polite"
+            >
+              <Loader2 size={11} className="animate-spin" />
+              Calcul du total…
+            </p>
+          )}
+          {quoteState === "error" && quoteError && (
+            <p className="mt-1.5 text-xs text-red-500" role="alert">
+              {refusedLineCount > 0
+                ? refusedLineCount > 1
+                  ? `${refusedLineCount} articles signalés ci-dessus : modifiez-les ou retirez-les pour commander.`
+                  : "Un article signalé ci-dessus : modifiez-le ou retirez-le pour commander."
+                : quoteError.message}
+            </p>
+          )}
+          {readyQuote?.belowMinimumOrder && (
+            <p className="mt-1.5 text-xs text-red-500" role="alert">
+              Commande minimum de {formatPrice(readyQuote.minOrderCents)}
+            </p>
+          )}
+          <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+            Le poids exact sera ajusté au retrait — paiement sur place.
           </p>
         </div>
 
@@ -621,244 +480,158 @@ export default function PanierPage() {
         {/* CHECKOUT */}
         {/* ═══════════════════════════════════════════ */}
         <div className="mt-6">
-          <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="mb-4 text-base font-bold text-gray-900 dark:text-white">
             Finaliser la commande
           </h2>
 
-          {!isLoaded ? (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+          {!sessionReady ? (
+            <div className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
               Chargement...
             </div>
-          ) : !isSignedIn ? (
-            /* Not signed in — Guest checkout (Baymard +23% conversion) */
+          ) : (
             <div className="space-y-4">
-              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-                <div className="flex items-start justify-between mb-3 gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Tes infos pour la commande
-                    </p>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                      Pas besoin de créer un compte. On t&apos;envoie un lien de suivi par email.
-                    </p>
+              {!signedIn && (
+                /* Not signed in — Guest checkout (Baymard +23% conversion) */
+                <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        Tes infos pour la commande
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                        Pas besoin de créer un compte. On t&apos;envoie un lien de suivi par email.
+                      </p>
+                    </div>
+                    <Link
+                      href="/sign-in?redirect_url=/panier"
+                      prefetch={false}
+                      className="shrink-0 whitespace-nowrap text-xs font-semibold text-[#DC2626] hover:underline"
+                    >
+                      J&apos;ai un compte
+                    </Link>
                   </div>
-                  <Link
-                    href="/sign-in?redirect_url=/panier"
-              prefetch={false}
-                    className="text-xs font-semibold text-[#DC2626] hover:underline whitespace-nowrap shrink-0"
-                  >
-                    J&apos;ai un compte
-                  </Link>
-                </div>
-                <div className="space-y-2.5">
-                  <div>
-                    <input
-                      type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      value={guestForm.email}
-                      onChange={(e) => { setGuestForm((f) => ({ ...f, email: e.target.value })); setGuestErrors((er) => ({ ...er, email: undefined })); }}
-                      placeholder="Email *"
-                      className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
-                    />
-                    {guestErrors.email && <p className="text-[11px] text-red-500 mt-1">{guestErrors.email}</p>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-2.5">
                     <div>
                       <input
-                        type="text"
-                        autoComplete="given-name"
-                        value={guestForm.firstName}
-                        onChange={(e) => { setGuestForm((f) => ({ ...f, firstName: e.target.value })); setGuestErrors((er) => ({ ...er, firstName: undefined })); }}
-                        placeholder="Prénom *"
-                        className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        value={guestForm.email}
+                        onChange={(e) => {
+                          setGuestForm((f) => ({ ...f, email: e.target.value }));
+                          setGuestErrors((er) => ({ ...er, email: undefined }));
+                        }}
+                        placeholder="Email *"
+                        className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
                       />
-                      {guestErrors.firstName && <p className="text-[11px] text-red-500 mt-1">{guestErrors.firstName}</p>}
+                      {guestErrors.email && (
+                        <p className="mt-1 text-[11px] text-red-500">{guestErrors.email}</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <input
+                          type="text"
+                          autoComplete="given-name"
+                          value={guestForm.firstName}
+                          onChange={(e) => {
+                            setGuestForm((f) => ({ ...f, firstName: e.target.value }));
+                            setGuestErrors((er) => ({ ...er, firstName: undefined }));
+                          }}
+                          placeholder="Prénom *"
+                          className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
+                        />
+                        {guestErrors.firstName && (
+                          <p className="mt-1 text-[11px] text-red-500">{guestErrors.firstName}</p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          autoComplete="family-name"
+                          value={guestForm.lastName}
+                          onChange={(e) => {
+                            setGuestForm((f) => ({ ...f, lastName: e.target.value }));
+                            setGuestErrors((er) => ({ ...er, lastName: undefined }));
+                          }}
+                          placeholder="Nom *"
+                          className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
+                        />
+                        {guestErrors.lastName && (
+                          <p className="mt-1 text-[11px] text-red-500">{guestErrors.lastName}</p>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <input
-                        type="text"
-                        autoComplete="family-name"
-                        value={guestForm.lastName}
-                        onChange={(e) => { setGuestForm((f) => ({ ...f, lastName: e.target.value })); setGuestErrors((er) => ({ ...er, lastName: undefined })); }}
-                        placeholder="Nom *"
-                        className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={guestForm.phone}
+                        onChange={(e) => setGuestForm((f) => ({ ...f, phone: e.target.value }))}
+                        placeholder="Téléphone (recommandé)"
+                        className="w-full rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
                       />
-                      {guestErrors.lastName && <p className="text-[11px] text-red-500 mt-1">{guestErrors.lastName}</p>}
+                      <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                        Tu pourras créer un compte plus tard pour retrouver tes commandes.
+                      </p>
                     </div>
                   </div>
-                  <div>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      value={guestForm.phone}
-                      onChange={(e) => setGuestForm((f) => ({ ...f, phone: e.target.value }))}
-                      placeholder="Téléphone (recommandé)"
-                      className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
-                    />
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                      Tu pourras créer un compte plus tard pour retrouver tes commandes.
-                    </p>
-                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Time slot */}
-              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
+                <div className="mb-3 flex items-center gap-2">
                   <Clock size={16} className="text-[#DC2626]" />
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     Créneau de retrait
                   </span>
                 </div>
 
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors mb-2">
-                  <input type="radio" name="timeSlot" checked={timeMode === "asap"} onChange={() => setTimeMode("asap")} className="w-4 h-4 accent-[#DC2626]" />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">Dès que possible</span>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Préparation immédiate par le boucher</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                  <input type="radio" name="timeSlot" checked={timeMode === "slot"} onChange={() => setTimeMode("slot")} className="w-4 h-4 accent-[#DC2626]" />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">Choisir un créneau</span>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400">Sélectionnez un créneau de 30 min</p>
-                  </div>
-                </label>
-
-                {timeMode === "slot" && (
-                  <div className="mt-3 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <button onClick={() => navigateDate(-1)} className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5">
-                        <ChevronLeft size={16} />
-                      </button>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {new Date(selectedDate + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-                      </span>
-                      <button onClick={() => navigateDate(1)} className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5">
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                    {slotsLoading ? (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Chargement...</p>
-                    ) : slots.length === 0 ? (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Aucun créneau disponible ce jour</p>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        {slots.map((slot) => {
-                          const isSelected = selectedSlot?.start === slot.start;
-                          return (
-                            <button
-                              key={slot.start}
-                              onClick={() => slot.available && setSelectedSlot(slot)}
-                              disabled={!slot.available}
-                              className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors border ${
-                                isSelected
-                                  ? "bg-[#DC2626] text-white border-[#DC2626]"
-                                  : slot.available
-                                  ? "bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-200 dark:border-white/10 hover:border-[#DC2626]/50"
-                                  : "bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 border-transparent cursor-not-allowed"
-                              }`}
-                            >
-                              {slot.start}
-                              {slot.available && (
-                                <span className={`block text-[10px] mt-0.5 ${isSelected ? "text-white/70" : "text-gray-500 dark:text-gray-400"}`}>
-                                  {slot.remaining} place{slot.remaining > 1 ? "s" : ""}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-                <label className="text-sm font-semibold text-gray-900 dark:text-white mb-2 block">
-                  Note au boucher
-                  <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">(optionnel)</span>
-                </label>
-                <textarea
-                  value={customerNote}
-                  onChange={(e) => setCustomerNote(e.target.value)}
-                  placeholder="Sans trop de gras, bien saignant..."
-                  maxLength={500}
-                  rows={3}
-                  className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626]"
-                />
-              </div>
-
-              <div className="sticky bottom-0 -mx-5 px-5 pb-[env(safe-area-inset-bottom)] pt-3 bg-gradient-to-t from-[#f8f6f3] dark:from-[#0a0a0a] from-60% to-transparent md:static md:mx-0 md:px-0 md:pb-0 md:pt-0 md:bg-none">
-                <Button
-                  onClick={handleOrder}
-                  disabled={showCountdown || (timeMode === "slot" && !selectedSlot)}
-                  className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50 shadow-lg md:shadow-none"
-                  size="lg"
-                >
-                  Confirmer ma commande
-                </Button>
-              </div>
-            </div>
-          ) : (
-            /* Signed in — checkout form */
-            <div className="space-y-4">
-              {/* Time slot */}
-              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock size={16} className="text-[#DC2626]" />
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Creneau de retrait
-                  </span>
-                </div>
-
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors mb-2">
+                <label className="mb-2 flex cursor-pointer items-center gap-3 rounded-xl border border-[#ece8e3] p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5">
                   <input
                     type="radio"
                     name="timeSlot"
                     checked={timeMode === "asap"}
                     onChange={() => setTimeMode("asap")}
-                    className="w-4 h-4 accent-[#DC2626]"
+                    className="h-4 w-4 accent-[#DC2626]"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      Des que possible
+                      Dès que possible
                     </span>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                      Preparation immediate par le boucher
+                      Préparation immédiate par le boucher
                     </p>
                   </div>
                 </label>
 
-                <label className="flex items-center gap-3 p-3 rounded-xl border border-[#ece8e3] dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#ece8e3] p-3 transition-colors hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5">
                   <input
                     type="radio"
                     name="timeSlot"
                     checked={timeMode === "slot"}
                     onChange={() => setTimeMode("slot")}
-                    className="w-4 h-4 accent-[#DC2626]"
+                    className="h-4 w-4 accent-[#DC2626]"
                   />
                   <div className="flex-1">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      Choisir un creneau
+                      Choisir un créneau
                     </span>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                      Selectionnez un creneau de 30 min
+                      Sélectionnez un créneau de 30 min
                     </p>
                   </div>
                 </label>
 
                 {timeMode === "slot" && (
                   <div className="mt-3 space-y-3">
-                    {/* Date navigator */}
                     <div className="flex items-center justify-between">
                       <button
                         onClick={() => navigateDate(-1)}
-                        className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
+                        aria-label="Jour précédent"
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
                       >
                         <ChevronLeft size={16} />
                       </button>
@@ -871,17 +644,20 @@ export default function PanierPage() {
                       </span>
                       <button
                         onClick={() => navigateDate(1)}
-                        className="w-11 h-11 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center hover:bg-gray-50 dark:hover:bg-white/5"
+                        aria-label="Jour suivant"
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
                       >
                         <ChevronRight size={16} />
                       </button>
                     </div>
-
-                    {/* Slots grid */}
                     {slotsLoading ? (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Chargement...</p>
+                      <p className="py-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                        Chargement...
+                      </p>
                     ) : slots.length === 0 ? (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-4">Aucun creneau disponible ce jour</p>
+                      <p className="py-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                        Aucun créneau disponible ce jour
+                      </p>
                     ) : (
                       <div className="grid grid-cols-3 gap-2">
                         {slots.map((slot) => {
@@ -891,17 +667,19 @@ export default function PanierPage() {
                               key={slot.start}
                               onClick={() => slot.available && setSelectedSlot(slot)}
                               disabled={!slot.available}
-                              className={`py-2.5 px-2 rounded-xl text-sm font-medium transition-colors border ${
+                              className={`rounded-xl border px-2 py-2.5 text-sm font-medium transition-colors ${
                                 isSelected
-                                  ? "bg-[#DC2626] text-white border-[#DC2626]"
+                                  ? "border-[#DC2626] bg-[#DC2626] text-white"
                                   : slot.available
-                                  ? "bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-white border-gray-200 dark:border-white/10 hover:border-[#DC2626]/50"
-                                  : "bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 border-transparent cursor-not-allowed"
+                                    ? "border-gray-200 bg-white text-gray-900 hover:border-[#DC2626]/50 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
+                                    : "cursor-not-allowed border-transparent bg-gray-100 text-gray-300 dark:bg-white/5 dark:text-gray-600"
                               }`}
                             >
                               {slot.start}
                               {slot.available && (
-                                <span className={`block text-[10px] mt-0.5 ${isSelected ? "text-white/70" : "text-gray-500 dark:text-gray-400"}`}>
+                                <span
+                                  className={`mt-0.5 block text-[10px] ${isSelected ? "text-white/70" : "text-gray-500 dark:text-gray-400"}`}
+                                >
                                   {slot.remaining} place{slot.remaining > 1 ? "s" : ""}
                                 </span>
                               )}
@@ -915,10 +693,12 @@ export default function PanierPage() {
               </div>
 
               {/* Customer note */}
-              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-                <label className="text-sm font-semibold text-gray-900 dark:text-white mb-2 block">
+              <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
+                <label className="mb-2 block text-sm font-semibold text-gray-900 dark:text-white">
                   Note au boucher
-                  <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">(optionnel)</span>
+                  <span className="ml-1 font-normal text-gray-500 dark:text-gray-400">
+                    (optionnel)
+                  </span>
                 </label>
                 <textarea
                   value={customerNote}
@@ -926,76 +706,39 @@ export default function PanierPage() {
                   placeholder="Sans trop de gras, bien saignant..."
                   maxLength={500}
                   rows={3}
-                  className="w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#1a1a1a] px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
+                  className="w-full resize-none rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
                 />
               </div>
 
-              {/* Payment method */}
-              <div className="p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-                <div className="flex items-center gap-2 mb-3">
-                  <CreditCard size={16} className="text-[#DC2626]" />
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Mode de paiement
-                  </span>
-                </div>
-
-                {shopAcceptOnPickup && (
-                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors mb-2 ${
-                    paymentMethod === "ON_PICKUP"
-                      ? "border-[#DC2626] bg-[#DC2626]/5"
-                      : "border-[#ece8e3] dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
-                  }`}>
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "ON_PICKUP"}
-                      onChange={() => setPaymentMethod("ON_PICKUP")}
-                      className="w-4 h-4 accent-[#DC2626]"
-                    />
-                    <Banknote size={18} className="text-emerald-600 shrink-0" />
+              {/* Payment method — paiement sur place uniquement (Stripe à venir) */}
+              {signedIn && (
+                <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
+                  <div className="mb-3 flex items-center gap-2">
+                    <CreditCard size={16} className="text-[#DC2626]" />
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Mode de paiement
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl border border-[#DC2626] bg-[#DC2626]/5 p-3">
+                    <Banknote size={18} className="shrink-0 text-emerald-600" />
                     <div>
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         Paiement sur place
                       </span>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Payez au retrait (especes, CB)
+                        Payez au retrait (espèces, CB)
                       </p>
                     </div>
-                  </label>
-                )}
-
-                {onlinePaymentAvailable && (
-                  <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                    paymentMethod === "ONLINE"
-                      ? "border-[#DC2626] bg-[#DC2626]/5"
-                      : "border-[#ece8e3] dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"
-                  }`}>
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={paymentMethod === "ONLINE"}
-                      onChange={() => setPaymentMethod("ONLINE")}
-                      className="w-4 h-4 accent-[#DC2626]"
-                    />
-                    <CreditCard size={18} className="text-[#DC2626] shrink-0" />
-                    <div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        Payer en ligne
-                      </span>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Paiement sécurisé par carte (Stripe)
-                      </p>
-                    </div>
-                  </label>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
 
               {/* Submit — sticky bottom on mobile (Uber Eats pattern), inline on md+ */}
-              <div className="sticky bottom-0 -mx-5 px-5 pb-[env(safe-area-inset-bottom)] pt-3 bg-gradient-to-t from-[#f8f6f3] dark:from-[#0a0a0a] from-60% to-transparent md:static md:mx-0 md:px-0 md:pb-0 md:pt-0 md:bg-none">
+              <div className="sticky bottom-0 -mx-5 bg-gradient-to-t from-[#f8f6f3] from-60% to-transparent px-5 pb-[env(safe-area-inset-bottom)] pt-3 dark:from-[#0a0a0a] md:static md:mx-0 md:bg-none md:px-0 md:pb-0 md:pt-0">
                 <Button
                   onClick={handleOrder}
-                  disabled={showCountdown || (timeMode === "slot" && !selectedSlot)}
-                  className="w-full bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-50 shadow-lg md:shadow-none"
+                  disabled={!canConfirm}
+                  className="w-full bg-[#DC2626] shadow-lg hover:bg-[#b91c1c] disabled:opacity-50 md:shadow-none"
                   size="lg"
                 >
                   Confirmer ma commande
@@ -1010,83 +753,51 @@ export default function PanierPage() {
         open={showClearConfirm}
         onOpenChange={setShowClearConfirm}
         title="Vider le panier ?"
-        description={`Tous les articles de ${state.shopName || "votre panier"} seront supprimes.`}
+        description={`Tous les articles de ${state.shopName || "votre panier"} seront supprimés.`}
         confirmLabel="Vider le panier"
         cancelLabel="Annuler"
         variant="danger"
         onConfirm={() => {
           clear();
-          toast.success("Panier vide");
+          toast.success("Panier vidé");
         }}
       />
 
       {/* ── Countdown overlay ── */}
-      {showCountdown && countdownOrderData && (
+      {countdown && (
         <OrderCountdown
-          orderData={countdownOrderData}
+          submission={countdown}
           itemCount={itemCount}
-          totalCents={finalTotal}
+          totalCents={countdown.body.expectedTotalCents}
           shopName={state.shopName}
           pickupLabel={
             timeMode === "slot" && selectedSlot
               ? `Retrait : ${selectedDate === localDateKey(new Date()) ? "Aujourd'hui" : selectedDate} ${selectedSlot.start}-${selectedSlot.end}`
-              : "Retrait : Des que possible"
+              : "Retrait : Dès que possible"
           }
           onCancel={() => {
-            setShowCountdown(false);
-            setCountdownOrderData(null);
-            toast("Commande annulee", { icon: "ℹ️" });
+            setCountdown(null);
+            toast("Commande annulée", { icon: "ℹ️" });
           }}
-          onSuccess={async (order) => {
-            const orderRecord = order as unknown as { id: string; orderNumber: string; guestToken?: string };
-            const suiviUrl = orderRecord.guestToken
-              ? `/suivi/${orderRecord.id}?guestToken=${encodeURIComponent(orderRecord.guestToken)}`
-              : `/suivi/${orderRecord.id}`;
-
-            // Stripe Checkout flow — redirect to hosted payment page
-            if (onlinePaymentAvailable && paymentMethod === "ONLINE") {
-              try {
-                const res = await fetch(`/api/orders/${orderRecord.id}/checkout-session`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    successUrl: `${window.location.origin}${suiviUrl}`,
-                    cancelUrl: `${window.location.origin}/panier`,
-                    ...(orderRecord.guestToken && { guestToken: orderRecord.guestToken }),
-                  }),
-                });
-                const data = await res.json();
-                const url = data?.data?.url || data?.url;
-                if (res.ok && url) {
-                  clear();
-                  window.location.href = url;
-                  return;
-                }
-                toast.error("Impossible d'ouvrir le paiement, redirection vers le suivi");
-              } catch {
-                toast.error("Erreur paiement en ligne, redirection vers le suivi");
-              }
-            }
-
+          onSuccess={(order) => {
+            writeCheckoutAttempt(null);
             clear();
-            toast.success(`Commande ${orderRecord.orderNumber} confirmee !`);
-            router.push(suiviUrl);
+            toast.success(`Commande ${order.orderNumber} confirmée !`);
+            router.push(
+              order.guestToken
+                ? `/suivi/${order.id}?guestToken=${encodeURIComponent(order.guestToken)}`
+                : `/suivi/${order.id}`
+            );
           }}
           onError={(missingProductIds) => {
-            setShowCountdown(false);
-            setCountdownOrderData(null);
-            // Auto-clean stale products from cart
-            if (missingProductIds && missingProductIds.length > 0) {
-              for (const item of state.items) {
-                const pid = item.productId || item.id;
-                if (missingProductIds.includes(pid)) {
-                  removeItem(item.id);
-                }
-              }
-              toast.error(
-                `${missingProductIds.length} produit(s) retire(s) du panier (plus disponibles)`
-              );
-            }
+            setCountdown(null);
+            if (missingProductIds) removeMissingProducts(missingProductIds);
+            else void refreshQuote();
+          }}
+          onPriceChanged={(message) => {
+            setCountdown(null);
+            void refreshQuote();
+            toast.error(message);
           }}
           duration={5}
         />

@@ -20,9 +20,11 @@ vi.mock("@/lib/rate-limit", () => rateLimitMock);
 const createOrderMock = vi.hoisted(() => ({ createOrder: vi.fn() }));
 vi.mock("@/lib/services/orders/create", () => createOrderMock);
 
-vi.mock("@/lib/logger", () => ({
-  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
+// The answer is the customer view of the created order (customer-view.ts), read back by id.
+const customerViewMock = vi.hoisted(() => ({
+  customerOrderById: vi.fn(async (id: string) => ({ id, orderNumber: `view-of-${id}` })),
 }));
+vi.mock("@/lib/services/orders/customer-view", () => customerViewMock);
 
 // ── Helpers ───────────────────────────────────────────────────
 function postJson(url: string, body: unknown) {
@@ -84,10 +86,16 @@ describe("POST /api/checkout/guest — happy path", () => {
     expect(createArgs.data.guestToken).toBeDefined();
     expect(createArgs.data.role).toBe("CLIENT");
 
-    // createOrder called with the resolved Prisma user
+    // createOrder receives the order fields only, and the resolved Prisma user as a guest customer
     const orderArgs = createOrderMock.createOrder.mock.calls[0];
-    expect(orderArgs[1].id).toBe("user-db-1");
-    expect(orderArgs[1].clerkId).toBeNull();
+    expect(orderArgs[0]).toEqual({ shopId: "shop-1", items: [{ productId: "p-1", quantity: 1 }] });
+    expect(orderArgs[1]).toEqual({
+      id: "user-db-1",
+      role: "CLIENT",
+      isGuest: true,
+      firstName: "Alice",
+      email: "alice@example.com",
+    });
 
     // Cookie set
     const setCookie = res.headers.get("set-cookie");

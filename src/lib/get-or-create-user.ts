@@ -2,6 +2,9 @@ import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { isTestMode, TEST_USERS, type TestRole } from "@/lib/auth/test-auth";
 import { logger } from "@/lib/logger";
+import { uniqueViolationFields } from "@/lib/prisma-errors";
+
+const CLERK_ID_COLUMN = "clerk_id";
 
 /**
  * Find a user by Clerk ID, or auto-create them if the webhook hasn't fired yet.
@@ -57,7 +60,11 @@ export async function getOrCreateUser(clerkId: string) {
     logger.info(`[getOrCreateUser] Auto-created user for clerkId=${clerkId}`);
     return user;
   } catch (error) {
-    console.error(`[getOrCreateUser] Failed to auto-create user for clerkId=${clerkId}:`, error);
+    // Two first requests of the same customer race on users.clerk_id: the loser reads the winner's row.
+    if (uniqueViolationFields(error)?.includes(CLERK_ID_COLUMN)) {
+      return prisma.user.findUnique({ where: { clerkId } });
+    }
+    logger.error(`[getOrCreateUser] Failed to auto-create user for clerkId=${clerkId}`, error);
     return null;
   }
 }

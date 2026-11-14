@@ -1,59 +1,31 @@
+// src/app/api/orders/[id]/cancel/route.ts — the customer cancels an order: PENDING, or ACCEPTED less
+// than 5 minutes after it was placed.
 import { NextRequest } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
-import prisma from "@/lib/prisma";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { isCancellable } from "@/lib/order-state-machine";
+import { apiError, handleApiError } from "@/lib/api/errors";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
+import { cancelOrderByCustomer } from "@/lib/services/orders/commands/close";
+import { customerTransitionResponse } from "@/lib/services/orders/commands/http";
+import { customerUserId } from "@/lib/services/orders/commands/outcome";
 
 export const dynamic = "force-dynamic";
 
 // ── POST /api/orders/[id]/cancel ───────────────
-// Client (order owner) — cancel a pending order or ACCEPTED within 5 min
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
-    const userId = await getServerUserId();
+    const clerkId = await getServerUserId();
+    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
 
-    if (!userId) {
-      return apiError("UNAUTHORIZED", "Authentification requise");
-    }
-
-    const rl = await checkRateLimit(rateLimits.api, `order-cancel:${userId}`);
+    const rl = await checkRateLimit(rateLimits.api, `order-cancel:${clerkId}`);
     if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
-    const order = await prisma.order.findUnique({
-      where: { id },
-      select: {
-        status: true,
-        createdAt: true,
-        user: { select: { clerkId: true } },
-      },
-    });
+    const userId = await customerUserId(clerkId);
+    if (userId === null) return apiError("NOT_FOUND", "Commande introuvable");
 
-    if (!order) {
-      return apiError("NOT_FOUND", "Commande introuvable");
-    }
-    if (order.user.clerkId !== userId) {
-      return apiError("FORBIDDEN", "Cette commande ne vous appartient pas");
-    }
-
-    if (!isCancellable(order.status, order.createdAt)) {
-      if (order.status === "ACCEPTED") {
-        return apiError("VALIDATION_ERROR", "Le délai d'annulation de 5 minutes est dépassé");
-      }
-      return apiError("VALIDATION_ERROR", "Seules les commandes en attente peuvent être annulées");
-    }
-
-    const updated = await prisma.order.update({
-      where: { id },
-      data: { status: "CANCELLED" },
-    });
-
-    return apiSuccess(updated);
+    return await customerTransitionResponse(
+      await cancelOrderByCustomer({ orderId: params.id, userId, now: new Date() })
+    );
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error, "orders/cancel");
   }
 }

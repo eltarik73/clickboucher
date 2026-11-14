@@ -1,22 +1,36 @@
+// src/lib/emails/order-receipt.ts — the receipt e-mailed when an order is collected. The amounts come
+// from summarizeReceipt (src/lib/pricing/receipt.ts): available lines only, the discount, any later
+// adjustment, and Order.totalCents as the total, split by VAT rate.
 import { sendEmail } from "@/lib/email";
+import type { SaleUnit } from "@/lib/pricing/line";
+import { formatStoredLineQuantity } from "@/lib/pricing/format";
+import { summarizeReceipt, vatBreakdown } from "@/lib/pricing/receipt";
 
-interface ReceiptItem {
+export interface ReceiptItem {
   name: string;
+  /** Stored OrderItem.quantity: kilograms for KG and TRANCHE, a count otherwise. */
   quantity: number;
-  unit: string;
+  unit: SaleUnit;
   totalCents: number;
   weightGrams?: number | null;
+  /** false: out of stock or removed, not sold. */
+  available: boolean;
   vatRate: number; // resolved rate (product or shop default)
 }
 
-interface ReceiptData {
+export interface ReceiptData {
   orderId: string;
   displayNumber: string;
   customerFirstName: string;
   customerLastName: string;
   customerNumber: string | null;
   items: ReceiptItem[];
+  /** Order.totalCents. */
   totalCents: number;
+  /** Order.discountCents. */
+  discountCents: number;
+  /** Order.serviceFeeCents (charged only on an order paid online). */
+  serviceFeeCents: number;
   shopName: string;
   shopAddress: string;
   shopCity: string;
@@ -31,69 +45,51 @@ function fmtPrice(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
-function fmtQty(item: ReceiptItem): string {
-  if (item.unit === "KG" && item.weightGrams) {
-    return `${(item.weightGrams / 1000).toFixed(1).replace(".", ",")} kg`;
-  }
-  return `${item.quantity}x`;
+/** Quantity printed before the product name: "2 × 500 g", "470 g", "3 pièces". */
+export function fmtQty(item: ReceiptItem): string {
+  return formatStoredLineQuantity({
+    unit: item.unit,
+    quantity: item.quantity,
+    weightGrams: item.weightGrams ?? null,
+  });
 }
 
 function fmtDate(d: Date): string {
-  return d.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }) + " à " + d.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Paris",
-  });
+  return (
+    d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }) +
+    " à " +
+    d.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Europe/Paris",
+    })
+  );
 }
 
-/**
- * Calculate VAT breakdown from TTC prices.
- * prixTTC / (1 + taux) = prixHT, TVA = TTC - HT
- */
-function calculateVatBreakdown(items: ReceiptItem[]): {
-  groups: { rate: number; totalTTC: number; totalHT: number; totalVAT: number }[];
-  totalHT: number;
-  totalVAT: number;
-  totalTTC: number;
-} {
-  const byRate = new Map<number, number>();
-
-  for (const item of items) {
-    const current = byRate.get(item.vatRate) || 0;
-    byRate.set(item.vatRate, current + item.totalCents);
-  }
-
-  const groups = Array.from(byRate.entries()).map(([rate, totalTTC]) => {
-    const totalHT = Math.round(totalTTC / (1 + rate / 100));
-    return {
-      rate,
-      totalTTC,
-      totalHT,
-      totalVAT: totalTTC - totalHT,
-    };
-  });
-
-  return {
-    groups,
-    totalHT: groups.reduce((s, g) => s + g.totalHT, 0),
-    totalVAT: groups.reduce((s, g) => s + g.totalVAT, 0),
-    totalTTC: groups.reduce((s, g) => s + g.totalTTC, 0),
-  };
+function amountRow(label: string, cents: number, style = "font-size:13px;color:#666;"): string {
+  return `<tr>
+          <td style="padding:3px 0;${style}">${label}</td>
+          <td style="padding:3px 0;${style}text-align:right;">${fmtPrice(cents)}</td>
+        </tr>`;
 }
 
-export async function sendOrderReceiptEmail(
-  to: string,
-  data: ReceiptData
-): Promise<boolean> {
-  const vat = calculateVatBreakdown(data.items);
+/** Subject and HTML of the receipt. Pure: the printed total is Order.totalCents (+ the online fee). */
+export function buildOrderReceiptEmail(data: ReceiptData): { subject: string; html: string } {
+  const receipt = summarizeReceipt({
+    lines: data.items,
+    totalCents: data.totalCents,
+    discountCents: data.discountCents,
+    serviceFeeCents: data.serviceFeeCents,
+    paymentMethod: data.paymentMethod,
+  });
   const shopAddr = data.shopFullAddress || `${data.shopAddress}, ${data.shopCity}`;
   const customerName = `${data.customerFirstName} ${data.customerLastName.charAt(0)}.`;
 
-  const itemsHtml = data.items
+  const itemsHtml = receipt.lines
     .map(
       (item) =>
         `<tr>
@@ -106,17 +102,27 @@ export async function sendOrderReceiptEmail(
     )
     .join("");
 
-  const vatGroupsHtml = vat.groups
+  const unavailableHtml = receipt.unavailableLines
+    .map(
+      (item) =>
+        `<tr>
+          <td colspan="2" style="padding:3px 0;color:#999;font-size:12px;text-decoration:line-through;">${fmtQty(item)} ${item.name} — non fourni</td>
+        </tr>`
+    )
+    .join("");
+
+  const amountsHtml = [
+    amountRow("Sous-total articles", receipt.subtotalCents),
+    receipt.discountCents > 0 ? amountRow("Remise", -receipt.discountCents) : "",
+    receipt.adjustmentCents !== 0 ? amountRow("Ajustement du prix", receipt.adjustmentCents) : "",
+    receipt.serviceFeeCents > 0 ? amountRow("Frais de service", receipt.serviceFeeCents) : "",
+  ].join("");
+
+  const vatGroupsHtml = vatBreakdown(receipt.lines, receipt.goodsTotalCents)
     .map(
       (g) =>
-        `<tr>
-          <td style="padding:3px 0;font-size:13px;color:#666;">Sous-total HT (TVA ${g.rate}%)</td>
-          <td style="padding:3px 0;font-size:13px;color:#666;text-align:right;">${fmtPrice(g.totalHT)}</td>
-        </tr>
-        <tr>
-          <td style="padding:3px 0;font-size:13px;color:#666;">TVA ${g.rate}%</td>
-          <td style="padding:3px 0;font-size:13px;color:#666;text-align:right;">${fmtPrice(g.totalVAT)}</td>
-        </tr>`
+        `${amountRow(`Sous-total HT (TVA ${g.rate}%)`, g.htCents)}
+        ${amountRow(`TVA ${g.rate}%`, g.vatCents)}`
     )
     .join("");
 
@@ -158,10 +164,14 @@ export async function sendOrderReceiptEmail(
             <td style="padding:3px 0;">Date</td>
             <td style="padding:3px 0;text-align:right;">${fmtDate(data.createdAt)}</td>
           </tr>
-          ${data.pickedUpAt ? `<tr>
+          ${
+            data.pickedUpAt
+              ? `<tr>
             <td style="padding:3px 0;">Retirée le</td>
             <td style="padding:3px 0;text-align:right;">${fmtDate(data.pickedUpAt)}</td>
-          </tr>` : ""}
+          </tr>`
+              : ""
+          }
         </table>
       </div>
 
@@ -170,19 +180,21 @@ export async function sendOrderReceiptEmail(
         <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#333;text-transform:uppercase;">Détail</p>
         <table style="width:100%;border-collapse:collapse;">
           ${itemsHtml}
+          ${unavailableHtml}
         </table>
       </div>
 
       <!-- VAT breakdown -->
       <div style="border-top:2px solid #f0f0f0;padding-top:16px;margin-bottom:16px;">
         <table style="width:100%;border-collapse:collapse;">
+          ${amountsHtml}
           ${vatGroupsHtml}
           <tr>
             <td colspan="2" style="padding:8px 0 0;border-top:2px solid #333;"></td>
           </tr>
           <tr>
             <td style="padding:4px 0;font-size:16px;font-weight:800;color:#333;">TOTAL TTC</td>
-            <td style="padding:4px 0;font-size:16px;font-weight:800;color:#333;text-align:right;">${fmtPrice(vat.totalTTC)}</td>
+            <td style="padding:4px 0;font-size:16px;font-weight:800;color:#333;text-align:right;">${fmtPrice(receipt.amountChargedCents)}</td>
           </tr>
         </table>
         <p style="margin:8px 0 0;font-size:12px;color:#999;">Paiement : ${data.paymentMethod === "ONLINE" ? "En ligne" : "Sur place"}</p>
@@ -202,5 +214,10 @@ export async function sendOrderReceiptEmail(
 </html>`;
 
   const subject = `🧾 Reçu — Commande ${data.displayNumber} — ${data.shopName}`;
+  return { subject, html };
+}
+
+export async function sendOrderReceiptEmail(to: string, data: ReceiptData): Promise<boolean> {
+  const { subject, html } = buildOrderReceiptEmail(data);
   return sendEmail(to, subject, html);
 }

@@ -4,6 +4,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
+import { badgeLabelsByShop } from "@/lib/offer-badge-label";
+import { listBadgeOffers, listPopupOffers } from "@/lib/public-offers";
+import { countBonsPlans } from "@/lib/bons-plans";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PromoCarousel } from "@/components/landing/PromoCarousel";
 import { HeroButtons } from "./decouvrir/HeroButtons";
@@ -16,10 +19,19 @@ import { KlikLogo } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
 import dynamic from "next/dynamic";
 
-const OrderTracker = dynamic(() => import("@/components/order/OrderTracker").then(m => m.OrderTracker), { ssr: false });
+const OrderTracker = dynamic(
+  () => import("@/components/order/OrderTracker").then((m) => m.OrderTracker),
+  { ssr: false }
+);
 
-const ReorderSection = dynamic(() => import("@/components/order/ReorderSection").then(m => m.ReorderSection), { ssr: false });
-const OfferPopup = dynamic(() => import("@/components/client/OfferPopup").then(m => m.OfferPopup), { ssr: false });
+const ReorderSection = dynamic(
+  () => import("@/components/order/ReorderSection").then((m) => m.ReorderSection),
+  { ssr: false }
+);
+const OfferPopup = dynamic(
+  () => import("@/components/client/OfferPopup").then((m) => m.OfferPopup),
+  { ssr: false }
+);
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -32,14 +44,17 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     siteName: "Klik&Go",
     title: "Boucheries Halal près de chez vous — Click & Collect",
-    description: "Trouvez votre boucherie halal et commandez en click & collect. Retrait rapide en boutique.",
+    description:
+      "Trouvez votre boucherie halal et commandez en click & collect. Retrait rapide en boutique.",
     url: SITE_URL,
-    images: [{
-      url: "/og-image.png",
-      width: 1200,
-      height: 630,
-      alt: "Klik&Go — Click & Collect Boucherie Halal",
-    }],
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Klik&Go — Click & Collect Boucherie Halal",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -97,8 +112,26 @@ export default async function HomePage() {
   let promoCount = 0;
   let packCount = 0;
   let recipeCount = 0;
-  let popupOffers: { id: string; name: string; code: string; type: string; discountValue: number; popupTitle: string | null; popupMessage: string | null; popupColor: string | null; popupFrequency: string | null; popupImageUrl: string | null }[] = [];
-  let latestRecipes: { id: string; slug: string; title: string; imageUrl: string | null; meatQuantity: string; totalTime: number }[] = [];
+  let popupOffers: {
+    id: string;
+    name: string;
+    code: string;
+    type: string;
+    discountValue: number;
+    popupTitle: string | null;
+    popupMessage: string | null;
+    popupColor: string | null;
+    popupFrequency: string | null;
+    popupImageUrl: string | null;
+  }[] = [];
+  let latestRecipes: {
+    id: string;
+    slug: string;
+    title: string;
+    imageUrl: string | null;
+    meatQuantity: string;
+    totalTime: number;
+  }[] = [];
 
   // 1. DB queries in parallel. Auth is handled client-side via NearbyShops (favorites hydrate after mount)
   //    so this page stays static/ISR-cacheable and Vercel CDN can serve it with `s-maxage=60`.
@@ -123,69 +156,52 @@ export default async function HomePage() {
       },
     });
 
-    const offersPromise = prisma.offer.findMany({
-      where: {
-        status: "ACTIVE",
-        startDate: { lte: new Date() },
-        endDate: { gt: new Date() },
-        diffBadge: true,
-      },
-      include: { shop: { select: { name: true, slug: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-    });
-
-    const popupOffersPromise = prisma.offer.findMany({
-      where: {
-        status: "ACTIVE",
-        startDate: { lte: new Date() },
-        endDate: { gt: new Date() },
-        diffPopup: true,
-      },
-      select: {
-        id: true, name: true, code: true, type: true, discountValue: true,
-        popupTitle: true, popupMessage: true, popupColor: true, popupFrequency: true, popupImageUrl: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-    });
+    // Badges and popup: only public offers (audience ALL, diffused on that channel, uses left).
+    const now = new Date();
+    const offersPromise = listBadgeOffers(now, 6);
+    const popupOffersPromise = listPopupOffers(now, 3);
 
     const latestRecipesPromise = prisma.recipe.findMany({
       where: { published: true },
       orderBy: { publishedAt: "desc" },
-      select: { id: true, slug: true, title: true, imageUrl: true, meatQuantity: true, totalTime: true },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        imageUrl: true,
+        meatQuantity: true,
+        totalTime: true,
+      },
       take: 4,
     });
 
-    const antiGaspiCountPromise = prisma.product.count({
-      where: { isAntiGaspi: true, inStock: true, isActive: true },
-    });
-    const flashSaleCountPromise = prisma.product.count({
-      where: { isFlashSale: true, inStock: true, isActive: true },
-    });
-    const promoCountPromise = prisma.product.count({
-      where: {
-        inStock: true, isActive: true,
-        OR: [
-          { promoPct: { gt: 0 } },
-          { promoType: "FIXED_AMOUNT", promoFixedCents: { gt: 0 } },
-        ],
-      },
-    });
-    const packCountPromise = prisma.product.count({
-      where: { inStock: true, isActive: true, packContent: { not: null } },
-    });
+    // Same filters as the bons-plans pages: the carousel never announces an empty list.
+    const bonsPlansCountsPromise = countBonsPlans(now);
     const recipeCountPromise = prisma.recipe.count({
       where: { published: true },
     });
 
     // Run ALL DB queries in parallel — no auth() here (page is ISR-cached, favorites hydrate client-side)
-    const [shopsResult, offersResult, popupOffersResult, agCount, fsCount, pmCount, pkCount, rcCount, latestRecipesResult] = await Promise.all([shopsPromise, offersPromise, popupOffersPromise, antiGaspiCountPromise, flashSaleCountPromise, promoCountPromise, packCountPromise, recipeCountPromise, latestRecipesPromise]);
+    const [
+      shopsResult,
+      offersResult,
+      popupOffersResult,
+      bonsPlansCounts,
+      rcCount,
+      latestRecipesResult,
+    ] = await Promise.all([
+      shopsPromise,
+      offersPromise,
+      popupOffersPromise,
+      bonsPlansCountsPromise,
+      recipeCountPromise,
+      latestRecipesPromise,
+    ]);
 
-    antiGaspiCount = agCount;
-    flashSaleCount = fsCount;
-    promoCount = pmCount;
-    packCount = pkCount;
+    antiGaspiCount = bonsPlansCounts.antiGaspi;
+    flashSaleCount = bonsPlansCounts.flashSale;
+    promoCount = bonsPlansCounts.promo;
+    packCount = bonsPlansCounts.pack;
     recipeCount = rcCount;
     latestRecipes = latestRecipesResult;
     livePromos = offersResult.map((o) => ({
@@ -211,19 +227,7 @@ export default async function HomePage() {
       popupImageUrl: o.popupImageUrl,
     }));
 
-    // Build shopId → promo label map for badge display
-    const shopPromoMap = new Map<string, string>();
-    for (const o of offersResult) {
-      if (o.shopId && !shopPromoMap.has(o.shopId)) {
-        const shortLabel = o.type === "FREE_FEES" ? "Frais offerts"
-          : o.type === "PERCENT" ? `-${o.discountValue}%`
-          : o.type === "AMOUNT" ? `-${o.discountValue}€`
-          : o.type === "BOGO" ? "1+1 offert"
-          : o.type === "BUNDLE" ? "Pack"
-          : o.name;
-        shopPromoMap.set(o.shopId, shortLabel);
-      }
-    }
+    const shopPromoMap = badgeLabelsByShop(offersResult);
 
     // Attach promo label to shops + sort: shops with promos first
     shops = shopsResult.map((s) => ({
@@ -248,7 +252,9 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <h1 className="sr-only">Boucheries halal près de chez vous — Click &amp; Collect halal en ligne</h1>
+      <h1 className="sr-only">
+        Boucheries halal près de chez vous — Click &amp; Collect halal en ligne
+      </h1>
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -264,25 +270,25 @@ export default async function HomePage() {
 
         {/* Header */}
         <header className="relative z-10 border-b border-gray-100 dark:border-white/5">
-          <div className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
             <KlikGoLogo />
             <div className="flex items-center gap-3">
               <Link
                 href="/recettes"
                 prefetch={false}
-                className="hidden sm:inline text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
+                className="hidden whitespace-nowrap text-xs font-medium text-gray-500 transition-colors hover:text-[#DC2626] dark:text-gray-400 sm:inline sm:text-sm"
               >
                 Recettes
               </Link>
               <Link
                 href="/bons-plans"
-                className="hidden sm:inline text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
+                className="hidden whitespace-nowrap text-xs font-medium text-gray-500 transition-colors hover:text-[#DC2626] dark:text-gray-400 sm:inline sm:text-sm"
               >
                 Bons Plans
               </Link>
               <Link
                 href="/espace-boucher"
-                className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium hover:text-[#DC2626] transition-colors whitespace-nowrap"
+                className="whitespace-nowrap text-xs font-medium text-gray-500 transition-colors hover:text-[#DC2626] dark:text-gray-400 sm:text-sm"
               >
                 Vous êtes boucher ?
               </Link>
@@ -294,24 +300,25 @@ export default async function HomePage() {
         </header>
 
         {/* Hero content */}
-        <div className="relative z-10 max-w-6xl mx-auto px-5 py-8 sm:py-16 text-center">
+        <div className="relative z-10 mx-auto max-w-6xl px-5 py-8 text-center sm:py-16">
           {/* Logo with glow */}
-          <div className="flex flex-col items-center mb-4 sm:mb-8">
+          <div className="mb-4 flex flex-col items-center sm:mb-8">
             <div className="relative">
-              <div className="absolute inset-0 blur-3xl opacity-20 dark:opacity-40 bg-[#DC2626] rounded-full scale-150" />
-              <KlikLogo size={100} className="w-20 h-20 sm:w-[100px] sm:h-[100px] relative z-10" />
+              <div className="absolute inset-0 scale-150 rounded-full bg-[#DC2626] opacity-20 blur-3xl dark:opacity-40" />
+              <KlikLogo size={100} className="relative z-10 h-20 w-20 sm:h-[100px] sm:w-[100px]" />
             </div>
-            <h2 className="mt-3 sm:mt-5 text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+            <h2 className="mt-3 text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:mt-5 sm:text-5xl">
               Klik<span className="text-[#DC2626]">&amp;</span>Go
             </h2>
           </div>
 
-          <p className="text-2xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1]">
+          <p className="text-2xl font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
             Marre d&apos;attendre ?<br />
             <span className="text-[#DC2626]">Commandez. Récupérez. Savourez.</span>
           </p>
-          <p className="mt-3 sm:mt-5 text-base sm:text-lg text-gray-600 dark:text-[#999] max-w-xl mx-auto">
-            Zero file. Zero stress. <span className="text-gray-900 dark:text-white font-medium">100% frais.</span>
+          <p className="mx-auto mt-3 max-w-xl text-base text-gray-600 dark:text-[#999] sm:mt-5 sm:text-lg">
+            Zero file. Zero stress.{" "}
+            <span className="font-medium text-gray-900 dark:text-white">100% frais.</span>
           </p>
           <HeroButtons />
         </div>
@@ -320,7 +327,7 @@ export default async function HomePage() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* MAIN CONTENT — Uber Eats / Planity style */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <section id="butchers" className="max-w-6xl mx-auto px-5 py-6 sm:py-10 space-y-5">
+      <section id="butchers" className="mx-auto max-w-6xl space-y-5 px-5 py-6 sm:py-10">
         {/* Order Tracker (active order) */}
         <OrderTracker />
 
@@ -328,15 +335,23 @@ export default async function HomePage() {
         <SearchBar />
 
         {/* Promo carousel (events + DB promos) */}
-        <PromoCarousel livePromos={livePromos} antiGaspiCount={antiGaspiCount} flashSaleCount={flashSaleCount} promoCount={promoCount} packCount={packCount} recipeCount={recipeCount} />
+        <PromoCarousel
+          livePromos={livePromos}
+          antiGaspiCount={antiGaspiCount}
+          flashSaleCount={flashSaleCount}
+          promoCount={promoCount}
+          packCount={packCount}
+          recipeCount={recipeCount}
+        />
 
         {/* Reorder last order */}
         <ReorderSection />
 
         {/* DB error */}
         {dbError && (
-          <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
-            Impossible de charger les boucheries. Veuillez rafraîchir la page ou réessayer dans quelques instants.
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/20 dark:text-red-300">
+            Impossible de charger les boucheries. Veuillez rafraîchir la page ou réessayer dans
+            quelques instants.
           </div>
         )}
 
@@ -351,16 +366,16 @@ export default async function HomePage() {
       {/* RECIPES */}
       {/* ═══════════════════════════════════════════════════════════ */}
       {latestRecipes.length > 0 && (
-        <section className="max-w-6xl mx-auto px-5 py-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-              <span className="w-1 h-5 bg-[#DC2626] rounded-full" />
+        <section className="mx-auto max-w-6xl px-5 py-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-extrabold text-gray-900 dark:text-white">
+              <span className="h-5 w-1 rounded-full bg-[#DC2626]" />
               Nos recettes
             </h2>
             <Link
               href="/recettes"
               prefetch={false}
-              className="text-xs font-bold text-[#991B1B] hover:text-[#7F1D1D] underline-offset-2 hover:underline transition"
+              className="text-xs font-bold text-[#991B1B] underline-offset-2 transition hover:text-[#7F1D1D] hover:underline"
             >
               Tout voir →
             </Link>
@@ -370,23 +385,32 @@ export default async function HomePage() {
               <Link
                 key={recipe.id}
                 href={`/recettes/${recipe.slug}`}
-                className="min-w-[200px] flex-shrink-0 bg-white dark:bg-gray-800 rounded-2xl border border-[#ece8e3] dark:border-white/[0.06] overflow-hidden hover:shadow-md transition"
+                className="min-w-[200px] flex-shrink-0 overflow-hidden rounded-2xl border border-[#ece8e3] bg-white transition hover:shadow-md dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <div className="h-28 bg-gray-200 dark:bg-white/5 relative overflow-hidden">
+                <div className="relative h-28 overflow-hidden bg-gray-200 dark:bg-white/5">
                   {recipe.imageUrl ? (
-                    <Image src={recipe.imageUrl} alt={recipe.title} fill className="object-cover" sizes="200px" loading="lazy" />
+                    <Image
+                      src={recipe.imageUrl}
+                      alt={recipe.title}
+                      fill
+                      className="object-cover"
+                      sizes="200px"
+                      loading="lazy"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl">🍖</div>
+                    <div className="flex h-full w-full items-center justify-center text-3xl">
+                      🍖
+                    </div>
                   )}
-                  <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur text-white px-2 py-0.5 rounded text-[10px] font-semibold">
+                  <div className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur">
                     ⏱ {recipe.totalTime} min
                   </div>
                 </div>
                 <div className="p-3">
-                  <div className="font-bold text-sm text-gray-900 dark:text-white line-clamp-2">
+                  <div className="line-clamp-2 text-sm font-bold text-gray-900 dark:text-white">
                     {recipe.title}
                   </div>
-                  <div className="text-xs text-[#DC2626] font-semibold mt-1">
+                  <div className="mt-1 text-xs font-semibold text-[#DC2626]">
                     🥩 {recipe.meatQuantity}
                   </div>
                 </div>
@@ -404,10 +428,10 @@ export default async function HomePage() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* SEO: CITY LINKS */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <section className="max-w-6xl mx-auto px-5 py-10">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-1 h-5 bg-[#DC2626] rounded-full" />
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white font-display">
+      <section className="mx-auto max-w-6xl px-5 py-10">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="h-5 w-1 rounded-full bg-[#DC2626]" />
+          <h3 className="font-display text-lg font-bold text-gray-900 dark:text-white">
             Boucheries halal par ville
           </h3>
         </div>
@@ -423,7 +447,7 @@ export default async function HomePage() {
             <Link
               key={city.slug}
               href={`/boucherie-halal/${city.slug}`}
-              className="px-4 py-2 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-full text-sm text-gray-700 dark:text-gray-300 hover:border-[#DC2626] hover:text-[#DC2626] transition"
+              className="rounded-full border border-[#ece8e3] bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-[#DC2626] hover:text-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800 dark:text-gray-300"
             >
               {city.name}
             </Link>
@@ -431,29 +455,47 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-[#ece8e3] dark:border-white/[0.06] bg-white dark:bg-white/[0.02] py-10">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-[#ece8e3] bg-white py-10 dark:border-white/[0.06] dark:bg-white/[0.02]">
+        <div className="mx-auto max-w-6xl px-5">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <KlikGoLogo />
             <nav className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-              <Link href="/recettes" prefetch={false} className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <Link
+                href="/recettes"
+                prefetch={false}
+                className="transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 Recettes
               </Link>
-              <Link href="/mentions-legales" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <Link
+                href="/mentions-legales"
+                className="transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 Mentions légales
               </Link>
-              <Link href="/cgv" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <Link
+                href="/cgv"
+                className="transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 CGV
               </Link>
-              <Link href="/politique-de-confidentialite" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <Link
+                href="/politique-de-confidentialite"
+                className="transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 Confidentialité
               </Link>
-              <a href="mailto:contact@klikandgo.app" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <a
+                href="mailto:contact@klikandgo.app"
+                className="transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 Contact
               </a>
             </nav>
           </div>
-          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">&copy; {new Date().getFullYear()} Klik&amp;Go</p>
+          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
+            &copy; {new Date().getFullYear()} Klik&amp;Go
+          </p>
         </div>
       </footer>
 

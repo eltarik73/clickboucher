@@ -1,25 +1,29 @@
-// src/hooks/use-order-polling.ts — Polling hook for kitchen/dashboard order updates
+// src/hooks/use-order-polling.ts — Polling hook of the kitchen board (mode cuisine)
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { KITCHEN_HISTORY_STATUSES } from "@/lib/order-state-machine";
 
+/** An order of the kitchen board, as GET /api/boucher/orders/kitchen returns it (columns selected by
+ * kitchenOrderSelect in src/lib/services/orders/kitchen.ts). */
 export type KitchenOrder = {
   id: string;
   orderNumber: string;
-  dailyNumber?: number | null;
   displayNumber?: string | null;
   status: string;
   totalCents: number;
+  /** Discount on goods recorded at creation (Order.discountCents). */
+  discountCents: number;
+  /** Customer number in this shop, frozen on the order; format with formatCustomerNumber. */
+  customerNumber: number | null;
   isPro: boolean;
   customerNote: string | null;
-  boucherNote: string | null;
   requestedTime: string | null;
   estimatedReady: string | null;
   actualReady: string | null;
   qrCode: string | null;
   paymentMethod?: string;
   pickupSlotStart: string | null;
-  pickupSlotEnd: string | null;
   createdAt: string;
   updatedAt: string;
   items: {
@@ -37,13 +41,15 @@ export type KitchenOrder = {
     pieceCount: number | null;
     pieceLabel: string | null;
     cutOption: string | null;
-    cutPriceCents: number | null;
-    itemNote: string | null;
     available: boolean;
-    product?: { name: string; unit: string; vatRate?: number | null; imageUrl?: string | null };
+    product?: { name: string; unit: string; imageUrl?: string | null };
   }[];
-  user: { firstName: string; lastName: string; customerNumber?: string | null; phone?: string | null; loyaltyBadge?: string | null } | null;
-  shop?: { id: string; name: string; slug: string; imageUrl: string | null; priceAdjustmentThreshold?: number };
+  user: {
+    firstName: string;
+    lastName: string;
+    phone?: string | null;
+    loyaltyBadge?: string | null;
+  } | null;
   priceAdjustment?: {
     id: string;
     originalTotal: number;
@@ -51,15 +57,20 @@ export type KitchenOrder = {
     reason: string | null;
     adjustmentType: string;
     status: string;
-    itemsSnapshot: unknown;
-    autoApproveAt: string | null;
-    respondedAt: string | null;
-    createdAt: string;
   } | null;
 };
 
+/** A finished order as the history list prints it (kitchenHistorySelect). */
+export type KitchenHistoryOrder = Pick<
+  KitchenOrder,
+  "id" | "orderNumber" | "displayNumber" | "status" | "totalCents" | "updatedAt"
+> & {
+  items: { quantity: number }[];
+  user: { firstName: string; lastName: string } | null;
+};
+
 type UseOrderPollingOptions = {
-  /** Polling interval in ms (default 5000 for kitchen, 10000 for dashboard) */
+  /** Polling interval in ms (default 5000) */
   intervalMs?: number;
   /** Called when a new PENDING order is detected */
   onNewOrder?: (order: KitchenOrder) => void;
@@ -67,16 +78,37 @@ type UseOrderPollingOptions = {
   onStatusChange?: (orderId: string, oldStatus: string, newStatus: string) => void;
   /** Called when a scheduled order enters the 30-min preparation window */
   onScheduledReady?: (order: KitchenOrder) => void;
-  /** Statuses to include (default: active orders) */
-  statuses?: string[];
   /** Auto-start polling (default true) */
   enabled?: boolean;
 };
 
-const TERMINAL_STATUSES = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED", "PARTIALLY_DENIED"];
+// PARTIALLY_DENIED is shown in history until the board has a "waiting for customer" column.
+const FINISHED_STATUSES: readonly string[] = KITCHEN_HISTORY_STATUSES;
+const TERMINAL_STATUSES: readonly string[] = [...FINISHED_STATUSES, "PARTIALLY_DENIED"];
 const THIRTY_MIN = 30 * 60 * 1000;
 
 type PollOutcome = "ok" | "auth" | "error";
+
+/** `history` is present only when the poll asked for it (?history=1). */
+type KitchenBoardPayload = {
+  active: KitchenOrder[];
+  activeTruncated: boolean;
+  history?: KitchenHistoryOrder[];
+};
+
+function isKitchenBoardPayload(data: unknown): data is KitchenBoardPayload {
+  if (typeof data !== "object" || data === null) return false;
+  const board = data as Record<string, unknown>;
+  return (
+    Array.isArray(board.active) &&
+    typeof board.activeTruncated === "boolean" &&
+    (board.history === undefined || Array.isArray(board.history))
+  );
+}
+
+const KITCHEN_URL = "/api/boucher/orders/kitchen";
+/** The finished orders are re-read at most once a minute, unless the board needs them sooner. */
+export const HISTORY_REFRESH_MS = 60_000;
 
 /** A stalled request is aborted so it can never freeze the single-flight loop */
 const FETCH_TIMEOUT_MS = 10_000;
@@ -141,6 +173,9 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
   } = options;
 
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [history, setHistory] = useState<KitchenHistoryOrder[]>([]);
+  // More active orders than the server returns: the board must say so instead of hiding them
+  const [activeTruncated, setActiveTruncated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // True after 3 consecutive 401/403 — cleared by the next successful poll
@@ -148,47 +183,73 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
   // Timestamp (ms) of the last successful poll — null until the first one
   const [lastSuccessAt, setLastSuccessAt] = useState<number | null>(null);
 
-  // Track previous state for diff detection
+  // Last known status of every order seen, active or finished, for diff detection. An order that
+  // leaves the board keeps its entry until the next history read tells its new status.
   const prevOrderMapRef = useRef<Map<string, string>>(new Map());
   const prevScheduledIdsRef = useRef<Set<string>>(new Set());
   const callbacksRef = useRef({ onNewOrder, onStatusChange, onScheduledReady });
   callbacksRef.current = { onNewOrder, onStatusChange, onScheduledReady };
   const isFirstFetch = useRef(true);
+  // History: read with the first poll, then at most once a minute or when the board needs it
+  const lastHistoryAtRef = useRef<number | null>(null);
+  const historyWantedRef = useRef(false);
 
   // Lets a successful manual refetch() bring the loop back to its normal cadence
   const resumeLoopRef = useRef<(() => void) | null>(null);
 
   const pollOnce = useCallback(async (controller: AbortController): Promise<PollOutcome> => {
     const abortTimer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const lastHistoryAt = lastHistoryAtRef.current;
+    const withHistory =
+      historyWantedRef.current ||
+      lastHistoryAt === null ||
+      Date.now() - lastHistoryAt >= HISTORY_REFRESH_MS;
     try {
-      const res = await fetch("/api/orders", { signal: controller.signal });
+      const res = await fetch(withHistory ? `${KITCHEN_URL}?history=1` : KITCHEN_URL, {
+        signal: controller.signal,
+      });
       if (!res.ok) {
         setError("Erreur de connexion");
         return res.status === 401 || res.status === 403 ? "auth" : "error";
       }
-      const json = await res.json();
-      const fetched: KitchenOrder[] = json.data || [];
-      setOrders(fetched);
+      const json: unknown = await res.json();
+      const board =
+        typeof json === "object" && json !== null ? (json as { data?: unknown }).data : undefined;
+      if (!isKitchenBoardPayload(board)) {
+        setError("Erreur de connexion");
+        return "error";
+      }
+      const active = board.active;
+      const finished = board.history;
+      setOrders(active);
+      if (finished) {
+        setHistory(finished);
+        lastHistoryAtRef.current = Date.now();
+        historyWantedRef.current = false;
+      }
+      setActiveTruncated(board.activeTruncated);
       setError(null);
       setAuthExpired(false);
       setLastSuccessAt(Date.now());
 
+      const prevMap = prevOrderMapRef.current;
+      const seen: { id: string; status: string }[] = [...active, ...(finished ?? [])];
+
       // Diff detection (skip on first fetch)
       if (!isFirstFetch.current) {
-        const prevMap = prevOrderMapRef.current;
         const prevScheduledIds = prevScheduledIdsRef.current;
 
-        for (const order of fetched) {
+        for (const order of seen) {
           const prevStatus = prevMap.get(order.id);
-
-          // New order detected
-          if (!prevStatus && order.status === "PENDING") {
-            notify(() => callbacksRef.current.onNewOrder?.(order));
-          }
-
-          // Status change detected
           if (prevStatus && prevStatus !== order.status) {
             notify(() => callbacksRef.current.onStatusChange?.(order.id, prevStatus, order.status));
+          }
+        }
+
+        for (const order of active) {
+          // New order detected
+          if (!prevMap.has(order.id) && order.status === "PENDING") {
+            notify(() => callbacksRef.current.onNewOrder?.(order));
           }
 
           // Scheduled order entered 30-min preparation window
@@ -205,11 +266,19 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
       }
       isFirstFetch.current = false;
 
-      // Update maps
-      const newMap = new Map<string, string>();
+      // An order that was on the board and is no longer there has just finished: read the history
+      // on the next poll, which reports its new status.
+      const activeIds = new Set(active.map((order) => order.id));
+      const leftTheBoard = [...prevMap].some(
+        ([id, status]) => !activeIds.has(id) && !FINISHED_STATUSES.includes(status)
+      );
+      if (!finished && leftTheBoard) historyWantedRef.current = true;
+
+      // Update maps: a poll without history keeps the entries it cannot see
+      const newMap = new Map<string, string>(finished ? [] : prevMap);
+      for (const order of seen) newMap.set(order.id, order.status);
       const newScheduledIds = new Set<string>();
-      for (const order of fetched) {
-        newMap.set(order.id, order.status);
+      for (const order of active) {
         // Track orders that are still in the "scheduled future" window (>30min)
         if (
           order.pickupSlotStart &&
@@ -236,6 +305,12 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
     const outcome = await pollOnce(new AbortController());
     if (outcome === "ok") resumeLoopRef.current?.();
   }, [pollOnce]);
+
+  /** Re-read the finished orders now (history tab or drawer opened). */
+  const refreshHistory = useCallback(() => {
+    historyWantedRef.current = true;
+    void fetchOrders();
+  }, [fetchOrders]);
 
   // Self-rescheduling, single-flight polling loop (replaces setInterval):
   // never overlaps requests, slows down in a hidden tab and backs off on errors.
@@ -351,21 +426,20 @@ export function useOrderPolling(options: UseOrderPollingOptions = {}) {
   );
   const readyOrders = orders.filter((o) => o.status === "READY");
 
-  // History: terminal statuses from the last 7 days
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const historyOrders = orders
-    .filter(
-      (o) =>
-        TERMINAL_STATUSES.includes(o.status) &&
-        new Date(o.updatedAt).getTime() >= sevenDaysAgo
-    )
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  // History: the server already bounds finished orders to the last 7 days
+  const historyOrders: KitchenHistoryOrder[] = [
+    ...history,
+    ...orders.filter((o) => TERMINAL_STATUSES.includes(o.status)),
+  ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   return {
+    /** Active orders of the board (finished ones are in historyOrders). */
     orders,
     loading,
     error,
     refetch: fetchOrders,
+    refreshHistory,
+    activeTruncated,
     // Connection health
     authExpired,
     lastSuccessAt,

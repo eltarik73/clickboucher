@@ -30,35 +30,35 @@ import {
   RefreshCw,
 } from "lucide-react";
 // Logo uses <a> tag for dashboard navigation (no client-side nav needed)
-import { useOrderPolling, type KitchenOrder } from "@/hooks/use-order-polling";
+import {
+  useOrderPolling,
+  type KitchenHistoryOrder,
+  type KitchenOrder,
+} from "@/hooks/use-order-polling";
 import { soundManager } from "@/lib/notification-sound";
 import { startOrderAlert, stopOrderAlert } from "@/lib/sounds";
+import { useStoredFlag } from "@/hooks/use-stored-flag";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useKitchenNotifications } from "@/hooks/use-kitchen-notifications";
 import dynamic from "next/dynamic";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
 
 // Lazy-load: conditionally displayed (modals, overlays, scanner)
-const AudioUnlockScreen = dynamic(
-  () => import("@/components/boucher/AudioUnlockScreen"),
-  { ssr: false }
-);
-const OrderAlertOverlay = dynamic(
-  () => import("@/components/boucher/OrderAlertOverlay"),
-  { ssr: false }
-);
-const ItemUnavailableModal = dynamic(
-  () => import("@/components/boucher/ItemUnavailableModal"),
-  { ssr: false }
-);
-const PriceAdjustModal = dynamic(
-  () => import("@/components/boucher/PriceAdjustModal"),
-  { ssr: false }
-);
-const QRScanner = dynamic(
-  () => import("@/components/boucher/QRScanner").then((m) => m.QRScanner),
-  { ssr: false }
-);
+const AudioUnlockScreen = dynamic(() => import("@/components/boucher/AudioUnlockScreen"), {
+  ssr: false,
+});
+const OrderAlertOverlay = dynamic(() => import("@/components/boucher/OrderAlertOverlay"), {
+  ssr: false,
+});
+const ItemUnavailableModal = dynamic(() => import("@/components/boucher/ItemUnavailableModal"), {
+  ssr: false,
+});
+const PriceAdjustModal = dynamic(() => import("@/components/boucher/PriceAdjustModal"), {
+  ssr: false,
+});
+const QRScanner = dynamic(() => import("@/components/boucher/QRScanner").then((m) => m.QRScanner), {
+  ssr: false,
+});
 import { toast } from "sonner";
 
 // ─────────────────────────────────────────────
@@ -102,21 +102,24 @@ const STATUS_BADGE: Record<string, { label: string; color: string; icon: typeof 
   COMPLETED: { label: "Terminée", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
   DENIED: { label: "Refusée", color: "bg-red-500/20 text-red-400", icon: XCircle },
   CANCELLED: { label: "Annulée", color: "bg-red-500/20 text-red-400", icon: Ban },
-  AUTO_CANCELLED: { label: "Expirée", color: "bg-gray-500/20 text-gray-500 dark:text-gray-400", icon: Ban },
-  PARTIALLY_DENIED: { label: "Partielle", color: "bg-orange-500/20 text-orange-400", icon: XCircle },
+  AUTO_CANCELLED: {
+    label: "Expirée",
+    color: "bg-gray-500/20 text-gray-500 dark:text-gray-400",
+    icon: Ban,
+  },
+  PARTIALLY_DENIED: {
+    label: "Partielle",
+    color: "bg-orange-500/20 text-orange-400",
+    icon: XCircle,
+  },
 };
 
 // ─────────────────────────────────────────────
 // Main Kitchen Page
 // ─────────────────────────────────────────────
 export default function KitchenModePage() {
-  // Audio unlock state (persisted per session)
-  const [audioUnlocked, setAudioUnlocked] = useState(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("audioUnlocked") === "true";
-    }
-    return false;
-  });
+  // Audio unlock state (persisted per session by AudioUnlockScreen), null until mounted
+  const [audioUnlocked, setAudioUnlocked] = useStoredFlag("session", "audioUnlocked");
 
   // Shop info
   const [shopName, setShopName] = useState("");
@@ -149,24 +152,19 @@ export default function KitchenModePage() {
   mutedRef.current = muted;
 
   // Simple mode (2 columns: Nouvelles | Pretes, no En cours)
-  const [simpleMode, setSimpleMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("klikgo-simple-mode") === "true";
-    }
-    return false;
-  });
+  const [storedSimpleMode, setSimpleMode] = useStoredFlag("local", "klikgo-simple-mode");
+  const simpleMode = storedSimpleMode ?? false;
 
   // Connected indicator — fed by the timestamp of the last successful poll
   const [connected, setConnected] = useState(true);
   const lastSuccessRef = useRef<number | null>(null);
 
-  // Live clock (ticks every second)
-  const [clockStr, setClockStr] = useState(() =>
-    new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-  );
+  // Live clock (ticks every second), read only after mount: none in the server render
+  const [clockStr, setClockStr] = useState<string | null>(null);
   useEffect(() => {
     const tick = () =>
       setClockStr(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
+    tick();
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
   }, []);
@@ -193,8 +191,10 @@ export default function KitchenModePage() {
     readyCount,
     historyCount,
     refetch,
+    refreshHistory,
     authExpired,
     lastSuccessAt,
+    activeTruncated,
   } = useOrderPolling({
     intervalMs: 5000,
     onNewOrder: (order) => {
@@ -218,7 +218,10 @@ export default function KitchenModePage() {
     onScheduledReady: (order) => {
       // Scheduled order entered 30-min window → moves up to "À préparer maintenant" in En cours
       const pickupTime = order.pickupSlotStart
-        ? new Date(order.pickupSlotStart).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+        ? new Date(order.pickupSlotStart).toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
         : "";
       const ticketNum = order.displayNumber || `#${order.orderNumber}`;
       // Show alert overlay
@@ -289,7 +292,11 @@ export default function KitchenModePage() {
           // Pause over: refetch once per pauseEndsAt value, then at most every 15 s
           // while the server still returns it (failed request, clock skew)
           const last = expiredPauseFetchRef.current;
-          if (!last || last.key !== shopPauseEndsAt || Date.now() - last.at > PAUSE_EXPIRY_RETRY_MS) {
+          if (
+            !last ||
+            last.key !== shopPauseEndsAt ||
+            Date.now() - last.at > PAUSE_EXPIRY_RETRY_MS
+          ) {
             expiredPauseFetchRef.current = { key: shopPauseEndsAt, at: Date.now() };
             fetchShopInfo();
           }
@@ -355,6 +362,7 @@ export default function KitchenModePage() {
         toast.success(actionLabels[action] || "Action effectuee");
       } else {
         const json = await res.json().catch(() => null);
+        await refetch();
         const msg = json?.error?.message || "Erreur lors de l'action";
         toast.error(msg);
       }
@@ -376,6 +384,7 @@ export default function KitchenModePage() {
         toast.success("Rupture signalee");
       } else {
         const json = await res.json().catch(() => null);
+        await refetch();
         toast.error(json?.error?.message || "Erreur lors du signalement");
       }
     } catch {
@@ -408,18 +417,18 @@ export default function KitchenModePage() {
     }
   }
 
-  // ── Audio unlock screen ──
-  if (!audioUnlocked) {
+  // ── Audio unlock screen (not before the session flag is read) ──
+  if (audioUnlocked === false) {
     return <AudioUnlockScreen onUnlocked={() => setAudioUnlocked(true)} />;
   }
 
   // ── Loading state ──
-  if (loading && orders.length === 0) {
+  if (audioUnlocked === null || (loading && orders.length === 0)) {
     return (
-      <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <Loader2 className="w-10 h-10 animate-spin text-[#DC2626] mx-auto" />
-          <p className="text-gray-500 text-sm">Chargement des commandes...</p>
+      <div className="fixed inset-0 flex items-center justify-center bg-[#0a0a0a]">
+        <div className="space-y-3 text-center">
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#DC2626]" />
+          <p className="text-sm text-gray-500">Chargement des commandes...</p>
         </div>
       </div>
     );
@@ -435,25 +444,70 @@ export default function KitchenModePage() {
       if (!o.pickupSlotStart) return false;
       return new Date(o.pickupSlotStart).getTime() > Date.now() + THIRTY_MIN;
     })
-    .sort((a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime());
+    .sort(
+      (a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime()
+    );
 
   // Tab data — 4 tabs: Nouvelles | En cours | Prêtes | Historique
-  const tabs: { key: Tab; label: string; shortLabel: string; count: number; icon: typeof Bell; color: string }[] = [
-    { key: "nouvelles", label: "Nouvelles", shortLabel: "Nouv.", count: pendingCount, icon: Bell, color: "amber" },
-    { key: "en-cours", label: "En cours", shortLabel: "En cours", count: inProgressCount, icon: ChefHat, color: "blue" },
-    { key: "pretes", label: "Prêtes", shortLabel: "Prêtes", count: readyCount, icon: CheckCircle, color: "emerald" },
-    { key: "historique", label: "Historique", shortLabel: "Histo.", count: historyCount, icon: ScrollText, color: "gray" as string },
+  const tabs: {
+    key: Tab;
+    label: string;
+    shortLabel: string;
+    count: number;
+    icon: typeof Bell;
+    color: string;
+  }[] = [
+    {
+      key: "nouvelles",
+      label: "Nouvelles",
+      shortLabel: "Nouv.",
+      count: pendingCount,
+      icon: Bell,
+      color: "amber",
+    },
+    {
+      key: "en-cours",
+      label: "En cours",
+      shortLabel: "En cours",
+      count: inProgressCount,
+      icon: ChefHat,
+      color: "blue",
+    },
+    {
+      key: "pretes",
+      label: "Prêtes",
+      shortLabel: "Prêtes",
+      count: readyCount,
+      icon: CheckCircle,
+      color: "emerald",
+    },
+    {
+      key: "historique",
+      label: "Historique",
+      shortLabel: "Histo.",
+      count: historyCount,
+      icon: ScrollText,
+      color: "gray" as string,
+    },
   ];
 
-  // Get orders for active tab (mobile)
+  // Get orders for active tab (mobile); the history tab renders historyOrders
   const activeOrders =
     activeTab === "nouvelles"
       ? pendingOrders
-      : activeTab === "en-cours"
-      ? inProgressOrders
       : activeTab === "pretes"
-      ? readyOrders
-      : historyOrders;
+        ? readyOrders
+        : inProgressOrders;
+
+  // History tab or drawer opened: re-read the finished orders now instead of waiting for the slow cadence
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    if (tab === "historique") refreshHistory();
+  };
+  const openHistoryDrawer = () => {
+    setShowHistory(true);
+    refreshHistory();
+  };
 
   return (
     <>
@@ -486,9 +540,9 @@ export default function KitchenModePage() {
 
       {/* ── QR Scanner modal ── */}
       {showScanner && (
-        <div className="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-[#1a1a1a] rounded-2xl max-w-md w-full p-5 space-y-4">
-            <h3 className="text-white font-bold text-base">Scanner QR de retrait</h3>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-2xl bg-[#1a1a1a] p-5">
+            <h3 className="text-base font-bold text-white">Scanner QR de retrait</h3>
             <QRScanner
               onClose={() => setShowScanner(false)}
               onScanned={() => {
@@ -498,7 +552,7 @@ export default function KitchenModePage() {
             />
             <button
               onClick={() => setShowScanner(false)}
-              className="w-full min-h-[44px] py-2.5 rounded-xl bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-white/10 transition-all text-sm"
+              className="min-h-[44px] w-full rounded-xl bg-white/5 py-2.5 text-sm text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
             >
               Fermer
             </button>
@@ -508,25 +562,35 @@ export default function KitchenModePage() {
 
       {/* ── Pause modal (v3 — cards sélectionnables) ── */}
       {showPauseModal && (
-        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="presentation" onClick={() => setShowPauseModal(false)}>
-          <div className="bg-[#1C1C1E] rounded-2xl max-w-sm w-full p-6 space-y-5 border border-[#3F3F46]" onClick={(e) => e.stopPropagation()} style={{ fontFamily: "Outfit, sans-serif" }}>
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setShowPauseModal(false)}
+        >
+          <div
+            className="w-full max-w-sm space-y-5 rounded-2xl border border-[#3F3F46] bg-[#1C1C1E] p-6"
+            onClick={(e) => e.stopPropagation()}
+            style={{ fontFamily: "Outfit, sans-serif" }}
+          >
             <div>
-              <h3 className="text-white font-bold text-lg">Suspendre les commandes</h3>
-              <p className="text-sm text-[#78716C] mt-1">Les clients verront que votre boutique est temporairement indisponible.</p>
+              <h3 className="text-lg font-bold text-white">Suspendre les commandes</h3>
+              <p className="mt-1 text-sm text-[#78716C]">
+                Les clients verront que votre boutique est temporairement indisponible.
+              </p>
             </div>
             <div className="grid grid-cols-3 gap-3">
               {[15, 30, 60].map((min) => (
                 <button
                   key={min}
                   onClick={() => setSelectedPauseDuration(min)}
-                  className={`py-4 rounded-xl text-center transition-all border ${
+                  className={`rounded-xl border py-4 text-center transition-all ${
                     selectedPauseDuration === min
-                      ? "bg-[#F59E0B]/10 border-[#F59E0B] text-[#F59E0B]"
-                      : "bg-white/5 border-[#3F3F46] text-gray-500 dark:text-gray-400 hover:bg-white/10"
+                      ? "border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]"
+                      : "border-[#3F3F46] bg-white/5 text-gray-500 hover:bg-white/10 dark:text-gray-400"
                   }`}
                 >
-                  <span className="text-2xl font-bold block">{min}</span>
-                  <span className="text-xs mt-0.5 block opacity-70">minutes</span>
+                  <span className="block text-2xl font-bold">{min}</span>
+                  <span className="mt-0.5 block text-xs opacity-70">minutes</span>
                 </button>
               ))}
             </div>
@@ -537,18 +601,27 @@ export default function KitchenModePage() {
                   const res = await fetch("/api/boucher/shop/status", {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "pause", reason: "Pause manuelle", durationMin: selectedPauseDuration }),
+                    body: JSON.stringify({
+                      action: "pause",
+                      reason: "Pause manuelle",
+                      durationMin: selectedPauseDuration,
+                    }),
                   });
-                  if (res.ok) { fetchShopInfo(); toast.success(`Pause ${selectedPauseDuration} min`); }
-                } catch { toast.error("Erreur"); }
+                  if (res.ok) {
+                    fetchShopInfo();
+                    toast.success(`Pause ${selectedPauseDuration} min`);
+                  }
+                } catch {
+                  toast.error("Erreur");
+                }
               }}
-              className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-black font-bold py-3.5 rounded-xl transition-colors text-sm"
+              className="w-full rounded-xl bg-[#F59E0B] py-3.5 text-sm font-bold text-black transition-colors hover:bg-[#D97706]"
             >
               Suspendre pendant {selectedPauseDuration} min
             </button>
             <button
               onClick={() => setShowPauseModal(false)}
-              className="w-full py-2.5 rounded-xl text-[#78716C] hover:text-white transition-colors text-sm"
+              className="w-full rounded-xl py-2.5 text-sm text-[#78716C] transition-colors hover:text-white"
             >
               Annuler
             </button>
@@ -559,23 +632,23 @@ export default function KitchenModePage() {
       {/* ══════════════════════════════════════════ */}
       {/* ── KITCHEN INTERFACE ── */}
       {/* ══════════════════════════════════════════ */}
-      <div className="fixed inset-0 bg-[#0a0a0a] flex flex-col">
+      <div className="fixed inset-0 flex flex-col bg-[#0a0a0a]">
         {/* ── Top bar (v3) ── */}
-        <header className="shrink-0 bg-[#111] border-b border-white/5 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-1.5 sm:gap-3">
+        <header className="flex shrink-0 items-center justify-between gap-1.5 border-b border-white/5 bg-[#111] px-2 py-1.5 sm:gap-3 sm:px-4 sm:py-2">
           {/* Section gauche — Logo + Nom boutique */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <a href="/boucher/dashboard" className="flex items-center gap-2 shrink-0">
-              <div className="w-[24px] h-[24px] sm:w-[26px] sm:h-[26px] rounded-md bg-[#DC2626] flex items-center justify-center">
-                <span className="text-white font-black text-[10px] sm:text-xs leading-none">K</span>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <a href="/boucher/dashboard" className="flex shrink-0 items-center gap-2">
+              <div className="flex h-[24px] w-[24px] items-center justify-center rounded-md bg-[#DC2626] sm:h-[26px] sm:w-[26px]">
+                <span className="text-[10px] font-black leading-none text-white sm:text-xs">K</span>
               </div>
-              <span className="text-sm font-bold text-white hidden sm:inline">
+              <span className="hidden text-sm font-bold text-white sm:inline">
                 Klik<span className="text-[#DC2626]">&amp;</span>Go
               </span>
             </a>
             {shopName && (
               <>
-                <div className="w-px h-5 bg-white/10 shrink-0 hidden sm:block" />
-                <span className="text-xs text-[#78716C] truncate hidden sm:inline">{shopName}</span>
+                <div className="hidden h-5 w-px shrink-0 bg-white/10 sm:block" />
+                <span className="hidden truncate text-xs text-[#78716C] sm:inline">{shopName}</span>
               </>
             )}
           </div>
@@ -598,18 +671,30 @@ export default function KitchenModePage() {
                       fetchShopInfo();
                       toast.success(isOnline ? "Boutique hors ligne" : "Boutique en ligne");
                     }
-                  } catch { toast.error("Erreur"); }
+                  } catch {
+                    toast.error("Erreur");
+                  }
                 }}
-                className="relative w-9 h-5 sm:w-11 sm:h-6 rounded-full transition-colors duration-200 focus:outline-none"
-                style={{ backgroundColor: shopStatus === "OPEN" || shopStatus === "BUSY" ? "#16A34A" : "#3F3F46" }}
+                className="relative h-5 w-9 rounded-full transition-colors duration-200 focus:outline-none sm:h-6 sm:w-11"
+                style={{
+                  backgroundColor:
+                    shopStatus === "OPEN" || shopStatus === "BUSY" ? "#16A34A" : "#3F3F46",
+                }}
               >
                 <span
-                  className="absolute top-0.5 left-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full shadow transition-transform duration-200"
-                  style={{ transform: shopStatus === "OPEN" || shopStatus === "BUSY" ? "translateX(16px)" : "translateX(0)" }}
+                  className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 sm:h-5 sm:w-5"
+                  style={{
+                    transform:
+                      shopStatus === "OPEN" || shopStatus === "BUSY"
+                        ? "translateX(16px)"
+                        : "translateX(0)",
+                  }}
                 />
               </button>
               <div className="hidden sm:block">
-                <span className={`text-xs font-bold ${shopStatus === "OPEN" || shopStatus === "BUSY" ? "text-[#16A34A]" : "text-[#78716C]"}`}>
+                <span
+                  className={`text-xs font-bold ${shopStatus === "OPEN" || shopStatus === "BUSY" ? "text-[#16A34A]" : "text-[#78716C]"}`}
+                >
                   {shopStatus === "OPEN" || shopStatus === "BUSY" ? "En ligne" : "Hors ligne"}
                 </span>
                 <span className="block text-[10px] text-[#57534E]">Auto 8h-19h</span>
@@ -617,7 +702,7 @@ export default function KitchenModePage() {
             </div>
 
             {/* Séparateur */}
-            <div className="w-px h-5 sm:h-6 bg-[#262626] shrink-0" />
+            <div className="h-5 w-px shrink-0 bg-[#262626] sm:h-6" />
 
             {/* Bouton Pause */}
             {shopStatus === "PAUSED" ? (
@@ -629,19 +714,29 @@ export default function KitchenModePage() {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "resume" }),
                     });
-                    if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
-                  } catch { toast.error("Erreur"); }
+                    if (res.ok) {
+                      fetchShopInfo();
+                      toast.success("Boutique en ligne");
+                    }
+                  } catch {
+                    toast.error("Erreur");
+                  }
                 }}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 hover:bg-[#F59E0B]/30 transition-all min-h-[32px] sm:min-h-[36px] animate-pulse"
+                className="flex min-h-[32px] animate-pulse items-center gap-1 rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/20 px-2 py-1 text-[10px] font-bold text-[#F59E0B] transition-all hover:bg-[#F59E0B]/30 sm:min-h-[36px] sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
               >
-                <Pause size={10} className="sm:w-3 sm:h-3" /> <span className="hidden sm:inline">{pauseCountdownStr || "En pause"}</span><span className="sm:hidden">{pauseCountdownStr || "Pause"}</span>
+                <Pause size={10} className="sm:h-3 sm:w-3" />{" "}
+                <span className="hidden sm:inline">{pauseCountdownStr || "En pause"}</span>
+                <span className="sm:hidden">{pauseCountdownStr || "Pause"}</span>
               </button>
             ) : (
               <button
-                onClick={() => { setSelectedPauseDuration(15); setShowPauseModal(true); }}
-                className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold bg-[#1C1C1E] text-[#F59E0B] border border-[#3F3F46] hover:bg-[#262626] transition-all min-h-[32px] sm:min-h-[36px]"
+                onClick={() => {
+                  setSelectedPauseDuration(15);
+                  setShowPauseModal(true);
+                }}
+                className="flex min-h-[32px] items-center gap-1 rounded-lg border border-[#3F3F46] bg-[#1C1C1E] px-2 py-1 text-[10px] font-bold text-[#F59E0B] transition-all hover:bg-[#262626] sm:min-h-[36px] sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
               >
-                <Pause size={10} className="sm:w-3 sm:h-3" /> Pause
+                <Pause size={10} className="sm:h-3 sm:w-3" /> Pause
               </button>
             )}
           </div>
@@ -649,15 +744,19 @@ export default function KitchenModePage() {
           {/* Section droite — Horloge + icônes */}
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Horloge */}
-            <span className="text-xs sm:text-sm font-bold text-white tabular-nums lg:text-xl">
-              {clockStr}
-            </span>
+            {clockStr !== null && (
+              <span className="text-xs font-bold tabular-nums text-white sm:text-sm lg:text-xl">
+                {clockStr}
+              </span>
+            )}
 
             {/* Sound toggle */}
             <button
               onClick={() => setMuted(!muted)}
-              className={`min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center rounded-lg transition-colors ${
-                muted ? "bg-red-500/20 text-red-400" : "bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white"
+              className={`flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg transition-colors sm:min-h-[36px] sm:min-w-[36px] ${
+                muted
+                  ? "bg-red-500/20 text-red-400"
+                  : "bg-white/5 text-gray-500 hover:text-white dark:text-gray-400"
               }`}
               title={muted ? "Son désactivé" : "Son activé"}
             >
@@ -671,8 +770,10 @@ export default function KitchenModePage() {
                 setSimpleMode(next);
                 localStorage.setItem("klikgo-simple-mode", String(next));
               }}
-              className={`hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-colors ${
-                simpleMode ? "bg-amber-500/20 text-amber-400" : "bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white"
+              className={`hidden min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-colors sm:flex ${
+                simpleMode
+                  ? "bg-amber-500/20 text-amber-400"
+                  : "bg-white/5 text-gray-500 hover:text-white dark:text-gray-400"
               }`}
               title={simpleMode ? "Mode simple actif" : "Passer en mode simple"}
             >
@@ -682,25 +783,25 @@ export default function KitchenModePage() {
             {/* QR Scanner — hidden on small phones, visible on tablets+ */}
             <button
               onClick={() => setShowScanner(true)}
-              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 transition-colors hover:bg-white/10 hover:text-white dark:text-gray-400 sm:flex"
               title="Scanner QR"
             >
               <ScanLine size={16} />
             </button>
 
             {/* Connection status */}
-            <div className="min-h-[32px] min-w-[24px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center">
+            <div className="flex min-h-[32px] min-w-[24px] items-center justify-center sm:min-h-[36px] sm:min-w-[36px]">
               {connected ? (
-                <Wifi size={12} className="text-emerald-400 sm:w-[14px] sm:h-[14px]" />
+                <Wifi size={12} className="text-emerald-400 sm:h-[14px] sm:w-[14px]" />
               ) : (
-                <WifiOff size={12} className="text-red-400 animate-pulse sm:w-[14px] sm:h-[14px]" />
+                <WifiOff size={12} className="animate-pulse text-red-400 sm:h-[14px] sm:w-[14px]" />
               )}
             </div>
 
             {/* Settings — hidden on small phones */}
             <a
               href="/boucher/parametres"
-              className="hidden sm:flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 dark:text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="hidden min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 transition-colors hover:bg-white/10 hover:text-white dark:text-gray-400 sm:flex"
               title="Parametres"
             >
               <Settings size={16} />
@@ -712,27 +813,51 @@ export default function KitchenModePage() {
         {authExpired && (
           <div
             role="alert"
-            className="shrink-0 px-3 sm:px-4 py-2 flex items-center justify-between gap-3 bg-red-500/15 border-b border-red-500/30"
+            className="flex shrink-0 items-center justify-between gap-3 border-b border-red-500/30 bg-red-500/15 px-3 py-2 sm:px-4"
           >
-            <p className="text-sm font-bold text-red-300 min-w-0">
-              <AlertTriangle size={14} className="inline mr-1.5 -mt-0.5" />
+            <p className="min-w-0 text-sm font-bold text-red-300">
+              <AlertTriangle size={14} className="-mt-0.5 mr-1.5 inline" />
               Session expirée
-              <span className="font-medium text-red-200/80"> — les nouvelles commandes ne s'affichent plus. Rechargez la page pour vous reconnecter.</span>
+              <span className="font-medium text-red-200/80">
+                {" "}
+                — les nouvelles commandes ne s'affichent plus. Rechargez la page pour vous
+                reconnecter.
+              </span>
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="shrink-0 flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-4 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold rounded-lg transition-all text-sm"
+              className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#DC2626] px-4 text-sm font-bold text-white transition-all hover:bg-[#b91c1c] active:scale-95"
             >
               <RefreshCw size={16} /> Recharger
             </button>
           </div>
         )}
 
+        {/* ── ACTIVE ORDERS TRUNCATED BANNER (server safety cap reached) ── */}
+        {activeTruncated && (
+          <div
+            role="alert"
+            className="shrink-0 border-b border-red-500/30 bg-red-500/15 px-3 py-2 sm:px-4"
+          >
+            <p className="text-sm font-bold text-red-300">
+              <AlertTriangle size={14} className="-mt-0.5 mr-1.5 inline" />
+              Trop de commandes actives pour toutes les afficher. Traitez ou annulez les plus
+              anciennes, ou contactez le support.
+            </p>
+          </div>
+        )}
+
         {/* ── PAUSE BANNER (v3 — fond discret, countdown) ── */}
         {shopStatus === "PAUSED" && (
-          <div className="shrink-0 px-4 py-2 flex items-center justify-between gap-3" style={{ background: "rgba(245,158,11,0.1)", borderBottom: "1px solid rgba(245,158,11,0.2)" }}>
+          <div
+            className="flex shrink-0 items-center justify-between gap-3 px-4 py-2"
+            style={{
+              background: "rgba(245,158,11,0.1)",
+              borderBottom: "1px solid rgba(245,158,11,0.2)",
+            }}
+          >
             <p className="text-sm font-bold text-[#F59E0B]">
-              <Pause size={14} className="inline mr-1.5" />
+              <Pause size={14} className="mr-1.5 inline" />
               Commandes suspendues{pauseCountdownStr ? ` — reprise dans ${pauseCountdownStr}` : ""}
             </p>
             <button
@@ -743,10 +868,15 @@ export default function KitchenModePage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action: "resume" }),
                   });
-                  if (res.ok) { fetchShopInfo(); toast.success("Boutique en ligne"); }
-                } catch { toast.error("Erreur"); }
+                  if (res.ok) {
+                    fetchShopInfo();
+                    toast.success("Boutique en ligne");
+                  }
+                } catch {
+                  toast.error("Erreur");
+                }
               }}
-              className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 bg-[#F59E0B] hover:bg-[#D97706] text-black font-bold rounded-lg transition-colors text-xs"
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#F59E0B] px-4 py-1.5 text-xs font-bold text-black transition-colors hover:bg-[#D97706]"
             >
               Reprendre
             </button>
@@ -755,7 +885,7 @@ export default function KitchenModePage() {
 
         {/* ── Wake Lock not supported warning ── */}
         {!wakeLockSupported && (
-          <div className="shrink-0 bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 text-center">
+          <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-center">
             <p className="text-[11px] text-amber-400">
               Désactivez la mise en veille dans les paramètres de votre tablette
             </p>
@@ -763,7 +893,7 @@ export default function KitchenModePage() {
         )}
 
         {/* ── Mobile/tablet tabs (lg-) ── */}
-        <div className="lg:hidden shrink-0 bg-[#111] border-b border-white/5 px-2 py-1.5">
+        <div className="shrink-0 border-b border-white/5 bg-[#111] px-2 py-1.5 lg:hidden">
           <div className="flex gap-1 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -771,23 +901,21 @@ export default function KitchenModePage() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex-shrink-0 flex-1 flex items-center justify-center gap-1 min-h-[44px] px-2 rounded-lg text-xs font-semibold transition-all ${
-                    isActive
-                      ? "bg-[#DC2626] text-white"
-                      : "text-gray-500 hover:bg-white/5"
+                  onClick={() => selectTab(tab.key)}
+                  className={`flex min-h-[44px] flex-1 flex-shrink-0 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all ${
+                    isActive ? "bg-[#DC2626] text-white" : "text-gray-500 hover:bg-white/5"
                   }`}
                 >
                   <Icon size={14} />
                   <span className="truncate">{tab.shortLabel}</span>
                   {tab.count > 0 && (
                     <span
-                      className={`min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full px-1 ${
+                      className={`flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold ${
                         isActive
                           ? "bg-white/20 text-white"
                           : tab.key === "nouvelles"
-                          ? "bg-[#DC2626] text-white"
-                          : "bg-white/10 text-gray-500 dark:text-gray-400"
+                            ? "bg-[#DC2626] text-white"
+                            : "bg-white/10 text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       {tab.count}
@@ -802,7 +930,7 @@ export default function KitchenModePage() {
         {/* ══════════════════════════════════════════ */}
         {/* ── DESKTOP: 3-column layout (40% / flex / 20%) ── */}
         {/* ══════════════════════════════════════════ */}
-        <div className="flex-1 overflow-hidden hidden lg:flex pb-14">
+        <div className="hidden flex-1 overflow-hidden pb-14 lg:flex">
           {/* Column 1: Nouvelles */}
           <div className={simpleMode ? "w-[50%] shrink-0" : "w-[40%] shrink-0"}>
             <KitchenColumn
@@ -822,88 +950,111 @@ export default function KitchenModePage() {
           </div>
 
           {/* Divider */}
-          {!simpleMode && <div className="w-px bg-white/5 shrink-0" />}
+          {!simpleMode && <div className="w-px shrink-0 bg-white/5" />}
 
           {/* Column 2: En cours (flex-1) — split: À préparer + Programmées en attente */}
           {/* Hidden in simple mode */}
-          {!simpleMode && <div className="flex-1 min-w-0 flex flex-col h-full">
-            {/* Column header */}
-            <div className="shrink-0 px-3 py-2 bg-[#111] border-b border-white/5 flex items-center gap-1.5">
-              <div className="text-blue-400 bg-blue-500/20 p-1 rounded-md"><ChefHat size={16} /></div>
-              <h2 className="text-xs font-bold text-white">En cours</h2>
-              {inProgressCount > 0 && (
-                <span className="min-w-[20px] h-5 flex items-center justify-center text-[11px] font-bold rounded-full px-1 bg-blue-500 text-white">
-                  {inProgressCount}
-                </span>
-              )}
-            </div>
-
-            {/* Scrollable content — always split into 2 sections */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-              {/* Section 1: À préparer maintenant — always visible */}
-              <div className="flex items-center gap-2 px-1 pt-1">
-                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-gray-700"}`} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}>
-                  À PRÉPARER MAINTENANT
-                </span>
-                {prepareNowOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
+          {!simpleMode && (
+            <div className="flex h-full min-w-0 flex-1 flex-col">
+              {/* Column header */}
+              <div className="flex shrink-0 items-center gap-1.5 border-b border-white/5 bg-[#111] px-3 py-2">
+                <div className="rounded-md bg-blue-500/20 p-1 text-blue-400">
+                  <ChefHat size={16} />
+                </div>
+                <h2 className="text-xs font-bold text-white">En cours</h2>
+                {inProgressCount > 0 && (
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1 text-[11px] font-bold text-white">
+                    {inProgressCount}
+                  </span>
                 )}
               </div>
-              {prepareNowOrders.length > 0 ? (
-                prepareNowOrders.map((order) => (
-                  <KitchenOrderCard
-                    key={order.id}
-                    order={order}
-                    shopName={shopName}
-                    shopPrepTime={shopPrepTime}
-                    onAction={handleAction}
-                    onStockIssue={setStockIssueOrder}
-                    onView={handleViewOrder}
-                    onAdjustPrice={setAdjustPriceOrder}
+
+              {/* Scrollable content — always split into 2 sections */}
+              <div className="flex-1 space-y-1.5 overflow-y-auto p-2">
+                {/* Section 1: À préparer maintenant — always visible */}
+                <div className="flex items-center gap-2 px-1 pt-1">
+                  <div
+                    className={`h-2 w-2 rounded-full ${prepareNowOrders.length > 0 ? "animate-pulse bg-emerald-400" : "bg-gray-700"}`}
                   />
-                ))
-              ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande à préparer</p>
-              )}
+                  <span
+                    className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}
+                  >
+                    À PRÉPARER MAINTENANT
+                  </span>
+                  {prepareNowOrders.length > 0 && (
+                    <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                      {prepareNowOrders.length}
+                    </span>
+                  )}
+                </div>
+                {prepareNowOrders.length > 0 ? (
+                  prepareNowOrders.map((order) => (
+                    <KitchenOrderCard
+                      key={order.id}
+                      order={order}
+                      shopName={shopName}
+                      shopPrepTime={shopPrepTime}
+                      onAction={handleAction}
+                      onStockIssue={setStockIssueOrder}
+                      onView={handleViewOrder}
+                      onAdjustPrice={setAdjustPriceOrder}
+                    />
+                  ))
+                ) : (
+                  <p className="py-3 text-center text-xs text-gray-700">
+                    Aucune commande à préparer
+                  </p>
+                )}
 
-              {/* Separator — always visible */}
-              <div className="flex items-center gap-3 py-1.5">
-                <div className="flex-1 h-px bg-[#1A1A1A]" />
-                <CalendarClock size={13} className="text-[#F59E0B]/50" />
-                <div className="flex-1 h-px bg-[#1A1A1A]" />
-              </div>
+                {/* Separator — always visible */}
+                <div className="flex items-center gap-3 py-1.5">
+                  <div className="h-px flex-1 bg-[#1A1A1A]" />
+                  <CalendarClock size={13} className="text-[#F59E0B]/50" />
+                  <div className="h-px flex-1 bg-[#1A1A1A]" />
+                </div>
 
-              {/* Section 2: Précommandes — always visible */}
-              <div className="flex items-center gap-2 px-1">
-                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}>
-                  PRÉCOMMANDES
-                </span>
-                {scheduledWaitingOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-amber-500/20 text-[#FBBF24] px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
+                {/* Section 2: Précommandes — always visible */}
+                <div className="flex items-center gap-2 px-1">
+                  <CalendarClock
+                    size={14}
+                    className={
+                      scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"
+                    }
+                  />
+                  <span
+                    className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}
+                  >
+                    PRÉCOMMANDES
+                  </span>
+                  {scheduledWaitingOrders.length > 0 && (
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-[#FBBF24]">
+                      {scheduledWaitingOrders.length}
+                    </span>
+                  )}
+                </div>
+                {scheduledWaitingOrders.length > 0 ? (
+                  scheduledWaitingOrders.map((order) => (
+                    <KitchenOrderCard
+                      key={order.id}
+                      order={order}
+                      shopName={shopName}
+                      shopPrepTime={shopPrepTime}
+                      onAction={handleAction}
+                      onStockIssue={setStockIssueOrder}
+                      onView={handleViewOrder}
+                    />
+                  ))
+                ) : (
+                  <p className="py-3 text-center text-xs text-gray-700">
+                    Aucune commande programmée
+                  </p>
                 )}
               </div>
-              {scheduledWaitingOrders.length > 0 ? (
-                scheduledWaitingOrders.map((order) => (
-                  <KitchenOrderCard
-                    key={order.id}
-                    order={order}
-                    shopName={shopName}
-                    shopPrepTime={shopPrepTime}
-                    onAction={handleAction}
-                    onStockIssue={setStockIssueOrder}
-                    onView={handleViewOrder}
-                  />
-                ))
-              ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmée</p>
-              )}
             </div>
-          </div>}
+          )}
 
           {/* Divider */}
-          {!simpleMode && <div className="w-px bg-white/5 shrink-0" />}
+          {!simpleMode && <div className="w-px shrink-0 bg-white/5" />}
 
           {/* Column 3: Prêtes (+ En cours in simple mode) */}
           <div className={simpleMode ? "w-[50%] shrink-0" : "w-1/5 shrink-0"}>
@@ -924,7 +1075,7 @@ export default function KitchenModePage() {
                 readyCount > 0 ? (
                   <button
                     onClick={() => setShowScanner(true)}
-                    className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] active:scale-95 text-white font-bold min-h-[44px] py-3 rounded-xl transition-all mb-3"
+                    className="mb-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#DC2626] py-3 font-bold text-white transition-all hover:bg-[#b91c1c] active:scale-95"
                   >
                     <ScanLine size={16} /> Scanner QR
                   </button>
@@ -935,15 +1086,15 @@ export default function KitchenModePage() {
         </div>
 
         {/* ── Desktop bottom bar (Historique) ── */}
-        <div className="hidden lg:flex fixed bottom-0 inset-x-0 h-14 bg-zinc-900 border-t border-zinc-800 items-center justify-center gap-4 px-6 z-40">
+        <div className="fixed inset-x-0 bottom-0 z-40 hidden h-14 items-center justify-center gap-4 border-t border-zinc-800 bg-zinc-900 px-6 lg:flex">
           <button
-            onClick={() => setShowHistory(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors text-sm font-medium"
+            onClick={openHistoryDrawer}
+            className="flex items-center gap-2 rounded-xl bg-white/5 px-5 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
           >
             <ScrollText size={16} />
             Historique
             {historyCount > 0 && (
-              <span className="min-w-[20px] h-5 flex items-center justify-center bg-white/10 text-gray-300 text-[10px] font-bold rounded-full px-1.5">
+              <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/10 px-1.5 text-[10px] font-bold text-gray-300">
                 {historyCount}
               </span>
             )}
@@ -953,12 +1104,12 @@ export default function KitchenModePage() {
         {/* ══════════════════════════════════════════ */}
         {/* ── MOBILE: Single column (3 tabs) ── */}
         {/* ══════════════════════════════════════════ */}
-        <div className="flex-1 overflow-y-auto lg:hidden p-3 pb-4 space-y-1.5">
+        <div className="flex-1 space-y-1.5 overflow-y-auto p-3 pb-4 lg:hidden">
           {/* Scanner button for ready tab */}
           {activeTab === "pretes" && readyCount > 0 && (
             <button
               onClick={() => setShowScanner(true)}
-              className="w-full flex items-center justify-center gap-2 bg-[#DC2626] hover:bg-[#b91c1c] text-white font-bold min-h-[44px] py-3 rounded-xl transition-all"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#DC2626] py-3 font-bold text-white transition-all hover:bg-[#b91c1c]"
             >
               <ScanLine size={16} /> Scanner QR
             </button>
@@ -966,27 +1117,31 @@ export default function KitchenModePage() {
 
           {activeTab === "historique" ? (
             /* History tab — read-only compact cards */
-            activeOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
+            historyOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-20">
                 <ScrollText size={40} className="text-gray-700" />
-                <p className="text-gray-600 text-sm">Aucune commande récente</p>
+                <p className="text-sm text-gray-600">Aucune commande récente</p>
               </div>
             ) : (
-              activeOrders.map((order) => (
-                <HistoryCard key={order.id} order={order} />
-              ))
+              historyOrders.map((order) => <HistoryCard key={order.id} order={order} />)
             )
           ) : activeTab === "en-cours" ? (
             /* En cours tab — always split: À préparer + Précommandes */
             <>
               {/* Section 1: À préparer maintenant */}
               <div className="flex items-center gap-2 px-1 pt-1">
-                <div className={`w-2 h-2 rounded-full ${prepareNowOrders.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-gray-700"}`} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}>
+                <div
+                  className={`h-2 w-2 rounded-full ${prepareNowOrders.length > 0 ? "animate-pulse bg-emerald-400" : "bg-gray-700"}`}
+                />
+                <span
+                  className={`text-xs font-bold uppercase tracking-wider ${prepareNowOrders.length > 0 ? "text-emerald-400" : "text-gray-600"}`}
+                >
                   À PRÉPARER MAINTENANT
                 </span>
                 {prepareNowOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full">{prepareNowOrders.length}</span>
+                  <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                    {prepareNowOrders.length}
+                  </span>
                 )}
               </div>
               {prepareNowOrders.length > 0 ? (
@@ -1003,24 +1158,31 @@ export default function KitchenModePage() {
                   />
                 ))
               ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande à préparer</p>
+                <p className="py-3 text-center text-xs text-gray-700">Aucune commande à préparer</p>
               )}
 
               {/* Separator */}
               <div className="flex items-center gap-3 py-1.5">
-                <div className="flex-1 h-px bg-[#1A1A1A]" />
+                <div className="h-px flex-1 bg-[#1A1A1A]" />
                 <CalendarClock size={13} className="text-[#F59E0B]/50" />
-                <div className="flex-1 h-px bg-[#1A1A1A]" />
+                <div className="h-px flex-1 bg-[#1A1A1A]" />
               </div>
 
               {/* Section 2: Précommandes */}
               <div className="flex items-center gap-2 px-1">
-                <CalendarClock size={14} className={scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"} />
-                <span className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}>
+                <CalendarClock
+                  size={14}
+                  className={scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-700"}
+                />
+                <span
+                  className={`text-xs font-bold uppercase tracking-wider ${scheduledWaitingOrders.length > 0 ? "text-[#FBBF24]" : "text-gray-600"}`}
+                >
                   PRÉCOMMANDES
                 </span>
                 {scheduledWaitingOrders.length > 0 && (
-                  <span className="text-[10px] font-bold bg-amber-500/20 text-[#FBBF24] px-1.5 py-0.5 rounded-full">{scheduledWaitingOrders.length}</span>
+                  <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-[#FBBF24]">
+                    {scheduledWaitingOrders.length}
+                  </span>
                 )}
               </div>
               {scheduledWaitingOrders.length > 0 ? (
@@ -1036,14 +1198,14 @@ export default function KitchenModePage() {
                   />
                 ))
               ) : (
-                <p className="text-xs text-gray-700 text-center py-3">Aucune commande programmée</p>
+                <p className="py-3 text-center text-xs text-gray-700">Aucune commande programmée</p>
               )}
             </>
           ) : activeOrders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="flex flex-col items-center justify-center gap-3 py-20">
               {activeTab === "nouvelles" && <Bell size={40} className="text-gray-700" />}
               {activeTab === "pretes" && <CheckCircle size={40} className="text-gray-700" />}
-              <p className="text-gray-600 text-sm">
+              <p className="text-sm text-gray-600">
                 {activeTab === "nouvelles" && "Aucune nouvelle commande"}
                 {activeTab === "pretes" && "Aucune commande prête"}
               </p>
@@ -1071,15 +1233,19 @@ export default function KitchenModePage() {
       {/* ── HISTORY DRAWER (slide-up) ── */}
       {/* ══════════════════════════════════════════ */}
       {showHistory && (
-        <div className="fixed inset-0 z-[70]" role="presentation" onClick={() => setShowHistory(false)}>
+        <div
+          className="fixed inset-0 z-[70]"
+          role="presentation"
+          onClick={() => setShowHistory(false)}
+        >
           <div className="absolute inset-0 bg-black/60" />
           <div
-            className="absolute bottom-0 inset-x-0 h-[70vh] bg-[#111] border-t border-white/10 rounded-t-2xl flex flex-col animate-slide-up"
+            className="absolute inset-x-0 bottom-0 flex h-[70vh] animate-slide-up flex-col rounded-t-2xl border-t border-white/10 bg-[#111]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Handle + Header */}
-            <div className="shrink-0 pt-3 pb-2 px-5">
-              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3" />
+            <div className="shrink-0 px-5 pb-2 pt-3">
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ScrollText size={16} className="text-gray-500 dark:text-gray-400" />
@@ -1088,29 +1254,26 @@ export default function KitchenModePage() {
                 </div>
                 <button
                   onClick={() => setShowHistory(false)}
-                  className="text-gray-500 hover:text-white text-sm px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                  className="rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-white/5 hover:text-white"
                 >
                   Fermer
                 </button>
               </div>
             </div>
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
+            <div className="flex-1 space-y-2 overflow-y-auto px-4 pb-6">
               {historyOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className="flex flex-col items-center justify-center gap-3 py-16">
                   <ScrollText size={32} className="text-gray-700" />
-                  <p className="text-gray-600 text-sm">Aucune commande récente</p>
+                  <p className="text-sm text-gray-600">Aucune commande récente</p>
                 </div>
               ) : (
-                historyOrders.map((order) => (
-                  <HistoryCard key={order.id} order={order} />
-                ))
+                historyOrders.map((order) => <HistoryCard key={order.id} order={order} />)
               )}
             </div>
           </div>
         </div>
       )}
-
     </>
   );
 }
@@ -1158,23 +1321,23 @@ function KitchenColumn({
   };
 
   return (
-    <div className="flex flex-col h-full min-w-0">
+    <div className="flex h-full min-w-0 flex-col">
       {/* Column header */}
-      <div className="shrink-0 px-3 py-2 bg-[#111] border-b border-white/5 flex items-center gap-1.5">
-        <div className={`${colorMap[color]} p-1 rounded-md`}>{icon}</div>
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-white/5 bg-[#111] px-3 py-2">
+        <div className={`${colorMap[color]} rounded-md p-1`}>{icon}</div>
         <h2 className="text-xs font-bold text-white">{title}</h2>
         {count > 0 && (
           <span
-            className={`min-w-[20px] h-5 flex items-center justify-center text-[11px] font-bold rounded-full px-1 ${
+            className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[11px] font-bold ${
               color === "amber"
                 ? "bg-amber-500 text-white"
                 : color === "blue"
-                ? "bg-blue-500 text-white"
-                : color === "purple"
-                ? "bg-purple-500 text-white"
-                : color === "gray"
-                ? "bg-gray-500 text-white"
-                : "bg-emerald-500 text-white"
+                  ? "bg-blue-500 text-white"
+                  : color === "purple"
+                    ? "bg-purple-500 text-white"
+                    : color === "gray"
+                      ? "bg-gray-500 text-white"
+                      : "bg-emerald-500 text-white"
             }`}
           >
             {count}
@@ -1183,12 +1346,12 @@ function KitchenColumn({
       </div>
 
       {/* Column content */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+      <div className="flex-1 space-y-1.5 overflow-y-auto p-2">
         {extra}
         {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <div className="flex flex-col items-center justify-center gap-3 py-16">
             {emptyIcon}
-            <p className="text-gray-600 text-sm">{emptyMessage}</p>
+            <p className="text-sm text-gray-600">{emptyMessage}</p>
           </div>
         ) : (
           orders.map((order) => (
@@ -1212,7 +1375,7 @@ function KitchenColumn({
 // ─────────────────────────────────────────────
 // History card (read-only, compact)
 // ─────────────────────────────────────────────
-function HistoryCard({ order }: { order: KitchenOrder }) {
+function HistoryCard({ order }: { order: KitchenHistoryOrder }) {
   const badge = STATUS_BADGE[order.status] || {
     label: order.status,
     color: "bg-gray-500/20 text-gray-500 dark:text-gray-400",
@@ -1221,35 +1384,40 @@ function HistoryCard({ order }: { order: KitchenOrder }) {
   const BadgeIcon = badge.icon;
 
   const clientName = order.user
-    ? (order.user.firstName.charAt(0).toUpperCase() + order.user.firstName.slice(1).toLowerCase() + "." + order.user.lastName.charAt(0).toUpperCase())
+    ? order.user.firstName.charAt(0).toUpperCase() +
+      order.user.firstName.slice(1).toLowerCase() +
+      "." +
+      order.user.lastName.charAt(0).toUpperCase()
     : "Client";
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
   const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <div className="bg-[#1a1a1a] rounded-xl border border-white/5 overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-white/5 bg-[#1a1a1a]">
       {/* Header row */}
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-bold text-base text-white">
-            {ticketNumber}
-          </span>
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-base font-bold text-white">{ticketNumber}</span>
           <span className="text-sm text-gray-500 dark:text-gray-400">{clientName}</span>
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${badge.color}`}>
+          <span
+            className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ${badge.color}`}
+          >
             <BadgeIcon size={10} />
             {badge.label}
           </span>
         </div>
-        <span className="text-sm font-bold text-white shrink-0 ml-2">
+        <span className="ml-2 shrink-0 text-sm font-bold text-white">
           {formatPrice(order.totalCents)}
         </span>
       </div>
 
       {/* Details row */}
-      <div className="px-4 pb-3 flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between px-4 pb-3 text-xs text-gray-500">
         <div className="flex items-center gap-3">
-          <span>{itemCount} article{itemCount > 1 ? "s" : ""}</span>
+          <span>
+            {itemCount} article{itemCount > 1 ? "s" : ""}
+          </span>
         </div>
         <span className="text-gray-600">{formatDate(order.updatedAt)}</span>
       </div>

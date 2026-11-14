@@ -2,7 +2,11 @@
 // HTML escape — prevent XSS in user-supplied fields
 // ─────────────────────────────────────────────
 function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // ─────────────────────────────────────────────
@@ -65,13 +69,17 @@ export function orderAccepted(data: {
         <p style="margin:0;font-size:24px;font-weight:700;color:#111827">${data.estimatedMinutes || "?"} min</p>
       </td></tr>
     </table>
-    ${data.qrCode ? `
+    ${
+      data.qrCode
+        ? `
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:20px;text-align:center">
       <tr><td>
         <p style="margin:0 0 8px;font-size:13px;color:#6b7280">QR Code de retrait</p>
         <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#111827;word-break:break-all">${data.qrCode}</p>
       </td></tr>
-    </table>` : ""}
+    </table>`
+        : ""
+    }
     <p style="margin:0 0 4px;font-size:13px;color:#9ca3af">Présentez ce QR code au boucher lors du retrait.</p>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
   `);
@@ -88,13 +96,17 @@ export function orderReady(data: {
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
       La commande <strong>${data.orderNumber}</strong> est prête à retirer chez <strong>${data.shopName}</strong>.
     </p>
-    ${data.qrCode ? `
+    ${
+      data.qrCode
+        ? `
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px;text-align:center">
       <tr><td>
         <p style="margin:0 0 8px;font-size:13px;color:#047857">QR Code de retrait</p>
         <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#065f46;word-break:break-all">${data.qrCode}</p>
       </td></tr>
-    </table>` : ""}
+    </table>`
+        : ""
+    }
     <p style="margin:0 0 4px;font-size:13px;color:#6b7280">Rendez-vous en boucherie avec votre QR code pour récupérer votre commande.</p>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
   `);
@@ -122,10 +134,7 @@ export function orderDenied(data: {
   `);
 }
 
-export function orderPending(data: {
-  orderNumber?: string;
-  customerName?: string;
-}): string {
+export function orderPending(data: { orderNumber?: string; customerName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udd14 Nouvelle commande !</h1>
@@ -137,10 +146,7 @@ export function orderPending(data: {
   `);
 }
 
-export function orderPickedUp(data: {
-  orderNumber?: string;
-  shopName?: string;
-}): string {
+export function orderPickedUp(data: { orderNumber?: string; shopName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udce6 Commande récupérée !</h1>
@@ -152,10 +158,7 @@ export function orderPickedUp(data: {
   `);
 }
 
-export function stockIssue(data: {
-  orderNumber?: string;
-  shopName?: string;
-}): string {
+export function stockIssue(data: { orderNumber?: string; shopName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u26a0\ufe0f Rupture de stock partielle</h1>
@@ -196,10 +199,7 @@ export function proRejected(): string {
   `);
 }
 
-export function cartAbandoned(data: {
-  shopName?: string;
-  nbItems?: number;
-}): string {
+export function cartAbandoned(data: { shopName?: string; nbItems?: number }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\uded2 Votre panier vous attend !</h1>
@@ -211,9 +211,7 @@ export function cartAbandoned(data: {
   `);
 }
 
-export function accountApproved(data: {
-  shopName?: string;
-}): string {
+export function accountApproved(data: { shopName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Bienvenue sur Klik&amp;Go !</h1>
@@ -229,7 +227,6 @@ export function accountApproved(data: {
     ${button(`${baseUrl}/boucher/dashboard`, "Accéder à mon espace")}
   `);
 }
-
 
 export function weeklyReport(data: {
   shopName?: string;
@@ -269,22 +266,23 @@ export function weeklyReport(data: {
         </td>
       </tr>
     </table>
-    ${data.weeklyTopProduct ? `
+    ${
+      data.weeklyTopProduct
+        ? `
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:12px;color:#047857;font-weight:600">\ud83c\udfc6 Produit star de la semaine</p>
         <p style="margin:0;font-size:14px;color:#065f46;font-weight:600">${data.weeklyTopProduct}</p>
       </td></tr>
-    </table>` : ""}
+    </table>`
+        : ""
+    }
     <p style="margin:0;font-size:13px;color:#6b7280">Consultez vos statistiques détaillées dans votre espace boucher.</p>
     ${button(`${baseUrl}/boucher/dashboard/statistiques`, "Voir les statistiques")}
   `);
 }
 
-export function orderPreparing(data: {
-  orderNumber?: string;
-  shopName?: string;
-}): string {
+export function orderPreparing(data: { orderNumber?: string; shopName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udc68\u200d\ud83c\udf73 Commande en préparation</h1>
@@ -307,15 +305,54 @@ export function orderCancelled(data: {
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
       Votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a été annulée.
     </p>
-    ${data.denyReason ? `
+    ${
+      data.denyReason
+        ? `
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:13px;color:#991b1b;font-weight:600">Raison</p>
         <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason)}</p>
       </td></tr>
-    </table>` : ""}
+    </table>`
+        : ""
+    }
     <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande à tout moment.</p>
     ${button(`${baseUrl}/`, "Découvrir les boucheries")}
+  `);
+}
+
+export function orderCancelledByCustomer(data: {
+  orderNumber?: string;
+  customerName?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">❌ Commande annulée par le client</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      <strong>${esc(data.customerName || "Le client")}</strong> a annulé la commande <strong>#${data.orderNumber}</strong>.
+    </p>
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
+      <tr><td>
+        <p style="margin:0;font-size:14px;color:#7f1d1d;font-weight:600">Ne la préparez pas.</p>
+      </td></tr>
+    </table>
+    ${button(`${baseUrl}/boucher/commandes`, "Voir mes commandes")}
+  `);
+}
+
+export function orderExpired(data: {
+  orderId?: string;
+  orderNumber?: string;
+  shopName?: string;
+}): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
+  return layout(`
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">❌ Commande annulée</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
+      <strong>${esc(data.shopName || "La boutique")}</strong> n'a pas répondu à temps : votre commande <strong>${data.orderNumber}</strong> est annulée.
+    </p>
+    <p style="margin:0;font-size:13px;color:#6b7280">Vous n'avez rien à payer. Vous pouvez passer une nouvelle commande à tout moment.</p>
+    ${button(data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`, "Voir ma commande")}
   `);
 }
 
@@ -339,10 +376,7 @@ export function boucherNote(data: {
   `);
 }
 
-export function readyReminder(data: {
-  orderNumber?: string;
-  shopName?: string;
-}): string {
+export function readyReminder(data: { orderNumber?: string; shopName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f0 N'oubliez pas votre commande !</h1>
@@ -407,10 +441,7 @@ export function priceAdjustmentAutoApproved(data: {
   `);
 }
 
-export function priceAdjustmentAccepted(data: {
-  orderNumber?: string;
-  shopName?: string;
-}): string {
+export function priceAdjustmentAccepted(data: { orderNumber?: string; shopName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Ajustement accept\u00E9</h1>
@@ -422,10 +453,7 @@ export function priceAdjustmentAccepted(data: {
   `);
 }
 
-export function priceAdjustmentRejected(data: {
-  orderNumber?: string;
-  shopName?: string;
-}): string {
+export function priceAdjustmentRejected(data: { orderNumber?: string; shopName?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Ajustement refus\u00E9</h1>
@@ -478,9 +506,7 @@ export function pickupSoon(data: {
   `);
 }
 
-export function calendarAlert(data: {
-  message?: string;
-}): string {
+export function calendarAlert(data: { message?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">📅 Événement à venir</h1>

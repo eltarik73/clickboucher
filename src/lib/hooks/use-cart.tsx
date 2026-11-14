@@ -1,53 +1,29 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useAuth } from "@clerk/nextjs";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { hasTestModeCookie } from "@/lib/test-mode-client";
+import {
+  EMPTY_CART,
+  cartReducer,
+  cartTotalCents,
+  type CartItem,
+  type CartState,
+} from "@/lib/cart/cart-line";
+import { normalizeStoredCart } from "@/lib/cart/stored-cart";
 
-// ── Types ────────────────────────────────────
-
-export interface CartItem {
-  id: string;
-  productId?: string;
-  packId?: string;
-  offerId?: string;
-  name: string;
-  imageUrl: string;
-  unit: "KG" | "PIECE" | "BARQUETTE" | "TRANCHE";
-  priceCents: number;
-  quantity: number;
-  weightGrams?: number;
-  // TRANCHE-specific
-  sliceCount?: number;
-  thickness?: string;
-  // Variant & piece selection
-  variant?: string;
-  pieceCount?: number;
-  pieceLabel?: string;
-  // Cut options (découpe)
-  cutOption?: string;
-  cutPriceCents?: number;
-  // Added for CartItem.tsx compatibility
-  category?: string;
-  quantiteG?: number;
-  prixAuKg?: number;
-}
-
-interface CartState {
-  shopId: string | null;
-  shopName: string | null;
-  shopSlug: string | null;
-  items: CartItem[];
-}
-
-type CartAction =
-  | { type: "ADD_ITEM"; payload: CartItem & { shopId: string; shopName: string; shopSlug: string } }
-  | { type: "REMOVE_ITEM"; payload: { id: string } }
-  | { type: "UPDATE_QTY"; payload: { id: string; quantity: number } }
-  | { type: "UPDATE_WEIGHT"; payload: { id: string; weightGrams: number } }
-  | { type: "SET_STATE"; payload: CartState }
-  | { type: "CLEAR" };
+export type { CartItem } from "@/lib/cart/cart-line";
 
 export interface CartContextType {
   state: CartState;
@@ -66,89 +42,18 @@ type PendingShopSwitch = {
   oldShopName: string;
 };
 
-// ── Reducer ──────────────────────────────────
+// ── Stored cart ──────────────────────────────
 
 const STORAGE_KEY = "klikgo-cart";
-const initialState: CartState = { shopId: null, shopName: null, shopSlug: null, items: [] };
 
 function loadState(): CartState {
   try {
-    if (typeof window === "undefined") return initialState;
+    if (typeof window === "undefined") return EMPTY_CART;
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return initialState;
-    return JSON.parse(raw) as CartState;
+    if (!raw) return EMPTY_CART;
+    return normalizeStoredCart(JSON.parse(raw));
   } catch {
-    return initialState;
-  }
-}
-
-function cartReducer(state: CartState, action: CartAction): CartState {
-  switch (action.type) {
-    case "ADD_ITEM": {
-      const { shopId, shopName, shopSlug, ...item } = action.payload;
-
-      // If switching shops, clear cart
-      if (state.shopId && state.shopId !== shopId) {
-        return {
-          shopId,
-          shopName,
-          shopSlug,
-          items: [item],
-        };
-      }
-
-      // Check if item already exists
-      const existing = state.items.find((i) => i.id === item.id);
-      if (existing) {
-        return {
-          ...state,
-          shopId,
-          shopName,
-          shopSlug,
-          items: state.items.map((i) =>
-            i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
-          ),
-        };
-      }
-
-      return { ...state, shopId, shopName, shopSlug, items: [...state.items, item] };
-    }
-
-    case "REMOVE_ITEM": {
-      const items = state.items.filter((i) => i.id !== action.payload.id);
-      return items.length === 0 ? initialState : { ...state, items };
-    }
-
-    case "UPDATE_QTY": {
-      if (action.payload.quantity <= 0) {
-        const items = state.items.filter((i) => i.id !== action.payload.id);
-        return items.length === 0 ? initialState : { ...state, items };
-      }
-      return {
-        ...state,
-        items: state.items.map((i) =>
-          i.id === action.payload.id ? { ...i, quantity: action.payload.quantity } : i
-        ),
-      };
-    }
-
-    case "UPDATE_WEIGHT": {
-      return {
-        ...state,
-        items: state.items.map((i) =>
-          i.id === action.payload.id ? { ...i, weightGrams: action.payload.weightGrams } : i
-        ),
-      };
-    }
-
-    case "SET_STATE":
-      return action.payload;
-
-    case "CLEAR":
-      return initialState;
-
-    default:
-      return state;
+    return EMPTY_CART;
   }
 }
 
@@ -164,7 +69,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // sessionStorage est relu juste après le montage (effet ci-dessous) : le lire
   // dans l'initialiseur du reducer faisait diverger le HTML statique et le rendu
   // client → erreur d'hydratation React sur chaque page dès qu'un panier existait.
-  const [state, dispatch] = useReducer(cartReducer, initialState);
+  const [state, dispatch] = useReducer(cartReducer, EMPTY_CART);
   const [hydrated, setHydrated] = useState(false);
   const syncTimer = useRef<ReturnType<typeof setTimeout>>();
   const initialLoadDone = useRef(false);
@@ -203,7 +108,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated) return;
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch { /* SSR or quota exceeded — ignore */ }
+    } catch {
+      /* SSR or quota exceeded — ignore */
+    }
   }, [state, hydrated]);
 
   // DB sync: debounced POST to /api/cart on every state change
@@ -239,10 +146,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           shopId: state.shopId,
           items: state.items.map((i) => ({
-            productId: i.productId || i.id,
+            productId: i.productId,
             quantity: i.quantity,
-            // null (article sans poids revenu de la base) → omis : l'API refuse null
-            weightGrams: i.weightGrams ?? undefined,
+            weightGrams: i.weightGrams,
           })),
         }),
       }).catch(() => {});
@@ -272,27 +178,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // Ne jamais écraser des articles ajoutés pendant l'attente de Clerk ou du GET
         if (stateRef.current.items.length > 0) return;
 
-        skipNextSync.current = true;
-        dispatch({
-          type: "SET_STATE",
-          payload: {
-            shopId: dbCart.shopId,
-            shopName: dbCart.shopName,
-            shopSlug: dbCart.shopSlug,
-            items: dbCart.items.filter((i: { inStock: boolean; snoozed: boolean }) => i.inStock && !i.snoozed).map(
-              (i: { id: string; productId: string; name: string; imageUrl: string; priceCents: number; unit: string; quantity: number; weightGrams?: number }) => ({
-                id: i.productId,
-                productId: i.productId,
-                name: i.name,
-                imageUrl: i.imageUrl,
-                priceCents: i.priceCents,
-                unit: i.unit,
-                quantity: i.quantity,
-                weightGrams: i.weightGrams ?? undefined,
-              })
-            ),
-          },
+        const restored = normalizeStoredCart({
+          ...dbCart,
+          items: dbCart.items.filter(
+            (i: { inStock?: boolean; snoozed?: boolean }) => i.inStock && !i.snoozed
+          ),
         });
+        if (restored.items.length === 0) return;
+
+        skipNextSync.current = true;
+        dispatch({ type: "SET_STATE", payload: restored });
       } catch {
         // Silent — sessionStorage is the primary source
       }
@@ -302,9 +197,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback(
     (item: CartItem, shop: { id: string; name: string; slug: string }) => {
-      // Intercept shop switch: ask confirmation before clearing cart
-      if (state.shopId && state.shopId !== shop.id && state.items.length > 0) {
-        setPendingSwitch({ item, shop, oldShopName: state.shopName || "la boutique actuelle" });
+      // Intercept shop switch: ask confirmation before clearing cart. Read through the ref, so
+      // that clear() followed by addItem() in the same handler (reorder) sees the emptied cart.
+      const current = stateRef.current;
+      if (current.shopId && current.shopId !== shop.id && current.items.length > 0) {
+        setPendingSwitch({ item, shop, oldShopName: current.shopName || "la boutique actuelle" });
         return;
       }
       dispatch({
@@ -312,32 +209,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         payload: { ...item, shopId: shop.id, shopName: shop.name, shopSlug: shop.slug },
       });
     },
-    [state.shopId, state.shopName, state.items.length]
+    []
   );
 
-  const removeItem = useCallback((id: string) => dispatch({ type: "REMOVE_ITEM", payload: { id } }), []);
-  const updateQty = useCallback((id: string, quantity: number) => dispatch({ type: "UPDATE_QTY", payload: { id, quantity } }), []);
-  const updateWeight = useCallback((id: string, weightGrams: number) => dispatch({ type: "UPDATE_WEIGHT", payload: { id, weightGrams } }), []);
+  const removeItem = useCallback(
+    (id: string) => dispatch({ type: "REMOVE_ITEM", payload: { id } }),
+    []
+  );
+  const updateQty = useCallback(
+    (id: string, quantity: number) => dispatch({ type: "UPDATE_QTY", payload: { id, quantity } }),
+    []
+  );
+  const updateWeight = useCallback(
+    (id: string, weightGrams: number) =>
+      dispatch({ type: "UPDATE_WEIGHT", payload: { id, weightGrams } }),
+    []
+  );
   const clear = useCallback(() => {
+    stateRef.current = EMPTY_CART;
     dispatch({ type: "CLEAR" });
     if (!knownAnonymousRef.current) {
       fetch("/api/cart", { method: "DELETE" }).catch(() => {});
     }
   }, []);
 
-  const itemCount = useMemo(() => state.items.reduce((sum, i) => sum + i.quantity, 0), [state.items]);
-
-  const totalCents = useMemo(
-    () =>
-      state.items.reduce((sum, item) => {
-        const effectivePrice = item.cutPriceCents ?? item.priceCents;
-        if ((item.unit === "KG" || item.unit === "TRANCHE") && item.weightGrams) {
-          return sum + Math.round((item.weightGrams / 1000) * effectivePrice) * item.quantity;
-        }
-        return sum + effectivePrice * item.quantity;
-      }, 0),
+  const itemCount = useMemo(
+    () => state.items.reduce((sum, i) => sum + i.quantity, 0),
     [state.items]
   );
+
+  const totalCents = useMemo(() => cartTotalCents(state.items), [state.items]);
 
   const value = useMemo(
     () => ({ state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, totalCents }),
@@ -349,7 +250,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       {children}
       <ConfirmDialog
         open={!!pendingSwitch}
-        onOpenChange={(open) => { if (!open) setPendingSwitch(null); }}
+        onOpenChange={(open) => {
+          if (!open) setPendingSwitch(null);
+        }}
         title="Changer de boutique ?"
         description={
           pendingSwitch

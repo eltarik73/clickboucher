@@ -97,17 +97,33 @@ facturée, y compris pour les bots. Règles :
 
 ## Tests
 
-- **Runner** : Vitest 4 (config dans `vitest.config.ts`).
+- **Runner** : Vitest 4 (config dans `vitest.config.ts`), deux projets : `unit` et `integration`.
+  Un `vitest run` sans `--project` lance les deux et exige donc une base : passer par les scripts npm.
 - **Commandes** :
-  - `npm run test` → run unique (utilisée par CI)
-  - `npm run test:watch` → mode watch local
-  - `npm run test:coverage` → rapport couverture v8 (text + html + lcov)
-  - `npm run test:ui` → UI Vitest dans le navigateur
+  - `npm run test` (= `npm run test:run`) → tests unitaires, sans base ni réseau (utilisée par CI)
+  - `npm run test:integration` → tests d'intégration sur un PostgreSQL RÉEL (utilisée par CI)
+  - `npm run test:watch` → mode watch local (unitaires)
+  - `npm run test:coverage` → rapport couverture v8 (text + html + lcov, unitaires)
+  - `npm run test:ui` → UI Vitest dans le navigateur (unitaires)
+- **Intégration en local** : `DATABASE_URL=postgresql://<user>:<mdp>@127.0.0.1:<port>/<base>?schema=public npm run test:integration`
+  (base locale jetable, ex. un conteneur Docker Postgres 16 ; jamais la base de production). L'hôte doit être
+  `localhost`, `127.0.0.1` ou `::1`, sinon le setup refuse de démarrer. La suite tourne dans le schéma
+  **`itest`** de cette base (créé et poussé par `tests/integration/setup/global-setup.ts`, vidé avant chaque
+  test) et ne touche jamais `public`. Un fichier à la fois ; deux runs simultanés s'attendent (verrou advisory).
 - **Conventions** :
-  - Tests unitaires colocalisés dans `src/lib/__tests__/*.test.ts` (fonctions pures uniquement — pas de DB ni réseau).
-  - Tests intégration/E2E dans `tests/` (Playwright + intégrations Prisma).
+  - Tests unitaires dans `src/lib/__tests__/*.test.ts` ou `tests/lib/*.test.ts` (fonctions pures uniquement — pas de DB ni réseau).
+  - Tests d'intégration dans `tests/integration/**/*.test.ts` : 1re ligne `// @vitest-environment node`,
+    `useCleanDatabase()` en tête de fichier (précédé de `// eslint-disable-next-line react-hooks/rules-of-hooks`),
+    données via `tests/integration/helpers/factories.ts`.
+  - **Ne JAMAIS mocker Prisma** (`@/lib/prisma`) ni quoi que ce soit qui parle à PostgreSQL : tout ce qui
+    touche la base se teste en intégration. Mocks permis : transports sortants (`@/lib/email`, `@/lib/push`,
+    `@/lib/whatsapp`, `@/lib/emails/*`) et helpers d'auth quand on appelle un route handler directement.
+  - E2E : Playwright dans `tests/` (`npm run test:e2e`).
   - Pour un test sans DOM, ajoute `// @vitest-environment node` en tête de fichier (l'environnement par défaut est `jsdom`).
-- **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils`.
+- **Garde-fous commande** : `tests/integration/checkout-contract.test.ts` (panier → payload navigateur →
+  devis → commande, sur 12 paniers types) et `tests/lib/order-writers-guard.test.ts` (liste fermée des
+  fichiers qui écrivent dans `orders` ; seul `transition.ts` écrit le statut, hors webhook Stripe inactif).
+- **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, prix (`src/lib/pricing/*`), panier (`cart-line`, `order-payload`), numéros (`order-number-format`), commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils` ; en intégration : devis, création, remises, numérotation, transitions et courses, stock limité, tableau cuisine, notifications, données publiques.
 - **Règle** : tout helper pur ajouté dans `src/lib/**` mérite un test ; les fonctions qui touchent Prisma/HTTP restent en intégration.
 
 ## CI/CD
@@ -116,7 +132,8 @@ facturée, y compris pour les bots. Règles :
 - **Jobs parallèles** (Node 20, ubuntu-latest) :
   - `lint` → `npm run lint` (ESLint)
   - `typecheck` → `npx tsc --noEmit`
-  - `test` → `npm run test:run` (vitest, avec service Postgres 16)
+  - `test` → `npm run test:run` (unitaires) puis `npm run test:integration` (intégration sur le
+    service Postgres 16 du job, schéma `itest` ; le schéma `public` poussé pour le job n'est pas modifié)
   - `build` → `npm run build` sur Postgres 16 (schema poussé) puis `node scripts/check-prerender.mjs`
     (échoue si les pages publiques ne sont plus prérendues — cf. « Coût CPU Vercel »)
 - **Uptime** : `.github/workflows/uptime.yml` — toutes les 6 h, échoue si `/` ou `/sitemap.xml`
@@ -206,7 +223,7 @@ src/
 │       ├── auth/  users/  webhooks/  admin/  onboarding/
 │       ├── favorites/  reviews/  loyalty/  notifications/
 │       ├── push/  search/  suggestions/  support/  chat/
-│       ├── offers/  uploads/  recurring-orders/  boucher/
+│       ├── uploads/  recurring-orders/  boucher/
 │       └── calendar-events/  cron/  health/  webmaster/
 ├── components/
 │   ├── ui/          # shadcn/ui primitives
@@ -229,9 +246,11 @@ src/
 │   ├── notifications.ts     # Multichannel: email, push, WhatsApp, in-app
 │   ├── sounds.ts            # startOrderAlert() / stopOrderAlert()
 │   ├── boucher-auth.ts      # getAuthenticatedBoucher()
-│   ├── api/                  # Fonctions client API
+│   ├── api/errors.ts         # apiError / apiSuccess / handleApiError
+│   ├── cart/                 # cart-line.ts (ligne de panier, réducteur), order-payload.ts (requête de commande)
+│   ├── pricing/              # SEULE source des prix : ligne, prix unitaire, remise, totaux, affichage
 │   ├── seo/                  # cities.ts (SEO_CITIES config)
-│   ├── services/             # Business logic
+│   ├── services/             # Business logic (orders/ : quote, create, numbering, transition, commands/)
 │   └── validators/           # Schémas Zod
 └── types/index.ts
 ```
@@ -248,6 +267,19 @@ const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, t
 // state = { shopId, shopName, shopSlug, items: CartItem[] }
 ```
 
+- **Ligne de panier** : `CartItem` est défini dans `src/lib/cart/cart-line.ts` (réducteur, `cartLineId`,
+  `normalizeStoredCart`). Elle a le sens d'une ligne de requête (voir « Commandes : quantités, prix,
+  totaux » plus bas) : jamais de quantité pré-multipliée par le poids.
+- **`totalCents` du panier = estimation locale.** Le panier (`/panier`) affiche le devis du serveur
+  (`POST /api/orders/quote`, hook `use-order-quote`) et envoie la commande via
+  `src/lib/cart/order-payload.ts`, seul constructeur de la requête.
+- **Refus par ligne** : quand le devis ou la commande refuse des lignes, `refusedCartLines`
+  (`src/lib/cart/order-payload.ts`) les rattache au panier : les détails `items.N.<champ>` désignent
+  `items[N]` (la requête garde l'ordre du panier), `STOCK_INSUFFICIENT.unavailableProductIds` marque
+  toutes les lignes de ces produits. Chaque ligne affiche son message et un bouton « Retirer cet article »
+  (`src/components/cart/CheckoutLineRow.tsx`) ; le message générique ne sert que si aucun détail ne
+  nomme une ligne. Garder le format de clé `items.N.<champ>` dans `quote.ts`.
+
 ## Base de données (Prisma)
 
 Modèles principaux : User, Shop, Category, Product, Order, OrderItem, Cart, CartItem, Review, LoyaltyPoint, Notification, Subscription, SupportTicket, ProAccess, PriceAdjustment, RecurringOrder, Referral, DailyCounter, GlobalCategory, ReferenceProduct, ShopAlert.
@@ -262,6 +294,17 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 - **Layout desktop** : 3 colonnes — Nouvelles (25%) | En cours (flex, split view) | Prêtes (25%) + Historique bottom bar
 - **Layout mobile** : 4 onglets (Nouv. / En cours / Prêtes / Histo.)
 - **Polling** : `useOrderPolling` hook (5s), callbacks: `onNewOrder`, `onStatusChange`, `onScheduledReady`
+- **Source** : `GET /api/boucher/orders/kitchen` → `{ active, activeTruncated }` : TOUTES les commandes
+  PENDING / ACCEPTED / PREPARING / READY / PARTIALLY_DENIED de la boutique, avec les seules colonnes affichées
+  (`kitchenOrderSelect`, `src/lib/services/orders/kitchen.ts`). Au-delà de 500 actives,
+  `activeTruncated: true` → bandeau rouge (jamais de troncature silencieuse). `?history=1` ajoute `history` :
+  les 50 commandes terminées les plus récentes des 7 derniers jours, en colonnes légères
+  (`kitchenHistorySelect`). Le hook ne demande l'historique qu'au premier passage, puis au plus une fois par
+  minute, quand une commande quitte le tableau et quand l'onglet Historique s'ouvre (`refreshHistory`).
+  Badge du menu : `GET /api/boucher/orders/pending-count`.
+- **Accueil du tableau de bord boucher** : chiffres du jour (journée de Paris) et 5 dernières commandes par
+  `GET /api/boucher/orders/summary` (`src/lib/services/orders/shop-summary.ts`), compteur « en attente » par
+  `pending-count` — jamais à partir de `GET /api/orders`, limité à 50.
 - **Composants** : `KitchenOrderCard`, `OrderTicket` (80mm thermal Uber Eats style), `PrepTimer`, `OrderAlertOverlay`
 - **"En cours" split** : 2 sections TOUJOURS visibles (même vides) — section haute "À préparer maintenant" (ASAP + scheduled ≤30min) + section basse "Programmées (en attente)" (scheduled >30min, compact cards avec countdown)
 - **Cards programmées compactes** : ligne unique — `#num Prénom.N | heure retrait | countdown | bouton imprimer`
@@ -312,7 +355,13 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 - **Palier 1** (baisse) : auto-approuvé immédiatement
 - **Palier 2** (hausse ≤ seuil) : client a 5 min pour accepter/refuser, auto-validé sinon
 - **Palier 3** (hausse > seuil) : client a 5 min, escaladé au webmaster si pas de réponse après 10 min
-- **Route** : `PATCH /api/orders/[id]/adjust-price`
+- **Route** : `PATCH /api/orders/[id]/adjust-price` — SEUL moyen de changer le total d'une commande après sa
+  création (les actions `adjust_weight` / `adjust_price` de la route boucher unifiée n'existent plus)
+- **Seuls écrivains d'un total ajusté** : `src/lib/services/orders/adjustment-settlement.ts` (verrou de la
+  commande, mise à jour conditionnelle de l'ajustement `PENDING`, refus si la commande a changé depuis :
+  l'ajustement est alors fermé `REJECTED`) et `adjustment-answers.ts` (échéance du palier 2, escalade du
+  palier 3, acceptation et refus du client ; seul le gagnant notifie, après commit). Toute fermeture de
+  commande, rupture ou retrait ferme l'ajustement en attente. Lignes repesées via `src/lib/pricing/adjustment.ts`.
 - **Config** : seuil configurable par boutique via webmaster dashboard
 
 ## Authentification API (CRITIQUE)
@@ -435,8 +484,12 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
 
 ## Marketing Hub V2 (ÉTAPE 17 — TERMINÉ)
 
-- **Système unifié** : PromoCode + Promotion + LoyaltyReward — validation cascade dans `/api/promo-codes/validate`
-- **Types** : PERCENT / FIXED / FREE_FEES / BOGO / BUNDLE — OfferPayer (KLIKGO | BUTCHER)
+- **Système unifié** : Offer + LoyaltyReward — un code est validé par le devis serveur (`POST /api/orders/quote`,
+  champ `promoCode`, `src/lib/services/orders/discount.ts`) : d'abord comme `Offer`, puis comme `LoyaltyReward`.
+  Il n'existe plus de route de validation séparée.
+- **Types** : PERCENT / AMOUNT / FREE_FEES / BOGO / BUNDLE — OfferPayer (KLIKGO | BUTCHER). Au checkout :
+  BOGO et BUNDLE refusés (« Cette offre n'est pas encore utilisable en ligne »), FREE_FEES refusé tant qu'aucun
+  frais de service n'est facturé (paiement sur place). Codes réservés aux clients connectés (pas aux invités).
 - **Diffusion** : Badge client, bannière (gradient, image IA, position), popup (couleur, fréquence, image IA)
 - **Routes boucher** : `/api/boucher/promo-codes` — CRUD + produits éligibles
 - **Routes webmaster** : `/api/webmaster/promo-codes` — CRUD + propose aux bouchers + stats KPI
@@ -451,7 +504,8 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
 - **3 paliers** : 3 commandes → -2€, 7 commandes → -5€, 15 commandes → -10€
 - **Modèle** : `LoyaltyReward` — code unique (KG-XXXXXX), lié au user, expire 30 jours
 - **Processus** : `processLoyaltyOnPickup()` appelé après retrait → crée reward + notifie
-- **Validation** : `/api/promo/validate` essaie d'abord comme `Promotion`, puis comme `LoyaltyReward`
+- **Validation** : par le devis serveur (`POST /api/orders/quote`, `promoCode`), après les `Offer` ; consommé
+  (`usedAt`) dans la transaction de création, libéré si la commande est refusée / annulée / expirée
 - **Config boucher** : `/api/loyalty/config` — chaque boucher peut configurer sa propre règle fidélité
 - **Pages** : `/avantages` (client), `/webmaster/fidelite` (admin), `/boucher/dashboard/promos` (boucher)
 
@@ -485,6 +539,11 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - **Analytics** : Plausible (RGPD), conditionnel sur `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`
 
 ### JSON-LD Schemas (`src/components/seo/`)
+
+- **Toujours via `<JsonLd data={…} />`** (`src/components/seo/JsonLd.tsx`, sérialiseur
+  `src/lib/seo/jsonld/serialize.ts` qui échappe `<`, `>`, `&`, U+2028, U+2029). Jamais de
+  `JSON.stringify` dans un `dangerouslySetInnerHTML` : un avis contenant `</script>` exécutait du script
+  (corrigé le 2026-11-14). Garde-fou : `src/lib/__tests__/json-ld.test.ts`.
 
 - `OrganizationSchema` — Global dans layout.tsx
 - `ShopSchema` — Type Store, sur boutique + city pages
@@ -543,6 +602,68 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 - **Images** : SafeImage pour fallback, WebP first (pas AVIF), quality 60 pour cards
 - **Composants statiques** : `HowItWorks`, `CalendarBanner` sont Server Components (pas de "use client")
 - **PWA/Popup** : toujours lazy-load avec `dynamic({ ssr: false })`
+
+### Commandes : quantités, prix, totaux, numéros, statuts (chantier 0 — 2026-11)
+
+- **`quantity` / `weightGrams` dans la REQUÊTE et le panier** (`src/lib/cart/cart-line.ts`,
+  `src/lib/validators/order.ts`, schémas `.strict()`) :
+  - KG / TRANCHE : `quantity` = nombre de portions (entier 1..99), `weightGrams` = grammes d'UNE portion
+    (obligatoire, entier 1..50 000) ; PIECE / BARQUETTE : `quantity` = nombre d'unités (entier 1..99),
+    `weightGrams` interdit. Quantité fractionnaire, poids manquant ou en trop → 400.
+  - Prix d'une portion = `floor((prix au kg × grammes + 500) / 1000)` ; N portions = N × ce prix.
+- **`quantity` / `weightGrams` en BASE (`OrderItem`)** : `quantity` = quantité dans l'unité de vente
+  (KILOGRAMMES pour KG / TRANCHE = portions × weightGrams / 1000 ; nombre pour PIECE / BARQUETTE),
+  `weightGrams` = grammes d'une portion (null pour les unités comptées), `priceCents` = prix unitaire
+  effectif (au kg pour KG / TRANCHE), `totalCents` = total de la ligne.
+- **Une seule autorité par règle** : conversions requête ↔ base ↔ affichage dans `src/lib/pricing/line.ts`
+  (+ `format.ts`) ; prix unitaire (prix pro, découpe par son NOM, promotion produit) par `resolveUnitPrice`
+  (`src/lib/pricing/unit-price.ts`) ; remises dans `src/lib/pricing/discount.ts` ; totaux dans `totals.ts`.
+  Le serveur ne croit AUCUN montant venu du navigateur : il reçoit quantités, choix, `cutOption` et `promoCode`.
+- **Totaux** : `Order.totalCents` = sous-total − remise (montant des marchandises encaissé par le boucher,
+  base de la commission, des ajustements et des statistiques). `Order.serviceFeeCents` = frais de service,
+  stockés À PART et jamais inclus dans `totalCents` : `serviceFeeCentsFor("ON_PICKUP") = 0`. « Total à payer »
+  = `totalCents + serviceFeeCents` (le `amountDueCents` du devis). Les commandes créées avant le chantier 0
+  portent `serviceFeeCents = 99` jamais encaissés : pour une commande stockée, afficher `totalCents` seul.
+- **Devis et création** : `POST /api/orders/quote` (auth optionnelle) → `OrderQuote` ; `POST /api/orders` et
+  `POST /api/checkout/guest` exigent `idempotencyKey` (UUID, rejouée → 200 avec la même commande) et
+  `expectedTotalCents` (= `amountDueCents` affiché) ; tout écart ou code refusé → 409 `PRICE_CHANGED`, rien n'est
+  créé. Logique dans `src/lib/services/orders/quote.ts` et `create.ts`.
+- **Numéro de commande** : `KG26-000166` (KG + année de Paris sur 2 chiffres + séquence ≥ 6 chiffres), compteur
+  `order_number_counters` incrémenté dans la transaction de création (`src/lib/services/orders/numbering.ts`,
+  format dans `src/lib/order-number-format.ts`). Les anciens `KG-2026-NNNNN` restent tels quels.
+- **Numéro client PAR BOUTIQUE** : table `shop_customers` (clé `(shop_id, user_id)`, numéro unique dans la
+  boutique), copie figée dans `orders.customer_number` à la création, affichée `C-012` via
+  `formatCustomerNumber`. `users.customer_number` est legacy : ni lu ni écrit.
+- **Statut** : UNE seule fonction écrit `Order.status` après la création : `transitionOrder` /
+  `transitionOrderInTx` (`src/lib/services/orders/transition.ts`) — `updateMany` conditionnel (id + périmètre
+  boutique/client + statuts de départ autorisés) et `OrderEvent` dans la même transaction, effets liés (stock
+  limité, libération de remise) dans cette transaction, notifications après commit. Table des transitions :
+  `src/lib/order-state-machine.ts`. Rejeu → 200 `_idempotent: true` ; autre statut → 409 ; hors périmètre → 404.
+  Les commandes boucher / client / système sont dans `src/lib/services/orders/commands/` (route boucher
+  unifiée `PATCH /api/boucher/orders/[orderId]/action`, `cancel`, `rate`, `choose-alternatives`, cron
+  `auto-cancel`). Garde : `tests/lib/order-writers-guard.test.ts`.
+- **Notifications de commande** : jamais limitées ; la limite « 1 par type et par heure » ne vaut que pour
+  les événements marketing / récapitulatifs (`src/lib/notification-policy.ts`).
+- **Découpe à 0** : les validateurs produit refusent une découpe sous 1 centime, mais d'anciennes lignes
+  peuvent en porter une : `resolveUnitPrice` refuse alors la découpe demandée (`CUT_OPTION_UNPRICED`), le
+  devis répond 400 « <produit> : découpe indisponible ». Côté client, seules les découpes de
+  `pricedCutOptions()` sont proposées (`src/lib/pricing/unit-price.ts`).
+- **Stock limité (anti-gaspi, vente flash)** : autorité unique côté vitrine `src/lib/pricing/limited-stock.ts`
+  (`limitedStockSoldOut` → « Épuisé », ajout impossible ; `limitedStockRemaining` plafonne la quantité ;
+  `limitedStockLowCount` donne le N de « Plus que N », de 1 à 5). Un produit limité à 0 RESTE dans son mode :
+  le devis le refuse jusqu'à ce que le boucher termine le mode ou que du stock revienne.
+- **Vue client d'une commande** : liste blanche `customerOrderSelect` (`src/lib/services/orders/customer-view.ts`)
+  pour toute réponse à un client ou un invité (lecture, création, annulation, note, choix d'alternatives,
+  liste) ; propriété vérifiée DANS la requête, hors périmètre → 404. `GET /api/orders/[id]/status` ne renvoie
+  que le prénom et le nom du client.
+- **Corps JSON des routes** : `readJsonBody(req)` (`src/lib/api/request-body.ts`), jamais `req.json()` : un corps
+  absent ou mal formé répond 400 `VALIDATION_ERROR` sans journal d'erreur ni Sentry.
+- **Invité** : deux premières requêtes d'un même nouvel e-mail en concurrence sur `users.email` → la perdante
+  relit l'utilisateur et poursuit (rejeu idempotent), jamais 500.
+- **Codes promo publics** : toute requête d'offre pour une page publique (`/bons-plans`, badges et popup de
+  l'accueil, bannière et produits d'une boutique, `/api/shops/nearby`) passe par `publicOfferWhere(now, canal?)`
+  ou ses listes (`src/lib/public-offers.ts`) : audience ALL, statut ACTIVE, dates en cours, diffusion sur le
+  canal, utilisations restantes. Jamais autrement.
 - **URLs Replicate** expirent en ~1h — upload vers Vercel Blob pour permanence
 - **OfferPopup** : utiliser `<img>` natif, PAS `next/image` (évite 400 sur URLs externes)
 

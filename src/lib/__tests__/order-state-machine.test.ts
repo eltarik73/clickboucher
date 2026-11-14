@@ -6,12 +6,20 @@
 // blacklist legitimate flows. We pin the most important contracts.
 
 import { describe, it, expect } from "vitest";
+import { OrderStatus } from "@prisma/client";
 import {
   canTransition,
   getStepIndex,
+  getValidTransitions,
+  holdsLimitedStock,
   isTerminal,
   isCancellable,
+  DISCOUNT_RELEASING_STATUSES,
+  KITCHEN_ACTIVE_STATUSES,
+  KITCHEN_HISTORY_STATUSES,
 } from "@/lib/order-state-machine";
+
+const ALL_STATUSES = Object.values(OrderStatus);
 
 describe("canTransition", () => {
   it("should allow PENDING -> ACCEPTED (the happy path entry)", () => {
@@ -36,6 +44,117 @@ describe("canTransition", () => {
     expect(canTransition("COMPLETED", "PENDING")).toBe(false);
     expect(canTransition("CANCELLED", "ACCEPTED")).toBe(false);
     expect(canTransition("DENIED", "ACCEPTED")).toBe(false);
+  });
+
+  it("should allow ACCEPTED -> PARTIALLY_DENIED (out-of-stock declared after acceptance)", () => {
+    // The butcher may discover a missing product once the order is accepted
+    expect(canTransition("ACCEPTED", "PARTIALLY_DENIED")).toBe(true);
+    expect(getValidTransitions("ACCEPTED")).toContain("PARTIALLY_DENIED");
+  });
+
+  it("should allow PARTIALLY_DENIED -> PENDING (the customer answered, the butcher decides again)", () => {
+    expect(canTransition("PARTIALLY_DENIED", "PENDING")).toBe(true);
+    expect(getValidTransitions("PARTIALLY_DENIED")).toContain("PENDING");
+  });
+
+  it("should keep out-of-stock handling out of the later stages", () => {
+    expect(canTransition("PREPARING", "PARTIALLY_DENIED")).toBe(false);
+    expect(canTransition("READY", "PARTIALLY_DENIED")).toBe(false);
+    expect(canTransition("ACCEPTED", "PENDING")).toBe(false);
+  });
+
+  it("should describe exactly the transition table of the order domain", () => {
+    const table = Object.fromEntries(
+      ALL_STATUSES.map((status) => [status, [...getValidTransitions(status)].sort()])
+    );
+    expect(table).toEqual({
+      PENDING: ["ACCEPTED", "AUTO_CANCELLED", "CANCELLED", "DENIED", "PARTIALLY_DENIED"],
+      ACCEPTED: ["CANCELLED", "DENIED", "PARTIALLY_DENIED", "PREPARING", "READY"],
+      PREPARING: ["CANCELLED", "READY"],
+      READY: ["PICKED_UP"],
+      PICKED_UP: ["COMPLETED"],
+      COMPLETED: [],
+      DENIED: [],
+      CANCELLED: [],
+      PARTIALLY_DENIED: ["ACCEPTED", "CANCELLED", "DENIED", "PENDING"],
+      AUTO_CANCELLED: [],
+    });
+  });
+});
+
+describe("kitchen board status sets", () => {
+  it("should list the statuses the kitchen still has to act on", () => {
+    expect([...KITCHEN_ACTIVE_STATUSES].sort()).toEqual([
+      "ACCEPTED",
+      "PARTIALLY_DENIED",
+      "PENDING",
+      "PREPARING",
+      "READY",
+    ]);
+  });
+
+  it("should list the finished statuses shown as history", () => {
+    expect([...KITCHEN_HISTORY_STATUSES].sort()).toEqual([
+      "AUTO_CANCELLED",
+      "CANCELLED",
+      "COMPLETED",
+      "DENIED",
+      "PICKED_UP",
+    ]);
+  });
+
+  it("should partition the OrderStatus enum: every status in exactly one set", () => {
+    // An order whose status is in neither set would vanish from the kitchen board
+    expect(ALL_STATUSES).toHaveLength(10);
+    for (const status of ALL_STATUSES) {
+      const memberships =
+        Number(KITCHEN_ACTIVE_STATUSES.includes(status)) +
+        Number(KITCHEN_HISTORY_STATUSES.includes(status));
+      expect(memberships, status).toBe(1);
+    }
+    expect(KITCHEN_ACTIVE_STATUSES.length + KITCHEN_HISTORY_STATUSES.length).toBe(
+      ALL_STATUSES.length
+    );
+  });
+});
+
+describe("DISCOUNT_RELEASING_STATUSES", () => {
+  it("should be the three statuses of an order that will never be collected", () => {
+    expect([...DISCOUNT_RELEASING_STATUSES].sort()).toEqual([
+      "AUTO_CANCELLED",
+      "CANCELLED",
+      "DENIED",
+    ]);
+  });
+
+  it("should only contain statuses with no outgoing transition", () => {
+    // A released promo code or loyalty reward must never be owed again:
+    // the order cannot come back to life
+    for (const status of DISCOUNT_RELEASING_STATUSES) {
+      expect(getValidTransitions(status), status).toEqual([]);
+      expect(isTerminal(status), status).toBe(true);
+    }
+  });
+});
+
+describe("holdsLimitedStock", () => {
+  it("should hold stock from acceptance to completion, and in no other status", () => {
+    const expected: Record<OrderStatus, boolean> = {
+      PENDING: false,
+      ACCEPTED: true,
+      PREPARING: true,
+      READY: true,
+      PICKED_UP: true,
+      COMPLETED: true,
+      DENIED: false,
+      CANCELLED: false,
+      PARTIALLY_DENIED: false,
+      AUTO_CANCELLED: false,
+    };
+    expect(Object.keys(expected).sort()).toEqual([...ALL_STATUSES].sort());
+    for (const status of ALL_STATUSES) {
+      expect(holdsLimitedStock(status), status).toBe(expected[status]);
+    }
   });
 });
 

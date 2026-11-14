@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { GUEST_COOKIE_NAME } from "@/lib/auth/guest-auth";
+import { formatCustomerNumber } from "@/lib/order-number-format";
 import SuiviClient from "./SuiviClient";
 
 export default async function SuiviPage({
@@ -41,6 +42,7 @@ export default async function SuiviPage({
       orderNumber: true,
       dailyNumber: true,
       displayNumber: true,
+      customerNumber: true,
       status: true,
       totalCents: true,
       customerNote: true,
@@ -62,7 +64,7 @@ export default async function SuiviPage({
       },
       shop: { select: { id: true, name: true, address: true, city: true, phone: true } },
       userId: true,
-      user: { select: { firstName: true, lastName: true, customerNumber: true, clerkId: true, guestToken: true } },
+      user: { select: { firstName: true, lastName: true, clerkId: true, guestToken: true } },
       priceAdjustment: {
         select: {
           id: true,
@@ -85,8 +87,7 @@ export default async function SuiviPage({
   // Verify order belongs to the requester:
   //  - Clerk owner: matches clerkId or Prisma userId.
   //  - Guest: guestToken on the order's user matches the token.
-  const isClerkOwner =
-    !!clerkId && (order.user.clerkId === clerkId || order.userId === dbUser?.id);
+  const isClerkOwner = !!clerkId && (order.user.clerkId === clerkId || order.userId === dbUser?.id);
   const isGuestOwner =
     !!guestToken && !!order.user.guestToken && order.user.guestToken === guestToken;
   if (!isClerkOwner && !isGuestOwner) {
@@ -99,6 +100,7 @@ export default async function SuiviPage({
         id: order.id,
         orderNumber: order.orderNumber,
         displayNumber: order.displayNumber || `#${order.orderNumber}`,
+        customerNumber: formatCustomerNumber(order.customerNumber),
         status: order.status,
         totalCents: order.totalCents,
         customerNote: order.customerNote,
@@ -120,7 +122,6 @@ export default async function SuiviPage({
         user: {
           firstName: order.user.firstName,
           lastName: order.user.lastName,
-          customerNumber: order.user.customerNumber,
         },
         priceAdjustment: order.priceAdjustment
           ? {

@@ -6,29 +6,30 @@ import prisma from "@/lib/prisma";
 import { updateShopSchema } from "@/lib/validators";
 import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
+import { publicProductSelect, publicShopSelect } from "@/lib/public-projections";
 
 // ── GET /api/shops/[id] ────────────────────────
-// Public — shop detail with categories & products
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// Public — shop detail with categories & products, allow-listed fields only
+// (src/lib/public-projections.ts). The owner reads his own shop through /api/shops/my-shop.
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
 
     const shop = await prisma.shop.findUnique({
       where: { id },
-      include: {
+      select: {
+        ...publicShopSelect,
         categories: {
           orderBy: { order: "asc" },
+          select: { id: true, name: true, emoji: true, order: true, imageUrl: true },
         },
         products: {
           where: { inStock: true },
-          include: { categories: true },
+          select: publicProductSelect,
           orderBy: { name: "asc" },
           take: 100,
         },
-        _count: { select: { orders: true, products: true } },
+        _count: { select: { products: true } },
       },
     });
 
@@ -36,10 +37,13 @@ export async function GET(
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
 
-    return apiCached({
-      ...shop,
-      effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
-    }, 60);
+    return apiCached(
+      {
+        ...shop,
+        effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
+      },
+      60
+    );
   } catch (error) {
     return handleApiError(error);
   }
@@ -47,10 +51,7 @@ export async function GET(
 
 // ── PATCH /api/shops/[id] ──────────────────────
 // Boucher (owner) or Admin — update shop info
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
     const userId = await getServerUserId();
@@ -106,8 +107,7 @@ export async function PATCH(
 
     // Capture pricing-relevant fields BEFORE the update so we can detect a change.
     const pricingFieldsChanged =
-      data.commissionMarkupPercent !== undefined ||
-      data.priceRoundingEnabled !== undefined;
+      data.commissionMarkupPercent !== undefined || data.priceRoundingEnabled !== undefined;
 
     const updated = await prisma.shop.update({
       where: { id },
@@ -118,9 +118,8 @@ export async function PATCH(
     // online priceCents from its boutiquePriceCents so the catalog stays consistent.
     // Without this, only the next product the boucher edits picks up the new markup.
     if (pricingFieldsChanged) {
-      const { computeOnlinePriceCents, getEffectiveCommissionRate } = await import(
-        "@/lib/services/stripe/commission"
-      );
+      const { computeOnlinePriceCents, getEffectiveCommissionRate } =
+        await import("@/lib/services/stripe/commission");
       const effRate = getEffectiveCommissionRate({
         tier: updated.tier,
         earlyAdopterUntil: updated.earlyAdopterUntil,
@@ -137,15 +136,15 @@ export async function PATCH(
             p.boutiquePriceCents ?? 0,
             effRate,
             updated.commissionMarkupPercent,
-            updated.priceRoundingEnabled,
+            updated.priceRoundingEnabled
           ),
         }))
         .filter((u) => u.newPrice !== products.find((p) => p.id === u.id)!.priceCents);
       if (updates.length > 0) {
         await prisma.$transaction(
           updates.map((u) =>
-            prisma.product.update({ where: { id: u.id }, data: { priceCents: u.newPrice } }),
-          ),
+            prisma.product.update({ where: { id: u.id }, data: { priceCents: u.newPrice } })
+          )
         );
       }
     }
@@ -158,10 +157,7 @@ export async function PATCH(
 
 // ── DELETE /api/shops/[id] ─────────────────────
 // Admin only — delete a shop (cascade: categories, products)
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
     const userId = await getServerUserId();

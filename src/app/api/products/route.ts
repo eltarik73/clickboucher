@@ -1,23 +1,28 @@
 import { NextRequest } from "next/server";
 // Audit sécurité 2026-05-09 : retiré currentUser Clerk au profit de DB lookup.
-import { getServerUserId, resolveUserRole } from "@/lib/auth/server-auth";
+import type { Prisma } from "@prisma/client";
+import { resolveUserRole } from "@/lib/auth/server-auth";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { isAdmin } from "@/lib/roles";
+import { priceAudienceOf } from "@/lib/product-price-audience";
+import { proProductSelect, publicProductSelect } from "@/lib/public-projections";
 
 export const dynamic = "force-dynamic";
 
-// Lean select for product listings (faster queries)
-const PRODUCT_SELECT = {
+// Catalogue page of the shop owner (and admins): the public fields plus the management ones.
+// Anonymous and ordinary callers get publicProductSelect, CLIENT_PRO gets proProductSelect.
+const MANAGER_PRODUCT_SELECT = {
   id: true,
   name: true,
   description: true,
   imageUrl: true,
   priceCents: true,
   proPriceCents: true,
+  boutiquePriceCents: true,
   unit: true,
   inStock: true,
   stockQty: true,
@@ -65,7 +70,16 @@ const PRODUCT_SELECT = {
     select: { id: true, url: true, alt: true, order: true, isPrimary: true },
   },
   labels: { select: { id: true, name: true, color: true } },
-};
+} as const satisfies Prisma.ProductSelect;
+
+function findProducts<S extends Prisma.ProductSelect>(where: Prisma.ProductWhereInput, select: S) {
+  return prisma.product.findMany({
+    where,
+    select,
+    orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+    take: 200,
+  });
+}
 
 // Full include block for create/update
 const PRODUCT_INCLUDE = {
@@ -101,26 +115,16 @@ export async function GET(req: NextRequest) {
       where.name = { contains: query.search, mode: "insensitive" };
     }
 
-    // Check if user is CLIENT_PRO to include proPriceCents.
-    // Résolu AVANT le cache : la réponse dépend du rôle, le cache ne doit pas.
-    let isPro = false;
-    try {
-      const uid = await getServerUserId();
-      if (uid) {
-        const u = await prisma.user.findUnique({ where: { clerkId: uid }, select: { role: true } });
-        isPro = u?.role === "CLIENT_PRO";
-      }
-    } catch {
-      // Not logged in — show standard prices
-    }
+    // Resolved BEFORE the cache: the response depends on the caller, the cache must not.
+    const audience = await priceAudienceOf({ shopId: query.shopId });
 
     // ── Cache lookup for unfiltered product lists ──
-    // La clé Redis ne contient que la variante masquée (sans proPriceCents) :
-    // les CLIENT_PRO ne lisent ni n'écrivent ce cache.
+    // Only the public projection is cached (key shared with the invalidation in
+    // /api/products/[id]/active): pro and manager responses never read nor write it.
     const hasFilters =
       query.categoryId || query.inStock || query.featured || query.tag || query.search;
     const productsCacheKey =
-      !isPro && !hasFilters && query.shopId ? `products:shop:${query.shopId}` : null;
+      audience === "PUBLIC" && !hasFilters ? `products:shop:${query.shopId}` : null;
 
     if (productsCacheKey) {
       try {
@@ -131,18 +135,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const products = await prisma.product.findMany({
-      where,
-      select: PRODUCT_SELECT,
-      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
-      take: 200,
-    });
-
-    const data = products.map((p) => {
-      if (isPro) return p;
-      const { proPriceCents, ...rest } = p;
-      return rest;
-    });
+    const data =
+      audience === "MANAGER"
+        ? await findProducts(where, MANAGER_PRODUCT_SELECT)
+        : audience === "PRO"
+          ? await findProducts(where, proProductSelect)
+          : await findProducts(where, publicProductSelect);
 
     // ── Cache store (TTL 60s) ──
     if (productsCacheKey) {

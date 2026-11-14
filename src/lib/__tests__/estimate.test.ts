@@ -5,12 +5,7 @@
 // pure logic from src/lib/estimate.ts.
 
 import { describe, it, expect } from "vitest";
-import {
-  computeEstimation,
-  formatEstimationShort,
-  computePrice,
-  formatWeight,
-} from "@/lib/estimate";
+import { computeEstimation, formatEstimationShort, formatWeight } from "@/lib/estimate";
 
 describe("computeEstimation", () => {
   it("should compute number of personnes from quantity + category portion size", () => {
@@ -49,15 +44,6 @@ describe("formatEstimationShort", () => {
   it("should prefer the pieces-based form when a category has piece weight", () => {
     const e = computeEstimation(600, "merguez", "standard");
     expect(formatEstimationShort(e)).toBe("≈10 merguez");
-  });
-});
-
-describe("computePrice", () => {
-  it("should compute total price from grams + €/kg, rounded to 2 decimals", () => {
-    // 500g at 20€/kg = 10€
-    expect(computePrice(500, 20)).toBe(10);
-    // 333g at 24€/kg = 7.992 → 7.99 €
-    expect(computePrice(333, 24)).toBe(7.99);
   });
 });
 

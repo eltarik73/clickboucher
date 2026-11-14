@@ -1,11 +1,15 @@
-// src/app/api/boucher/orders/pickup/route.ts — QR-code-based pickup confirmation
-// Looks up order by qrCode server-side (no need to fetch all orders client-side)
+// src/app/api/boucher/orders/pickup/route.ts — pickup confirmed by scanning the customer's QR code.
+// The order is found by its code inside the butcher's shop; the pickup itself is the same command
+// as the kitchen's QR and manual pickups.
 import { NextRequest } from "next/server";
-import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import prisma from "@/lib/prisma";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
-import { sendNotification } from "@/lib/notifications";
 import { z } from "zod";
+import prisma from "@/lib/prisma";
+import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
+import { formatClientName } from "@/lib/format-kitchen";
+import { storedLineUnits } from "@/lib/pricing/line";
+import { transitionResponse } from "@/lib/services/orders/commands/http";
+import { confirmPickup } from "@/lib/services/orders/commands/progress";
 
 export const dynamic = "force-dynamic";
 
@@ -13,89 +17,51 @@ const pickupByQrSchema = z.object({
   qrCode: z.string().uuid("QR code invalide"),
 });
 
+/** What the scanner shows after a pickup. */
+async function pickupSummary(orderId: string, shopId: string) {
+  const order = await prisma.order.findFirstOrThrow({
+    where: { id: orderId, shopId },
+    select: {
+      id: true,
+      orderNumber: true,
+      totalCents: true,
+      items: { select: { unit: true, quantity: true, weightGrams: true, available: true } },
+      user: { select: { firstName: true, lastName: true } },
+    },
+  });
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    clientName: formatClientName(order.user.firstName, order.user.lastName),
+    itemCount: order.items
+      .filter((item) => item.available)
+      .reduce((sum, item) => sum + storedLineUnits(item), 0),
+    totalCents: order.totalCents,
+  };
+}
+
 // ── POST /api/boucher/orders/pickup ──────────────
-// Boucher scans QR code -> finds order -> marks as PICKED_UP
 export async function POST(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
-    const { shopId } = authResult;
+    const { shopId, userId } = authResult;
 
-    const body = await req.json();
-    const data = pickupByQrSchema.parse(body);
-
-    // Find the order by QR code (scoped to this shop for defense-in-depth)
-    const order = await prisma.order.findFirst({
-      where: { qrCode: data.qrCode, shopId },
-      select: {
-        id: true,
-        status: true,
-        qrCode: true,
-        userId: true,
-        orderNumber: true,
-        totalCents: true,
-        items: {
-          select: {
-            id: true,
-            name: true,
-            quantity: true,
-          },
-        },
-        user: { select: { firstName: true, lastName: true } },
-        shop: { select: { id: true, name: true } },
-      },
+    const { qrCode } = pickupByQrSchema.parse(await req.json());
+    const result = await confirmPickup({
+      shopId,
+      actorId: userId,
+      now: new Date(),
+      target: { qrCode },
     });
-
-    if (!order) {
-      return apiError("NOT_FOUND", "Aucune commande trouvee avec ce QR code pour votre boucherie");
+    if (result.kind === "done") return apiSuccess(await pickupSummary(result.data.id, shopId));
+    if (result.kind === "replay") {
+      return apiSuccess({ ...(await pickupSummary(result.data.id, shopId)), _idempotent: true });
     }
-
-    // Verify order is READY
-    if (order.status !== "READY") {
-      const statusMessages: Record<string, string> = {
-        PENDING: "La commande n'a pas encore ete acceptee",
-        ACCEPTED: "La commande est acceptee mais pas encore prete",
-        PREPARING: "La commande est encore en preparation",
-        PICKED_UP: "La commande a deja ete recuperee",
-        COMPLETED: "La commande est deja terminee",
-        DENIED: "La commande a ete refusee",
-        CANCELLED: "La commande a ete annulee",
-        AUTO_CANCELLED: "La commande a expire",
-      };
-      return apiError(
-        "VALIDATION_ERROR",
-        statusMessages[order.status] || `La commande n'est pas prete (statut: ${order.status})`
-      );
+    if (result.kind === "not_found") {
+      return apiError("NOT_FOUND", "Aucune commande trouvée avec ce QR code pour votre boucherie");
     }
-
-    // Mark as picked up
-    const now = new Date();
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: "PICKED_UP", pickedUpAt: now, qrScannedAt: now },
-    });
-
-    // Notify client
-    await sendNotification("ORDER_PICKED_UP", {
-      userId: order.userId,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      shopName: order.shop.name,
-    });
-
-    const clientName = order.user
-      ? `${order.user.firstName} ${order.user.lastName?.charAt(0) || ""}.`.trim()
-      : "Client";
-
-    const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
-
-    return apiSuccess({
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      clientName,
-      itemCount,
-      totalCents: order.totalCents,
-    });
+    return transitionResponse(result);
   } catch (error) {
     return handleApiError(error, "boucher/orders/pickup");
   }

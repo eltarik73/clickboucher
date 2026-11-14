@@ -8,9 +8,7 @@ export const phoneSchema = z
   .string()
   .regex(/^(\+33[0-9]{9}|0[1-9][0-9]{8})$/, "Numero invalide (ex: 0612345678 ou +33612345678)");
 
-export const siretSchema = z
-  .string()
-  .regex(/^[0-9]{14}$/, "SIRET invalide (14 chiffres)");
+export const siretSchema = z.string().regex(/^[0-9]{14}$/, "SIRET invalide (14 chiffres)");
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -42,7 +40,11 @@ export const shopListQuerySchema = z.object({
 
 export const createShopSchema = z.object({
   name: z.string().min(2).max(200),
-  slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/, "Slug invalide (minuscules, chiffres, tirets)"),
+  slug: z
+    .string()
+    .min(2)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "Slug invalide (minuscules, chiffres, tirets)"),
   address: z.string().min(5),
   city: z.string().min(2),
   phone: phoneSchema,
@@ -54,8 +56,16 @@ export const createShopSchema = z.object({
 });
 
 // Coordinate must be a finite number (rejects NaN, Infinity)
-const safeLatitude = z.number().min(-90).max(90).refine((v) => isFinite(v), "Latitude invalide");
-const safeLongitude = z.number().min(-180).max(180).refine((v) => isFinite(v), "Longitude invalide");
+const safeLatitude = z
+  .number()
+  .min(-90)
+  .max(90)
+  .refine((v) => isFinite(v), "Latitude invalide");
+const safeLongitude = z
+  .number()
+  .min(-180)
+  .max(180)
+  .refine((v) => isFinite(v), "Longitude invalide");
 
 export const updateShopSchema = z.object({
   name: z.string().min(2).max(200).optional(),
@@ -74,22 +84,28 @@ export const updateShopSchema = z.object({
   latitude: safeLatitude.optional(),
   longitude: safeLongitude.optional(),
   deliveryRadius: z.number().min(1).max(100).optional(),
-  pickupSlots: z.object({
-    intervalMin: z.number().int().min(5).max(120),
-    maxPerSlot: z.number().int().min(1).max(50),
-    slots: z.record(z.object({ start: z.string(), end: z.string() })),
-  }).optional(),
+  pickupSlots: z
+    .object({
+      intervalMin: z.number().int().min(5).max(120),
+      maxPerSlot: z.number().int().min(1).max(50),
+      slots: z.record(z.object({ start: z.string(), end: z.string() })),
+    })
+    .optional(),
   acceptOnline: z.boolean().optional(),
   acceptOnPickup: z.boolean().optional(),
   priceAdjustmentThreshold: z.number().int().min(0).max(50).optional(),
-  commissionMarkupPercent: z.number().int().refine((v) => [0, 30, 50, 80, 100].includes(v), "Markup invalide").optional(),
+  commissionMarkupPercent: z
+    .number()
+    .int()
+    .refine((v) => [0, 30, 50, 80, 100].includes(v), "Markup invalide")
+    .optional(),
   priceRoundingEnabled: z.boolean().optional(),
 });
 
 export const updateShopStatusSchema = z.object({
   busyMode: z.boolean().optional(),
   paused: z.boolean().optional(),
-  status: z.enum(["OPEN","BUSY","PAUSED","AUTO_PAUSED","CLOSED","VACATION"]).optional(),
+  status: z.enum(["OPEN", "BUSY", "PAUSED", "AUTO_PAUSED", "CLOSED", "VACATION"]).optional(),
   prepTimeMin: z.number().int().min(5).max(120).optional(),
 });
 
@@ -102,6 +118,12 @@ export const productListQuerySchema = z.object({
   featured: z.enum(["true", "false"]).optional(),
   search: z.string().max(100).optional(),
   tag: z.string().optional(),
+});
+
+// A cut option's price replaces the product price per kilogram for every customer: never 0.
+const cutOptionSchema = z.object({
+  name: z.string().min(1).max(100),
+  priceCents: z.number().int().min(1, "Prix de la découpe requis"),
 });
 
 const productImageSchema = z.object({
@@ -143,26 +165,44 @@ export const createProductSchema = z.object({
   categoryIds: z.array(z.string().cuid()).min(1).max(3),
   shopId: z.string().cuid(),
   tags: z.array(z.string().max(50)).optional(),
-  origin: z.enum(["FRANCE","EU","ESPAGNE","IRLANDE","BELGIQUE","ALLEMAGNE","NOUVELLE_ZELANDE","BRESIL","POLOGNE","ITALIE","UK","AUTRE"]).optional(),
+  origin: z
+    .enum([
+      "FRANCE",
+      "EU",
+      "ESPAGNE",
+      "IRLANDE",
+      "BELGIQUE",
+      "ALLEMAGNE",
+      "NOUVELLE_ZELANDE",
+      "BRESIL",
+      "POLOGNE",
+      "ITALIE",
+      "UK",
+      "AUTRE",
+    ])
+    .optional(),
   halalOrg: z.string().max(200).nullable().optional(),
   race: z.string().max(200).nullable().optional(),
-  freshness: z.enum(["FRAIS","SURGELE","SOUS_VIDE"]).optional(),
+  freshness: z.enum(["FRAIS", "SURGELE", "SOUS_VIDE"]).optional(),
   customerNote: z.string().max(500).nullable().optional(),
   promoPct: z.number().int().min(1).max(99).nullable().optional(),
   promoEnd: z.string().datetime().nullable().optional(),
-  promoType: z.enum(["PERCENTAGE","FLASH","BUY_X_GET_Y","FIXED_AMOUNT"]).nullable().optional(),
+  promoType: z.enum(["PERCENTAGE", "FLASH", "BUY_X_GET_Y", "FIXED_AMOUNT"]).nullable().optional(),
   unitLabel: z.string().max(100).nullable().optional(),
-  sliceOptions: z.object({
-    defaultSlices: z.number().int().min(1).max(50),
-    minSlices: z.number().int().min(1).max(50),
-    maxSlices: z.number().int().min(1).max(50),
-    thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
-  }).nullable().optional(),
+  sliceOptions: z
+    .object({
+      defaultSlices: z.number().int().min(1).max(50),
+      minSlices: z.number().int().min(1).max(50),
+      maxSlices: z.number().int().min(1).max(50),
+      thicknesses: z.array(z.enum(["chiffonnade", "fine", "moyenne", "normale", "epaisse"])),
+    })
+    .nullable()
+    .optional(),
   variants: z.array(z.string().max(50)).max(10).optional(),
   weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
   pieceLabel: z.string().max(100).nullable().optional(),
   weightMargin: z.number().int().min(1).max(50).optional(),
-  cutOptions: z.array(z.object({ name: z.string().min(1).max(100), priceCents: z.number().int().min(0) })).max(10).nullable().optional(),
+  cutOptions: z.array(cutOptionSchema).max(10).nullable().optional(),
   promoFixedCents: z.number().int().min(1).max(100000).nullable().optional(),
   packContent: z.string().max(500).nullable().optional(),
   packWeight: z.string().max(100).nullable().optional(),
@@ -197,26 +237,44 @@ export const updateProductSchema = z.object({
   popular: z.boolean().optional(),
   categoryIds: z.array(z.string().cuid()).min(1).max(3).optional(),
   tags: z.array(z.string().max(50)).optional(),
-  origin: z.enum(["FRANCE","EU","ESPAGNE","IRLANDE","BELGIQUE","ALLEMAGNE","NOUVELLE_ZELANDE","BRESIL","POLOGNE","ITALIE","UK","AUTRE"]).optional(),
+  origin: z
+    .enum([
+      "FRANCE",
+      "EU",
+      "ESPAGNE",
+      "IRLANDE",
+      "BELGIQUE",
+      "ALLEMAGNE",
+      "NOUVELLE_ZELANDE",
+      "BRESIL",
+      "POLOGNE",
+      "ITALIE",
+      "UK",
+      "AUTRE",
+    ])
+    .optional(),
   halalOrg: z.string().max(200).nullable().optional(),
   race: z.string().max(200).nullable().optional(),
-  freshness: z.enum(["FRAIS","SURGELE","SOUS_VIDE"]).optional(),
+  freshness: z.enum(["FRAIS", "SURGELE", "SOUS_VIDE"]).optional(),
   customerNote: z.string().max(500).nullable().optional(),
   promoPct: z.number().int().min(1).max(99).nullable().optional(),
   promoEnd: z.string().datetime().nullable().optional(),
-  promoType: z.enum(["PERCENTAGE","FLASH","BUY_X_GET_Y","FIXED_AMOUNT"]).nullable().optional(),
+  promoType: z.enum(["PERCENTAGE", "FLASH", "BUY_X_GET_Y", "FIXED_AMOUNT"]).nullable().optional(),
   unitLabel: z.string().max(100).nullable().optional(),
-  sliceOptions: z.object({
-    defaultSlices: z.number().int().min(1).max(50),
-    minSlices: z.number().int().min(1).max(50),
-    maxSlices: z.number().int().min(1).max(50),
-    thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
-  }).nullable().optional(),
+  sliceOptions: z
+    .object({
+      defaultSlices: z.number().int().min(1).max(50),
+      minSlices: z.number().int().min(1).max(50),
+      maxSlices: z.number().int().min(1).max(50),
+      thicknesses: z.array(z.enum(["chiffonnade", "fine", "moyenne", "normale", "epaisse"])),
+    })
+    .nullable()
+    .optional(),
   variants: z.array(z.string().max(50)).max(10).optional(),
   weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
   pieceLabel: z.string().max(100).nullable().optional(),
   weightMargin: z.number().int().min(1).max(50).optional(),
-  cutOptions: z.array(z.object({ name: z.string().min(1).max(100), priceCents: z.number().int().min(0) })).max(10).nullable().optional(),
+  cutOptions: z.array(cutOptionSchema).max(10).nullable().optional(),
   promoFixedCents: z.number().int().min(1).max(100000).nullable().optional(),
   packContent: z.string().max(500).nullable().optional(),
   packWeight: z.string().max(100).nullable().optional(),
@@ -225,73 +283,19 @@ export const updateProductSchema = z.object({
   labels: z.array(productLabelInputSchema).optional(),
 });
 
-export const toggleStockSchema = z.object({
-  inStock: z.boolean().optional(),
-  stockQty: z.number().min(0).optional(),
-}).refine((d) => d.inStock !== undefined || d.stockQty !== undefined, {
-  message: "inStock ou stockQty requis",
-});
+export const toggleStockSchema = z
+  .object({
+    inStock: z.boolean().optional(),
+    stockQty: z.number().min(0).optional(),
+  })
+  .refine((d) => d.inStock !== undefined || d.stockQty !== undefined, {
+    message: "inStock ou stockQty requis",
+  });
 
 export const reorderProductsSchema = z.object({
   shopId: z.string().cuid(),
   productIds: z.array(z.string().cuid()).min(1),
 });
-
-// -- Cart / Order --
-
-const cartItemSchema = z.object({
-  productId: z.string().min(1, "productId requis"),
-  quantity: z.number().min(0.01).max(100),
-  weightGrams: z.number().int().min(1).optional(),
-  itemNote: z.string().max(300).optional(),
-  sliceCount: z.number().int().min(1).optional(),
-  sliceThickness: z.string().max(50).optional(),
-  variant: z.string().max(50).optional(),
-  pieceCount: z.number().int().min(1).optional(),
-  pieceLabel: z.string().max(100).optional(),
-  cutOption: z.string().max(100).optional(),
-  cutPriceCents: z.number().int().min(0).optional(),
-});
-
-export const createOrderSchema = z.object({
-  shopId: z.string().min(1, "shopId requis"),
-  items: z.array(cartItemSchema).min(1, "Au moins 1 article requis"),
-  requestedTime: z.string().optional(),
-  customerNote: z.string().max(500).optional(),
-  pickupSlotStart: z.string().datetime().optional(),
-  pickupSlotEnd: z.string().datetime().optional(),
-  idempotencyKey: z.string().max(100).optional(),
-  // Online payment not implemented yet — Stripe pending. Reject "ONLINE" until then.
-  paymentMethod: z
-    .literal("ON_PICKUP", {
-      errorMap: () => ({
-        message: "Le paiement en ligne n'est pas encore disponible. Réglez sur place au retrait.",
-      }),
-    })
-    .optional(),
-  // Offer / Loyalty
-  offerId: z.string().optional(),
-  loyaltyRewardId: z.string().optional(),
-  discountCents: z.number().int().min(0).optional(),
-  discountSource: z.enum(["PLATFORM", "SHOP", "LOYALTY"]).optional(),
-});
-
-// -- Boucher unified action --
-
-export const boucherActionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("accept"), estimatedMinutes: z.number().int().min(0).max(480) }),
-  z.object({ action: z.literal("deny"), reason: z.string().min(1).max(500) }),
-  z.object({ action: z.literal("start_preparing"), addMinutes: z.number().int().min(0).max(120).optional() }),
-  z.object({ action: z.literal("add_time"), addMinutes: z.number().int().min(1).max(120) }),
-  z.object({ action: z.literal("mark_ready") }),
-  z.object({ action: z.literal("item_unavailable"), itemIds: z.array(z.string().min(1)).min(1) }),
-  z.object({ action: z.literal("adjust_weight"), items: z.array(z.object({ orderItemId: z.string().min(1), actualWeightGrams: z.number().int().min(1) })).min(1) }),
-  z.object({ action: z.literal("adjust_price"), items: z.array(z.object({ orderItemId: z.string().min(1), newPriceCents: z.number().int().min(0) })).min(1) }),
-  z.object({ action: z.literal("confirm_pickup"), qrCode: z.string().uuid() }),
-  z.object({ action: z.literal("manual_pickup") }),
-  z.object({ action: z.literal("cancel"), reason: z.string().max(500).optional() }),
-  z.object({ action: z.literal("add_note"), note: z.string().min(1).max(500) }),
-]);
 
 // -- Anti-Gaspi --
 
@@ -311,49 +315,17 @@ export const updateAntiGaspiSchema = z.object({
   disable: z.boolean().optional(),
 });
 
-// -- Client respond to modifications --
-
-export const respondModificationSchema = z.object({
-  action: z.enum(["accept_changes", "cancel_order"]),
-});
+// -- Orders (quote and creation: src/lib/validators/order.ts; butcher actions:
+//    src/lib/services/orders/commands/action-schema.ts) --
 
 export const orderListQuerySchema = z.object({
   status: z.string().optional(),
   shopId: z.string().cuid().optional(),
 });
 
-export const acceptOrderSchema = z.object({
-  estimatedMinutes: z.number().int().min(1).max(480),
-});
-
-export const denyOrderSchema = z.object({
-  reason: z.string().min(1).max(500),
-});
-
-export const pickupOrderSchema = z.object({
-  qrCode: z.string().uuid(),
-});
-
 export const rateOrderSchema = z.object({
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(1000).optional(),
-});
-
-// -- Order Status Update (boucher) --
-
-export const updateOrderStatusSchema = z.object({
-  status: z.enum([
-    "ACCEPTED",
-    "PREPARING",
-    "READY",
-    "PICKED_UP",
-    "COMPLETED",
-    "DENIED",
-    "CANCELLED",
-    "PARTIALLY_DENIED",
-  ]),
-  boucherNote: z.string().max(500).optional(),
-  denyReason: z.string().max(500).optional(),
 });
 
 // -- Favorites --
@@ -370,7 +342,7 @@ export const updateServiceSchema = z.object({
   busyMode: z.boolean().optional(),
   busyExtraMin: z.number().int().min(0).max(60).optional(),
   paused: z.boolean().optional(),
-  status: z.enum(["OPEN","BUSY","PAUSED","AUTO_PAUSED","CLOSED","VACATION"]).optional(),
+  status: z.enum(["OPEN", "BUSY", "PAUSED", "AUTO_PAUSED", "CLOSED", "VACATION"]).optional(),
   autoAccept: z.boolean().optional(),
   maxOrdersPerHour: z.number().int().min(1).max(100).optional(),
   priceAdjustmentThreshold: z.number().int().min(0).max(50).optional(),
@@ -408,78 +380,17 @@ export const proRequestSchema = z.object({
   shopId: z.string().cuid(),
 });
 
-// -- Payment Webhook (stub) --
-
-export const paymentWebhookSchema = z.object({
-  orderId: z.string().cuid(),
-  status: z.enum(["COMPLETED", "FAILED"]),
-  providerRef: z.string().optional(),
-});
-
-// -- Offers Query (stub) --
-
-export const offersQuerySchema = z.object({
-  shopId: z.string().cuid().optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  perPage: z.coerce.number().int().min(1).max(50).default(20),
-});
-
-// -- Cart Reserve (stub) --
-
-export const cartReserveSchema = z.object({
-  productId: z.string().cuid(),
-  quantity: z.number().int().min(1).max(10),
-});
-
-// -- Weight Update (stub) --
-
-export const updateWeightSchema = z.object({
-  items: z.array(
-    z.object({
-      orderItemId: z.string().cuid(),
-      actualWeightGrams: z.number().int().min(1),
-    })
-  ).min(1),
-});
-
-// -- Weight Validation (stub) --
-
-export const validateWeightSchema = z.object({
-  accepted: z.boolean(),
-});
-
-// -- Stock Action (stub) --
-
-export const stockActionSchema = z.object({
-  orderItemId: z.string().cuid(),
-  action: z.enum(["REPLACE", "REMOVE", "CONTACT"]),
-  replacementProductId: z.string().cuid().optional(),
-  replacementName: z.string().max(200).optional(),
-});
-
 // ══════════════════════════════════════════
 // WEBMASTER schemas
 // ══════════════════════════════════════════
 
 export const wmShopListQuerySchema = z.object({
   search: z.string().max(100).optional(),
-  status: z.enum(["OPEN","BUSY","PAUSED","AUTO_PAUSED","CLOSED","VACATION"]).optional(),
-  subStatus: z.enum(["TRIAL","PENDING","ACTIVE","SUSPENDED","CANCELLED","EXPIRED"]).optional(),
+  status: z.enum(["OPEN", "BUSY", "PAUSED", "AUTO_PAUSED", "CLOSED", "VACATION"]).optional(),
+  subStatus: z.enum(["TRIAL", "PENDING", "ACTIVE", "SUSPENDED", "CANCELLED", "EXPIRED"]).optional(),
   city: z.string().optional(),
-  sortBy: z.enum(["name","createdAt","rating","orders"]).default("createdAt"),
-  sortDir: z.enum(["asc","desc"]).default("desc"),
-  page: z.coerce.number().int().min(1).default(1),
-  perPage: z.coerce.number().int().min(1).max(100).default(20),
-});
-
-export const wmOrderListQuerySchema = z.object({
-  search: z.string().max(100).optional(),
-  shopId: z.string().optional(),
-  status: z.enum(["PENDING","ACCEPTED","PREPARING","READY","PICKED_UP","COMPLETED","DENIED","CANCELLED","PARTIALLY_DENIED","AUTO_CANCELLED"]).optional(),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-  sortBy: z.enum(["createdAt","totalCents","status"]).default("createdAt"),
-  sortDir: z.enum(["asc","desc"]).default("desc"),
+  sortBy: z.enum(["name", "createdAt", "rating", "orders"]).default("createdAt"),
+  sortDir: z.enum(["asc", "desc"]).default("desc"),
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(1).max(100).default(20),
 });
@@ -527,23 +438,41 @@ export const createReferenceProductSchema = z.object({
   suggestedPrice: z.number().int().min(0).optional(),
   unit: z.enum(["KG", "PIECE", "BARQUETTE", "TRANCHE"]),
   categoryId: z.string().cuid(),
-  origin: z.enum(["FRANCE","EU","ESPAGNE","IRLANDE","BELGIQUE","ALLEMAGNE","NOUVELLE_ZELANDE","BRESIL","POLOGNE","ITALIE","UK","AUTRE"]).optional(),
+  origin: z
+    .enum([
+      "FRANCE",
+      "EU",
+      "ESPAGNE",
+      "IRLANDE",
+      "BELGIQUE",
+      "ALLEMAGNE",
+      "NOUVELLE_ZELANDE",
+      "BRESIL",
+      "POLOGNE",
+      "ITALIE",
+      "UK",
+      "AUTRE",
+    ])
+    .optional(),
   pricePerKg: z.number().int().min(0).optional(),
   sliceWeights: z.array(z.number().int().min(1)).optional(),
   tags: z.array(z.string().max(50)).optional(),
   halalOrg: z.string().max(200).nullable().optional(),
-  freshness: z.enum(["FRAIS","SURGELE","SOUS_VIDE"]).optional(),
+  freshness: z.enum(["FRAIS", "SURGELE", "SOUS_VIDE"]).optional(),
   race: z.string().max(200).nullable().optional(),
   customerNote: z.string().max(500).nullable().optional(),
   minWeightG: z.number().int().min(1).optional(),
   weightStepG: z.number().int().min(1).optional(),
   maxWeightG: z.number().int().min(1).optional(),
-  sliceOptions: z.object({
-    defaultSlices: z.number().int().min(1).max(50),
-    minSlices: z.number().int().min(1).max(50),
-    maxSlices: z.number().int().min(1).max(50),
-    thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
-  }).nullable().optional(),
+  sliceOptions: z
+    .object({
+      defaultSlices: z.number().int().min(1).max(50),
+      minSlices: z.number().int().min(1).max(50),
+      maxSlices: z.number().int().min(1).max(50),
+      thicknesses: z.array(z.enum(["chiffonnade", "fine", "moyenne", "normale", "epaisse"])),
+    })
+    .nullable()
+    .optional(),
   variants: z.array(z.string().max(50)).max(10).optional(),
   weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
   pieceLabel: z.string().max(100).nullable().optional(),
@@ -560,23 +489,42 @@ export const updateReferenceProductSchema = z.object({
   suggestedPrice: z.number().int().min(0).nullable().optional(),
   unit: z.enum(["KG", "PIECE", "BARQUETTE", "TRANCHE"]).optional(),
   categoryId: z.string().cuid().optional(),
-  origin: z.enum(["FRANCE","EU","ESPAGNE","IRLANDE","BELGIQUE","ALLEMAGNE","NOUVELLE_ZELANDE","BRESIL","POLOGNE","ITALIE","UK","AUTRE"]).nullable().optional(),
+  origin: z
+    .enum([
+      "FRANCE",
+      "EU",
+      "ESPAGNE",
+      "IRLANDE",
+      "BELGIQUE",
+      "ALLEMAGNE",
+      "NOUVELLE_ZELANDE",
+      "BRESIL",
+      "POLOGNE",
+      "ITALIE",
+      "UK",
+      "AUTRE",
+    ])
+    .nullable()
+    .optional(),
   pricePerKg: z.number().int().min(0).nullable().optional(),
   sliceWeights: z.array(z.number().int().min(1)).nullable().optional(),
   tags: z.array(z.string().max(50)).optional(),
   halalOrg: z.string().max(200).nullable().optional(),
-  freshness: z.enum(["FRAIS","SURGELE","SOUS_VIDE"]).optional(),
+  freshness: z.enum(["FRAIS", "SURGELE", "SOUS_VIDE"]).optional(),
   race: z.string().max(200).nullable().optional(),
   customerNote: z.string().max(500).nullable().optional(),
   minWeightG: z.number().int().min(1).optional(),
   weightStepG: z.number().int().min(1).optional(),
   maxWeightG: z.number().int().min(1).optional(),
-  sliceOptions: z.object({
-    defaultSlices: z.number().int().min(1).max(50),
-    minSlices: z.number().int().min(1).max(50),
-    maxSlices: z.number().int().min(1).max(50),
-    thicknesses: z.array(z.enum(["chiffonnade","fine","moyenne","normale","epaisse"])),
-  }).nullable().optional(),
+  sliceOptions: z
+    .object({
+      defaultSlices: z.number().int().min(1).max(50),
+      minSlices: z.number().int().min(1).max(50),
+      maxSlices: z.number().int().min(1).max(50),
+      thicknesses: z.array(z.enum(["chiffonnade", "fine", "moyenne", "normale", "epaisse"])),
+    })
+    .nullable()
+    .optional(),
   variants: z.array(z.string().max(50)).max(10).optional(),
   weightPerPiece: z.number().int().min(1).max(5000).nullable().optional(),
   pieceLabel: z.string().max(100).nullable().optional(),

@@ -9,6 +9,8 @@ import { FlashCountdown } from "@/components/product/FlashCountdown";
 import { resolveProductImage } from "@/lib/product-images";
 import { getFlag } from "@/lib/flags";
 import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
+import { useMountedNow } from "@/components/product/ProductCard";
+import { displayedUnitPrice, promoBadgeLabel } from "@/lib/pricing/display";
 
 // ── Types ──
 type PromoProduct = {
@@ -288,10 +290,9 @@ function PlatformPromoCard({ promo }: { promo: PlatformPromo }) {
 // ── Product Promo Card ──
 function ProductPromoCard({ product }: { product: PromoProduct }) {
   const isFlash = product.promoType === "FLASH" && product.promoEnd;
-  const isFixedAmount = product.promoType === "FIXED_AMOUNT" && product.promoFixedCents;
-  const discountedPrice = isFixedAmount
-    ? Math.max(0, product.priceCents - (product.promoFixedCents || 0))
-    : Math.round(product.priceCents * (1 - product.promoPct / 100));
+  // The price charged (pricing module); a dated promotion shows once the clock is read after mount.
+  const now = useMountedNow();
+  const price = displayedUnitPrice(product, now);
   const imgSrc =
     product.images[0]?.url ||
     resolveProductImage({
@@ -312,6 +313,8 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
         categoryEmoji: product.categories[0]?.emoji || undefined,
         promoPct: product.promoPct,
         promoType: product.promoType,
+        promoFixedCents: product.promoFixedCents,
+        promoEnd: product.promoEnd,
       }}
       shop={product.shop}
     >
@@ -330,15 +333,15 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
             className="object-cover"
             quality={70}
           />
-          <div
-            className={`absolute left-0 top-0 rounded-br-lg px-1.5 py-0.5 text-[11px] font-extrabold text-white ${
-              isFlash ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#DC2626]"
-            }`}
-          >
-            {isFixedAmount
-              ? `-${((product.promoFixedCents || 0) / 100).toFixed(0)}€`
-              : `-${product.promoPct}%`}
-          </div>
+          {price.promo && (
+            <div
+              className={`absolute left-0 top-0 rounded-br-lg px-1.5 py-0.5 text-[11px] font-extrabold text-white ${
+                isFlash ? "bg-gradient-to-r from-red-600 to-orange-500" : "bg-[#DC2626]"
+              }`}
+            >
+              {promoBadgeLabel(price.promo)}
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -364,12 +367,14 @@ function ProductPromoCard({ product }: { product: PromoProduct }) {
             {/* Price */}
             <div className="shrink-0 text-right">
               <span className="text-[13px] font-extrabold text-[#DC2626]">
-                {fmtPrice(discountedPrice)}
+                {fmtPrice(price.unitPriceCents)}
               </span>
               <div className="flex items-center gap-1">
-                <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
-                  {fmtPrice(product.priceCents)}
-                </span>
+                {price.promo && (
+                  <span className="text-[11px] text-gray-500 line-through dark:text-gray-400">
+                    {fmtPrice(price.baseCents)}
+                  </span>
+                )}
                 <span className="text-[11px] text-gray-500 dark:text-gray-400">
                   {unitLabel(product.unit)}
                 </span>

@@ -12,14 +12,17 @@ export interface Estimation {
 function smartRound(v: number): { min: number; max: number } {
   if (v <= 0) return { min: 0, max: 0 };
   if (v < 1) return { min: 1, max: 1 };
-  const f = Math.floor(v), d = v - f;
+  const f = Math.floor(v),
+    d = v - f;
   if (d < 0.15) return { min: f, max: f };
   if (d > 0.85) return { min: f + 1, max: f + 1 };
   return { min: f, max: f + 1 };
 }
 
 export function computeEstimation(
-  quantiteG: number, category: string, profil: ConversionProfile = "standard"
+  quantiteG: number,
+  category: string,
+  profil: ConversionProfile = "standard"
 ): Estimation {
   const rule = getConversionRule(category);
   const exact = quantiteG / rule.portionParPersonne[profil];
@@ -45,14 +48,6 @@ export function formatEstimationShort(e: Estimation): string {
   if (e.pieces) return `≈${e.pieces.count} ${e.pieces.nom}`;
   const { min, max } = e.personnes;
   return min === max ? `≈${min} pers.` : `≈${min}–${max} pers.`;
-}
-
-export function computePrice(quantiteG: number, prixAuKg: number): number {
-  return Math.round((quantiteG / 1000) * prixAuKg * 100) / 100;
-}
-
-export function formatPrice(prix: number): string {
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(prix);
 }
 
 export function formatWeight(g: number): string {

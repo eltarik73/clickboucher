@@ -3,17 +3,20 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import type { Prisma, User } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError, formatZodError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { createOrder } from "@/lib/services/orders/create";
+import { customerOrderById } from "@/lib/services/orders/customer-view";
 import { GUEST_COOKIE_NAME } from "@/lib/auth/guest-auth";
-import { logger } from "@/lib/logger";
+import { uniqueViolationFields } from "@/lib/prisma-errors";
 
 // ── Validator ──────────────────────────────────────
-// Light schema for the guest-only fields. The full order payload (items,
-// shopId, slots, ...) is validated downstream by createOrder().
+// The body carries the guest identity beside the order fields. Only the order
+// fields reach createOrder(), whose strict schema validates them.
 const guestCheckoutSchema = z.object({
   email: z.string().email("Email invalide").max(200),
   phone: z
@@ -27,22 +30,64 @@ const guestCheckoutSchema = z.object({
   lastName: z.string().trim().min(1, "Nom requis").max(80),
 });
 
+const EMAIL_COLUMN = "email";
+
+/**
+ * The user row of this e-mail: the shadow user (clerkId=null) created on the guest's first order,
+ * or an existing row, Clerk account included (the caller refuses those). An existing guest row gets
+ * its missing guestToken, phone or names filled in.
+ */
+async function guestUser(
+  emailLc: string,
+  guest: z.infer<typeof guestCheckoutSchema>
+): Promise<User> {
+  let user = await prisma.user.findUnique({ where: { email: emailLc } });
+  if (!user) {
+    try {
+      return await prisma.user.create({
+        data: {
+          email: emailLc,
+          firstName: guest.firstName,
+          lastName: guest.lastName,
+          phone: guest.phone || null,
+          role: "CLIENT",
+          isGuest: true,
+          guestToken: randomUUID(),
+        },
+      });
+    } catch (error) {
+      // Two first requests of the same new guest race on users.email: the loser reads the winner's
+      // row and goes on, so its order is created or replayed by its idempotency key.
+      if (!uniqueViolationFields(error)?.includes(EMAIL_COLUMN)) throw error;
+      user = await prisma.user.findUniqueOrThrow({ where: { email: emailLc } });
+    }
+  }
+  if (user.clerkId) return user;
+
+  const updates: Prisma.UserUpdateInput = {};
+  if (!user.guestToken) updates.guestToken = randomUUID();
+  if (!user.phone && guest.phone) updates.phone = guest.phone;
+  if (!user.firstName && guest.firstName) updates.firstName = guest.firstName;
+  if (!user.lastName && guest.lastName) updates.lastName = guest.lastName;
+  if (Object.keys(updates).length === 0) return user;
+  return prisma.user.update({ where: { id: user.id }, data: updates });
+}
+
 // ── POST /api/checkout/guest ───────────────────────
 // Anonymous checkout — creates a shadow Prisma User (clerkId=null) and
 // the order in one go. Returns the created order + sets an httpOnly
 // cookie carrying a guestToken used to access /suivi/[id]?guestToken=...
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as Record<string, unknown>;
+    const body = await readJsonBody(req);
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return apiError("VALIDATION_ERROR", "Données invalides");
+    }
+    const { email, phone, firstName, lastName, ...orderFields } = body as Record<string, unknown>;
 
-    const guestParse = guestCheckoutSchema.safeParse({
-      email: body.email,
-      phone: body.phone,
-      firstName: body.firstName,
-      lastName: body.lastName,
-    });
+    const guestParse = guestCheckoutSchema.safeParse({ email, phone, firstName, lastName });
     if (!guestParse.success) {
-      return apiError("VALIDATION_ERROR", "Donnees invalides", formatZodError(guestParse.error));
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(guestParse.error));
     }
     const guest = guestParse.data;
 
@@ -54,43 +99,12 @@ export async function POST(req: NextRequest) {
 
     const emailLc = guest.email.toLowerCase();
 
-    // Find or create the shadow user. If a real (Clerk) account already
-    // exists with this email, refuse — they should sign in instead.
-    let user = await prisma.user.findUnique({ where: { email: emailLc } });
-    if (user && user.clerkId) {
+    const user = await guestUser(emailLc, guest);
+    if (user.clerkId) {
       return apiError(
         "CONFLICT",
         "Un compte existe déjà avec cet email. Connectez-vous pour commander."
       );
-    }
-
-    if (!user) {
-      try {
-        user = await prisma.user.create({
-          data: {
-            email: emailLc,
-            firstName: guest.firstName,
-            lastName: guest.lastName,
-            phone: guest.phone || null,
-            role: "CLIENT",
-            isGuest: true,
-            guestToken: randomUUID(),
-          },
-        });
-      } catch (err) {
-        logger.error("[checkout/guest] failed to create shadow user", { err });
-        return apiError("INTERNAL_ERROR", "Impossible de créer le compte invité");
-      }
-    } else {
-      // Existing guest user — refresh phone/name if missing, ensure guestToken set.
-      const updates: Record<string, unknown> = {};
-      if (!user.guestToken) updates.guestToken = randomUUID();
-      if (!user.phone && guest.phone) updates.phone = guest.phone;
-      if (!user.firstName && guest.firstName) updates.firstName = guest.firstName;
-      if (!user.lastName && guest.lastName) updates.lastName = guest.lastName;
-      if (Object.keys(updates).length > 0) {
-        user = await prisma.user.update({ where: { id: user.id }, data: updates });
-      }
     }
 
     if (!user.guestToken) {
@@ -98,26 +112,21 @@ export async function POST(req: NextRequest) {
       return apiError("INTERNAL_ERROR", "Token invité manquant");
     }
 
-    const result = await createOrder(body, {
+    const result = await createOrder(orderFields, {
       id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
       role: user.role,
-      clerkId: user.clerkId,
+      isGuest: true,
+      firstName: user.firstName,
+      email: user.email,
     });
 
     if (!result.ok) {
-      return apiError(
-        result.code,
-        result.message,
-        result.details as Record<string, string[]> | undefined
-      );
+      return apiError(result.code, result.message, result.details);
     }
 
     const response = apiSuccess(
       {
-        order: result.order,
+        order: await customerOrderById(result.order.id),
         guestToken: user.guestToken,
       },
       result.status
@@ -134,6 +143,6 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error, "checkout/guest POST");
   }
 }

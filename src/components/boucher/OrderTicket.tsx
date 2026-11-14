@@ -5,10 +5,20 @@
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import {
   formatPriceCents as formatPrice,
-  formatUnit,
   formatTime,
   formatClientName,
 } from "@/lib/format-kitchen";
+import type { SaleUnit, StoredLine } from "@/lib/pricing/line";
+import { formatStoredLineQuantity } from "@/lib/pricing/format";
+import { summarizeReceipt } from "@/lib/pricing/receipt";
+
+type KitchenItem = KitchenOrder["items"][number];
+
+const SALE_UNITS: readonly SaleUnit[] = ["KG", "PIECE", "BARQUETTE", "TRANCHE"];
+
+function isSaleUnit(unit: string): unit is SaleUnit {
+  return (SALE_UNITS as readonly string[]).includes(unit);
+}
 
 function formatDateFull(dateStr: string) {
   const d = new Date(dateStr);
@@ -42,21 +52,34 @@ const LOGO_SVG = `<svg viewBox="0 0 100 100" width="48" height="48" style="displ
   <rect x="76" y="53" width="12" height="2.5" rx="1.25" fill="white" opacity="0.3"/>
 </svg>`;
 
-/** Build item quantity string */
-function formatItemQty(item: KitchenOrder["items"][0]): string {
-  const unit = item.product?.unit || item.unit;
-  if (unit === "KG" && item.weightGrams) {
-    if (item.weightGrams >= 1000) {
-      const kg = item.weightGrams / 1000;
-      return `${kg % 1 === 0 ? kg.toFixed(0) : kg.toFixed(1)} kg`;
-    }
-    return `${item.weightGrams}g`;
+/**
+ * The stored form of a kitchen order line. The unit is the line's own (the one its quantity was
+ * written in), never the product's current unit. Throws TypeError on a unit outside the Prisma
+ * enum, which no order line can carry.
+ */
+export function kitchenStoredLine(
+  item: Pick<KitchenItem, "unit" | "quantity" | "weightGrams">
+): StoredLine {
+  if (!isSaleUnit(item.unit)) {
+    throw new TypeError(`Unknown order line unit: ${item.unit}`);
   }
-  return `${item.quantity} ${formatUnit(unit)}`;
+  return { unit: item.unit, quantity: item.quantity, weightGrams: item.weightGrams };
+}
+
+/** Quantity printed before the product name: "2 × 500 g", "470 g", "3 pièces". */
+export function formatItemQty(
+  item: Pick<KitchenItem, "unit" | "quantity" | "weightGrams">
+): string {
+  return formatStoredLineQuantity(kitchenStoredLine(item));
 }
 
 /** Build the HTML for a single Uber Eats style ticket */
-function buildTicketHtml(order: KitchenOrder, shopName: string): string {
+/** An order paid online has been paid; any other is settled at the counter when collected. */
+function amountLabel(order: Pick<KitchenOrder, "paymentMethod">): string {
+  return order.paymentMethod === "ONLINE" ? "Montant pay\u00E9" : "\u00C0 r\u00E9gler sur place";
+}
+
+export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
   const clientName = order.user
     ? formatClientName(order.user.firstName, order.user.lastName)
     : "Client";
@@ -74,21 +97,45 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
       ? formatDateFull(order.estimatedReady)
       : null;
 
-  // Items
+  // Items: an out-of-stock or removed line is not prepared and not charged.
+  const receipt = summarizeReceipt({
+    lines: order.items,
+    totalCents: order.totalCents,
+    discountCents: order.discountCents,
+    // The butcher collects the goods: the ticket never prints the platform's service fee.
+    serviceFeeCents: 0,
+    paymentMethod: order.paymentMethod ?? "ON_PICKUP",
+  });
   const itemsHtml = order.items
     .map((item) => {
       const qtyStr = formatItemQty(item);
       const name = item.product?.name || item.name;
       const variantStr = item.variant ? ` [${item.variant}]` : "";
       const cutStr = item.cutOption ? ` [${item.cutOption}]` : "";
-      const pieceStr = item.pieceCount && item.pieceLabel ? ` (${item.pieceCount} ${item.pieceLabel})` : "";
-      const price = formatPrice(item.totalCents || item.priceCents * item.quantity);
+      const pieceStr =
+        item.pieceCount && item.pieceLabel ? ` (${item.pieceCount} ${item.pieceLabel})` : "";
+      const label = `${escapeHtml(qtyStr)} ${escapeHtml(name)}${escapeHtml(variantStr)}${escapeHtml(cutStr)}${escapeHtml(pieceStr)}`;
+      if (!item.available) {
+        return `<div class="item item-out">
+      <div class="item-line"><span>${label}</span><span class="item-price">RUPTURE</span></div>
+    </div>`;
+      }
       return `<div class="item">
-      <div class="item-line"><span>${escapeHtml(qtyStr)} ${escapeHtml(name)}${escapeHtml(variantStr)}${escapeHtml(cutStr)}${escapeHtml(pieceStr)}</span><span class="item-price">${escapeHtml(price)}</span></div>
+      <div class="item-line"><span>${label}</span><span class="item-price">${escapeHtml(formatPrice(item.totalCents))}</span></div>
       <div class="item-halal">HALAL</div>
     </div>`;
     })
     .join("");
+  const amountRows = [
+    `<div class="total-row"><span>Sous-total</span><span>${formatPrice(receipt.subtotalCents)}</span></div>`,
+    receipt.discountCents > 0
+      ? `<div class="total-row"><span>Remise</span><span>${formatPrice(-receipt.discountCents)}</span></div>`
+      : "",
+    receipt.adjustmentCents !== 0
+      ? `<div class="total-row"><span>Ajustement</span><span>${formatPrice(receipt.adjustmentCents)}</span></div>`
+      : "",
+    `<div class="total-row"><span>${amountLabel(order)}</span><span>${formatPrice(receipt.goodsTotalCents)}</span></div>`,
+  ].join("");
 
   // Pickup code (4 digits)
   const pickupCode = order.qrCode ? getPickupCode(order.qrCode) : null;
@@ -133,8 +180,7 @@ function buildTicketHtml(order: KitchenOrder, shopName: string): string {
 
     <div class="divider"></div>
     <div class="totals">
-      <div class="total-row"><span>Sous-total</span><span>${formatPrice(order.totalCents)}</span></div>
-      <div class="total-row"><span>Montant pay\u00E9</span><span>${formatPrice(order.totalCents)}</span></div>
+      ${amountRows}
     </div>
     <div class="divider"></div>
 
@@ -185,6 +231,7 @@ const TICKET_CSS = `
     .pickup-box { text-align: center; font-size: 22px; font-weight: 900; letter-spacing: 2px; border: 3px solid #000; padding: 8px; margin: 8px 12px; }
     .divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
     .item { margin: 6px 0; }
+    .item-out { text-decoration: line-through; color: #666; }
     .item-line { font-size: 12px; font-weight: 500; overflow: hidden; }
     .item-line span:first-child { float: left; max-width: 220px; }
     .item-price { float: right; white-space: nowrap; }
@@ -254,7 +301,11 @@ export function printOrderTicket(order: KitchenOrder, shopName?: string): boolea
 
     // Clean up iframe after print (or after timeout fallback)
     const cleanup = () => {
-      try { document.body.removeChild(iframe); } catch { /* already removed */ }
+      try {
+        document.body.removeChild(iframe);
+      } catch {
+        /* already removed */
+      }
     };
 
     iframe.contentWindow?.addEventListener("afterprint", cleanup);

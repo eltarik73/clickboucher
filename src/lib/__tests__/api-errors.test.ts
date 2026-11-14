@@ -5,13 +5,19 @@
 // would silently change the contract every client/Boucher/Webmaster call
 // depends on (status codes + JSON shape).
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
+vi.mock("@sentry/nextjs", () => sentry);
+
 import {
   apiError,
   apiSuccess,
   apiPaginated,
   formatZodError,
+  handleApiError,
 } from "@/lib/api/errors";
+import { InvalidJsonBodyError, readJsonBody } from "@/lib/api/request-body";
 import { z, ZodError } from "zod";
 
 describe("apiSuccess", () => {
@@ -96,6 +102,59 @@ describe("formatZodError", () => {
     if (!parsed.success) {
       const details = formatZodError(parsed.error);
       expect(details._root).toBeDefined();
+    }
+  });
+});
+
+describe("readJsonBody", () => {
+  function post(body: string) {
+    return new Request("http://localhost/api/x", { method: "POST", body });
+  }
+
+  it("returns the parsed body", async () => {
+    await expect(readJsonBody(post('{"a":1}'))).resolves.toEqual({ a: 1 });
+  });
+
+  it.each(["{bad", "", "[1,"])(
+    "turns the unparsable body %j into an InvalidJsonBodyError",
+    async (body) => {
+      await expect(readJsonBody(post(body))).rejects.toBeInstanceOf(InvalidJsonBodyError);
+    }
+  );
+
+  it("rethrows any other failure as is (body already read)", async () => {
+    const req = post('{"a":1}');
+    await req.text();
+    const error = await readJsonBody(req).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(TypeError);
+  });
+});
+
+describe("handleApiError", () => {
+  it("answers 400 VALIDATION_ERROR to a body that is not JSON, without logging nor reporting it", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    sentry.captureException.mockClear();
+    try {
+      const res = handleApiError(new InvalidJsonBodyError(), "route POST");
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(consoleError).not.toHaveBeenCalled();
+      expect(sentry.captureException).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("keeps any other SyntaxError a reported 500 (a server bug, not the caller's)", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    sentry.captureException.mockClear();
+    try {
+      const res = handleApiError(new SyntaxError("Unexpected token in stored JSON"), "route POST");
+      expect(res.status).toBe(500);
+      expect(sentry.captureException).toHaveBeenCalledTimes(1);
+    } finally {
+      consoleError.mockRestore();
     }
   });
 });

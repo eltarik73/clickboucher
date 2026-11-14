@@ -1,9 +1,12 @@
 import { sendEmail } from "@/lib/email";
+import type { SaleUnit } from "@/lib/pricing/line";
+import { formatStoredLineQuantity } from "@/lib/pricing/format";
 
 interface OrderItem {
   name: string;
+  /** Stored OrderItem.quantity: kilograms for KG and TRANCHE, a count otherwise. */
   quantity: number;
-  unit: string;
+  unit: SaleUnit;
   totalCents: number;
   weightGrams?: number | null;
 }
@@ -24,11 +27,13 @@ function fmtPrice(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
-function fmtQty(item: OrderItem): string {
-  if (item.unit === "KG" && item.weightGrams) {
-    return `${(item.weightGrams / 1000).toFixed(1).replace(".", ",")} kg`;
-  }
-  return `${item.quantity}x`;
+/** Quantity printed before the product name: "2 × 500 g", "470 g", "3 pièces". */
+export function fmtQty(item: OrderItem): string {
+  return formatStoredLineQuantity({
+    unit: item.unit,
+    quantity: item.quantity,
+    weightGrams: item.weightGrams ?? null,
+  });
 }
 
 export async function sendOrderConfirmationEmail(

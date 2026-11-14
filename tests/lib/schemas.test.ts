@@ -1,72 +1,14 @@
 // tests/lib/schemas.test.ts — Zod schema validation tests
 import { describe, it, expect } from "vitest";
+import { boucherActionSchema } from "@/lib/services/orders/commands/action-schema";
 import {
-  createOrderSchema,
-  boucherActionSchema,
   createProductSchema,
+  updateProductSchema,
   enableAntiGaspiSchema,
   toggleStockSchema,
   rateOrderSchema,
   toggleFavoriteSchema,
 } from "@/lib/validators";
-
-describe("createOrderSchema", () => {
-  const validOrder = {
-    shopId: "cm123abc",
-    items: [{ productId: "prod1", quantity: 2, unit: "PIECE" as const }],
-  };
-
-  it("accepts valid order", () => {
-    const result = createOrderSchema.safeParse(validOrder);
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects empty shopId", () => {
-    const result = createOrderSchema.safeParse({ ...validOrder, shopId: "" });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects empty items array", () => {
-    const result = createOrderSchema.safeParse({ ...validOrder, items: [] });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects missing items", () => {
-    const result = createOrderSchema.safeParse({ shopId: "cm123abc" });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts optional customerNote", () => {
-    const result = createOrderSchema.safeParse({ ...validOrder, customerNote: "Sans oignon" });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects customerNote over 500 chars", () => {
-    const result = createOrderSchema.safeParse({ ...validOrder, customerNote: "x".repeat(501) });
-    expect(result.success).toBe(false);
-  });
-
-  it("accepts valid pickupSlotStart", () => {
-    const result = createOrderSchema.safeParse({
-      ...validOrder,
-      pickupSlotStart: "2026-03-15T14:00:00.000Z",
-      pickupSlotEnd: "2026-03-15T14:30:00.000Z",
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("accepts ON_PICKUP payment method", () => {
-    expect(createOrderSchema.safeParse({ ...validOrder, paymentMethod: "ON_PICKUP" }).success).toBe(true);
-  });
-
-  it("rejects ONLINE payment method (Stripe not implemented yet)", () => {
-    expect(createOrderSchema.safeParse({ ...validOrder, paymentMethod: "ONLINE" }).success).toBe(false);
-  });
-
-  it("rejects invalid payment method", () => {
-    expect(createOrderSchema.safeParse({ ...validOrder, paymentMethod: "CRYPTO" }).success).toBe(false);
-  });
-});
 
 describe("boucherActionSchema", () => {
   it("accepts valid accept action", () => {
@@ -108,7 +50,10 @@ describe("boucherActionSchema", () => {
   });
 
   it("rejects confirm_pickup with invalid UUID", () => {
-    const result = boucherActionSchema.safeParse({ action: "confirm_pickup", qrCode: "not-a-uuid" });
+    const result = boucherActionSchema.safeParse({
+      action: "confirm_pickup",
+      qrCode: "not-a-uuid",
+    });
     expect(result.success).toBe(false);
   });
 
@@ -117,19 +62,16 @@ describe("boucherActionSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("accepts adjust_weight with valid items", () => {
+  it("rejects adjust_weight: a total changes only through the adjust-price tier service", () => {
     const result = boucherActionSchema.safeParse({
       action: "adjust_weight",
       items: [{ orderItemId: "item1", actualWeightGrams: 520 }],
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
-  it("rejects adjust_weight with 0 weight", () => {
-    const result = boucherActionSchema.safeParse({
-      action: "adjust_weight",
-      items: [{ orderItemId: "item1", actualWeightGrams: 0 }],
-    });
+  it("rejects adjust_price", () => {
+    const result = boucherActionSchema.safeParse({ action: "adjust_price", items: [] });
     expect(result.success).toBe(false);
   });
 });
@@ -180,6 +122,25 @@ describe("createProductSchema", () => {
   it("rejects promoPct over 99", () => {
     const result = createProductSchema.safeParse({ ...validProduct, promoPct: 100 });
     expect(result.success).toBe(false);
+  });
+
+  it("accepts a cut option with a price", () => {
+    const result = createProductSchema.safeParse({
+      ...validProduct,
+      cutOptions: [{ name: "Haché", priceCents: 2200 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it.each([
+    ["createProductSchema", createProductSchema, validProduct],
+    ["updateProductSchema", updateProductSchema, {}],
+  ] as const)("%s rejects a cut option sold for 0", (_name, schema, base) => {
+    const result = schema.safeParse({ ...base, cutOptions: [{ name: "Haché", priceCents: 0 }] });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toContain(
+      "Prix de la découpe requis"
+    );
   });
 });
 
@@ -237,29 +198,37 @@ describe("rateOrderSchema", () => {
 
 describe("toggleFavoriteSchema", () => {
   it("accepts valid CUID userId and shopId", () => {
-    expect(toggleFavoriteSchema.safeParse({
-      userId: "clxyz123456789abcdef12345",
-      shopId: "clxyz123456789abcdef12346",
-    }).success).toBe(true);
+    expect(
+      toggleFavoriteSchema.safeParse({
+        userId: "clxyz123456789abcdef12345",
+        shopId: "clxyz123456789abcdef12346",
+      }).success
+    ).toBe(true);
   });
 
   it("rejects empty shopId", () => {
-    expect(toggleFavoriteSchema.safeParse({
-      userId: "clxyz123456789abcdef12345",
-      shopId: "",
-    }).success).toBe(false);
+    expect(
+      toggleFavoriteSchema.safeParse({
+        userId: "clxyz123456789abcdef12345",
+        shopId: "",
+      }).success
+    ).toBe(false);
   });
 
   it("rejects non-CUID shopId", () => {
-    expect(toggleFavoriteSchema.safeParse({
-      userId: "clxyz123456789abcdef12345",
-      shopId: "shop123",
-    }).success).toBe(false);
+    expect(
+      toggleFavoriteSchema.safeParse({
+        userId: "clxyz123456789abcdef12345",
+        shopId: "shop123",
+      }).success
+    ).toBe(false);
   });
 
   it("rejects missing userId", () => {
-    expect(toggleFavoriteSchema.safeParse({
-      shopId: "clxyz123456789abcdef12345",
-    }).success).toBe(false);
+    expect(
+      toggleFavoriteSchema.safeParse({
+        shopId: "clxyz123456789abcdef12345",
+      }).success
+    ).toBe(false);
   });
 });

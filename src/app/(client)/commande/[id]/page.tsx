@@ -2,17 +2,30 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Copy, AlertTriangle, RefreshCw, Trash2, Loader2, MessageSquare } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Copy,
+  AlertTriangle,
+  RefreshCw,
+  Trash2,
+  Loader2,
+  MessageSquare,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 
-const QRCodeSVG = dynamic(
-  () => import("qrcode.react").then(m => m.QRCodeSVG),
-  { ssr: false, loading: () => <div className="w-[180px] h-[180px] animate-pulse bg-gray-100 dark:bg-white/5 rounded-2xl" /> }
-);
+const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[180px] w-[180px] animate-pulse rounded-2xl bg-gray-100 dark:bg-white/5" />
+  ),
+});
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
 import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
+import type { SaleUnit } from "@/lib/pricing/line";
+import { formatStoredLineQuantity } from "@/lib/pricing/format";
 import { startVisiblePolling, nextOrderPollDelay } from "@/hooks/useVisiblePolling";
 
 // ── Types ────────────────────────────────────────
@@ -20,8 +33,10 @@ import { startVisiblePolling, nextOrderPollDelay } from "@/hooks/useVisiblePolli
 interface OrderItem {
   id: string;
   name: string;
+  /** Stored OrderItem.quantity: kilograms for KG and TRANCHE, a count otherwise. */
   quantity: number;
-  unit: string;
+  unit: SaleUnit;
+  weightGrams: number | null;
   priceCents: number;
   totalCents: number;
   available: boolean;
@@ -50,7 +65,6 @@ interface OrderUser {
   id: string;
   firstName: string;
   lastName: string;
-  customerNumber: string | null;
 }
 
 interface OrderData {
@@ -95,23 +109,17 @@ function fmtPrice(cents: number) {
   return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
-function unitLabel(unit: string) {
-  if (unit === "KG") return "kg";
-  if (unit === "PIECE") return "pc";
-  return "barq.";
-}
-
 const TERMINAL = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
 
 // ── Dots animation ───────────────────────────────
 
 function LoadingDots() {
   return (
-    <div className="flex items-center gap-1.5 justify-center my-4">
+    <div className="my-4 flex items-center justify-center gap-1.5">
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="w-3 h-3 rounded-full bg-[#DC2626] animate-bounce"
+          className="h-3 w-3 animate-bounce rounded-full bg-[#DC2626]"
           style={{ animationDelay: `${i * 150}ms` }}
         />
       ))}
@@ -135,7 +143,7 @@ function ConfettiBurst() {
   });
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
       {particles.map((p, i) => (
         <div
           key={i}
@@ -186,12 +194,12 @@ function TimeProgress({ estimatedReady }: { estimatedReady: string }) {
 
   return (
     <div className="mt-4">
-      <p className="text-sm font-semibold text-[#2a2018] dark:text-white text-center mb-2">
+      <p className="mb-2 text-center text-sm font-semibold text-[#2a2018] dark:text-white">
         Prete dans environ {minsLeft} min
       </p>
-      <div className="h-2 bg-[#ece8e3] dark:bg-white/10 rounded-full overflow-hidden">
+      <div className="h-2 overflow-hidden rounded-full bg-[#ece8e3] dark:bg-white/10">
         <div
-          className="h-full bg-[#DC2626] rounded-full transition-all duration-1000"
+          className="h-full rounded-full bg-[#DC2626] transition-all duration-1000"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -212,13 +220,13 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
   };
 
   return (
-    <div className="flex flex-col items-center mt-5">
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-[#ece8e3] dark:border-white/10 shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
+    <div className="mt-5 flex flex-col items-center">
+      <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:border-white/10 dark:bg-gray-900">
         <QRCodeSVG value={qrCode} size={size} level="M" />
       </div>
       <button
         onClick={handleCopy}
-        className="flex items-center gap-1.5 mt-3 text-xs font-medium text-[#DC2626] hover:underline"
+        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[#DC2626] hover:underline"
       >
         <Copy size={12} />
         Copier le code
@@ -231,14 +239,14 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
 
 function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: number }) {
   return (
-    <div className="mt-6 p-4 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-      <h3 className="text-sm font-bold text-[#2a2018] dark:text-white mb-3">Recapitulatif</h3>
+    <div className="mt-6 rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
+      <h3 className="mb-3 text-sm font-bold text-[#2a2018] dark:text-white">Recapitulatif</h3>
       {items.map((item) => (
-        <div key={item.id} className="flex justify-between text-xs py-1.5">
+        <div key={item.id} className="flex justify-between py-1.5 text-xs">
           <div className="text-[#555] dark:text-gray-300">
             {item.name}
-            <span className="text-[#999] dark:text-gray-400 ml-1">
-              x{item.quantity} {unitLabel(item.unit)}
+            <span className="ml-1 text-[#999] dark:text-gray-400">
+              {formatStoredLineQuantity(item)}
             </span>
           </div>
           <span className="font-semibold text-[#2a2018] dark:text-white">
@@ -246,7 +254,7 @@ function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: num
           </span>
         </div>
       ))}
-      <div className="border-t border-[#ece8e3] dark:border-white/10 pt-2 mt-2 flex justify-between">
+      <div className="mt-2 flex justify-between border-t border-[#ece8e3] pt-2 dark:border-white/10">
         <span className="text-sm font-bold text-[#2a2018] dark:text-white">Total</span>
         <span className="text-sm font-extrabold text-[#2a2018] dark:text-white">
           {fmtPrice(totalCents)}
@@ -258,11 +266,7 @@ function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: num
 
 // ── Main Page ────────────────────────────────────
 
-export default function CommandePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function CommandePage({ params }: { params: { id: string } }) {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -276,14 +280,19 @@ export default function CommandePage({
 
   // Alternatives state
   const [alternatives, setAlternatives] = useState<Record<string, Alternative[]>>({});
-  const [decisions, setDecisions] = useState<Record<string, { action: "replace" | "remove"; replacementProductId?: string }>>({});
+  const [decisions, setDecisions] = useState<
+    Record<string, { action: "replace" | "remove"; replacementProductId?: string }>
+  >({});
   const [submittingAlts, setSubmittingAlts] = useState(false);
 
   const orderId = params.id;
   const orderLoadedRef = useRef(false);
 
   // Renvoie le statut HTTP (0 = erreur réseau) et le statut de la commande si elle a été chargée
-  const fetchOrder = useCallback(async (): Promise<{ httpStatus: number; orderStatus: string | null }> => {
+  const fetchOrder = useCallback(async (): Promise<{
+    httpStatus: number;
+    orderStatus: string | null;
+  }> => {
     if (!orderId) return { httpStatus: 0, orderStatus: null };
     let httpStatus = 0;
     try {
@@ -464,7 +473,7 @@ export default function CommandePage({
   // ── Loading / Error states ─────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f6f3] dark:bg-[#0a0a0a]">
         <LoadingDots />
       </div>
     );
@@ -472,9 +481,11 @@ export default function CommandePage({
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] flex flex-col items-center justify-center px-5">
-        <p className="text-lg font-bold text-[#2a2018] dark:text-white mb-2">Erreur</p>
-        <p className="text-sm text-[#999] dark:text-gray-400 mb-6">{error || "Commande introuvable"}</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f8f6f3] px-5 dark:bg-[#0a0a0a]">
+        <p className="mb-2 text-lg font-bold text-[#2a2018] dark:text-white">Erreur</p>
+        <p className="mb-6 text-sm text-[#999] dark:text-gray-400">
+          {error || "Commande introuvable"}
+        </p>
         <Button className="bg-[#DC2626] hover:bg-[#b91c1c]" asChild>
           <Link href="/commandes">Mes commandes</Link>
         </Button>
@@ -488,17 +499,17 @@ export default function CommandePage({
 
   // ── Render ─────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a] pb-10">
+    <div className="min-h-screen bg-[#f8f6f3] pb-10 dark:bg-[#0a0a0a]">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-[#f8f6f3]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-[#ece8e3] dark:border-white/10 px-5 py-4">
-        <div className="max-w-xl mx-auto flex items-center gap-3">
+      <header className="sticky top-0 z-10 border-b border-[#ece8e3] bg-[#f8f6f3]/95 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/95">
+        <div className="mx-auto flex max-w-xl items-center gap-3">
           <Link
             href="/commandes"
-            className="flex items-center justify-center w-10 h-10 rounded-[14px] bg-white dark:bg-[#141414] border border-[#ece8e3] dark:border-white/10 shadow-sm"
+            className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#ece8e3] bg-white shadow-sm dark:border-white/10 dark:bg-[#141414]"
           >
             <ArrowLeft size={17} className="text-[#333] dark:text-white" />
           </Link>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-base font-bold text-[#2a2018] dark:text-white">
               Commande {order.displayNumber || order.orderNumber}
             </h1>
@@ -508,30 +519,36 @@ export default function CommandePage({
       </header>
 
       {/* ── Ticket hero zone ── */}
-      <div className="max-w-xl mx-auto px-5 mt-6 text-center">
-        <p className="text-[56px] font-black text-[#DC2626] leading-none tracking-tight">
+      <div className="mx-auto mt-6 max-w-xl px-5 text-center">
+        <p className="text-[56px] font-black leading-none tracking-tight text-[#DC2626]">
           {order.displayNumber || `#${order.orderNumber.split("-").pop()}`}
         </p>
-        <p className="text-[22px] font-bold text-[#2a2018] dark:text-white mt-1">
+        <p className="mt-1 text-[22px] font-bold text-[#2a2018] dark:text-white">
           {order.user?.firstName || ""}
         </p>
-        <p className="text-xs text-[#999] dark:text-gray-400 mt-1">
-          {order.shop.name} — {new Date(order.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+        <p className="mt-1 text-xs text-[#999] dark:text-gray-400">
+          {order.shop.name} —{" "}
+          {new Date(order.createdAt).toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </p>
       </div>
 
-      <main className="max-w-xl mx-auto px-5 mt-6">
+      <main className="mx-auto mt-6 max-w-xl px-5">
         {/* ═══ PENDING ═══ */}
         {order.status === "PENDING" && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
+          <div className="rounded-2xl border border-[#ece8e3] bg-white p-6 text-center dark:border-white/10 dark:bg-[#141414]">
             <LoadingDots />
-            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white mt-2">
+            <h2 className="mt-2 text-xl font-bold text-[#2a2018] dark:text-white">
               En attente du boucher...
             </h2>
-            <p className="text-sm text-[#999] dark:text-gray-400 mt-2">
+            <p className="mt-2 text-sm text-[#999] dark:text-gray-400">
               Votre commande a ete envoyee a{" "}
-              <span className="font-semibold text-[#555] dark:text-gray-300">{order.shop.name}</span>.
-              Le boucher va la confirmer.
+              <span className="font-semibold text-[#555] dark:text-gray-300">
+                {order.shop.name}
+              </span>
+              . Le boucher va la confirmer.
             </p>
             <Button
               onClick={handleCancel}
@@ -545,143 +562,150 @@ export default function CommandePage({
         )}
 
         {/* ═══ PARTIALLY_DENIED ═══ */}
-        {order.status === "PARTIALLY_DENIED" && (() => {
-          const unavailableItems = order.items.filter((i) => !i.available && !i.replacement);
-          const availableItems = order.items.filter((i) => i.available);
+        {order.status === "PARTIALLY_DENIED" &&
+          (() => {
+            const unavailableItems = order.items.filter((i) => !i.available && !i.replacement);
+            const availableItems = order.items.filter((i) => i.available);
 
-          return (
-            <div className="p-5 bg-white dark:bg-[#141414] rounded-2xl border border-orange-200 shadow-[0_0_20px_rgba(245,158,11,0.08)]">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle size={22} className="text-orange-500" />
-                <h2 className="text-lg font-bold text-[#2a2018] dark:text-white">
-                  Rupture de stock
-                </h2>
-              </div>
-              <p className="text-sm text-[#777] dark:text-gray-400 mb-4">
-                Certains articles ne sont plus disponibles chez{" "}
-                <span className="font-semibold text-[#555] dark:text-gray-300">{order.shop.name}</span>.
-                Choisis une alternative ou retire l&apos;article.
-              </p>
-
-              {/* Unavailable items with alternatives */}
-              <div className="space-y-4 mb-4">
-                {unavailableItems.map((item) => {
-                  const alts = alternatives[item.productId] || [];
-                  const decision = decisions[item.id];
-
-                  return (
-                    <div key={item.id} className="bg-red-50 rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-red-800 line-through">
-                          {item.name} — {item.quantity} {unitLabel(item.unit)}
-                        </span>
-                        <span className="text-xs text-red-500 font-medium">
-                          Indisponible
-                        </span>
-                      </div>
-
-                      {/* Alternative options */}
-                      {alts.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-xs font-medium text-[#777] dark:text-gray-400">Alternatives :</p>
-                          {alts.map((alt) => (
-                            <button
-                              key={alt.id}
-                              onClick={() =>
-                                setDecisions((prev) => ({
-                                  ...prev,
-                                  [item.id]: { action: "replace", replacementProductId: alt.id },
-                                }))
-                              }
-                              className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-sm transition-colors ${
-                                decision?.action === "replace" && decision.replacementProductId === alt.id
-                                  ? "border-emerald-400 bg-emerald-50 text-emerald-800"
-                                  : "border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] text-[#555] dark:text-gray-300 hover:border-emerald-300 hover:bg-emerald-50/50"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <RefreshCw size={13} className="text-emerald-500" />
-                                <span>{alt.name}</span>
-                              </div>
-                              <span className="font-semibold">
-                                {(alt.priceCents / 100).toFixed(2).replace(".", ",")} €/{alt.unit === "KG" ? "kg" : alt.unit === "PIECE" ? "pc" : "barq."}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Remove option */}
-                      <button
-                        onClick={() =>
-                          setDecisions((prev) => ({
-                            ...prev,
-                            [item.id]: { action: "remove" },
-                          }))
-                        }
-                        className={`w-full flex items-center gap-2 p-2.5 rounded-lg border text-sm transition-colors ${
-                          decision?.action === "remove"
-                            ? "border-red-400 bg-red-50 text-red-700"
-                            : "border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] text-[#999] dark:text-gray-400 hover:border-red-300"
-                        }`}
-                      >
-                        <Trash2 size={13} />
-                        <span>Retirer cet article</span>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Still available items */}
-              {availableItems.length > 0 && (
-                <div className="bg-emerald-50 rounded-xl p-3 mb-4">
-                  <p className="text-xs font-medium text-emerald-700 mb-1">Toujours disponibles :</p>
-                  {availableItems.map((item) => (
-                    <p key={item.id} className="text-sm text-emerald-800">
-                      • {item.name} — {item.quantity} {unitLabel(item.unit)}
-                    </p>
-                  ))}
+            return (
+              <div className="rounded-2xl border border-orange-200 bg-white p-5 shadow-[0_0_20px_rgba(245,158,11,0.08)] dark:bg-[#141414]">
+                <div className="mb-3 flex items-center gap-2">
+                  <AlertTriangle size={22} className="text-orange-500" />
+                  <h2 className="text-lg font-bold text-[#2a2018] dark:text-white">
+                    Rupture de stock
+                  </h2>
                 </div>
-              )}
+                <p className="mb-4 text-sm text-[#777] dark:text-gray-400">
+                  Certains articles ne sont plus disponibles chez{" "}
+                  <span className="font-semibold text-[#555] dark:text-gray-300">
+                    {order.shop.name}
+                  </span>
+                  . Choisis une alternative ou retire l&apos;article.
+                </p>
 
-              {/* Submit button */}
-              <Button
-                onClick={handleSubmitAlternatives}
-                disabled={submittingAlts || unavailableItems.some((i) => !decisions[i.id])}
-                className="w-full bg-[#DC2626] hover:bg-[#b91c1c] gap-2"
-              >
-                {submittingAlts ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : null}
-                {submittingAlts ? "Envoi..." : "Confirmer mes choix"}
-              </Button>
+                {/* Unavailable items with alternatives */}
+                <div className="mb-4 space-y-4">
+                  {unavailableItems.map((item) => {
+                    const alts = alternatives[item.productId] || [];
+                    const decision = decisions[item.id];
 
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="w-full mt-2 text-xs text-[#999] dark:text-gray-400 hover:text-red-500 transition-colors text-center py-2"
-              >
-                {cancelling ? "Annulation..." : "Annuler la commande"}
-              </button>
-            </div>
-          );
-        })()}
+                    return (
+                      <div key={item.id} className="space-y-2 rounded-xl bg-red-50 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-red-800 line-through">
+                            {item.name} — {formatStoredLineQuantity(item)}
+                          </span>
+                          <span className="text-xs font-medium text-red-500">Indisponible</span>
+                        </div>
+
+                        {/* Alternative options */}
+                        {alts.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-medium text-[#777] dark:text-gray-400">
+                              Alternatives :
+                            </p>
+                            {alts.map((alt) => (
+                              <button
+                                key={alt.id}
+                                onClick={() =>
+                                  setDecisions((prev) => ({
+                                    ...prev,
+                                    [item.id]: { action: "replace", replacementProductId: alt.id },
+                                  }))
+                                }
+                                className={`flex w-full items-center justify-between rounded-lg border p-2.5 text-sm transition-colors ${
+                                  decision?.action === "replace" &&
+                                  decision.replacementProductId === alt.id
+                                    ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                                    : "border-[#ece8e3] bg-white text-[#555] hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-white/10 dark:bg-[#141414] dark:text-gray-300"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <RefreshCw size={13} className="text-emerald-500" />
+                                  <span>{alt.name}</span>
+                                </div>
+                                <span className="font-semibold">
+                                  {(alt.priceCents / 100).toFixed(2).replace(".", ",")} €/
+                                  {alt.unit === "KG" ? "kg" : alt.unit === "PIECE" ? "pc" : "barq."}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Remove option */}
+                        <button
+                          onClick={() =>
+                            setDecisions((prev) => ({
+                              ...prev,
+                              [item.id]: { action: "remove" },
+                            }))
+                          }
+                          className={`flex w-full items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors ${
+                            decision?.action === "remove"
+                              ? "border-red-400 bg-red-50 text-red-700"
+                              : "border-[#ece8e3] bg-white text-[#999] hover:border-red-300 dark:border-white/10 dark:bg-[#141414] dark:text-gray-400"
+                          }`}
+                        >
+                          <Trash2 size={13} />
+                          <span>Retirer cet article</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Still available items */}
+                {availableItems.length > 0 && (
+                  <div className="mb-4 rounded-xl bg-emerald-50 p-3">
+                    <p className="mb-1 text-xs font-medium text-emerald-700">
+                      Toujours disponibles :
+                    </p>
+                    {availableItems.map((item) => (
+                      <p key={item.id} className="text-sm text-emerald-800">
+                        • {item.name} — {formatStoredLineQuantity(item)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Submit button */}
+                <Button
+                  onClick={handleSubmitAlternatives}
+                  disabled={submittingAlts || unavailableItems.some((i) => !decisions[i.id])}
+                  className="w-full gap-2 bg-[#DC2626] hover:bg-[#b91c1c]"
+                >
+                  {submittingAlts ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {submittingAlts ? "Envoi..." : "Confirmer mes choix"}
+                </Button>
+
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                  className="mt-2 w-full py-2 text-center text-xs text-[#999] transition-colors hover:text-red-500 dark:text-gray-400"
+                >
+                  {cancelling ? "Annulation..." : "Annuler la commande"}
+                </button>
+              </div>
+            );
+          })()}
 
         {/* ═══ ACCEPTED ═══ */}
         {order.status === "ACCEPTED" && (
           <div className="space-y-4">
             {order.priceAdjustment && (
-              <PriceAdjustmentBanner orderId={order.id} adjustment={order.priceAdjustment} onUpdate={fetchOrder} />
+              <PriceAdjustmentBanner
+                orderId={order.id}
+                adjustment={order.priceAdjustment}
+                onUpdate={fetchOrder}
+              />
             )}
-            <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-              <div className="text-5xl mb-3">✅</div>
+            <div className="rounded-2xl border border-[#ece8e3] bg-white p-6 text-center dark:border-white/10 dark:bg-[#141414]">
+              <div className="mb-3 text-5xl">✅</div>
               <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
                 Commande acceptee !
               </h2>
-              {order.estimatedReady && (
-                <TimeProgress estimatedReady={order.estimatedReady} />
-              )}
+              {order.estimatedReady && <TimeProgress estimatedReady={order.estimatedReady} />}
               {order.qrCode && <QRSection qrCode={order.qrCode} size={180} />}
             </div>
           </div>
@@ -691,16 +715,18 @@ export default function CommandePage({
         {order.status === "PREPARING" && (
           <div className="space-y-4">
             {order.priceAdjustment && (
-              <PriceAdjustmentBanner orderId={order.id} adjustment={order.priceAdjustment} onUpdate={fetchOrder} />
+              <PriceAdjustmentBanner
+                orderId={order.id}
+                adjustment={order.priceAdjustment}
+                onUpdate={fetchOrder}
+              />
             )}
-            <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-              <div className="text-5xl mb-3">🔪</div>
+            <div className="rounded-2xl border border-[#ece8e3] bg-white p-6 text-center dark:border-white/10 dark:bg-[#141414]">
+              <div className="mb-3 text-5xl">🔪</div>
               <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
                 En preparation...
               </h2>
-              {order.estimatedReady && (
-                <TimeProgress estimatedReady={order.estimatedReady} />
-              )}
+              {order.estimatedReady && <TimeProgress estimatedReady={order.estimatedReady} />}
               {order.qrCode && <QRSection qrCode={order.qrCode} size={180} />}
             </div>
           </div>
@@ -708,9 +734,9 @@ export default function CommandePage({
 
         {/* ═══ READY ═══ */}
         {order.status === "READY" && (
-          <div className="relative text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+          <div className="relative rounded-2xl border border-emerald-200 bg-white p-6 text-center shadow-[0_0_20px_rgba(16,185,129,0.1)] dark:bg-[#141414]">
             <ConfettiBurst />
-            <div className="text-6xl mb-3 animate-bounce relative z-10">🎉</div>
+            <div className="relative z-10 mb-3 animate-bounce text-6xl">🎉</div>
             <h2 className="text-2xl font-bold text-[#2a2018] dark:text-white">
               Votre commande est prete !
             </h2>
@@ -723,7 +749,7 @@ export default function CommandePage({
             {order.qrCode && (
               <>
                 <QRSection qrCode={order.qrCode} size={220} />
-                <p className="text-xs text-[#999] dark:text-gray-400 mt-3">
+                <p className="mt-3 text-xs text-[#999] dark:text-gray-400">
                   Presentez ce QR code au boucher
                 </p>
               </>
@@ -732,7 +758,7 @@ export default function CommandePage({
               href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 mt-5 px-6 py-3 bg-[#DC2626] text-white text-sm font-semibold rounded-xl hover:bg-[#b91c1c] transition-colors"
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#DC2626] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b91c1c]"
             >
               <MapPin size={16} />
               Ouvrir dans Maps
@@ -742,20 +768,25 @@ export default function CommandePage({
 
         {/* ═══ PICKED_UP / COMPLETED ═══ */}
         {(order.status === "PICKED_UP" || order.status === "COMPLETED") && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-            <div className="text-5xl mb-3">✅</div>
+          <div className="rounded-2xl border border-[#ece8e3] bg-white p-6 text-center dark:border-white/10 dark:bg-[#141414]">
+            <div className="mb-3 text-5xl">✅</div>
             <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
               Commande recuperee !
             </h2>
-            <p className="text-sm text-[#999] dark:text-gray-400 mt-1">Bon appetit ! 😊</p>
+            <p className="mt-1 text-sm text-[#999] dark:text-gray-400">Bon appetit ! 😊</p>
 
             {/* Rating */}
             {!ratingDone ? (
-              <div className="mt-6 p-4 bg-[#f8f6f3] dark:bg-[#0a0a0a] rounded-2xl">
-                <p className="text-sm font-semibold text-[#2a2018] dark:text-white mb-3">
+              <div className="mt-6 rounded-2xl bg-[#f8f6f3] p-4 dark:bg-[#0a0a0a]">
+                <p className="mb-3 text-sm font-semibold text-[#2a2018] dark:text-white">
                   Comment etait votre commande ?
                 </p>
-                <StarRating value={ratingValue} onChange={setRatingValue} size="lg" className="justify-center" />
+                <StarRating
+                  value={ratingValue}
+                  onChange={setRatingValue}
+                  size="lg"
+                  className="justify-center"
+                />
                 {ratingValue > 0 && (
                   <>
                     <textarea
@@ -764,7 +795,7 @@ export default function CommandePage({
                       placeholder="Un commentaire ? (optionnel)"
                       maxLength={1000}
                       rows={3}
-                      className="mt-3 w-full rounded-xl border border-[#ece8e3] dark:border-white/10 bg-white dark:bg-[#141414] px-4 py-3 text-sm text-[#2a2018] dark:text-white placeholder:text-[#ccc] dark:placeholder:text-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 focus:border-[#DC2626] transition-colors"
+                      className="mt-3 w-full resize-none rounded-xl border border-[#ece8e3] bg-white px-4 py-3 text-sm text-[#2a2018] transition-colors placeholder:text-[#ccc] focus:border-[#DC2626] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#141414] dark:text-white dark:placeholder:text-gray-500"
                     />
                     <Button
                       onClick={handleRate}
@@ -777,10 +808,8 @@ export default function CommandePage({
                 )}
               </div>
             ) : (
-              <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                <p className="text-sm text-emerald-700 font-medium">
-                  Merci pour votre avis !
-                </p>
+              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-sm font-medium text-emerald-700">Merci pour votre avis !</p>
               </div>
             )}
           </div>
@@ -788,20 +817,15 @@ export default function CommandePage({
 
         {/* ═══ DENIED ═══ */}
         {order.status === "DENIED" && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-red-200">
-            <div className="text-5xl mb-3">❌</div>
-            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
-              Commande refusee
-            </h2>
+          <div className="rounded-2xl border border-red-200 bg-white p-6 text-center dark:bg-[#141414]">
+            <div className="mb-3 text-5xl">❌</div>
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">Commande refusee</h2>
             {order.denyReason && (
-              <div className="mt-3 p-3 bg-red-50 rounded-xl">
+              <div className="mt-3 rounded-xl bg-red-50 p-3">
                 <p className="text-sm text-red-700">{order.denyReason}</p>
               </div>
             )}
-            <Button
-              className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]"
-              asChild
-            >
+            <Button className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]" asChild>
               <Link href={`/boutique/${order.shop.slug}`}>Recommander</Link>
             </Button>
           </div>
@@ -809,18 +833,13 @@ export default function CommandePage({
 
         {/* ═══ CANCELLED ═══ */}
         {order.status === "CANCELLED" && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-[#ece8e3] dark:border-white/10">
-            <div className="text-5xl mb-3">🚫</div>
-            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
-              Commande annulee
-            </h2>
-            <p className="text-sm text-[#999] dark:text-gray-400 mt-2">
+          <div className="rounded-2xl border border-[#ece8e3] bg-white p-6 text-center dark:border-white/10 dark:bg-[#141414]">
+            <div className="mb-3 text-5xl">🚫</div>
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">Commande annulee</h2>
+            <p className="mt-2 text-sm text-[#999] dark:text-gray-400">
               Cette commande a ete annulee.
             </p>
-            <Button
-              className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]"
-              asChild
-            >
+            <Button className="mt-5 bg-[#DC2626] hover:bg-[#b91c1c]" asChild>
               <Link href="/">Découvrir les boucheries</Link>
             </Button>
           </div>
@@ -828,26 +847,18 @@ export default function CommandePage({
 
         {/* ═══ AUTO_CANCELLED ═══ */}
         {order.status === "AUTO_CANCELLED" && (
-          <div className="text-center p-6 bg-white dark:bg-[#141414] rounded-2xl border border-amber-200 dark:border-amber-800/30">
-            <div className="text-5xl mb-3">⏰</div>
-            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">
-              Commande expiree
-            </h2>
-            <p className="text-sm text-[#999] dark:text-gray-400 mt-2">
-              Le boucher n&apos;a pas pu confirmer votre commande a temps.
-              Vous pouvez reessayer ou choisir une autre boucherie.
+          <div className="rounded-2xl border border-amber-200 bg-white p-6 text-center dark:border-amber-800/30 dark:bg-[#141414]">
+            <div className="mb-3 text-5xl">⏰</div>
+            <h2 className="text-xl font-bold text-[#2a2018] dark:text-white">Commande expiree</h2>
+            <p className="mt-2 text-sm text-[#999] dark:text-gray-400">
+              Le boucher n&apos;a pas pu confirmer votre commande a temps. Vous pouvez reessayer ou
+              choisir une autre boucherie.
             </p>
-            <div className="flex flex-col gap-2 mt-5">
-              <Button
-                className="bg-[#DC2626] hover:bg-[#b91c1c]"
-                asChild
-              >
+            <div className="mt-5 flex flex-col gap-2">
+              <Button className="bg-[#DC2626] hover:bg-[#b91c1c]" asChild>
                 <Link href={`/boutique/${order.shop.slug}`}>Recommander</Link>
               </Button>
-              <Button
-                variant="outline"
-                asChild
-              >
+              <Button variant="outline" asChild>
                 <Link href="/">Autres boucheries</Link>
               </Button>
             </div>
@@ -856,16 +867,14 @@ export default function CommandePage({
 
         {/* ═══ BOUCHER NOTE ═══ */}
         {order.boucherNote && (
-          <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-200/60 dark:border-amber-800/30">
-            <div className="flex items-center gap-2 mb-1.5">
+          <div className="mt-6 rounded-2xl border border-amber-200/60 bg-amber-50 p-4 dark:border-amber-800/30 dark:bg-amber-900/10">
+            <div className="mb-1.5 flex items-center gap-2">
               <MessageSquare size={14} className="text-amber-600 dark:text-amber-400" />
               <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
                 Message du boucher
               </h3>
             </div>
-            <p className="text-sm text-amber-700 dark:text-amber-400/80">
-              {order.boucherNote}
-            </p>
+            <p className="text-sm text-amber-700 dark:text-amber-400/80">{order.boucherNote}</p>
           </div>
         )}
 
