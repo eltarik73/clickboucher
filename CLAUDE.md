@@ -728,6 +728,30 @@ Pour bénéficier de ces reviews → travailler en feature branch + PR (au lieu 
 - `.claude/skills/seo-anti-penalty/SKILL.md` — règle OR anti-noindex auto, FTC Reviews Rule, Google Mars 2026 Core Update
 - `.claude/skills/seo-expert/SKILL.md` — expertise SEO local Klik&Go
 
+## Agent skills
+
+Le plugin `mattpocock-skills` (place de marché officielle `claude-plugins-official`, déclaré dans
+`.claude/settings.json`, mis à jour automatiquement) ajoute des compétences d'ingénierie : `/tdd`,
+`/diagnosing-bugs`, `/code-review`, `/codebase-design`, `/domain-modeling`,
+`/improve-codebase-architecture`, `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/wayfinder`…
+
+**Priorité** : en cas de désaccord, les règles de ce fichier et les compétences du projet
+(`.claude/skills/`, en particulier `klikgo-programme`, `testing-strategy`, `security-multitenant`)
+l'emportent sur celles du plugin. Une compétence du plugin ne crée jamais d'issue GitHub publique,
+ne pousse rien et ne touche pas à la production.
+
+### Issue tracker
+
+Fichiers Markdown locaux dans `.scratch/`, exclus de git (dépôt public). Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Les cinq rôles par défaut, écrits sur la ligne `Status:` du ticket. Voir `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Mono-contexte : `GLOSSARY.md` et `docs/adr/` à la racine, créés au besoin. Voir `docs/agents/domain.md`.
+
 ## Permissions
 
 - Exécute TOUT sans demander confirmation
