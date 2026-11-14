@@ -1,800 +1,259 @@
 ---
-name: expert-seo-klikgo
-description: "Expert SEO senior spécialisé marketplace food, click & collect, et boucheries halal. Utilise ce skill dès qu'un utilisateur mentionne : SEO, référencement, Google, indexation, sitemap, meta tags, schema.org, JSON-LD, Core Web Vitals, Google Business Profile, rich results, données structurées, contenu, E-E-A-T, GEO, AI Overview, positionnement, mots-clés, trafic organique, Search Console, ranking, local SEO, ou toute amélioration de visibilité sur les moteurs de recherche ou IA. Aussi quand l'utilisateur crée des pages publiques, des fiches produit, des fiches boucherie, ou tout contenu indexable. Toujours répondre en français."
+name: seo-expert
+description: "SEO local et programmatique de Klik&Go (marketplace click & collect de boucheries halal) : indexation, sitemap et lastmod, robots, canonical, données structurées JSON-LD (Store/LocalBusiness, Product, BreadcrumbList, Event, avis), pages villes / quartiers / produits / occasions, maillage interne, IndexNow et Bing, Google Business Profile des bouchers, reprise d'indexation après une panne, mesure Search Console. À utiliser dès qu'on crée ou modifie une page publique indexable, src/app/sitemap.ts, src/app/robots.ts, src/lib/seo/*, src/components/seo/*, public/llms.txt, ou qu'on parle de SEO, référencement, Google, Bing, GSC, schema.org, rich results, pack local. Toujours en français. S'utilise AVEC le garde-fou seo-anti-penalty, jamais à sa place."
 ---
 
-# SKILL — Expert SEO Klik&Go (Next.js + Local + Halal + IA)
+# SEO local et programmatique — Klik&Go
 
-> Dernière mise à jour : Mars 2026
-> Sources : Google Search Central, Baymard Institute, Search Engine Land, Malou.io, Core Updates 2026
+Écrit le 2026-11-13, revérifié le 2026-11-14 (code relu, chaque source rouverte, production
+interrogée en lecture seule). Next 14.2.35. Chaque affirmation externe renvoie à
+[references/sources.md](references/sources.md) (S1…S31).
 
----
+## 0. Règles qui priment sur ce skill (à relire avant toute action)
 
-## 0) Rôle
+1. **`.claude/skills/seo-anti-penalty/SKILL.md`** : garde-fou du propriétaire. Pas de faux avis,
+   pas d'`aggregateRating` inventé, pas d'avis de boutique recopiés sur des produits, règle OR du
+   `noindex` (≥ 500 mots uniques par instance → index ; villes cibles, hubs, pages partenaires →
+   index même sans boutique), checklist pré-vol. Ce skill ne l'assouplit jamais.
+2. **Mémoire `project_seo_rules_2026.md`** + `project_gsc_indexation_strategy.md` (soumissions
+   manuelles GSC : jamais `/boutique/*` tant que le propriétaire n'a pas validé l'indexation des
+   fiches boutique).
+3. **CLAUDE.md** : sections SEO, GEO/AIO, « Coût CPU Vercel » (ISR, `generateStaticParams`,
+   pas de `new Date()` dans le rendu initial d'une page statique/ISR, `prefetch={false}` sur les
+   liens en masse), « Pas de livraison ».
+4. En cas de contradiction entre ces textes : ne pas trancher seul → section 9 « Points à arbitrer ».
 
-Tu es un **Lead SEO Engineer** spécialisé en :
-- **SEO technique Next.js** (App Router, Metadata API, SSR, Core Web Vitals)
-- **SEO local** (Google Business Profile, NAP, avis, annuaires)
-- **Données structurées** (Schema.org, JSON-LD, Rich Results)
-- **GEO / AIO** (visibilité dans les IA : ChatGPT, Gemini, AI Overviews Google)
-- **Contenu E-E-A-T** (Experience, Expertise, Authoritativeness, Trustworthiness)
-- **Niche : marketplace food halal, click & collect, Rhône-Alpes**
+## 1. Ce que le code fait aujourd'hui (carte)
 
-Tu audites, corriges et implémentes le SEO de manière **autonome et complète**.
+| Fichier | Rôle | Rendu |
+|---|---|---|
+| `src/app/sitemap.ts` | 215 URLs en production le 2026-11-14 : statiques, hubs, villes, partenaires, dimanche, produit×ville, quartiers, occasions, boutiques, recettes | ISR 3600, sans try/catch (voulu) |
+| `src/app/robots.ts` | `*` + 9 bots IA autorisés, même `DISALLOW` (privé, `/api/`, `/recherche`) | statique |
+| `src/lib/seo/cities.ts` | `SEO_CITIES` (55 villes ; texte propre à chaque ville mesuré : 72 à 369 mots, médiane 112 — voir A8), `SEO_DEPARTMENTS` (5) | config |
+| `src/lib/seo/{products,occasions,districts}.ts` | 12 produits, 7 occasions, 12 quartiers + `*_PRIORITY_SLUGS` | config |
+| `src/app/boucherie-halal/[ville]` | page ville, TOUJOURS index (revert `4fc4897`) | ISR + `generateStaticParams` |
+| `src/app/boucherie-halal/[ville]/[quartier]`, `produits/[produit]/[ville]`, `boucheries-halal-ouvertes-dimanche/[ville]` | `noindex, follow` si 0 boutique visible dans la ville ; sitemap filtré par `populatedCitySlugs` | ISR |
+| `src/app/occasions/[occasion]/[ville]` | TOUJOURS index ; JSON-LD `Event` si `eventStart`, sinon `WebPage` | ISR |
+| `src/app/(client)/boutique/[slug]` | fiche boutique : `ShopSchema` + `BreadcrumbSchema` + 20 × `ProductSchema` | dynamique (voulu, cf. CLAUDE.md) |
+| `src/components/seo/JsonLd.tsx` | **seul** fichier autorisé à écrire un `<script type="application/ld+json">` (échappement via `src/lib/seo/jsonld/serialize.ts`, verrouillé par `src/lib/__tests__/json-ld.test.ts`) | serveur |
+| `src/components/seo/*` | `OrganizationSchema` (layout), `ShopSchema`, `ProductSchema`, `RecipeSchema`, `BreadcrumbSchema`, `SpeakableSchema`, `LastUpdated` | serveur |
+| `src/lib/indexnow.ts` | **seul** client IndexNow utilisé (clé `b358…`, no-op hors production) | — |
+| `src/app/api/cron/{indexnow-fresh,bing-daily,seo-audit}` | ping IndexNow quotidien ; audit Bing ; alerte Sentry si sitemap < 100 URLs, accueil sans title/canonical, `noindex` ou non-200 sur les 10 premières villes, 6 pages Aïd, 1 page partenaire | cron Vercel |
+| `scripts/check-prerender.mjs` | CI : échoue si `/`, `/cgv`, `/a-propos`, `/boucherie-halal/chambery`, `/sitemap.xml` ne sont plus prérendus ou s'il reste < 250 routes prérendues | CI |
 
----
+Détail fichier par fichier et défauts relevés : [references/code-map.md](references/code-map.md).
 
-## 1) CONTEXTE GOOGLE 2026 — Ce qui a changé
+## 2. Règles de décision : indexer ou non
 
-### Updates confirmées 2026
-- **Janvier 2026 Core Update** : E-E-A-T renforcé, contenu IA de faible qualité pénalisé, signaux locaux plus importants
-- **Février 2026 Discover Core Update** : favorise contenu local, original, expert. Réduit le clickbait. Expertise évaluée topic par topic
-- **Mars 2026 Core Update** : un des plus gros updates récents, frappe le contenu thin/IA-généré en masse
-- **Juin 2026 Helpful Content Update** : contenu human-first obligatoire, qualité évaluée sur TOUT le site pas juste les top pages
-- **Septembre 2026 Page Experience Update** : Core Web Vitals renforcés, exigences plus strictes pour e-commerce et sites à contenu riche
+Ordre de lecture : seo-anti-penalty règle D, puis ce tableau.
 
-### Règles fondamentales 2026
-1. **Contenu human-first** : Google détecte et pénalise le contenu IA non édité/non enrichi
-2. **E-E-A-T partout** : Experience (vécu réel), Expertise, Authoritativeness, Trustworthiness
-3. **Mobile-first indexing** : Google indexe UNIQUEMENT la version mobile
-4. **Core Web Vitals** : LCP ≤ 2.5s, CLS ≤ 0.1, INP ≤ 200ms (seuils durcis)
-5. **Données structurées JSON-LD** : obligatoires pour rich results et AI Overviews
-6. **SEO local = roi** : 46% des recherches Google ont une intention locale
-7. **GEO (Generative Engine Optimization)** : être cité par ChatGPT/Gemini/AI Overviews
+| Type de page | Défaut | Sitemap |
+|---|---|---|
+| Ville `SEO_CITIES`, hub régional/départements, `devenir-boucher-partenaire/[ville]`, occasions × ville | index | toujours |
+| Quartier, produit × ville, dimanche × ville | `noindex, follow` si 0 boutique | seulement si ville peuplée |
+| Fiche `/boutique/[slug]` | index ; une boutique non `visible` doit sortir de l'index (404 ou `noindex`) — état actuel : voir le registre privé du programme (A3, D6) | boutiques `visible` |
+| Pages transactionnelles et privées | `noindex` (layout) ; sous-chemins en `DISALLOW` | jamais |
+| Recettes IA non `featured` | `noindex` | jamais |
 
----
+- **Nouvelle famille programmatique** : une instance n'est indexable que si elle a ≥ 500 mots
+  uniques (non gabarit) OU un inventaire réel (règle OR de seo-anti-penalty et de la mémoire) ;
+  sinon `noindex, follow` + hors sitemap, et l'avis du propriétaire avant tout `noindex` sur une
+  page business-critical. Google qualifie d'abus de contenu à grande échelle les pages produites
+  en masse « pour manipuler le classement », et cite les pages par ville qui renvoient toutes
+  vers une même destination comme exemple de doorway ; il ne donne aucun seuil de mots (S3).
+  Compter les mots uniques réellement (texte propre à l'instance, hors gabarit) avant de conclure.
+- **Une URL du sitemap = une URL indexable, en 200, avec canonical absolu identique** (S8, S2).
+  Jamais une URL `noindex` dans le sitemap (erreur GSC déjà corrigée pour `/bons-plans/*`).
+- **`robots.txt` ne sert pas à désindexer** : une URL bloquée peut rester indexée sans contenu
+  (S8) et son `noindex` n'est jamais lu (S24, S25). Pour retirer une page publique : `noindex`
+  d'abord, `DISALLOW` éventuellement après sa sortie de l'index. `Disallow: /panier/` ne couvre
+  pas `/panier` (correspondance par préfixe, S26) : c'est le `noindex` du layout qui protège la
+  racine. Si une URL privée apparaît « Indexée malgré le blocage par le fichier robots.txt »,
+  lever le `DISALLOW` le temps que le `noindex` soit lu (S20).
+- **Canonical** : `alternates.canonical` absolu `${SITE_URL}/…` dans `generateMetadata`,
+  auto-référent ; vers une autre URL seulement pour un vrai doublon ; jamais via `noindex` ou
+  robots.txt (S8).
+- **Contenu** : aucun fait commercial faux. Les pages SEO affichent « payez en ligne » (faux : le
+  paiement est sur place uniquement) et « frais 0,99 € » (que le chantier prix en cours ramène à
+  0 : `serviceFeeCentsFor("ON_PICKUP")`, `src/lib/pricing/totals.ts`) → dette D1.
 
-## 2) SEO TECHNIQUE NEXT.JS
+## 3. Sitemap et lastmod
 
-### 2.1 Metadata API — CHAQUE page doit avoir
+- Google n'utilise `lastmod` que s'il est « régulièrement et vérifiablement » exact, et ignore
+  `priority` et `changefreq` (S2). Bing ignore aussi ces deux champs et veut le vrai instant de
+  modification du contenu (S11). Ne pas perdre de temps à régler `priority`.
+- `lastmod` = dernière modification **significative** (contenu principal, données structurées,
+  liens), pas l'heure de génération (S2, S11).
+- Soumission : rapport Sitemaps de GSC, API Search Console ou ligne `Sitemap:` de robots.txt,
+  déjà émise par `robots.ts` (S2 ; aucun « ping »). Limite : 50 000 URLs / 50 Mo par fichier.
+- Défauts actuels (dette D3) : toutes les villes prennent `latestShop.updatedAt` (une boutique de
+  Chambéry « modifie » Lyon) ; les boutiques prennent `Shop.updatedAt`, qui bouge à chaque
+  écriture (`status`, `busyMode`, crons `busy-end`, `vacation-end`, `recalc-shop-tiers`).
 
-```typescript
-// app/page.tsx (exemple page d'accueil)
-import type { Metadata } from 'next'
+Pattern conforme (même modèle que `SeoOccasion.lastUpdated`, déjà en place) :
 
-export const metadata: Metadata = {
-  title: 'Klik&Go — Click & Collect Boucherie Halal | Commandez en ligne',
-  description: 'Commandez en ligne chez votre boucherie halal de proximité. Click & collect rapide à Chambéry, Grenoble, Lyon, Saint-Étienne. Viande halal fraîche, retrait en boutique.',
-  keywords: ['boucherie halal', 'click and collect', 'viande halal', 'commande en ligne', 'Chambéry', 'Grenoble', 'Lyon'],
-  authors: [{ name: 'Klik&Go' }],
-  creator: 'Klik&Go',
-  publisher: 'Klik&Go',
-  openGraph: {
-    title: 'Klik&Go — Click & Collect Boucherie Halal',
-    description: 'Commandez en ligne chez votre boucherie halal de proximité.',
-    url: 'https://klikandgo.app',
-    siteName: 'Klik&Go',
-    images: [{
-      url: 'https://klikandgo.app/og-image.jpg', // 1200x630px obligatoire
-      width: 1200,
-      height: 630,
-      alt: 'Klik&Go - Commandez chez votre boucherie halal',
-    }],
-    locale: 'fr_FR',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Klik&Go — Click & Collect Boucherie Halal',
-    description: 'Commandez en ligne chez votre boucherie halal de proximité.',
-    images: ['https://klikandgo.app/og-image.jpg'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large' as const,
-      'max-snippet': -1,
-    },
-  },
-  alternates: {
-    canonical: 'https://klikandgo.app',
-  },
-  verification: {
-    google: 'VOTRE_CODE_SEARCH_CONSOLE',
-  },
-}
+```ts
+// src/lib/seo/cities.ts — champ optionnel, bumpé à la main quand le texte change vraiment
+export type SeoCity = { /* … */ lastUpdated?: string };
+
+// src/app/sitemap.ts
+const cityPages: MetadataRoute.Sitemap = SEO_CITIES.map((city) => ({
+  url: `${BASE_URL}/boucherie-halal/${city.slug}`,
+  lastModified: city.lastUpdated ? new Date(`${city.lastUpdated}T00:00:00Z`) : STATIC_CONTENT_UPDATED,
+}));
 ```
 
-### Règles Metadata obligatoires
-- **Title** : 50-60 caractères, mot-clé principal en premier, nom de marque à la fin
-- **Description** : 150-160 caractères, inclure ville(s) cible(s), CTA implicite
-- **Canonical** : sur CHAQUE page, auto-référencée
-- **OG Image** : 1200x630px, créer une image OG dédiée avec le logo Klik&Go
-- **Pas de noindex accidentel** en production
-- **Pas de staging domain indexé**
+Détails et IndexNow : [references/sitemap-indexnow.md](references/sitemap-indexnow.md).
 
-### 2.2 Sitemap dynamique
+## 4. Données structurées : ce qui sert encore (2026-11)
 
-```typescript
-// app/sitemap.ts
-import { MetadataRoute } from 'next'
-import { prisma } from '@/lib/prisma'
+**Tout JSON-LD passe par `<JsonLd data={…} />`** (`@/components/seo/JsonLd`). Écrire soi-même un
+`<script type="application/ld+json" dangerouslySetInnerHTML>` fait échouer
+`src/lib/__tests__/json-ld.test.ts` (un texte de la base contenant `</script>` fermerait le bloc).
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://klikandgo.app'
+| Balisage | Statut Google | Décision Klik&Go |
+|---|---|---|
+| `FAQPage` | résultat enrichi **retiré de Search le 2026-05-07**, doc supprimée le 2026-06-15 (S5) | ne plus en ajouter ; l'existant est inoffensif s'il reste fidèle au texte visible (D1) |
+| `SpeakableSpecification` | bêta, **États-Unis + anglais uniquement**, réponses d'actualité (S6) | aucun effet pour nous ; ne pas en ajouter |
+| `Event` | France absente des pays servis ; ne pas baliser remises, occasions d'achat, coupons, horaires (S7) | point à arbitrer A2 |
+| `LocalBusiness` / `Store` | `name` + `address` requis ; `geo` ≥ 5 décimales ; `aggregateRating`/`review` recommandés seulement aux sites qui recueillent des avis sur **d'autres** commerces (S9, S4) | garder `ShopSchema` |
+| `Product` | marchand : page où l'on achète, centrée sur **un seul** produit, prix > 0 (S10) | fiche boutique = liste → non éligible ; pas de note boutique sur Product (D2) |
+| `BreadcrumbList` | affiché sur desktop seulement (S5, S30) ; `item` = URL d'une vraie page (S30) | garder, URLs absolues **qui répondent 200** (D5) |
+| `Organization` / `WebSite` | logo, nom du site ; le champ de recherche des liens annexes (sitelinks search box) n'existe plus, doc retirée le 2024-11-29 (S5) | garder ; le `SearchAction` vers `/recherche` (bloquée par robots) ne sert plus à rien |
 
-  // Pages statiques
-  const staticPages = [
-    { url: baseUrl, lastModified: new Date(), changeFrequency: 'weekly' as const, priority: 1.0 },
-    { url: `${baseUrl}/decouvrir`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.9 },
-    { url: `${baseUrl}/comment-ca-marche`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${baseUrl}/partenaire`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.7 },
-    { url: `${baseUrl}/mentions-legales`, lastModified: new Date(), changeFrequency: 'yearly' as const, priority: 0.3 },
-  ]
+Règles générales (S12) : le balisage décrit **ce que l'utilisateur voit sur la page**, exact et à
+jour ; type le plus précis ; un balisage contraire aux règles peut valoir une action manuelle qui
+retire les résultats enrichis (sans toucher au classement web). Avis : notes venant directement
+des utilisateurs, jamais agrégées d'autres sites, visibles sur la page, sur un élément précis ;
+consigne du 2026-07-24 contre les avis faux ou incités non déclarés (S4, S5).
+Patterns et code : [references/structured-data.md](references/structured-data.md).
 
-  // Pages dynamiques : fiches boucheries
-  const shops = await prisma.shop.findMany({
-    where: { status: 'ACTIVE' },
-    select: { slug: true, updatedAt: true },
-  })
+## 5. SEO local (pack local, fiches Google des bouchers)
 
-  const shopPages = shops.map(shop => ({
-    url: `${baseUrl}/shop/${shop.slug}`,
-    lastModified: shop.updatedAt,
-    changeFrequency: 'daily' as const,
-    priority: 0.8,
-  }))
+- Google classe le local selon **pertinence, distance, notoriété** ; la notoriété dépend en
+  partie des liens et du nombre d'avis ; on ne peut pas payer pour mieux se classer (S13).
+- Une fiche Google Business Profile exige un lieu que les clients visitent ou un déplacement
+  chez eux (S14) : tant que Klik&Go n'a pas de local ouvert au public, pas de fiche pour la
+  marketplace. Le levier local, ce sont **les fiches des bouchers**.
+- Fiche boucher : nom réel de l'enseigne, sans slogan, information de produit/service ni
+  localisation ajoutés ; le moins de catégories possible ; site web représentant ce point de
+  vente ; **l'URL de menu ne peut pas pointer vers un service de commande tiers** ; le lien
+  Klik&Go se déclare dans la section « Commande de repas », marqué préféré pour le retrait,
+  quand la fiche propose cette section (S14, S15 ; disponibilité pour une boucherie en France
+  non vérifiée).
+- Cohérence nom / adresse / téléphone entre la fiche Google, `Shop.address`/`phone` et le JSON-LD.
+  `Shop` n'a pas de code postal (seulement `address`, `fullAddress`) → `postalCode` jamais émis.
 
-  // Pages par ville (SEO local)
-  const cities = ['chambery', 'grenoble', 'lyon', 'saint-etienne']
-  const cityPages = cities.map(city => ({
-    url: `${baseUrl}/boucherie-halal/${city}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }))
+Guide boucher et limites vérifiées : [references/local-seo.md](references/local-seo.md).
 
-  return [...staticPages, ...shopPages, ...cityPages]
-}
-```
+## 6. Maillage interne
 
-### 2.3 Robots.txt
+- Liens crawlables : `<Link href>` / `<a href>` avec URL réelle, jamais `onClick` seul ; ancre
+  descriptive et courte (« Boucherie halal à Grenoble »), ni « cliquez ici » ni bourrage (S16).
+- Toute page indexable reçoit au moins un lien interne (pas d'orpheline) (S16). Hiérarchie :
+  accueil → hub régional → départements → villes → quartiers / produits / occasions → boutiques.
+- Liens en masse (footer, listes de villes, `otherCities`) : `prefetch={false}` (CLAUDE.md, coût
+  CPU). **Non appliqué aujourd'hui** sur les gabarits ville / produit / occasion (dette D7).
+- Lier en priorité les villes proches (même département, `getDepartmentForCity`) plutôt que
+  les 54 autres villes à chaque page ; tout lien interne pointe vers l'URL canonique (S8).
 
-```typescript
-// app/robots.ts
-import { MetadataRoute } from 'next'
+## 7. Après une panne : reprise d'indexation (incident 05→13/11/2026)
 
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: [
-      {
-        userAgent: '*',
-        allow: '/',
-        disallow: ['/dashboard/', '/api/', '/admin/', '/checkout/'],
-      },
-    ],
-    sitemap: 'https://klikandgo.app/sitemap.xml',
-  }
-}
-```
+Faits : le site a répondu **402** pendant 8 jours. Google n'utilise pas le contenu d'une URL
+en 4xx (tous traités de même, sauf 429) et **retire de l'index les URLs déjà indexées** (S1). Un
+5xx/429 ralentit le crawl et ne retire qu'à la longue ; Google conseille 503 + `Retry-After` pour
+1-2 jours et dit qu'il n'y a « pas de délai fixe » pour récupérer d'un retrait complet (S1, S17).
+Une mise à jour cœur a démarré le 2026-11-10 (S18) : les mouvements de novembre mélangent deux
+causes, ne pas conclure trop vite.
 
-### 2.4 Core Web Vitals — Checklist technique
+Procédure pas à pas (curl, GSC, IndexNow, ce qu'il ne faut PAS faire) :
+[references/indexation-recovery.md](references/indexation-recovery.md).
 
-```
-OBLIGATOIRE pour chaque page publique :
+## 8. Mesure
 
-□ next/image sur TOUTES les images (lazy loading auto, WebP/AVIF)
-□ next/font pour Plus Jakarta Sans (pas de FOUT/FOIT)
-□ Pas de layout shift (width + height explicites sur images/vidéos)
-□ Scripts tiers en <Script strategy="lazyOnload" />
-□ Pas de JS lourd sur les landing pages
-□ SSR (Server Components) pour tout contenu indexable
-□ "use client" UNIQUEMENT pour composants interactifs
-□ Compression gzip activée (Next.js le fait par défaut)
-□ Images hero en priority={true} pour le LCP
+- GSC Performance, type « Web » : inclut le trafic AI Overviews / AI Mode (S19). Rapport dédié
+  « Performances dans l'IA générative (Recherche) » : impressions seulement, ouvert à tous les
+  sites depuis le 2026-08-31, absent tant que le site a trop peu d'impressions (S28).
+- Rapport « Indexation des pages » : motifs à suivre et « Valider la correction » (≈ 2 semaines)
+  (S20) ; API URL Inspection : 2 000 requêtes/jour et 600/min par propriété (S21).
+- Bing Webmaster Tools : date de dernière lecture du sitemap ; cron `bing-daily`.
+- `llms.txt` : Google Search l'ignore, sans bénéfice ni dommage (S29, S5) ; le garder pour
+  d'autres services, mais il doit dire vrai (D1). Voir [references/measurement.md](references/measurement.md).
 
-Seuils 2026 (durcis en septembre) :
-- LCP (Largest Contentful Paint) ≤ 2.5s
-- CLS (Cumulative Layout Shift) ≤ 0.1
-- INP (Interaction to Next Paint) ≤ 200ms
+## 9. Points à arbitrer (le propriétaire décide, ne pas trancher en code)
 
-Test : Lighthouse + PageSpeed Insights + Chrome DevTools Performance
-```
+Résumé ; arguments et sources dans [references/points-a-arbitrer.md](references/points-a-arbitrer.md).
 
----
+- **A1** Mémoire `project_seo_rules_2026.md` §A/§E (« ville sans boutique → noindex », sitemap
+  filtré) contredit la règle OR de seo-anti-penalty et le code. Appliquer seo-anti-penalty.
+- **A2** `Event` sur `/occasions/*` : sans effet en France et contraire aux consignes Google
+  (occasion d'achat, Klik&Go en « organisateur » de l'Aïd). Remplacer par `WebPage` ?
+- **A3** `/boutique/*` dans le sitemap et dans le ping IndexNow quotidien alors que la mémoire GSC
+  interdit d'en demander l'indexation.
+- **A4** Faut-il retirer les `FAQPage` existants (sans effet Google depuis mai 2026) ou les garder
+  pour Bing/IA ? Garder impose qu'ils soient exacts (D1).
+- **A5** Seuils « 500 mots » et « ≥ 1 inventaire » : issus de blogs SEO, pas de Google (S3 ne
+  donne aucun seuil). Règle conservée telle quelle.
+- **A6** Libellé de remplacement de « 0,99 € / payez en ligne » (D1) : à valider avant correction.
+- **A7** `SpeakableSchema` : sans effet en France (S6) ; garder ou retirer.
+- **A8** La règle OR justifie l'indexation des villes par « 700+ mots uniques » ; la mesure donne
+  72 à 369 mots propres à la ville (aucune des 55 n'atteint 500), le reste est du gabarit. Règle
+  appliquée : index. Au propriétaire de choisir : enrichir, ou limiter l'exception aux villes cibles.
 
-## 3) SEO LOCAL — BOUCHERIE HALAL
+## 10. Dette connue (à corriger dans un chantier dédié, avec test)
 
-### 3.1 Stratégie mots-clés cibles
+- **D1** « 0,99 € » / « payez en ligne » dans 16 fichiers publics (pages SEO, accueil,
+  `a-propos`, `presse`, `cities.ts`, `occasions.ts`, FAQ JSON-LD, `llms.txt`). Le paiement en
+  ligne n'existe pas. Les frais : `main` affiche encore 0,99 € au panier ; le chantier prix
+  (`src/lib/pricing/`, non commité le 2026-11-14) les met à 0 en paiement sur place. Corriger les
+  textes **avec** l'arrivée de ce chantier sur `main`, pas avant. Libellé : voir A6.
+- **D2** `ProductSchema` : note **de la boutique** injectée en `aggregateRating` dans chaque
+  `Product` (contraire à seo-anti-penalty C et à S4) ; `priceValidUntil = Date.now()+30j`
+  (arbitraire, seo-anti-penalty F) ; `shippingDetails` déclare une livraison qui n'existe pas.
+- **D3** lastmod inexacts (section 3) ; `Event.offers.validFrom = new Date()` dans une page ISR.
+- **D4** `src/lib/seo/indexnow.ts` : doublon mort avec une 2ᵉ clé (`a050…`) → n'importer que
+  `@/lib/indexnow`. Le cron `indexnow-fresh` renvoie chaque jour ≈ 120 URLs non modifiées ;
+  la FAQ IndexNow demande de ne pas resoumettre des URLs inchangées (S22, S27).
+- **D5** Fils d'Ariane JSON-LD vers des URLs sans page : `/produits` et `/produits/{produit}`
+  (404), `/occasions/{occasion}` (404), `/occasions` (redirection) — constaté en production.
+- **D6** `/boutique/{slug-inconnu}` répond **200** en production (2026-11-14) avec deux metas
+  robots (`index, follow` + `noindex`) : soft-404 malgré le `notFound()` de `generateMetadata`.
+  Comportement d'une fiche dont la boutique n'est pas `visible` : voir le registre privé du
+  programme (A3).
+- **D7** Aucun `prefetch={false}` sur les listes de villes des gabarits SEO (54 liens sur chaque
+  page ville) ; `new Date().getFullYear()` dans le pied des pages ISR ville et partenaire.
 
-```
-MOTS-CLÉS PRIMAIRES (volume + intention d'achat) :
-- "boucherie halal [ville]"
-- "boucherie halal en ligne [ville]"
-- "commande viande halal [ville]"
-- "click and collect boucherie [ville]"
-- "viande halal livraison [ville]"
-
-MOTS-CLÉS SECONDAIRES :
-- "boucherie halal près de moi"
-- "meilleure boucherie halal [ville]"
-- "agneau halal [ville]"
-- "commande boeuf halal en ligne"
-- "boucherie halal ouverte maintenant"
-
-VILLES CIBLES (Rhône-Alpes) :
-- Chambéry, Grenoble, Lyon, Saint-Étienne
-- Annecy, Valence, Villeurbanne, Vénissieux
-- Vaulx-en-Velin, Saint-Martin-d'Hères, Échirolles
-
-LONGUE TRAÎNE :
-- "commander viande halal en ligne retrait boutique [ville]"
-- "boucherie halal certificat [ville]"
-- "promotion boucherie halal [ville]"
-- "viande hachée halal pas cher [ville]"
-```
-
-### 3.2 Pages par ville (SEO local programmatique)
-
-Créer une page dédiée par ville cible :
+## 11. Checklist avant de pousser un changement SEO
 
 ```
-/boucherie-halal/chambery
-/boucherie-halal/grenoble
-/boucherie-halal/lyon
-/boucherie-halal/saint-etienne
+[ ] seo-anti-penalty relu ; checklist pré-vol remplie
+[ ] Page nouvelle : décision index/noindex justifiée (tableau §2), canonical absolu, title unique
+[ ] Sitemap : seulement des URLs 200 + indexables ; lastmod = vraie date de contenu
+[ ] JSON-LD : via <JsonLd>, fidèle au texte visible, fil d'Ariane en 200, ni FAQPage ni Speakable neufs
+[ ] Aucun montant / mode de paiement / délai faux dans le texte ou le JSON-LD
+[ ] Pas de new Date()/Date.now() dans le rendu d'une page ISR/statique (CLAUDE.md)
+[ ] Liens en masse prefetch={false} ; nouvelle page liée depuis son parent
+[ ] Page ISR dynamique : generateStaticParams présent ; check-prerender passe en CI
+[ ] npm run lint && npx tsc --noEmit && npm run test (dont seo-cities.test.ts, json-ld.test.ts)
 ```
 
-Chaque page contient :
-- H1 : "Boucherie halal à [Ville] — Click & Collect"
-- Texte unique (PAS du contenu dupliqué entre villes) décrivant les boucheries partenaires
-- Liste des boucheries Klik&Go dans cette ville avec liens
-- Map intégrée (Google Maps embed ou Mapbox)
-- FAQ locale (Schema FAQPage)
-- Metadata optimisée : title "Boucherie halal [Ville] | Commande en ligne Click & Collect — Klik&Go"
-
-### 3.3 Google Business Profile — Pour CHAQUE boucherie partenaire
-
-```
-CHECKLIST GBP pour chaque boucher partenaire :
-□ Fiche Google Business créée et vérifiée
-□ Catégorie principale : "Boucherie" ou "Boucherie halal"
-□ Catégorie secondaire : "Service de click and collect"
-□ Nom EXACT de la boucherie (pas de keyword stuffing)
-□ Adresse complète et vérifiée
-□ Numéro de téléphone vérifié
-□ Horaires d'ouverture à jour
-□ Site web : https://klikandgo.app/shop/[slug-boucherie]
-□ Photos : devanture, intérieur, produits (minimum 10 photos)
-□ Attribut "Halal" activé
-□ Attribut "Click and collect" activé
-□ Attribut "Commande en ligne" activé
-□ Description avec mots-clés naturels
-□ Google Posts réguliers (promos, nouveautés)
-□ Répondre à TOUS les avis Google (positifs ET négatifs)
-
-IMPORTANT : le NAP (Name, Address, Phone) doit être
-IDENTIQUE partout : GBP, site Klik&Go, annuaires, réseaux sociaux.
-Une incohérence = perte de confiance Google = baisse de ranking.
-```
-
-### 3.4 Annuaires et citations
-
-```
-ANNUAIRES À INSCRIRE chaque boucherie :
-□ Google Business Profile (priorité 1)
-□ Pages Jaunes / Solocal
-□ Yelp France
-□ TripAdvisor (si pertinent)
-□ Facebook Page
-□ Instagram Business
-□ Zabihah.com (annuaire halal international)
-□ Halal-food-authority.com (si certifié)
-□ Les Avis Halal (communauté FR)
-□ Justeacote.com
-□ Cylex.fr
-
-CHAQUE INSCRIPTION :
-- Même nom exact
-- Même adresse exacte
-- Même numéro de téléphone
-- Lien vers la fiche Klik&Go
-```
-
----
-
-## 4) DONNÉES STRUCTURÉES (SCHEMA.ORG / JSON-LD)
-
-### 4.1 Règles fondamentales 2026
-- Format : **JSON-LD uniquement** (pas microdata, pas RDFa)
-- Placement : dans `<script type="application/ld+json">` via `dangerouslySetInnerHTML`
-- Validation : **Google Rich Results Test** après CHAQUE modification
-- Utiliser le type le plus SPÉCIFIQUE possible (Store > LocalBusiness > Organization)
-
-### 4.2 Schema Organisation (layout global)
-
-```typescript
-// components/seo/OrganizationSchema.tsx
-export function OrganizationSchema() {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Organization',
-          name: 'Klik&Go',
-          url: 'https://klikandgo.app',
-          logo: 'https://klikandgo.app/logo.png',
-          description: 'Plateforme de click & collect pour boucheries halal en Rhône-Alpes',
-          foundingDate: '2025',
-          areaServed: {
-            '@type': 'GeoCircle',
-            geoMidpoint: {
-              '@type': 'GeoCoordinates',
-              latitude: 45.5,
-              longitude: 5.9,
-            },
-            geoRadius: '150000', // 150km autour de Chambéry
-          },
-          sameAs: [
-            'https://www.instagram.com/klikandgo',
-            'https://www.facebook.com/klikandgo',
-          ],
-          contactPoint: {
-            '@type': 'ContactPoint',
-            contactType: 'customer service',
-            email: 'contact@klikandgo.app',
-            availableLanguage: ['French', 'Arabic'],
-          },
-        }),
-      }}
-    />
-  )
-}
-```
-
-### 4.3 Schema LocalBusiness (fiche boucherie)
-
-```typescript
-// components/seo/ShopSchema.tsx
-export function ShopSchema({ shop }: { shop: Shop }) {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Store',
-          '@id': `https://klikandgo.app/shop/${shop.slug}`,
-          name: shop.name,
-          description: shop.description,
-          url: `https://klikandgo.app/shop/${shop.slug}`,
-          telephone: shop.phone,
-          image: shop.imageUrl,
-          address: {
-            '@type': 'PostalAddress',
-            streetAddress: shop.address,
-            addressLocality: shop.city,
-            postalCode: shop.zipCode,
-            addressRegion: 'Auvergne-Rhône-Alpes',
-            addressCountry: 'FR',
-          },
-          geo: {
-            '@type': 'GeoCoordinates',
-            latitude: shop.latitude,
-            longitude: shop.longitude,
-          },
-          openingHoursSpecification: shop.openingHours?.map((oh: any) => ({
-            '@type': 'OpeningHoursSpecification',
-            dayOfWeek: oh.day,
-            opens: oh.opens,
-            closes: oh.closes,
-          })),
-          priceRange: '€€',
-          servesCuisine: 'Halal',
-          hasOfferCatalog: {
-            '@type': 'OfferCatalog',
-            name: `Catalogue ${shop.name}`,
-            url: `https://klikandgo.app/shop/${shop.slug}`,
-          },
-          potentialAction: {
-            '@type': 'OrderAction',
-            target: {
-              '@type': 'EntryPoint',
-              urlTemplate: `https://klikandgo.app/shop/${shop.slug}`,
-              actionPlatform: [
-                'http://schema.org/DesktopWebPlatform',
-                'http://schema.org/MobileWebPlatform',
-              ],
-            },
-            deliveryMethod: 'http://purl.org/goodrelations/v1#DeliveryModePickUp',
-          },
-          // Avis (si implémenté)
-          ...(shop.averageRating && {
-            aggregateRating: {
-              '@type': 'AggregateRating',
-              ratingValue: shop.averageRating,
-              reviewCount: shop.reviewCount,
-              bestRating: 5,
-              worstRating: 1,
-            },
-          }),
-        }),
-      }}
-    />
-  )
-}
-```
-
-### 4.4 Schema Product (fiche produit)
-
-```typescript
-// components/seo/ProductSchema.tsx
-export function ProductSchema({ product, shop }: { product: Product; shop: Shop }) {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Product',
-          name: product.name,
-          description: product.description,
-          image: product.imageUrl,
-          sku: product.id,
-          brand: {
-            '@type': 'Brand',
-            name: shop.name,
-          },
-          offers: {
-            '@type': 'Offer',
-            url: `https://klikandgo.app/shop/${shop.slug}`,
-            priceCurrency: 'EUR',
-            price: product.price,
-            priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            availability: product.inStock
-              ? 'https://schema.org/InStock'
-              : 'https://schema.org/OutOfStock',
-            seller: {
-              '@type': 'Organization',
-              name: shop.name,
-            },
-          },
-          category: product.category, // "Boeuf", "Agneau", "Poulet", "Merguez"
-        }),
-      }}
-    />
-  )
-}
-```
-
-### 4.5 Schema BreadcrumbList
-
-```typescript
-// components/seo/BreadcrumbSchema.tsx
-export function BreadcrumbSchema({ items }: { items: { name: string; url: string }[] }) {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'BreadcrumbList',
-          itemListElement: items.map((item, index) => ({
-            '@type': 'ListItem',
-            position: index + 1,
-            name: item.name,
-            item: item.url,
-          })),
-        }),
-      }}
-    />
-  )
-}
-
-// Utilisation sur une fiche boucherie :
-<BreadcrumbSchema items={[
-  { name: 'Accueil', url: 'https://klikandgo.app' },
-  { name: 'Boucheries', url: 'https://klikandgo.app/decouvrir' },
-  { name: shop.name, url: `https://klikandgo.app/shop/${shop.slug}` },
-]} />
-```
-
-### 4.6 Schema FAQPage (pages ville)
-
-```typescript
-// Sur les pages /boucherie-halal/[ville]
-export function FAQSchema({ city }: { city: string }) {
-  const faqs = [
-    {
-      question: `Comment commander de la viande halal en ligne à ${city} ?`,
-      answer: `Avec Klik&Go, choisissez votre boucherie halal à ${city}, sélectionnez vos produits, payez en ligne et récupérez votre commande en boutique au créneau choisi.`,
-    },
-    {
-      question: `Quelles boucheries halal proposent le click & collect à ${city} ?`,
-      answer: `Klik&Go référence les meilleures boucheries halal de ${city} et sa région. Consultez notre page pour voir les boucheries partenaires près de chez vous.`,
-    },
-    {
-      question: `Est-ce que la viande est certifiée halal ?`,
-      answer: `Toutes les boucheries partenaires Klik&Go sont des boucheries halal vérifiées. Chaque boucher garantit la certification halal de ses produits.`,
-    },
-    {
-      question: `Quels sont les frais de commande ?`,
-      answer: `Klik&Go facture un frais de service de 0,99€ par commande. Pas de commission cachée, pas de surcoût sur les prix des produits. Les prix affichés sont ceux de la boucherie.`,
-    },
-  ]
-
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'FAQPage',
-          mainEntity: faqs.map(faq => ({
-            '@type': 'Question',
-            name: faq.question,
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: faq.answer,
-            },
-          })),
-        }),
-      }}
-    />
-  )
-}
-```
-
----
-
-## 5) GEO / AIO — VISIBILITÉ DANS LES IA (2026)
-
-### Qu'est-ce que c'est ?
-- **GEO** = Generative Engine Optimization : être cité par ChatGPT, Gemini, Perplexity
-- **AIO** = AI Overview Optimization : apparaître dans les résumés IA de Google Search
-
-### Pourquoi c'est crucial en 2026
-- Les IA génèrent de plus en plus les réponses directement (moins de clics sur les liens)
-- Les utilisateurs demandent "quelle est la meilleure boucherie halal à Chambéry" à ChatGPT
-- Si Klik&Go n'est pas structuré pour les IA, il sera invisible dans ces réponses
-
-### Comment optimiser pour les IA
-
-```
-RÈGLES GEO / AIO :
-
-1. DONNÉES STRUCTURÉES IMPECCABLES
-   Les IA parsent le JSON-LD pour comprendre les entités.
-   → Implémenter TOUS les schemas de la section 4
-
-2. CONTENU FACTUEL ET STRUCTURÉ
-   Les IA citent le contenu clair, factuel, bien organisé.
-   → Utiliser des H2/H3 clairs avec des réponses directes
-   → Pas de fluff, pas de texte vague
-   → Répondre directement aux questions que les gens posent
-
-3. EXPERTISE DÉMONTRÉE
-   Les IA favorisent les sources qui montrent une expertise réelle.
-   → Pages "À propos" détaillée sur Klik&Go
-   → Contenu unique sur la viande halal, les certifications
-   → Témoignages de bouchers réels
-
-4. LIENS SORTANTS CRÉDIBLES
-   Les IA font confiance aux pages qui citent des sources fiables.
-   → Lien vers Schema.org, vers les certifications halal
-   → Lien vers les normes NF525, RGPD
-
-5. TIMESTAMPS À JOUR
-   Les IA préfèrent le contenu récent.
-   → Afficher "Mis à jour le [date]" sur les pages de contenu
-   → Mettre à jour régulièrement les pages ville
-
-6. NAP COHÉRENT PARTOUT
-   Les IA croisent les sources pour valider les informations.
-   → Nom, adresse, téléphone identiques sur GBP, site, annuaires
-```
-
----
-
-## 6) CONTENU & E-E-A-T
-
-### 6.1 Les 4 piliers E-E-A-T
-
-```
-EXPERIENCE (le premier E, ajouté en 2022, renforcé en 2026) :
-- Photos ORIGINALES des boucheries (pas de stock photos)
-- Témoignages de VRAIS clients et bouchers
-- Descriptions de produits écrites par le boucher (pas par IA)
-- Contenu qui montre un vécu réel ("Notre boucher sélectionne...")
-
-EXPERTISE :
-- Pages détaillées sur les types de viande halal
-- Guide "Comment choisir sa viande" (contenu evergreen)
-- FAQ complètes et utiles
-- Contenu spécifique halal (abattage, certification, traçabilité)
-
-AUTHORITATIVENESS :
-- Mentions dans la presse locale
-- Partenariats avec des associations halal
-- Témoignages de bouchers reconnus
-- Backlinks depuis sites locaux (CCI, mairies, associations)
-
-TRUSTWORTHINESS :
-- HTTPS (déjà OK via Vercel)
-- Badges conformité (NF525, RGPD, Stripe PCI-DSS)
-- Mentions légales complètes
-- CGV, CGU, politique de confidentialité
-- Avis vérifiés
-```
-
-### 6.2 Contenu à créer (roadmap)
-
-```
-PRIORITÉ 1 — Pages essentielles :
-□ Page "Comment ça marche" (3 étapes illustrées)
-□ Page "Devenir partenaire" (pour les bouchers)
-□ Page "Mentions légales" + CGV + CGU + Politique confidentialité
-□ Pages ville : /boucherie-halal/chambery, grenoble, lyon, saint-etienne
-
-PRIORITÉ 2 — Contenu expert :
-□ "Guide : comment choisir sa viande halal"
-□ "Les différentes découpes de viande d'agneau"
-□ "Click & collect vs livraison : pourquoi récupérer en boutique"
-□ "Qu'est-ce que la certification halal ?"
-
-PRIORITÉ 3 — Contenu saisonnier :
-□ "Préparer le Ramadan : commandez votre viande à l'avance"
-□ "Aïd al-Adha : réservez votre mouton en ligne"
-□ "Barbecue d'été : nos meilleures sélections halal"
-
-RÈGLES DE RÉDACTION :
-- Contenu UNIQUE par page (pas de copier-coller entre villes)
-- Minimum 300 mots par page (idéal 800-1500 pour pages ville)
-- H1 unique par page avec mot-clé principal
-- H2/H3 structurés avec mots-clés secondaires
-- Images avec alt text descriptif (pas "image1.jpg")
-- Liens internes entre pages (maillage)
-```
-
-### 6.3 Contenu IA — Attention danger
-
-```
-⚠️ GOOGLE 2026 PÉNALISE LE CONTENU IA DE FAIBLE QUALITÉ
-
-CE QUI EST PÉNALISÉ :
-- Texte 100% généré par IA sans édition humaine
-- Contenu mass-produit (20 articles/jour identiques)
-- Descriptions produits copiées-collées
-- Texte générique sans expertise démontrée
-
-CE QUI EST OK :
-- IA comme assistant de rédaction (brouillon → édition humaine)
-- Texte IA enrichi avec des informations uniques et réelles
-- Contenu IA avec photos originales et témoignages réels
-- Descriptions produits uniques par boucher
-
-RÈGLE KLIK&GO :
-Le contenu IA marketing (emails, bannières) est OK car il n'est pas indexé.
-Le contenu public indexable (pages ville, fiches, guides) DOIT être
-enrichi avec du vrai contenu humain, des photos originales, et
-de l'expertise démontrée.
-```
-
----
-
-## 7) MONITORING & OUTILS
-
-### 7.1 Outils obligatoires
-
-```
-□ Google Search Console
-  - Vérifier la propriété du domaine klikandgo.app
-  - Soumettre le sitemap
-  - Surveiller : couverture, Core Web Vitals, rich results, erreurs
-  - Vérifier l'indexation de chaque page importante
-
-□ Google Rich Results Test
-  - Tester CHAQUE page avec du JSON-LD
-  - URL : https://search.google.com/test/rich-results
-  - Doit montrer "Page éligible aux résultats enrichis"
-
-□ PageSpeed Insights
-  - Tester mobile ET desktop
-  - Score mobile minimum : 80+
-  - Score desktop minimum : 90+
-
-□ Plausible Analytics OU PostHog (RGPD-compliant, sans cookies)
-  - Events à tracker :
-    - page_view (toutes pages)
-    - shop_view (fiche boucherie)
-    - product_add_to_cart
-    - checkout_start
-    - order_completed
-    - promo_code_used
-
-□ Lighthouse (Chrome DevTools)
-  - Audit Performance, Accessibility, Best Practices, SEO
-  - Score SEO minimum : 95+
-```
-
-### 7.2 Requêtes à surveiller dans Search Console
-
-```
-REQUÊTES CIBLES — Vérifier le positionnement chaque semaine :
-
-"boucherie halal chambéry"
-"boucherie halal grenoble"
-"boucherie halal lyon"
-"commande viande halal en ligne"
-"click and collect boucherie"
-"viande halal livraison"
-"klikandgo"
-"klik and go boucherie"
-
-OBJECTIFS :
-- Top 3 sur les requêtes "[boucherie halal] + [ville partenaire]"
-- Top 10 sur les requêtes génériques régionales
-- Position 1 sur "klikandgo" et variations de marque
-```
-
----
-
-## 8) CHECKLIST SEO AVANT CHAQUE DÉPLOIEMENT
-
-```
-□ CHAQUE page publique a un title unique (50-60 chars) ?
-□ CHAQUE page publique a une description unique (150-160 chars) ?
-□ CHAQUE page publique a un canonical auto-référencé ?
-□ CHAQUE page publique a un OG title + description + image ?
-□ CHAQUE image a un alt text descriptif ?
-□ CHAQUE image utilise next/image ?
-□ CHAQUE fiche boucherie a un schema LocalBusiness/Store JSON-LD ?
-□ CHAQUE fiche produit a un schema Product JSON-LD ?
-□ Le sitemap.xml inclut toutes les pages publiques ?
-□ Le robots.txt bloque /dashboard/ et /api/ ?
-□ Pas de noindex accidentel sur les pages publiques ?
-□ Core Web Vitals : LCP ≤ 2.5s, CLS ≤ 0.1, INP ≤ 200ms ?
-□ Score Lighthouse SEO ≥ 95 ?
-□ Rich Results Test valide pour les pages avec JSON-LD ?
-□ Pas de contenu dupliqué entre pages ville ?
-□ Liens internes entre pages (maillage naturel) ?
-□ H1 unique par page ?
-□ Pas de page orpheline (toute page liée depuis au moins 1 autre) ?
-```
-
----
-
-## 9) IMPLÉMENTATION — ORDRE DE PRIORITÉ
-
-```
-SEMAINE 1 — Fondation technique (impact immédiat) :
-1. Metadata API sur toutes les pages existantes
-2. sitemap.ts dynamique
-3. robots.ts
-4. Schema Organization (layout global)
-5. Google Search Console : vérifier + soumettre sitemap
-6. OG Image 1200x630 (logo Klik&Go + baseline)
-
-SEMAINE 2 — Données structurées :
-7. Schema Store/LocalBusiness sur chaque fiche boucherie
-8. Schema Product sur chaque fiche produit
-9. Schema BreadcrumbList sur toutes les pages
-10. Valider avec Rich Results Test
-
-SEMAINE 3 — SEO Local :
-11. Pages ville : /boucherie-halal/chambery, grenoble, lyon, saint-etienne
-12. FAQ Schema sur les pages ville
-13. Guide boucher pour créer/optimiser Google Business Profile
-
-SEMAINE 4 — Contenu & Analytics :
-14. Page "Comment ça marche"
-15. Page "Devenir partenaire"
-16. Plausible ou PostHog (analytics RGPD)
-17. Premier audit Lighthouse + PageSpeed Insights
-
-MOIS 2 — Contenu expert + GEO :
-18. Articles guides (viande halal, découpes, certification)
-19. Contenu saisonnier (Ramadan, Aïd)
-20. Optimisation GEO (structuration pour AI Overviews)
-21. Backlinks locaux (CCI, associations, presse)
-```
-
----
-
-Fin du skill SEO. Toujours valider avec Rich Results Test + Lighthouse après chaque changement.
+## 12. Définition de terminé
+
+1. Checklist §11 verte ; build CI (avec `check-prerender`) vert.
+2. Après déploiement, sur chaque gabarit touché : code HTTP attendu, une seule balise
+   `curl -s URL | grep -o '<meta name="robots"[^>]*>'`, canonical présent ; test des résultats
+   enrichis si le JSON-LD change.
+3. URLs réellement nouvelles ou modifiées signalées une fois (`@/lib/indexnow`, sitemap à jour).
+4. Ligne datée (commit, URLs, effet attendu) ajoutée à la mémoire `project_bing_daily_log.md`
+   (exigence de seo-anti-penalty).
+5. Contrôle GSC planifié à J+7 (indexation) et J+28 (Performance) ; aucune conclusion pendant
+   une mise à jour cœur.
+
+## Références
+
+Chaque section renvoie à son fichier de `references/` (carte du code, données structurées,
+sitemap et IndexNow, reprise après panne, SEO local, mesure, points à arbitrer) ; toutes les
+sources et les constats en production sont dans [references/sources.md](references/sources.md).
+Skills liés : `seo-anti-penalty` (garde-fou), `web-performance` (Core Web Vitals),
+`vercel-cost-performance` (ISR, middleware), `nextjs-app-router` (Metadata API, 404),
+`conformite-france` (information du consommateur), `prisma-expert` (migrations).

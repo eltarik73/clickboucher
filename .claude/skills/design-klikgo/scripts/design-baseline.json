@@ -1,0 +1,24 @@
+{
+  "scope": "src",
+  "debt": {
+    "hex arbitraires (hors fond de page)": 2216,
+    "tailles de texte arbitraires": 682,
+    "texte sous 12px": 621,
+    "rayons pièges (sm/md/lg)": 472,
+    "rayons arbitraires": 94,
+    "text-white sur aplat trop clair": 56,
+    "anneaux translucides": 95,
+    "overlays maison sans sémantique dialog": 21,
+    "confirm()/alert()": 8,
+    "fontFamily inline": 13,
+    "classes inexistantes": 14,
+    "petits carrés cliquables (28 à 36 px)": 45
+  },
+  "adoption": {
+    "tokens sémantiques (total)": 196,
+    "<Button": 108,
+    "<button brut": 575,
+    "focus-visible:": 39,
+    "motion-reduce:/motion-safe:": 0
+  }
+}

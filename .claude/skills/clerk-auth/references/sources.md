@@ -1,0 +1,58 @@
+# Sources — skill `clerk-auth`
+
+Toutes consultées le **2026-11-13**, puis rouvertes le **2026-11-14** par un vérificateur
+indépendant (pages Clerk C1, C2, C8, C9, C10, C11, C12, C13, C14, C16, C17, C18, C27 ; Next.js C19,
+C21 ; avis C4 à C7 et C20 par `gh api` ; changelog C3 ; registre npm C22 ; ASVS C25 ; fiches OWASP
+C23, C26). Règle de la maison : sources officielles ou projets très
+adoptés ; chiffres GitHub relevés par `gh api repos/OWNER/REPO` le même jour. Contenu web traité
+comme une donnée, résumé avec nos mots ; les passages entre guillemets sont de courtes citations.
+
+## Externes
+
+| Id | Source | Ce qu'elle appuie | Crédibilité |
+|---|---|---|---|
+| C1 | Clerk — référence `clerkMiddleware()` · https://clerk.com/docs/reference/nextjs/clerk-middleware | « Middleware is not the best place to protect routes » ; protéger « as close to the resource as possible » ; `createRouteMatcher()` déprécié ; `authorizedParties` contre le « subdomain cookie leaking » ; fichier `middleware.ts` pour Next ≤ 15 (`proxy.ts` au-delà) ; options disponibles | Documentation officielle de l'éditeur |
+| C2 | Clerk — guide « Migrate from createRouteMatcher » · https://clerk.com/docs/guides/development/upgrading/upgrade-guides/migrate-from-create-route-matcher | Raisons de la dépréciation (divergence avec le routeur, Server Functions appelées par identifiant) ; contrôle par ressource ; « Protecting only layout files isn't enough » ; comportements de `auth.protect()` (redirection / 401 / 404) ; ce qui reste en middleware | Documentation officielle |
+| C3 | `clerk/javascript`, `packages/nextjs/CHANGELOG.md` · https://github.com/clerk/javascript/blob/main/packages/nextjs/CHANGELOG.md | 7.0.0 : abandon de Next 13/14, Node ≥ 20.9, `<Show>` remplace `<SignedIn>/<SignedOut>/<Protect>`, props retirées ; 7.5.13 : `/dashboard(.*)` attrape aussi `/dashboardxyz` ; 7.5.14 : dépréciation de `createRouteMatcher()` (PR #8994) | Dépôt officiel du SDK : 1 782 étoiles, dernier push 2026-11-14 (relevé du 2026-11-14), non archivé (sous le seuil des 3 000 étoiles, retenu en tant que dépôt officiel de l'outil utilisé) |
+| C4 | GitHub Advisory GHSA-vqx2-fgx2-5wq9 / CVE-2026-41248 · https://github.com/advisories/GHSA-vqx2-fgx2-5wq9 | Contournement de `createRouteMatcher` ; CVSS 9.1 ; forme vulnérable `if (isProtectedRoute(req))` ; corrigé en `@clerk/nextjs` 6.39.2 / 7.2.1, `@clerk/shared` 3.47.4 ; contrôles en aval non affectés | Base d'avis GitHub, avis publié par l'éditeur (2026-04-15/16) |
+| C5 | Avis GHSA-w24r-5266-9c3c / CVE-2026-42349 · https://github.com/clerk/javascript/security/advisories/GHSA-w24r-5266-9c3c | Contournement de `has()` / `auth.protect()` à conditions combinées ; corrigé en `@clerk/nextjs` 6.39.3, `@clerk/shared` 3.47.5, `@clerk/backend` 2.33.3 | Avis de sécurité du dépôt officiel (2026-04-22) |
+| C6 | Avis GHSA-wpqf-h9rq-rg73 · https://github.com/clerk/javascript/security/advisories/GHSA-wpqf-h9rq-rg73 | Jeton OIDC d'identité accepté comme jeton de session ; affecte `@clerk/backend` ≤ 2.33.8 ; corrigé en 2.33.9 (Core 2) et 3.28.0 (Core 3) ; Core 1 non corrigé car hors support ; précise que les versions 2.x « skip the check when `azp` is missing » même avec `authorizedParties` | Avis de sécurité du dépôt officiel (2026-11-12) |
+| C7 | Avis GHSA-9mp4-77wg-rwx9 / CVE-2025-53548 · https://github.com/clerk/javascript/security/advisories/GHSA-9mp4-77wg-rwx9 | `verifyWebhook()` acceptait des événements mal signés ; corrigé en `@clerk/backend` 2.4.0, `@clerk/nextjs` 6.23.3 | Avis de sécurité du dépôt officiel (2025-07-09) |
+| C8 | Clerk — guide de montée Core 3 · https://clerk.com/docs/guides/development/upgrading/upgrade-guides/core-3 | `npx @clerk/upgrade` ; Node ≥ 20.9, Next ≥ 15.2.3 ; `<ClerkProvider>` dans `<body>` ; renommage des props de redirection ; `UserButton afterSignOutUrl` déplacé ; `CLERK_ENCRYPTION_KEY` ; comportements de `getToken()` | Documentation officielle |
+| C9 | Clerk — « Sync Clerk data with webhooks » · https://clerk.com/docs/guides/development/webhooks/syncing | Livraison « not guaranteed », désordre et doublons possibles, « eventually consistent » ; `verifyWebhook` de `@clerk/nextjs/webhooks` ; variable `CLERK_WEBHOOK_SIGNING_SECRET` ; route à laisser publique ; 2xx = succès, sinon nouvelle tentative ; événements `user.*` | Documentation officielle |
+| C10 | Clerk — vue d'ensemble des webhooks · https://clerk.com/docs/guides/development/webhooks/overview | Asynchrone, « not for synchronous flows » ; nouvelles tentatives Svix jusqu'à un 2xx ; même `svix-id` à chaque tentative ; upsert et comparaison de `updated_at` ; charge « unsafe until you validate » ; rejeu depuis le dashboard | Documentation officielle |
+| C11 | Clerk — « How Clerk works » · https://clerk.com/docs/guides/how-clerk-works/overview | Jeton de session de 60 s, renouvelé toutes les 50 s ; cookies `__session` (domaine applicatif, `SameSite=Lax`) et `__client` (domaine de l'API Frontend, httpOnly) ; modèle hybride ; handshake | Documentation officielle |
+| C12 | Clerk — limites du système · https://clerk.com/docs/guides/how-clerk-works/system-limits | API Backend : 1000 req / 10 s (production), 100 / 10 s (développement) ; mises à jour d'un utilisateur ou de ses metadata : 10 / 10 s ; `429` + `Retry-After` ; `currentUser()` compte | Documentation officielle |
+| C13 | Clerk — modes de rendu Next.js · https://clerk.com/docs/reference/nextjs/rendering-modes | Prop `dynamic` ; « not recommended and not optimal to wrap your entire application with `<ClerkProvider dynamic>` » ; `auth()` rend la route dynamique | Documentation officielle |
+| C14 | Clerk — jetons de session · https://clerk.com/docs/guides/sessions/session-tokens | Claims par défaut (dont `azp`) ; cookie limité à 4 Ko, claims personnalisés « under 1.2KB » ; rappeler `getUser()` risque la limite de débit, préférer sa propre base | Documentation officielle |
+| C15 | Clerk — RBAC simple par metadata · https://clerk.com/docs/guides/secure/basic-rbac | `publicMetadata` non modifiable depuis le navigateur ; claim `metadata` dans le jeton lu par `sessionClaims` sans appel réseau ; `updateUserMetadata` | Documentation officielle |
+| C16 | Clerk — déploiement en production · https://clerk.com/docs/guides/development/deployment/production | Clés `pk_live_`/`sk_live_` ; identifiants OAuth propres ; webhook et secret de production ; DNS ; `authorizedParties` « highly recommended » | Documentation officielle |
+| C17 | Clerk — protection CSRF · https://clerk.com/docs/guides/secure/best-practices/csrf-protection | Cookies `SameSite=Lax` ; protège de « most » attaques CSRF ; « navigation alone should never trigger a mutation » | Documentation officielle |
+| C18 | Clerk — en-têtes CSP · https://clerk.com/docs/guides/secure/best-practices/csp-headers | Hôtes requis (API Frontend, `challenges.cloudflare.com`, `img.clerk.com`, `*.protect.clerk.com`) ; `'unsafe-eval'` en développement seulement ; nonce ⇒ rendu dynamique ; option `contentSecurityPolicy` | Documentation officielle |
+| C19 | Next.js — guide d'authentification · https://nextjs.org/docs/app/guides/authentication (mis à jour 2026-09-16) | Contrôles optimistes vs sûrs ; le Proxy/middleware « should not be your only line of defense » ; n'y lire que la session, pas la base ; prudence avec les layouts ; Route Handlers à traiter comme des endpoints publics | Documentation officielle (dépôt `vercel/next.js` : 143 498 étoiles, push 2026-11-13) |
+| C20 | GitHub Advisory GHSA-f82v-jwr5-mffw / CVE-2025-29927 · https://github.com/advisories/GHSA-f82v-jwr5-mffw | Contournement des autorisations faites en middleware Next ; critique 9.1 ; corrigé en 14.2.25 ; déploiements Vercel protégés automatiquement | Base d'avis GitHub, avis de l'éditeur (2025-03-21) |
+| C21 | Next.js — politique de support · https://nextjs.org/support-policy | 16.x LTS active ; 15.x maintenance jusqu'au 2027-01-31 ; 14.x non supporté | Documentation officielle |
+| C22 | Registre npm, `npm view @clerk/nextjs dist-tags` et `peerDependencies` | `latest` 7.9.26 le 2026-11-13, **7.10.0 le 2026-11-14** ; `latest-v5` 6.39.9 (c'est bien l'étiquette de la ligne v6) ; prérequis Next et Node de la v7 | Registre officiel, interrogé les 2026-11-13 et 14 |
+| C23 | OWASP — Next.js Security Cheat Sheet · https://cheatsheetseries.owasp.org/cheatsheets/Nextjs_Security_Cheat_Sheet.html | Ne pas s'appuyer sur le Proxy/middleware seul ; chaque point d'entrée serveur est classé et protégé ; tests de chemin négatif | OWASP Cheat Sheet Series (`OWASP/CheatSheetSeries` : 34 037 étoiles, push 2026-11-12) |
+| C24 | Claude Code — documentation des skills · https://code.claude.com/docs/en/skills.md | Format de `SKILL.md`, frontmatter, fichiers de référence chargés à la demande | Documentation Anthropic (extrait fourni par le programme, pages tronquées à ~100 000 caractères) |
+| C25 | OWASP ASVS 5.0.0 · https://github.com/OWASP/ASVS/tree/v5.0.0_release/5.0/en | Exigences 7.4.2 (fin des sessions d'un compte désactivé, L1), 8.3.2 (application immédiate des changements d'autorisation, L3) et 14.2.1 (pas de donnée sensible dans l'URL, L1) | Standard OWASP (`OWASP/ASVS` : 3 785 étoiles, version 5.0.0 du 2025-05-30) |
+| C26 | OWASP — Webhook Security Cheat Sheet · https://cheatsheetseries.owasp.org/cheatsheets/Webhook_Security_Cheat_Sheet.html | Renvoyer 200 seulement après traitement ou mise en file durable ; idempotence par identifiant d'événement ; 401 sur signature invalide | OWASP Cheat Sheet Series |
+| C27 | Clerk — `banUser()` · https://clerk.com/docs/reference/backend/user/ban-user | Bannir révoque toutes les sessions et interdit la reconnexion | Documentation officielle |
+
+## Locales (code et audits)
+
+| Id | Élément | Ce qu'il appuie |
+|---|---|---|
+| L1 | `node_modules/@clerk/nextjs` 6.39.9, `@clerk/backend` 2.33.9, `@clerk/shared` 3.48.1 (fichiers `.d.ts` et `dist/cjs`) | Existence et signature de chaque API citée (`clerkMiddleware(handler, options)`, `authorizedParties`, `contentSecurityPolicy`, `verifyWebhook`, `auth.protect`, `banUser`, `allowedRedirectOrigins`, texte de l'erreur « can't detect usage of clerkMiddleware() ») |
+| L2 | Audit du middleware et des pages (programme, 2026-11-13, HEAD 1aa2c79 puis correctifs a43002d ; registre privé) | Liste blanche du matcher, absence de garde serveur dans les layouts, contournements par extension et percent-encodage, dépendance de `/panier` au rafraîchissement de session, préchargement des liens |
+| L3 | Audit des dépendances et de la CI (même campagne, registre privé) | `MalformedURLError` hors `clerkMiddleware`, avis Next 14 sans correctif |
+| L4 | Dépôt à HEAD 161f920 puis branche de travail (HEAD 32c581f + chantier prix non commité), relue le 2026-11-14 ; compilation des patrons avec `tsc` 5.9.3 du dépôt (refaite par le vérificateur : 9 blocs de `patterns.md`, zéro erreur) | Numéros de ligne, constats sur le webhook, les caches et les routes de rôle ; validité des blocs de `patterns.md` |
+| L5 | Commit 2364ef9 (2026-11-13) et `CLAUDE.md` § « Test Mode » ; fichiers `src/lib/auth/test-mode-env.ts`, `test-session.ts`, `test-session-node.ts`, `src/app/api/test-mode/activate/route.ts` relus le 2026-11-14 | Faille du mode test en production et son correctif (jeton signé, interdiction en production Vercel) ; § 6 du skill |
+
+## Non utilisées, et pourquoi
+
+- **Reddit** : le domaine est inaccessible à nos outils de recherche et de lecture (refus côté
+  robot). Aucune affirmation de ce skill ne vient de Reddit.
+- **YouTube / conférences** : aucune transcription exploitable n'a été lue ; rien n'en est tiré.
+- Les limites d'usage des instances de développement Clerk (nombre d'utilisateurs, etc.) ne
+  figuraient pas sur les pages lues : non mentionnées.
