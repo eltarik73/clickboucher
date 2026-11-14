@@ -213,6 +213,12 @@ Vers `klikandgo.app` : GET seulement.
 Toujours : `CLAUDE.md`, ce manuel, `architecture-conventions`, `testing-strategy`. Index de tous
 les skills : [`../README.md`](../README.md).
 
+Pureté du code, pour tout ingénieur et tout contrôleur : `verification-before-done` (rien n'est
+« terminé » sans la commande qui le prouve), `simplicity-refactoring`, `typescript-patterns` ;
+`react-patterns` pour un composant ; `test-discipline` dès qu'un test est écrit ou modifié ;
+`fix-errors` pour un défaut à corriger ; `klikgo-review` pour toute revue, contrôle ou audit ;
+`quality-gates` pour un changement d'ESLint, de tsconfig, des hooks ou de la CI.
+
 | Travail                                                            | Skills à lire (dans l'ordre)                                                                                                                |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Route API nouvelle ou modifiée                                     | `api-route-conventions`, `security-multitenant`, `prisma-expert`, `clerk-auth` si auth ; `vercel-cost-performance` si cache ou hors matcher |
@@ -229,9 +235,11 @@ les skills : [`../README.md`](../README.md).
 | Coût Vercel, middleware, cache, polling, `vercel.json`             | `vercel-cost-performance`, `nextjs-app-router`                                                                                              |
 | Erreurs, logs, Sentry, santé, incident, sauvegardes                | `reliability-observability`, `background-jobs-notifications` (crons)                                                                        |
 | Données personnelles, cookies, analytics, avis, prix barrés, halal | `conformite-france`, puis le propriétaire (§ 8)                                                                                             |
-| Refactor, découpage, déplacement de fichiers                       | `architecture-conventions`, `testing-strategy`                                                                                              |
-| Tests, CI, E2E                                                     | `testing-strategy`, `accessibility-wcag` (axe)                                                                                              |
+| Refactor, découpage, déplacement de fichiers                       | `architecture-conventions`, `simplicity-refactoring`, `testing-strategy`, `test-discipline`                                                 |
+| Tests, CI, E2E                                                     | `testing-strategy`, `test-discipline`, `quality-gates` (CI), `accessibility-wcag` (axe)                                                     |
 | Audit de sécurité                                                  | `security-multitenant`, `clerk-auth`, `api-route-conventions`                                                                               |
+| Revue de code, contrôle, audit de qualité                          | `klikgo-review`, `quality-gates`, `typescript-patterns`, `react-patterns`, `test-discipline`                                                |
+| Bug, build cassé, test rouge, erreur d'hydratation                 | `fix-errors`, `verification-before-done`                                                                                                    |
 
 ## 12. Passation entre phases
 
