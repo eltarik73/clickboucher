@@ -1,13 +1,15 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -19,6 +21,7 @@ interface ConfirmDialogProps {
   variant?: "danger" | "default";
   onConfirm: () => void;
   onCancel?: () => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 export function ConfirmDialog({
@@ -31,42 +34,30 @@ export function ConfirmDialog({
   variant = "default",
   onConfirm,
   onCancel,
+  onCloseAutoFocus,
 }: ConfirmDialogProps) {
+  const danger = variant === "danger";
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm mx-4">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <DialogDescription className="px-5 pt-3">
-          {description}
-        </DialogDescription>
-        <div className="flex gap-3 px-5 pb-5 pt-4">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              onCancel?.();
-              onOpenChange(false);
-            }}
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus}>
+        {danger ? (
+          <div
+            aria-hidden="true"
+            data-testid="confirm-dialog-icon"
+            className="mb-4 flex size-11 items-center justify-center rounded-full bg-destructive-subtle text-destructive-text"
           >
-            {cancelLabel}
-          </Button>
-          <Button
-            className={`flex-1 ${
-              variant === "danger"
-                ? "bg-[#DC2626] hover:bg-[#b91c1c] text-white"
-                : "bg-[#DC2626] hover:bg-[#b91c1c] text-white"
-            }`}
-            onClick={() => {
-              onConfirm();
-              onOpenChange(false);
-            }}
-          >
+            <AlertTriangle className="size-5" />
+          </div>
+        ) : null}
+        <AlertDialogTitle>{title}</AlertDialogTitle>
+        <AlertDialogDescription>{description}</AlertDialogDescription>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => onCancel?.()}>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogAction variant={danger ? "destructive" : "default"} onClick={() => onConfirm()}>
             {confirmLabel}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

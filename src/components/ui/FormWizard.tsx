@@ -31,7 +31,7 @@ export function FormWizard({
   const canAdvance = current.isValid ? current.isValid() : true;
 
   return (
-    <div className="space-y-6 font-[var(--font-outfit)]">
+    <div className="space-y-6">
       {/* Progress indicator */}
       <div className="flex items-center justify-between gap-2">
         {steps.map((step, i) => {
@@ -69,7 +69,7 @@ export function FormWizard({
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Étape {currentIdx + 1} / {steps.length}
         </p>
-        <h2 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+        <h2 className="mt-1 font-display text-xl font-bold text-gray-900 dark:text-white">
           {current.title}
         </h2>
         {current.description && (

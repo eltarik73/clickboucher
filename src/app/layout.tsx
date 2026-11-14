@@ -2,49 +2,31 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Outfit, Cormorant_Garamond } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { frFR } from "@clerk/localizations";
-import { Toaster } from "sonner";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ThemeProvider, ThemeScript } from "@/components/providers/ThemeProvider";
+import { Toaster } from "@/components/ui/toaster";
+import { RootIslands } from "@/components/system/RootIslands";
 import { NotificationProvider } from "@/components/ui/NotificationToast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import dynamic from "next/dynamic";
-
-const ServiceWorkerRegistration = dynamic(
-  () => import("@/components/pwa/ServiceWorkerRegistration"),
-  { ssr: false }
-);
-const InstallPrompt = dynamic(() => import("@/components/pwa/InstallPrompt"), { ssr: false });
-const OfflineBanner = dynamic(() => import("@/components/pwa/OfflineBanner"), { ssr: false });
-const TestRoleSwitcher = dynamic(
-  () => import("@/components/test/TestRoleSwitcher").then((m) => m.TestRoleSwitcher),
-  { ssr: false }
-);
-// Cookie consent RGPD (audit CTO #2 2026-05-09) — lazy car bandeau visible
-// uniquement après hydration côté client.
-const AnalyticsConsent = dynamic(
-  () => import("@/components/AnalyticsConsent").then((m) => m.AnalyticsConsent),
-  { ssr: false }
-);
 import { OrganizationSchema } from "@/components/seo/OrganizationSchema";
 import "@/styles/globals.css";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
 
 const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["500", "700", "800"],
   variable: "--font-display",
   display: "swap",
 });
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["500"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
   variable: "--font-serif",
   display: "swap",
   preload: false,
@@ -149,8 +131,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Sans elle, useAuth()/useUser() valent isLoaded:false au premier rendu.
   return (
     <ClerkProvider localization={frFR}>
-      <html lang="fr" suppressHydrationWarning>
+      <html
+        lang="fr"
+        className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable}`}
+        suppressHydrationWarning
+      >
         <head>
+          <ThemeScript />
           {/* New mobile-web-app-capable meta — coexists with apple-mobile-web-app-capable
               auto-generated from `appleWebApp` metadata. Without this, Chrome 117+ warns. */}
           <meta name="mobile-web-app-capable" content="yes" />
@@ -164,7 +151,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               si l'utilisateur a consenti via le bandeau bottom). */}
         </head>
         <body
-          className={`${dmSans.variable} ${outfit.variable} ${cormorant.variable} bg-white text-gray-900 antialiased dark:bg-black dark:text-white`}
+          className="bg-white text-gray-900 antialiased dark:bg-black dark:text-white"
         >
           <OrganizationSchema />
           {/* WCAG 2.4.1 — Skip link pour utilisateurs clavier/screen readers
@@ -176,18 +163,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Aller au contenu
           </a>
           <ThemeProvider>
-            <Toaster position="top-center" richColors />
+            <Toaster />
             <NotificationProvider>
-              <ServiceWorkerRegistration />
-              <OfflineBanner />
               <main id="main-content" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
                 {children}
               </main>
               <SpeedInsights />
               <Analytics />
-              <InstallPrompt />
-              <AnalyticsConsent />
-              <TestRoleSwitcher />
+              <RootIslands />
             </NotificationProvider>
           </ThemeProvider>
         </body>

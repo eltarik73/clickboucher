@@ -1,22 +1,23 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+import { FONT_SIZE_SCALE, RADIUS_SCALE, SHADOW_SCALE } from "@/lib/design-tokens";
 
-export function cn(...inputs: ClassValue[]) {
+// Les noms d'échelle du thème (text-body, shadow-card, rounded-control…) sont déclarés à
+// tailwind-merge depuis les mêmes objets que tailwind.config.ts : sans cela, text-body passe
+// pour une couleur et efface text-primary-foreground.
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: { borderRadius: Object.keys(RADIUS_SCALE) },
+    classGroups: {
+      "font-size": [{ text: Object.keys(FONT_SIZE_SCALE) }],
+      shadow: [{ shadow: Object.keys(SHADOW_SCALE) }],
+    },
+  },
+});
+
+export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
-
-// Design tokens
-export const THEME = {
-  burgundy: "#DC2626",
-  burgundyLight: "#9B1B32",
-  burgundyBg: "#FDF2F4",
-  orange: "#E8630A",
-  orangeLight: "#FFF3E6",
-  green: "#16A34A",
-  greenBg: "#F0FDF4",
-  red: "#DC2626",
-  redBg: "#FEF2F2",
-} as const;
 
 export function formatPrice(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",") + " €";
@@ -30,27 +31,6 @@ export function formatShortTime(mins: number): string {
   }
   return `${mins} min`;
 }
-
-// Image placeholders
-export const UNSPLASH = {
-  products: [
-    "https://images.unsplash.com/photo-1588347818481-07e015e9e8bc?w=400",
-    "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400",
-    "https://images.unsplash.com/photo-1432139555190-58524dae6a55?w=400",
-    "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400",
-    "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400",
-    "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=400",
-  ],
-  shops: [
-    "https://images.unsplash.com/photo-1542838132-92c53300491e?w=400",
-    "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400",
-    "https://images.unsplash.com/photo-1588347818481-07e015e9e8bc?w=400",
-  ],
-  heroes: [
-    "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800",
-    "https://images.unsplash.com/photo-1588347818481-07e015e9e8bc?w=800",
-  ],
-};
 
 // Format weight
 export function formatWeight(grams: number): string {

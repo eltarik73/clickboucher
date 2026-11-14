@@ -1,10 +1,17 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
+import { FONT_SIZE_SCALE, RADIUS_SCALE, SHADOW_SCALE } from "./src/lib/design-tokens";
 
+// Valeurs des couleurs : variables CSS de src/styles/globals.css ('H S% L%', jamais d'alpha).
+// Échelles fontSize / boxShadow / borderRadius : src/lib/design-tokens.ts, lues aussi par cn().
+// Animations : ce fichier est leur seule définition (globals.css ne garde que flashGreen / flashRed).
 const config: Config = {
   darkMode: ["class"],
   content: [
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/lib/**/*.{ts,tsx}",
+    "!./src/lib/**/__tests__/**",
   ],
   theme: {
     extend: {
@@ -14,8 +21,11 @@ const config: Config = {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        page: "hsl(var(--page))",
+        brand: "hsl(var(--brand))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
+          hover: "hsl(var(--primary-hover))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -24,7 +34,10 @@ const config: Config = {
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
+          hover: "hsl(var(--destructive-hover))",
           foreground: "hsl(var(--destructive-foreground))",
+          subtle: "hsl(var(--destructive-subtle))",
+          text: "hsl(var(--destructive-text))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -44,80 +57,86 @@ const config: Config = {
         },
         success: {
           DEFAULT: "hsl(var(--success))",
+          hover: "hsl(var(--success-hover))",
           foreground: "hsl(var(--success-foreground))",
+          subtle: "hsl(var(--success-subtle))",
+          text: "hsl(var(--success-text))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
+          hover: "hsl(var(--warning-hover))",
           foreground: "hsl(var(--warning-foreground))",
+          subtle: "hsl(var(--warning-subtle))",
+          text: "hsl(var(--warning-text))",
+        },
+        info: {
+          subtle: "hsl(var(--info-subtle))",
+          text: "hsl(var(--info-text))",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 4px)",
         sm: "calc(var(--radius) - 8px)",
+        ...RADIUS_SCALE,
       },
       fontFamily: {
-        sans: ["var(--font-body)", "'DM Sans'", "system-ui", "-apple-system", "sans-serif"],
-        display: ["var(--font-display)", "'Outfit'", "system-ui", "sans-serif"],
-        serif: ["var(--font-serif)", "'Cormorant Garamond'", "Georgia", "serif"],
+        sans: ["var(--font-body)", "system-ui", "-apple-system", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "Georgia", "serif"],
       },
-      fontSize: {
-        "hero": ["2.5rem", { lineHeight: "1.1", letterSpacing: "-0.03em", fontWeight: "700" }],
-        "title": ["1.75rem", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "700" }],
-        "subtitle": ["1.25rem", { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" }],
-        "body-lg": ["1.0625rem", { lineHeight: "1.5", fontWeight: "400" }],
-        "body": ["0.9375rem", { lineHeight: "1.5", fontWeight: "400" }],
-        "caption": ["0.8125rem", { lineHeight: "1.4", fontWeight: "500" }],
-        "micro": ["0.6875rem", { lineHeight: "1.3", fontWeight: "600", letterSpacing: "0.02em" }],
-      },
-      boxShadow: {
-        "soft": "0 2px 8px -2px rgba(0,0,0,0.06), 0 4px 16px -4px rgba(0,0,0,0.08)",
-        "card": "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06)",
-        "elevated": "0 8px 32px -8px rgba(0,0,0,0.12), 0 2px 8px -2px rgba(0,0,0,0.06)",
-        "glow": "0 0 24px -4px hsl(var(--primary) / 0.2)",
-      },
+      fontSize: FONT_SIZE_SCALE,
+      boxShadow: SHADOW_SCALE,
       animation: {
-        "fade-in": "fadeIn 0.4s ease-out",
-        "fade-up": "fadeUp 0.5s ease-out",
-        "slide-up": "slideUp 0.3s ease-out",
-        "slide-down": "slideDown 0.3s ease-out",
-        "scale-in": "scaleIn 0.2s ease-out",
-        "pulse-soft": "pulseSoft 2s ease-in-out infinite",
-        "shimmer": "shimmer 2s linear infinite",
-        "hero-scale": "heroScale 0.8s ease-out both",
+        "fade-in": "fade-in 0.35s ease both",
+        "fade-up": "fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "scale-in": "scale-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "slide-up": "slideUp 0.4s ease-out",
+        "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "pulse-slow": "pulse-soft 2s ease-in-out infinite",
+        "bounce-gentle": "bounce-gentle 1.5s ease-in-out infinite",
+        ring: "ring 1.5s ease-in-out infinite",
+        shimmer: "shimmer 2s linear infinite",
       },
       keyframes: {
-        fadeIn: {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
         },
-        fadeUp: {
-          "0%": { opacity: "0", transform: "translateY(12px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(14px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.96)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        // Nom conservé : ShopProductsClient.tsx utilise animate-[slideUp_0.3s_ease-out].
         slideUp: {
-          "0%": { transform: "translateY(100%)" },
-          "100%": { transform: "translateY(0)" },
+          from: { transform: "translateY(100%)", opacity: "0" },
+          to: { transform: "translateY(0)", opacity: "1" },
         },
-        slideDown: {
-          "0%": { transform: "translateY(-100%)" },
-          "100%": { transform: "translateY(0)" },
-        },
-        scaleIn: {
-          "0%": { opacity: "0", transform: "scale(0.95)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
-        pulseSoft: {
+        "pulse-soft": {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
         },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
+        "bounce-gentle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
         },
-        heroScale: {
-          "0%": { opacity: "0", transform: "scale(0.8)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
+        ring: {
+          "0%": { transform: "rotate(0)" },
+          "10%": { transform: "rotate(15deg)" },
+          "20%": { transform: "rotate(-15deg)" },
+          "30%": { transform: "rotate(10deg)" },
+          "40%": { transform: "rotate(-10deg)" },
+          "50%": { transform: "rotate(5deg)" },
+          "60%, 100%": { transform: "rotate(0)" },
+        },
+        // background-size porté par l'animation : animate-shimmer suffit, sans classe compagnon.
+        shimmer: {
+          from: { backgroundPosition: "-200% 0", backgroundSize: "200% 100%" },
+          to: { backgroundPosition: "200% 0", backgroundSize: "200% 100%" },
         },
       },
       spacing: {
@@ -126,7 +145,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

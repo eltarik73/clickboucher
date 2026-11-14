@@ -6,10 +6,6 @@
 .dark {
   color-scheme: dark;
 }
-.dark ::selection {
-  background: #DC2626;
-  color: white;
-}
 .dark ::-webkit-scrollbar-thumb {
   background: #333;
 }
@@ -23,19 +19,16 @@
   --sab: env(safe-area-inset-bottom, 0px);
 }
 
-/* ─── CSS Variables ─────────────────────────── */
+/* ─── Tokens de couleur ────────────────────────
+   Format 'H S% L%' uniquement (ni alpha ni fonction de couleur) : Tailwind les enveloppe
+   dans hsl(var(--x)) et l'opacité se met à l'appel (bg-primary/10).
+   Contraste vérifié par src/lib/__tests__/design-tokens-contrast.test.ts (contrat dans
+   src/lib/design-tokens.ts). Une valeur identique dans les deux thèmes n'est écrite qu'ici. */
 :root {
-  --burgundy: 350 77% 27%;
-  --burgundy-hex: #7a1023;
-  --burgundy-light: #9b1b32;
-  --burgundy-bg: #fdf2f4;
-  --orange: #e8630a;
-  --orange-light: #fff3e6;
   --radius: 20px;
-  --radius-sm: 14px;
-  --radius-xs: 10px;
-  --font-display-stack: var(--font-display, "Outfit"), sans-serif;
-  --font-body-stack: var(--font-body, "DM Sans"), sans-serif;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 24px;
 
   /* Recharts chart theming */
   --tooltip-bg: #fff;
@@ -43,30 +36,48 @@
   --tooltip-text: #111;
   --grid-stroke: #e5e7eb;
 
-  /* shadcn/ui variables — light */
+  /* Surfaces et texte */
   --background: 0 0% 100%;
   --foreground: 24 20% 14%;
+  --page: 36 26.3% 96.3%;
   --card: 0 0% 100%;
   --card-foreground: 24 20% 14%;
   --popover: 0 0% 100%;
   --popover-foreground: 24 20% 14%;
-  --primary: 0 76% 50%;
-  --primary-foreground: 0 0% 100%;
   --secondary: 30 15% 93%;
   --secondary-foreground: 24 20% 14%;
   --muted: 30 15% 93%;
-  --muted-foreground: 24 5% 45%;
+  --muted-foreground: 24 6% 40%;
   --accent: 30 15% 93%;
   --accent-foreground: 24 20% 14%;
-  --destructive: 0 76% 50%;
-  --destructive-foreground: 0 0% 100%;
   --border: 30 15% 90%;
   --input: 30 15% 90%;
-  --ring: 0 76% 50%;
-  --success: 142 71% 45%;
+  --ring: 0 72.2% 50.6%;
+
+  /* Marque : primary = seul aplat (#DC2626) ; brand = rouge pour le texte et les icônes */
+  --primary: 0 72.2% 50.6%;
+  --primary-hover: 0 73.7% 41.8%;
+  --primary-foreground: 0 0% 100%;
+  --brand: 0 73.7% 41.8%;
+
+  /* Statuts : paire pleine (aplat + foreground) et paire tonale (subtle + text) */
+  --destructive: 0 73.7% 41.8%;
+  --destructive-hover: 0 70% 35.3%;
+  --destructive-foreground: 0 0% 100%;
+  --destructive-subtle: 0 93.3% 94.1%;
+  --destructive-text: 0 73.7% 41.8%;
+  --success: 142 72% 29%;
+  --success-hover: 142.8 64.2% 24.1%;
   --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
+  --success-subtle: 149.3 80.4% 90%;
+  --success-text: 162.9 93.5% 24.3%;
+  --warning: 26 90% 37%;
+  --warning-hover: 26 90% 31%;
   --warning-foreground: 0 0% 100%;
+  --warning-subtle: 48 96.5% 88.8%;
+  --warning-text: 22.7 82.5% 31.4%;
+  --info-subtle: 214.3 94.6% 92.7%;
+  --info-text: 224.3 76.3% 48%;
 }
 
 .dark {
@@ -77,32 +88,35 @@
 
   --background: 0 0% 0%;
   --foreground: 0 0% 98%;
+  --page: 0 0% 3.9%;
   --card: 0 0% 8%;
   --card-foreground: 0 0% 98%;
   --popover: 0 0% 8%;
   --popover-foreground: 0 0% 98%;
-  --primary: 0 76% 50%;
-  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 12%;
   --secondary-foreground: 0 0% 98%;
   --muted: 0 0% 12%;
   --muted-foreground: 0 0% 55%;
   --accent: 0 0% 12%;
   --accent-foreground: 0 0% 98%;
-  --destructive: 0 76% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 0 0% 100% / 0.1;
-  --input: 0 0% 100% / 0.1;
-  --ring: 0 76% 50%;
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
-  --warning: 38 92% 50%;
-  --warning-foreground: 0 0% 100%;
+  --border: 0 0% 17%;
+  --input: 0 0% 17%;
+
+  --brand: 0 90.6% 70.8%;
+
+  --destructive-subtle: 0 30.2% 12.4%;
+  --destructive-text: 0 93.5% 81.8%;
+  --success-subtle: 164 30.6% 9.6%;
+  --success-text: 156.2 71.6% 66.9%;
+  --warning-subtle: 22.9 35.6% 11.6%;
+  --warning-text: 45.9 96.7% 64.5%;
+  --info-subtle: 223.6 33.3% 12.9%;
+  --info-text: 211.7 96.4% 78.4%;
 }
 
 /* ─── Base ──────────────────────────────────── */
+/* La police vient de <html> (preflight Tailwind + fontFamily.sans de tailwind.config.ts). */
 body {
-  font-family: var(--font-body-stack);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -117,18 +131,14 @@ body {
 /* iOS Safari: With viewport-fit=cover, the page extends behind the notch/dynamic island.
    Sticky headers need to sit below the safe area, not behind it. */
 @supports (top: env(safe-area-inset-top)) {
-  .safe-top {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  /* All sticky top-0 elements: shift down by safe-area-inset-top */
   .sticky.top-0 {
     top: env(safe-area-inset-top, 0px) !important;
   }
 }
 
 ::selection {
-  background: var(--burgundy-hex);
-  color: white;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 ::-webkit-scrollbar {
@@ -143,90 +153,16 @@ body {
   border-radius: 3px;
 }
 
-/* ─── Animations ────────────────────────────── */
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes shimmer {
-  from {
-    background-position: -200% 0;
-  }
-  to {
-    background-position: 200% 0;
-  }
-}
-
-
-/* ─── Utility classes ───────────────────────── */
 @layer utilities {
-  .animate-fade-up {
-    animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  .animate-fade-in {
-    animation: fade-in 0.35s ease both;
-  }
-  .animate-scale-in {
-    animation: scale-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-  .animate-shimmer {
-    animation: shimmer 2s linear infinite;
-    background-size: 200% 100%;
-  }
-
-  .font-display {
-    font-family: var(--font-display-stack);
-  }
-
   .glass {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .glass-strong {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .delay-1 { animation-delay: 70ms; }
-  .delay-2 { animation-delay: 140ms; }
-  .delay-3 { animation-delay: 210ms; }
-  .delay-4 { animation-delay: 280ms; }
-  .delay-5 { animation-delay: 350ms; }
-  .delay-6 { animation-delay: 420ms; }
 }
 
-/* ─── Uber Eats flash animations ──────────── */
+/* ─── Flash de carte (classes posées par classList depuis src/hooks) ─── */
 @keyframes flashGreen {
   0%, 100% { background-color: inherit; }
   50% { background-color: rgba(22, 163, 74, 0.15); }
@@ -242,40 +178,14 @@ body {
   animation: flashRed 0.5s ease 3;
 }
 
-/* ─── PWA Install banner slide up ──────────── */
-@keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.animate-slide-up {
-  animation: slideUp 0.4s ease-out;
-}
-
-/* ─── Kitchen mode animations ────────────── */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-@keyframes bounce-gentle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-@keyframes ring {
-  0% { transform: rotate(0); }
-  10% { transform: rotate(15deg); }
-  20% { transform: rotate(-15deg); }
-  30% { transform: rotate(10deg); }
-  40% { transform: rotate(-10deg); }
-  50% { transform: rotate(5deg); }
-  60% { transform: rotate(0); }
-  100% { transform: rotate(0); }
-}
-.animate-pulse-slow {
-  animation: pulse-slow 2s ease-in-out infinite;
-}
-.animate-bounce-gentle {
-  animation: bounce-gentle 1.5s ease-in-out infinite;
-}
-.animate-ring {
-  animation: ring 1.5s ease-in-out infinite;
+/* ─── Mouvement réduit ─────────────────────────
+   Une seule règle : toute classe animate-* (Tailwind, projet, Radix data-[state], valeurs
+   arbitraires) s'arrête, sauf animate-spin qui signale une attente en cours. Les entrées
+   sont en fill-mode both : sans animation, l'élément est dans son état final. */
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-"]:not([class*="animate-spin"]),
+  .flash-green,
+  .flash-red {
+    animation: none !important;
+  }
 }

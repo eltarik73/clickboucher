@@ -1,11 +1,12 @@
-import React from "react";
+import { Heading } from "@/components/ui/heading";
 import { cn } from "@/lib/utils";
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   icon: React.ReactNode;
   title: string;
-  description: string;
+  description?: string;
   action?: React.ReactNode;
+  headingLevel?: 2 | 3;
   className?: string;
 }
 
@@ -14,24 +15,23 @@ export function EmptyState({
   title,
   description,
   action,
+  headingLevel,
   className,
 }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center py-16 px-6 text-center animate-fade-in",
-        className
-      )}
-    >
-      <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-muted text-muted-foreground mb-5">
+    <div className={cn("flex flex-col items-center justify-center px-6 py-16 text-center", className)}>
+      <div
+        aria-hidden="true"
+        className="mb-5 flex size-16 items-center justify-center rounded-card bg-muted text-muted-foreground"
+      >
         {icon}
       </div>
-      <h3 className="font-display text-subtitle text-foreground mb-2">
+      <Heading level={headingLevel ?? 2} size="subtitle" className="mb-2">
         {title}
-      </h3>
-      <p className="text-body text-muted-foreground max-w-xs mb-6">
-        {description}
-      </p>
+      </Heading>
+      {description ? (
+        <p className="mb-6 max-w-xs text-body text-muted-foreground">{description}</p>
+      ) : null}
       {action}
     </div>
   );
