@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { SafeImage } from "@/components/ui/SafeImage";
 import { ChevronDown } from "lucide-react";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import { getFlag } from "@/lib/flags";
 import { formatGrams } from "@/lib/pricing/format";
 import { portionPriceCents } from "@/lib/pricing/line";
@@ -160,28 +160,17 @@ export function TrancheSheet({ product, onConfirm, onClose }: Props) {
           {/* Header: image + name + price/kg */}
           <div className="flex items-center gap-3 px-3.5 pt-3.5">
             <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl">
-              {product.imageUrl ? (
-                <SafeImage
-                  type="product"
-                  src={product.imageUrl}
-                  alt={product.name}
-                  width={56}
-                  height={56}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center"
-                  style={{ background: "linear-gradient(145deg, #1C1512, #3D261A)" }}
-                >
-                  <span
-                    className="text-3xl"
-                    style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.4))" }}
-                  >
-                    🔪
-                  </span>
-                </div>
-              )}
+              <ProductPhoto
+                product={{
+                  imageUrl: product.imageUrl,
+                  name: product.name,
+                  category: product.category,
+                }}
+                width={56}
+                height={56}
+                variant="thumb"
+                className="h-full w-full object-cover"
+              />
             </div>
 
             <div className="min-w-0 flex-1">

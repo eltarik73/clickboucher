@@ -35,6 +35,7 @@ export type ApiErrorCode =
   | "PRODUCTS_MISSING"
   | "PRICE_CHANGED"
   | "RATE_LIMITED"
+  | "IMAGE_REJECTED"
   | "INTERNAL_ERROR";
 
 interface ApiError {
@@ -59,6 +60,7 @@ const STATUS_MAP: Record<ApiErrorCode, number> = {
   PRODUCTS_MISSING: 422,
   PRICE_CHANGED: 409,
   RATE_LIMITED: 429,
+  IMAGE_REJECTED: 422,
   INTERNAL_ERROR: 500,
 };
 

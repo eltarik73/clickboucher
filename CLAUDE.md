@@ -123,7 +123,7 @@ facturée, y compris pour les bots. Règles :
 - **Garde-fous commande** : `tests/integration/checkout-contract.test.ts` (panier → payload navigateur →
   devis → commande, sur 12 paniers types) et `tests/lib/order-writers-guard.test.ts` (liste fermée des
   fichiers qui écrivent dans `orders` ; seul `transition.ts` écrit le statut, hors webhook Stripe inactif).
-- **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, prix (`src/lib/pricing/*`), panier (`cart-line`, `order-payload`), numéros (`order-number-format`), commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils` ; en intégration : devis, création, remises, numérotation, transitions et courses, stock limité, tableau cuisine, notifications, données publiques.
+- **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, prix (`src/lib/pricing/*`), panier (`cart-line`, `order-payload`), numéros (`order-number-format`), commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils`, photos (URL durable, résolveurs, contrat d'envoi, plan d'écriture des photos produit, ingestion avec le vrai sharp, stockage, champ « Photos » du boucher) ; en intégration : devis, création, remises, numérotation, transitions et courses, stock limité, tableau cuisine, notifications, données publiques, photos (`tests/integration/images/**` : envoi et quota, miroir `Product.imageUrl`, règle d'écriture, suppression depuis la galerie, source de retouche, charges utiles, recensement et maintenance).
 - **Règle** : tout helper pur ajouté dans `src/lib/**` mérite un test ; les fonctions qui touchent Prisma/HTTP restent en intégration.
 
 ## CI/CD
@@ -135,7 +135,10 @@ facturée, y compris pour les bots. Règles :
   - `test` → `npm run test:run` (unitaires) puis `npm run test:integration` (intégration sur le
     service Postgres 16 du job, schéma `itest` ; le schéma `public` poussé pour le job n'est pas modifié)
   - `build` → `npm run build` sur Postgres 16 (schema poussé) puis `node scripts/check-prerender.mjs`
-    (échoue si les pages publiques ne sont plus prérendues — cf. « Coût CPU Vercel »)
+    (échoue si les pages publiques ne sont plus prérendues — cf. « Coût CPU Vercel »). Ensuite, le job
+    remplit sa base par le seed et lance `tests/e2e/photos.spec.ts` (Playwright Chromium) sur l'app
+    construite (`next start`), en mode test ouvert par POST avec un `TEST_SECRET` tiré à chaque
+    lancement, et avec le stockage local des photos sur disque (aucun jeton Blob en CI).
 - **Uptime** : `.github/workflows/uptime.yml` — toutes les 6 h, échoue si `/` ou `/sitemap.xml`
   ne répondent pas 200 ou portent `x-vercel-error`. Contrôle EXTERNE au projet Vercel (les crons
   internes ne tournent pas quand le projet est en pause), mais PAS suffisant seul : dépôt public,
@@ -279,6 +282,34 @@ const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, t
   toutes les lignes de ces produits. Chaque ligne affiche son message et un bouton « Retirer cet article »
   (`src/components/cart/CheckoutLineRow.tsx`) ; le message générique ne sert que si aucun détail ne
   nomme une ligne. Garder le format de clé `items.N.<champ>` dans `quote.ts`.
+
+## Photos
+
+- **Une seule route d'envoi** : `POST /api/uploads/image` (`file` + `purpose` PRODUCT | RETOUCH_SOURCE |
+  REFERENCE, formulaire construit par `buildUploadForm`, `src/lib/images/upload-contract.ts`). 4 Mo au plus
+  (le navigateur réduit avant d'envoyer), 30 envois par heure et par boutique. Côté boucher :
+  `ProductPhotosField` + `useProductPhotos` (`src/components/boucher/photos/`) ; ne pas réécrire d'envoi.
+  La retouche envoie sa source ainsi (`RETOUCH_SOURCE`) puis ne transmet que son URL (`retouch-request.ts`).
+- **Une seule entrée** : `persistImage` (`src/lib/images/ingest.ts`) : octets magiques, sharp (redressée,
+  sans métadonnées, fond blanc), WebP 2048 px + vignette 400 px `-t`, ligne `generated_images` après les
+  deux fichiers. JAMAIS importer `@vercel/blob` hors de `src/lib/images/store.ts` ni `sharp` hors de
+  `src/lib/images/process.ts` (garde `tests/lib/image-writers-guard.test.ts`, liste fermée).
+- **Règle d'écriture** (`imageWriteRefusal`, `src/lib/images/durable-url.ts`) : URL durable seulement (Blob
+  épinglé, `/img/(products|shops|recipes)/…`, `/local-images` hors prod), et un fichier de notre magasin doit
+  appartenir à la boutique de la ligne ou à la plateforme (`src/lib/images/write-scope.ts`) ; une valeur
+  inchangée sur la ligne reste acceptée. Unsplash/Pexels : affichage seulement. Jamais `replicate.delivery`.
+- **Une source de vérité** : `Product.imageUrl` est le miroir, écrit par le serveur, de la photo principale
+  de `ProductImage` (`planProductImageWrite`, `src/lib/images/product-image-write.ts`) ;
+  `clearImageUrl: true` la retire ; remplacement atomique ; produit à photos : `imageUrl` / `clearImageUrl`
+  sans `images` → 400. Ne jamais écrire `imageUrl` d'un produit à côté.
+- **Affichage** : photos de produit et de boutique par `ProductPhoto` / `ShopPhoto` (`src/components/media/`),
+  jamais un `<img>` ou `next/image` avec `onError` qui change `src`. `resolveProductImage` reste pour le JSON-LD.
+- **Stockage local** : sans `BLOB_READ_WRITE_TOKEN`, hors Vercel et hors production, `.image-store/` servi
+  par `/local-images/…` (développement et CI seulement ; 404 ailleurs).
+- **Suppression** : le formulaire n'efface aucun fichier ; la galerie refuse (409) une image utilisée.
+- **Réparation des données (propriétaire seulement)** : `scripts/images/` (recensement, Unsplash, copie dans
+  Blob, recopie d'`image_url`, purge), essai à blanc par défaut, journaux CSV/JSONL, aucune table créée.
+  Procédure, variables, annulation et données transmises à des tiers : `docs/photos.md`.
 
 ## Base de données (Prisma)
 

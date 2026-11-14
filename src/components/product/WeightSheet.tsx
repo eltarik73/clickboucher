@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Image from "next/image";
 import { ChevronDown } from "lucide-react";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import { QuantitySelector } from "@/components/product/QuantitySelector";
 import { getConversionRule } from "@/lib/conversion-config";
 import { getFlag } from "@/lib/flags";
@@ -75,7 +75,6 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [selectedCut, setSelectedCut] = useState<string | null>(null);
   const [showFiche, setShowFiche] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const [pieceMode, setPieceMode] = useState(false);
   const [pieceCount, setPieceCount] = useState(6);
 
@@ -94,7 +93,6 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
     setQty(d);
     setSelectedVariant(null);
     setSelectedCut(null);
-    setImgError(false);
     setPieceMode(false);
     setPieceCount(6);
   }
@@ -165,28 +163,17 @@ export function WeightSheet({ product, onConfirm, onClose }: Props) {
           <div className="flex items-center gap-3 px-3.5 pt-3.5">
             {/* Image square */}
             <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl">
-              {product.imageUrl && !imgError ? (
-                <Image
-                  src={product.imageUrl}
-                  alt={product.name}
-                  width={56}
-                  height={56}
-                  className="h-full w-full object-cover"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center"
-                  style={{ background: "linear-gradient(145deg, #1C1512, #3D261A)" }}
-                >
-                  <span
-                    className="text-3xl"
-                    style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.4))" }}
-                  >
-                    🥩
-                  </span>
-                </div>
-              )}
+              <ProductPhoto
+                product={{
+                  imageUrl: product.imageUrl,
+                  name: product.name,
+                  category: product.category,
+                }}
+                width={56}
+                height={56}
+                variant="thumb"
+                className="h-full w-full object-cover"
+              />
             </div>
 
             {/* Name + category */}

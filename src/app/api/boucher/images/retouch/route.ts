@@ -13,12 +13,8 @@ import { isReplicateConfigured, getReplicateClient } from "@/lib/replicate";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { buildRetouchPrompt, RETOUCH_PRESETS } from "@/lib/image-prompts";
-import {
-  extensionForImageContentType,
-  parseSafeImageContentType,
-} from "@/lib/image-content-type";
+import { readJsonBody } from "@/lib/api/request-body";
 
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
 const PRIMARY_MODEL = "black-forest-labs/flux-kontext-pro";
 const FALLBACK_MODEL = "black-forest-labs/flux-schnell";
 
@@ -29,30 +25,6 @@ const jsonSchema = z.object({
   customPrompt: z.string().max(300).optional(),
   usage: z.enum(["PRODUCT", "CAMPAIGN", "BANNER"]).default("PRODUCT"),
 });
-
-type RetouchInput = z.infer<typeof jsonSchema>;
-
-async function uploadOriginal(
-  file: File,
-  shopId: string
-): Promise<string> {
-  if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error("FILE_TOO_LARGE");
-  }
-  // Le type déclaré par le client n'est jamais stocké tel quel dans le Blob public.
-  const contentType = parseSafeImageContentType(file.type);
-  if (!contentType) {
-    throw new Error("UNSUPPORTED_TYPE");
-  }
-  const ext = extensionForImageContentType(contentType);
-  const buf = Buffer.from(await file.arrayBuffer());
-  const blob = await put(
-    `shops/${shopId}/originals/${Date.now()}.${ext}`,
-    buf,
-    { access: "public", contentType }
-  );
-  return blob.url;
-}
 
 function parseRetryAfterRetouch(msg: string): number | null {
   const m = msg.match(/retry_after["\s:]*([0-9]+)/i);
@@ -127,43 +99,10 @@ export async function POST(req: NextRequest) {
       return apiError("SERVICE_DISABLED", "Service d'images IA non configuré.");
     }
 
-    const contentType = req.headers.get("content-type") || "";
-    let params: RetouchInput;
-    let sourceUrl: string;
-
-    if (contentType.includes("multipart/form-data")) {
-      const form = await req.formData();
-      const file = form.get("file");
-      if (!(file instanceof File)) {
-        return apiError("VALIDATION_ERROR", "Fichier manquant");
-      }
-      try {
-        sourceUrl = await uploadOriginal(file, auth.shopId);
-      } catch (err) {
-        if ((err as Error).message === "FILE_TOO_LARGE") {
-          return apiError("VALIDATION_ERROR", "Image trop lourde (max 5MB)");
-        }
-        if ((err as Error).message === "UNSUPPORTED_TYPE") {
-          return apiError(
-            "VALIDATION_ERROR",
-            "Format d'image non supporté (JPG, PNG, WebP, GIF ou AVIF uniquement)"
-          );
-        }
-        throw err;
-      }
-      const variationsRaw = form.get("variations");
-      params = jsonSchema.parse({
-        imageUrl: sourceUrl,
-        preset: form.get("preset"),
-        variations: variationsRaw ? Number(variationsRaw) : undefined,
-        customPrompt: form.get("customPrompt") || undefined,
-        usage: form.get("usage") || undefined,
-      });
-    } else {
-      const body = await req.json();
-      params = jsonSchema.parse(body);
-      sourceUrl = params.imageUrl;
-    }
+    // La photo source est envoyée d'abord par POST /api/uploads/image (usage RETOUCH_SOURCE : photo
+    // vérifiée et réencodée par persistImage, quota de la boutique) ; cette route ne reçoit que son URL.
+    const params = jsonSchema.parse(await readJsonBody(req));
+    const sourceUrl = params.imageUrl;
 
     const finalPrompt = buildRetouchPrompt({
       preset: params.preset,

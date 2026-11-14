@@ -142,7 +142,7 @@ jobs:
   build:
     name: Build (next build + prerender check)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     # `next build` prérend les pages publiques (statique/ISR) en interrogeant
     # Prisma : il lui faut une vraie base. Le DATABASE_URL / DIRECT_DATABASE_URL
@@ -195,3 +195,35 @@ jobs:
       # ne sont plus prérendus, ou si moins de 250 routes le sont.
       - name: Check prerendered routes
         run: node scripts/check-prerender.mjs
+
+      # Parcours photos (tests/e2e/photos.spec.ts) sur le build de production ci-dessus, réutilisé
+      # tel quel. Base : le PostgreSQL de ce job, rempli par le seed APRÈS le build (les pages
+      # prérendues ne changent pas ; le parcours ne visite que des pages dynamiques ou clientes).
+      # Stockage des photos : aucun BLOB_READ_WRITE_TOKEN ici, le serveur choisit donc le stockage
+      # local sur disque (.image-store/). Mode test ouvert par POST /api/test-mode/activate avec un
+      # secret tiré à chaque lancement : aucune valeur secrète n'est écrite dans ce fichier.
+      - name: Seed CI database (photos e2e)
+        run: npx prisma db seed
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Photos e2e (Playwright, production build)
+        env:
+          TEST_MODE: "true"
+          ALLOW_TEST_IN_PROD: "true"
+          PLAYWRIGHT_BASE_URL: "http://localhost:3000"
+        run: |
+          export TEST_SECRET="$(openssl rand -hex 24)"
+          export E2E_TEST_SECRET="$TEST_SECRET"
+          npx next start -p 3000 > next-start.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://localhost:3000/api/health > /dev/null
+          npx playwright test tests/e2e/photos.spec.ts --project=chromium
+
+      - name: Next server log
+        if: failure()
+        run: cat next-start.log

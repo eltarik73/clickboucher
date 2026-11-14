@@ -4,9 +4,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MapPin, Clock, Star, Tag } from "lucide-react";
+import { ShopPhoto } from "@/components/media/ShopPhoto";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
-import { SafeImage } from "@/components/ui/SafeImage";
-import { getShopImage } from "@/lib/product-images";
 import { getShopStatus, formatClosingHint, type OpeningHours } from "@/lib/shop-hours";
 
 export type ShopCardData = {
@@ -31,6 +30,10 @@ export type ShopCardData = {
 interface ShopCardProps {
   shop: ShopCardData;
   variant?: "default" | "compact";
+  /**
+   * @deprecated ignorée : la photo de repli dépend de l'id de la boutique (resolveShopPhoto) ;
+   * retirée avec ses appelants par C2-VITRINE
+   */
   index?: number;
   isFavorite?: boolean;
   priority?: boolean;
@@ -41,14 +44,12 @@ interface ShopCardProps {
 export function ShopCard({
   shop,
   variant = "default",
-  index = 0,
   isFavorite = false,
   priority = false,
   showFavorite = true,
   onFavoriteToggle,
 }: ShopCardProps) {
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
-  const imgSrc = shop.imageUrl || getShopImage(index);
   const isOpen = shop.status === "OPEN" || shop.status === "BUSY";
   const isClosed = shop.status === "CLOSED" || shop.status === "VACATION";
 
@@ -77,10 +78,9 @@ export function ShopCard({
         className="flex gap-4 p-3 bg-white dark:bg-gray-800 border border-[#ece8e3] dark:border-white/[0.06] rounded-2xl shadow-sm hover:shadow-md transition-shadow focus-visible:ring-2 focus-visible:ring-[#DC2626] focus-visible:ring-offset-2 outline-none"
       >
         <div className={`relative w-24 h-24 rounded-xl overflow-hidden shrink-0 ${isClosed ? "opacity-60 grayscale" : ""}`}>
-          <SafeImage
-            src={imgSrc}
+          <ShopPhoto
+            shop={{ id: shop.id, imageUrl: shop.imageUrl }}
             alt={shop.name}
-            type="shop"
             fill
             sizes="96px"
             className="object-cover"
@@ -152,16 +152,14 @@ export function ShopCard({
     >
       {/* Image */}
       <div className={`relative h-36 sm:h-48 overflow-hidden ${isClosed ? "opacity-70 grayscale" : ""}`}>
-        <SafeImage
-          src={imgSrc}
+        <ShopPhoto
+          shop={{ id: shop.id, imageUrl: shop.imageUrl }}
           alt={shop.name}
-          type="shop"
           fill
           sizes="(max-width: 640px) 100vw, 50vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           quality={60}
           priority={priority}
-          {...(priority ? { fetchPriority: "high" as const } : {})}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 

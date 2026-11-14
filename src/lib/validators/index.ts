@@ -1,6 +1,8 @@
 // KLIK&GO — Zod Validation Schemas
 
 import { z } from "zod";
+import { imageRefSchema } from "@/lib/images/durable-url";
+import { MAX_PRODUCT_PHOTOS, TOO_MANY_PRODUCT_PHOTOS_FR } from "@/lib/images/product-image-write";
 
 // -- Reusable --
 
@@ -48,7 +50,8 @@ export const createShopSchema = z.object({
   address: z.string().min(5),
   city: z.string().min(2),
   phone: phoneSchema,
-  imageUrl: z.string().url().optional(),
+  // Shape only: the shop routes apply the write rule (shopImageRefusal, src/lib/images/write-scope.ts).
+  imageUrl: imageRefSchema.optional(),
   description: z.string().max(1000).optional(),
   openingHours: z.record(z.object({ open: z.string(), close: z.string() })).optional(),
   ownerId: z.string().min(1, "ownerId (clerkId du boucher) requis"),
@@ -73,8 +76,9 @@ export const updateShopSchema = z.object({
   city: z.string().min(2).optional(),
   phone: phoneSchema.optional(),
   email: z.string().email("Email invalide").nullable().optional(),
-  imageUrl: z.string().url().nullable().optional(),
-  bannerUrl: z.string().url().nullable().optional(),
+  // Shape only: the shop routes apply the write rule (shopImageRefusal, src/lib/images/write-scope.ts).
+  imageUrl: imageRefSchema.nullable().optional(),
+  bannerUrl: imageRefSchema.nullable().optional(),
   description: z.string().max(1000).nullable().optional(),
   welcomeMessage: z.string().max(500).nullable().optional(),
   closedMessage: z.string().max(500).nullable().optional(),
@@ -138,10 +142,23 @@ const productLabelInputSchema = z.object({
   color: z.string().max(20).nullable().optional(),
 });
 
+// Shape only: the product routes apply the write rule (durable URL or a value already stored on
+// the row) and the imageUrl mirror through planProductImageWrite.
+const productPhotoInputSchema = z.object({
+  url: imageRefSchema,
+  alt: z.string().max(200).optional(),
+  order: z.number().int().min(0).max(1000).default(0),
+  isPrimary: z.boolean().default(false),
+});
+
+const productPhotosSchema = z
+  .array(productPhotoInputSchema)
+  .max(MAX_PRODUCT_PHOTOS, TOO_MANY_PRODUCT_PHOTOS_FR);
+
 export const createProductSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(1000).optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: imageRefSchema.optional(),
   priceCents: z.number().int().min(0),
   boutiquePriceCents: z.number().int().min(0).nullable().optional(),
   proPriceCents: z.number().int().min(0).nullable().optional(),
@@ -207,14 +224,15 @@ export const createProductSchema = z.object({
   packContent: z.string().max(500).nullable().optional(),
   packWeight: z.string().max(100).nullable().optional(),
   packOldPriceCents: z.number().int().min(0).nullable().optional(),
-  images: z.array(productImageSchema).optional(),
+  images: productPhotosSchema.optional(),
   labels: z.array(productLabelInputSchema).optional(),
 });
 
 export const updateProductSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(1000).nullable().optional(),
-  imageUrl: z.string().url().nullable().optional(),
+  imageUrl: imageRefSchema.nullable().optional(),
+  clearImageUrl: z.boolean().optional(),
   priceCents: z.number().int().min(0).optional(),
   boutiquePriceCents: z.number().int().min(0).nullable().optional(),
   proPriceCents: z.number().int().min(0).nullable().optional(),
@@ -279,7 +297,7 @@ export const updateProductSchema = z.object({
   packContent: z.string().max(500).nullable().optional(),
   packWeight: z.string().max(100).nullable().optional(),
   packOldPriceCents: z.number().int().min(0).nullable().optional(),
-  images: z.array(productImageSchema).optional(),
+  images: productPhotosSchema.optional(),
   labels: z.array(productLabelInputSchema).optional(),
 });
 

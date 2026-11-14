@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { resolveProductImage } from "@/lib/product-images";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import { getFlag } from "@/lib/flags";
 import { displayedUnitPrice, promoBadgeLabel } from "@/lib/pricing/display";
 import { isWeighedUnit, lineTotalCents, MAX_LINE_QUANTITY } from "@/lib/pricing/line";
@@ -35,14 +35,12 @@ export function ProductSheet({ product, onAdd, onClose }: Props) {
   const [qty, setQty] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
   const [showFiche, setShowFiche] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const now = useMountedNow();
 
   useEffect(() => {
     if (product) {
       setQty(1);
       setSelectedVariant(null);
-      setImgError(false);
       // Auto-expand Fiche Confiance if product has traceability data
       setShowFiche(
         !!(
@@ -75,18 +73,6 @@ export function ProductSheet({ product, onAdd, onClose }: Props) {
 
   if (!product) return null;
 
-  // Use product images but skip expired Replicate URLs
-  const rawImgUrl = product.images.length > 0 ? product.images[0].url : null;
-  const isReplicateUrl = rawImgUrl?.includes("replicate.delivery");
-  const imgSrc =
-    rawImgUrl && !isReplicateUrl
-      ? rawImgUrl
-      : resolveProductImage({
-          name: product.name,
-          imageUrl: product.imageUrl,
-          category: product.category.name,
-        });
-  const hasImage = !!imgSrc && !imgError;
   const price = displayedUnitPrice(product, now);
   const promo = price.promo;
   const isAntiGaspi = product.isAntiGaspi && product.antiGaspiOrigPriceCents;
@@ -129,33 +115,22 @@ export function ProductSheet({ product, onAdd, onClose }: Props) {
             ✕
           </button>
 
-          {/* ── Header row: emoji/img + name + price ── */}
+          {/* ── Header row: image + name + price ── */}
           <div className="flex items-center gap-3 px-3.5 pt-3.5">
-            {/* Emoji / Image square */}
+            {/* Image square */}
             <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-2xl">
-              {hasImage ? (
-                <img
-                  src={imgSrc}
-                  alt={product.name}
-                  width={56}
-                  height={56}
-                  loading="eager"
-                  className="h-full w-full object-cover"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center"
-                  style={{ background: "linear-gradient(145deg, #1C1512, #3D261A)" }}
-                >
-                  <span
-                    className="text-3xl"
-                    style={{ filter: "drop-shadow(0 4px 20px rgba(0,0,0,0.4))" }}
-                  >
-                    {product.category.emoji || "🥩"}
-                  </span>
-                </div>
-              )}
+              <ProductPhoto
+                product={{
+                  images: product.images,
+                  imageUrl: product.imageUrl,
+                  name: product.name,
+                  category: product.category.name,
+                }}
+                width={56}
+                height={56}
+                variant="thumb"
+                className="h-full w-full object-cover"
+              />
               {/* Anti-gaspi / Promo badge */}
               {isAntiGaspi ? (
                 <span className="absolute -right-1.5 -top-1.5 rounded-md bg-emerald-600 px-1.5 py-0.5 text-[11px] font-extrabold text-white shadow">

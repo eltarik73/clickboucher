@@ -3,6 +3,7 @@ import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError, privateNoStore } from "@/lib/api/errors";
+import { planProductImageWriteInShop } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 import { priceAudienceOf } from "@/lib/product-price-audience";
 import {
@@ -58,7 +59,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Find product + shop owner
     const product = await prisma.product.findUnique({
       where: { id },
-      select: { shopId: true, shop: { select: { ownerId: true } } },
+      select: {
+        shopId: true,
+        shop: { select: { ownerId: true } },
+        imageUrl: true,
+        images: { select: { url: true } },
+      },
     });
 
     if (!product) {
@@ -95,8 +101,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
     }
 
-    // Separate images/labels/categoryIds from scalar fields
-    const { images, labels, promoEnd, freshDate, categoryIds, ...scalarData } = data;
+    // Separate photos/labels/categoryIds from scalar fields
+    const {
+      images,
+      imageUrl,
+      clearImageUrl,
+      labels,
+      promoEnd,
+      freshDate,
+      categoryIds,
+      ...scalarData
+    } = data;
+
+    const photoPlan = await planProductImageWriteInShop(
+      { stored: { imageUrl: product.imageUrl, images: product.images }, images, imageUrl, clearImageUrl },
+      product.shopId
+    );
+    if (!photoPlan.ok) return apiError("VALIDATION_ERROR", photoPlan.messageFr);
 
     const updateData: Record<string, unknown> = { ...scalarData };
     if (promoEnd !== undefined) {
@@ -109,19 +130,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       updateData.categories = { set: categoryIds.map((cid: string) => ({ id: cid })) };
     }
 
-    // Replace images if provided (delete old, create new)
-    if (images !== undefined) {
-      await prisma.productImage.deleteMany({ where: { productId: id } });
-      if (images.length > 0) {
-        updateData.images = {
-          create: images.map((img) => ({
-            url: img.url,
-            alt: img.alt,
-            order: img.order,
-            isPrimary: img.isPrimary,
-          })),
-        };
-      }
+    // Photos replaced inside the single product.update below: Prisma runs its nested writes in one
+    // transaction, so a failed update keeps the previous photos.
+    if (photoPlan.images !== undefined) {
+      updateData.images = { deleteMany: {}, create: photoPlan.images };
+    }
+    if ("imageUrl" in photoPlan) {
+      updateData.imageUrl = photoPlan.imageUrl;
     }
 
     // Replace labels if provided (delete old, create new with productId)

@@ -5,6 +5,7 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateShopSchema } from "@/lib/validators";
 import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { shopImageRefusal } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 import { publicProductSelect, publicShopSelect } from "@/lib/public-projections";
 
@@ -103,6 +104,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!isAdmin(role)) {
       delete (data as Record<string, unknown>).imageUrl;
       delete (data as Record<string, unknown>).bannerUrl;
+    }
+    const photoRefusal = await shopImageRefusal(data, id);
+    if (photoRefusal) {
+      const { field, messageFr } = photoRefusal;
+      return apiError("VALIDATION_ERROR", messageFr, { [field]: [messageFr] });
     }
 
     // Capture pricing-relevant fields BEFORE the update so we can detect a change.

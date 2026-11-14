@@ -2,9 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Image from "next/image";
 import { Plus, Check, Minus } from "lucide-react";
-import { resolveProductImage } from "@/lib/product-images";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import { getFlag } from "@/lib/flags";
 import { displayedUnitPrice, promoBadgeLabel } from "@/lib/pricing/display";
 import { portionPriceCents } from "@/lib/pricing/line";
@@ -109,9 +108,6 @@ const HALAL_LABEL_NAMES = new Set([
   "halal service",
 ]);
 
-const PLACEHOLDER =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' fill='%231a1a1a'%3E%3Crect width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='40' fill='%23333'%3E🥩%3C/text%3E%3C/svg%3E";
-
 // ── Main Component ──────────────────────────────
 
 export function ProductCard({
@@ -126,14 +122,6 @@ export function ProductCard({
 }: Props) {
   const [animating, setAnimating] = useState(false);
   const now = useMountedNow();
-  const imgSrc =
-    product.images.length > 0
-      ? product.images[0].url
-      : resolveProductImage({
-          name: product.name,
-          imageUrl: product.imageUrl,
-          category: product.category.name,
-        });
   const price = displayedUnitPrice(product, now);
   const promo = price.promo;
   const isAntiGaspi = product.isAntiGaspi && product.antiGaspiOrigPriceCents;
@@ -196,18 +184,18 @@ export function ProductCard({
     >
       {/* ── Image 4:3 ── */}
       <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-white/5">
-        <Image
-          src={imgSrc}
-          alt={product.name}
+        <ProductPhoto
+          product={{
+            images: product.images,
+            imageUrl: product.imageUrl,
+            name: product.name,
+            category: product.category.name,
+          }}
           fill
           sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="object-cover object-[center_38%] transition-transform duration-300 group-hover:scale-105"
           quality={70}
           priority={isEager}
-          loading={isEager ? "eager" : "lazy"}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = PLACEHOLDER;
-          }}
         />
 
         {/* Anti-gaspi badge — top-left (priority over promo) */}

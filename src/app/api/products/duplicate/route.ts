@@ -6,6 +6,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { resolveUserRole } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { planProductImageWriteInShop } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 import { z } from "zod";
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
         shop: { select: { ownerId: true } },
         categories: { select: { id: true } },
         labels: true,
-        images: true,
+        images: { orderBy: { order: "asc" } },
       },
     });
     if (!original) return apiError("NOT_FOUND", "Produit introuvable");
@@ -41,12 +42,22 @@ export async function POST(req: NextRequest) {
       return apiError("FORBIDDEN", "Non autorise");
     }
 
+    // The copy's photos go through the same write plan as an edit of the source row: same
+    // normalisation and mirror, and the source's stored values keep their grandfathered status.
+    const photoPlan = await planProductImageWriteInShop(
+      { stored: { imageUrl: original.imageUrl, images: original.images }, images: original.images },
+      original.shopId
+    );
+    if (!photoPlan.ok) return apiError("VALIDATION_ERROR", photoPlan.messageFr);
+    const photos = photoPlan.images ?? [];
+
     // Create duplicate
     const duplicate = await prisma.product.create({
       data: {
         name: `${original.name} (copie)`,
         description: original.description,
-        imageUrl: original.imageUrl,
+        // A key missing from the plan means "as stored": the source's value.
+        imageUrl: photoPlan.imageUrl === undefined ? original.imageUrl : photoPlan.imageUrl,
         priceCents: original.priceCents,
         proPriceCents: original.proPriceCents,
         unit: original.unit,
@@ -79,17 +90,7 @@ export async function POST(req: NextRequest) {
                 })),
               }
             : undefined,
-        images:
-          original.images.length > 0
-            ? {
-                create: original.images.map((img) => ({
-                  url: img.url,
-                  alt: img.alt,
-                  order: img.order,
-                  isPrimary: img.isPrimary,
-                })),
-              }
-            : undefined,
+        images: photos.length > 0 ? { create: photos } : undefined,
       },
       include: {
         categories: true,

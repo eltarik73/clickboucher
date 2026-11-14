@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════
-// KLIK&GO — Product Image Mapping
-// Photos locales uniquement — AUCUNE URL externe
+// KLIK&GO — Photos locales de repli (public/img)
+// Table mot-clé → photo, repli par catégorie, photos de boutique.
+// Module pur : utilisable côté client et côté serveur.
 // ═══════════════════════════════════════════════
 
 // Mapping keyword → image locale par catégorie
@@ -114,90 +115,58 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   "abats": "/img/products/abats-1.jpg",
 };
 
-const DEFAULT_IMAGE = "/img/products/boeuf-1.jpg";
+export const DEFAULT_PRODUCT_PHOTO = "/img/products/boeuf-1.jpg";
 
-/**
- * Trouve la meilleure image pour un produit donné.
- * 1. Chercher par mots-clés dans le nom du produit
- * 2. Fallback par catégorie
- * 3. Fallback ultime
- */
-export function getProductImage(
-  productNameOrCategory: string,
-  _index?: number
-): string {
-  const name = productNameOrCategory
+/** Minuscules puis décomposition NFD sans les accents (la ligature « œ » ne se décompose pas). */
+function withoutAccents(value: string): string {
+  return value
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
+}
 
-  // 1. Chercher par mots-clés (longest match first)
-  const keywords = Object.keys(DEFAULT_PRODUCT_IMAGES).sort((a, b) => b.length - a.length);
-  for (const keyword of keywords) {
-    if (name.includes(keyword)) {
-      return DEFAULT_PRODUCT_IMAGES[keyword];
-    }
-  }
+// Le mot-clé le plus long l'emporte ; à longueur égale, l'ordre de la table (tri stable).
+const KEYWORDS_LONGEST_FIRST = Object.keys(DEFAULT_PRODUCT_IMAGES).sort((a, b) => b.length - a.length);
 
-  // 2. Fallback par catégorie
-  const catKeys = Object.keys(CATEGORY_FALLBACKS);
-  for (const cat of catKeys) {
-    if (name.includes(cat)) {
-      return CATEGORY_FALLBACKS[cat];
-    }
-  }
+/** Photo locale choisie par un mot-clé contenu dans le nom du produit, ou null. */
+export function keywordProductPhoto(name: string): string | null {
+  const normalized = withoutAccents(name);
+  const keyword = KEYWORDS_LONGEST_FIRST.find((candidate) => normalized.includes(candidate));
+  return keyword === undefined ? null : DEFAULT_PRODUCT_IMAGES[keyword];
+}
 
-  // 3. Fallback ultime
-  return DEFAULT_IMAGE;
+/** Photo locale de repli de la catégorie (tout caractère hors a-z retiré), ou null. */
+export function categoryProductPhoto(category: string): string | null {
+  const normalized = withoutAccents(category).replace(/[^a-z]/g, "");
+  const key = Object.keys(CATEGORY_FALLBACKS).find((candidate) => normalized.includes(candidate));
+  return key === undefined ? null : CATEGORY_FALLBACKS[key];
 }
 
 /**
- * Résout l'image d'un produit complet (avec imageUrl, nom, catégorie)
+ * Image d'un produit telle que la rendent le JSON-LD ProductSchema, les bons plans et la recherche :
+ * l'imageUrl si elle commence par https:// ou / (hors replicate.delivery, qui expire),
+ * sinon la photo du mot-clé, de la catégorie, puis la photo par défaut.
+ * Comportement figé par le test « resolveProductImage ne change pas » ; l'affichage passe
+ * désormais par resolveProductPhoto (src/lib/images/product-photo.ts).
  */
 export function resolveProductImage(product: {
   name: string;
   imageUrl?: string | null;
   category?: string | null;
 }): string {
-  // Si le produit a une image assignée → l'utiliser en priorité
-  if (product.imageUrl) {
-    // Skip expired Replicate URLs — they expire after ~1h
-    if (product.imageUrl.includes("replicate.delivery")) {
-      // Fall through to keyword matching
-    } else if (product.imageUrl.startsWith("https://") || product.imageUrl.startsWith("/")) {
-      return product.imageUrl;
-    }
+  const { imageUrl } = product;
+  if (
+    imageUrl &&
+    !imageUrl.includes("replicate.delivery") &&
+    (imageUrl.startsWith("https://") || imageUrl.startsWith("/"))
+  ) {
+    return imageUrl;
   }
-
-  // Chercher par nom du produit
-  const name = product.name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  const keywords = Object.keys(DEFAULT_PRODUCT_IMAGES).sort((a, b) => b.length - a.length);
-  for (const keyword of keywords) {
-    if (name.includes(keyword)) {
-      return DEFAULT_PRODUCT_IMAGES[keyword];
-    }
-  }
-
-  // Fallback par catégorie
-  if (product.category) {
-    const cat = product.category
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z]/g, "");
-    const catKeys = Object.keys(CATEGORY_FALLBACKS);
-    for (const key of catKeys) {
-      if (cat.includes(key)) {
-        return CATEGORY_FALLBACKS[key];
-      }
-    }
-  }
-
-  return DEFAULT_IMAGE;
+  return (
+    keywordProductPhoto(product.name) ??
+    categoryProductPhoto(product.category ?? "") ??
+    DEFAULT_PRODUCT_PHOTO
+  );
 }
 
 // ── Shop images ──

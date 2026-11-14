@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { planProductImageWriteInShop } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 import { priceAudienceOf } from "@/lib/product-price-audience";
 import { proProductSelect, publicProductSelect } from "@/lib/public-projections";
@@ -188,11 +189,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const photoPlan = await planProductImageWriteInShop(
+      { stored: null, images: data.images, imageUrl: data.imageUrl },
+      data.shopId
+    );
+    if (!photoPlan.ok) return apiError("VALIDATION_ERROR", photoPlan.messageFr);
+
     const product = await prisma.product.create({
       data: {
         name: data.name,
         description: data.description,
-        imageUrl: data.imageUrl,
+        imageUrl: photoPlan.imageUrl ?? null,
         priceCents: data.priceCents,
         boutiquePriceCents: data.boutiquePriceCents ?? null,
         proPriceCents: data.proPriceCents,
@@ -235,16 +242,10 @@ export async function POST(req: NextRequest) {
         packContent: data.packContent,
         packWeight: data.packWeight,
         packOldPriceCents: data.packOldPriceCents,
-        ...(data.images?.length && {
-          images: {
-            create: data.images.map((img) => ({
-              url: img.url,
-              alt: img.alt,
-              order: img.order,
-              isPrimary: img.isPrimary,
-            })),
-          },
-        }),
+        images:
+          photoPlan.images && photoPlan.images.length > 0
+            ? { create: photoPlan.images }
+            : undefined,
         ...(data.labels?.length && {
           labels: {
             create: data.labels.map((l) => ({

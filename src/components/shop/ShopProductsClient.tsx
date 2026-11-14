@@ -19,7 +19,7 @@ import {
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { useMountedNow, type ProductCardData } from "@/components/product/ProductCard";
 import { ProductSheet, type ProductSheetSelection } from "@/components/product/ProductSheet";
-import { resolveProductImage } from "@/lib/product-images";
+import { resolveProductPhoto } from "@/lib/images/product-photo";
 import { cartLineId } from "@/lib/cart/cart-line";
 import { displayedProductPromo } from "@/lib/pricing/display";
 import { checkLineQuantity } from "@/lib/pricing/line";
@@ -209,11 +209,14 @@ export function ShopProductsClient({ products, categories, shop, proStatus: _pro
     [cardProducts, activeCat, isPromo]
   );
 
-  /** Resolve the best image for a product — same logic as ProductCard */
+  /** Best displayable photo of a product (cart lines, sheets): first candidate of resolveProductPhoto. */
   const getProductImage = useCallback((p: ProductCardData) => {
-    return p.images?.length > 0
-      ? p.images[0].url
-      : resolveProductImage({ name: p.name, imageUrl: p.imageUrl, category: p.category.name });
+    return resolveProductPhoto({
+      images: p.images,
+      imageUrl: p.imageUrl,
+      name: p.name,
+      category: p.category.name,
+    }).candidates[0];
   }, []);
 
   /** Adds a counted product (PIECE, BARQUETTE) at its current public price. */

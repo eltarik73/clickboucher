@@ -20,6 +20,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import { formatItemQty, kitchenStoredLine, printOrderTicket } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import { formatCustomerNumber } from "@/lib/order-number-format";
@@ -413,15 +414,16 @@ export default function KitchenOrderCard({
               key={item.id}
               className={`flex items-center gap-2 ${!item.available ? "line-through opacity-40" : ""}`}
             >
-              {item.product?.imageUrl ? (
-                <img
-                  src={item.product.imageUrl}
-                  alt={item.product?.name || item.name}
-                  className="h-7 w-7 shrink-0 rounded-[6px] object-cover"
-                />
-              ) : (
-                <div className="h-7 w-7 shrink-0 rounded-[6px] bg-white/5" />
-              )}
+              <ProductPhoto
+                product={{
+                  imageUrl: item.product?.imageUrl ?? null,
+                  name: item.product?.name || item.name,
+                }}
+                variant="thumb"
+                width={28}
+                height={28}
+                className="h-7 w-7 shrink-0 rounded-[6px] object-cover"
+              />
               <span className="min-w-0 flex-1 text-xs text-[#A8A29E]">
                 <span className="text-sm font-bold text-white">{formatItemQty(item)}</span> —{" "}
                 <span className="text-[#A8A29E]">{item.product?.name || item.name}</span>

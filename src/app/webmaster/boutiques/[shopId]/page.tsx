@@ -78,6 +78,17 @@ function centsToEuro(c: number) {
 
 import { ORDER_STATUS_COLORS } from "@/lib/design-tokens";
 
+const SHOP_PHOTO_SAVE_FAILED = "La photo n'a pas pu être enregistrée.";
+
+/** French reason of a refused shop photo save; an answer that is not JSON gets the generic one. */
+async function shopPhotoSaveError(res: Response): Promise<string> {
+  if (!res.headers.get("content-type")?.includes("application/json")) return SHOP_PHOTO_SAVE_FAILED;
+  const body = (await res.json()) as {
+    error?: { message?: string; details?: { imageUrl?: string[] } };
+  };
+  return body.error?.details?.imageUrl?.[0] ?? body.error?.message ?? SHOP_PHOTO_SAVE_FAILED;
+}
+
 // ── Component ──
 
 export default function WebmasterShopDetailPage() {
@@ -547,14 +558,24 @@ export default function WebmasterShopDetailPage() {
               <button
                 key={n}
                 onClick={async () => {
+                  const previousUrl = shop.imageUrl;
+                  const restore = () =>
+                    setShop((prev) => (prev ? { ...prev, imageUrl: previousUrl } : prev));
                   setShop((prev) => prev ? { ...prev, imageUrl: url } : prev);
                   try {
-                    await fetch(`/api/shops/${shopId}`, {
+                    const res = await fetch(`/api/shops/${shopId}`, {
                       method: "PATCH",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ imageUrl: url }),
                     });
-                  } catch { toast.error("Erreur de connexion au serveur"); }
+                    if (!res.ok) {
+                      restore();
+                      toast.error(await shopPhotoSaveError(res));
+                    }
+                  } catch {
+                    restore();
+                    toast.error("Erreur de connexion au serveur");
+                  }
                 }}
                 className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
                   isActive

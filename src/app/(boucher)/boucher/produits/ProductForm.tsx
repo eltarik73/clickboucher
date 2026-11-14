@@ -4,7 +4,7 @@
 // ProductFormPage.tsx is the single-page version (used by boucher /produits/nouveau and /produits/[id]/modifier).
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,21 +14,21 @@ import {
   ChevronRight,
   ChevronLeft,
   Check,
-  Camera,
   Plus,
   Trash2,
-  Star,
   AlertTriangle,
   Package,
-  Search,
-  Sparkles,
-  ImageIcon,
 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
 import { useNotify } from "@/components/ui/NotificationToast";
 import ImageSearchModal from "@/components/boucher/ImageSearchModal";
 import ImageGenerateModal from "@/components/boucher/ImageGenerateModal";
 import ImageRetouchModal from "@/components/boucher/ImageRetouchModal";
+import { ProductPhotosField } from "@/components/boucher/photos/ProductPhotosField";
+import {
+  addExistingRefusalFr,
+  useProductPhotos,
+} from "@/components/boucher/photos/useProductPhotos";
 
 // ─────────────────────────────────────────────
 // Types
@@ -38,15 +38,6 @@ export type Category = {
   name: string;
   emoji: string | null;
   order: number;
-};
-
-type ImageItem = {
-  url: string;
-  alt: string;
-  isPrimary: boolean;
-  order: number;
-  uploading?: boolean;
-  file?: File;
 };
 
 type LabelItem = { name: string; color: string | null };
@@ -222,16 +213,14 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
   const [customLabel, setCustomLabel] = useState("");
 
   // Step 4 — Photos
-  const [images, setImages] = useState<ImageItem[]>(
-    product?.images.map((img) => ({
-      url: img.url,
-      alt: img.alt || "",
-      isPrimary: img.isPrimary,
-      order: img.order,
-    })) || []
-  );
+  const photos = useProductPhotos({
+    initialImages: product?.images ?? [],
+    initialImageUrl: product?.imageUrl ?? null,
+    purpose: isReference ? "REFERENCE" : "PRODUCT",
+    productName: name,
+    allowCurrent: !isReference,
+  });
   const [customerNote, setCustomerNote] = useState(product?.customerNote || "");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [retouchOpen, setRetouchOpen] = useState(false);
@@ -300,11 +289,9 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
       setThicknesses(ref.sliceOptions.thicknesses);
     }
     // Images: use reference images if available, else fallback to single imageUrl
-    if (ref.images?.length) {
-      setImages(ref.images.map((img, i) => ({ url: img.url, alt: img.alt || ref.name, isPrimary: img.isPrimary ?? i === 0, order: img.order ?? i })));
-    } else if (ref.imageUrl) {
-      setImages([{ url: ref.imageUrl, alt: ref.name, isPrimary: true, order: 0 }]);
-    }
+    photos.replaceAll(
+      ref.images?.length ? ref.images : ref.imageUrl ? [{ url: ref.imageUrl, alt: ref.name, isPrimary: true }] : []
+    );
     setShowCatalogImport(false);
     notify("success", `"${ref.name}" importe du catalogue`);
   }
@@ -329,69 +316,11 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
     }
   }
 
-  // ── Image upload ──
-  async function handleImageUpload(files: FileList) {
-    for (let i = 0; i < files.length; i++) {
-      if (images.length + i >= 5) break;
-      const file = files[i];
-      const tempUrl = URL.createObjectURL(file);
-      const newImg: ImageItem = {
-        url: tempUrl,
-        alt: name || "Produit",
-        isPrimary: images.length === 0 && i === 0,
-        order: images.length + i,
-        uploading: true,
-        file,
-      };
-      setImages((prev) => [...prev, newImg]);
-
-      // Upload
-      const formData = new FormData();
-      formData.append("file", file);
-      try {
-        const res = await fetch("/api/uploads/product-image", {
-          method: "POST",
-          body: formData,
-        });
-        if (res.ok) {
-          const json = await res.json();
-          setImages((prev) =>
-            prev.map((img) =>
-              img.url === tempUrl ? { ...img, url: json.data.url, uploading: false } : img
-            )
-          );
-        } else {
-          // Remove failed upload
-          setImages((prev) => prev.filter((img) => img.url !== tempUrl));
-        }
-      } catch {
-        setImages((prev) => prev.filter((img) => img.url !== tempUrl));
-      }
-    }
-  }
-
-  function removeImage(idx: number) {
-    const img = images[idx];
-    // Delete from server if it's uploaded (blob or legacy)
-    if (img.url.startsWith("/api/uploads/") || img.url.includes(".public.blob.vercel-storage.com")) {
-      fetch("/api/uploads/product-image", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: img.url }),
-      }).catch(() => {});
-    }
-    const updated = images.filter((_, i) => i !== idx);
-    // Ensure first is primary
-    if (updated.length > 0 && !updated.some((i) => i.isPrimary)) {
-      updated[0].isPrimary = true;
-    }
-    setImages(updated.map((img, i) => ({ ...img, order: i })));
-  }
-
-  function setPrimary(idx: number) {
-    setImages((prev) =>
-      prev.map((img, i) => ({ ...img, isPrimary: i === idx }))
-    );
+  // ── Photo chosen in a studio modal (web search, AI, retouch) ──
+  function addStudioPhoto(url: string, alt: string, message: string) {
+    const refusal = addExistingRefusalFr(photos.addExisting(url, alt || name || "Produit"));
+    if (refusal === null) notify("success", message);
+    else notify("error", refusal);
   }
 
   // ── Add/remove labels ──
@@ -406,6 +335,10 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
 
   // ── Submit ──
   async function handleSubmit() {
+    if (photos.isBlocking) {
+      setApiError("Une photo est en cours d'envoi ou en erreur : réessayez-la ou retirez-la.");
+      return;
+    }
     setSubmitting(true);
     setApiError(null);
 
@@ -478,15 +411,10 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
       body.pieceLabel = null;
     }
 
-    // Images (server-uploaded: blob URLs or legacy /api/ URLs)
-    // Always send images array (even empty) so the API can delete removed images
-    const uploadedImages = images.filter((i) => !i.uploading && (i.url.startsWith("/api/") || i.url.startsWith("https://")));
-    body.images = uploadedImages.map((img, i) => ({
-      url: img.url,
-      alt: img.alt || name,
-      order: i,
-      isPrimary: img.isPrimary,
-    }));
+    // Images — always sent (even empty) so the API can remove the ones taken out
+    const photosPayload = photos.payload();
+    body.images = photosPayload.images;
+    if (photosPayload.clearImageUrl) body.clearImageUrl = true;
 
     // Labels — always send so the API can sync (empty = remove all)
     body.labels = labels.map((l) => ({ name: l.name, color: l.color }));
@@ -1314,127 +1242,21 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
           {/* ═══ STEP 3: Photos & Finalisation ═══ */}
           {step === 3 && (
             <div className="space-y-5">
-              {/* Photos grid */}
-              <div>
-                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                  Photos (max 5)
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {images.map((img, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#ece8e3] dark:border-white/10 bg-gray-100 dark:bg-white/5">
-                      {img.uploading ? (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin text-gray-500 dark:text-gray-400" />
-                        </div>
-                      ) : (
-                        <Image src={img.url} alt={img.alt} width={120} height={120} className="w-full h-full object-cover" />
-                      )}
-
-                      {/* Primary badge */}
-                      {img.isPrimary && (
-                        <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-[#DC2626] text-white text-[8px] font-bold rounded">
-                          Principale
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="absolute top-1 right-1 flex gap-1">
-                        {!img.isPrimary && !img.uploading && (
-                          <button
-                            type="button"
-                            onClick={() => setPrimary(idx)}
-                            className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70"
-                          >
-                            <Star size={10} className="text-white" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeImage(idx)}
-                          className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-red-600"
-                        >
-                          <X size={10} className="text-white" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Add button */}
-                  {images.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
-                    >
-                      <Camera size={20} />
-                      <span className="text-[10px] font-medium">Ajouter</span>
-                    </button>
-                  )}
-
-                  {/* Search online button */}
-                  {images.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchOpen(true)}
-                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
-                    >
-                      <Search size={20} />
-                      <span className="text-[10px] font-medium text-center leading-tight px-1">🔍 Chercher<br />en ligne</span>
-                    </button>
-                  )}
-
-                  {/* Generate AI button */}
-                  {images.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => setGenerateOpen(true)}
-                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
-                    >
-                      <Sparkles size={20} />
-                      <span className="text-[10px] font-medium text-center leading-tight px-1">✨ Générer<br />IA</span>
-                    </button>
-                  )}
-
-                  {/* Retouch button */}
-                  {images.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => setRetouchOpen(true)}
-                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 dark:border-white/15 flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-gray-400 hover:border-[#DC2626] hover:text-[#DC2626] transition-all"
-                    >
-                      <ImageIcon size={20} />
-                      <span className="text-[10px] font-medium text-center leading-tight px-1">🖼️ Retoucher</span>
-                    </button>
-                  )}
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-                />
-              </div>
+              <ProductPhotosField
+                photos={photos}
+                productName={name}
+                appearance="adaptive"
+                onOpenSearch={() => setSearchOpen(true)}
+                onOpenGenerate={() => setGenerateOpen(true)}
+                onOpenRetouch={() => setRetouchOpen(true)}
+              />
 
               <ImageSearchModal
                 open={searchOpen}
                 onClose={() => setSearchOpen(false)}
                 defaultQuery={name}
                 usage="PRODUCT"
-                onSelect={(url, alt) => {
-                  setImages((prev) => {
-                    if (prev.length >= 5) return prev;
-                    const newImg: ImageItem = {
-                      url,
-                      alt: alt || name,
-                      isPrimary: prev.length === 0,
-                      order: prev.length,
-                    };
-                    return [...prev, newImg];
-                  });
-                  notify("success", "Image ajoutée depuis la recherche web");
-                }}
+                onSelect={(url, alt) => addStudioPhoto(url, alt, "Image ajoutée depuis la recherche web")}
               />
 
               <ImageGenerateModal
@@ -1442,19 +1264,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                 onClose={() => setGenerateOpen(false)}
                 defaultQuery={name}
                 usage="PRODUCT"
-                onSelect={(url, alt) => {
-                  setImages((prev) => {
-                    if (prev.length >= 5) return prev;
-                    const newImg: ImageItem = {
-                      url,
-                      alt: alt || name,
-                      isPrimary: prev.length === 0,
-                      order: prev.length,
-                    };
-                    return [...prev, newImg];
-                  });
-                  notify("success", "Image IA ajoutée");
-                }}
+                onSelect={(url, alt) => addStudioPhoto(url, alt, "Image IA ajoutée")}
               />
 
               <ImageRetouchModal
@@ -1462,20 +1272,8 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                 onClose={() => setRetouchOpen(false)}
                 defaultQuery={name}
                 usage="PRODUCT"
-                sourceImageUrl={images[0]?.url}
-                onSelect={(url, alt) => {
-                  setImages((prev) => {
-                    if (prev.length >= 5) return prev;
-                    const newImg: ImageItem = {
-                      url,
-                      alt: alt || name,
-                      isPrimary: prev.length === 0,
-                      order: prev.length,
-                    };
-                    return [...prev, newImg];
-                  });
-                  notify("success", "Image retouchée ajoutée");
-                }}
+                sourceImageUrl={photos.primaryUrl ?? undefined}
+                onSelect={(url, alt) => addStudioPhoto(url, alt, "Image retouchée ajoutée")}
               />
 
               {/* Customer note */}
@@ -1539,7 +1337,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-500 dark:text-gray-400">Photos</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{images.filter((i) => !i.uploading).length}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{photos.ownCount}</span>
                   </div>
                 </div>
               </div>
@@ -1580,7 +1378,7 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
               <Button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !isStepValid(0) || !isStepValid(1)}
+                disabled={submitting || photos.isBlocking || !isStepValid(0) || !isStepValid(1)}
                 className="h-11 px-6 gap-1.5 bg-[#DC2626] hover:bg-[#b91c1c] disabled:opacity-40"
               >
                 {submitting ? (

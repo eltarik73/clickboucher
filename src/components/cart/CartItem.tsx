@@ -1,7 +1,7 @@
 // src/components/cart/CartItem.tsx
 "use client";
 
-import { SafeImage } from "@/components/ui/SafeImage";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import type { CartItem as CartItemType } from "@/lib/hooks/use-cart";
 import { cartLineTotalCents } from "@/lib/cart/cart-line";
 import { formatGrams } from "@/lib/pricing/format";
@@ -20,20 +20,17 @@ export function CartItemCard({ item, onQuantityChange, onRemove }: Props) {
     <div className="group flex gap-3 py-3">
       {/* Image */}
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#F5F3F0] dark:bg-white/10">
-        {item.imageUrl ? (
-          <SafeImage
-            type="product"
-            src={item.imageUrl}
-            alt={item.name}
-            width={56}
-            height={56}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-xl opacity-30">
-            🥩
-          </div>
-        )}
+        <ProductPhoto
+          product={{
+            imageUrl: item.imageUrl || null,
+            name: item.name,
+            category: item.category ?? null,
+          }}
+          variant="thumb"
+          width={56}
+          height={56}
+          className="h-full w-full object-cover"
+        />
       </div>
 
       <div className="min-w-0 flex-1">

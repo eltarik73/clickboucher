@@ -3,6 +3,7 @@ import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { shopListQuerySchema, createShopSchema } from "@/lib/validators";
 import { apiSuccess, apiPaginated, apiError, handleApiError } from "@/lib/api/errors";
+import { shopImageRefusal } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
@@ -109,6 +110,11 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const data = createShopSchema.parse(body);
+    const photoRefusal = await shopImageRefusal({ imageUrl: data.imageUrl }, null);
+    if (photoRefusal) {
+      const { field, messageFr } = photoRefusal;
+      return apiError("VALIDATION_ERROR", messageFr, { [field]: [messageFr] });
+    }
 
     const shop = await prisma.shop.create({
       data: {

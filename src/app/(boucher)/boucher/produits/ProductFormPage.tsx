@@ -4,7 +4,7 @@
 // ProductForm.tsx is the modal/4-step version (used by webmaster /catalogue/reference).
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,21 +15,23 @@ import {
   Plus,
   X,
   Camera,
-  Star,
   Trash2,
   AlertTriangle,
   Package,
   ChevronRight,
   Check,
-  Search,
-  Sparkles,
-  Image as ImageIcon,
 } from "lucide-react";
 import { getFlag } from "@/lib/flags";
 import { useNotify } from "@/components/ui/NotificationToast";
 import ImageSearchModal from "@/components/boucher/ImageSearchModal";
 import ImageGenerateModal from "@/components/boucher/ImageGenerateModal";
 import ImageRetouchModal from "@/components/boucher/ImageRetouchModal";
+import { ProductPhotosField } from "@/components/boucher/photos/ProductPhotosField";
+import {
+  addExistingRefusalFr,
+  useProductPhotos,
+} from "@/components/boucher/photos/useProductPhotos";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import {
   computeOnlinePriceCents,
   getEffectiveCommissionRate,
@@ -44,15 +46,6 @@ export type Category = {
   name: string;
   emoji: string | null;
   order: number;
-};
-
-type ImageItem = {
-  url: string;
-  alt: string;
-  isPrimary: boolean;
-  order: number;
-  uploading?: boolean;
-  file?: File;
 };
 
 type LabelItem = { name: string; color: string | null };
@@ -390,15 +383,13 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
   );
 
   // Photos
-  const [images, setImages] = useState<ImageItem[]>(
-    product?.images.map((img) => ({
-      url: img.url,
-      alt: img.alt || "",
-      isPrimary: img.isPrimary,
-      order: img.order,
-    })) || []
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const photos = useProductPhotos({
+    initialImages: product?.images ?? [],
+    initialImageUrl: product?.imageUrl ?? null,
+    purpose: "PRODUCT",
+    productName: name,
+    allowCurrent: true,
+  });
 
   // ── Image Studio modals ──
   const [searchOpen, setSearchOpen] = useState(false);
@@ -406,18 +397,9 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
   const [retouchOpen, setRetouchOpen] = useState(false);
 
   function handleStudioSelect(url: string, alt: string) {
-    setImages((prev) => {
-      if (prev.length >= 5) return prev;
-      return [
-        ...prev,
-        {
-          url,
-          alt: alt || name || "Produit",
-          isPrimary: prev.length === 0,
-          order: prev.length,
-        },
-      ];
-    });
+    const refusal = addExistingRefusalFr(photos.addExisting(url, alt || name || "Produit"));
+    if (refusal === null) notify("success", "Photo ajoutée");
+    else notify("error", refusal);
   }
 
   // ── Derived ──
@@ -465,11 +447,9 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
       setMaxSlices(ref.sliceOptions.maxSlices);
       setThicknesses(ref.sliceOptions.thicknesses);
     }
-    if (ref.images?.length) {
-      setImages(ref.images.map((img, i) => ({ url: img.url, alt: img.alt || ref.name, isPrimary: img.isPrimary ?? i === 0, order: img.order ?? i })));
-    } else if (ref.imageUrl) {
-      setImages([{ url: ref.imageUrl, alt: ref.name, isPrimary: true, order: 0 }]);
-    }
+    photos.replaceAll(
+      ref.images?.length ? ref.images : ref.imageUrl ? [{ url: ref.imageUrl, alt: ref.name, isPrimary: true }] : []
+    );
     setShowCatalogImport(false);
     notify("success", `"${ref.name}" importe du catalogue`);
   }
@@ -477,57 +457,6 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
   const filteredCatalog = catalogProducts.filter((p) =>
     !catalogSearch || p.name.toLowerCase().includes(catalogSearch.toLowerCase())
   );
-
-  // ── Image handling ──
-  async function handleImageUpload(files: FileList) {
-    for (let i = 0; i < files.length; i++) {
-      if (images.length + i >= 5) break;
-      const file = files[i];
-      const tempUrl = URL.createObjectURL(file);
-      const newImg: ImageItem = {
-        url: tempUrl,
-        alt: name || "Produit",
-        isPrimary: images.length === 0 && i === 0,
-        order: images.length + i,
-        uploading: true,
-        file,
-      };
-      setImages((prev) => [...prev, newImg]);
-      const formData = new FormData();
-      formData.append("file", file);
-      try {
-        const res = await fetch("/api/uploads/product-image", { method: "POST", body: formData });
-        if (res.ok) {
-          const json = await res.json();
-          setImages((prev) => prev.map((img) => img.url === tempUrl ? { ...img, url: json.data.url, uploading: false } : img));
-        } else {
-          setImages((prev) => prev.filter((img) => img.url !== tempUrl));
-        }
-      } catch {
-        setImages((prev) => prev.filter((img) => img.url !== tempUrl));
-      }
-    }
-  }
-
-  function removeImage(idx: number) {
-    const img = images[idx];
-    if (img.url.startsWith("/api/uploads/") || img.url.includes(".public.blob.vercel-storage.com")) {
-      fetch("/api/uploads/product-image", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: img.url }),
-      }).catch(() => {});
-    }
-    const updated = images.filter((_, i) => i !== idx);
-    if (updated.length > 0 && !updated.some((i) => i.isPrimary)) {
-      updated[0].isPrimary = true;
-    }
-    setImages(updated.map((img, i) => ({ ...img, order: i })));
-  }
-
-  function setPrimary(idx: number) {
-    setImages((prev) => prev.map((img, i) => ({ ...img, isPrimary: i === idx })));
-  }
 
   // ── Labels ──
   function addLabel(labelName: string) {
@@ -545,6 +474,10 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
 
   // ── Submit ──
   async function handleSubmit() {
+    if (photos.isBlocking) {
+      setApiError("Une photo est en cours d'envoi ou en erreur : réessayez-la ou retirez-la.");
+      return;
+    }
     if (!name.trim() || categoryIds.length === 0) {
       setApiError("Veuillez remplir le nom et au moins une categorie");
       return;
@@ -643,14 +576,10 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
       body.pieceLabel = null;
     }
 
-    // Images
-    const uploadedImages = images.filter((i) => !i.uploading && (i.url.startsWith("/api/") || i.url.startsWith("https://")));
-    body.images = uploadedImages.map((img, i) => ({
-      url: img.url,
-      alt: img.alt || name,
-      order: i,
-      isPrimary: img.isPrimary,
-    }));
+    // Images (le serveur fait de la photo principale le miroir Product.imageUrl)
+    const photosPayload = photos.payload();
+    body.images = photosPayload.images;
+    if (photosPayload.clearImageUrl) body.clearImageUrl = true;
 
     // Labels
     body.labels = labels.map((l) => ({ name: l.name, color: l.color }));
@@ -1549,88 +1478,31 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
             Photo & Apercu
           </h2>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Upload zone */}
-            <div className="space-y-2">
-              <p className="text-[10px] text-stone-500">Photos (max 5)</p>
-              {images.length < 5 && (
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-stone-800 border border-stone-700 text-stone-200 hover:border-red-600 hover:text-red-500 flex items-center gap-1.5 transition-all"
-                  >
-                    <Camera size={14} /> Upload
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSearchOpen(true)}
-                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-stone-800 border border-stone-700 text-stone-200 hover:border-red-600 hover:text-red-500 flex items-center gap-1.5 transition-all"
-                  >
-                    <Search size={14} /> Chercher
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGenerateOpen(true)}
-                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-gradient-to-r from-red-600 to-red-700 text-white hover:opacity-90 flex items-center gap-1.5 transition-all"
-                  >
-                    <Sparkles size={14} /> Générer IA
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRetouchOpen(true)}
-                    className="min-h-[44px] px-3 py-2 text-[11px] font-semibold rounded-lg bg-stone-800 border border-stone-700 text-stone-200 hover:border-red-600 hover:text-red-500 flex items-center gap-1.5 transition-all"
-                  >
-                    <ImageIcon size={14} /> Retoucher
-                  </button>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-1.5">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-stone-700 bg-stone-800">
-                    {img.uploading ? (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin text-stone-500" />
-                      </div>
-                    ) : (
-                      <Image src={img.url} alt={img.alt} width={120} height={120} className="w-full h-full object-cover" />
-                    )}
-                    {img.isPrimary && (
-                      <div className="absolute top-0.5 left-0.5 px-1 py-0.5 bg-red-600 text-white text-[7px] font-bold rounded">
-                        #1
-                      </div>
-                    )}
-                    <div className="absolute top-0.5 right-0.5 flex gap-0.5">
-                      {!img.isPrimary && !img.uploading && (
-                        <button type="button" onClick={() => setPrimary(idx)}
-                          className="w-5 h-5 rounded-full bg-black/60 flex items-center justify-center">
-                          <Star size={8} className="text-white" />
-                        </button>
-                      )}
-                      <button type="button" onClick={() => removeImage(idx)}
-                        className="w-5 h-5 rounded-full bg-black/60 flex items-center justify-center hover:bg-red-600">
-                        <X size={8} className="text-white" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
-                onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-[1fr_14rem]">
+            <ProductPhotosField
+              photos={photos}
+              productName={name}
+              appearance="stone"
+              onOpenSearch={() => setSearchOpen(true)}
+              onOpenGenerate={() => setGenerateOpen(true)}
+              onOpenRetouch={() => setRetouchOpen(true)}
+            />
 
             {/* Live preview (client card) */}
-            <div className="space-y-2">
+            <div className="w-1/2 space-y-2 sm:w-auto">
               <p className="text-[10px] text-stone-500">Apercu client</p>
               <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-stone-200 shadow-sm">
                 <div className="aspect-[4/3] bg-stone-100 relative overflow-hidden">
-                  {images.length > 0 && !images[0].uploading ? (
-                    <Image src={images[0].url} alt={name || "Produit"} fill className="object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl text-stone-300">
-                      {categories.find((c) => categoryIds.includes(c.id))?.emoji || "🥩"}
-                    </div>
-                  )}
+                  <ProductPhoto
+                    product={{
+                      imageUrl: photos.primaryUrl,
+                      name: name || "Produit",
+                      category: categories.find((c) => c.id === categoryIds[0])?.name,
+                    }}
+                    fill
+                    sizes="224px"
+                    className="object-cover"
+                  />
                   {/* Promo badge */}
                   {promoEnabled && (
                     <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-red-600 text-white text-[9px] font-bold rounded">
@@ -1719,7 +1591,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={submitting || !name.trim() || categoryIds.length === 0 || parseFloat(boutiquePrice || "0") <= 0}
+            disabled={submitting || photos.isBlocking || !name.trim() || categoryIds.length === 0 || parseFloat(boutiquePrice || "0") <= 0}
             className="h-11 px-6 gap-1.5 bg-red-600 hover:bg-red-700 text-white disabled:opacity-40"
           >
             {submitting ? (
@@ -1829,7 +1701,7 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
         open={retouchOpen}
         onClose={() => setRetouchOpen(false)}
         onSelect={handleStudioSelect}
-        sourceImageUrl={images[0]?.url}
+        sourceImageUrl={photos.primaryUrl ?? undefined}
         usage="PRODUCT"
       />
     </div>

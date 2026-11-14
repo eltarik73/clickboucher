@@ -2,8 +2,8 @@
 // refusal of that line (if any) printed under it and a button to remove it.
 "use client";
 
-import Image from "next/image";
 import { AlertCircle, Minus, Plus, Trash2 } from "lucide-react";
+import { ProductPhoto } from "@/components/media/ProductPhoto";
 import type { CartItem } from "@/lib/cart/cart-line";
 import { formatGrams } from "@/lib/pricing/format";
 import { formatPrice } from "@/lib/utils";
@@ -50,9 +50,13 @@ export function CheckoutLineRow({
     >
       <div className="flex items-center gap-3">
         <div className="relative h-[60px] w-[60px] shrink-0 overflow-hidden rounded-xl">
-          <Image
-            src={item.imageUrl || "/img/products/boeuf-1.jpg"}
-            alt={item.name}
+          <ProductPhoto
+            product={{
+              imageUrl: item.imageUrl || null,
+              name: item.name,
+              category: item.category ?? null,
+            }}
+            variant="thumb"
             width={60}
             height={60}
             className="h-full w-full object-cover"

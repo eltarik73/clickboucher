@@ -73,5 +73,8 @@ shop-page.md
 # Lanceur local de vérification (ports / mode test propres à la machine)
 .claude/launch.json
 
+# Magasin local des photos (développement et CI, hors production Vercel)
+/.image-store/
+
 # Tickets locaux des compétences mattpocock-skills (docs/agents/issue-tracker.md) : jamais publiés
 /.scratch/

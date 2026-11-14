@@ -15,6 +15,8 @@ import {
   Check,
 } from "lucide-react";
 import PresetChips from "./image-studio/PresetChips";
+import { requestRetouch, retouchSourceUrl } from "./photos/retouch-request";
+import { useImageUpload } from "./photos/useImageUpload";
 
 type Usage = "PRODUCT" | "CAMPAIGN" | "BANNER";
 
@@ -44,8 +46,9 @@ export default function ImageRetouchModal({
   usage = "PRODUCT",
   sourceImageUrl,
 }: Props) {
-  const [sourceUrl, setSourceUrl] = useState<string | null>(sourceImageUrl ?? null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(retouchSourceUrl(sourceImageUrl) ?? null);
   const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [sending, setSending] = useState(false);
   const [preset, setPreset] = useState<string>("CLEAN_BACKGROUND");
   const [customPrompt, setCustomPrompt] = useState("");
   const [showCustom, setShowCustom] = useState(false);
@@ -54,10 +57,11 @@ export default function ImageRetouchModal({
   const [originalServerUrl, setOriginalServerUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { upload } = useImageUpload("RETOUCH_SOURCE");
 
   useEffect(() => {
     if (open) {
-      setSourceUrl(sourceImageUrl ?? null);
+      setSourceUrl(retouchSourceUrl(sourceImageUrl) ?? null);
       setSourceFile(null);
       setResults([]);
       setOriginalServerUrl(null);
@@ -77,12 +81,9 @@ export default function ImageRetouchModal({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  // Taille et format sont traités à l'envoi (useImageUpload) : réduction, ou message français.
   function handleFile(f: File | null | undefined) {
     if (!f) return;
-    if (f.size > 5 * 1024 * 1024) {
-      setError("Image trop lourde (max 5MB)");
-      return;
-    }
     setSourceFile(f);
     setSourceUrl(URL.createObjectURL(f));
     setError(null);
@@ -97,41 +98,32 @@ export default function ImageRetouchModal({
     setError(null);
     setResults([]);
     try {
-      let res: Response;
+      let source = sourceUrl;
       if (sourceFile) {
-        const form = new FormData();
-        form.append("file", sourceFile);
-        form.append("preset", preset);
-        form.append("variations", "4");
-        form.append("usage", usage);
-        if (customPrompt.trim()) form.append("customPrompt", customPrompt.trim());
-        res = await fetch("/api/boucher/images/retouch", {
-          method: "POST",
-          body: form,
-        });
-      } else {
-        res = await fetch("/api/boucher/images/retouch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageUrl: sourceUrl,
-            preset,
-            variations: 4,
-            usage,
-            customPrompt: customPrompt.trim() || undefined,
-          }),
-        });
+        // La source passe d'abord par l'envoi commun (POST /api/uploads/image), une seule fois.
+        setSending(true);
+        const uploaded = await upload(sourceFile, () => undefined);
+        setSending(false);
+        if (!uploaded.ok) {
+          setError(uploaded.messageFr);
+          return;
+        }
+        source = uploaded.result.url;
+        setSourceFile(null);
+        setSourceUrl(source);
       }
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        setError(json?.error?.message || "Erreur lors de la retouche");
+      const outcome = await requestRetouch(
+        { sourceUrl: source, preset, variations: 4, usage, customPrompt: customPrompt.trim() || undefined },
+        window.location.origin
+      );
+      if (!outcome.ok) {
+        setError(outcome.messageFr);
         return;
       }
-      setOriginalServerUrl(json.data.originalUrl);
-      setResults(json.data.images || []);
-    } catch (e) {
-      setError((e as Error).message || "Erreur réseau");
+      setOriginalServerUrl(outcome.result.originalUrl);
+      setResults(outcome.result.images);
     } finally {
+      setSending(false);
       setLoading(false);
     }
   }
@@ -218,13 +210,13 @@ export default function ImageRetouchModal({
               >
                 <Upload size={32} />
                 <span className="text-sm font-medium">Choisis ou glisse ta photo</span>
-                <span className="text-xs">JPG, PNG ou WebP — max 5MB</span>
+                <span className="text-xs">JPEG, PNG ou WebP — allégée automatiquement à l'envoi</span>
               </button>
             )}
             <input
               ref={fileRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/*"
               className="hidden"
               onChange={(e) => handleFile(e.target.files?.[0])}
             />
@@ -289,7 +281,7 @@ export default function ImageRetouchModal({
             {loading ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                Retouche en cours (15-40s)...
+                {sending ? "Envoi de la photo..." : "Retouche en cours (15-40s)..."}
               </>
             ) : (
               <>
