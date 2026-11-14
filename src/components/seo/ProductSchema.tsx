@@ -1,4 +1,5 @@
 import { resolveProductImage } from "@/lib/product-images";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -164,10 +165,5 @@ export function ProductSchema({ product, shop, reviews }: ProductSchemaProps) {
     }));
   }
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+  return <JsonLd data={schema} />;
 }

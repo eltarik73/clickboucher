@@ -10,6 +10,7 @@ import { ShopSchema } from "@/components/seo/ShopSchema";
 import { SpeakableSchema } from "@/components/seo/SpeakableSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 
@@ -144,18 +145,15 @@ export default async function CityPage({ params }: { params: { ville: string } }
           { name: city.name, url: `${SITE_URL}/boucherie-halal/${city.slug}` },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faqs.map((faq) => ({
-              "@type": "Question",
-              name: faq.question,
-              acceptedAnswer: { "@type": "Answer", text: faq.answer },
-            })),
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: { "@type": "Answer", text: faq.answer },
+          })),
         }}
       />
       {shops.map((shop) => (

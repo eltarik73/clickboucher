@@ -6,6 +6,7 @@ import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { SpeakableSchema } from "@/components/seo/SpeakableSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { SEO_CITIES } from "@/lib/seo/cities";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 
@@ -88,18 +89,15 @@ export default async function ClickAndCollectHalalPage() {
         ]}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faqs.map((f) => ({
-              "@type": "Question",
-              name: f.question,
-              acceptedAnswer: { "@type": "Answer", text: f.answer },
-            })),
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((f) => ({
+            "@type": "Question",
+            name: f.question,
+            acceptedAnswer: { "@type": "Answer", text: f.answer },
+          })),
         }}
       />
 

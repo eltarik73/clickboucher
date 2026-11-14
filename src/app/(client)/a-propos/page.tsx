@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { SEO_CITIES } from "@/lib/seo/cities";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 const PAGE_LAST_UPDATED = "2026-05-09";
@@ -45,35 +46,32 @@ export default async function AProposPage() {
         ]}
       />
       {/* AboutPage schema (signal E-E-A-T fort, attendu par Google + IA) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "AboutPage",
-            "@id": `${SITE_URL}/a-propos`,
-            name: "À propos de Klik&Go",
-            url: `${SITE_URL}/a-propos`,
-            inLanguage: "fr-FR",
-            isPartOf: { "@type": "WebSite", "@id": SITE_URL, name: "Klik&Go" },
-            mainEntity: {
-              "@type": "Organization",
-              name: "Klik&Go",
-              alternateName: ["Klikandgo", "Klik and Go"],
-              url: SITE_URL,
-              logo: `${SITE_URL}/logo.png`,
-              foundingDate: "2025",
-              description:
-                "Plateforme click & collect dédiée aux boucheries halal en Auvergne-Rhône-Alpes",
-              founder: { "@type": "Person", name: "Tarik" },
-              areaServed: {
-                "@type": "AdministrativeArea",
-                name: "Auvergne-Rhône-Alpes",
-              },
-              numberOfEmployees: { "@type": "QuantitativeValue", value: "1-10" },
-              slogan: "Zéro file. Zéro stress. 100% frais.",
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "AboutPage",
+          "@id": `${SITE_URL}/a-propos`,
+          name: "À propos de Klik&Go",
+          url: `${SITE_URL}/a-propos`,
+          inLanguage: "fr-FR",
+          isPartOf: { "@type": "WebSite", "@id": SITE_URL, name: "Klik&Go" },
+          mainEntity: {
+            "@type": "Organization",
+            name: "Klik&Go",
+            alternateName: ["Klikandgo", "Klik and Go"],
+            url: SITE_URL,
+            logo: `${SITE_URL}/logo.png`,
+            foundingDate: "2025",
+            description:
+              "Plateforme click & collect dédiée aux boucheries halal en Auvergne-Rhône-Alpes",
+            founder: { "@type": "Person", name: "Tarik" },
+            areaServed: {
+              "@type": "AdministrativeArea",
+              name: "Auvergne-Rhône-Alpes",
             },
-          }),
+            numberOfEmployees: { "@type": "QuantitativeValue", value: "1-10" },
+            slogan: "Zéro file. Zéro stress. 100% frais.",
+          },
         }}
       />
 

@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/seo/JsonLd";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export function OrganizationSchema() {
@@ -61,14 +63,8 @@ export function OrganizationSchema() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(website) }}
-      />
+      <JsonLd data={organization} />
+      <JsonLd data={website} />
     </>
   );
 }

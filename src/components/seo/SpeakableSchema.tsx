@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/seo/JsonLd";
+
 /**
  * Speakable schema (Schema.org SpeakableSpecification).
  *
@@ -35,10 +37,5 @@ export function SpeakableSchema({
     },
   };
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+  return <JsonLd data={schema} />;
 }

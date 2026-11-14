@@ -12,6 +12,7 @@ import {
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -120,26 +121,23 @@ export default async function ProductCityPage({
         ]}
       />
       {/* Schema Product + Offer + ItemList */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Product",
-            name: `${product.name} à ${city.name}`,
-            description: product.shortDescription,
-            image: `${SITE_URL}/og-image.png`,
-            category: product.category,
-            brand: { "@type": "Brand", name: "Klik&Go" },
-            offers: {
-              "@type": "AggregateOffer",
-              priceCurrency: "EUR",
-              availability:
-                shops.length > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-              offerCount: shops.length,
-              areaServed: { "@type": "City", name: city.name },
-            },
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: `${product.name} à ${city.name}`,
+          description: product.shortDescription,
+          image: `${SITE_URL}/og-image.png`,
+          category: product.category,
+          brand: { "@type": "Brand", name: "Klik&Go" },
+          offers: {
+            "@type": "AggregateOffer",
+            priceCurrency: "EUR",
+            availability:
+              shops.length > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            offerCount: shops.length,
+            areaServed: { "@type": "City", name: city.name },
+          },
         }}
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
@@ -332,39 +330,36 @@ export default async function ProductCityPage({
             <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
               Questions fréquentes
             </h2>
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{
-                __html: JSON.stringify({
-                  "@context": "https://schema.org",
-                  "@type": "FAQPage",
-                  mainEntity: [
-                    {
-                      "@type": "Question",
-                      name: product.servingQuestion.question,
-                      acceptedAnswer: { "@type": "Answer", text: product.servingQuestion.answer },
+            <JsonLd
+              data={{
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                mainEntity: [
+                  {
+                    "@type": "Question",
+                    name: product.servingQuestion.question,
+                    acceptedAnswer: { "@type": "Answer", text: product.servingQuestion.answer },
+                  },
+                  {
+                    "@type": "Question",
+                    name: `Où acheter du ${product.keyword} à ${city.name} ?`,
+                    acceptedAnswer: {
+                      "@type": "Answer",
+                      text:
+                        shops.length > 0
+                          ? `Klik&Go référence ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name} où vous pouvez commander votre ${product.keyword}. Commande en ligne, retrait en boutique au créneau choisi, frais de service 0,99€.`
+                          : `Klik&Go arrive bientôt à ${city.name}. En attendant, vous pouvez commander dans les villes voisines couvertes par notre réseau.`,
                     },
-                    {
-                      "@type": "Question",
-                      name: `Où acheter du ${product.keyword} à ${city.name} ?`,
-                      acceptedAnswer: {
-                        "@type": "Answer",
-                        text:
-                          shops.length > 0
-                            ? `Klik&Go référence ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name} où vous pouvez commander votre ${product.keyword}. Commande en ligne, retrait en boutique au créneau choisi, frais de service 0,99€.`
-                            : `Klik&Go arrive bientôt à ${city.name}. En attendant, vous pouvez commander dans les villes voisines couvertes par notre réseau.`,
-                      },
+                  },
+                  {
+                    "@type": "Question",
+                    name: `Le ${product.keyword} est-il certifié halal ?`,
+                    acceptedAnswer: {
+                      "@type": "Answer",
+                      text: `Oui. Toutes les boucheries partenaires Klik&Go sont des boucheries halal vérifiées. Chaque boucher garantit la certification halal de ses produits, dont le ${product.keyword}.`,
                     },
-                    {
-                      "@type": "Question",
-                      name: `Le ${product.keyword} est-il certifié halal ?`,
-                      acceptedAnswer: {
-                        "@type": "Answer",
-                        text: `Oui. Toutes les boucheries partenaires Klik&Go sont des boucheries halal vérifiées. Chaque boucher garantit la certification halal de ses produits, dont le ${product.keyword}.`,
-                      },
-                    },
-                  ],
-                }),
+                  },
+                ],
               }}
             />
             <div className="space-y-3">

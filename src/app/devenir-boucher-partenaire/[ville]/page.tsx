@@ -14,6 +14,7 @@ import {
 import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -82,18 +83,15 @@ export default async function DevenirBoucherPartenaireVille({
           },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: faqs.map((faq) => ({
-              "@type": "Question",
-              name: faq.question,
-              acceptedAnswer: { "@type": "Answer", text: faq.answer },
-            })),
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: { "@type": "Answer", text: faq.answer },
+          })),
         }}
       />
 
@@ -610,8 +608,8 @@ export default async function DevenirBoucherPartenaireVille({
       <footer className="border-t border-white/[0.05] bg-[#0a0a0a] py-10">
         <div className="mx-auto max-w-4xl px-5 text-center">
           <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} Klik&amp;Go &middot; Click &amp; Collect pour boucheries halal de proximité
-            &middot;{" "}
+            &copy; {new Date().getFullYear()} Klik&amp;Go &middot; Click &amp; Collect pour
+            boucheries halal de proximité &middot;{" "}
             <Link href="/mentions-legales" className="hover:text-gray-300">
               Mentions légales
             </Link>{" "}

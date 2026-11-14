@@ -12,6 +12,7 @@ import {
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -161,31 +162,28 @@ export default async function DistrictPage({
           { name: district.name, url: `${SITE_URL}/boucherie-halal/${city.slug}/${district.slug}` },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Place",
-            name: district.name,
-            description: district.description,
-            url: `${SITE_URL}/boucherie-halal/${city.slug}/${district.slug}`,
-            containedInPlace: {
-              "@type": "City",
-              name: city.name,
-              url: `${SITE_URL}/boucherie-halal/${city.slug}`,
-            },
-            ...(district.zipCode
-              ? {
-                  address: {
-                    "@type": "PostalAddress",
-                    addressLocality: city.name,
-                    postalCode: district.zipCode,
-                    addressCountry: "FR",
-                  },
-                }
-              : {}),
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Place",
+          name: district.name,
+          description: district.description,
+          url: `${SITE_URL}/boucherie-halal/${city.slug}/${district.slug}`,
+          containedInPlace: {
+            "@type": "City",
+            name: city.name,
+            url: `${SITE_URL}/boucherie-halal/${city.slug}`,
+          },
+          ...(district.zipCode
+            ? {
+                address: {
+                  "@type": "PostalAddress",
+                  addressLocality: city.name,
+                  postalCode: district.zipCode,
+                  addressCountry: "FR",
+                },
+              }
+            : {}),
         }}
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
@@ -337,41 +335,38 @@ export default async function DistrictPage({
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "FAQPage",
-                mainEntity: [
-                  {
-                    "@type": "Question",
-                    name: `Combien de boucheries halal à ${district.name} ?`,
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: `Le quartier ${district.name} à ${city.name} compte plusieurs boucheries halal certifiées. Klik&Go référence les boucheries halal partenaires de ce quartier et des environs. Consultez la liste ci-dessus pour les boucheries où vous pouvez commander en ligne.`,
-                    },
+          <JsonLd
+            data={{
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: `Combien de boucheries halal à ${district.name} ?`,
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `Le quartier ${district.name} à ${city.name} compte plusieurs boucheries halal certifiées. Klik&Go référence les boucheries halal partenaires de ce quartier et des environs. Consultez la liste ci-dessus pour les boucheries où vous pouvez commander en ligne.`,
                   },
-                  {
-                    "@type": "Question",
-                    name: `Comment se rendre dans une boucherie halal à ${district.name} ?`,
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: district.transports?.length
-                        ? `Le quartier ${district.name} est accessible via : ${district.transports.join(", ")}. Vous pouvez aussi venir en voiture, plusieurs places de stationnement sont disponibles.`
-                        : `Le quartier ${district.name} est accessible en transports en commun et en voiture.`,
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: `Comment se rendre dans une boucherie halal à ${district.name} ?`,
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: district.transports?.length
+                      ? `Le quartier ${district.name} est accessible via : ${district.transports.join(", ")}. Vous pouvez aussi venir en voiture, plusieurs places de stationnement sont disponibles.`
+                      : `Le quartier ${district.name} est accessible en transports en commun et en voiture.`,
                   },
-                  {
-                    "@type": "Question",
-                    name: "Puis-je commander en ligne et récupérer en boutique ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Oui. Avec Klik&Go, commandez votre viande halal en ligne et récupérez votre commande en boutique au créneau choisi. Pas de file d'attente, frais de service 0,99€.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Puis-je commander en ligne et récupérer en boutique ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Oui. Avec Klik&Go, commandez votre viande halal en ligne et récupérez votre commande en boutique au créneau choisi. Pas de file d'attente, frais de service 0,99€.",
                   },
-                ],
-              }),
+                },
+              ],
             }}
           />
           <div className="space-y-3">

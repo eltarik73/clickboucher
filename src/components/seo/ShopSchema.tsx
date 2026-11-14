@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/seo/JsonLd";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 // Clés de jour en base → schema.org dayOfWeek. L'app enregistre des clés
@@ -182,10 +184,5 @@ export function ShopSchema({ shop, reviews }: ShopSchemaProps) {
     deliveryMethod: "http://purl.org/goodrelations/v1#DeliveryModePickUp",
   };
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+  return <JsonLd data={schema} />;
 }

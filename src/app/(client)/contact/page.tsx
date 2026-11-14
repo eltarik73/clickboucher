@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Mail, ArrowLeft, Clock, MessageSquare, Shield, HelpCircle } from "lucide-react";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 const PAGE_LAST_UPDATED = "2026-05-09";
@@ -60,65 +61,59 @@ export default function ContactPage() {
         ]}
       />
       {/* FAQPage schema — exposé aux IA + Rich Results Google */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: FAQS.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: FAQS.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
         }}
       />
       {/* ContactPage + ContactPoint schema (E-E-A-T signal) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "ContactPage",
-            "@id": `${SITE_URL}/contact`,
-            name: "Contact Klik&Go",
-            url: `${SITE_URL}/contact`,
-            inLanguage: "fr-FR",
-            isPartOf: { "@type": "WebSite", "@id": SITE_URL, name: "Klik&Go" },
-            mainEntity: {
-              "@type": "Organization",
-              name: "Klik&Go",
-              url: SITE_URL,
-              email: "contact@klikandgo.app",
-              contactPoint: [
-                {
-                  "@type": "ContactPoint",
-                  contactType: "customer service",
-                  email: "contact@klikandgo.app",
-                  availableLanguage: ["French", "Arabic"],
-                  hoursAvailable: {
-                    "@type": "OpeningHoursSpecification",
-                    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                    opens: "09:00",
-                    closes: "18:00",
-                  },
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          "@id": `${SITE_URL}/contact`,
+          name: "Contact Klik&Go",
+          url: `${SITE_URL}/contact`,
+          inLanguage: "fr-FR",
+          isPartOf: { "@type": "WebSite", "@id": SITE_URL, name: "Klik&Go" },
+          mainEntity: {
+            "@type": "Organization",
+            name: "Klik&Go",
+            url: SITE_URL,
+            email: "contact@klikandgo.app",
+            contactPoint: [
+              {
+                "@type": "ContactPoint",
+                contactType: "customer service",
+                email: "contact@klikandgo.app",
+                availableLanguage: ["French", "Arabic"],
+                hoursAvailable: {
+                  "@type": "OpeningHoursSpecification",
+                  dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                  opens: "09:00",
+                  closes: "18:00",
                 },
-                {
-                  "@type": "ContactPoint",
-                  contactType: "press relations",
-                  email: "contact@klikandgo.app",
-                  availableLanguage: ["French"],
-                },
-                {
-                  "@type": "ContactPoint",
-                  contactType: "technical support",
-                  email: "contact@klikandgo.app",
-                  availableLanguage: ["French"],
-                },
-              ],
-            },
-          }),
+              },
+              {
+                "@type": "ContactPoint",
+                contactType: "press relations",
+                email: "contact@klikandgo.app",
+                availableLanguage: ["French"],
+              },
+              {
+                "@type": "ContactPoint",
+                contactType: "technical support",
+                email: "contact@klikandgo.app",
+                availableLanguage: ["French"],
+              },
+            ],
+          },
         }}
       />
 

@@ -6,6 +6,7 @@ import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { SpeakableSchema } from "@/components/seo/SpeakableSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { GeoLocator } from "./GeoLocator";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -183,47 +184,44 @@ export default async function FindButcherPage() {
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "FAQPage",
-                mainEntity: [
-                  {
-                    "@type": "Question",
-                    name: "Comment trouver une boucherie halal près de chez moi ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Activez la géolocalisation sur cette page. Klik&Go affiche instantanément les boucheries halal certifiées triées par distance depuis votre position. Aucune installation requise, fonctionne sur mobile et desktop.",
-                    },
+          <JsonLd
+            data={{
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "Comment trouver une boucherie halal près de chez moi ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Activez la géolocalisation sur cette page. Klik&Go affiche instantanément les boucheries halal certifiées triées par distance depuis votre position. Aucune installation requise, fonctionne sur mobile et desktop.",
                   },
-                  {
-                    "@type": "Question",
-                    name: "Mes données de géolocalisation sont-elles enregistrées ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Non. Votre position est utilisée uniquement dans votre navigateur pour calculer les distances vers les boucheries. Aucune donnée de localisation n'est envoyée à nos serveurs ni stockée.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Mes données de géolocalisation sont-elles enregistrées ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Non. Votre position est utilisée uniquement dans votre navigateur pour calculer les distances vers les boucheries. Aucune donnée de localisation n'est envoyée à nos serveurs ni stockée.",
                   },
-                  {
-                    "@type": "Question",
-                    name: "Quelles villes sont couvertes par Klik&Go ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Klik&Go couvre Auvergne-Rhône-Alpes : Savoie (Chambéry, Aix-les-Bains, Albertville), Haute-Savoie (Annecy, Annemasse, Thonon, Cluses), Isère (Grenoble, Échirolles, Voiron, Bourgoin-Jallieu), Rhône (Lyon, Villeurbanne, Vénissieux, Vaulx-en-Velin, Bron), Loire (Saint-Étienne, Roanne, Firminy).",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Quelles villes sont couvertes par Klik&Go ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Klik&Go couvre Auvergne-Rhône-Alpes : Savoie (Chambéry, Aix-les-Bains, Albertville), Haute-Savoie (Annecy, Annemasse, Thonon, Cluses), Isère (Grenoble, Échirolles, Voiron, Bourgoin-Jallieu), Rhône (Lyon, Villeurbanne, Vénissieux, Vaulx-en-Velin, Bron), Loire (Saint-Étienne, Roanne, Firminy).",
                   },
-                  {
-                    "@type": "Question",
-                    name: "Puis-je commander en ligne chez toutes les boucheries affichées ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Vous pouvez commander en ligne chez les boucheries partenaires Klik&Go (badge Click & Collect). Pour les autres boucheries référencées dans notre annuaire, vous pouvez consulter leurs coordonnées et les contacter directement.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Puis-je commander en ligne chez toutes les boucheries affichées ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Vous pouvez commander en ligne chez les boucheries partenaires Klik&Go (badge Click & Collect). Pour les autres boucheries référencées dans notre annuaire, vous pouvez consulter leurs coordonnées et les contacter directement.",
                   },
-                ],
-              }),
+                },
+              ],
             }}
           />
           <div className="space-y-3">

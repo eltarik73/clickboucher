@@ -12,6 +12,7 @@ import {
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -115,77 +116,74 @@ export default async function OccasionCityPage({
           { name: city.name, url: `${SITE_URL}/occasions/${occasion.slug}/${city.slug}` },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            // Schema Event uniquement si on a une vraie date fixe (Aïd, Ramadan).
-            // Sinon WebPage : GSC refuse Event sans startDate (audit 2026-05-03).
-            occasion.eventType && occasion.eventStart
-              ? {
-                  "@context": "https://schema.org",
-                  "@type": occasion.eventType,
-                  name: `${occasion.name} halal à ${city.name}`,
-                  description: occasion.shortDescription,
-                  startDate: occasion.eventStart,
-                  ...(occasion.eventEnd && { endDate: occasion.eventEnd }),
-                  eventStatus: "https://schema.org/EventScheduled",
-                  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-                  image: [`${SITE_URL}/og-image.png`],
-                  location: {
-                    "@type": "City",
-                    name: city.name,
-                    address: {
-                      "@type": "PostalAddress",
-                      addressLocality: city.name,
-                      addressRegion: city.region,
-                      addressCountry: "FR",
-                    },
+      <JsonLd
+        data={
+          // Schema Event uniquement si on a une vraie date fixe (Aïd, Ramadan).
+          // Sinon WebPage : GSC refuse Event sans startDate (audit 2026-05-03).
+          occasion.eventType && occasion.eventStart
+            ? {
+                "@context": "https://schema.org",
+                "@type": occasion.eventType,
+                name: `${occasion.name} halal à ${city.name}`,
+                description: occasion.shortDescription,
+                startDate: occasion.eventStart,
+                ...(occasion.eventEnd && { endDate: occasion.eventEnd }),
+                eventStatus: "https://schema.org/EventScheduled",
+                eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+                image: [`${SITE_URL}/og-image.png`],
+                location: {
+                  "@type": "City",
+                  name: city.name,
+                  address: {
+                    "@type": "PostalAddress",
+                    addressLocality: city.name,
+                    addressRegion: city.region,
+                    addressCountry: "FR",
                   },
-                  organizer: {
-                    "@type": "Organization",
-                    name: "Klik&Go",
-                    url: SITE_URL,
-                  },
-                  offers: {
-                    "@type": "Offer",
-                    url: `${SITE_URL}/occasions/${occasion.slug}/${city.slug}`,
-                    price: "0",
-                    priceCurrency: "EUR",
-                    availability: "https://schema.org/InStock",
-                    validFrom: new Date().toISOString().split("T")[0],
-                  },
-                }
-              : {
-                  "@context": "https://schema.org",
-                  "@type": "WebPage",
-                  name: `${occasion.name} halal à ${city.name}`,
-                  description: occasion.shortDescription,
+                },
+                organizer: {
+                  "@type": "Organization",
+                  name: "Klik&Go",
+                  url: SITE_URL,
+                },
+                offers: {
+                  "@type": "Offer",
                   url: `${SITE_URL}/occasions/${occasion.slug}/${city.slug}`,
-                  inLanguage: "fr-FR",
-                  isPartOf: {
-                    "@type": "WebSite",
-                    name: "Klik&Go",
-                    url: SITE_URL,
+                  price: "0",
+                  priceCurrency: "EUR",
+                  availability: "https://schema.org/InStock",
+                  validFrom: new Date().toISOString().split("T")[0],
+                },
+              }
+            : {
+                "@context": "https://schema.org",
+                "@type": "WebPage",
+                name: `${occasion.name} halal à ${city.name}`,
+                description: occasion.shortDescription,
+                url: `${SITE_URL}/occasions/${occasion.slug}/${city.slug}`,
+                inLanguage: "fr-FR",
+                isPartOf: {
+                  "@type": "WebSite",
+                  name: "Klik&Go",
+                  url: SITE_URL,
+                },
+                about: {
+                  "@type": "Place",
+                  name: city.name,
+                  address: {
+                    "@type": "PostalAddress",
+                    addressLocality: city.name,
+                    addressRegion: city.region,
+                    addressCountry: "FR",
                   },
-                  about: {
-                    "@type": "Place",
-                    name: city.name,
-                    address: {
-                      "@type": "PostalAddress",
-                      addressLocality: city.name,
-                      addressRegion: city.region,
-                      addressCountry: "FR",
-                    },
-                  },
-                  publisher: {
-                    "@type": "Organization",
-                    name: "Klik&Go",
-                    url: SITE_URL,
-                  },
-                }
-          ),
-        }}
+                },
+                publisher: {
+                  "@type": "Organization",
+                  name: "Klik&Go",
+                  url: SITE_URL,
+                },
+              }
+        }
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
         <p>
@@ -356,33 +354,30 @@ export default async function OccasionCityPage({
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "FAQPage",
-                mainEntity: [
-                  {
-                    "@type": "Question",
-                    name: occasion.servingTip.question,
-                    acceptedAnswer: { "@type": "Answer", text: occasion.servingTip.answer },
+          <JsonLd
+            data={{
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: occasion.servingTip.question,
+                  acceptedAnswer: { "@type": "Answer", text: occasion.servingTip.answer },
+                },
+                {
+                  "@type": "Question",
+                  name: `Combien de temps à l'avance commander un ${occasion.name.toLowerCase()} halal à ${city.name} ?`,
+                  acceptedAnswer: { "@type": "Answer", text: occasion.bookingDelay },
+                },
+                {
+                  "@type": "Question",
+                  name: `Quelle est la viande halal recommandée pour un ${occasion.name.toLowerCase()} ?`,
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `Pour un ${occasion.name.toLowerCase()}, la viande halal traditionnelle est l'agneau. Selon le nombre d'invités et le budget, vous pouvez compléter avec des merguez, brochettes, kefta, et viande hachée. Toutes nos boucheries partenaires sélectionnent leurs viandes halal certifiées auprès d'éleveurs français.`,
                   },
-                  {
-                    "@type": "Question",
-                    name: `Combien de temps à l'avance commander un ${occasion.name.toLowerCase()} halal à ${city.name} ?`,
-                    acceptedAnswer: { "@type": "Answer", text: occasion.bookingDelay },
-                  },
-                  {
-                    "@type": "Question",
-                    name: `Quelle est la viande halal recommandée pour un ${occasion.name.toLowerCase()} ?`,
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: `Pour un ${occasion.name.toLowerCase()}, la viande halal traditionnelle est l'agneau. Selon le nombre d'invités et le budget, vous pouvez compléter avec des merguez, brochettes, kefta, et viande hachée. Toutes nos boucheries partenaires sélectionnent leurs viandes halal certifiées auprès d'éleveurs français.`,
-                    },
-                  },
-                ],
-              }),
+                },
+              ],
             }}
           />
           <div className="space-y-3">

@@ -8,6 +8,7 @@ import prisma from "@/lib/prisma";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 const PAGE_LAST_UPDATED = "2026-05-09";
@@ -99,10 +100,7 @@ export default async function RecettesPage({
           { name: "Recettes halal", url: `${SITE_URL}/recettes` },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
-      />
+      <JsonLd data={collectionSchema} />
       <div className="mx-auto max-w-4xl px-4 py-8">
         {/* Back + Hero */}
         <div className="mb-1 flex items-center gap-3">

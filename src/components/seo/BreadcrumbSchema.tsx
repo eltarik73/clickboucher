@@ -1,8 +1,6 @@
-export function BreadcrumbSchema({
-  items,
-}: {
-  items: { name: string; url: string }[];
-}) {
+import { JsonLd } from "@/components/seo/JsonLd";
+
+export function BreadcrumbSchema({ items }: { items: { name: string; url: string }[] }) {
   const schema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -14,10 +12,5 @@ export function BreadcrumbSchema({
     })),
   };
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
-  );
+  return <JsonLd data={schema} />;
 }

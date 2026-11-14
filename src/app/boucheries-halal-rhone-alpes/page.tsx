@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -77,42 +78,39 @@ export default async function RegionalHubPage() {
           { name: "Boucheries halal Rhône-Alpes", url: `${SITE_URL}/boucheries-halal-rhone-alpes` },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            name: "Annuaire des boucheries halal en Auvergne-Rhône-Alpes",
-            description:
-              "Annuaire complet des boucheries halal certifiées en Auvergne-Rhône-Alpes. Plus de 30 villes couvertes.",
-            url: `${SITE_URL}/boucheries-halal-rhone-alpes`,
-            isPartOf: { "@type": "WebSite", name: "Klik&Go", url: SITE_URL },
-            mainEntity: {
-              "@type": "ItemList",
-              numberOfItems: SEO_CITIES.length,
-              itemListElement: SEO_CITIES.slice(0, 30).map((city, i) => ({
-                "@type": "ListItem",
-                position: i + 1,
-                item: {
-                  "@type": "Place",
-                  name: `Boucheries halal à ${city.name}`,
-                  url: `${SITE_URL}/boucherie-halal/${city.slug}`,
-                  address: {
-                    "@type": "PostalAddress",
-                    addressLocality: city.name,
-                    addressRegion: city.region,
-                    addressCountry: "FR",
-                  },
-                  geo: {
-                    "@type": "GeoCoordinates",
-                    latitude: city.latitude,
-                    longitude: city.longitude,
-                  },
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Annuaire des boucheries halal en Auvergne-Rhône-Alpes",
+          description:
+            "Annuaire complet des boucheries halal certifiées en Auvergne-Rhône-Alpes. Plus de 30 villes couvertes.",
+          url: `${SITE_URL}/boucheries-halal-rhone-alpes`,
+          isPartOf: { "@type": "WebSite", name: "Klik&Go", url: SITE_URL },
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: SEO_CITIES.length,
+            itemListElement: SEO_CITIES.slice(0, 30).map((city, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              item: {
+                "@type": "Place",
+                name: `Boucheries halal à ${city.name}`,
+                url: `${SITE_URL}/boucherie-halal/${city.slug}`,
+                address: {
+                  "@type": "PostalAddress",
+                  addressLocality: city.name,
+                  addressRegion: city.region,
+                  addressCountry: "FR",
                 },
-              })),
-            },
-          }),
+                geo: {
+                  "@type": "GeoCoordinates",
+                  latitude: city.latitude,
+                  longitude: city.longitude,
+                },
+              },
+            })),
+          },
         }}
       />
       {/* TLDR for AI parsers */}
@@ -342,55 +340,52 @@ export default async function RegionalHubPage() {
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "FAQPage",
-                mainEntity: [
-                  {
-                    "@type": "Question",
-                    name: "Combien de boucheries halal sont référencées en Auvergne-Rhône-Alpes sur Klik&Go ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: `Klik&Go référence les boucheries halal certifiées dans plus de ${SEO_CITIES.length} villes en Auvergne-Rhône-Alpes, réparties sur les 5 départements : Savoie, Haute-Savoie, Isère, Rhône et Loire.`,
-                    },
+          <JsonLd
+            data={{
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "Combien de boucheries halal sont référencées en Auvergne-Rhône-Alpes sur Klik&Go ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `Klik&Go référence les boucheries halal certifiées dans plus de ${SEO_CITIES.length} villes en Auvergne-Rhône-Alpes, réparties sur les 5 départements : Savoie, Haute-Savoie, Isère, Rhône et Loire.`,
                   },
-                  {
-                    "@type": "Question",
-                    name: "Quelles sont les villes les plus couvertes en Rhône-Alpes ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Lyon, Grenoble, Saint-Étienne, Chambéry, Annecy, Villeurbanne, Vénissieux, Vaulx-en-Velin, Aix-les-Bains et Annemasse sont les 10 villes principales avec le plus de boucheries halal partenaires Klik&Go. Tous les arrondissements lyonnais (3, 7, 8, 9) et tous les quartiers (Guillotière, Vaise, Croix-Rousse, Bissy, Cognin, etc.) sont couverts.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Quelles sont les villes les plus couvertes en Rhône-Alpes ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Lyon, Grenoble, Saint-Étienne, Chambéry, Annecy, Villeurbanne, Vénissieux, Vaulx-en-Velin, Aix-les-Bains et Annemasse sont les 10 villes principales avec le plus de boucheries halal partenaires Klik&Go. Tous les arrondissements lyonnais (3, 7, 8, 9) et tous les quartiers (Guillotière, Vaise, Croix-Rousse, Bissy, Cognin, etc.) sont couverts.",
                   },
-                  {
-                    "@type": "Question",
-                    name: "Comment commander de la viande halal en ligne en Rhône-Alpes ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Choisissez votre ville, sélectionnez une boucherie halal partenaire, ajoutez vos produits au panier, payez en ligne ou sur place, et récupérez votre commande en boutique au créneau choisi. Frais de service : 0,99€ par commande.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Comment commander de la viande halal en ligne en Rhône-Alpes ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Choisissez votre ville, sélectionnez une boucherie halal partenaire, ajoutez vos produits au panier, payez en ligne ou sur place, et récupérez votre commande en boutique au créneau choisi. Frais de service : 0,99€ par commande.",
                   },
-                  {
-                    "@type": "Question",
-                    name: "Klik&Go propose-t-il la livraison ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Klik&Go propose uniquement le click & collect (retrait en boutique). C'est plus rapide qu'une livraison (souvent 30 min) et sans frais supplémentaires liés à la livraison.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Klik&Go propose-t-il la livraison ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Klik&Go propose uniquement le click & collect (retrait en boutique). C'est plus rapide qu'une livraison (souvent 30 min) et sans frais supplémentaires liés à la livraison.",
                   },
-                  {
-                    "@type": "Question",
-                    name: "Quel département choisir pour trouver une boucherie halal en Rhône-Alpes ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Pour Lyon et son agglomération (Villeurbanne, Vénissieux, Vaulx-en-Velin, Bron, Saint-Priest), allez sur la page Rhône. Pour Grenoble, Échirolles, Voiron, Bourgoin-Jallieu : Isère. Pour Saint-Étienne, Roanne, Firminy : Loire. Pour Chambéry, Aix-les-Bains, Albertville : Savoie. Pour Annecy, Annemasse, Thonon, Cluses : Haute-Savoie.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Quel département choisir pour trouver une boucherie halal en Rhône-Alpes ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Pour Lyon et son agglomération (Villeurbanne, Vénissieux, Vaulx-en-Velin, Bron, Saint-Priest), allez sur la page Rhône. Pour Grenoble, Échirolles, Voiron, Bourgoin-Jallieu : Isère. Pour Saint-Étienne, Roanne, Firminy : Loire. Pour Chambéry, Aix-les-Bains, Albertville : Savoie. Pour Annecy, Annemasse, Thonon, Cluses : Haute-Savoie.",
                   },
-                ],
-              }),
+                },
+              ],
             }}
           />
           <div className="space-y-3">

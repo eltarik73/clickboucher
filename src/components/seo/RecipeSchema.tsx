@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/seo/JsonLd";
+
 type Ingredient = { name: string; quantity: string; unit: string };
 type Step = { number: number; text: string };
 
@@ -113,7 +115,5 @@ export function RecipeSchema({ recipe }: RecipeSchemaProps) {
     url,
   };
 
-  return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
-  );
+  return <JsonLd data={json} />;
 }

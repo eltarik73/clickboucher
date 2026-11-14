@@ -8,6 +8,7 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
+import { JsonLd } from "@/components/seo/JsonLd";
 
 const PAGE_LAST_UPDATED = "2026-05-01";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -127,60 +128,57 @@ export default async function SundayCityPage({ params }: { params: { ville: stri
           },
         ]}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            name: `Boucheries halal ouvertes le dimanche à ${city.name}`,
-            description: `${sundayShops.length} boucheries halal ouvertes le dimanche à ${city.name}.`,
-            url: `${SITE_URL}/boucheries-halal-ouvertes-dimanche/${city.slug}`,
-            mainEntity: {
-              "@type": "ItemList",
-              numberOfItems: sundayShops.length,
-              itemListElement: sundayShops.slice(0, 20).map((s, i) => ({
-                "@type": "ListItem",
-                position: i + 1,
-                item: {
-                  "@type": "Store",
-                  "@id": `${SITE_URL}/boutique/${s.slug}`,
-                  name: s.name,
-                  address: {
-                    "@type": "PostalAddress",
-                    streetAddress: s.address,
-                    addressLocality: s.city,
-                    addressCountry: "FR",
-                  },
-                  ...(s.latitude && s.longitude
-                    ? {
-                        geo: {
-                          "@type": "GeoCoordinates",
-                          latitude: s.latitude,
-                          longitude: s.longitude,
-                        },
-                      }
-                    : {}),
-                  url: `${SITE_URL}/boutique/${s.slug}`,
-                  ...(s.rating && s.ratingCount
-                    ? {
-                        aggregateRating: {
-                          "@type": "AggregateRating",
-                          ratingValue: s.rating,
-                          reviewCount: s.ratingCount,
-                        },
-                      }
-                    : {}),
-                  openingHoursSpecification: {
-                    "@type": "OpeningHoursSpecification",
-                    dayOfWeek: "Sunday",
-                    opens: getDayHours(s.openingHours as OpeningHours | null, 0)?.open,
-                    closes: getDayHours(s.openingHours as OpeningHours | null, 0)?.close,
-                  },
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: `Boucheries halal ouvertes le dimanche à ${city.name}`,
+          description: `${sundayShops.length} boucheries halal ouvertes le dimanche à ${city.name}.`,
+          url: `${SITE_URL}/boucheries-halal-ouvertes-dimanche/${city.slug}`,
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: sundayShops.length,
+            itemListElement: sundayShops.slice(0, 20).map((s, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              item: {
+                "@type": "Store",
+                "@id": `${SITE_URL}/boutique/${s.slug}`,
+                name: s.name,
+                address: {
+                  "@type": "PostalAddress",
+                  streetAddress: s.address,
+                  addressLocality: s.city,
+                  addressCountry: "FR",
                 },
-              })),
-            },
-          }),
+                ...(s.latitude && s.longitude
+                  ? {
+                      geo: {
+                        "@type": "GeoCoordinates",
+                        latitude: s.latitude,
+                        longitude: s.longitude,
+                      },
+                    }
+                  : {}),
+                url: `${SITE_URL}/boutique/${s.slug}`,
+                ...(s.rating && s.ratingCount
+                  ? {
+                      aggregateRating: {
+                        "@type": "AggregateRating",
+                        ratingValue: s.rating,
+                        reviewCount: s.ratingCount,
+                      },
+                    }
+                  : {}),
+                openingHoursSpecification: {
+                  "@type": "OpeningHoursSpecification",
+                  dayOfWeek: "Sunday",
+                  opens: getDayHours(s.openingHours as OpeningHours | null, 0)?.open,
+                  closes: getDayHours(s.openingHours as OpeningHours | null, 0)?.close,
+                },
+              },
+            })),
+          },
         }}
       />
       <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
@@ -326,50 +324,47 @@ export default async function SundayCityPage({ params }: { params: { ville: stri
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "FAQPage",
-                mainEntity: [
-                  {
-                    "@type": "Question",
-                    name: `Quelles boucheries halal sont ouvertes le dimanche à ${city.name} ?`,
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text:
-                        sundayShops.length > 0
-                          ? `Klik&Go référence ${sundayShops.length} boucherie${sundayShops.length > 1 ? "s" : ""} halal ouverte${sundayShops.length > 1 ? "s" : ""} le dimanche à ${city.name} : ${sundayShops.map((s) => s.name).join(", ")}.`
-                          : `Klik&Go arrive bientôt à ${city.name} avec des boucheries halal ouvertes le dimanche. En attendant, consultez les autres boucheries halal partenaires.`,
-                    },
+          <JsonLd
+            data={{
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: `Quelles boucheries halal sont ouvertes le dimanche à ${city.name} ?`,
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text:
+                      sundayShops.length > 0
+                        ? `Klik&Go référence ${sundayShops.length} boucherie${sundayShops.length > 1 ? "s" : ""} halal ouverte${sundayShops.length > 1 ? "s" : ""} le dimanche à ${city.name} : ${sundayShops.map((s) => s.name).join(", ")}.`
+                        : `Klik&Go arrive bientôt à ${city.name} avec des boucheries halal ouvertes le dimanche. En attendant, consultez les autres boucheries halal partenaires.`,
                   },
-                  {
-                    "@type": "Question",
-                    name: "Comment commander de la viande halal le dimanche ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: `Sur Klik&Go, vous pouvez commander la veille (samedi soir) ou le matin même. Choisissez votre boucherie halal partenaire à ${city.name}, sélectionnez vos produits, payez en ligne ou sur place, et récupérez votre commande au créneau choisi le dimanche.`,
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Comment commander de la viande halal le dimanche ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `Sur Klik&Go, vous pouvez commander la veille (samedi soir) ou le matin même. Choisissez votre boucherie halal partenaire à ${city.name}, sélectionnez vos produits, payez en ligne ou sur place, et récupérez votre commande au créneau choisi le dimanche.`,
                   },
-                  {
-                    "@type": "Question",
-                    name: `Quels sont les horaires des boucheries halal à ${city.name} le dimanche ?`,
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: `Les horaires varient selon les boucheries. La plupart ouvrent en matinée (8h-13h) le dimanche. Consultez les horaires précis sur la fiche de chaque boucherie. Klik&Go affiche les horaires en temps réel.`,
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: `Quels sont les horaires des boucheries halal à ${city.name} le dimanche ?`,
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `Les horaires varient selon les boucheries. La plupart ouvrent en matinée (8h-13h) le dimanche. Consultez les horaires précis sur la fiche de chaque boucherie. Klik&Go affiche les horaires en temps réel.`,
                   },
-                  {
-                    "@type": "Question",
-                    name: "Y a-t-il un supplément pour commander le dimanche ?",
-                    acceptedAnswer: {
-                      "@type": "Answer",
-                      text: "Non. Klik&Go facture 0,99€ de frais de service par commande, peu importe le jour. Aucun supplément le dimanche, aucun supplément les jours fériés.",
-                    },
+                },
+                {
+                  "@type": "Question",
+                  name: "Y a-t-il un supplément pour commander le dimanche ?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Non. Klik&Go facture 0,99€ de frais de service par commande, peu importe le jour. Aucun supplément le dimanche, aucun supplément les jours fériés.",
                   },
-                ],
-              }),
+                },
+              ],
             }}
           />
           <div className="space-y-3">
