@@ -12,7 +12,12 @@ interface OrderItem {
 }
 
 interface ConfirmationData {
-  orderId: string;
+  /**
+   * Absolute path of the « Suivre ma commande » link, from the site root: /suivi/<id>/acces/<token>
+   * for a guest order (its credential as a path segment, never in a query string), /suivi/<id>
+   * otherwise. It opens the order: never log it.
+   */
+  trackingPath: string;
   displayNumber: string;
   customerFirstName: string;
   items: OrderItem[];
@@ -41,7 +46,7 @@ export async function sendOrderConfirmationEmail(
   data: ConfirmationData
 ): Promise<boolean> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
-  const suiviUrl = `${baseUrl}/suivi/${data.orderId}`;
+  const suiviUrl = `${baseUrl}${data.trackingPath}`;
 
   const itemsHtml = data.items
     .map(

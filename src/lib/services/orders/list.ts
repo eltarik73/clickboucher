@@ -7,7 +7,7 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { settleDueAdjustmentsWithin } from "@/lib/services/orders/adjustment-answers";
 import { listCustomerOrders } from "@/lib/services/orders/customer-view";
-import { orderInclude } from "@/lib/services/orders/order-read";
+import { orderInclude, orderOmit, toShopOrder } from "@/lib/services/orders/order-read";
 
 /** The user-visible orders page: newest first. */
 const LIST_LIMIT = 50;
@@ -94,8 +94,9 @@ export async function listOrders(userId: string, req: NextRequest): Promise<List
   const orders = await prisma.order.findMany({
     where,
     include: orderInclude,
+    omit: orderOmit,
     orderBy: { createdAt: "desc" },
     take: LIST_LIMIT,
   });
-  return { ok: true, orders };
+  return { ok: true, orders: orders.map(toShopOrder) };
 }

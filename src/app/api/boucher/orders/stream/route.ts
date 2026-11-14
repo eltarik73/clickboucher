@@ -1,6 +1,7 @@
 // src/app/api/boucher/orders/stream/route.ts — SSE real-time stream (Uber Eats WebSocket replacement)
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
+import { getNewOrderAlerts } from "@/lib/services/orders/kitchen";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -58,27 +59,7 @@ export async function GET() {
           // can never make an overlapping tick announce the same order twice.
           const newIds = currentPendingIds.filter((id) => !lastPendingIds.includes(id));
           lastPendingIds = currentPendingIds;
-          const newOrders =
-            newIds.length > 0
-              ? await prisma.order.findMany({
-                  where: { shopId, id: { in: newIds } },
-                  select: {
-                    id: true,
-                    orderNumber: true,
-                    totalCents: true,
-                    createdAt: true,
-                    expiresAt: true,
-                    customerNote: true,
-                    pickupSlotStart: true,
-                    pickupSlotEnd: true,
-                    items: {
-                      select: { name: true, quantity: true, unit: true, priceCents: true },
-                    },
-                    user: { select: { firstName: true, lastName: true } },
-                  },
-                  orderBy: { createdAt: "desc" },
-                })
-              : [];
+          const newOrders = newIds.length > 0 ? await getNewOrderAlerts(shopId, newIds) : [];
 
           // Send new order events
           for (const order of newOrders) {

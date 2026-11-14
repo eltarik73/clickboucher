@@ -5,23 +5,33 @@
 // the browser sends what it wants and the « Total à payer » it confirmed, and any difference is
 // answered with PRICE_CHANGED. Numbers, discount consumption and limited stock are taken inside one
 // transaction (numbering.ts, discount-ledger.ts, limited-stock.ts), so either everything is
-// written or nothing is. An idempotency key makes a retried request return the order created by
-// the first one.
+// written or nothing is, a guest order's credential hash and typed identity included
+// (guest-placement.ts). An idempotency key makes a retried request return the order created by
+// the first one (create-replay.ts).
 import { randomUUID } from "crypto";
 import type { Order, OrderItem } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 import { formatZodError } from "@/lib/api/errors";
+import { orderPagePath } from "@/lib/auth/order-credential";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { lineUnits, toStoredQuantity } from "@/lib/pricing/line";
-import { uniqueViolationFields } from "@/lib/prisma-errors";
 import { computeOrderCommissionFromHt } from "@/lib/services/stripe/commission";
 import { formatPrice } from "@/lib/utils";
 import { createOrderSchema, type CreateOrderRequest } from "@/lib/validators/order";
 import { announceNewOrder } from "./announce";
-import { DiscountUnavailableError, consumeLoyaltyReward, consumeOffer } from "./discount-ledger";
-import { discountUnavailableMessage, type ResolvedDiscount } from "./discount";
-import { LimitedStockError, reserveLimitedStock, stockLinesFromItems } from "./limited-stock";
+import {
+  createdOrderInclude,
+  creationFailure,
+  findByIdempotencyKey,
+  GuestAdmissionRefusedError,
+  replayOr,
+  type Failure,
+} from "./create-replay";
+import { consumeLoyaltyReward, consumeOffer } from "./discount-ledger";
+import type { ResolvedDiscount } from "./discount";
+import { guestOrderColumns, type GuestOrderPlacement } from "./guest-placement";
+import { reserveLimitedStock, stockLinesFromItems } from "./limited-stock";
 import { allocateCustomerNumber, allocateDailyNumber, allocateOrderNumber } from "./numbering";
 import { prepareOrder, type OrderCustomer, type OrderQuote, type OrderShop } from "./quote";
 import { checkShopCanTakeOrder } from "./shop-capacity";
@@ -36,7 +46,8 @@ export type CreateOrderErrorCode =
   | "PRODUCTS_MISSING"
   | "STOCK_INSUFFICIENT"
   | "PRICE_CHANGED"
-  | "CONFLICT";
+  | "CONFLICT"
+  | "RATE_LIMITED";
 
 type CreatedOrder = Order & {
   items: OrderItem[];
@@ -47,36 +58,12 @@ export type CreateOrderResult =
   | { ok: true; status: 201 | 200; order: CreatedOrder }
   | { ok: false; code: CreateOrderErrorCode; message: string; details?: Record<string, string[]> };
 
-type Failure = Extract<CreateOrderResult, { ok: false }>;
-
 const STALE_CART_MESSAGE =
   "Votre panier n'est plus à jour. Rechargez la page puis validez à nouveau votre commande.";
 const PRICE_CHANGED_MESSAGE =
   "Les prix ou la disponibilité ont changé. Vérifiez le nouveau total avant de confirmer.";
-const KEY_ALREADY_USED_MESSAGE = "Cette demande a déjà été utilisée";
-const IDEMPOTENCY_COLUMN = "idempotency_key";
 const TRANSACTION_OPTIONS = { maxWait: 5000, timeout: 10000 } as const;
 const MINUTE_MS = 60_000;
-
-const createdOrderInclude = {
-  items: true,
-  shop: { select: { id: true, name: true, slug: true } },
-} as const;
-
-/** Order already created with this key: returned to its customer only. */
-async function findByIdempotencyKey(
-  idempotencyKey: string,
-  customerId: string
-): Promise<CreateOrderResult | null> {
-  const existing = await prisma.order.findUnique({
-    where: { idempotencyKey },
-    include: createdOrderInclude,
-  });
-  if (existing === null) return null;
-  if (existing.userId !== customerId)
-    return { ok: false, code: "CONFLICT", message: KEY_ALREADY_USED_MESSAGE };
-  return { ok: true, status: 200, order: existing };
-}
 
 /** Status, timers and QR code of a new order, as the shop is configured (auto-accept or not). */
 async function initialState(
@@ -118,6 +105,7 @@ interface Placement {
   discount: ResolvedDiscount | null;
   state: InitialState;
   now: Date;
+  guest?: GuestOrderPlacement;
 }
 
 function insertOrder({
@@ -128,12 +116,20 @@ function insertOrder({
   discount,
   state,
   now,
+  guest,
 }: Placement): Promise<{ order: CreatedOrder; displayNumber: string }> {
+  // Lock order, the same in every path that creates an order: guest cap locks, offer, counters
+  // (customer, day, year), then the products' limited stock.
   return prisma.$transaction(async (tx) => {
+    const refusal = await guest?.admit?.(tx);
+    if (refusal) throw new GuestAdmissionRefusedError(refusal);
     if (discount?.offerId) {
       await consumeOffer(tx, { offerId: discount.offerId, userId: customer.id, now });
     }
-    const customerNumber = await allocateCustomerNumber(tx, shop.id, customer.id);
+    // A guest order takes no shop customer number: the users row it is filed under may be an
+    // account the guest proved nothing about (order-person.ts).
+    const customerNumber =
+      guest === undefined ? await allocateCustomerNumber(tx, shop.id, customer.id) : null;
     const { dailyNumber, displayNumber } = await allocateDailyNumber(tx, shop.id, now);
     const orderNumber = await allocateOrderNumber(tx, now);
 
@@ -165,6 +161,7 @@ function insertOrder({
         qrCode: state.qrCode,
         estimatedReady: state.estimatedReady,
         idempotencyKey: request.idempotencyKey,
+        ...guestOrderColumns(guest),
         pickupSlotStart: request.pickupSlotStart ? new Date(request.pickupSlotStart) : null,
         pickupSlotEnd: request.pickupSlotEnd ? new Date(request.pickupSlotEnd) : null,
         items: {
@@ -218,51 +215,12 @@ function insertOrder({
   }, TRANSACTION_OPTIONS);
 }
 
-/**
- * A request refused while a concurrent request with the same key and customer created the order
- * (its code is then used, its stock taken, its key taken): the answer is that order, not the refusal.
- */
-async function replayOr(
-  request: CreateOrderRequest,
-  customer: OrderCustomer,
-  failure: Failure
-): Promise<CreateOrderResult> {
-  return (await findByIdempotencyKey(request.idempotencyKey, customer.id)) ?? failure;
-}
-
-/**
- * Failures the transaction can end with. The order a concurrent request created with the same key
- * comes first; then the failures the customer can act on; anything else is rethrown.
- */
-async function creationFailure(error: unknown, placement: Placement): Promise<CreateOrderResult> {
-  const replay = await findByIdempotencyKey(
-    placement.request.idempotencyKey,
-    placement.customer.id
-  );
-  if (replay !== null) return replay;
-  if (error instanceof DiscountUnavailableError) {
-    return { ok: false, code: "PRICE_CHANGED", message: discountUnavailableMessage(error.reason) };
-  }
-  if (error instanceof LimitedStockError) {
-    const line = placement.quote.lines.find((candidate) => candidate.productId === error.productId);
-    if (line === undefined) throw error;
-    return {
-      ok: false,
-      code: "STOCK_INSUFFICIENT",
-      message: `${line.name} — stock limité épuisé`,
-      details: { unavailableProductIds: [error.productId] },
-    };
-  }
-  if (uniqueViolationFields(error)?.includes(IDEMPOTENCY_COLUMN)) {
-    return { ok: false, code: "CONFLICT", message: KEY_ALREADY_USED_MESSAGE };
-  }
-  throw error;
-}
-
-/** body = raw JSON without the guest identity fields; customer = Prisma user already resolved by the route. */
+/** body = raw JSON without the guest identity fields; customer = Prisma user already resolved by
+ * the route; guest = guest checkout only (credential hash, typed identity, e-mailed link). */
 export async function createOrder(
   body: unknown,
-  customer: OrderCustomer
+  customer: OrderCustomer,
+  guest?: GuestOrderPlacement
 ): Promise<CreateOrderResult> {
   const parsed = createOrderSchema.safeParse(body);
   if (!parsed.success) {
@@ -286,7 +244,9 @@ export async function createOrder(
   const refusal = priceRefusal(request, quote);
   if (refusal !== null) return replayOr(request, customer, refusal);
 
-  const capacity = await checkShopCanTakeOrder(shop, request, now);
+  const capacity = await checkShopCanTakeOrder(shop, request, now, {
+    asGuest: guest !== undefined,
+  });
   if (!capacity.ok) return replayOr(request, customer, capacity);
 
   const placement: Placement = {
@@ -297,6 +257,7 @@ export async function createOrder(
     discount,
     state: await initialState(shop, request, quote, now),
     now,
+    guest,
   };
   let created: { order: CreatedOrder; displayNumber: string };
   try {
@@ -311,6 +272,7 @@ export async function createOrder(
     shop,
     scheduledFor: placement.state.scheduledFor,
     prepMinutes: placement.state.prepMinutes,
+    trackingPath: guest ? guest.trackingPath(created.order.id) : orderPagePath(created.order.id),
   });
   return { ok: true, status: 201, order: created.order };
 }

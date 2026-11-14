@@ -1,9 +1,11 @@
 // src/lib/services/orders/commands/pickup-receipt.ts — the receipt e-mailed to the customer once the
-// order is collected, whichever way the pickup was confirmed.
+// order is collected, whichever way the pickup was confirmed. It names the person the order names
+// and shows the number it shows (order-person.ts), at the e-mail typed for the order.
 import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { formatCustomerNumber } from "@/lib/order-number-format";
 import { sendOrderReceiptEmail } from "@/lib/emails/order-receipt";
+import { orderCustomerNumber, orderPersonName } from "@/lib/services/orders/order-person";
 
 const DEFAULT_VAT_RATE = 5.5;
 
@@ -26,12 +28,13 @@ export async function sendPickupReceipt(orderId: string, pickedUpAt: Date): Prom
         user: { select: { email: true, firstName: true, lastName: true } },
       },
     });
+    const person = orderPersonName(order);
     const sent = await sendOrderReceiptEmail(order.user.email, {
       orderId: order.id,
       displayNumber: order.displayNumber ?? `#${order.orderNumber}`,
-      customerFirstName: order.user.firstName,
-      customerLastName: order.user.lastName,
-      customerNumber: formatCustomerNumber(order.customerNumber),
+      customerFirstName: person.firstName,
+      customerLastName: person.lastName,
+      customerNumber: formatCustomerNumber(orderCustomerNumber(order)),
       items: order.items.map((item) => ({
         name: item.name,
         quantity: item.quantity,

@@ -424,6 +424,33 @@ const shop = await prisma.shop.findFirst({
 - Test users définis dans `@/lib/auth/test-auth.ts`. Le secret n'est jamais exposé au bundle client
   et ne doit apparaître dans aucun fichier suivi par git.
 
+## Accès invité aux commandes (C1-INVITES)
+
+- **Un jeton par commande invitée** : aléatoire (256 bits), seul son SHA-256 est stocké
+  (`orders.access_token_hash`). Il part dans le cookie httpOnly `klikgo-order-<id>` et dans le lien
+  de l'e-mail `/suivi/<id>/acces/<jeton>` ; jamais dans un corps JSON ni dans une query string.
+  Valable jusqu'à 30 jours après le retrait (`src/lib/auth/order-credential.ts`).
+- **Seuls contrôles d'accès** : `authorizeOrderAccess` (client : propriétaire connecté OU jeton de la
+  commande) et `authorizeOrderRead` (lectures : + boucher de la boutique, admin), dans
+  `src/lib/auth/order-access.ts`. Les commandes client reçoivent `access.customerId` comme portée.
+- **Héritage** : `users.guest_token` n'est plus ni lu ni écrit par un contrôle d'accès ; l'ancien
+  cookie `klikgo-guest-token` et les liens `?guestToken=` (redirigés vers `/acces/`) n'ouvrent que les
+  commandes d'avant C1-INVITES, jusqu'à leur expiration.
+- **Commande non traitée** : `GUEST_ORDER_AWAITING_SHOP` (`src/lib/auth/guest-auth.ts`) = commande
+  invitée `PENDING`, ou `ACCEPTED` par l'acceptation automatique sans aucun événement d'un autre
+  acteur depuis. Elle ne compte ni pour le mode occupé automatique, ni dans la capacité horaire et
+  par créneau des autres clients, ni, une fois expirée, pour la pause automatique.
+- **Plafonds** (sans Redis) : au plus 5 commandes non traitées par e-mail et par téléphone saisi
+  (`orders.customer_phone`, E.164), comptées dans la transaction de création sous verrous
+  consultatifs (`guestOrderAdmission`) ; par boutique, les commandes invitées non traitées ont leur
+  propre borne (`maxOrdersPerHour` / `maxOrdersPerSlot`, `shop-capacity.ts`) ; plus un limiteur par IP.
+- **Personne nommée** : une commande invitée garde l'identité saisie (`orders.customer_first_name`,
+  `customer_last_name`, `customer_phone`) et ne prend aucun numéro client. TOUT lecteur (vue client,
+  cuisine, ticket, listes, exports, statistiques, liste des clients, avis, reçu, WhatsApp) passe par
+  `src/lib/services/orders/order-person.ts`, jamais par `order.user` seul : un e-mail de compte
+  reçoit la même réponse que tout autre (commande rattachée à la ligne, prix publics, pas de code
+  promo) et rien du titulaire n'est montré.
+
 ## Performance (PageSpeed)
 
 - **Images** : WebP first, AVIF fallback — JAMAIS AVIF en premier (transcodage 3-5x plus lent)

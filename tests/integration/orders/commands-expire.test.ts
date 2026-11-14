@@ -120,7 +120,7 @@ describe("expireDueOrders — time budget", () => {
 
     const result = await expireDueOrders({ now, deadline: new Date(now.getTime() - 1) });
 
-    expect(result).toEqual({ expiredShopIds: [], failed: 0, remainingCount: 3 });
+    expect(result).toEqual({ expiredShopIds: [], missedShopIds: [], failed: 0, remainingCount: 3 });
     for (const order of orders) expect((await reload(order.id)).status).toBe("PENDING");
   });
 

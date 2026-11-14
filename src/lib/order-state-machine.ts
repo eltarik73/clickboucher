@@ -107,11 +107,14 @@ export function holdsLimitedStock(status: OrderStatus): boolean {
   return HOLDS_LIMITED_STOCK[status];
 }
 
+/** How long after it was placed an ACCEPTED order stays cancellable by its customer. */
+export const CUSTOMER_CANCEL_WINDOW_MS = 5 * 60 * 1000;
+
 export function isCancellable(status: OrderStatus, createdAt: Date): boolean {
   if (status === "PENDING") return true;
   if (status === "ACCEPTED") {
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-    return createdAt > fiveMinAgo;
+    const windowStart = new Date(Date.now() - CUSTOMER_CANCEL_WINDOW_MS);
+    return createdAt > windowStart;
   }
   return false;
 }

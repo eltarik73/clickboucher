@@ -2,6 +2,11 @@
 // Pure business logic — no Request/Response, no auth. Called from /api/boucher/stats.
 // Feature-gated by subscription plan: STARTER=basic, PRO=advanced charts, PREMIUM=off-peak.
 import prisma from "@/lib/prisma";
+import {
+  orderClientKey,
+  orderPersonColumns,
+  orderPersonName,
+} from "@/lib/services/orders/order-person";
 
 export type StatsPeriod = "week" | "month" | "year";
 
@@ -121,13 +126,14 @@ async function computeStats(
         totalCents: true,
       },
     },
+    userId: true,
     user: {
       select: {
-        id: true,
         firstName: true,
         lastName: true,
       },
     },
+    ...orderPersonColumns,
   };
 
   const [periodOrders, prevPeriodOrders, ordersToday] = await Promise.all([
@@ -269,14 +275,15 @@ async function computeStats(
 
   const clientMap = new Map<string, { name: string; orderCount: number; totalSpent: number }>();
   for (const order of completedOrders) {
-    const clientId = order.user.id;
-    const existing = clientMap.get(clientId);
+    const clientKey = orderClientKey(order);
+    const existing = clientMap.get(clientKey);
     if (existing) {
       existing.orderCount += 1;
       existing.totalSpent += order.totalCents;
     } else {
-      clientMap.set(clientId, {
-        name: `${order.user.firstName} ${order.user.lastName}`,
+      const person = orderPersonName(order);
+      clientMap.set(clientKey, {
+        name: `${person.firstName} ${person.lastName}`,
         orderCount: 1,
         totalSpent: order.totalCents,
       });

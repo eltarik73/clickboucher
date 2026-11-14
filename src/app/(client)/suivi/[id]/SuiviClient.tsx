@@ -1,93 +1,59 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Phone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import type { OrderStatus } from "@prisma/client";
 import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
-import type { SaleUnit } from "@/lib/pricing/line";
+import { Button } from "@/components/ui/button";
+import { useOrderTracker, type TrackedOrder } from "@/hooks/useOrderTracker";
+import { PARIS_TIME_ZONE } from "@/lib/paris-time";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
+import CancelOrderButton from "./CancelOrderButton";
+import EstimatedCountdown from "./EstimatedCountdown";
+import OrderStatusBadge from "./OrderStatusBadge";
+import TrackingTimeline from "./TrackingTimeline";
 
-// ── Types ──
-
-interface OrderItem {
-  id: string;
-  name: string;
-  /** Stored OrderItem.quantity: kilograms for KG and TRANCHE, a count otherwise. */
-  quantity: number;
-  unit: SaleUnit;
-  totalCents: number;
-  weightGrams: number | null;
-}
-
-interface PriceAdjustmentData {
-  id: string;
-  originalTotal: number;
-  newTotal: number;
-  reason: string | null;
-  adjustmentType: string;
-  status: string;
-  tier: number;
-  autoApproveAt: string | null;
-  escalateAt: string | null;
-  createdAt: string;
-}
-
-interface OrderData {
-  id: string;
+interface OrderData extends Omit<TrackedOrder, "displayNumber"> {
   orderNumber: string;
   displayNumber: string;
   /** Customer number in this shop, already formatted ("C-012"); null when the order has none. */
   customerNumber: string | null;
-  status: string;
-  totalCents: number;
   customerNote: string | null;
-  boucherNote: string | null;
-  estimatedReady: string | null;
-  actualReady: string | null;
-  pickedUpAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  items: OrderItem[];
   shop: { id: string; name: string; address: string; city: string; phone: string };
   user: { firstName: string; lastName: string };
-  priceAdjustment: PriceAdjustmentData | null;
 }
-
-// ── Helpers ──
 
 function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
+  return (cents / 100).toFixed(2).replace(".", ",") + " €";
 }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+/**
+ * The page's order with a fresh read applied: the fields that change while the customer watches.
+ * A read older than the order on screen (an answer overtaken by a later one) changes nothing.
+ */
+function withUpdate(prev: OrderData, fresh: TrackedOrder): OrderData {
+  if (Date.parse(fresh.updatedAt) < Date.parse(prev.updatedAt)) return prev;
+  return {
+    ...prev,
+    status: fresh.status,
+    totalCents: fresh.totalCents,
+    boucherNote: fresh.boucherNote,
+    estimatedReady: fresh.estimatedReady,
+    actualReady: fresh.actualReady,
+    pickedUpAt: fresh.pickedUpAt,
+    updatedAt: fresh.updatedAt,
+    displayNumber: fresh.displayNumber ?? prev.displayNumber,
+    items: fresh.items,
+    priceAdjustment: fresh.priceAdjustment,
+  };
 }
 
-const TERMINAL = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
+const READY_REMINDER_MS = 30 * 60 * 1000;
 
-// ── Timeline steps ──
-
-const STEPS = [
-  { key: "PENDING", label: "Commande reçue", emoji: "📋" },
-  { key: "ACCEPTED", label: "Acceptée", emoji: "✅" },
-  { key: "PREPARING", label: "En préparation", emoji: "👨‍🍳" },
-  { key: "READY", label: "Prête", emoji: "🎉" },
-  { key: "PICKED_UP", label: "Retirée", emoji: "✅" },
-];
-
-function getStepIndex(status: string) {
-  const idx = STEPS.findIndex((s) => s.key === status);
-  return idx >= 0 ? idx : 0;
-}
-
-// ── Component ──
-
-// ── Status toast labels ──
-const STATUS_TOAST: Record<string, { label: string; emoji: string }> = {
+// Toast shown when polling brings a new status.
+const STATUS_TOAST: Partial<Record<OrderStatus, { label: string; emoji: string }>> = {
   ACCEPTED: { label: "Commande acceptée !", emoji: "✅" },
   PREPARING: { label: "En préparation...", emoji: "👨‍🍳" },
   READY: { label: "Commande prête — venez la chercher !", emoji: "🎉" },
@@ -99,14 +65,36 @@ const STATUS_TOAST: Record<string, { label: string; emoji: string }> = {
 export default function SuiviClient({ order: initial }: { order: OrderData }) {
   const [order, setOrder] = useState(initial);
   const prevStatusRef = useRef(initial.status);
-  const isTerminal = TERMINAL.includes(order.status);
+  // Time the order has waited at the counter, read after mount and at each update (no clock in
+  // the server render).
+  const [readySinceMs, setReadySinceMs] = useState<number | null>(null);
   const isCollected = order.status === "PICKED_UP" || order.status === "COMPLETED";
   const isReady = order.status === "READY";
-  const readySince = order.actualReady ? Date.now() - new Date(order.actualReady).getTime() : 0;
-  const readyOver30 = isReady && readySince > 30 * 60 * 1000;
+  const waitingMinutes =
+    readySinceMs !== null && readySinceMs > READY_REMINDER_MS
+      ? Math.round(readySinceMs / 60_000)
+      : null;
 
   const customerName = `${order.user.firstName} ${order.user.lastName.charAt(0)}.`;
-  const stepIdx = getStepIndex(order.status);
+
+  // ── Live tracking (polling while the tab is visible) ──
+  const applyUpdate = useCallback(
+    (fresh: TrackedOrder) => setOrder((prev) => withUpdate(prev, fresh)),
+    []
+  );
+  const { refresh } = useOrderTracker({
+    orderId: order.id,
+    status: order.status,
+    onUpdate: applyUpdate,
+  });
+  const onCancelled = useCallback(
+    (cancelled: TrackedOrder) => {
+      // The cancel button has already confirmed it: no second toast for this change.
+      prevStatusRef.current = cancelled.status;
+      applyUpdate(cancelled);
+    },
+    [applyUpdate]
+  );
 
   // ── Toast on status change ──
   useEffect(() => {
@@ -119,76 +107,13 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
     }
   }, [order.status]);
 
-  // ── Polling 5s ──
-  const fetchStatus = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/orders/${order.id}/status`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          setOrder((prev) => ({
-            ...prev,
-            status: json.data.status,
-            totalCents: json.data.totalCents ?? prev.totalCents,
-            boucherNote: json.data.boucherNote ?? prev.boucherNote,
-            estimatedReady: json.data.estimatedReady ?? prev.estimatedReady,
-            actualReady: json.data.actualReady ?? prev.actualReady,
-            pickedUpAt: json.data.pickedUpAt ?? prev.pickedUpAt,
-            updatedAt: json.data.updatedAt ?? prev.updatedAt,
-            displayNumber: json.data.displayNumber ?? prev.displayNumber,
-            items: json.data.items?.length ? json.data.items : prev.items,
-            priceAdjustment:
-              json.data.priceAdjustment !== undefined
-                ? json.data.priceAdjustment
-                : prev.priceAdjustment,
-          }));
-        }
-      }
-    } catch {}
-  }, [order.id]);
-
-  // ── Polling adaptatif + Page Visibility (audit CTO #3 UX 2026-05-09) ──
-  // - Si onglet caché : pause polling (économie batterie + bande passante)
-  // - Cadence : 3s pendant PREPARING/ACCEPTED (high anticipation), 5s en
-  //   PENDING, 10s en READY (déjà notifié), aucun polling en terminal
-  // - Refresh immédiat au retour sur l'onglet
   useEffect(() => {
-    if (isTerminal) return;
-
-    let intervalMs = 5_000;
-    if (order.status === "ACCEPTED" || order.status === "PREPARING") intervalMs = 3_000;
-    else if (order.status === "READY") intervalMs = 10_000;
-
-    let iv: ReturnType<typeof setInterval> | null = null;
-
-    const start = () => {
-      if (iv) return;
-      iv = setInterval(fetchStatus, intervalMs);
-    };
-    const stop = () => {
-      if (iv) {
-        clearInterval(iv);
-        iv = null;
-      }
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        fetchStatus(); // refresh immédiat
-        start();
-      } else {
-        stop();
-      }
-    };
-
-    if (document.visibilityState === "visible") start();
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      stop();
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [fetchStatus, isTerminal, order.status]);
+    setReadySinceMs(
+      order.status === "READY" && order.actualReady
+        ? Date.now() - Date.parse(order.actualReady)
+        : null
+    );
+  }, [order]);
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
@@ -197,9 +122,11 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         <div className="mx-auto flex max-w-[500px] items-center gap-3">
           <Link
             href="/commandes"
+            prefetch={false}
+            aria-label="Mes commandes"
             className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#ece8e3] bg-white shadow-sm dark:border-white/10 dark:bg-[#141414]"
           >
-            <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
+            <ArrowLeft size={17} className="text-gray-900 dark:text-white" aria-hidden="true" />
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="text-sm font-bold text-gray-900 dark:text-white">Suivi commande</h1>
@@ -208,10 +135,8 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[500px] space-y-5 px-5 py-6">
-        {/* ══════════════════════════════════════════════ */}
+      <div className="mx-auto max-w-[500px] space-y-5 px-5 py-6">
         {/* HERO — Big ticket number (shown to boucher) */}
-        {/* ══════════════════════════════════════════════ */}
         <div className="rounded-2xl border border-[#ece8e3] bg-white px-6 py-10 text-center dark:border-white/10 dark:bg-[#141414]">
           {isCollected ? (
             <>
@@ -245,104 +170,49 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           )}
         </div>
 
-        {/* ══════════════════════════════════════════════ */}
         {/* 30-min reminder banner */}
-        {/* ══════════════════════════════════════════════ */}
-        {readyOver30 && (
+        {waitingMinutes !== null && (
           <div className="animate-pulse rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-800/40 dark:bg-amber-900/20">
             <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
               ⏰ Votre commande {order.displayNumber} vous attend au comptoir depuis{" "}
-              {Math.round(readySince / 60000)} minutes !
+              {waitingMinutes} minutes !
             </p>
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════ */}
-        {/* STATUS BADGE */}
-        {/* ══════════════════════════════════════════════ */}
-        {!isCollected && <StatusBadge status={order.status} />}
+        {/* STATUS, CANCEL, OUT-OF-STOCK QUESTION */}
+        {!isCollected && <OrderStatusBadge status={order.status} />}
+        <CancelOrderButton
+          orderId={order.id}
+          status={order.status}
+          createdAt={order.createdAt}
+          onCancelled={onCancelled}
+        />
+        {order.status === "PARTIALLY_DENIED" && (
+          <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-center dark:border-orange-800/40 dark:bg-orange-900/20">
+            <p className="text-sm font-bold text-orange-800 dark:text-orange-300">
+              Un article n'est plus disponible
+            </p>
+            <Button asChild className="mt-3 w-full">
+              <Link href={`/commande/${order.id}`} prefetch={false}>
+                Choisir un remplacement
+              </Link>
+            </Button>
+          </div>
+        )}
 
-        {/* ══════════════════════════════════════════════ */}
         {/* PRICE ADJUSTMENT BANNER */}
-        {/* ══════════════════════════════════════════════ */}
         {order.priceAdjustment && (
           <PriceAdjustmentBanner
             orderId={order.id}
             adjustment={order.priceAdjustment}
-            onUpdate={fetchStatus}
+            onUpdate={refresh}
           />
         )}
 
-        {/* ══════════════════════════════════════════════ */}
-        {/* TIMELINE */}
-        {/* ══════════════════════════════════════════════ */}
-        <div className="rounded-2xl border border-[#ece8e3] bg-white p-5 dark:border-white/10 dark:bg-[#141414]">
-          <div className="space-y-0">
-            {STEPS.map((step, i) => {
-              const isDone = i < stepIdx;
-              const isCurrent = i === stepIdx;
-              const isFuture = i > stepIdx;
-              const time =
-                step.key === "PENDING"
-                  ? fmtTime(order.createdAt)
-                  : step.key === "ACCEPTED" && isDone
-                    ? fmtTime(order.updatedAt)
-                    : step.key === "READY" && order.actualReady
-                      ? fmtTime(order.actualReady)
-                      : step.key === "PICKED_UP" && order.pickedUpAt
-                        ? fmtTime(order.pickedUpAt)
-                        : null;
+        <TrackingTimeline order={order} />
 
-              return (
-                <div key={step.key} className="flex items-start gap-3">
-                  {/* Dot + line */}
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm ${
-                        isDone
-                          ? "bg-emerald-100 dark:bg-emerald-900/30"
-                          : isCurrent
-                            ? "animate-pulse bg-blue-100 dark:bg-blue-900/30"
-                            : "bg-gray-100 dark:bg-white/5"
-                      }`}
-                    >
-                      {isDone ? "✅" : isCurrent ? "🔵" : "○"}
-                    </div>
-                    {i < STEPS.length - 1 && (
-                      <div
-                        className={`h-8 w-0.5 ${
-                          isDone
-                            ? "bg-emerald-300 dark:bg-emerald-700"
-                            : "bg-gray-200 dark:bg-white/10"
-                        }`}
-                      />
-                    )}
-                  </div>
-
-                  {/* Label */}
-                  <div className="pt-1">
-                    <span
-                      className={`text-sm font-semibold ${
-                        isFuture
-                          ? "text-gray-500 dark:text-gray-400 dark:text-gray-600"
-                          : "text-gray-900 dark:text-white"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                    {time && (
-                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">{time}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════ */}
         {/* ITEMS */}
-        {/* ══════════════════════════════════════════════ */}
         <div className="rounded-2xl border border-[#ece8e3] bg-white p-5 dark:border-white/10 dark:bg-[#141414]">
           <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white">Détails</h3>
           <div className="space-y-2">
@@ -373,9 +243,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           )}
         </div>
 
-        {/* ══════════════════════════════════════════════ */}
         {/* BOUCHER NOTE */}
-        {/* ══════════════════════════════════════════════ */}
         {order.boucherNote && (
           <div className="rounded-2xl border border-amber-200/60 bg-amber-50 p-4 dark:border-amber-800/30 dark:bg-amber-900/10">
             <div className="mb-1.5 flex items-center gap-2">
@@ -388,9 +256,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════ */}
         {/* SHOP INFO */}
-        {/* ══════════════════════════════════════════════ */}
         <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
           <h3 className="mb-2 text-sm font-bold text-gray-900 dark:text-white">
             📍 {order.shop.name}
@@ -410,9 +276,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           )}
         </div>
 
-        {/* ══════════════════════════════════════════════ */}
         {/* ESTIMATED TIME + COUNTDOWN */}
-        {/* ══════════════════════════════════════════════ */}
         {order.estimatedReady && !isCollected && !isReady && (
           <EstimatedCountdown estimatedReady={order.estimatedReady} />
         )}
@@ -426,108 +290,10 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
             year: "numeric",
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: PARIS_TIME_ZONE,
           })}
         </p>
-      </main>
-    </div>
-  );
-}
-
-// ── Estimated Countdown ──
-
-function EstimatedCountdown({ estimatedReady }: { estimatedReady: string }) {
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(iv);
-  }, []);
-
-  const target = new Date(estimatedReady).getTime();
-  const diffMs = target - now;
-  const isLate = diffMs < 0;
-  const absDiff = Math.abs(diffMs);
-  const minutes = Math.floor(absDiff / 60_000);
-  const seconds = Math.floor((absDiff % 60_000) / 1000);
-
-  return (
-    <div
-      className={`rounded-2xl border p-5 text-center ${
-        isLate
-          ? "border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-900/20"
-          : "border-blue-200 bg-blue-50 dark:border-blue-800/40 dark:bg-blue-900/20"
-      }`}
-    >
-      <p
-        className={`mb-1 text-xs font-medium ${isLate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"}`}
-      >
-        {isLate ? "Retrait estimé dépassé de" : "Prête dans environ"}
-      </p>
-      <p
-        className={`text-3xl font-black tabular-nums tracking-tight ${
-          isLate ? "text-amber-800 dark:text-amber-300" : "text-blue-800 dark:text-blue-300"
-        }`}
-      >
-        {minutes > 0 ? `${minutes} min ${seconds.toString().padStart(2, "0")}s` : `${seconds}s`}
-      </p>
-      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-        Retrait estimé : {fmtTime(estimatedReady)}
-      </p>
-    </div>
-  );
-}
-
-// ── Status Badge ──
-
-function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { label: string; color: string; bg: string }> = {
-    PENDING: {
-      label: "📦 En attente de validation",
-      color: "text-amber-800 dark:text-amber-300",
-      bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40",
-    },
-    ACCEPTED: {
-      label: "✅ Commande acceptée",
-      color: "text-blue-800 dark:text-blue-300",
-      bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/40",
-    },
-    PREPARING: {
-      label: "👨‍🍳 En préparation",
-      color: "text-indigo-800 dark:text-indigo-300",
-      bg: "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/40",
-    },
-    READY: {
-      label: "🎉 Commande prête !",
-      color: "text-emerald-800 dark:text-emerald-300",
-      bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40",
-    },
-    DENIED: {
-      label: "❌ Commande refusée",
-      color: "text-red-800 dark:text-red-300",
-      bg: "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40",
-    },
-    CANCELLED: {
-      label: "🚫 Commande annulée",
-      color: "text-gray-600 dark:text-gray-400",
-      bg: "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40",
-    },
-    AUTO_CANCELLED: {
-      label: "⏰ Commande expirée",
-      color: "text-gray-600 dark:text-gray-400",
-      bg: "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800/40",
-    },
-    PARTIALLY_DENIED: {
-      label: "⚠️ Partiellement refusée",
-      color: "text-orange-800 dark:text-orange-300",
-      bg: "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/40",
-    },
-  };
-
-  const c = config[status] || config.PENDING;
-
-  return (
-    <div className={`rounded-2xl border p-4 text-center ${c.bg}`}>
-      <p className={`text-sm font-bold ${c.color}`}>{c.label}</p>
+      </div>
     </div>
   );
 }

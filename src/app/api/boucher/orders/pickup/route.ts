@@ -6,8 +6,8 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
-import { formatClientName } from "@/lib/format-kitchen";
 import { storedLineUnits } from "@/lib/pricing/line";
+import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
 import { transitionResponse } from "@/lib/services/orders/commands/http";
 import { confirmPickup } from "@/lib/services/orders/commands/progress";
 
@@ -27,12 +27,13 @@ async function pickupSummary(orderId: string, shopId: string) {
       totalCents: true,
       items: { select: { unit: true, quantity: true, weightGrams: true, available: true } },
       user: { select: { firstName: true, lastName: true } },
+      ...orderPersonColumns,
     },
   });
   return {
     orderId: order.id,
     orderNumber: order.orderNumber,
-    clientName: formatClientName(order.user.firstName, order.user.lastName),
+    clientName: orderClientName(order),
     itemCount: order.items
       .filter((item) => item.available)
       .reduce((sum, item) => sum + storedLineUnits(item), 0),

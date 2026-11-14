@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -99,8 +99,9 @@ export default function PanierPage() {
   // Countdown overlay
   const [countdown, setCountdown] = useState<CheckoutSubmission | null>(null);
 
-  // Clear cart dialog
+  // Clear cart dialog; once it has emptied the cart, focus goes to the empty cart's heading
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const emptyHeadingRef = useRef<HTMLHeadingElement>(null);
 
   // Guest checkout (Baymard +23%) — non-signed-in visitors can place an order
   // by providing email + name + optional phone. A magic link is sent for tracking.
@@ -278,7 +279,13 @@ export default function PanierPage() {
             >
               <ArrowLeft size={17} className="text-gray-900 dark:text-white" />
             </Link>
-            <h1 className="text-lg font-bold text-gray-900 dark:text-white">Mon panier</h1>
+            <h1
+              ref={emptyHeadingRef}
+              tabIndex={-1}
+              className="text-lg font-bold text-gray-900 dark:text-white"
+            >
+              Mon panier
+            </h1>
           </div>
         </header>
 
@@ -761,6 +768,10 @@ export default function PanierPage() {
           clear();
           toast.success("Panier vidé");
         }}
+        onCloseAutoFocus={(event) => {
+          if (emptyHeadingRef.current) event.preventDefault();
+          emptyHeadingRef.current?.focus();
+        }}
       />
 
       {/* ── Countdown overlay ── */}
@@ -783,11 +794,7 @@ export default function PanierPage() {
             writeCheckoutAttempt(null);
             clear();
             toast.success(`Commande ${order.orderNumber} confirmée !`);
-            router.push(
-              order.guestToken
-                ? `/suivi/${order.id}?guestToken=${encodeURIComponent(order.guestToken)}`
-                : `/suivi/${order.id}`
-            );
+            router.push(`/suivi/${order.id}`);
           }}
           onError={(missingProductIds) => {
             setCountdown(null);

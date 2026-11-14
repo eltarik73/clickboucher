@@ -38,7 +38,9 @@ type ProRequest = {
 };
 
 type ClientStat = {
-  userId: string;
+  /** Unique per client: a users row, or a guest identity typed at checkout (userId null). */
+  key: string;
+  userId: string | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -424,7 +426,7 @@ export default function BoucherClientsPage() {
               </Card>
             ) : (
               filteredClients.map((client) => (
-                <Card key={client.userId} className="bg-white dark:bg-[#141414] border-0 shadow-sm">
+                <Card key={client.key} className="bg-white dark:bg-[#141414] border-0 shadow-sm">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="min-w-0">

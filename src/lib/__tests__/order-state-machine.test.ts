@@ -5,7 +5,7 @@
 // here would either let bouchers move orders into impossible states or
 // blacklist legitimate flows. We pin the most important contracts.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { OrderStatus } from "@prisma/client";
 import {
   canTransition,
@@ -14,6 +14,7 @@ import {
   holdsLimitedStock,
   isTerminal,
   isCancellable,
+  CUSTOMER_CANCEL_WINDOW_MS,
   DISCOUNT_RELEASING_STATUSES,
   KITCHEN_ACTIVE_STATUSES,
   KITCHEN_HISTORY_STATUSES,
@@ -200,6 +201,22 @@ describe("isCancellable", () => {
     const tooLate = new Date(Date.now() - 10 * 60 * 1000); // 10 min ago
     expect(isCancellable("ACCEPTED", justAccepted)).toBe(true);
     expect(isCancellable("ACCEPTED", tooLate)).toBe(false);
+  });
+
+  describe("customer cancel window", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("is five minutes, and isCancellable closes exactly at CUSTOMER_CANCEL_WINDOW_MS", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-11-14T12:00:00.000Z"));
+      const placedAgo = (ms: number) => new Date(Date.now() - ms);
+
+      expect(CUSTOMER_CANCEL_WINDOW_MS).toBe(5 * 60 * 1000);
+      expect(isCancellable("ACCEPTED", placedAgo(CUSTOMER_CANCEL_WINDOW_MS - 1))).toBe(true);
+      expect(isCancellable("ACCEPTED", placedAgo(CUSTOMER_CANCEL_WINDOW_MS))).toBe(false);
+    });
   });
 
   it("should block cancelling once preparation has started", () => {

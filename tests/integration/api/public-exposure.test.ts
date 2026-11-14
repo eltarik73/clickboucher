@@ -7,6 +7,7 @@ import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Prisma, Product, Shop, User } from "@prisma/client";
+import { generateOrderCredential, orderAccessCookieName } from "@/lib/auth/order-credential";
 import {
   listBadgeOffers,
   listPopupOffers,
@@ -529,6 +530,11 @@ const SECRET_ORDER_KEYS = [
   "ownerId",
   "clerkId",
   "guestToken",
+  "accessTokenHash",
+  "placedAsGuest",
+  "customerFirstName",
+  "customerLastName",
+  "customerPhone",
   "email",
   "proPriceCents",
   "boutiquePriceCents",
@@ -551,28 +557,44 @@ function expectCustomerView(text: string, json: unknown) {
 }
 
 describe("commandes : vue client", () => {
+  /** A guest order holding its own access credential, as guest checkout writes it. */
   async function guestOrder() {
-    const guest = await createTestUser({ clerkId: null, isGuest: true, guestToken: randomUUID() });
+    const guest = await createTestUser({ clerkId: null, isGuest: true });
+    const credential = generateOrderCredential();
     const order = await createTestOrder({
       shopId: shop.id,
       userId: guest.id,
       items: [{ productId: product.id }],
-      overrides: { commissionCents: 123, stripePaymentIntentId: "pi_itest_secret" },
+      overrides: {
+        commissionCents: 123,
+        stripePaymentIntentId: "pi_itest_secret",
+        accessTokenHash: credential.tokenHash,
+        placedAsGuest: true,
+      },
     });
-    return { guest, order };
+    return { order, credential };
   }
 
-  it("GET /api/orders/[id]?guestToken= : la vue client, sans propriétaire, identifiants ni prix pro", async () => {
-    const { guest, order } = await guestOrder();
+  function withCookie(url: string, name: string, value: string): NextRequest {
+    return new NextRequest(new URL(url, "http://localhost:3000"), {
+      headers: { cookie: `${name}=${value}` },
+    });
+  }
+
+  it("GET /api/orders/[id] avec le cookie de la commande : la vue client, sans propriétaire, identifiants, jeton ni prix pro", async () => {
+    const { order, credential } = await guestOrder();
 
     const { text, json } = await readBody(
-      await getOrder(getRequest(`/api/orders/${order.id}?guestToken=${guest.guestToken}`), {
-        params: { id: order.id },
-      })
+      await getOrder(
+        withCookie(`/api/orders/${order.id}`, orderAccessCookieName(order.id), credential.token),
+        { params: { id: order.id } }
+      )
     );
 
     expectCustomerView(text, json);
     expect(text).not.toContain("pi_itest_secret");
+    expect(text).not.toContain(credential.token);
+    expect(text).not.toContain(credential.tokenHash);
     expect(json.data).toMatchObject({
       id: order.id,
       items: [{ productId: product.id, product: { name: product.name, unit: product.unit } }],
@@ -580,15 +602,23 @@ describe("commandes : vue client", () => {
     });
   });
 
-  it("GET /api/orders/[id] : un jeton invalide ou un autre client ne lisent rien (404)", async () => {
-    const { order } = await guestOrder();
-    const wrongToken = await getOrder(
-      getRequest(`/api/orders/${order.id}?guestToken=${randomUUID()}`),
-      {
-        params: { id: order.id },
-      }
+  it("GET /api/orders/[id] : un mauvais cookie ou un autre client ne lisent rien (404), ?guestToken= seul 401", async () => {
+    const { order, credential } = await guestOrder();
+    const wrongCookie = await getOrder(
+      withCookie(
+        `/api/orders/${order.id}`,
+        orderAccessCookieName(order.id),
+        generateOrderCredential().token
+      ),
+      { params: { id: order.id } }
     );
-    expect(wrongToken.status).toBe(404);
+    expect(wrongCookie.status).toBe(404);
+
+    const queryOnly = await getOrder(
+      getRequest(`/api/orders/${order.id}?guestToken=${credential.token}`),
+      { params: { id: order.id } }
+    );
+    expect(queryOnly.status).toBe(401);
 
     const stranger = await createTestUser();
     auth.clerkId = stranger.clerkId;
@@ -683,7 +713,7 @@ describe("commandes : vue client", () => {
     const created = await guestCheckout(
       new NextRequest(new URL("/api/checkout/guest", "http://localhost:3000"), {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.10" },
         body: JSON.stringify({
           ...request,
           idempotencyKey: randomUUID(),
@@ -696,13 +726,14 @@ describe("commandes : vue client", () => {
     );
     expect(created.status).toBe(201);
     const text = await created.text();
-    const json = JSON.parse(text) as {
-      data: { order: Record<string, unknown>; guestToken: string };
-    };
-    const { guestToken, ...rest } = json.data;
-    expect(typeof guestToken).toBe("string");
-    expectCustomerView(text.replace(guestToken, ""), rest);
-    expect(rest.order).toMatchObject({ totalCents: quote.totalCents, status: "PENDING" });
+    const json = JSON.parse(text) as { data: { order: Record<string, unknown> } };
+    expect(Object.keys(json.data)).toEqual(["order"]);
+    const token = created.cookies.get(orderAccessCookieName(String(json.data.order.id)))?.value;
+    if (token === undefined) throw new Error("la commande invitée doit poser son cookie d'accès");
+    expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(text).not.toContain(token);
+    expectCustomerView(text, json);
+    expect(json.data.order).toMatchObject({ totalCents: quote.totalCents, status: "PENDING" });
 
     const client = await createTestUser();
     const order = await createTestOrder({

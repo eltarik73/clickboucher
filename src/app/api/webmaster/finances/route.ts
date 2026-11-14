@@ -14,6 +14,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
+import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
 
 export async function GET(req: NextRequest) {
   try {
@@ -158,6 +159,7 @@ export async function GET(req: NextRequest) {
         paymentMethod: true,
         shop: { select: { id: true, name: true } },
         user: { select: { firstName: true, lastName: true } },
+        ...orderPersonColumns,
       },
     });
 
@@ -193,9 +195,7 @@ export async function GET(req: NextRequest) {
         paidAt: o.paidAt,
         paymentMethod: o.paymentMethod,
         shop: o.shop,
-        customerName: o.user
-          ? `${o.user.firstName.charAt(0).toUpperCase() + o.user.firstName.slice(1).toLowerCase()}.${o.user.lastName.charAt(0).toUpperCase()}`
-          : "Client",
+        customerName: orderClientName(o),
       })),
       allShops,
     });

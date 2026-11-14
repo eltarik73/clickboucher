@@ -250,9 +250,12 @@ model User {
   role      Role    @default(CLIENT)
 
   // ── Guest checkout (Baymard +23% conversion) ──
-  // A guest user has clerkId=null and a guestToken used for magic link tracking.
-  // If they later sign up with the same email, the Clerk webhook merges by setting clerkId.
+  // A guest user has clerkId=null. Linking a guest's orders to an account created later with the
+  // same email is not implemented yet (C3-COMPTES): the Clerk webhook only creates rows.
   isGuest    Boolean @default(false) @map("is_guest")
+  // Héritage : ni lu ni écrit depuis C1-INVITES (chaque commande invitée porte son propre jeton,
+  // Order.accessTokenHash). Conservé pour le code précédent (fenêtre de déploiement, retour
+  // arrière) ; supprimé par C3-NETTOYAGE une fois les anciens jetons expirés.
   guestToken String? @unique @map("guest_token")
 
   latitude  Float?
@@ -1143,6 +1146,22 @@ model Order {
 
   // ── Idempotence (anti double-commande) ──
   idempotencyKey String? @unique @map("idempotency_key")
+
+  // ── Accès invité (C1-INVITES) ──
+  // SHA-256 (hexadécimal) du jeton d'accès propre à CETTE commande, jamais le jeton lui-même.
+  // Écrit uniquement par la commande invitée ; valable jusqu'à 30 jours après le retrait
+  // (src/lib/auth/order-credential.ts). Jamais cherché par sa valeur : pas d'index.
+  accessTokenHash String? @map("access_token_hash")
+  // Commande passée sans être connecté. Elle ne compte dans le mode occupé automatique et la
+  // pause automatique qu'une fois que la boutique a agi dessus.
+  placedAsGuest   Boolean @default(false) @map("placed_as_guest")
+  // Identité saisie lors de la commande invitée (prénom, nom, téléphone au format E.164), seule
+  // montrée au client : la ligne users de l'e-mail saisi peut appartenir à quelqu'un d'autre.
+  // NULL : c'est la ligne users qui fait foi (commande d'un membre, ou passée avant C1-INVITES).
+  // Pas d'index : le plafond par téléphone parcourt les commandes en attente (index status).
+  customerFirstName String? @map("customer_first_name")
+  customerLastName  String? @map("customer_last_name")
+  customerPhone     String? @map("customer_phone")
 
   source      String  @default("app")
   isRecurring Boolean @default(false) @map("is_recurring")

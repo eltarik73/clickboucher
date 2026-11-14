@@ -5,6 +5,7 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { handleApiError } from "@/lib/api/errors";
+import { orderPerson, type OrderPersonColumns } from "@/lib/services/orders/order-person";
 
 const STATUS_FR: Record<string, string> = {
   PENDING: "En attente",
@@ -76,13 +77,12 @@ async function getExportOrders(req: NextRequest) {
   return { orders, shopName, from, to };
 }
 
-function formatOrderRow(order: { createdAt: Date; displayNumber: string | null; orderNumber: string; user: { firstName: string; lastName: string; phone: string | null; email: string | null } | null; shop: { name: string } | null; status: string; items: { quantity: number; name: string; product: { name: string; unit: string } | null }[]; totalCents: number; paymentMethod: string; customerNote: string | null }) {
+function formatOrderRow(order: OrderPersonColumns & { createdAt: Date; displayNumber: string | null; orderNumber: string; user: { firstName: string; lastName: string; phone: string | null; email: string }; shop: { name: string } | null; status: string; items: { quantity: number; name: string; product: { name: string; unit: string } | null }[]; totalCents: number; paymentMethod: string; customerNote: string | null }) {
   const date = new Date(order.createdAt);
   const dateStr = date.toLocaleDateString("fr-FR");
   const timeStr = date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  const clientName = order.user
-    ? `${order.user.firstName} ${order.user.lastName}`
-    : "Inconnu";
+  const person = orderPerson(order);
+  const clientName = `${person.firstName} ${person.lastName}`;
   const articles = order.items
     .map((i) => `${i.quantity}x ${i.product?.name || i.name}`)
     .join(", ");
@@ -94,8 +94,8 @@ function formatOrderRow(order: { createdAt: Date; displayNumber: string | null; 
     dateStr,
     timeStr,
     clientName,
-    phone: order.user?.phone || "",
-    email: order.user?.email || "",
+    phone: person.phone ?? "",
+    email: order.user.email,
     shopName: order.shop?.name || "",
     status: STATUS_FR[order.status] || order.status,
     articles,

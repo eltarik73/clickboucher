@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiError, handleApiError } from "@/lib/api/errors";
+import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
 
 function escapeCsv(s: string | null | undefined): string {
   if (s === null || s === undefined) return "";
@@ -61,6 +62,7 @@ export async function GET(req: NextRequest) {
         paidAt: true,
         paymentMethod: true,
         user: { select: { firstName: true, lastName: true, email: true } },
+        ...orderPersonColumns,
       },
     });
 
@@ -80,12 +82,8 @@ export async function GET(req: NextRequest) {
     const rows = orders.map((o) => [
       escapeCsv(o.paidAt ? o.paidAt.toISOString().slice(0, 10) : ""),
       escapeCsv(o.displayNumber || o.orderNumber),
-      escapeCsv(
-        o.user
-          ? `${o.user.firstName.charAt(0).toUpperCase() + o.user.firstName.slice(1).toLowerCase()}.${o.user.lastName.charAt(0).toUpperCase()}`
-          : "Client",
-      ),
-      escapeCsv(o.user?.email),
+      escapeCsv(orderClientName(o)),
+      escapeCsv(o.user.email),
       fmtEuro(o.totalCents),
       fmtEuro(o.platformFeeCents),
       fmtEuro(o.serviceFeeCents),

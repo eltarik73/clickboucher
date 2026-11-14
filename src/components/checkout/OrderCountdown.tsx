@@ -9,7 +9,6 @@ import type { CheckoutSubmission } from "@/lib/cart/order-payload";
 export interface PlacedOrder {
   id: string;
   orderNumber: string;
-  guestToken?: string;
 }
 
 interface OrderCountdownProps {
@@ -43,15 +42,18 @@ interface ApiErrorBody {
   details?: { missingProductIds?: string[] };
 }
 
-/** The order of a 201 or of a 200 replay. The guest endpoint answers { order, guestToken }. */
+/**
+ * The order of a 201 or of a 200 replay: data.order for the guest endpoint, data itself for the
+ * signed-in one. A guest's access to the order travels in an httpOnly cookie, never in the body.
+ */
 function placedOrderFrom(data: unknown): PlacedOrder | null {
   if (data === null || typeof data !== "object") return null;
-  const body = data as { order?: unknown; guestToken?: unknown };
-  const order = (body.order ?? data) as { id?: unknown; orderNumber?: unknown };
+  const order = ((data as { order?: unknown }).order ?? data) as {
+    id?: unknown;
+    orderNumber?: unknown;
+  };
   if (typeof order.id !== "string" || typeof order.orderNumber !== "string") return null;
-  const guestToken =
-    body.order && typeof body.guestToken === "string" ? body.guestToken : undefined;
-  return { id: order.id, orderNumber: order.orderNumber, ...(guestToken && { guestToken }) };
+  return { id: order.id, orderNumber: order.orderNumber };
 }
 
 // ── Component ────────────────────────────────────────────────

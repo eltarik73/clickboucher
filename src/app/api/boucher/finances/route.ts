@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 import prisma from "@/lib/prisma";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
+import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
 import {
   getEffectiveCommissionRate,
   TIER_THRESHOLDS,
@@ -121,6 +122,7 @@ export async function GET() {
         paidAt: true,
         paymentMethod: true,
         user: { select: { firstName: true, lastName: true } },
+        ...orderPersonColumns,
       },
     });
 
@@ -189,9 +191,7 @@ export async function GET() {
         shopPayoutCents: o.shopPayoutCents,
         paidAt: o.paidAt,
         paymentMethod: o.paymentMethod,
-        customerName: o.user
-          ? `${o.user.firstName.charAt(0).toUpperCase() + o.user.firstName.slice(1).toLowerCase()}.${o.user.lastName.charAt(0).toUpperCase()}`
-          : "Client",
+        customerName: orderClientName(o),
       })),
     });
   } catch (err) {

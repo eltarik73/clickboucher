@@ -1,11 +1,14 @@
 // src/app/api/orders/[id]/choose-alternatives/route.ts — the customer answers the out-of-stock
 // lines of a PARTIALLY_DENIED order: each one is replaced or removed, then the butcher decides again.
+// The customer is the holder of the order's credential cookie or the signed-in customer who placed
+// it (authorizeOrderAccess, src/lib/auth/order-access.ts), checked before the body is read. An order
+// outside the caller's reach is 404.
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { getServerUserId } from "@/lib/auth/server-auth";
-import { apiError, handleApiError } from "@/lib/api/errors";
+import { apiError, formatZodError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
+import { authorizeOrderAccess, orderAccessRefusal } from "@/lib/auth/order-access";
 import { customerTransitionResponse } from "@/lib/services/orders/commands/http";
-import { customerUserId } from "@/lib/services/orders/commands/outcome";
 import { resolveUnavailableItems } from "@/lib/services/orders/commands/unavailable";
 
 export const dynamic = "force-dynamic";
@@ -26,15 +29,21 @@ const choiceSchema = z.object({
 // ── POST /api/orders/[id]/choose-alternatives ──
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const clerkId = await getServerUserId();
-    if (!clerkId) return apiError("UNAUTHORIZED", "Authentification requise");
+    const access = await authorizeOrderAccess(params.id, req.cookies);
+    if (!access.ok) return orderAccessRefusal(access.status);
 
-    const { decisions } = choiceSchema.parse(await req.json());
-    const userId = await customerUserId(clerkId);
-    if (userId === null) return apiError("NOT_FOUND", "Commande introuvable");
+    const parsed = choiceSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
+    }
 
     return await customerTransitionResponse(
-      await resolveUnavailableItems({ orderId: params.id, userId, decisions, now: new Date() })
+      await resolveUnavailableItems({
+        orderId: access.orderId,
+        userId: access.customerId,
+        decisions: parsed.data.decisions,
+        now: new Date(),
+      })
     );
   } catch (error) {
     return handleApiError(error, "orders/choose-alternatives");

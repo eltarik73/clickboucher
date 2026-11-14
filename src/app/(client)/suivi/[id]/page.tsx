@@ -2,97 +2,40 @@ export const dynamic = "force-dynamic";
 
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { getServerUserId } from "@/lib/auth/server-auth";
-import prisma from "@/lib/prisma";
-import { GUEST_COOKIE_NAME } from "@/lib/auth/guest-auth";
+import { authorizeOrderAccess } from "@/lib/auth/order-access";
+import { isCredentialShaped, orderAccessPath, orderPagePath } from "@/lib/auth/order-credential";
+import { findCustomerOrder } from "@/lib/services/orders/customer-view";
 import { formatCustomerNumber } from "@/lib/order-number-format";
 import SuiviClient from "./SuiviClient";
 
+// Tracking page of an order, for its customer: the order's credential cookie or the signed-in owner
+// (src/lib/auth/order-access.ts). Anyone else: sign-in without a session, 404 otherwise.
 export default async function SuiviPage({
   params,
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { guestToken?: string };
+  searchParams: { guestToken?: string | string[] };
 }) {
   const { id } = params;
 
-  // Guest checkout magic-link path: ?guestToken=... or httpOnly cookie.
-  const guestTokenFromQuery = searchParams?.guestToken;
-  const guestTokenFromCookie = cookies().get(GUEST_COOKIE_NAME)?.value;
-  const guestToken = guestTokenFromQuery || guestTokenFromCookie;
-
-  // Auth check — only order owner (Clerk) or matching guest token can view tracking.
-  const clerkId = await getServerUserId();
-  if (!clerkId && !guestToken) {
-    redirect(`/sign-in?redirect_url=/suivi/${id}`);
+  // Link of a confirmation sent before C1-INVITES (legacy token in the query string): the token
+  // leaves the query string for the access link, which checks it and sets the order's cookie.
+  const legacyToken = searchParams.guestToken;
+  if (typeof legacyToken === "string" && isCredentialShaped(legacyToken)) {
+    redirect(orderAccessPath(id, legacyToken));
   }
 
-  const dbUser = clerkId
-    ? await prisma.user.findUnique({
-        where: { clerkId },
-        select: { id: true },
-      })
-    : null;
-
-  const order = await prisma.order.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      orderNumber: true,
-      dailyNumber: true,
-      displayNumber: true,
-      customerNumber: true,
-      status: true,
-      totalCents: true,
-      customerNote: true,
-      boucherNote: true,
-      estimatedReady: true,
-      actualReady: true,
-      pickedUpAt: true,
-      createdAt: true,
-      updatedAt: true,
-      items: {
-        select: {
-          id: true,
-          name: true,
-          quantity: true,
-          unit: true,
-          totalCents: true,
-          weightGrams: true,
-        },
-      },
-      shop: { select: { id: true, name: true, address: true, city: true, phone: true } },
-      userId: true,
-      user: { select: { firstName: true, lastName: true, clerkId: true, guestToken: true } },
-      priceAdjustment: {
-        select: {
-          id: true,
-          originalTotal: true,
-          newTotal: true,
-          reason: true,
-          adjustmentType: true,
-          status: true,
-          tier: true,
-          autoApproveAt: true,
-          escalateAt: true,
-          createdAt: true,
-        },
-      },
-    },
-  });
-
-  if (!order) notFound();
-
-  // Verify order belongs to the requester:
-  //  - Clerk owner: matches clerkId or Prisma userId.
-  //  - Guest: guestToken on the order's user matches the token.
-  const isClerkOwner = !!clerkId && (order.user.clerkId === clerkId || order.userId === dbUser?.id);
-  const isGuestOwner =
-    !!guestToken && !!order.user.guestToken && order.user.guestToken === guestToken;
-  if (!isClerkOwner && !isGuestOwner) {
+  const access = await authorizeOrderAccess(id, cookies());
+  if (!access.ok) {
+    if (access.status === 401) {
+      redirect(`/sign-in?redirect_url=${encodeURIComponent(orderPagePath(id))}`);
+    }
     notFound();
   }
+
+  const order = await findCustomerOrder({ id: access.orderId });
+  if (!order) notFound();
 
   return (
     <SuiviClient
@@ -118,7 +61,13 @@ export default async function SuiviPage({
           totalCents: i.totalCents,
           weightGrams: i.weightGrams,
         })),
-        shop: order.shop,
+        shop: {
+          id: order.shop.id,
+          name: order.shop.name,
+          address: order.shop.address,
+          city: order.shop.city,
+          phone: order.shop.phone,
+        },
         user: {
           firstName: order.user.firstName,
           lastName: order.user.lastName,

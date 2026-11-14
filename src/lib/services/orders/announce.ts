@@ -1,11 +1,13 @@
 // src/lib/services/orders/announce.ts — what follows the commit of a new order: the butcher's alert,
-// the customer's confirmation e-mail and the shop's auto-busy check.
+// the customer's confirmation e-mail and the shop's auto-busy check. A guest order the shop has not
+// acted on is left out of that check (GUEST_ORDER_AWAITING_SHOP): anyone can place one.
 //
 // Awaited before the HTTP response, so a serverless function cannot be frozen with sends in flight.
 // The order exists whatever happens here: a failure is logged, never returned.
 import type { Order, OrderItem } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { GUEST_ORDER_AWAITING_SHOP } from "@/lib/auth/guest-auth";
 import { sendOrderConfirmationEmail } from "@/lib/emails/order-confirmation";
 import { logger } from "@/lib/logger";
 import { sendNotification } from "@/lib/notifications";
@@ -23,6 +25,8 @@ export interface NewOrderAnnouncement {
   /** Pickup slot start when the order is scheduled for later, else null. */
   scheduledFor: Date | null;
   prepMinutes: number;
+  /** Tracking link of the confirmation e-mail: orderAccessPath (guest order) or orderPagePath. */
+  trackingPath: string;
 }
 
 export async function announceNewOrder(input: NewOrderAnnouncement): Promise<void> {
@@ -47,7 +51,7 @@ export async function announceNewOrder(input: NewOrderAnnouncement): Promise<voi
     [
       "confirmation e-mail",
       sendOrderConfirmationEmail(customer.email, {
-        orderId: order.id,
+        trackingPath: input.trackingPath,
         displayNumber: input.displayNumber,
         customerFirstName: customer.firstName,
         items: order.items,
@@ -63,7 +67,13 @@ export async function announceNewOrder(input: NewOrderAnnouncement): Promise<voi
     [
       "auto-busy check",
       prisma.order
-        .count({ where: { shopId: shop.id, status: { in: ["PENDING", "ACCEPTED", "PREPARING"] } } })
+        .count({
+          where: {
+            shopId: shop.id,
+            status: { in: ["PENDING", "ACCEPTED", "PREPARING"] },
+            NOT: GUEST_ORDER_AWAITING_SHOP,
+          },
+        })
         .then((activeOrders) =>
           activeOrders >= shop.autoBusyThreshold && !shop.busyMode
             ? setBusyMode(shop.id, AUTO_BUSY)

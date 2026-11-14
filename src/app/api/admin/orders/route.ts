@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
 import { requireAdmin } from "@/lib/admin-auth";
+import { orderPersonColumns, withOrderPersonName } from "@/lib/services/orders/order-person";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ export async function GET(req: NextRequest) {
           user: {
             select: { id: true, firstName: true, lastName: true, email: true },
           },
+          ...orderPersonColumns,
           shop: {
             select: { id: true, name: true, slug: true },
           },
@@ -106,7 +108,7 @@ export async function GET(req: NextRequest) {
     });
 
     return apiSuccess({
-      orders,
+      orders: orders.map(withOrderPersonName),
       total,
       page,
       limit,

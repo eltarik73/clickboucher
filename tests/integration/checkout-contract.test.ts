@@ -46,6 +46,7 @@ import {
   type CheckoutSelection,
   type CheckoutSubmission,
 } from "@/lib/cart/order-payload";
+import { hashOrderCredential, orderAccessCookieName } from "@/lib/auth/order-credential";
 import { toStoredQuantity } from "@/lib/pricing/line";
 import { sliceWeightGrams } from "@/lib/pricing/preparation";
 import { resolveUnitPrice } from "@/lib/pricing/unit-price";
@@ -433,15 +434,34 @@ describe("contrat panier → commande : choix de préparation", () => {
 
 const ROUTES = { "/api/orders": postOrder, "/api/checkout/guest": postGuestCheckout } as const;
 
+let clientIpSequence = 0;
+
 async function submit(submission: CheckoutSubmission) {
+  clientIpSequence += 1;
   const response = await ROUTES[submission.endpoint](
     new NextRequest(`http://localhost${submission.endpoint}`, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": `203.0.113.${clientIpSequence}`,
+      },
       body: JSON.stringify(submission.body),
     })
   );
-  return { status: response.status, body: await response.json() };
+  return {
+    status: response.status,
+    body: await response.json(),
+    cookies: response.cookies.getAll(),
+  };
+}
+
+type Submitted = Awaited<ReturnType<typeof submit>>;
+
+/** The order's access credential the answer set in the cookie klikgo-order-<orderId>. */
+function accessCookieOf(answer: Submitted, orderId: string): string {
+  const cookie = answer.cookies.find(({ name }) => name === orderAccessCookieName(orderId));
+  if (cookie === undefined) throw new Error(`aucun cookie ${orderAccessCookieName(orderId)}`);
+  return cookie.value;
 }
 
 function rawPost(path: string, body: string) {
@@ -492,19 +512,34 @@ describe("contrat panier → routes de commande", () => {
 
     const first = await submit(submission);
     expect(first.status).toBe(201);
-    expect(typeof first.body.data.guestToken).toBe("string");
+    expect(first.body.data).not.toHaveProperty("guestToken");
     const order = await prisma.order.findUniqueOrThrow({ where: { id: first.body.data.order.id } });
     expect(order.totalCents).toBe(quote.totalCents);
+    const firstCredential = accessCookieOf(first, order.id);
+    expect(order).toMatchObject({
+      placedAsGuest: true,
+      accessTokenHash: hashOrderCredential(firstCredential),
+    });
     const guest = await prisma.user.findUniqueOrThrow({
       where: { email: "nora.invitee@itest.klikandgo.test" },
     });
-    expect(guest).toMatchObject({ isGuest: true, clerkId: null, firstName: "Nora", phone: null });
-    expect(guest.guestToken).toBe(first.body.data.guestToken);
+    expect(guest).toMatchObject({
+      isGuest: true,
+      clerkId: null,
+      firstName: "Nora",
+      phone: null,
+      guestToken: null,
+    });
     expect(order.userId).toBe(guest.id);
 
     const replay = await submit(submission);
     expect(replay.status).toBe(200);
     expect(replay.body.data.order.id).toBe(order.id);
+    const replayCredential = accessCookieOf(replay, order.id);
+    expect(replayCredential).not.toBe(firstCredential);
+    expect(
+      (await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).accessTokenHash
+    ).toBe(hashOrderCredential(replayCredential));
     expect(await prisma.order.count()).toBe(1);
   });
 
@@ -519,7 +554,13 @@ describe("contrat panier → routes de commande", () => {
     const created = await submit(submission);
     expect(created.status).toBe(201);
     const order = await prisma.order.findUniqueOrThrow({ where: { id: created.body.data.id } });
-    expect(order).toMatchObject({ userId: world.customer.id, totalCents: quote.totalCents });
+    expect(order).toMatchObject({
+      userId: world.customer.id,
+      totalCents: quote.totalCents,
+      placedAsGuest: false,
+      accessTokenHash: null,
+    });
+    expect(created.cookies.map(({ name }) => name)).not.toContain(orderAccessCookieName(order.id));
   });
 });
 
@@ -540,12 +581,13 @@ describe("contrat panier → routes de commande : premières commandes simultan�
     expect(answers.map((answer) => answer.status).sort()).toEqual([200, 200, 201]);
     const orderIds = new Set(answers.map((answer) => answer.body.data.order.id));
     expect(orderIds.size).toBe(1);
-    const guest = await prisma.user.findUniqueOrThrow({
-      where: { email: "samir.simultane@itest.klikandgo.test" },
-    });
-    expect(new Set(answers.map((answer) => answer.body.data.guestToken))).toEqual(
-      new Set([guest.guestToken])
-    );
+    const [orderId] = orderIds;
+    const credentials = answers.map((answer) => accessCookieOf(answer, orderId));
+    const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    expect(order.placedAsGuest).toBe(true);
+    expect(
+      credentials.filter((credential) => hashOrderCredential(credential) === order.accessTokenHash)
+    ).toHaveLength(1);
     expect(
       await prisma.user.count({ where: { email: "samir.simultane@itest.klikandgo.test" } })
     ).toBe(1);

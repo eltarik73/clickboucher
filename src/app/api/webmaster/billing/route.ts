@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { orderPersonColumns, withOrderPersonName } from "@/lib/services/orders/order-person";
 
 export const dynamic = "force-dynamic";
 
@@ -141,6 +142,7 @@ export async function GET(req: NextRequest) {
         createdAt: true,
         shop: { select: { id: true, name: true } },
         user: { select: { firstName: true, lastName: true } },
+        ...orderPersonColumns,
       },
       orderBy: { createdAt: "desc" },
       take: 20,
@@ -169,7 +171,7 @@ export async function GET(req: NextRequest) {
       },
       shopRows,
       monthlyTrend,
-      recentOrders,
+      recentOrders: recentOrders.map(withOrderPersonName),
       shopsNoCommission,
     });
   } catch (error) {

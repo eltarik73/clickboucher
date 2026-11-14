@@ -4,9 +4,19 @@
 // idempotency key, offer and loyalty references, the butcher's weighing columns of the lines, the
 // product row (pro and boutique prices, stock, reference catalogue), the shop owner and every user
 // identifier.
+//
+// The person an order names and the customer number it shows follow the rule every reader uses
+// (order-person.ts): a guest order shows the identity typed at checkout, never the users row it is
+// filed under, and no customer number (C1-INVITES).
 import type { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import {
+  orderCustomerNumber,
+  orderPersonColumns,
+  orderPersonName,
+  splitOrderPerson,
+} from "./order-person";
 
 export const customerOrderSelect = {
   id: true,
@@ -90,11 +100,30 @@ export const customerOrderSelect = {
 
 export type CustomerOrder = Prisma.OrderGetPayload<{ select: typeof customerOrderSelect }>;
 
+/** What the queries read: the allow-list, plus the columns that decide whom the order names. */
+const customerOrderQuery = {
+  ...customerOrderSelect,
+  ...orderPersonColumns,
+} as const satisfies Prisma.OrderSelect;
+
+type CustomerOrderRow = Prisma.OrderGetPayload<{ select: typeof customerOrderQuery }>;
+
+/** The row as the customer reads it: the person resolved, the deciding columns left out. */
+function toCustomerOrder(row: CustomerOrderRow): CustomerOrder {
+  const { order, person } = splitOrderPerson(row);
+  return {
+    ...order,
+    user: orderPersonName({ ...person, user: order.user }),
+    customerNumber: orderCustomerNumber({ ...person, customerNumber: order.customerNumber }),
+  };
+}
+
 /** The order matching `where` (which carries the caller's ownership), or null. */
 export async function findCustomerOrder(
   where: Prisma.OrderWhereInput
 ): Promise<CustomerOrder | null> {
-  return prisma.order.findFirst({ where, select: customerOrderSelect });
+  const row = await prisma.order.findFirst({ where, select: customerOrderQuery });
+  return row === null ? null : toCustomerOrder(row);
 }
 
 /** The orders matching `where`, newest first, at most `take`. */
@@ -102,15 +131,20 @@ export async function listCustomerOrders(
   where: Prisma.OrderWhereInput,
   take: number
 ): Promise<CustomerOrder[]> {
-  return prisma.order.findMany({
+  const rows = await prisma.order.findMany({
     where,
-    select: customerOrderSelect,
+    select: customerOrderQuery,
     orderBy: { createdAt: "desc" },
     take,
   });
+  return rows.map(toCustomerOrder);
 }
 
 /** The customer view of an order the caller has just created or changed within its own scope. */
 export async function customerOrderById(orderId: string): Promise<CustomerOrder> {
-  return prisma.order.findUniqueOrThrow({ where: { id: orderId }, select: customerOrderSelect });
+  const row = await prisma.order.findUniqueOrThrow({
+    where: { id: orderId },
+    select: customerOrderQuery,
+  });
+  return toCustomerOrder(row);
 }

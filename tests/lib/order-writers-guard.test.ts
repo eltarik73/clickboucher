@@ -25,6 +25,8 @@ const ORDER_WRITERS: Record<string, string> = {
   "src/lib/services/orders/commands/progress.ts":
     "actions boucher sans changement de statut (délai, note), sous verrou de ligne",
   "src/lib/services/orders/commands/rate.ts": "note du client sur une commande terminée",
+  "src/lib/auth/order-access.ts":
+    "jeton d'accès d'une commande invitée : remplacement au rejeu (access_token_hash seul, jamais le statut)",
   "src/app/api/payments/webhook/route.ts":
     "webhook Stripe, paiement en ligne inactif (hors périmètre)",
   "src/lib/services/stripe/checkout-session.ts":

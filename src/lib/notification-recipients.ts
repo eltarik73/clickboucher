@@ -1,6 +1,7 @@
 // Destinataire d'une notification et ses préférences de canal.
 import prisma from "@/lib/prisma";
 import type { NotifData, NotifEvent } from "@/lib/notifications";
+import { orderPersonColumns, typedGuestPerson } from "@/lib/services/orders/order-person";
 
 export type NotificationRecipient = {
   id: string;
@@ -55,10 +56,24 @@ export async function resolveNotificationRecipient(
   }
 
   if (!data.userId) return null;
-  const byClerkId = await prisma.user.findUnique({
-    where: { clerkId: data.userId },
-    select: RECIPIENT_SELECT,
+  const recipient =
+    (await prisma.user.findUnique({ where: { clerkId: data.userId }, select: RECIPIENT_SELECT })) ??
+    (await prisma.user.findUnique({ where: { id: data.userId }, select: RECIPIENT_SELECT }));
+  if (recipient === null || !data.orderId) return recipient;
+  return { ...recipient, phone: await orderContactPhone(data.orderId, recipient.phone) };
+}
+
+/**
+ * Le téléphone auquel joindre le client d'une commande : celui saisi lors d'une commande invitée
+ * (aucun s'il n'en a pas saisi), jamais celui de la ligne users sous laquelle elle est rangée, qui
+ * peut appartenir à quelqu'un d'autre (src/lib/services/orders/order-person.ts) ; sinon celui de
+ * la ligne users.
+ */
+async function orderContactPhone(orderId: string, rowPhone: string | null): Promise<string | null> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: orderPersonColumns,
   });
-  if (byClerkId) return byClerkId;
-  return prisma.user.findUnique({ where: { id: data.userId }, select: RECIPIENT_SELECT });
+  const typed = order === null ? null : typedGuestPerson(order);
+  return typed === null ? rowPhone : typed.phone;
 }

@@ -2,12 +2,13 @@
 // refused or cancelled by the butcher, cancelled by the customer, expired (system).
 import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { formatClientName } from "@/lib/format-kitchen";
+import { countsTowardAutoPause } from "@/lib/auth/guest-auth";
 import { logger } from "@/lib/logger";
 import { sendNotification } from "@/lib/notifications";
 import { holdsLimitedStock } from "@/lib/order-state-machine";
 import { closePendingAdjustment } from "@/lib/services/orders/adjustment-settlement";
 import { releaseOrderDiscount } from "@/lib/services/orders/discount-ledger";
+import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
 import {
   SYSTEM_ACTOR_ID,
   transitionOrder,
@@ -42,6 +43,7 @@ const NOTIFICATION_SELECT = {
   createdAt: true,
   shop: { select: { name: true } },
   user: { select: { firstName: true, lastName: true } },
+  ...orderPersonColumns,
 } satisfies Prisma.OrderSelect;
 
 async function closeOrder(input: {
@@ -170,7 +172,7 @@ export async function cancelOrderByCustomer(input: {
       shopId: order.shopId,
       orderId: input.orderId,
       orderNumber: order.orderNumber,
-      customerName: formatClientName(order.user.firstName, order.user.lastName),
+      customerName: orderClientName(order),
     });
   }
   return result;
@@ -213,10 +215,14 @@ const EXPIRY_BATCH_SIZE = 200;
 /**
  * Expires the due PENDING orders one by one, oldest deadline first, and stops taking new ones once
  * `deadline` has passed so the caller answers before its function is killed. An order that cannot
- * be expired is logged and does not stop the others. remainingCount = due orders still PENDING.
+ * be expired is logged and does not stop the others. expiredShopIds = the shop of each order this
+ * run expired; missedShopIds = the same for the orders that count as missed by the shop (feeding
+ * auto-pause), which leaves out guest orders (countsTowardAutoPause). remainingCount = due orders
+ * still PENDING.
  */
 export async function expireDueOrders(input: { now: Date; deadline: Date }): Promise<{
   expiredShopIds: string[];
+  missedShopIds: string[];
   failed: number;
   remainingCount: number;
 }> {
@@ -226,23 +232,27 @@ export async function expireDueOrders(input: { now: Date; deadline: Date }): Pro
   };
   const candidates = await prisma.order.findMany({
     where: due,
-    select: { id: true },
+    select: { id: true, placedAsGuest: true },
     orderBy: { expiresAt: "asc" },
     take: EXPIRY_BATCH_SIZE,
   });
 
   const expiredShopIds: string[] = [];
+  const missedShopIds: string[] = [];
   let failed = 0;
   for (const candidate of candidates) {
     if (Date.now() >= input.deadline.getTime()) break;
     try {
       const result = await expireOrder({ orderId: candidate.id, now: input.now });
-      if (result.kind === "done") expiredShopIds.push(result.data.shopId);
+      if (result.kind === "done") {
+        expiredShopIds.push(result.data.shopId);
+        if (countsTowardAutoPause(candidate)) missedShopIds.push(result.data.shopId);
+      }
     } catch (error) {
       failed += 1;
       logger.error("[orders/expire] Expiry failed", { orderId: candidate.id, error });
     }
   }
   const remainingCount = await prisma.order.count({ where: due });
-  return { expiredShopIds, failed, remainingCount };
+  return { expiredShopIds, missedShopIds, failed, remainingCount };
 }

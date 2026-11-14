@@ -1,6 +1,7 @@
 // src/app/api/cron/auto-cancel/route.ts — expires PENDING orders whose acceptance deadline passed.
 // Each order goes through the expire command (conditional transition): an order accepted in the
 // meantime is left alone, and only the orders this run actually expired are counted and notified.
+// Auto-pause is fed by the orders the shop missed, which leaves out expired guest orders.
 import { NextRequest } from "next/server";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
@@ -20,12 +21,12 @@ export async function GET(req: NextRequest) {
     if (!verifyCronAuth(req)) return apiError("UNAUTHORIZED", "Invalid cron secret");
 
     const now = new Date();
-    const { expiredShopIds, failed, remainingCount } = await expireDueOrders({
+    const { expiredShopIds, missedShopIds, failed, remainingCount } = await expireDueOrders({
       now,
       deadline: new Date(now.getTime() + EXPIRY_BUDGET_MS),
     });
 
-    const shopIds = [...new Set(expiredShopIds)];
+    const shopIds = [...new Set(missedShopIds)];
     const pauses = await Promise.allSettled(shopIds.map((shopId) => checkAutoPause(shopId)));
     pauses.forEach((pause, index) => {
       if (pause.status === "rejected") {

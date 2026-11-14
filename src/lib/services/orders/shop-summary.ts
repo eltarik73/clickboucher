@@ -4,6 +4,7 @@
 import prisma from "@/lib/prisma";
 import { getParisWallClock, parisWallClockToUtc } from "@/lib/paris-time";
 import { settleDueAdjustmentsWithin } from "@/lib/services/orders/adjustment-answers";
+import { orderPersonColumns, withOrderPersonName } from "@/lib/services/orders/order-person";
 
 /** Orders whose goods were handed over: the takings of the day. */
 const COLLECTED_STATUSES = ["PICKED_UP", "COMPLETED"] as const;
@@ -58,6 +59,7 @@ export async function getShopDaySummary(shopId: string, now: Date): Promise<Shop
         expiresAt: true,
         _count: { select: { items: true } },
         user: { select: { firstName: true, lastName: true } },
+        ...orderPersonColumns,
       },
     }),
   ]);
@@ -65,6 +67,9 @@ export async function getShopDaySummary(shopId: string, now: Date): Promise<Shop
   return {
     ordersToday,
     revenueTodayCents: revenue._sum.totalCents ?? 0,
-    recent: recent.map(({ _count, ...order }) => ({ ...order, itemCount: _count.items })),
+    recent: recent.map((row) => {
+      const { _count, ...order } = withOrderPersonName(row);
+      return { ...order, itemCount: _count.items };
+    }),
   };
 }
