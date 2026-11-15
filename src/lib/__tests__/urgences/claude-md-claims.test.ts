@@ -55,6 +55,7 @@ describe("CLAUDE.md : affirmations fausses retirées (audit du 2026-11-15)", () 
     ["client a 5 min", "palier 2 : 30 s par défaut ; palier 3 : jamais validé automatiquement"],
     ["git push main", "main est protégée : fusion d'une pull request"],
     ["add/commit/push sans demander", "jamais de push sur main"],
+    ["Node 20", "CI, .nvmrc et engines de package.json sont en Node 22 depuis 1824d4f"],
   ])("ne contient plus « %s » (%s)", (claim) => {
     expect(CLAUDE_MD).not.toContain(claim);
   });
@@ -68,6 +69,7 @@ describe("CLAUDE.md : faits vérifiés et décisions du propriétaire du 2026-11
     "src/lib/commercial-emails.ts",
     "Décisions du propriétaire (2026-11-15)",
     "Node 22",
+    "Branche `main` protégée",
     "1 234,56 €",
     "src/hooks/use-pending-order-count.ts",
   ])("contient « %s »", (fact) => {

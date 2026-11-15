@@ -129,7 +129,8 @@ facturée, y compris pour les bots. Règles :
 ## CI/CD
 
 - **Workflow** : `.github/workflows/ci.yml` — déclenché sur push `main` + PRs.
-- **Jobs parallèles** (Node 20, ubuntu-latest) :
+- **Jobs parallèles** (Node 22, `ubuntu-24.04` figé : `ubuntu-latest` est passé à 26.04, où Playwright
+  n'installe pas Chromium) :
   - `lint` → `npm run lint` (ESLint)
   - `typecheck` → `npx tsc --noEmit`
   - `test` → `npm run test:run` (unitaires) puis `npm run test:integration` (intégration sur le
@@ -151,13 +152,13 @@ facturée, y compris pour les bots. Règles :
 - **PR template** : `.github/pull_request_template.md` — checklist build/lint/typecheck/test + screenshots si UI.
 - **Vercel preview** : l'environnement Preview de Vercel n'a PAS de `DATABASE_URL`, or le build
   prérend ≈ 290 pages sur la base → tout déploiement de preview échouait
-  (`Environment variable not found: DATABASE_URL`). `vercel.json` (`git.deploymentEnabled`) désactive
-  donc les déploiements des branches `dependabot/**` et `claude/**` ; c'est le job CI `build` qui
-  valide ces branches. Seul `main` déploie (production).
+  (`Environment variable not found: DATABASE_URL`). `vercel.json` (`git.deploymentEnabled` :
+  `"**": false, "main": true`) ne déploie donc QUE `main` (production) : aucune branche de pull
+  request ne lance de preview ; c'est le job CI `build` qui les valide.
   Pour une vraie recette en ligne : créer une base Postgres DÉDIÉE (jamais celle de production —
   le mode test y est autorisé et les URLs de preview sont publiques), y pousser le schéma + le seed,
   définir `DATABASE_URL` / `DIRECT_DATABASE_URL` et les clés Clerk de dev sur l'environnement
-  Preview, puis retirer la ligne `claude/**` de `vercel.json`.
+  Preview, puis autoriser la branche voulue dans `git.deploymentEnabled` (`"<motif>": true`).
 
 ## Stack
 
@@ -724,7 +725,9 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
   `limitedStockLowCount` donne le N de « Plus que N », de 1 à 5). Un produit limité à 0 RESTE dans son mode :
   le devis le refuse jusqu'à ce que le boucher termine le mode ou que du stock revienne.
 - **Fin de l'anti-gaspi** : passé `antiGaspiEndAt`, le prix d'origine revient et le compteur ne limite plus rien
-  (`src/lib/pricing/anti-gaspi.ts`, lu par `resolveUnitPrice`, le devis, le stock limité et la page boutique).
+  (`src/lib/pricing/anti-gaspi.ts`). Toute lecture d'un produit montrée à un client ou au boucher passe par
+  `settleAntiGaspi` (en base : `antiGaspiInForceWhere`, `limitedStockOnSaleWhere(now)`) ; toute écriture de
+  `priceCents` ajoute `antiGaspiEndOnPriceWrite` : le mode échu se termine, le prix saisi est celui payé.
 - **Vue client d'une commande** : liste blanche `customerOrderSelect` (`src/lib/services/orders/customer-view.ts`)
   pour toute réponse à un client ou un invité (lecture, création, annulation, note, choix d'alternatives,
   liste) ; propriété vérifiée DANS la requête, hors périmètre → 404. `GET /api/orders/[id]/status` ne renvoie
@@ -807,10 +810,8 @@ Mono-contexte : `GLOSSARY.md` et `docs/adr/` à la racine, créés au besoin. Vo
   `formatPrice` (`src/lib/utils.ts`) reste l'autorité d'affichage mais ne produit pas encore ce format (aucun
   séparateur de milliers) : son alignement revient au chantier prix / interface ; aucun autre formateur à ajouter.
 - **`main` protégée** : tout changement passe par une pull request dont la CI est verte ; jamais de push direct
-  sur `main`.
-- **Node 22** : version cible. État au 2026-11-15 : la CI tourne encore sur Node 20 (`node-version: "20"` dans
-  `.github/workflows/ci.yml`) et `package.json` n'a pas de champ `engines` ; le chantier de livraison bascule
-  `ci.yml`, `engines` et le réglage Node du projet Vercel (non lisible depuis le dépôt).
+  sur `main` (règles détaillées : « Branche `main` protégée », sous « Permissions »).
+- **Node 22** partout : jobs de la CI (voir « CI/CD »), `.nvmrc` et `engines` de `package.json`.
 - **Commande invitée à supprimer** : un e-mail = un compte, aucune fusion de commandes invitées dans un compte. Ne
   plus investir dans les parcours invités (`/api/checkout/guest`, section « Accès invité aux commandes »).
 - **E-mails commerciaux en pause** derrière l'interrupteur « Envoi des e-mails commerciaux »
@@ -823,5 +824,15 @@ Mono-contexte : `GLOSSARY.md` et `docs/adr/` à la racine, créés au besoin. Vo
 - Fais les choix toi-même et avance
 - Applique les modifications directement
 - Lance npm run build automatiquement
-- Fais git add/commit et push sur une branche de travail sans demander, puis ouvre une pull request ; jamais de
-  push sur `main` (protégée)
+- Fais git add/commit sans demander ; publie par une **pull request** (`gh pr create`) puis fusionne
+  quand la CI est verte (`gh pr merge --squash`)
+
+### Branche `main` protégée (décision du propriétaire, 2026-11-15)
+
+- Plus aucun push direct sur `main`, administrateur compris : tout passe par une pull request.
+- Fusion seulement quand les quatre contrôles de la CI sont verts : `Lint`, `Typecheck`,
+  `Tests (vitest)`, `Build (next build + prerender check)` (émis par GitHub Actions), sur une
+  branche à jour avec `main`. Aucune approbation exigée (développeur seul).
+- Historique linéaire : fusion en squash ; ni push forcé ni suppression de `main`.
+- Vercel déploie la production à chaque fusion dans `main`, et seulement `main`.
+- Réglage : `gh api repos/eltarik73/clickboucher/branches/main/protection` (lecture).

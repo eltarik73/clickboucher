@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 
 // ── GET /api/boucher/products ────────────────
 // Boucher (owner) — list products for their shop
@@ -35,7 +36,9 @@ export async function GET(req: NextRequest) {
     });
 
     const hasMore = items.length > limit;
-    const products = hasMore ? items.slice(0, limit) : items;
+    // As customers see them: an expired anti-gaspi at its original price, mode off.
+    const now = new Date();
+    const products = (hasMore ? items.slice(0, limit) : items).map((p) => settleAntiGaspi(p, now));
 
     // Backward-compatible: still returns array directly (frontend expects products[])
     return apiSuccess(products);

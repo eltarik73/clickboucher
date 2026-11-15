@@ -6,6 +6,8 @@
 // butcher ending the mode does. Every reader therefore sees the product as it is at `now`: from
 // antiGaspiEndAt on, the mode is off and the price is the original one. No end date means no end.
 // An expired row whose original price is unknown (NULL) keeps priceCents and loses the mode.
+// Every writer of priceCents ends an expired mode in the same update, so that the price the
+// butcher sets is the one customers pay (antiGaspiEndOnPriceWrite).
 //
 // The pricing chantier will replace the rewrite of priceCents by a time-bounded rule (the discount
 // stored apart and applied by resolveUnitPrice until its end); until then this module is the one
@@ -31,13 +33,18 @@ export const antiGaspiPricingSelect = {
   antiGaspiStock: true,
 } satisfies Prisma.ProductSelect;
 
-/** Columns emptied when the mode is over, as the butcher's « end anti-gaspi » action does. */
-const ENDED_MODE_FIELDS = [
-  "antiGaspiOrigPriceCents",
-  "antiGaspiEndAt",
-  "antiGaspiStock",
-  "antiGaspiReason",
-] as const;
+/** The mode off, as the butcher's « end anti-gaspi » action writes it (price apart). */
+export const antiGaspiEndedColumns = {
+  isAntiGaspi: false,
+  antiGaspiOrigPriceCents: null,
+  antiGaspiEndAt: null,
+  antiGaspiStock: null,
+  antiGaspiReason: null,
+} as const satisfies Prisma.ProductUpdateInput;
+
+type AntiGaspiEndedColumn = keyof typeof antiGaspiEndedColumns;
+
+const ENDED_COLUMNS = Object.keys(antiGaspiEndedColumns) as AntiGaspiEndedColumn[];
 
 function timeOf(name: string, value: Date | string): number {
   const time = (value instanceof Date ? value : new Date(value)).getTime();
@@ -79,11 +86,25 @@ export function publicPriceCents(product: AntiGaspiColumns, now: Date): number {
  */
 export function settleAntiGaspi<T extends AntiGaspiColumns>(product: T, now: Date): T {
   if (!antiGaspiExpired(product, now)) return product;
-  const emptied: Partial<Record<(typeof ENDED_MODE_FIELDS)[number], null>> = {};
-  for (const field of ENDED_MODE_FIELDS) {
-    if (field in product) emptied[field] = null;
+  const ended: Partial<Record<AntiGaspiEndedColumn, false | null>> = {};
+  for (const column of ENDED_COLUMNS) {
+    if (column in product) ended[column] = antiGaspiEndedColumns[column];
   }
-  return { ...product, ...emptied, priceCents: publicPriceCents(product, now), isAntiGaspi: false };
+  return { ...product, ...ended, priceCents: publicPriceCents(product, now) };
+}
+
+/**
+ * The columns to write along with `priceCents` so that the written price is the one customers
+ * pay: on a product whose anti-gaspi has expired, the end of the mode (its original price would
+ * otherwise still win at read time); nothing when no price is written, or while the discount runs
+ * (the butcher then edits the discounted price).
+ */
+export function antiGaspiEndOnPriceWrite(
+  product: Pick<AntiGaspiColumns, "isAntiGaspi" | "antiGaspiEndAt">,
+  priceCents: number | undefined,
+  now: Date
+): Partial<typeof antiGaspiEndedColumns> {
+  return priceCents !== undefined && antiGaspiExpired(product, now) ? antiGaspiEndedColumns : {};
 }
 
 /** The in-force rule as a Prisma filter: in anti-gaspi, without end date or with an end ahead. */

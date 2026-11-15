@@ -67,7 +67,7 @@ describe("limitedStockOnSaleWhere", () => {
     await prisma.product.createMany({ data: rows });
     const all = await prisma.product.findMany({ where: { shopId: shop.id } });
     const onSale = await prisma.product.findMany({
-      where: { shopId: shop.id, ...limitedStockOnSaleWhere },
+      where: { shopId: shop.id, ...limitedStockOnSaleWhere(new Date()) },
     });
 
     const expected = all.filter((p) => !limitedStockSoldOut(p)).map((p) => p.name);

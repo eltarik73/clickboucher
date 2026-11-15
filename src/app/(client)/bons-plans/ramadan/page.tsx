@@ -9,6 +9,7 @@ import { resolveProductImage } from "@/lib/product-images";
 import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 import { resolveUnitPrice } from "@/lib/pricing/unit-price";
 import { limitedStockOnSaleWhere } from "@/lib/pricing/limited-stock";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -28,13 +29,13 @@ export default async function RamadanPage() {
   const now = new Date();
 
   // Products tagged "ramadan" + active ramadan offers
-  const [taggedProducts, ramadanOffers] = await Promise.all([
+  const [taggedRows, ramadanOffers] = await Promise.all([
     prisma.product.findMany({
       where: {
         tags: { has: "ramadan" },
         inStock: true,
         isActive: true,
-        ...limitedStockOnSaleWhere,
+        ...limitedStockOnSaleWhere(now),
       },
       include: {
         shop: { select: { id: true, name: true, slug: true } },
@@ -54,6 +55,7 @@ export default async function RamadanPage() {
       orderBy: { createdAt: "desc" },
     }),
   ]);
+  const taggedProducts = taggedRows.map((row) => settleAntiGaspi(row, now));
 
   if (taggedProducts.length === 0 && ramadanOffers.length === 0) {
     return (

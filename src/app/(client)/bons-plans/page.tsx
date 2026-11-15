@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
 import { listPublicOffers, type PublicOffer } from "@/lib/public-offers";
 import { limitedStockOnSaleWhere } from "@/lib/pricing/limited-stock";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 import { BonsPlansClient } from "./BonsPlansClient";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -57,12 +58,12 @@ export default async function BonsPlansPage() {
   try {
     const now = new Date();
 
-    const [products, promotions] = await Promise.all([
+    const [productRows, promotions] = await Promise.all([
       // 1. Product-level promos (boucher discounts on products)
       prisma.product.findMany({
         where: {
           inStock: true,
-          ...limitedStockOnSaleWhere,
+          ...limitedStockOnSaleWhere(now),
           OR: [
             { promoPct: { gt: 0 }, promoEnd: null },
             { promoPct: { gt: 0 }, promoEnd: { gt: now } },
@@ -81,6 +82,7 @@ export default async function BonsPlansPage() {
       listPublicOffers(now),
     ]);
 
+    const products = productRows.map((row) => settleAntiGaspi(row, now));
     promos = products.map((p) => ({
       id: p.id,
       name: p.name,

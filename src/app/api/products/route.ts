@@ -9,6 +9,11 @@ import { productListQuerySchema, createProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { planProductImageWriteInShop } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
+import {
+  antiGaspiPricingSelect,
+  settleAntiGaspi,
+  type AntiGaspiColumns,
+} from "@/lib/pricing/anti-gaspi";
 import { priceAudienceOf } from "@/lib/product-price-audience";
 import { proProductSelect, publicProductSelect } from "@/lib/public-projections";
 
@@ -65,6 +70,8 @@ const MANAGER_PRODUCT_SELECT = {
   snoozedAt: true,
   snoozeEndsAt: true,
   snoozeReason: true,
+  ...antiGaspiPricingSelect,
+  antiGaspiReason: true,
   categories: { select: { id: true, name: true, emoji: true } },
   images: {
     orderBy: { order: "asc" as const },
@@ -80,6 +87,11 @@ function findProducts<S extends Prisma.ProductSelect>(where: Prisma.ProductWhere
     orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
     take: 200,
   });
+}
+
+/** Every audience sees the products as customers are charged: an expired anti-gaspi is over. */
+function settled<T extends AntiGaspiColumns>(rows: T[], now: Date): T[] {
+  return rows.map((row) => settleAntiGaspi(row, now));
 }
 
 // Full include block for create/update
@@ -136,12 +148,13 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const now = new Date();
     const data =
       audience === "MANAGER"
-        ? await findProducts(where, MANAGER_PRODUCT_SELECT)
+        ? settled(await findProducts(where, MANAGER_PRODUCT_SELECT), now)
         : audience === "PRO"
-          ? await findProducts(where, proProductSelect)
-          : await findProducts(where, publicProductSelect);
+          ? settled(await findProducts(where, proProductSelect), now)
+          : settled(await findProducts(where, publicProductSelect), now);
 
     // ── Cache store (TTL 60s) ──
     if (productsCacheKey) {

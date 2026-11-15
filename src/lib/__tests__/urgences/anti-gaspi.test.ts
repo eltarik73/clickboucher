@@ -5,7 +5,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { antiGaspiExpired, publicPriceCents, settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
+import {
+  antiGaspiEndOnPriceWrite,
+  antiGaspiExpired,
+  publicPriceCents,
+  settleAntiGaspi,
+} from "@/lib/pricing/anti-gaspi";
 import { limitedStockRemaining } from "@/lib/pricing/limited-stock";
 import { resolveUnitPrice } from "@/lib/pricing/unit-price";
 
@@ -148,6 +153,34 @@ describe("settleAntiGaspi", () => {
   it("keeps an in-force counter at 0 sold out", () => {
     const soldOut = { ...antiGaspi(IN_ONE_HOUR), antiGaspiStock: 0 };
     expect(limitedStockRemaining(settleAntiGaspi(soldOut, NOW))).toBe(0);
+  });
+});
+
+describe("antiGaspiEndOnPriceWrite", () => {
+  const MODE_ENDED = {
+    isAntiGaspi: false,
+    antiGaspiOrigPriceCents: null,
+    antiGaspiEndAt: null,
+    antiGaspiStock: null,
+    antiGaspiReason: null,
+  };
+
+  it("ends an expired mode with the written price, so that price is the one charged", () => {
+    expect(antiGaspiEndOnPriceWrite(antiGaspi(ONE_HOUR_AGO), 600, NOW)).toEqual(MODE_ENDED);
+    expect(antiGaspiEndOnPriceWrite(antiGaspi(NOW), 0, NOW)).toEqual(MODE_ENDED);
+  });
+
+  it.each([
+    ["no price written on an expired mode", antiGaspi(ONE_HOUR_AGO), undefined],
+    ["a price written while the discount runs", antiGaspi(IN_ONE_HOUR), 600],
+    ["a price written on a mode without end date", antiGaspi(null), 600],
+    [
+      "a price written on a product out of anti-gaspi",
+      { isAntiGaspi: false, antiGaspiEndAt: null },
+      600,
+    ],
+  ])("adds nothing for %s", (_case, product, priceCents) => {
+    expect(antiGaspiEndOnPriceWrite(product, priceCents, NOW)).toEqual({});
   });
 });
 

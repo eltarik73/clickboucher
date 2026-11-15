@@ -5,6 +5,7 @@ import { updateProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError, privateNoStore } from "@/lib/api/errors";
 import { planProductImageWriteInShop } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
+import { antiGaspiEndOnPriceWrite, settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 import { priceAudienceOf } from "@/lib/product-price-audience";
 import {
   proProductSelect,
@@ -35,11 +36,13 @@ function findProduct(id: string, audience: ProductPriceAudience) {
 // (src/lib/public-projections.ts), CLIENT_PRO also gets proPriceCents. The shop owner and admins
 // get the full row: the butcher's edit form saves it back. One URL, three bodies: no response is
 // ever stored by a shared cache, or the owner could be served the public body and save it back.
+// Every body shows the product as it is now (an expired anti-gaspi at its original price, mode
+// off): the edit form must not save an expired discount back as the price.
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const product = await findProduct(params.id, await priceAudienceOf({ productId: params.id }));
     if (!product) return privateNoStore(apiError("NOT_FOUND", "Produit introuvable"));
-    return privateNoStore(apiSuccess(product));
+    return privateNoStore(apiSuccess(settleAntiGaspi(product, new Date())));
   } catch (error) {
     return privateNoStore(handleApiError(error));
   }
@@ -64,6 +67,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         shop: { select: { ownerId: true } },
         imageUrl: true,
         images: { select: { url: true } },
+        isAntiGaspi: true,
+        antiGaspiEndAt: true,
       },
     });
 
@@ -119,7 +124,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     );
     if (!photoPlan.ok) return apiError("VALIDATION_ERROR", photoPlan.messageFr);
 
-    const updateData: Record<string, unknown> = { ...scalarData };
+    const updateData: Record<string, unknown> = {
+      ...scalarData,
+      ...antiGaspiEndOnPriceWrite(product, scalarData.priceCents, new Date()),
+    };
     if (promoEnd !== undefined) {
       updateData.promoEnd = promoEnd ? new Date(promoEnd) : null;
     }

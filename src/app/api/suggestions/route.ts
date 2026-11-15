@@ -3,6 +3,7 @@
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiCached, handleApiError } from "@/lib/api/errors";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 
 export const dynamic = "force-dynamic";
 
@@ -66,13 +67,15 @@ export async function GET(req: NextRequest) {
 
     if (suggestedIds.length === 0) return apiSuccess([]);
 
-    // Fetch full product data
-    const products = await prisma.product.findMany({
+    // Fetch full product data, as the quote charges it (an expired anti-gaspi is over)
+    const now = new Date();
+    const rows = await prisma.product.findMany({
       where: { id: { in: suggestedIds }, shopId },
       include: {
         categories: { select: { name: true } },
       },
     });
+    const products = rows.map((row) => settleAntiGaspi(row, now));
 
     return apiCached(
       products.map((p) => ({

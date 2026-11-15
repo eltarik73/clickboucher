@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { resolveProductImage } from "@/lib/product-images";
 import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 import { packListWhere } from "@/lib/bons-plans";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -23,8 +24,9 @@ function fmtPrice(cents: number) {
 }
 
 export default async function PacksPage() {
-  const products = await prisma.product.findMany({
-    where: packListWhere,
+  const now = new Date();
+  const rows = await prisma.product.findMany({
+    where: packListWhere(now),
     include: {
       shop: { select: { id: true, name: true, slug: true } },
       categories: { select: { id: true, name: true, emoji: true } },
@@ -32,6 +34,7 @@ export default async function PacksPage() {
     },
     orderBy: { priceCents: "asc" },
   });
+  const products = rows.map((row) => settleAntiGaspi(row, now));
 
   if (products.length === 0) {
     return (

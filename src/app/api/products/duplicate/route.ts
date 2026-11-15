@@ -8,6 +8,7 @@ import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { planProductImageWriteInShop } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
+import { publicPriceCents } from "@/lib/pricing/anti-gaspi";
 import { z } from "zod";
 
 const duplicateSchema = z.object({
@@ -58,7 +59,8 @@ export async function POST(req: NextRequest) {
         description: original.description,
         // A key missing from the plan means "as stored": the source's value.
         imageUrl: photoPlan.imageUrl === undefined ? original.imageUrl : photoPlan.imageUrl,
-        priceCents: original.priceCents,
+        // The copy is out of anti-gaspi: after an expired one, the original price customers pay.
+        priceCents: publicPriceCents(original, new Date()),
         proPriceCents: original.proPriceCents,
         unit: original.unit,
         inStock: false, // Start out of stock
