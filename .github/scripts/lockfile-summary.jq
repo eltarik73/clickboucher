@@ -43,11 +43,38 @@ def alias_flag($pkg; $entry):
 # possibly scoped, possibly nested; no ".", "..", "#", "?", "%", space or empty segment.
 def path_flag($key):
   if $key == ""
-    or ($key | test("^node_modules/(@[A-Za-z0-9~-][A-Za-z0-9._~-]*/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*(/node_modules/(@[A-Za-z0-9~-][A-Za-z0-9._~-]*/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*)*$"))
+    or ($key | test("^node_modules/(@[A-Za-z0-9~-][A-Za-z0-9._~-]*/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*(/node_modules/(@[A-Za-z0-9~-][A-Za-z0-9._~-]*/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*)*\\z"))
     then "" else " [CHEMIN D'ENTRÉE INHABITUEL]" end;
 
-def flags($key; $pkg; $entry):
-  "\(path_flag($key))\(alias_flag($pkg; $entry))\(source_flag($pkg; $entry))";
+# Fields npm reads at install time beyond name, version and source: they decide which files are
+# linked into node_modules/.bin, which nested packages are installed, and whether a failed optional
+# package is removed. A change on an existing entry is flagged; on an added entry, only bin,
+# bundled dependencies and a shrinkwrap (platform packages carry os / cpu / optional normally).
+def install_fields:
+  ["bin", "bundleDependencies", "bundledDependencies", "inBundle", "optional", "os", "cpu",
+   "libc", "link", "hasShrinkwrap", "hasInstallScript"];
+
+def bin_names($entry):
+  $entry.bin | if type == "object" then keys elif . == null then [] else [tostring] end;
+
+def install_flag($old; $entry):
+  if $old == null then
+    ([("bin", "bundleDependencies", "bundledDependencies", "hasShrinkwrap") as $f
+      | select($entry[$f] != null) | $f]) as $set
+    | if ($set | length) == 0 then ""
+      else " [CHAMPS D'INSTALLATION : \($set | join(", "))\(
+        if $entry.bin != null then " ; bin : \(bin_names($entry) | join(", ") | s)" else "" end)]"
+      end
+  else
+    ([install_fields[] as $f | select($old[$f] != $entry[$f]) | $f]) as $changed
+    | if ($changed | length) == 0 then ""
+      else " [CHAMPS D'INSTALLATION MODIFIÉS : \($changed | join(", "))\(
+        if $old.bin != $entry.bin then " ; bin : \(bin_names($entry) | join(", ") | s)" else "" end)]"
+      end
+  end;
+
+def flags($key; $pkg; $old; $entry):
+  "\(path_flag($key))\(alias_flag($pkg; $entry))\(source_flag($pkg; $entry))\(install_flag($old; $entry))";
 
 def flagged: startswith("!") or contains(" [");
 
@@ -74,15 +101,15 @@ def package_lines($old; $new):
   | ($key | installed_name) as $pkg
   | if ($x != null and ($x | type) != "object") or ($y != null and ($y | type) != "object") then
       "! \($label) : entrée illisible"
-    elif $x == null then "+ \($label) \($y.version // "?" | s)\(flags($key; $pkg; $y))"
+    elif $x == null then "+ \($label) \($y.version // "?" | s)\(flags($key; $pkg; $x; $y))"
     elif $y == null then "- \($label) \($x.version // "?" | s)"
     elif $pkg != null and $x.name != $y.name then
-      "! \($label) \($x.version // "?" | s) -> \($y.version // "?" | s) : alias ajouté, retiré ou changé\(flags($key; $pkg; $y))"
+      "! \($label) \($x.version // "?" | s) -> \($y.version // "?" | s) : alias ajouté, retiré ou changé\(flags($key; $pkg; $x; $y))"
     elif $x.version != $y.version then
-      "~ \($label) \($x.version // "?" | s) -> \($y.version // "?" | s)\(flags($key; $pkg; $y))"
+      "~ \($label) \($x.version // "?" | s) -> \($y.version // "?" | s)\(flags($key; $pkg; $x; $y))"
     elif $x.resolved != $y.resolved or $x.integrity != $y.integrity then
-      "! \($label) \($y.version // "?" | s) : source ou intégrité changée à version égale\(flags($key; $pkg; $y))"
-    else "~ \($label) \($y.version // "?" | s) : autres champs modifiés\(flags($key; $pkg; $y))" end;
+      "! \($label) \($y.version // "?" | s) : source ou intégrité changée à version égale\(flags($key; $pkg; $x; $y))"
+    else "~ \($label) \($y.version // "?" | s) : autres champs modifiés\(flags($key; $pkg; $x; $y))" end;
 
 ($o[0] // {}) as $old
 | ($n[0] // {}) as $new
