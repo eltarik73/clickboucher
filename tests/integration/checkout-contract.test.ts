@@ -217,6 +217,7 @@ async function checkout(world: Catalogue, cart: CartState, promoCode: string | n
     requestedTime: "asap",
     pickupSlot: null,
     customerNote: "",
+    weighTolerance: "STANDARD",
   };
 
   const quoted = await quoteOrder(buildQuoteRequest(selection), world.customer, new Date());
@@ -263,6 +264,12 @@ async function expectContract(
   expect(order.totalCents).toBe(quote.totalCents);
   expect(order.totalCents).toBe(expected.subtotalCents - (expected.discountCents ?? 0));
   expect(order.serviceFeeCents).toBe(0);
+  // The choice shown above the button (STANDARD: 5 %, 10,00 € at most) on the quoted total.
+  expect(order).toMatchObject({
+    weighToleranceRateBps: 500,
+    weighToleranceCapCents: 1000,
+    estimatedTotalCents: quote.totalCents,
+  });
 
   const storedLines = sorted(
     order.items.map((item) => ({
@@ -417,6 +424,7 @@ describe("contrat panier → commande : choix de préparation", () => {
       requestedTime: "asap",
       pickupSlot: null,
       customerNote: "",
+      weighTolerance: "STANDARD",
     };
 
     const request = buildCreateOrderRequest(selection, {
@@ -485,6 +493,7 @@ async function confirmedRequest(world: Catalogue, customer: OrderCustomer | null
     requestedTime: "asap",
     pickupSlot: null,
     customerNote: "",
+    weighTolerance: "STANDARD",
   };
   const quoted = await quoteOrder(buildQuoteRequest(selection), customer, new Date());
   if (!quoted.ok)
@@ -519,6 +528,9 @@ describe("contrat panier → routes de commande", () => {
     expect(order).toMatchObject({
       placedAsGuest: true,
       accessTokenHash: hashOrderCredential(firstCredential),
+      weighToleranceRateBps: 500,
+      weighToleranceCapCents: 1000,
+      estimatedTotalCents: quote.totalCents,
     });
     const guest = await prisma.user.findUniqueOrThrow({
       where: { email: "nora.invitee@itest.klikandgo.test" },
@@ -529,6 +541,7 @@ describe("contrat panier → routes de commande", () => {
       firstName: "Nora",
       phone: null,
       guestToken: null,
+      weighTolerance: null,
     });
     expect(order.userId).toBe(guest.id);
 
@@ -559,8 +572,14 @@ describe("contrat panier → routes de commande", () => {
       totalCents: quote.totalCents,
       placedAsGuest: false,
       accessTokenHash: null,
+      weighToleranceRateBps: 500,
+      weighToleranceCapCents: 1000,
+      estimatedTotalCents: quote.totalCents,
     });
     expect(created.cookies.map(({ name }) => name)).not.toContain(orderAccessCookieName(order.id));
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).weighTolerance).toBe(
+      "STANDARD"
+    );
   });
 });
 

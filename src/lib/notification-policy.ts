@@ -29,8 +29,7 @@ export function notificationThrottle(event: NotifEvent): NotificationThrottle {
     case "PRICE_ADJUSTMENT_AUTO_APPROVED":
     case "PRICE_ADJUSTMENT_ACCEPTED":
     case "PRICE_ADJUSTMENT_REJECTED":
-    case "PRICE_ADJUSTMENT_AUTO_VALIDATED":
-    case "PRICE_ADJUSTMENT_ESCALATED":
+    case "PRICE_ADJUSTMENT_EXPIRED":
     case "PICKUP_SOON":
       return "none";
     case "CART_ABANDONED":

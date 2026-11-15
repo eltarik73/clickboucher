@@ -1,8 +1,9 @@
 // @vitest-environment node
-// Ajustements de prix à paliers sur PostgreSQL réel : un ajustement en attente ne s'applique qu'à la
-// commande pour laquelle il a été calculé (une rupture, une annulation ou un retrait le ferment),
-// une seule validation gagne quand plusieurs lectures tombent sur l'échéance, et une pesée est
-// valorisée par le module de tarification.
+// Ajustements de prix sur PostgreSQL réel : un ajustement en attente ne s'applique qu'à la commande
+// pour laquelle il a été calculé (une rupture, une annulation ou un retrait le ferment, motif
+// ORDER_CHANGED, avec son événement), une seule réponse gagne quand plusieurs requêtes se croisent,
+// et une pesée est valorisée par le module de tarification. La marge de pesée : *-tolerance.test.ts ;
+// les réponses du client et le silence : *-answers.test.ts.
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
@@ -13,11 +14,7 @@ vi.mock("@/lib/whatsapp", () => ({
 }));
 
 import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
-import {
-  acceptAdjustment,
-  rejectAdjustment,
-  settleDueAdjustment,
-} from "@/lib/services/orders/adjustment-answers";
+import { acceptAdjustment, rejectAdjustment } from "@/lib/services/orders/adjustment-answers";
 import { acceptOrder } from "@/lib/services/orders/commands/accept";
 import { cancelOrderByShop } from "@/lib/services/orders/commands/close";
 import {
@@ -28,10 +25,11 @@ import { getKitchenBoard } from "@/lib/services/orders/kitchen";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestProduct } from "../helpers/factories";
 import {
-  MINUTE_MS,
   THREE_PORTIONS,
+  butcherOf,
   createOrder,
   createWorld,
+  eventsOf,
   notificationsOf,
   reload,
   type World,
@@ -43,11 +41,7 @@ useCleanDatabase();
 
 /** Two lines: 2 x 1000 g of the world's product (2 x 1911) and one tray at 1576. */
 async function twoLineOrder(world: World) {
-  const tray = await createTestProduct(world.shop.id, {
-    unit: "BARQUETTE",
-    priceCents: 1576,
-    name: "Merguez",
-  });
+  const tray = await createTestProduct(world.shop.id, { unit: "BARQUETTE", priceCents: 1576 });
   const order = await createOrder(world, {
     status: "ACCEPTED",
     items: [
@@ -64,28 +58,30 @@ async function twoLineOrder(world: World) {
   return { order, tray };
 }
 
+/** 5398 -> 6208 typed by the butcher: an increase, so it waits for the customer's answer. */
+async function pendingManualIncrease(world: World, orderId: string) {
+  const created = await adjustOrderPrice(orderId, butcherOf(world), {
+    adjustmentType: "MANUAL",
+    newTotalCents: 6208,
+  });
+  expect(created).toMatchObject({ ok: true, data: { applied: false } });
+}
+
 async function adjustment(orderId: string) {
   return prisma.priceAdjustment.findUniqueOrThrow({ where: { orderId } });
 }
 
-/** Moves the deadline of the pending tier-2 adjustment into the past. */
-async function makeDue(orderId: string) {
-  await prisma.priceAdjustment.update({
-    where: { orderId },
-    data: { autoApproveAt: new Date(Date.now() - MINUTE_MS) },
-  });
-}
+const answer = (world: World, orderId: string) => ({
+  orderId,
+  userId: world.customer.id,
+  now: new Date(),
+});
 
 describe("an adjustment pending when the order changes is never applied", () => {
-  it("out of stock, removed line, deadline, acceptance: the total stays the recomputed one", async () => {
+  it("out of stock, removed line, acceptance: the total stays the recomputed one", async () => {
     const world = await createWorld();
     const { order, tray } = await twoLineOrder(world);
-    // 5398 -> 6208 (+15 %) : palier 2, en attente.
-    const created = await adjustOrderPrice(order.id, world.shop.id, {
-      adjustmentType: "MANUAL",
-      newTotalCents: 6208,
-    });
-    expect(created).toMatchObject({ ok: true, data: { tier: 2, autoApproved: false } });
+    await pendingManualIncrease(world, order.id);
 
     const reported = await reportUnavailableItems({
       orderId: order.id,
@@ -94,7 +90,11 @@ describe("an adjustment pending when the order changes is never applied", () => 
       productIds: [tray.id],
     });
     expect(reported.kind).toBe("done");
-    expect(await adjustment(order.id)).toMatchObject({ status: "REJECTED" });
+    expect(await adjustment(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
+    const closed = await eventsOf(order.id, "PRICE_ADJUSTMENT_CLOSED");
+    expect(closed).toHaveLength(1);
+    expect(closed[0]).toMatchObject({ actorId: "system" });
+    expect(closed[0].payloadJson).toMatchObject({ reason: "ORDER_CHANGED", from: 5398, to: 6208 });
 
     const missing = (await reload(order.id)).items.find((item) => item.productId === tray.id);
     const resolved = await resolveUnavailableItems({
@@ -105,9 +105,7 @@ describe("an adjustment pending when the order changes is never applied", () => 
     });
     expect(resolved.kind).toBe("done");
 
-    await makeDue(order.id);
     await getKitchenBoard(world.shop.id);
-    await settleDueAdjustment(order.id, new Date());
     expect((await reload(order.id)).totalCents).toBe(3822);
 
     const accepted = await acceptOrder({
@@ -118,22 +116,14 @@ describe("an adjustment pending when the order changes is never applied", () => 
       now: new Date(),
     });
     expect(accepted.kind).toBe("done");
-    expect((await reload(order.id)).totalCents).toBe(3822);
-    expect(
-      await acceptAdjustment({ orderId: order.id, userId: world.customer.id, now: new Date() })
-    ).toMatchObject({
-      kind: "refused",
-    });
+    expect(await acceptAdjustment(answer(world, order.id))).toMatchObject({ kind: "refused" });
     expect((await reload(order.id)).totalCents).toBe(3822);
   });
 
-  it("a cancellation closes it: the due deadline then changes nothing", async () => {
+  it("a cancellation closes it: an acceptance afterwards changes nothing", async () => {
     const world = await createWorld();
     const { order } = await twoLineOrder(world);
-    await adjustOrderPrice(order.id, world.shop.id, {
-      adjustmentType: "MANUAL",
-      newTotalCents: 6208,
-    });
+    await pendingManualIncrease(world, order.id);
 
     const cancelled = await cancelOrderByShop({
       orderId: order.id,
@@ -141,101 +131,62 @@ describe("an adjustment pending when the order changes is never applied", () => 
       actorId: world.owner.id,
     });
     expect(cancelled.kind).toBe("done");
-    await makeDue(order.id);
-    await settleDueAdjustment(order.id, new Date());
+    expect(await acceptAdjustment(answer(world, order.id))).toMatchObject({ kind: "refused" });
 
-    const stored = await reload(order.id);
-    expect(stored).toMatchObject({ status: "CANCELLED", totalCents: 5398 });
-    expect(await adjustment(order.id)).toMatchObject({ status: "REJECTED" });
-    expect(
-      await notificationsOf(world.customer.id, "PRICE_ADJUSTMENT_AUTO_VALIDATED")
-    ).toHaveLength(0);
+    expect(await reload(order.id)).toMatchObject({ status: "CANCELLED", totalCents: 5398 });
+    expect(await adjustment(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
+    expect(await notificationsOf(world.owner.id, "PRICE_ADJUSTMENT_ACCEPTED")).toHaveLength(0);
   });
 
-  it("a settlement racing a cancellation never leaves a settled adjustment beside a different total", async () => {
+  it("an acceptance racing a cancellation never leaves an applied adjustment beside a different total", async () => {
     const world = await createWorld();
     const { order } = await twoLineOrder(world);
-    await adjustOrderPrice(order.id, world.shop.id, {
-      adjustmentType: "MANUAL",
-      newTotalCents: 6208,
-    });
-    await makeDue(order.id);
+    await pendingManualIncrease(world, order.id);
 
     await Promise.all([
       cancelOrderByShop({ orderId: order.id, shopId: world.shop.id, actorId: world.owner.id }),
-      settleDueAdjustment(order.id, new Date()),
+      acceptAdjustment(answer(world, order.id)),
     ]);
 
     const stored = await reload(order.id);
     const settled = await adjustment(order.id);
     expect(stored.status).toBe("CANCELLED");
-    expect(stored.totalCents).toBe(settled.status === "AUTO_VALIDATED" ? 6208 : 5398);
-    expect(["AUTO_VALIDATED", "REJECTED"]).toContain(settled.status);
+    expect(stored.totalCents).toBe(settled.status === "APPROVED" ? 6208 : 5398);
+    expect(["APPROVED", "REJECTED"]).toContain(settled.status);
   });
 
   it("an order whose total changed by other means closes the adjustment instead of overwriting it", async () => {
     const world = await createWorld();
     const { order } = await twoLineOrder(world);
-    await adjustOrderPrice(order.id, world.shop.id, {
-      adjustmentType: "MANUAL",
-      newTotalCents: 6208,
-    });
+    await pendingManualIncrease(world, order.id);
     await prisma.order.update({ where: { id: order.id }, data: { totalCents: 5000 } });
 
-    const answer = await acceptAdjustment({
-      orderId: order.id,
-      userId: world.customer.id,
-      now: new Date(),
-    });
-
-    expect(answer).toMatchObject({ kind: "refused" });
+    expect(await acceptAdjustment(answer(world, order.id))).toMatchObject({ kind: "refused" });
     expect((await reload(order.id)).totalCents).toBe(5000);
-    expect(await adjustment(order.id)).toMatchObject({ status: "REJECTED" });
+    expect(await adjustment(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
+    expect(await eventsOf(order.id, "PRICE_ADJUSTMENT_CLOSED")).toHaveLength(1);
   });
 });
 
-describe("settlement", () => {
-  it("six concurrent reads of a due adjustment validate it once and notify once", async () => {
-    const world = await createWorld();
-    const { order } = await twoLineOrder(world);
-    await adjustOrderPrice(order.id, world.shop.id, {
-      adjustmentType: "MANUAL",
-      newTotalCents: 6208,
-    });
-    await makeDue(order.id);
-
-    await Promise.all(Array.from({ length: 6 }, () => settleDueAdjustment(order.id, new Date())));
-
-    expect((await reload(order.id)).totalCents).toBe(6208);
-    expect(await adjustment(order.id)).toMatchObject({ status: "AUTO_VALIDATED" });
-    expect(
-      await notificationsOf(world.customer.id, "PRICE_ADJUSTMENT_AUTO_VALIDATED")
-    ).toHaveLength(1);
-  });
-
-  it("the customer's acceptance applies the line changes with the total, in their scope only", async () => {
+describe("the customer's answer", () => {
+  it("an acceptance applies the line changes with the total, in their scope only", async () => {
     const world = await createWorld();
     const order = await createOrder(world, {
       status: "ACCEPTED",
       items: [{ productId: world.product.id, ...THREE_PORTIONS }],
     });
-    // 1,5 kg -> 1,75 kg : 1911 x 1,75 = 3344,25 -> 3344 (+16,6 %) : palier 2.
-    const created = await adjustOrderPrice(order.id, world.shop.id, {
+    // 1,5 kg -> 1,75 kg : 1911 x 1,75 = 3344,25 -> 3344. Commande sans marge figée : on demande.
+    const created = await adjustOrderPrice(order.id, butcherOf(world), {
       adjustmentType: "WEIGHT",
       items: [{ orderItemId: order.items[0].id, newQuantity: 1.75 }],
     });
-    expect(created).toMatchObject({ ok: true, data: { tier: 2 } });
+    expect(created).toMatchObject({ ok: true, data: { applied: false } });
 
     const stranger = await createWorld();
     expect(
       await acceptAdjustment({ orderId: order.id, userId: stranger.customer.id, now: new Date() })
-    ).toEqual({
-      kind: "not_found",
-    });
-    expect(
-      (await acceptAdjustment({ orderId: order.id, userId: world.customer.id, now: new Date() }))
-        .kind
-    ).toBe("done");
+    ).toEqual({ kind: "not_found" });
+    expect((await acceptAdjustment(answer(world, order.id))).kind).toBe("done");
 
     const stored = await reload(order.id);
     expect(stored.totalCents).toBe(3344);
@@ -243,23 +194,36 @@ describe("settlement", () => {
     expect(await adjustment(order.id)).toMatchObject({ status: "APPROVED" });
   });
 
-  it("a refusal leaves the order unchanged and cannot be settled afterwards", async () => {
+  it("an acceptance and a refusal racing each other: exactly one wins", async () => {
     const world = await createWorld();
     const { order } = await twoLineOrder(world);
-    await adjustOrderPrice(order.id, world.shop.id, {
-      adjustmentType: "MANUAL",
-      newTotalCents: 6208,
-    });
+    await pendingManualIncrease(world, order.id);
 
-    expect(
-      (await rejectAdjustment({ orderId: order.id, userId: world.customer.id, now: new Date() }))
-        .kind
-    ).toBe("done");
-    await makeDue(order.id);
-    await settleDueAdjustment(order.id, new Date());
+    const [accepted, refused] = await Promise.all([
+      acceptAdjustment(answer(world, order.id)),
+      rejectAdjustment(answer(world, order.id)),
+    ]);
+
+    expect([accepted.kind, refused.kind].sort()).toEqual(["done", "refused"]);
+    const settled = await adjustment(order.id);
+    expect((await reload(order.id)).totalCents).toBe(settled.status === "APPROVED" ? 6208 : 5398);
+    const events = [
+      ...(await eventsOf(order.id, "PRICE_ADJUSTED")),
+      ...(await eventsOf(order.id, "PRICE_ADJUSTMENT_CLOSED")),
+    ];
+    expect(events).toHaveLength(1);
+  });
+
+  it("a refusal leaves the order unchanged and cannot be accepted afterwards", async () => {
+    const world = await createWorld();
+    const { order } = await twoLineOrder(world);
+    await pendingManualIncrease(world, order.id);
+
+    expect((await rejectAdjustment(answer(world, order.id))).kind).toBe("done");
+    expect(await acceptAdjustment(answer(world, order.id))).toMatchObject({ kind: "refused" });
 
     expect((await reload(order.id)).totalCents).toBe(5398);
-    expect(await adjustment(order.id)).toMatchObject({ status: "REJECTED" });
+    expect(await adjustment(order.id)).toMatchObject({ closeReason: "CUSTOMER_REFUSED" });
   });
 });
 
@@ -271,25 +235,27 @@ describe("weighing through the pricing module", () => {
       items: [{ productId: world.product.id, ...THREE_PORTIONS }],
     });
 
-    const result = await adjustOrderPrice(order.id, world.shop.id, {
+    const result = await adjustOrderPrice(order.id, butcherOf(world), {
       adjustmentType: "WEIGHT",
       items: [{ orderItemId: order.items[0].id, newQuantity: 1.5 }],
     });
 
-    expect(result).toMatchObject({ ok: true, data: { tier: 1, autoApproved: true } });
+    expect(result).toMatchObject({ ok: true, data: { applied: true } });
     const stored = await reload(order.id);
     expect(stored.items[0]).toMatchObject({ quantity: 1.5, totalCents: THREE_PORTIONS.totalCents });
     expect(stored.totalCents).toBe(THREE_PORTIONS.totalCents);
+    // Rien n'a changé pour le client : il n'est pas dérangé.
+    expect(await notificationsOf(world.customer.id)).toHaveLength(0);
   });
 
-  it("a lighter weighing is applied at once (tier 1) at the portion price of the weighed grams", async () => {
+  it("a lighter weighing is applied at once at the portion price of the weighed grams", async () => {
     const world = await createWorld();
     const order = await createOrder(world, {
       status: "PREPARING",
       items: [{ productId: world.product.id, ...THREE_PORTIONS }],
     });
 
-    await adjustOrderPrice(order.id, world.shop.id, {
+    await adjustOrderPrice(order.id, butcherOf(world), {
       adjustmentType: "WEIGHT",
       items: [{ orderItemId: order.items[0].id, newQuantity: 1.47 }],
     });
@@ -303,7 +269,7 @@ describe("weighing through the pricing module", () => {
     );
   });
 
-  it("refuses a weight that is not whole grams and an adjustment of another shop's order", async () => {
+  it("refuses a weight that is not whole grams, an unreadable body and another shop's order", async () => {
     const world = await createWorld();
     const order = await createOrder(world, {
       status: "ACCEPTED",
@@ -312,20 +278,20 @@ describe("weighing through the pricing module", () => {
     const other = await createWorld();
 
     expect(
-      await adjustOrderPrice(order.id, world.shop.id, {
+      await adjustOrderPrice(order.id, butcherOf(world), {
         adjustmentType: "WEIGHT",
         items: [{ orderItemId: order.items[0].id, newQuantity: 1.4705 }],
       })
     ).toMatchObject({ ok: false, code: "VALIDATION_ERROR" });
+    expect(await adjustOrderPrice(order.id, butcherOf(world), { adjustmentType: "TIP" })).toEqual(
+      expect.objectContaining({ ok: false, code: "VALIDATION_ERROR", message: "Données invalides" })
+    );
     expect(
-      await adjustOrderPrice(order.id, other.shop.id, {
+      await adjustOrderPrice(order.id, butcherOf(other), {
         adjustmentType: "MANUAL",
         newTotalCents: 2000,
       })
-    ).toMatchObject({
-      ok: false,
-      code: "NOT_FOUND",
-    });
+    ).toMatchObject({ ok: false, code: "NOT_FOUND" });
     expect(await prisma.priceAdjustment.count()).toBe(0);
   });
 });

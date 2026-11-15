@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Tableau du mode cuisine : toutes les commandes actives de la boutique, l'historique récent borné et
-// lu à part, seules les colonnes affichées, aucune fuite entre boutiques, et le règlement des
-// ajustements de prix échus comme aujourd'hui.
+// lu à part, seules les colonnes affichées, aucune fuite entre boutiques, et la fermeture des
+// ajustements de prix restés sans réponse (le silence du client vaut refus).
 import type { OrderStatus } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma, useCleanDatabase } from "../helpers/db";
@@ -15,7 +15,7 @@ import {
 const boucherAuth = vi.hoisted(() => ({ getAuthenticatedBoucher: vi.fn() }));
 vi.mock("@/lib/boucher-auth", () => boucherAuth);
 
-// Transports sortants : l'auto-validation d'un ajustement notifie le client.
+// Transports sortants : un ajustement resté sans réponse est signalé au boucher.
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn().mockResolvedValue({ success: true }) }));
 vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/whatsapp", () => ({
@@ -167,7 +167,7 @@ describe("getKitchenBoard", () => {
     expect(exact.active).toHaveLength(3);
   });
 
-  it("settles a due tier-2 price adjustment of an active order before returning it, as GET /api/orders does", async () => {
+  it("closes the unanswered price adjustments of active orders before returning them, as GET /api/orders does", async () => {
     const shop = await createTestShop();
     const client = await createTestUser();
     const order = await createTestOrder({
@@ -183,8 +183,8 @@ describe("getKitchenBoard", () => {
         originalTotal: 2000,
         newTotal: 2150,
         adjustmentType: "WEIGHT",
-        tier: 2,
-        autoApproveAt: minutesAgo(1),
+        tier: 3,
+        answerBy: minutesAgo(1),
       },
     });
     const notDue = await createTestOrder({
@@ -200,16 +200,16 @@ describe("getKitchenBoard", () => {
         originalTotal: 1000,
         newTotal: 1100,
         adjustmentType: "WEIGHT",
-        tier: 2,
-        autoApproveAt: new Date(Date.now() + 5 * MINUTE_MS),
+        tier: 3,
+        answerBy: new Date(Date.now() + 4 * MINUTE_MS),
       },
     });
 
     const board = await getKitchenBoard(shop.id);
 
-    const settled = board.active.find((o) => o.id === order.id);
-    expect(settled?.priceAdjustment?.status).toBe("AUTO_VALIDATED");
-    expect(settled?.totalCents).toBe(2150);
+    const closed = board.active.find((o) => o.id === order.id);
+    expect(closed?.priceAdjustment).toMatchObject({ status: "REJECTED", closeReason: "NO_ANSWER" });
+    expect(closed?.totalCents).toBe(2000);
     const waiting = board.active.find((o) => o.id === notDue.id);
     expect(waiting?.priceAdjustment?.status).toBe("PENDING");
     expect(waiting?.totalCents).toBe(1000);
@@ -231,8 +231,8 @@ describe("getKitchenBoard", () => {
         originalTotal: 2000,
         newTotal: 2150,
         adjustmentType: "WEIGHT",
-        tier: 2,
-        autoApproveAt: minutesAgo(1),
+        tier: 3,
+        answerBy: minutesAgo(1),
       },
     });
 
@@ -253,6 +253,7 @@ describe("kitchen columns", () => {
     "discountCents",
     "displayNumber",
     "estimatedReady",
+    "estimatedTotalCents",
     "id",
     "isPro",
     "items",
@@ -266,10 +267,13 @@ describe("kitchen columns", () => {
     "totalCents",
     "updatedAt",
     "user",
+    "weighToleranceCapCents",
+    "weighToleranceRateBps",
   ].sort();
   const ITEM_COLUMNS = [
     "available",
     "cutOption",
+    "estimatedPriceCents",
     "id",
     "name",
     "pieceCount",
@@ -285,6 +289,17 @@ describe("kitchen columns", () => {
     "variant",
     "weightGrams",
   ].sort();
+
+  const ADJUSTMENT_COLUMNS = [
+    "adjustmentType",
+    "answerBy",
+    "closeReason",
+    "id",
+    "newTotal",
+    "originalTotal",
+    "reason",
+    "status",
+  ];
 
   it("an active order carries only the columns the board renders", async () => {
     const shop = await createTestShop();
@@ -329,9 +344,7 @@ describe("kitchen columns", () => {
       "loyaltyBadge",
       "phone",
     ]);
-    expect(Object.keys(row.priceAdjustment ?? {}).sort()).toEqual(
-      ["adjustmentType", "id", "newTotal", "originalTotal", "reason", "status"].sort()
-    );
+    expect(Object.keys(row.priceAdjustment ?? {}).sort()).toEqual(ADJUSTMENT_COLUMNS);
     const wire = JSON.stringify(row);
     for (const secret of [
       "kitchen-columns-key",

@@ -14,6 +14,11 @@ export type KitchenOrder = {
   totalCents: number;
   /** Discount on goods recorded at creation (Order.discountCents). */
   discountCents: number;
+  // Weighing tolerance frozen at creation, null on older orders (frozenToleranceOf). Always sent;
+  // optional only so the fixtures written before it still type-check.
+  weighToleranceRateBps?: number | null;
+  weighToleranceCapCents?: number | null;
+  estimatedTotalCents?: number | null;
   /** Customer number in this shop, frozen on the order; format with formatCustomerNumber. */
   customerNumber: number | null;
   isPro: boolean;
@@ -34,6 +39,7 @@ export type KitchenOrder = {
     unit: string;
     priceCents: number;
     totalCents: number;
+    estimatedPriceCents?: number | null; // line total at checkout, null on older lines
     weightGrams: number | null;
     sliceCount: number | null;
     sliceThickness: string | null;
@@ -57,6 +63,8 @@ export type KitchenOrder = {
     reason: string | null;
     adjustmentType: string;
     status: string;
+    answerBy: string | null; // ISO deadline of the customer's answer, null on older rows
+    closeReason: string | null; // CUSTOMER_REFUSED | NO_ANSWER | ORDER_CHANGED once REJECTED
   } | null;
 };
 

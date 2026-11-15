@@ -1,5 +1,5 @@
 // src/lib/pricing/adjustment.ts — the new content of an order line after the butcher weighs or
-// prices it again (price-adjustment tiers, /api/orders/[id]/adjust-price).
+// prices it again (/api/orders/[id]/adjust-price), and the lines the weighing tolerance measures.
 //
 // The line keeps its storage form (see line.ts): quantity in the sale unit (kilograms for KG and
 // TRANCHE, a count otherwise), priceCents per sale unit. Its total is computed by line.ts, like at
@@ -74,4 +74,31 @@ export function repriceLine(line: AdjustableLine, newPriceCents: number): Adjust
   return totalCents === null
     ? { ok: false, reason: "LINE_NOT_ADJUSTABLE" }
     : { ok: true, quantity: line.quantity, priceCents: newPriceCents, totalCents };
+}
+
+/** An order line as the weighing tolerance measures it (OrderItem columns). */
+export interface MeasuredLine {
+  id: string;
+  available: boolean;
+  totalCents: number;
+  /** Line total at checkout; null on lines written before it was stored. */
+  estimatedPriceCents: number | null;
+}
+
+/**
+ * The available lines of the order once `changes` apply, as decideAdjustment (tolerance.ts) reads
+ * them: a changed line takes its new total, a line weighed again at 0 stays a line of total 0, and
+ * a line out of stock or removed is left out, so it gives no room to the others.
+ */
+export function availableLinesAfter(
+  lines: readonly MeasuredLine[],
+  changes: ReadonlyArray<{ orderItemId: string; newTotalCents: number }>
+): Array<{ estimatedCents: number | null; totalCents: number }> {
+  const newTotals = new Map(changes.map((change) => [change.orderItemId, change.newTotalCents]));
+  return lines
+    .filter((line) => line.available)
+    .map((line) => ({
+      estimatedCents: line.estimatedPriceCents,
+      totalCents: newTotals.get(line.id) ?? line.totalCents,
+    }));
 }

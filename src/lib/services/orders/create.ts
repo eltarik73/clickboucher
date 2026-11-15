@@ -7,7 +7,8 @@
 // transaction (numbering.ts, discount-ledger.ts, limited-stock.ts), so either everything is
 // written or nothing is, a guest order's credential hash and typed identity included
 // (guest-placement.ts). An idempotency key makes a retried request return the order created by
-// the first one (create-replay.ts).
+// the first one (create-replay.ts). The customer's weighing tolerance is frozen on the order with
+// the estimated total it applies to (weigh-tolerance.ts).
 import { randomUUID } from "crypto";
 import type { Order, OrderItem } from "@prisma/client";
 
@@ -17,7 +18,6 @@ import { orderPagePath } from "@/lib/auth/order-credential";
 import { calculatePrepTime } from "@/lib/dynamic-prep-time";
 import { lineUnits, toStoredQuantity } from "@/lib/pricing/line";
 import { computeOrderCommissionFromHt } from "@/lib/services/stripe/commission";
-import { formatPrice } from "@/lib/utils";
 import { createOrderSchema, type CreateOrderRequest } from "@/lib/validators/order";
 import { announceNewOrder } from "./announce";
 import {
@@ -25,8 +25,8 @@ import {
   creationFailure,
   findByIdempotencyKey,
   GuestAdmissionRefusedError,
+  priceRefusal,
   replayOr,
-  type Failure,
 } from "./create-replay";
 import { consumeLoyaltyReward, consumeOffer } from "./discount-ledger";
 import type { ResolvedDiscount } from "./discount";
@@ -38,6 +38,12 @@ import { prepareOrder, type OrderCustomer, type OrderQuote, type OrderShop } fro
 import { checkShopCanTakeOrder } from "./shop-capacity";
 import { ACCEPTED_EVENT_TYPE, stockUnitsPayload } from "./stock-hold";
 import { SYSTEM_ACTOR_ID } from "./transition";
+import {
+  frozenToleranceColumns,
+  resolveWeighTolerance,
+  saveWeighTolerancePreference,
+  type ToleranceResolution,
+} from "./weigh-tolerance";
 
 export type CreateOrderErrorCode =
   | "VALIDATION_ERROR"
@@ -61,8 +67,6 @@ export type CreateOrderResult =
 
 const STALE_CART_MESSAGE =
   "Votre panier n'est plus à jour. Rechargez la page puis validez à nouveau votre commande.";
-const PRICE_CHANGED_MESSAGE =
-  "Les prix ou la disponibilité ont changé. Vérifiez le nouveau total avant de confirmer.";
 const TRANSACTION_OPTIONS = { maxWait: 5000, timeout: 10000 } as const;
 const MINUTE_MS = 60_000;
 
@@ -104,6 +108,7 @@ interface Placement {
   shop: OrderShop;
   quote: OrderQuote;
   discount: ResolvedDiscount | null;
+  tolerance: Extract<ToleranceResolution, { ok: true }>;
   state: InitialState;
   now: Date;
   guest?: GuestOrderPlacement;
@@ -115,17 +120,21 @@ function insertOrder({
   shop,
   quote,
   discount,
+  tolerance,
   state,
   now,
   guest,
 }: Placement): Promise<{ order: CreatedOrder; displayNumber: string }> {
   // Lock order, the same in every path that creates an order: the shop row (still taking orders,
-  // order-shop.ts), guest cap locks, offer, counters (customer, day, year), then the products'
-  // limited stock.
+  // order-shop.ts), guest cap locks, the member's users row when his tolerance choice changes
+  // (weigh-tolerance.ts), offer, counters (customer, day, year), then the products' limited stock.
   return prisma.$transaction(async (tx) => {
     await lockShopTakingOrders(tx, shop.id);
     const refusal = await guest?.admit?.(tx);
     if (refusal) throw new GuestAdmissionRefusedError(refusal);
+    if (tolerance.saveOnUser) {
+      await saveWeighTolerancePreference(tx, customer.id, tolerance.choice);
+    }
     if (discount?.offerId) {
       await consumeOffer(tx, { offerId: discount.offerId, userId: customer.id, now });
     }
@@ -160,6 +169,7 @@ function insertOrder({
         loyaltyRewardId: discount?.loyaltyRewardId ?? null,
         serviceFeeCents: quote.serviceFeeCents,
         paymentMethod: quote.paymentMethod,
+        ...frozenToleranceColumns(tolerance.terms, quote.totalCents),
         expiresAt: state.expiresAt,
         qrCode: state.qrCode,
         estimatedReady: state.estimatedReady,
@@ -239,6 +249,9 @@ export async function createOrder(
   const replay = await findByIdempotencyKey(request.idempotencyKey, customer.id);
   if (replay !== null) return replay;
 
+  const tolerance = await resolveWeighTolerance(request, customer.id, guest !== undefined);
+  if (!tolerance.ok) return replayOr(request, customer, tolerance);
+
   const now = new Date();
   const prepared = await prepareOrder(request, customer, now);
   if (!prepared.ok) return replayOr(request, customer, prepared);
@@ -258,6 +271,7 @@ export async function createOrder(
     shop,
     quote,
     discount,
+    tolerance,
     state: await initialState(shop, request, quote, now),
     now,
     guest,
@@ -278,22 +292,4 @@ export async function createOrder(
     trackingPath: guest ? guest.trackingPath(created.order.id) : orderPagePath(created.order.id),
   });
   return { ok: true, status: 201, order: created.order };
-}
-
-/** The quote the order would be created from differs from what the customer confirmed. */
-function priceRefusal(request: CreateOrderRequest, quote: OrderQuote): Failure | null {
-  if (quote.discountRejection !== null) {
-    return { ok: false, code: "PRICE_CHANGED", message: quote.discountRejection.message };
-  }
-  if (quote.belowMinimumOrder) {
-    return {
-      ok: false,
-      code: "VALIDATION_ERROR",
-      message: `Commande minimum de ${formatPrice(quote.minOrderCents)} requise`,
-    };
-  }
-  if (quote.amountDueCents !== request.expectedTotalCents) {
-    return { ok: false, code: "PRICE_CHANGED", message: PRICE_CHANGED_MESSAGE };
-  }
-  return null;
 }

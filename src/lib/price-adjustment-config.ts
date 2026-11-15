@@ -1,19 +1,15 @@
-// src/lib/price-adjustment-config.ts — Client-safe constants + types for price adjustment tiers
-// No server imports here — safe for "use client" components
+// src/lib/price-adjustment-config.ts — Client-safe constants + types of the platform settings of
+// price adjustments. No server imports here — safe for "use client" components.
+// Whether an adjustment applies without asking the customer is not a setting: it is the weighing
+// tolerance the customer chose, frozen on the order (src/lib/pricing/tolerance.ts).
 
 // ── Default values (used as fallback when DB config is missing) ──
 
-/** Tier 1 max increase percent (auto-approved) */
+/** @deprecated display only, removed by C1-PAIEMENT-A-T8 (old 3-tier rule, no longer applied). */
 export const TIER_1_MAX = 10;
 
-/** Tier 2 max increase percent (auto-approved after delay) */
+/** @deprecated display only, removed by C1-PAIEMENT-A-T8 (old 3-tier rule, no longer applied). */
 export const TIER_2_MAX = 20;
-
-/** Tier 2 auto-approve delay in seconds */
-export const TIER_2_AUTO_APPROVE_SEC = 30;
-
-/** Tier 3 escalation delay in minutes */
-export const TIER_3_ESCALATION_MIN = 10;
 
 /** Hard cap safety net (max increase %) */
 export const MAX_INCREASE_PCT = 50;
@@ -21,10 +17,6 @@ export const MAX_INCREASE_PCT = 50;
 // ── PlatformConfig keys ──
 
 export const PA_KEYS = {
-  tier1MaxPct: "pa_tier1_max_pct",
-  tier2MaxPct: "pa_tier2_max_pct",
-  tier2AutoApproveSec: "pa_tier2_auto_approve_sec",
-  tier3EscalationMin: "pa_tier3_escalation_min",
   maxIncreasePct: "pa_max_increase_pct",
   requireReason: "pa_require_reason",
   defaultReasons: "pa_default_reasons",
@@ -35,10 +27,6 @@ export const PA_KEYS = {
 // ── Type ──
 
 export type PriceAdjConfig = {
-  tier1MaxPct: number;
-  tier2MaxPct: number;
-  tier2AutoApproveSec: number;
-  tier3EscalationMin: number;
   maxIncreasePct: number;
   requireReason: boolean;
   defaultReasons: string[];
@@ -49,10 +37,6 @@ export type PriceAdjConfig = {
 // ── Defaults ──
 
 export const PA_DEFAULTS: PriceAdjConfig = {
-  tier1MaxPct: TIER_1_MAX,
-  tier2MaxPct: TIER_2_MAX,
-  tier2AutoApproveSec: TIER_2_AUTO_APPROVE_SEC,
-  tier3EscalationMin: TIER_3_ESCALATION_MIN,
   maxIncreasePct: MAX_INCREASE_PCT,
   requireReason: true,
   defaultReasons: [
@@ -95,10 +79,6 @@ export function parsePriceAdjConfig(
   };
 
   return {
-    tier1MaxPct: num(PA_KEYS.tier1MaxPct, PA_DEFAULTS.tier1MaxPct),
-    tier2MaxPct: num(PA_KEYS.tier2MaxPct, PA_DEFAULTS.tier2MaxPct),
-    tier2AutoApproveSec: num(PA_KEYS.tier2AutoApproveSec, PA_DEFAULTS.tier2AutoApproveSec),
-    tier3EscalationMin: num(PA_KEYS.tier3EscalationMin, PA_DEFAULTS.tier3EscalationMin),
     maxIncreasePct: num(PA_KEYS.maxIncreasePct, PA_DEFAULTS.maxIncreasePct),
     requireReason: bool(PA_KEYS.requireReason, PA_DEFAULTS.requireReason),
     defaultReasons: jsonArr(PA_KEYS.defaultReasons, PA_DEFAULTS.defaultReasons),

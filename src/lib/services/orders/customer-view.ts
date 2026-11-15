@@ -1,6 +1,8 @@
 // src/lib/services/orders/customer-view.ts — what a customer (signed-in or guest) reads of an order.
 // An allow-list: an Order, OrderItem or Product column added to the schema is never sent to a
-// customer until it is added here. Left out on purpose: commission and Stripe columns, the
+// customer until it is added here. The weighing tolerance frozen on the order (rate, cap and the
+// estimated total it applies to) is the customer's own choice and is shown to him. Left out on
+// purpose: commission and Stripe columns, the
 // idempotency key, offer and loyalty references, the butcher's weighing columns of the lines, the
 // product row (pro and boutique prices, stock, reference catalogue), the shop owner and every user
 // identifier.
@@ -35,6 +37,9 @@ export const customerOrderSelect = {
   expiresAt: true,
   totalCents: true,
   discountCents: true,
+  weighToleranceRateBps: true,
+  weighToleranceCapCents: true,
+  estimatedTotalCents: true,
   paymentMethod: true,
   paidAt: true,
   qrCode: true,
@@ -90,6 +95,10 @@ export const customerOrderSelect = {
       status: true,
       tier: true,
       itemsSnapshot: true,
+      answerBy: true,
+      closeReason: true,
+      // Legacy columns, never written since C1-PAIEMENT-A: still read by the tracking page
+      // (src/app/(client)/suivi/[id]/page.tsx) until C1-PAIEMENT-A-T7 drops them there.
       autoApproveAt: true,
       escalateAt: true,
       respondedAt: true,

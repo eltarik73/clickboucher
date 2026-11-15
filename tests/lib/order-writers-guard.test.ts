@@ -27,17 +27,18 @@ const ORDER_WRITERS: Record<string, string> = {
   "src/lib/services/orders/commands/rate.ts": "note du client sur une commande terminée",
   "src/lib/auth/order-access.ts":
     "jeton d'accès d'une commande invitée : remplacement au rejeu (access_token_hash seul, jamais le statut)",
-  "src/app/api/payments/webhook/route.ts":
-    "webhook Stripe, paiement en ligne inactif (hors périmètre)",
+  "src/lib/services/stripe/webhook/checkout-events.ts":
+    "webhook Stripe : rattache la session Checkout et son PaymentIntent (colonnes NULL ou égales), jamais le statut",
+  "src/lib/services/stripe/webhook/payment-intent-events.ts":
+    "webhook Stripe : autorisation, encaissement et libération d'une commande ONLINE, chaque colonne écrite une fois",
+  "src/lib/services/stripe/webhook/refund-events.ts":
+    "webhook Stripe : montant remboursé absolu, qui ne fait que croître, jamais le statut",
   "src/lib/services/stripe/checkout-session.ts":
     "ventilation des frais Stripe, paiement en ligne inactif (hors périmètre)",
 };
 
-/** Seuls fichiers dont un appel écrit `status` dans `data`. */
-const STATUS_WRITERS = [
-  "src/app/api/payments/webhook/route.ts",
-  "src/lib/services/orders/transition.ts",
-];
+/** Seul fichier dont un appel écrit `status` dans `data`. */
+const STATUS_WRITERS = ["src/lib/services/orders/transition.ts"];
 
 /**
  * Appels dont `data` n'est pas un objet littéral : la garde ne peut pas le lire, le type doit
@@ -178,7 +179,7 @@ describe("écrivains de la table orders", () => {
     expect(files).toEqual(Object.keys(ORDER_WRITERS).sort());
   });
 
-  it("seuls transition.ts et le webhook Stripe écrivent le statut", () => {
+  it("seul transition.ts écrit le statut", () => {
     const statusFiles = [
       ...new Set(writes.filter((w) => w.data !== null && writesStatus(w.data)).map((w) => w.file)),
     ].sort();

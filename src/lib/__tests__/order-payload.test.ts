@@ -63,6 +63,7 @@ function selection(overrides: Partial<CheckoutSelection> = {}): CheckoutSelectio
     requestedTime: "asap",
     pickupSlot: null,
     customerNote: "",
+    weighTolerance: "STANDARD",
     ...overrides,
   };
 }
@@ -122,6 +123,12 @@ describe("buildQuoteRequest", () => {
     );
     expect(parsed.success).toBe(true);
   });
+
+  it("never carries the weighing tolerance: the strict quote schema would refuse it", () => {
+    expect(buildQuoteRequest(selection({ weighTolerance: "EXTENDED" }))).not.toHaveProperty(
+      "weighTolerance"
+    );
+  });
 });
 
 describe("buildCreateOrderRequest", () => {
@@ -177,6 +184,33 @@ describe("buildCreateOrderRequest", () => {
     });
     const parsed = createOrderSchema.safeParse(request);
     expect(parsed.success).toBe(true);
+  });
+
+  it.each(["STANDARD", "EXTENDED"] as const)(
+    "carries the weighing tolerance %s by name, with no rate nor cap",
+    (choice) => {
+      const request = buildCreateOrderRequest(selection({ weighTolerance: choice }), {
+        expectedTotalCents: 5432,
+        idempotencyKey: KEY_A,
+      });
+      expect(request.weighTolerance).toBe(choice);
+      const keys = keysDeep(request);
+      for (const frozen of [
+        "weighToleranceRateBps",
+        "weighToleranceCapCents",
+        "estimatedTotalCents",
+      ])
+        expect(keys).not.toContain(frozen);
+      expect(createOrderSchema.safeParse(request).success).toBe(true);
+    }
+  );
+
+  it("omits the weighing tolerance until the customer has chosen one", () => {
+    const request = buildCreateOrderRequest(selection({ weighTolerance: null }), {
+      expectedTotalCents: 5432,
+      idempotencyKey: KEY_A,
+    });
+    expect(request).not.toHaveProperty("weighTolerance");
   });
 });
 
@@ -281,6 +315,7 @@ describe("checkoutFingerprint and resolveIdempotencyKey", () => {
     ],
     ["the note", selection({ promoCode: "BIENVENUE10", customerNote: "Bien saignant" })],
     ["the promo code", selection({ promoCode: "AUTRECODE" })],
+    ["the weighing tolerance", selection({ promoCode: "BIENVENUE10", weighTolerance: "EXTENDED" })],
   ])("changing %s gives a new fingerprint and a new key", (_label, changed) => {
     const fingerprint = checkoutFingerprint(unkeyed(changed));
     expect(fingerprint).not.toBe(baseFingerprint);

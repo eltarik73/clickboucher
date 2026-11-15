@@ -118,6 +118,9 @@ type TestOrderItemInput = Partial<Prisma.OrderItemUncheckedCreateWithoutOrderInp
  * 1000 g portion for KG and TRANCHE, one piece or tray otherwise, so its total is the unit price.
  * An item override replaces that single column: when you change quantity or weightGrams, give the
  * matching totalCents. Order totalCents defaults to the sum of the item totals.
+ * No weighing tolerance is frozen (rate, cap and estimated total NULL): the shape of an order
+ * created before C1-PAIEMENT-A, on which every price increase needs the customer's yes. Pass
+ * weighToleranceRateBps, weighToleranceCapCents and estimatedTotalCents in overrides for another.
  * Precedence: defaults < status / totalCents < overrides.
  */
 export async function createTestOrder(input: {

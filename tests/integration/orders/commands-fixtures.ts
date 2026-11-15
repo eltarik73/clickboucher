@@ -59,6 +59,50 @@ export async function createOrder(
   });
 }
 
+/** The butcher of the world's shop, as adjustOrderPrice receives him from the route. */
+export function butcherOf(world: World): { shopId: string; actorId: string } {
+  return { shopId: world.shop.id, actorId: world.owner.id };
+}
+
+/** A KG product at 1000 c/kg: one gram costs exactly one cent, whatever the weight. */
+export async function createGramProduct(world: World): Promise<Product> {
+  return createTestProduct(world.shop.id, { priceCents: 1000, name: "Viande au gramme" });
+}
+
+/**
+ * An ACCEPTED order of KG lines of `gramProduct` (one portion of the given grams each), as checkout
+ * writes it: each line's estimate is its total, the order's estimated total is their sum, and the
+ * terms of the customer's tolerance are frozen on it; `terms` null is an order created before the
+ * weighing tolerance existed.
+ */
+export async function createWeighedOrder(
+  world: World,
+  gramProduct: Product,
+  grams: readonly number[],
+  terms: { rateBps: number; capCents: number } | null
+): Promise<Order & { items: OrderItem[] }> {
+  const total = grams.reduce((sum, weight) => sum + weight, 0);
+  return createOrder(world, {
+    status: "ACCEPTED",
+    items: grams.map((weight) => ({
+      productId: gramProduct.id,
+      quantity: weight / 1000,
+      weightGrams: weight,
+      priceCents: 1000,
+      totalCents: weight,
+      estimatedPriceCents: weight,
+    })),
+    overrides:
+      terms === null
+        ? undefined
+        : {
+            weighToleranceRateBps: terms.rateBps,
+            weighToleranceCapCents: terms.capCents,
+            estimatedTotalCents: total,
+          },
+  });
+}
+
 export function jsonRequest(url: string, method: string, body?: unknown): NextRequest {
   return new NextRequest(`http://localhost${url}`, {
     method,
