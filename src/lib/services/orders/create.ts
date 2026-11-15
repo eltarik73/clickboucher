@@ -200,7 +200,7 @@ function insertOrder({
       // Same record as the accept command: the units reserved are written into the ACCEPTED
       // event, and every later release gives back exactly those units.
       const stockLines = stockLinesFromItems(order.items);
-      await reserveLimitedStock(tx, shop.id, stockLines);
+      await reserveLimitedStock(tx, shop.id, stockLines, now);
       await tx.orderEvent.create({
         data: {
           orderId: order.id,

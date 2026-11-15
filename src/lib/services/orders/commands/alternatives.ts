@@ -3,6 +3,7 @@
 // the replacement the customer picks.
 import type { OrderItem, Prisma, Unit } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { antiGaspiPricingSelect } from "@/lib/pricing/anti-gaspi";
 import { checkLineQuantity, lineQuantityFromStored, lineTotalCents } from "@/lib/pricing/line";
 import { resolveUnitPrice } from "@/lib/pricing/unit-price";
 
@@ -83,6 +84,7 @@ export const REPLACEMENT_SELECT = {
   promoType: true,
   promoEnd: true,
   promoFixedCents: true,
+  ...antiGaspiPricingSelect,
 } satisfies Prisma.ProductSelect;
 
 type ReplacementProduct = Prisma.ProductGetPayload<{ select: typeof REPLACEMENT_SELECT }>;

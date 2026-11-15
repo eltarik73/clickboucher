@@ -86,7 +86,8 @@ export async function acceptOrder(input: AcceptOrderInput): Promise<CommandResul
           actorId: input.actorId,
           payload: { estimatedMinutes, qrCode, ...stockUnitsPayload(stockUnits) },
         },
-        effects: (effectTx, accepted) => reserveLimitedStock(effectTx, accepted.shopId, stockUnits),
+        effects: (effectTx, accepted) =>
+          reserveLimitedStock(effectTx, accepted.shopId, stockUnits, input.now),
       });
     }, TRANSACTION_OPTIONS);
   } catch (error) {

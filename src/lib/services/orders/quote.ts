@@ -5,6 +5,7 @@
 import type { Prisma, Role } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { antiGaspiPricingSelect, settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 import {
   LINE_QUANTITY_ISSUE_MESSAGES,
   checkLineQuantity,
@@ -110,8 +111,7 @@ const quotedProductSelect = {
   isActive: true,
   inStock: true,
   snoozeType: true,
-  isAntiGaspi: true,
-  antiGaspiStock: true,
+  ...antiGaspiPricingSelect,
   isFlashSale: true,
   flashSaleStock: true,
 } satisfies Prisma.ProductSelect;
@@ -211,7 +211,7 @@ export async function prepareOrder(
   ]);
   if (shop === null) return { ok: false, code: "NOT_FOUND", message: "Boucherie introuvable" };
 
-  const products = new Map(productRows.map((product) => [product.id, product]));
+  const products = new Map(productRows.map((row) => [row.id, settleAntiGaspi(row, now)]));
   const missingProductIds = productIds.filter((id) => !products.has(id));
   if (missingProductIds.length > 0) {
     return {

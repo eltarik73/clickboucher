@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { executeCampaignSend } from "@/lib/marketing/send-campaign";
+import { COMMERCIAL_EMAILS_PAUSED_MESSAGE } from "@/lib/commercial-emails";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,9 @@ export async function POST(_req: NextRequest, { params }: Params) {
     }
 
     const result = await executeCampaignSend(campaignId);
+    if (result.status === "PAUSED") {
+      return apiError("CONFLICT", COMMERCIAL_EMAILS_PAUSED_MESSAGE);
+    }
 
     return apiSuccess({
       sent: result.sent,

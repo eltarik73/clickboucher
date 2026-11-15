@@ -2,6 +2,12 @@
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { commercialEmailsEnabled } from "@/lib/commercial-emails";
+
+/** PAUSED : interrupteur des e-mails commerciaux en pause, la campagne n'a pas été touchée. */
+export type CampaignSendResult =
+  | { status: "PAUSED" }
+  | { status: "SENT"; sent: number; total: number };
 
 // ── Build campaign HTML email ─────────────────────────────────
 function buildCampaignHtml(campaign: {
@@ -140,7 +146,7 @@ async function getRecipients(audience: string): Promise<{ email: string }[]> {
 }
 
 // ── Core send logic (used by API route + cron job) ────────────
-export async function executeCampaignSend(campaignId: string): Promise<{ sent: number; total: number }> {
+export async function executeCampaignSend(campaignId: string): Promise<CampaignSendResult> {
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
     include: {
@@ -149,6 +155,7 @@ export async function executeCampaignSend(campaignId: string): Promise<{ sent: n
   });
 
   if (!campaign) throw new Error("Campagne introuvable");
+  if (!(await commercialEmailsEnabled())) return { status: "PAUSED" };
 
   // Mark as SENDING
   await prisma.campaign.update({
@@ -165,7 +172,7 @@ export async function executeCampaignSend(campaignId: string): Promise<{ sent: n
       where: { id: campaignId },
       data: { status: "SENT", sentAt: new Date(), sentCount: 0 },
     });
-    return { sent: 0, total: 0 };
+    return { status: "SENT", sent: 0, total: 0 };
   }
 
   // Build HTML
@@ -201,5 +208,5 @@ export async function executeCampaignSend(campaignId: string): Promise<{ sent: n
   });
 
   logger.info(`[campaign] Sent "${campaign.title}" to ${sentCount}/${uniqueEmails.length} recipients`);
-  return { sent: sentCount, total: uniqueEmails.length };
+  return { status: "SENT", sent: sentCount, total: uniqueEmails.length };
 }

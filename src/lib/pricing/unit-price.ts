@@ -5,11 +5,14 @@
 //      the base price for every customer), else the pro price for a pro customer when one is
 //      set, else the public price;
 //   2. the product promotion, when active, applied on that base.
-// Anti-gaspi and flash sales already rewrite Product.priceCents and need no rule here.
+// The public price is priceCents, where the butcher's anti-gaspi action writes its discounted
+// price: that discount applies until antiGaspiEndAt, after which the public price is the original
+// one (publicPriceCents, anti-gaspi.ts). A cut option's price is not affected.
 //
 // The server calls this with database rows only: the browser names a cut option, it never
 // sends a price. Pure and client-safe; the current time is a parameter.
 
+import { publicPriceCents } from "./anti-gaspi";
 import { assertCents } from "./line";
 
 export interface CutOption {
@@ -66,6 +69,9 @@ export interface ProductPricing {
   promoEnd?: Date | string | null;
   promoFixedCents?: number | null;
   cutOptions?: unknown;
+  isAntiGaspi?: boolean | null;
+  antiGaspiOrigPriceCents?: number | null;
+  antiGaspiEndAt?: Date | string | null;
 }
 
 export type ProductPromo = { kind: "PERCENT"; pct: number } | { kind: "FIXED"; cents: number };
@@ -151,7 +157,7 @@ function proPriceOf(product: ProductPricing): number | null {
  *   priced at the base price, and so is an option stored at 0, never sold for nothing.
  * - `isPro`: the customer's database role is CLIENT_PRO.
  * Throws RangeError when a price of the product is not whole cents, TypeError when a requested
- * cut option has to be looked up in malformed cutOptions.
+ * cut option has to be looked up in malformed cutOptions or when a date is not a valid date.
  */
 export function resolveUnitPrice(
   product: ProductPricing,
@@ -162,7 +168,8 @@ export function resolveUnitPrice(
   const requestedCut = options.cutOption ?? null;
 
   if (requestedCut === null) {
-    const baseCents = (options.isPro ? proPriceOf(product) : null) ?? product.priceCents;
+    const baseCents =
+      (options.isPro ? proPriceOf(product) : null) ?? publicPriceCents(product, options.now);
     return {
       ok: true,
       unitPriceCents: applyProductPromo(baseCents, promo),

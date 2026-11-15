@@ -13,6 +13,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin, Phone } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { readCachedShop, writeCachedShop } from "@/lib/cache/shop-cache";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import {
   ShopProductsClient,
@@ -204,7 +205,11 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
     emoji: c.emoji,
   }));
 
-  const products: ProductData[] = shop.products.map((p) => ({
+  // An anti-gaspi discount past its end date is shown at the original price, as the quote charges
+  // it (anti-gaspi.ts). One clock read for the whole list; this page renders per request.
+  const productsAt = new Date();
+  const liveProducts = shop.products.map((p) => settleAntiGaspi(p, productsAt));
+  const products: ProductData[] = liveProducts.map((p) => ({
     id: p.id,
     name: p.name,
     description: p.description,
@@ -280,7 +285,7 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
         ]}
       />
       {/* Product schemas for rich results (first 20 products) */}
-      {shop.products.slice(0, 20).map((p) => (
+      {liveProducts.slice(0, 20).map((p) => (
         <ProductSchema
           key={p.id}
           product={{

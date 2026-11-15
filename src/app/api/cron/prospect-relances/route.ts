@@ -6,6 +6,7 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { sendEmail } from "@/lib/email";
 import { prospectRelance3j, prospectRelance7j } from "@/lib/email-templates";
+import { commercialEmailsEnabled } from "@/lib/commercial-emails";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export async function GET(req: NextRequest) {
   try {
     if (!verifyCronAuth(req)) return apiError("UNAUTHORIZED", "Invalid cron secret");
+
+    if (!(await commercialEmailsEnabled())) {
+      return apiSuccess({
+        relance3jSent: 0,
+        relance7jSent: 0,
+        candidatesScanned: 0,
+        commercialEmailsPaused: true,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     const now = Date.now();
     // Window for relance_3j: lastEmailAt is between 3d and 4d ago
@@ -84,6 +95,7 @@ export async function GET(req: NextRequest) {
       relance3jSent,
       relance7jSent,
       candidatesScanned: candidates.length,
+      commercialEmailsPaused: false,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

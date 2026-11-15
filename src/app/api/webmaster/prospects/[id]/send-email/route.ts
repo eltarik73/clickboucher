@@ -7,6 +7,7 @@ import { apiSuccess, apiError, handleApiError, formatZodError } from "@/lib/api/
 import { requireAdmin } from "@/lib/admin-auth";
 import { sendEmail } from "@/lib/email";
 import { prospectInitial, prospectRelance3j, prospectRelance7j } from "@/lib/email-templates";
+import { COMMERCIAL_EMAILS_PAUSED_MESSAGE, commercialEmailsEnabled } from "@/lib/commercial-emails";
 
 export const dynamic = "force-dynamic";
 
@@ -39,13 +40,17 @@ export async function POST(
 ) {
   try {
     const auth = await requireAdmin();
-    if ("error" in auth) return auth.error;
+    if (auth.error) return auth.error;
 
     const { id } = params;
     const body = await req.json().catch(() => ({}));
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) {
       return apiError("VALIDATION_ERROR", "Paramètres invalides", formatZodError(parsed.error));
+    }
+
+    if (!(await commercialEmailsEnabled())) {
+      return apiError("CONFLICT", COMMERCIAL_EMAILS_PAUSED_MESSAGE);
     }
 
     const prospect = await prisma.prospect.findUnique({

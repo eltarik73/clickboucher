@@ -15,9 +15,11 @@ import {
   AlertTriangle,
   X,
   Scale,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/api/error-message";
+import { CommercialEmailsToggle } from "@/components/webmaster/CommercialEmailsToggle";
 
 /* ─── types ─── */
 interface ConfigItem {
@@ -477,6 +479,10 @@ export default function WebmasterParametresPage() {
             Cette action modifie le taux de commission de <strong>toutes</strong> les boutiques. Les taux individuels déjà configurés seront écrasés.
           </p>
         </div>
+      </Section>
+
+      <Section icon={Mail} title="E-mails commerciaux">
+        <CommercialEmailsToggle />
       </Section>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
