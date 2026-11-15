@@ -1,5 +1,6 @@
-// src/lib/reviews/verified-rating.ts — the only place that computes a shop rating fit for
-// publication (JSON-LD aggregateRating and review of /boutique/[slug]).
+// src/lib/reviews/verified-rating.ts — the only place that reads a shop rating fit for publication:
+// the JSON-LD of /boutique/[slug] (aggregateRating, review), the figure of its header and review
+// list, and the figure of every shop card of the list pages.
 //
 // A review is verified when its order is its own (same customer, same shop) and was collected
 // (PICKED_UP or COMPLETED). Nothing else counts: Shop.rating and Shop.ratingCount are seeded or
@@ -8,6 +9,7 @@
 // left unqualified so that the connection's schema applies (the integration suite runs in itest).
 import { Prisma, type OrderStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import type { RatingSummary } from "@/lib/reviews/rating";
 import { MAX_PUBLISHED_REVIEWS } from "@/lib/seo/jsonld/shop";
 
 export type VerifiedReview = {
@@ -17,13 +19,19 @@ export type VerifiedReview = {
   createdAt: Date;
 };
 
-export type VerifiedShopRating = {
-  /** Mean of the verified ratings, unrounded. */
-  average: number;
-  /** Number of verified reviews, at least 1. */
-  count: number;
+export type VerifiedShopRating = RatingSummary & {
   /** Newest verified reviews with a text, at most MAX_PUBLISHED_REVIEWS (two). */
   reviews: VerifiedReview[];
+};
+
+/** A verified review as the shop page lists it (serializable for a client component). */
+export type VerifiedReviewItem = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  /** ISO date. */
+  createdAt: string;
+  user: { firstName: string; lastInitial: string };
 };
 
 /** An order in one of these statuses was collected by its customer. */
@@ -31,6 +39,9 @@ const COLLECTED_ORDER_STATUSES = [
   "PICKED_UP",
   "COMPLETED",
 ] as const satisfies readonly OrderStatus[];
+
+/** Most verified reviews the shop page lists. */
+export const MAX_LISTED_REVIEWS = 50;
 
 // The verified reviews: each review joined to its own collected order. The status is compared as
 // text because the values are sent as text parameters.
@@ -42,23 +53,58 @@ const VERIFIED_REVIEWS = Prisma.sql`
    AND o."user_id" = r."user_id"
    AND o."status"::text IN (${Prisma.join(COLLECTED_ORDER_STATUSES)})`;
 
-type AggregateRow = { average: number | null; count: number };
+type SummaryRow = { shopId: string; average: number; count: number };
 
 type ReviewRow = {
+  id: string;
   rating: number;
-  comment: string;
+  comment: string | null;
   createdAt: Date;
   firstName: string;
   lastName: string;
 };
 
-/** « Amina K. » from first and last name; « Client » when the first name is blank. */
-function authorName(firstName: string, lastName: string): string {
+/** « Amina » and « K. » from first and last name; « Client » when the first name is blank. */
+function authorParts(firstName: string, lastName: string): { first: string; initial: string } {
   const first = firstName.trim();
-  if (first === "") return "Client";
-  const capitalized = first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   const initial = lastName.trim().charAt(0).toUpperCase();
-  return initial === "" ? capitalized : `${capitalized} ${initial}.`;
+  return {
+    first: first === "" ? "Client" : first.charAt(0).toUpperCase() + first.slice(1).toLowerCase(),
+    initial: first === "" || initial === "" ? "" : `${initial}.`,
+  };
+}
+
+/**
+ * The verified rating of each of these shops, in one grouped query. A shop without any verified
+ * review is absent from the map. No query for an empty list.
+ */
+export async function loadVerifiedRatings(
+  shopIds: readonly string[]
+): Promise<Map<string, RatingSummary>> {
+  const ids = [...new Set(shopIds)];
+  if (ids.length === 0) return new Map();
+  const rows = await prisma.$queryRaw<SummaryRow[]>`
+    SELECT r."shop_id" AS "shopId", AVG(r."rating")::float8 AS "average", COUNT(*)::int AS "count"
+    FROM ${VERIFIED_REVIEWS}
+    WHERE r."shop_id" IN (${Prisma.join(ids)})
+    GROUP BY r."shop_id"`;
+  return new Map(rows.map((row) => [row.shopId, { average: row.average, count: row.count }]));
+}
+
+async function verifiedReviewRows(
+  shopId: string,
+  limit: number,
+  withTextOnly: boolean
+): Promise<ReviewRow[]> {
+  const textFilter = withTextOnly ? Prisma.sql`AND r."comment" ~ '[^[:space:]]'` : Prisma.empty;
+  return prisma.$queryRaw<ReviewRow[]>`
+    SELECT r."id" AS "id", r."rating" AS "rating", r."comment" AS "comment",
+           r."created_at" AS "createdAt", u."first_name" AS "firstName", u."last_name" AS "lastName"
+    FROM ${VERIFIED_REVIEWS}
+    JOIN "users" u ON u."id" = r."user_id"
+    WHERE r."shop_id" = ${shopId} ${textFilter}
+    ORDER BY r."created_at" DESC, r."id" DESC
+    LIMIT ${limit}`;
 }
 
 /**
@@ -66,33 +112,39 @@ function authorName(firstName: string, lastName: string): string {
  * newest verified reviews with a non-blank text, at most two.
  */
 export async function loadVerifiedShopRating(shopId: string): Promise<VerifiedShopRating | null> {
-  const [aggregate] = await prisma.$queryRaw<AggregateRow[]>`
-    SELECT AVG(r."rating")::float8 AS "average", COUNT(*)::int AS "count"
-    FROM ${VERIFIED_REVIEWS}
-    WHERE r."shop_id" = ${shopId}`;
-  if (aggregate.count === 0 || aggregate.average === null) return null;
+  const summary = (await loadVerifiedRatings([shopId])).get(shopId);
+  if (summary === undefined) return null;
 
-  const rows = await prisma.$queryRaw<ReviewRow[]>`
-    SELECT r."rating" AS "rating", r."comment" AS "comment", r."created_at" AS "createdAt",
-           u."first_name" AS "firstName", u."last_name" AS "lastName"
-    FROM ${VERIFIED_REVIEWS}
-    JOIN "users" u ON u."id" = r."user_id"
-    WHERE r."shop_id" = ${shopId}
-      AND r."comment" ~ '[^[:space:]]'
-    ORDER BY r."created_at" DESC, r."id" DESC
-    LIMIT ${MAX_PUBLISHED_REVIEWS}`;
-
+  const rows = await verifiedReviewRows(shopId, MAX_PUBLISHED_REVIEWS, true);
   return {
-    average: aggregate.average,
-    count: aggregate.count,
+    ...summary,
     reviews: rows
-      .map((row) => ({
-        rating: row.rating,
-        comment: row.comment.trim(),
-        authorName: authorName(row.firstName, row.lastName),
-        createdAt: row.createdAt,
-      }))
+      .map((row) => {
+        const author = authorParts(row.firstName, row.lastName);
+        return {
+          rating: row.rating,
+          comment: (row.comment ?? "").trim(),
+          authorName: author.initial === "" ? author.first : `${author.first} ${author.initial}`,
+          createdAt: row.createdAt,
+        };
+      })
       // JavaScript trims more kinds of space than [:space:]: never publish an empty text.
       .filter((review) => review.comment !== ""),
   };
+}
+
+/** The newest verified reviews of a shop, with or without a text, for its review list. */
+export async function listVerifiedReviews(shopId: string): Promise<VerifiedReviewItem[]> {
+  const rows = await verifiedReviewRows(shopId, MAX_LISTED_REVIEWS, false);
+  return rows.map((row) => {
+    const author = authorParts(row.firstName, row.lastName);
+    const comment = row.comment?.trim() ?? "";
+    return {
+      id: row.id,
+      rating: row.rating,
+      comment: comment === "" ? null : comment,
+      createdAt: row.createdAt.toISOString(),
+      user: { firstName: author.first, lastInitial: author.initial },
+    };
+  });
 }

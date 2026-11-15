@@ -2,7 +2,7 @@
 // visitor's position is known.
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { ShopCard, type ShopCardData } from "@/components/shop/ShopCard";
 import { MapPin, Loader2 } from "lucide-react";
@@ -63,21 +63,36 @@ export default function NearbyShops({ initialShops, favoriteIds }: Props) {
     };
   }, [canCallApisAtMount]);
 
-  const fetchNearby = useCallback(async (lat: number, lng: number) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/shops/nearby?lat=${lat}&lng=${lng}&radius=15`);
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setShops(json.data);
-        setGeoActive(true);
+  // The verified ratings come with the server list only: a shop of the nearby list keeps the one
+  // the server gave it, and never shows the rating fields the nearby API returns.
+  const verifiedRatings = useMemo(
+    () => new Map(initialShops.map((shop) => [shop.id, shop.verifiedRating ?? null])),
+    [initialShops]
+  );
+
+  const fetchNearby = useCallback(
+    async (lat: number, lng: number) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/shops/nearby?lat=${lat}&lng=${lng}&radius=15`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setShops(
+            json.data.map((shop: ShopCardData) => ({
+              ...shop,
+              verifiedRating: verifiedRatings.get(shop.id) ?? null,
+            }))
+          );
+          setGeoActive(true);
+        }
+      } catch {
+        // Network failure: the server-rendered list stays, still correct, only not sorted.
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      // Network failure: the server-rendered list stays, still correct, only not sorted.
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [verifiedRatings]
+  );
 
   // A position the visitor chose earlier sorts the list at mount, under the same condition as
   // the favorites. Without it the server order stays: no implicit IP lookup.

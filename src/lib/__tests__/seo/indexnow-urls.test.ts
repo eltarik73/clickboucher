@@ -1,14 +1,15 @@
 // @vitest-environment node
 //
-// What IndexNow is told: the daily cron sends only the pages whose sitemap lastmod moved since the
-// start of the previous UTC day (unchanged pages are not resubmitted), the admin validation only
-// the home page and the shop's city pages. Never a shop page.
+// What IndexNow is told: the daily cron sends only the pages whose sitemap lastmod falls in the
+// previous UTC day (unchanged pages are not resubmitted, a change is sent by exactly one run),
+// never /bons-plans (dated by any product write); the admin validation only the home page and the
+// shop's city pages. Never a shop page.
 
 import { describe, expect, it } from "vitest";
 import {
   countFreshByFamily,
   freshIndexNowUrls,
-  previousUtcDayStart,
+  previousUtcDay,
   validationIndexNowUrls,
 } from "@/lib/seo/indexnow-urls";
 import {
@@ -35,15 +36,18 @@ function entry(path: string, lastModified: Date): SitemapEntry {
   return { path, family: "static", lastModified, changeFrequency: "weekly", priority: 0.5 };
 }
 
-describe("previousUtcDayStart", () => {
+describe("previousUtcDay", () => {
   it.each([
-    ["2031-06-15T03:11:00.000Z", "2031-06-14T00:00:00.000Z"],
-    ["2031-06-15T00:00:00.000Z", "2031-06-14T00:00:00.000Z"],
-    ["2031-06-15T23:59:59.999Z", "2031-06-14T00:00:00.000Z"],
-    ["2031-03-01T03:11:00.000Z", "2031-02-28T00:00:00.000Z"],
-    ["2032-01-01T03:11:00.000Z", "2031-12-31T00:00:00.000Z"],
-  ])("%s → %s", (now, expected) => {
-    expect(previousUtcDayStart(new Date(now))).toEqual(new Date(expected));
+    ["2031-06-15T03:11:00.000Z", "2031-06-14", "2031-06-15"],
+    ["2031-06-15T00:00:00.000Z", "2031-06-14", "2031-06-15"],
+    ["2031-06-15T23:59:59.999Z", "2031-06-14", "2031-06-15"],
+    ["2031-03-01T03:11:00.000Z", "2031-02-28", "2031-03-01"],
+    ["2032-01-01T03:11:00.000Z", "2031-12-31", "2032-01-01"],
+  ])("%s → [%s, %s)", (now, start, end) => {
+    expect(previousUtcDay(new Date(now))).toEqual({
+      start: new Date(`${start}T00:00:00.000Z`),
+      end: new Date(`${end}T00:00:00.000Z`),
+    });
   });
 });
 
@@ -74,20 +78,47 @@ describe("freshIndexNowUrls", () => {
     ]);
   });
 
-  it("includes the start of the previous UTC day and excludes the instant before it", () => {
-    const since = previousUtcDayStart(NOW);
+  it("takes the previous UTC day, its first instant included, the current day's midnight excluded", () => {
+    const { start, end } = previousUtcDay(NOW);
     expect(
       freshIndexNowUrls(
-        [entry("/a-propos", since), entry("/contact", new Date(since.getTime() - 1))],
+        [
+          entry("/a-propos", start),
+          entry("/contact", new Date(start.getTime() - 1)),
+          entry("/presse", new Date(end.getTime() - 1)),
+          entry("/espace-boucher", end),
+          entry("/click-and-collect-halal", new Date(NOW.getTime() - 60_000)),
+        ],
         NOW
       )
-    ).toEqual([`${SITE_URL}/a-propos`]);
+    ).toEqual([`${SITE_URL}/a-propos`, `${SITE_URL}/presse`]);
   });
 
-  it("leaves out a page dated after now", () => {
-    expect(freshIndexNowUrls([entry("/a-propos", new Date(NOW.getTime() + 60_000))], NOW)).toEqual(
-      []
+  it("sends each change on exactly one daily run, whatever its time of day", () => {
+    const changes = [
+      "2031-06-13T00:00:00.000Z", // a content date: the day of a deployment
+      "2031-06-13T02:00:00.000Z", // before that day's run
+      "2031-06-13T03:11:00.000Z", // the run's own instant
+      "2031-06-13T23:59:59.999Z",
+    ];
+    for (const at of changes) {
+      const runs = ["2031-06-12", "2031-06-13", "2031-06-14", "2031-06-15", "2031-06-16"].filter(
+        (day) =>
+          freshIndexNowUrls([entry("/a-propos", new Date(at))], new Date(`${day}T03:11:00.000Z`))
+            .length > 0
+      );
+      expect(runs, at).toEqual(["2031-06-14"]);
+    }
+  });
+
+  it("never sends /bons-plans, dated by any product write, which stays in the sitemap", () => {
+    const entries = buildSitemapEntries({ ...OLD_DATA, latestProductUpdate: YESTERDAY_AFTERNOON });
+
+    expect(entries.find((candidate) => candidate.path === "/bons-plans")?.lastModified).toEqual(
+      YESTERDAY_AFTERNOON
     );
+    expect(freshIndexNowUrls(entries, NOW)).toEqual([]);
+    expect(countFreshByFamily(entries, NOW)).toEqual({});
   });
 
   it("never returns a shop page, an API route or a private page, even when given one", () => {

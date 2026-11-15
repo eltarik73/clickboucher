@@ -82,7 +82,8 @@ export function snap(
   path: string,
   body: string | null,
   status = 200,
-  xRobotsTag: string | null = null
+  xRobotsTag: string | null = null,
+  location: string | null = null
 ): PageSnapshot {
-  return { path, status, html: body, xRobotsTag };
+  return { path, status, html: body, xRobotsTag, location };
 }

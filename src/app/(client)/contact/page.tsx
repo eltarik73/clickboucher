@@ -6,7 +6,7 @@ import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
-const PAGE_LAST_UPDATED = "2026-05-09";
+const PAGE_LAST_UPDATED = "2026-11-15";
 
 export const metadata: Metadata = {
   // Le titleTemplate root ("%s | Klik&Go") ajoute déjà la marque (audit 2026-06-12).
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 const FAQS = [
   {
     q: "Comment suivre l'état de ma commande ?",
-    a: "Une fois la commande passée, vous recevez un email avec un lien de suivi en temps réel. Vous voyez chaque étape : commande reçue par le boucher, en préparation, prête à retirer. Si vous avez créé un compte, l'historique est aussi disponible dans votre espace personnel.",
+    a: "Une fois la commande passée, vous recevez un email avec un lien de suivi. Vous voyez chaque étape : commande reçue par le boucher, en préparation, prête à retirer. Si vous avez créé un compte, l'historique est aussi disponible dans votre espace personnel.",
   },
   {
     q: "J'ai un problème avec ma commande, que faire ?",
@@ -35,7 +35,7 @@ const FAQS = [
   },
   {
     q: "Comment devenir boucher partenaire Klik&Go ?",
-    a: "Inscription 100% gratuite, aucun abonnement, commission uniquement quand vous vendez. Rendez-vous sur notre page dédiée /espace-boucher pour démarrer. Le setup prend 24-48h : nous validons votre boucherie halal certifiée, vous recevez un accès au back-office, vous chargez votre catalogue, et vous êtes en ligne. Pas d'engagement, vous pouvez partir quand vous voulez.",
+    a: "Inscription 100% gratuite, aucun abonnement, commission uniquement quand vous vendez. Rendez-vous sur notre page dédiée /espace-boucher pour démarrer. Le setup prend 24-48h : nous validons votre inscription, vous recevez un accès au back-office, vous chargez votre catalogue, et vous êtes en ligne. Pas d'engagement, vous pouvez partir quand vous voulez.",
   },
   {
     q: "Mes données personnelles sont-elles protégées ?",

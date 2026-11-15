@@ -1,7 +1,7 @@
 // @vitest-environment node
 // IndexNow sur PostgreSQL réel (C1-SEO, FIX-03, FIX-19, D9) : le cron quotidien n'envoie que les
-// pages modifiées depuis le début de la veille (UTC), jamais une page boutique, et rien quand rien
-// n'a changé ; la validation d'une boutique n'envoie que l'accueil et la page de sa ville.
+// pages modifiées pendant la veille (UTC), jamais une page boutique ni /bons-plans, et rien quand
+// rien n'a changé ; la validation d'une boutique n'envoie que l'accueil et la page de sa ville.
 // Aucun moteur n'est appelé : le transport (@/lib/indexnow) est simulé, l'auth du cron aussi ; pour
 // la validation, seule la session Clerk et les envois sortants sont simulés.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -35,7 +35,7 @@ import { verifyCronAuth } from "@/lib/cron-auth";
 import { notifyIndexNow } from "@/lib/indexnow";
 import { SITE_URL } from "@/lib/seo/site";
 import { prisma, useCleanDatabase } from "../helpers/db";
-import { createTestShop } from "../helpers/factories";
+import { createTestProduct, createTestShop } from "../helpers/factories";
 import { actAs, call, createAdmin, ownedShop } from "../security/shop-routes-harness";
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- pas un hook React
@@ -125,6 +125,16 @@ describe("GET /api/cron/indexnow-fresh", () => {
       urlCount: 4,
       byFamily: { static: 2, city: 1, recipe: 1 },
     });
+  });
+
+  it("never sends /bons-plans when only a product changed yesterday", async () => {
+    const shop = await createTestShop({ city: "Chambéry", validatedAt: LONG_AGO });
+    await createTestProduct(shop.id, { updatedAt: YESTERDAY });
+
+    const result = await runCron();
+
+    expect(result.body.data).toMatchObject({ urlCount: 0, byFamily: {} });
+    expect(notified).not.toHaveBeenCalled();
   });
 
   it("refuses a request without the cron secret and sends nothing", async () => {

@@ -213,6 +213,31 @@ describe("GET /api/cron/seo-audit", () => {
     ]);
   });
 
+  it("warns without an alert when /sign-in and /sign-up redirect to Clerk's handshake", async () => {
+    // A cookie-less GET while production runs Clerk development keys: 307 to another host.
+    const handshake = "https://example.clerk.accounts.dev/v1/client/handshake";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL, init?: RequestInit) => {
+        const url = String(input);
+        requests.push({ url, method: init?.method ?? "GET" });
+        const path = url.slice(SITE_URL.length);
+        if (path === "/sign-in" || path === "/sign-up") {
+          return new Response("", { status: 307, headers: { location: `${handshake}?p=${path}` } });
+        }
+        const page = site.get(path) ?? { status: 404, body: "Introuvable" };
+        return new Response(page.body, { status: page.status });
+      })
+    );
+    const error = vi.spyOn(logger, "error");
+
+    const { data } = await runCron();
+
+    expect(data.alerts).toEqual([]);
+    expect(data).toMatchObject({ errors: 0, warnings: 3 });
+    expect(error).not.toHaveBeenCalled();
+  });
+
   it("reports a page that does not answer as unreachable", async () => {
     const healthyFetch = globalThis.fetch;
     vi.stubGlobal(

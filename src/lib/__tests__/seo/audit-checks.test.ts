@@ -1,7 +1,8 @@
 // @vitest-environment node
 // seo-audit cron checks (C1-SEO, FIX-13), page side: robots directives as Google reads them (one
 // noindex anywhere wins, header included), list pages free of shop entities, ratings, reviews,
-// Events and forbidden claims, real 404s, noindex on the auth pages. Shop pages, sitemap and
+// Events and forbidden claims, real 404s, noindex on the auth pages (a redirect off the site is a
+// warning, not an alert). Shop pages, sitemap and
 // robots.txt: audit-checks-shop-sitemap.test.ts. Pages: audit-fixtures.ts.
 import { describe, expect, it } from "vitest";
 import {
@@ -9,7 +10,7 @@ import {
   extractJsonLd,
   indexablePageProblems,
   listPageProblems,
-  mustBeNoindexProblems,
+  mustBeNoindexCheck,
   mustBeNotFoundProblems,
   robotsVerdict,
 } from "@/lib/seo/audit-checks";
@@ -146,24 +147,47 @@ describe("indexablePageProblems", () => {
   });
 });
 
-describe("mustBeNoindexProblems", () => {
+describe("mustBeNoindexCheck", () => {
   const signIn = html({ path: "/sign-in", title: "Connexion à Klik&Go" });
+  // What production answers a cookie-less GET of /sign-in while it runs Clerk development keys.
+  const HANDSHAKE =
+    "https://example.clerk.accounts.dev/v1/client/handshake?redirect_url=https%3A%2F%2Fklikandgo.app%2Fsign-in";
 
-  it("flags an indexable page, accepts a noindex meta or header", () => {
-    expect(mustBeNoindexProblems(snap("/sign-in", signIn))).toEqual([
-      "indexable : aucune directive noindex",
-    ]);
+  it("alerts on an indexable 200, accepts a noindex meta or header", () => {
+    expect(mustBeNoindexCheck(snap("/sign-in", signIn))).toEqual({
+      path: "/sign-in",
+      problems: ["indexable : aucune directive noindex"],
+    });
     const noindex = signIn.replace(
       INDEX_METAS,
       '<meta name="robots" content="noindex, nofollow"/>'
     );
-    expect(mustBeNoindexProblems(snap("/sign-in", noindex))).toEqual([]);
-    expect(mustBeNoindexProblems(snap("/sign-in", signIn, 200, "noindex"))).toEqual([]);
+    expect(mustBeNoindexCheck(snap("/sign-in", noindex)).problems).toEqual([]);
+    expect(mustBeNoindexCheck(snap("/sign-in", signIn, 200, "noindex")).problems).toEqual([]);
   });
 
-  it("flags a page that does not answer 200", () => {
-    expect(mustBeNoindexProblems(snap("/sign-in", "", 307))).toEqual([
-      "statut HTTP 307 (attendu 200)",
+  it("reports a redirect off the site (Clerk's handshake) as a warning, not an alert", () => {
+    expect(mustBeNoindexCheck(snap("/sign-up", "", 307, null, HANDSHAKE))).toEqual({
+      path: "/sign-up",
+      problems: [],
+      warnings: [
+        "redirection 307 hors du site (https://example.clerk.accounts.dev) : rien à indexer",
+      ],
+    });
+  });
+
+  it("alerts on a redirect within the site, without a Location, and on no answer", () => {
+    for (const location of ["/sign-in/", absoluteUrl("/"), null]) {
+      expect(
+        mustBeNoindexCheck(snap("/sign-in", "", 307, null, location)),
+        String(location)
+      ).toEqual({
+        path: "/sign-in",
+        problems: ["statut HTTP 307 (attendu 200)"],
+      });
+    }
+    expect(mustBeNoindexCheck(snap("/sign-in", null, 0)).problems).toEqual([
+      "injoignable (délai dépassé ou erreur réseau)",
     ]);
   });
 });

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { MapPin, Clock, Star, Tag } from "lucide-react";
 import { ShopPhoto } from "@/components/media/ShopPhoto";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { formatRatingValue, type RatingSummary } from "@/lib/reviews/rating";
 import { getShopStatus, formatClosingHint, type OpeningHours } from "@/lib/shop-hours";
 
 export type ShopCardData = {
@@ -19,8 +20,11 @@ export type ShopCardData = {
   busyMode: boolean;
   busyExtraMin: number;
   status: string;
-  rating: number;
-  ratingCount: number;
+  /**
+   * Verified rating (src/lib/reviews/verified-rating.ts), the only one a card shows; absent or null:
+   * no rating at all. Never Shop.rating / ratingCount, which carry seeded figures.
+   */
+  verifiedRating?: RatingSummary | null;
   distance?: number | null;
   activePromo?: string | null;
   description?: string | null;
@@ -50,6 +54,7 @@ export function ShopCard({
   onFavoriteToggle,
 }: ShopCardProps) {
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
+  const rating = shop.verifiedRating ?? null;
   const isOpen = shop.status === "OPEN" || shop.status === "BUSY";
   const isClosed = shop.status === "CLOSED" || shop.status === "VACATION";
 
@@ -112,13 +117,15 @@ export function ShopCard({
             <span className="truncate">{shop.address}, {shop.city}</span>
           </div>
           <div className="flex items-center gap-3 mt-2">
-            <div className="flex items-center gap-1 text-xs">
-              <Star size={11} className="text-yellow-500 fill-yellow-500" />
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {shop.rating.toFixed(1)}
-              </span>
-              <span className="text-gray-500 dark:text-gray-400">({shop.ratingCount})</span>
-            </div>
+            {rating && (
+              <div className="flex items-center gap-1 text-xs">
+                <Star size={11} className="text-yellow-500 fill-yellow-500" />
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {formatRatingValue(rating.average)}
+                </span>
+                <span className="text-gray-500 dark:text-gray-400">({rating.count})</span>
+              </div>
+            )}
             {isOpen && (
               <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                 <Clock size={11} />
@@ -228,13 +235,15 @@ export function ShopCard({
           {shop.address}, {shop.city}
         </p>
         <div className="flex items-center gap-3 mt-3 flex-wrap">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg">
-            <Star size={12} className="text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              {shop.rating.toFixed(1)}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">({shop.ratingCount})</span>
-          </div>
+          {rating && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-[#0a0a0a] rounded-lg">
+              <Star size={12} className="text-yellow-500 fill-yellow-500" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                {formatRatingValue(rating.average)}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">({rating.count})</span>
+            </div>
+          )}
           {closingSoonHint && (
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300">
               🟠 {closingSoonHint}

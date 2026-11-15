@@ -8,6 +8,7 @@
 // Pure: no I/O, no clock.
 
 import { resolveShopPhoto } from "@/lib/images/product-photo";
+import { publishedRatingValue } from "@/lib/reviews/rating";
 import type { VerifiedReview, VerifiedShopRating } from "@/lib/reviews/verified-rating";
 import { getDayHours, type OpeningHours } from "@/lib/shop-hours";
 import type { JsonLdObject } from "@/lib/seo/jsonld/pages";
@@ -112,7 +113,7 @@ function ratingJsonLd(rating: VerifiedShopRating): JsonLdObject {
   return {
     aggregateRating: {
       "@type": "AggregateRating",
-      ratingValue: Math.round(rating.average * 10) / 10,
+      ratingValue: publishedRatingValue(rating.average),
       reviewCount: rating.count,
       bestRating: BEST_RATING,
       worstRating: WORST_RATING,

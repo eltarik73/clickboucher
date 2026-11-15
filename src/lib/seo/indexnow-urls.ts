@@ -1,9 +1,11 @@
 // The URL lists handed to IndexNow (src/lib/indexnow.ts). IndexNow is for pages added or changed:
 // unchanged pages are not resubmitted (IndexNow FAQ), discovery stays the sitemap's job.
 // - The daily cron (/api/cron/indexnow-fresh, 03:11 UTC) sends the sitemap entries whose lastmod
-//   is between the start of the previous UTC day and now. The window starts a full day before the
-//   current one, so a page changed just after a run is still sent by the next one; no state is
-//   stored between runs.
+//   falls in the previous UTC day, [its midnight, the next midnight). Consecutive runs cover
+//   consecutive days: a change is sent by exactly one run, the one of the day after it, and no
+//   state is stored between runs. A content date (ISO day) is therefore sent the day after it:
+//   it must be the day of the production deployment (src/lib/seo/sitemap-entries.ts).
+//   /bons-plans, dated by any product write, is never sent (isDatedByProductUpdates).
 // - The admin validation of a shop sends the home page and the city pages of that shop's city:
 //   the pages its listing changes. Never the shop page (submission policy).
 
@@ -11,21 +13,32 @@ import { seoCitySlugsForShopCity } from "@/lib/seo/city-match";
 import { HOME_PATH, cityPath } from "@/lib/seo/routes";
 import {
   entriesChangedSince,
+  isDatedByProductUpdates,
   type SitemapEntry,
   type SitemapFamily,
 } from "@/lib/seo/sitemap-entries";
 import { absoluteUrl } from "@/lib/seo/site";
 import { isSubmittableToEngines } from "@/lib/seo/submission-policy";
 
-/** Midnight UTC of the day before `now`. */
-export function previousUtcDayStart(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+/** The UTC day before the one of `now`: from its midnight (included) to the next (excluded). */
+export function previousUtcDay(now: Date): { start: Date; end: Date } {
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const day = now.getUTCDate();
+  return {
+    start: new Date(Date.UTC(year, month, day - 1)),
+    end: new Date(Date.UTC(year, month, day)),
+  };
 }
 
-/** Submittable entries changed since the start of the previous UTC day, and not after `now`. */
+/** Submittable entries changed during the previous UTC day, /bons-plans excepted. */
 function freshEntries(entries: SitemapEntry[], now: Date): SitemapEntry[] {
-  return entriesChangedSince(entries, previousUtcDayStart(now)).filter(
-    (entry) => entry.lastModified.getTime() <= now.getTime() && isSubmittableToEngines(entry.path)
+  const { start, end } = previousUtcDay(now);
+  return entriesChangedSince(entries, start).filter(
+    (entry) =>
+      entry.lastModified.getTime() < end.getTime() &&
+      isSubmittableToEngines(entry.path) &&
+      !isDatedByProductUpdates(entry.path)
   );
 }
 

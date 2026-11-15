@@ -35,8 +35,7 @@ function shop(id: string, status: string): ShopCardData {
     busyMode: false,
     busyExtraMin: 0,
     status,
-    rating: 0,
-    ratingCount: 0,
+    verifiedRating: null,
     distance: null,
     activePromo: null,
     openingHours: null,
@@ -203,6 +202,34 @@ describe("NearbyShops — signed-in visitor or test session", () => {
     await mount();
 
     expect(nearbyRequests()).toEqual(["/api/shops/nearby?lat=45.57&lng=5.92&radius=15"]);
+  });
+});
+
+describe("NearbyShops — ratings", () => {
+  it("keeps the server's verified rating after a nearby sort, never the API's rating fields", async () => {
+    const verified = { ...shop("alpha", "OPEN"), verifiedRating: { average: 3.5, count: 2 } };
+    // /api/shops/nearby still returns Shop.rating / ratingCount (seeded on the demo shops).
+    fetchMock.mockImplementation(async () =>
+      reply({
+        success: true,
+        data: [
+          { ...shop("alpha", "OPEN"), rating: 4.7, ratingCount: 89, distance: 0.4 },
+          { ...shop("gamma", "OPEN"), rating: 4.8, ratingCount: 156, distance: 1.2 },
+        ],
+      })
+    );
+    const view = render(<NearbyShops initialShops={[verified]} favoriteIds={[]} />);
+    await settle();
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent("klikgo-location", { detail: { lat: 45.6, lng: 5.9 } }));
+    });
+    await settle();
+
+    expect(screen.getByText("Boucherie gamma")).toBeInTheDocument();
+    expect(screen.getAllByText("3.5")).toHaveLength(1);
+    expect(screen.getByText("(2)")).toBeInTheDocument();
+    expect(view.container.textContent).not.toMatch(/4\.7|4\.8|\(89\)|\(156\)/);
   });
 });
 

@@ -7,7 +7,10 @@ import prisma from "@/lib/prisma";
 import { badgeLabelsByShop } from "@/lib/offer-badge-label";
 import { listBadgeOffers, listPopupOffers } from "@/lib/public-offers";
 import { countBonsPlans } from "@/lib/bons-plans";
+import type { RatingSummary } from "@/lib/reviews/rating";
 import { FACT_SUMMARY_SHORT } from "@/lib/seo/facts";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
+import type { OpeningHours } from "@/lib/shop-hours";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PromoCarousel } from "@/components/landing/PromoCarousel";
 import { HeroButtons } from "../decouvrir/HeroButtons";
@@ -78,10 +81,9 @@ type ShopData = {
   busyMode: boolean;
   busyExtraMin: number;
   status: string;
-  rating: number;
-  ratingCount: number;
+  verifiedRating: RatingSummary | null;
   activePromo: string | null;
-  openingHours: Record<string, { open: string; close: string } | null> | null;
+  openingHours: OpeningHours | null;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -135,25 +137,10 @@ export default async function HomePage() {
   // 1. DB queries in parallel. Auth is handled client-side via NearbyShops (favorites hydrate after mount)
   //    so this page stays static/ISR-cacheable and Vercel CDN can serve it with `s-maxage=60`.
   try {
-    const shopsPromise = prisma.shop.findMany({
-      where: { visible: true },
-      orderBy: { rating: "desc" },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        address: true,
-        city: true,
-        imageUrl: true,
-        prepTimeMin: true,
-        busyMode: true,
-        busyExtraMin: true,
-        status: true,
-        rating: true,
-        ratingCount: true,
-        openingHours: true,
-      },
-    });
+    // Listed shops with their verified rating only (never the seeded Shop.rating), no ranking.
+    const shopsPromise = prisma.shop
+      .findMany({ where: { visible: true }, orderBy: shopCardOrderBy(), select: shopCardSelect })
+      .then(toShopCards);
 
     // Badges and popup: only public offers (audience ALL, diffused on that channel, uses left).
     const now = new Date();
@@ -231,7 +218,6 @@ export default async function HomePage() {
     // Attach promo label to shops + sort: shops with promos first
     shops = shopsResult.map((s) => ({
       ...s,
-      openingHours: (s.openingHours as ShopData["openingHours"]) ?? null,
       activePromo: shopPromoMap.get(s.id) || null,
     }));
     shops.sort((a, b) => {

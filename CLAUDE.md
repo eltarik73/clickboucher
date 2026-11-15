@@ -295,9 +295,10 @@ src/
 │   ├── api/errors.ts         # apiError / apiSuccess / handleApiError
 │   ├── cart/                 # cart-line.ts (ligne de panier, réducteur), stored-cart.ts (panier stocké), order-payload.ts (requête de commande)
 │   ├── pricing/              # SEULE source des prix : ligne, prix unitaire, remise, totaux, affichage
-│   ├── reviews/              # verified-rating.ts : seule note publiable (avis vérifiés)
+│   ├── reviews/              # verified-rating.ts : seule note publiable (avis vérifiés) ; rating.ts : arrondi affiché
 │   ├── seo/                  # cities.ts (+ cities/ par département), facts, claims, routes, breadcrumbs, titles,
-│   │                         # content/ (pages SEO), jsonld/, sitemap-entries, submission-policy, indexnow-urls
+│   │                         # content/ (pages SEO), jsonld/, sitemap-entries, submission-policy, indexnow-urls,
+│   │                         # shop-cards (cartes boutique des pages liste)
 │   ├── services/             # Business logic (orders/ : quote, create, numbering, transition, commands/)
 │   └── validators/           # Schémas Zod
 └── types/index.ts
@@ -655,7 +656,8 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
   `CITY_CONTENT_UPDATED`, `updatedAt` des recettes), pour une page produit × ville ou occasion × ville la date
   qu'elle affiche (`productCityLastUpdated`, `occasionCityLastUpdated` de `src/lib/seo/content/`), et pour une
   ville ou l'accueil la date de mise en ligne de la dernière boutique (`validatedAt ?? createdAt`, jamais
-  `updatedAt`). Changer la date d'une famille le jour où son texte change vraiment, jamais autrement.
+  `updatedAt`). Changer la date d'une famille seulement quand son texte change, et la fixer au jour où ce texte
+  arrive en production (voir le cron `indexnow-fresh` plus bas).
   `/recettes` : `weekly`.
 - **OG Image** : `opengraph-image.tsx` — prérendue au build (runtime Node), 1200×630 PNG
 - **Analytics** : Plausible (RGPD), conditionnel sur `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`
@@ -665,11 +667,15 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 Avant toute action SEO : `.claude/skills/seo-anti-penalty/SKILL.md` (règle OR : les pages ville, partenaire,
 département, hub et occasion restent indexées même sans boutique).
 
-- **Note publiée = avis vérifiés** : seul `loadVerifiedShopRating` (`src/lib/reviews/verified-rating.ts`)
-  calcule une note publiable ; un avis compte s'il est lié (`orderId`) à une commande PICKED_UP ou COMPLETED du
-  même client dans la même boutique. `aggregateRating` (et au plus 2 `review`) seulement si ce compte dépasse 0 ;
-  jamais `Shop.rating` / `Shop.ratingCount` dans un JSON-LD (le seed porte des notes inventées). L'affichage
-  visible de ces champs (ShopCard, en-tête de boutique, ReviewList) reste à corriger hors de ce chantier.
+- **Note publiée = avis vérifiés** : seul `src/lib/reviews/verified-rating.ts` lit une note publiable ; un avis
+  compte s'il est lié (`orderId`) à une commande PICKED_UP ou COMPLETED du même client dans la même boutique.
+  `aggregateRating` (et au plus 2 `review`) seulement si ce compte dépasse 0. Jamais `Shop.rating` /
+  `Shop.ratingCount` (le seed porte des notes inventées), ni dans un JSON-LD ni à l'écran : les cartes des pages
+  liste, de l'accueil et de `/trouver-boucherie-halal` passent par `toShopCards` (`src/lib/seo/shop-cards.ts` :
+  colonnes de la carte, ordre alphabétique, `loadVerifiedRatings` en une requête groupée) ; l'en-tête de la
+  boutique, `ReviewList` (avis vérifiés seulement, `listVerifiedReviews`, aucun appel API au montage) et l'image
+  OG lisent les mêmes chiffres, arrondis comme le JSON-LD (`src/lib/reviews/rating.ts`). Garde :
+  `src/lib/__tests__/seo/rating-publication.test.ts`.
 - **Entité boutique sur `/boutique/[slug]` seulement** : aucune page liste (ville, quartier, département, hub,
   dimanche, produit × ville, occasion × ville, accueil) ne rend `ShopSchema` ni un objet Store, LocalBusiness ou
   FoodEstablishment ; la liste visible reste. En JSON-LD, une liste est une `ItemList` de `ListItem`
@@ -870,14 +876,21 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 Définis dans `vercel.json` :
 
 - `/api/cron/indexnow-fresh` — 03h11 UTC — envoie à IndexNow (Bing/Copilot/Yandex) les seules URL du sitemap dont
-  `lastModified` est postérieur au début du jour UTC précédent (`freshIndexNowUrls`, `src/lib/seo/indexnow-urls.ts`) ;
-  rien un jour sans changement, jamais `/boutique/`
+  `lastModified` tombe dans le jour UTC précédent, [minuit, minuit suivant[ (`freshIndexNowUrls`,
+  `src/lib/seo/indexnow-urls.ts`) : chaque changement part une seule fois, rien un jour sans changement, jamais
+  `/boutique/` ni `/bons-plans` (daté par toute écriture de produit, il reste au sitemap). **Une date de contenu
+  (constantes de `sitemap-entries.ts`, `CITY_CONTENT_UPDATED`, `lastUpdated` des villes et occasions, contenus
+  produit × ville et occasion × ville) se fixe au jour du déploiement en production** (au merge) : le passage du
+  lendemain l'envoie. Un texte arrivé en production après le passage de 03h11 UTC du lendemain de sa date n'est
+  jamais envoyé : le propriétaire soumet alors ses URL à la main (`POST /api/seo/indexnow`, admin).
 - `/api/cron/bing-daily` — 09h17 UTC — audit Bing Webmaster (crawl, queries, alertes Sentry si erreurs)
 - `/api/cron/seo-audit` — 10h11 UTC — audit en lecture seule du site (contrôles purs de `src/lib/seo/audit-checks.ts`) :
   sitemap (au moins 100 URL, toutes les villes, aucun `/boutique/`), robots.txt, accueil, pages ville et pages clés
   (200, indexables, sans entité boutique, Product, note, avis, Event ni formulation interdite), `/sign-in` et
-  `/sign-up` en noindex, vrai 404 pour une boutique et une ville inconnues, note d'une boutique égale à ses avis
-  vérifiés ; toute anomalie part en alerte (`logger.error`, Sentry en production)
+  `/sign-up` en noindex (une redirection hors du site, la poignée de main Clerk des clés de développement, n'est
+  qu'un avertissement), vrai 404 pour une boutique et une ville inconnues, note d'une boutique égale à ses avis
+  vérifiés ; toute anomalie part en alerte (`logger.error`, Sentry en production), un avertissement reste dans le
+  rapport
 
 Auth via `verifyCronAuth(req)` — Vercel Crons envoie `Authorization: Bearer ${CRON_SECRET}`.
 

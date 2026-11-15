@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { SEO_CITIES, type SeoCity } from "@/lib/seo/cities";
 import { SEO_PRODUCTS, getProductCityCombinations, type SeoProduct } from "@/lib/seo/products";
 import { productCityContent, productCityHead } from "@/lib/seo/content/product-city";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
 import { absoluteUrl } from "@/lib/seo/site";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
@@ -92,30 +93,13 @@ export default async function ProductCityPage({ params }: { params: Params }) {
   const { product, city } = resolve(params);
 
   // Every listed shop of the city: the page does not know which ones sell this product.
-  const shops = await prisma.shop.findMany({
+  const rows = await prisma.shop.findMany({
     where: { visible: true, city: { contains: city.name, mode: "insensitive" } },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      address: true,
-      city: true,
-      description: true,
-      imageUrl: true,
-      rating: true,
-      ratingCount: true,
-      prepTimeMin: true,
-      busyMode: true,
-      busyExtraMin: true,
-      status: true,
-      phone: true,
-      latitude: true,
-      longitude: true,
-      openingHours: true,
-    },
-    orderBy: { rating: "desc" },
+    select: shopCardSelect,
+    orderBy: shopCardOrderBy(),
     take: 10,
   });
+  const shops = await toShopCards(rows);
 
   const content = productCityContent(product, city, shops.length);
 
@@ -176,18 +160,7 @@ export default async function ProductCityPage({ params }: { params: Params }) {
           {shops.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
-                <ShopCard
-                  key={shop.id}
-                  shop={{
-                    ...shop,
-                    openingHours: shop.openingHours as Record<
-                      string,
-                      { open: string; close: string } | null
-                    > | null,
-                  }}
-                  index={idx}
-                  showFavorite={false}
-                />
+                <ShopCard key={shop.id} shop={shop} index={idx} showFavorite={false} />
               ))}
             </div>
           ) : (

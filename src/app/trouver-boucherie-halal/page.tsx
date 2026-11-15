@@ -10,6 +10,7 @@ import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
 import { COMMON_FAQ, FACT_HALAL, FACT_SUMMARY_SHORT, type Faq } from "@/lib/seo/facts";
 import { faqPageJsonLd } from "@/lib/seo/jsonld/pages";
 import { REGIONAL_HUB_PATH } from "@/lib/seo/routes";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
 import { SITE_URL, absoluteUrl } from "@/lib/seo/site";
 
 const PAGE_URL = absoluteUrl("/trouver-boucherie-halal");
@@ -76,35 +77,14 @@ const FAQS: Faq[] = [
 ];
 
 export default async function FindButcherPage() {
-  const shops = await prisma.shop.findMany({
-    where: { visible: true, latitude: { not: null }, longitude: { not: null } },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      address: true,
-      city: true,
-      description: true,
-      imageUrl: true,
-      rating: true,
-      ratingCount: true,
-      prepTimeMin: true,
-      busyMode: true,
-      busyExtraMin: true,
-      status: true,
-      phone: true,
-      latitude: true,
-      longitude: true,
-      openingHours: true,
-    },
-    orderBy: { rating: "desc" },
-  });
-
-  // Convert openingHours JSON to typed shape for client
-  const shopsForClient = shops.map((s) => ({
-    ...s,
-    openingHours: s.openingHours as Record<string, { open: string; close: string } | null> | null,
-  }));
+  // Listed shops with coordinates, each with its verified rating only
+  const shops = await toShopCards(
+    await prisma.shop.findMany({
+      where: { visible: true, latitude: { not: null }, longitude: { not: null } },
+      select: { ...shopCardSelect, phone: true, latitude: true, longitude: true },
+      orderBy: shopCardOrderBy(),
+    })
+  );
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
@@ -149,7 +129,7 @@ export default async function FindButcherPage() {
 
       {/* ── Geolocator (client component) ── */}
       <div className="mx-auto max-w-4xl px-5 py-10">
-        <GeoLocator shops={shopsForClient} />
+        <GeoLocator shops={shops} />
       </div>
 
       {/* ── Pourquoi Klik&Go ── */}

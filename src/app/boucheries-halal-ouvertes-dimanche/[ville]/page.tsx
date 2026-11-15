@@ -6,6 +6,7 @@ import { CalendarClock, ArrowRight } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { findSundayCity, sundayPageContent } from "@/lib/seo/content/sunday";
 import { cityPath, sundayPath } from "@/lib/seo/routes";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
 import { absoluteUrl } from "@/lib/seo/site";
 import { SUNDAY_CITY_SLUGS } from "@/lib/seo/sunday";
 import { sundayDescription, sundayTitle } from "@/lib/seo/titles";
@@ -74,33 +75,15 @@ export default async function SundayCityPage({ params }: { params: { ville: stri
   const city = findSundayCity(params.ville);
   if (!city) notFound();
 
-  const shops = await prisma.shop.findMany({
+  const rows = await prisma.shop.findMany({
     where: { visible: true, city: { contains: city.name, mode: "insensitive" } },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      address: true,
-      city: true,
-      description: true,
-      imageUrl: true,
-      rating: true,
-      ratingCount: true,
-      prepTimeMin: true,
-      busyMode: true,
-      busyExtraMin: true,
-      status: true,
-      phone: true,
-      latitude: true,
-      longitude: true,
-      openingHours: true,
-    },
-    orderBy: { rating: "desc" },
+    select: shopCardSelect,
+    orderBy: shopCardOrderBy(),
   });
 
   // Boutiques ouvertes le dimanche (jsDay 0) — clés françaises ou anglaises
-  const sundayShops = shops.filter(
-    (s) => getDayHours(s.openingHours as OpeningHours | null, 0) !== null
+  const sundayShops = await toShopCards(
+    rows.filter((s) => getDayHours(s.openingHours as OpeningHours | null, 0) !== null)
   );
 
   const content = sundayPageContent(city, sundayShops.length);
@@ -149,18 +132,7 @@ export default async function SundayCityPage({ params }: { params: { ville: stri
           {sundayShops.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {sundayShops.map((shop, idx) => (
-                <ShopCard
-                  key={shop.id}
-                  shop={{
-                    ...shop,
-                    openingHours: shop.openingHours as Record<
-                      string,
-                      { open: string; close: string } | null
-                    > | null,
-                  }}
-                  index={idx}
-                  showFavorite={false}
-                />
+                <ShopCard key={shop.id} shop={shop} index={idx} showFavorite={false} />
               ))}
             </div>
           ) : (

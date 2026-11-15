@@ -28,10 +28,15 @@ export type PageSnapshot = {
   status: number;
   html: string | null;
   xRobotsTag: string | null;
+  /** Location header as sent (absolute or relative), null without one. */
+  location: string | null;
 };
 
-/** The problems found on one audited path; none means the check passed. */
-export type PageCheck = { path: string; problems: string[] };
+/**
+ * One audited path: its problems, each one an alert, and its warnings, reported without an alert.
+ * Neither means the check passed.
+ */
+export type PageCheck = { path: string; problems: string[]; warnings?: string[] };
 
 const SHOP_ENTITY_TYPES: ReadonlySet<string> = new Set([
   "Store",
@@ -231,11 +236,37 @@ export function robotsTxtProblems(snapshot: PageSnapshot): string[] {
   );
 }
 
-/** A page that must answer 200 with noindex (sign-in, sign-up, tool pages). */
-export function mustBeNoindexProblems(snapshot: PageSnapshot): string[] {
-  return bodyProblems(snapshot, (html) =>
-    robotsVerdict(html, snapshot.xRobotsTag).noindex ? [] : ["indexable : aucune directive noindex"]
-  );
+/** The origin a redirect (3xx) leads to when it leaves the site; null otherwise. */
+export function offSiteRedirectOrigin(snapshot: PageSnapshot): string | null {
+  if (snapshot.status < 300 || snapshot.status > 399 || snapshot.location === null) return null;
+  const pageUrl = absoluteUrl(snapshot.path);
+  if (!URL.canParse(snapshot.location, pageUrl)) return null;
+  const target = new URL(snapshot.location, pageUrl).origin;
+  return target === new URL(pageUrl).origin ? null : target;
+}
+
+/**
+ * A page that must not be indexed (sign-in, sign-up): a 200 must carry noindex, else an alert. A
+ * redirect off the site has no content to index (Clerk's handshake, a 307 to *.clerk.accounts.dev
+ * when production runs development keys): a warning, not an alert. Any other answer is an alert.
+ */
+export function mustBeNoindexCheck(snapshot: PageSnapshot): PageCheck {
+  const offSite = offSiteRedirectOrigin(snapshot);
+  if (offSite !== null) {
+    return {
+      path: snapshot.path,
+      problems: [],
+      warnings: [`redirection ${snapshot.status} hors du site (${offSite}) : rien à indexer`],
+    };
+  }
+  return {
+    path: snapshot.path,
+    problems: bodyProblems(snapshot, (html) =>
+      robotsVerdict(html, snapshot.xRobotsTag).noindex
+        ? []
+        : ["indexable : aucune directive noindex"]
+    ),
+  };
 }
 
 /** An unknown slug must answer a real 404: a 200 is a soft 404, a redirect hides the error. */

@@ -9,9 +9,11 @@
 // - every city page, the Chambéry partner page, the Savoie department and the Aïd al-Adha page of
 //   Chambéry: indexable, no shop entity, Product, rating, review or Event in the JSON-LD, no
 //   forbidden claim (rule OR of the seo-anti-penalty skill: these pages stay indexed);
-// - /sign-in and /sign-up: noindex; an unknown shop and an unknown city: a real 404;
+// - /sign-in and /sign-up: noindex (a redirect off the site, Clerk's handshake, is only a warning);
+//   an unknown shop and an unknown city: a real 404;
 // - the newest listed shops: no rating beyond their verified reviews, none on a Product.
 // Every problem becomes an alert line; any alert is logged with logger.error (Sentry in production).
+// A warning is reported in the results, never as an alert.
 
 import type { NextRequest } from "next/server";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
@@ -24,7 +26,7 @@ import {
   bodyProblems,
   indexablePageProblems,
   listPageProblems,
-  mustBeNoindexProblems,
+  mustBeNoindexCheck,
   mustBeNotFoundProblems,
   robotsTxtProblems,
   shopPageProblems,
@@ -83,6 +85,7 @@ async function fetchSnapshot(path: string, deadline: AbortSignal): Promise<PageS
       status: response.status,
       html,
       xRobotsTag: response.headers.get("x-robots-tag"),
+      location: response.headers.get("location"),
     };
   } catch (error) {
     // Timeout or network failure: reported as an unreachable page by the checks, cause logged here.
@@ -90,7 +93,7 @@ async function fetchSnapshot(path: string, deadline: AbortSignal): Promise<PageS
       path,
       cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
     });
-    return { path, status: 0, html: null, xRobotsTag: null };
+    return { path, status: 0, html: null, xRobotsTag: null, location: null };
   }
 }
 
@@ -102,10 +105,10 @@ async function inBatches<T, R>(items: readonly T[], run: (item: T) => Promise<R>
   return results;
 }
 
-function toResult({ path, problems }: PageCheck): CheckResult {
-  return problems.length === 0
-    ? { url: path, status: "ok", detail: "OK" }
-    : { url: path, status: "error", detail: problems.join(" ; ") };
+function toResult({ path, problems, warnings = [] }: PageCheck): CheckResult {
+  if (problems.length > 0) return { url: path, status: "error", detail: problems.join(" ; ") };
+  if (warnings.length > 0) return { url: path, status: "warn", detail: warnings.join(" ; ") };
+  return { url: path, status: "ok", detail: "OK" };
 }
 
 export async function GET(req: NextRequest) {
@@ -135,7 +138,7 @@ export async function GET(req: NextRequest) {
       ),
       audit("/robots.txt", robotsTxtProblems),
       audit("/", indexablePageProblems),
-      Promise.all(NOINDEX_PATHS.map((path) => audit(path, mustBeNoindexProblems))),
+      Promise.all(NOINDEX_PATHS.map(async (path) => mustBeNoindexCheck(await snapshot(path)))),
       Promise.all(NOT_FOUND_PATHS.map((path) => audit(path, mustBeNotFoundProblems))),
     ]);
     const listChecks = await inBatches([...CITY_PATHS, ...OTHER_LIST_PATHS], (path) =>

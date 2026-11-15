@@ -7,6 +7,7 @@ import { SEO_DEPARTMENTS } from "@/lib/seo/cities";
 import { departmentCities, departmentPageContent } from "@/lib/seo/content/department";
 import { FACT_SUMMARY_SHORT } from "@/lib/seo/facts";
 import { REGIONAL_HUB_PATH, cityPath, departmentPath } from "@/lib/seo/routes";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
 import { absoluteUrl } from "@/lib/seo/site";
 import { departmentTitle } from "@/lib/seo/titles";
 import { LastUpdated } from "@/components/seo/LastUpdated";
@@ -61,34 +62,17 @@ export default async function DepartmentPage({ params }: { params: { departement
 
   const cities = departmentCities(dept);
 
-  // Fetch top shops in the department's cities
-  const shops = await prisma.shop.findMany({
+  // The first ten listed shops of the department's cities, each with its verified rating only
+  const rows = await prisma.shop.findMany({
     where: {
       visible: true,
       OR: cities.map((c) => ({ city: { contains: c.name, mode: "insensitive" as const } })),
     },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      address: true,
-      city: true,
-      description: true,
-      imageUrl: true,
-      rating: true,
-      ratingCount: true,
-      prepTimeMin: true,
-      busyMode: true,
-      busyExtraMin: true,
-      status: true,
-      phone: true,
-      latitude: true,
-      longitude: true,
-      openingHours: true,
-    },
-    orderBy: { rating: "desc" },
+    select: shopCardSelect,
+    orderBy: shopCardOrderBy(),
     take: 10,
   });
+  const shops = await toShopCards(rows);
 
   const content = departmentPageContent(dept, shops.length);
   const otherDepts = SEO_DEPARTMENTS.filter((d) => d.slug !== dept.slug);
@@ -172,18 +156,7 @@ export default async function DepartmentPage({ params }: { params: { departement
             </h2>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
-                <ShopCard
-                  key={shop.id}
-                  shop={{
-                    ...shop,
-                    openingHours: shop.openingHours as Record<
-                      string,
-                      { open: string; close: string } | null
-                    > | null,
-                  }}
-                  index={idx}
-                  showFavorite={false}
-                />
+                <ShopCard key={shop.id} shop={shop} index={idx} showFavorite={false} />
               ))}
             </div>
           </section>

@@ -70,8 +70,11 @@ export type SitemapData = {
   latestProductUpdate: Date | null;
 };
 
-// Content dates (ISO day): the day the text of a family last really changed. Bump one only when
-// that family's text changes, never for a deployment; IndexNow re-sends a page whose date moves.
+// Content dates (ISO day, UTC): the day a family's changed text reaches production. Set a date at
+// merge to the day of the production deployment: the next 03:11 UTC IndexNow run sends the pages
+// dated the previous UTC day, and only that run (src/lib/seo/indexnow-urls.ts). A text that reaches
+// production after the 03:11 UTC run of the day following its date is never sent: the owner then
+// submits its URLs by hand (admin, POST /api/seo/indexnow). Never move a date without a text change.
 export const REGIONAL_HUB_CONTENT_UPDATED = "2026-11-15";
 export const DEPARTMENT_CONTENT_UPDATED = "2026-11-15";
 export const PARTNER_CONTENT_UPDATED = "2026-11-15";
@@ -268,6 +271,15 @@ export function buildSitemapEntries(data: SitemapData): SitemapEntry[] {
       familyEntry("recipe", `/recettes/${recipe.slug}`, recipe.updatedAt)
     ),
   ]);
+}
+
+/**
+ * A static page dated by the newest product update (/bons-plans): any product write (stock, price,
+ * in any shop) moves that date without its deals changing, so IndexNow never sends it. The sitemap
+ * keeps it with that date.
+ */
+export function isDatedByProductUpdates(path: string): boolean {
+  return STATIC_PAGES.get(path)?.freshness === "products";
 }
 
 /** The entries whose lastModified is at or after `since`. */

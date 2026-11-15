@@ -14,7 +14,8 @@ import prisma from "@/lib/prisma";
 import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 import { displayedUnitPrice } from "@/lib/pricing/display";
 import { limitedStockSoldOut } from "@/lib/pricing/limited-stock";
-import { loadVerifiedShopRating } from "@/lib/reviews/verified-rating";
+import { formatRatingValue } from "@/lib/reviews/rating";
+import { listVerifiedReviews, loadVerifiedShopRating } from "@/lib/reviews/verified-rating";
 import { shopBreadcrumb } from "@/lib/seo/breadcrumbs";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import {
@@ -107,7 +108,7 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
 
   // Social proof — orders completed this week (only display if ≥ 5)
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [activeOffers, ordersThisWeek, verifiedRating] = await Promise.all([
+  const [activeOffers, ordersThisWeek, verifiedRating, verifiedReviews] = await Promise.all([
     // Public offers of this shop (banner + eligible products): never a code meant for a segment.
     listShopOffers(shop.id, new Date()),
     prisma.order.count({
@@ -117,8 +118,9 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
         createdAt: { gte: weekAgo },
       },
     }),
-    // JSON-LD rating: verified reviews only, never Shop.rating / ratingCount.
+    // Rating (JSON-LD, header, review list): verified reviews only, never Shop.rating / ratingCount.
     loadVerifiedShopRating(shop.id),
+    listVerifiedReviews(shop.id),
   ]);
 
   // Banner offer (first with diffBanner)
@@ -292,13 +294,14 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
               {shop.name}
             </h1>
             <div className="mt-2.5 flex flex-wrap gap-2">
-              {/* Rating */}
-              <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
-                <Star size={12} className="fill-yellow-300 text-yellow-300" />
-                <span className="text-xs font-bold text-white">
-                  {shop.rating.toFixed(1)} · {shop.ratingCount} avis
-                </span>
-              </div>
+              {verifiedRating && (
+                <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
+                  <Star size={12} className="fill-yellow-300 text-yellow-300" />
+                  <span className="text-xs font-bold text-white">
+                    {formatRatingValue(verifiedRating.average)} · {verifiedRating.count} avis
+                  </span>
+                </div>
+              )}
 
               {/* Prep time */}
               <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
@@ -480,7 +483,12 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
         {/* ═══════════════════════════════════════════ */}
         {/* REVIEWS */}
         {/* ═══════════════════════════════════════════ */}
-        <ReviewList shopId={shop.id} rating={shop.rating} ratingCount={shop.ratingCount} />
+        <ReviewList
+          rating={
+            verifiedRating && { average: verifiedRating.average, count: verifiedRating.count }
+          }
+          reviews={verifiedReviews}
+        />
       </div>
     </div>
   );

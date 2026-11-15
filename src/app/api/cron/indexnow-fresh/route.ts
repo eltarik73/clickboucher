@@ -3,10 +3,11 @@
 // Schedule: 03:11 UTC daily (vercel.json). Auth: Vercel Cron sends Authorization: Bearer
 // ${CRON_SECRET}.
 //
-// Sends the sitemap pages whose lastmod moved since the start of the previous UTC day
-// (src/lib/seo/indexnow-urls.ts), so an unchanged page is never resubmitted, and nothing at all on
-// a day without change. The URL set is the sitemap's (src/lib/seo/sitemap-entries.ts): never a
-// shop page. The transport only sends from the production deployment.
+// Sends the sitemap pages whose lastmod falls in the previous UTC day (src/lib/seo/indexnow-urls.ts):
+// each change is sent by one run only, an unchanged page is never resubmitted, nothing at all is
+// sent on a day without change, and /bons-plans never is. The URL set is the sitemap's
+// (src/lib/seo/sitemap-entries.ts): never a shop page. The transport only sends from the production
+// deployment.
 
 import { NextRequest } from "next/server";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";

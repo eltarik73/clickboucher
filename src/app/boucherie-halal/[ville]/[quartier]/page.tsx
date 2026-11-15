@@ -11,6 +11,7 @@ import {
 } from "@/lib/seo/districts";
 import { districtPageContent } from "@/lib/seo/content/district";
 import { cityPath, districtPath } from "@/lib/seo/routes";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
 import { absoluteUrl } from "@/lib/seo/site";
 import { districtTitle } from "@/lib/seo/titles";
 import { LastUpdated } from "@/components/seo/LastUpdated";
@@ -97,56 +98,21 @@ export default async function DistrictPage({
         { address: { contains: district.name, mode: "insensitive" as const } },
       ],
     },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      address: true,
-      city: true,
-      description: true,
-      imageUrl: true,
-      rating: true,
-      ratingCount: true,
-      prepTimeMin: true,
-      busyMode: true,
-      busyExtraMin: true,
-      status: true,
-      phone: true,
-      latitude: true,
-      longitude: true,
-      openingHours: true,
-    },
-    orderBy: { rating: "desc" },
+    select: shopCardSelect,
+    orderBy: shopCardOrderBy(),
     take: 12,
   });
 
-  const shops =
+  const shops = await toShopCards(
     districtShops.length > 0
       ? districtShops
       : await prisma.shop.findMany({
           where: { visible: true, city: { contains: city.name, mode: "insensitive" } },
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            address: true,
-            city: true,
-            description: true,
-            imageUrl: true,
-            rating: true,
-            ratingCount: true,
-            prepTimeMin: true,
-            busyMode: true,
-            busyExtraMin: true,
-            status: true,
-            phone: true,
-            latitude: true,
-            longitude: true,
-            openingHours: true,
-          },
-          orderBy: { rating: "desc" },
+          select: shopCardSelect,
+          orderBy: shopCardOrderBy(),
           take: 6,
-        });
+        })
+  );
 
   // Signal pour l'UI : true si on liste des shops vraiment dans le quartier,
   // false si on est en mode fallback (ville entière).
@@ -246,18 +212,7 @@ export default async function DistrictPage({
           {shops.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
-                <ShopCard
-                  key={shop.id}
-                  shop={{
-                    ...shop,
-                    openingHours: shop.openingHours as Record<
-                      string,
-                      { open: string; close: string } | null
-                    > | null,
-                  }}
-                  index={idx}
-                  showFavorite={false}
-                />
+                <ShopCard key={shop.id} shop={shop} index={idx} showFavorite={false} />
               ))}
             </div>
           ) : (
