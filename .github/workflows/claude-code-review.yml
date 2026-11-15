@@ -136,6 +136,7 @@ jobs:
       # et tronquée (une variable d'environnement est limitée à 128 Kio).
       # Claude n'a pas de shell, il lit ces fichiers avec Read.
       - name: Prepare PR data
+        timeout-minutes: 10
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -184,6 +185,15 @@ jobs:
               > "$out/lockfile-registry.txt" 2> /dev/null; then
               echo "! INTÉGRITÉ NON VÉRIFIÉE : vérification auprès du registre npm impossible" > "$out/lockfile-registry.txt"
             fi
+            # La racine du lockfile doit reprendre les dépendances de package.json : sinon npm élague
+            # l'arbre autrement que le lockfile ne le montre.
+            if ! jq -e -n --slurpfile l "$out/lock-new.json" --slurpfile p package.json '
+                ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]
+                | all(. as $f | (($l[0].packages[""] // {})[$f] // {}) == (($p[0])[$f] // {}))
+              ' > /dev/null 2>&1; then
+              echo "! RACINE DU LOCKFILE DIFFÉRENTE DE package.json (dépendances) : à vérifier à la main" \
+                >> "$out/lockfile-registry.txt"
+            fi
             cat "$out/lockfile-registry.txt" "$out/lockfile.txt" > "$out/lockfile.tmp"
             mv "$out/lockfile.tmp" "$out/lockfile.txt"
             rm -f "$out/lock-old.json" "$out/lock-new.json" "$out/lockfile-registry.txt"
@@ -191,14 +201,20 @@ jobs:
 
           # Autres fichiers qui changent ce que npm installe sans toucher package-lock.json :
           # en tête du résumé.
-          awk -F'\t' '{ print $NF }' "$out/files.txt" \
+          awk -F'\t' '{ print $2; if (NF > 2) print $3 }' "$out/files.txt" \
             | grep -E '(^|/)(npm-shrinkwrap\.json|\.npmrc|yarn\.lock|pnpm-lock\.yaml|pnpm-workspace\.yaml|bun\.lockb?|\.yarnrc(\.yml)?|\.pnpmfile\.cjs|package-lock\.json)$' \
             | grep -vx 'package-lock.json' \
             | sed 's/^/! FICHIER DE GESTION DE PAQUETS MODIFIÉ : /' > "$out/package-manager.txt" || true
-          if [ -f npm-shrinkwrap.json ]; then
+          # Lu dans l'arbre git (les liens symboliques sont déjà retirés du checkout) : un fichier de
+          # gestion de paquets en lien symbolique dépend d'un autre fichier que la PR peut changer.
+          if [ -n "$(git ls-tree HEAD -- npm-shrinkwrap.json)" ]; then
             echo "! npm-shrinkwrap.json présent à la racine : npm l'utilise à la place de package-lock.json" \
               >> "$out/package-manager.txt"
           fi
+          git ls-tree -r HEAD \
+            | awk -F'\t' '$1 ~ /^120000 / { print $2 }' \
+            | grep -E '(^|/)(npm-shrinkwrap\.json|\.npmrc|yarn\.lock|pnpm-lock\.yaml|pnpm-workspace\.yaml|bun\.lockb?|\.yarnrc(\.yml)?|\.pnpmfile\.cjs|package-lock\.json|package\.json)$' \
+            | sed 's/^/! FICHIER DE GESTION DE PAQUETS EN LIEN SYMBOLIQUE : /' >> "$out/package-manager.txt" || true
           cat "$out/package-manager.txt" "$out/lockfile.txt" > "$out/lockfile.tmp"
           mv "$out/lockfile.tmp" "$out/lockfile.txt"
           rm -f "$out/package-manager.txt"
@@ -312,7 +328,9 @@ jobs:
               FICHIER DE GESTION DE PAQUETS MODIFIÉ, npm-shrinkwrap.json présent, CHEMIN D'ENTRÉE
               INHABITUEL, SOURCE HORS REGISTRE NPM, ARCHIVE NE CORRESPONDANT PAS AU PAQUET, alias
               ajouté, retiré ou changé sur une entrée existante, source ou intégrité changée à version
-              égale, CHAMPS D'INSTALLATION MODIFIÉS à version égale, un bin nommé comme une commande
+              égale, CHAMPS D'INSTALLATION MODIFIÉS à version égale, DÉPENDANCES MODIFIÉES À VERSION
+              ÉGALE, RACINE DU LOCKFILE DIFFÉRENTE DE package.json, FICHIER DE GESTION DE PAQUETS EN
+              LIEN SYMBOLIQUE, optional non déclarée, un bin nommé comme une commande
               usuelle (node, npm, npx, sh, bash, git…), entrée illisible, FORMAT INATTENDU, résumé
               impossible, modifié hors des paquets, résumé tronqué avec au moins une ligne signalée
               coupée. WARNING : toute ligne + ou ~ portant [ALIAS DE : …], [CHAMPS D'INSTALLATION …]

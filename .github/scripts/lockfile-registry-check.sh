@@ -11,10 +11,12 @@ set -euo pipefail
 old="$1"
 new="$2"
 max_lookups=300
+deadline=$((SECONDS + 120))
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# key, name, version, integrity of each added or changed entry resolved on the npm registry.
+# key, name, version, integrity of each entry resolved on the npm registry that is added or whose
+# source, integrity, version or name changed (a dev / optional / peer flag alone needs no lookup).
 # Tab-separated; control characters and Unicode line separators become "?" (the summary flags
 # such a key as an unusual path, and the name or version check below refuses it).
 jq -n -r --slurpfile o "$old" --slurpfile n "$new" '
@@ -24,7 +26,9 @@ jq -n -r --slurpfile o "$old" --slurpfile n "$new" '
   | $b | to_entries[]
   | select((.value | type) == "object")
   | select(.value.resolved | type == "string" and startswith("https://registry.npmjs.org/"))
-  | select($a[.key] != .value)
+  | select(($a[.key] // {}) as $old
+      | [$old.resolved, $old.integrity, $old.version, $old.name]
+        != [.value.resolved, .value.integrity, .value.version, .value.name])
   | [.key,
      ((.value.name // (.key | sub("^.*node_modules/"; ""))) | tostring),
      (.value.version // "" | tostring),
@@ -44,13 +48,17 @@ while IFS=$'\t' read -r key name version integrity; do
     echo "! INTÉGRITÉ NON VÉRIFIÉE : $((total - max_lookups)) entrée(s) au-delà de $max_lookups"
     break
   fi
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "! INTÉGRITÉ NON VÉRIFIÉE : $((total - count + 1)) entrée(s) non vérifiée(s) (délai dépassé)"
+    break
+  fi
   label="${key:0:300}"
   if ! [[ "$name" =~ $name_ok ]] || ! [[ "$version" =~ $version_ok ]]; then
     echo "! $label : INTÉGRITÉ NON VÉRIFIÉE (nom ou version illisible)"
     continue
   fi
   manifest="$work/manifest.json"
-  if ! curl -fsS --retry 2 --max-time 15 -o "$manifest" \
+  if ! curl -fsS --connect-timeout 5 --max-time 15 --retry 2 --retry-max-time 20 -o "$manifest" \
     "https://registry.npmjs.org/${name/\//%2f}/$version" 2> /dev/null; then
     echo "! $label $version : INTÉGRITÉ NON VÉRIFIÉE (registre injoignable ou version inconnue)"
     continue
