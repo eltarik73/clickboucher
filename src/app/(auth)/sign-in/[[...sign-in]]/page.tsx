@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Connexion",
   description:
     "Connectez-vous à votre compte Klik&Go pour commander chez votre boucher halal et suivre vos commandes.",
+  robots: { index: false, follow: false }, // robots.txt keeps /sign-in crawlable to show it
 };
 
 // Liste vide = ISR à la demande : chaque chemin est rendu une fois à la première

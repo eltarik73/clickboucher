@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { RotateCcw, ChevronRight, MapPin, Navigation, Loader2 } from "lucide-react";
-import { useGeolocation } from "@/hooks/useGeolocation";
+import { useGeolocation, type GeoPosition } from "@/hooks/useGeolocation";
 
 interface LastOrder {
   shopName: string;
@@ -25,28 +25,34 @@ function timeAgo(dateStr: string) {
   return `Il y a ${Math.floor(days / 30)} mois`;
 }
 
+// Tells the home shop list (NearbyShops) about a position the visitor has just chosen, or that
+// they cleared it (null). Only explicit actions call it: a position loaded from the cache at mount
+// is never announced, so an anonymous visit calls no API (CLAUDE.md, « Coût CPU Vercel ») and
+// NearbyShops alone decides whether a cached position sorts the list.
+function announceLocation(position: GeoPosition | null) {
+  window.dispatchEvent(
+    new CustomEvent("klikgo-location", {
+      detail: { lat: position?.latitude ?? null, lng: position?.longitude ?? null },
+    })
+  );
+}
+
 function LocationCard() {
   const geo = useGeolocation();
   const [showInput, setShowInput] = useState(false);
   const [manualInput, setManualInput] = useState("");
 
-  // Notify NearbyShops when location changes
-  const { latitude, longitude } = geo;
-  useEffect(() => {
-    if (latitude != null && longitude != null) {
-      window.dispatchEvent(new CustomEvent("klikgo-location", { detail: { lat: latitude, lng: longitude } }));
-    }
-  }, [latitude, longitude]);
-
   const handleGPS = async () => {
-    await geo.requestGPS();
+    const position = await geo.requestGPS();
+    if (position) announceLocation(position);
   };
 
   const handleManualSubmit = async () => {
     if (!manualInput.trim()) return;
-    await geo.setManualCity(manualInput.trim());
+    const position = await geo.setManualCity(manualInput.trim());
     setShowInput(false);
     setManualInput("");
+    if (position) announceLocation(position);
   };
 
   return (
@@ -70,7 +76,7 @@ function LocationCard() {
               {geo.city}
             </span>
             <button
-              onClick={() => { geo.clear(); window.dispatchEvent(new CustomEvent("klikgo-location", { detail: { lat: null, lng: null } })); }}
+              onClick={() => { geo.clear(); announceLocation(null); }}
               className="text-[11px] text-gray-500 dark:text-gray-400 hover:text-red-600 transition font-semibold"
             >
               Modifier

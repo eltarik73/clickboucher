@@ -27,29 +27,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 const toIso = (mins: number) => `PT${mins}M`;
 
-// Estimation nutrition par 100g de viande crue, valeurs USDA standard.
-// Utilisees pour generer NutritionInformation sur recipe schema (audit GSC
-// mai 2026 — "Champ nutrition manquant"). C'est une estimation factuelle
-// basee sur le meatType principal de la recette + 150g typique par portion
-// + ~80 kcal d'accompagnement standard. Pas de fake data : valeurs réelles
-// de référence USDA, l'estimation est sur la portion (assumée 150g viande).
-const NUTRITION_BY_MEAT: Record<
-  string,
-  { kcalPer100g: number; proteinPer100g: number; fatPer100g: number }
-> = {
-  boeuf: { kcalPer100g: 250, proteinPer100g: 26, fatPer100g: 16 },
-  agneau: { kcalPer100g: 280, proteinPer100g: 25, fatPer100g: 19 },
-  mouton: { kcalPer100g: 290, proteinPer100g: 25, fatPer100g: 21 },
-  poulet: { kcalPer100g: 165, proteinPer100g: 31, fatPer100g: 4 },
-  veau: { kcalPer100g: 170, proteinPer100g: 31, fatPer100g: 5 },
-  dinde: { kcalPer100g: 135, proteinPer100g: 30, fatPer100g: 1 },
-  canard: { kcalPer100g: 240, proteinPer100g: 27, fatPer100g: 11 },
-  lapin: { kcalPer100g: 175, proteinPer100g: 33, fatPer100g: 3 },
-};
-
-const MEAT_PER_SERVING_GRAMS = 150;
-const ACCOMP_KCAL_PER_SERVING = 80;
-
+// No nutrition block: a recipe stores no nutrition facts, and figures derived from constants (a
+// fixed portion of meat, a fixed side dish) would be structured data the page cannot back.
 export function RecipeSchema({ recipe }: RecipeSchemaProps) {
   const url = `${SITE_URL}/recettes/${recipe.slug}`;
   const image = recipe.imageUrl
@@ -57,16 +36,6 @@ export function RecipeSchema({ recipe }: RecipeSchemaProps) {
       ? recipe.imageUrl
       : `${SITE_URL}${recipe.imageUrl}`
     : `${SITE_URL}/og-image.png`;
-
-  // Calcul nutrition estimative par portion (150g viande + ~80 kcal accomp).
-  // Si meatType non reconnu, fallback sur boeuf (estimation conservatrice).
-  const meatKey = recipe.meatType.toLowerCase();
-  const nutritionData = NUTRITION_BY_MEAT[meatKey] ?? NUTRITION_BY_MEAT.boeuf;
-  const calories =
-    Math.round((nutritionData.kcalPer100g * MEAT_PER_SERVING_GRAMS) / 100) +
-    ACCOMP_KCAL_PER_SERVING;
-  const proteinG = Math.round((nutritionData.proteinPer100g * MEAT_PER_SERVING_GRAMS) / 100);
-  const fatG = Math.round((nutritionData.fatPer100g * MEAT_PER_SERVING_GRAMS) / 100);
 
   const json = {
     "@context": "https://schema.org",
@@ -102,15 +71,6 @@ export function RecipeSchema({ recipe }: RecipeSchemaProps) {
       url: `${url}#step-${s.number}`,
       image,
     })),
-    // GSC > Recipes signale "Champ nutrition manquant" comme amelioration.
-    // Estimation factuelle basee sur USDA + 150g viande/portion + accomp.
-    nutrition: {
-      "@type": "NutritionInformation",
-      servingSize: `${MEAT_PER_SERVING_GRAMS} g de viande + accompagnement`,
-      calories: `${calories} kcal`,
-      proteinContent: `${proteinG} g`,
-      fatContent: `${fatG} g`,
-    },
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     url,
   };

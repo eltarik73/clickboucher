@@ -1,16 +1,7 @@
 import { JsonLd } from "@/components/seo/JsonLd";
+import type { Crumb } from "@/lib/seo/breadcrumbs";
+import { breadcrumbJsonLd } from "@/lib/seo/jsonld/pages";
 
-export function BreadcrumbSchema({ items }: { items: { name: string; url: string }[] }) {
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: items.map((item, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: item.name,
-      item: item.url,
-    })),
-  };
-
-  return <JsonLd data={schema} />;
+export function BreadcrumbSchema({ items }: { items: Crumb[] }) {
+  return <JsonLd data={breadcrumbJsonLd(items)} />;
 }

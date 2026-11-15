@@ -1,4 +1,4 @@
-export const revalidate = 300; // ISR — régénération au plus toutes les 5 min (la liste est rafraîchie côté client par NearbyShops)
+export const revalidate = 300; // ISR: at most every 5 min; NearbyShops sorts by distance once a position is known
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -7,13 +7,17 @@ import prisma from "@/lib/prisma";
 import { badgeLabelsByShop } from "@/lib/offer-badge-label";
 import { listBadgeOffers, listPopupOffers } from "@/lib/public-offers";
 import { countBonsPlans } from "@/lib/bons-plans";
+import type { RatingSummary } from "@/lib/reviews/rating";
+import { FACT_SUMMARY_SHORT } from "@/lib/seo/facts";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
+import type { OpeningHours } from "@/lib/shop-hours";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PromoCarousel } from "@/components/landing/PromoCarousel";
-import { HeroButtons } from "./decouvrir/HeroButtons";
-import { CartBadge } from "./decouvrir/CartBadge";
-import { AuthButton } from "./decouvrir/AuthButton";
+import { HeroButtons } from "../decouvrir/HeroButtons";
+import { CartBadge } from "../decouvrir/CartBadge";
+import { AuthButton } from "../decouvrir/AuthButton";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import NearbyShops from "./decouvrir/NearbyShops";
+import NearbyShops from "../decouvrir/NearbyShops";
 import { SearchBar } from "@/components/search/SearchBar";
 import { KlikLogo } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
@@ -37,15 +41,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
   title: "Click & Collect Boucherie Halal — Commandez en ligne",
-  description:
-    "Commandez en ligne chez votre boucherie halal de proximité. Retrait rapide en boutique à Chambéry, Grenoble, Lyon. Frais de service 0,99€ seulement.",
+  description: `Click & collect halal : commandez votre viande en ligne chez une boucherie halal près de chez vous. ${FACT_SUMMARY_SHORT}`,
   openGraph: {
     type: "website",
     locale: "fr_FR",
     siteName: "Klik&Go",
     title: "Boucheries Halal près de chez vous — Click & Collect",
-    description:
-      "Trouvez votre boucherie halal et commandez en click & collect. Retrait rapide en boutique.",
+    description: `Trouvez votre boucherie halal et commandez en click & collect. ${FACT_SUMMARY_SHORT}`,
     url: SITE_URL,
     images: [
       {
@@ -79,10 +81,9 @@ type ShopData = {
   busyMode: boolean;
   busyExtraMin: number;
   status: string;
-  rating: number;
-  ratingCount: number;
+  verifiedRating: RatingSummary | null;
   activePromo: string | null;
-  openingHours: Record<string, { open: string; close: string } | null> | null;
+  openingHours: OpeningHours | null;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -136,25 +137,10 @@ export default async function HomePage() {
   // 1. DB queries in parallel. Auth is handled client-side via NearbyShops (favorites hydrate after mount)
   //    so this page stays static/ISR-cacheable and Vercel CDN can serve it with `s-maxage=60`.
   try {
-    const shopsPromise = prisma.shop.findMany({
-      where: { visible: true },
-      orderBy: { rating: "desc" },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        address: true,
-        city: true,
-        imageUrl: true,
-        prepTimeMin: true,
-        busyMode: true,
-        busyExtraMin: true,
-        status: true,
-        rating: true,
-        ratingCount: true,
-        openingHours: true,
-      },
-    });
+    // Listed shops with their verified rating only (never the seeded Shop.rating), no ranking.
+    const shopsPromise = prisma.shop
+      .findMany({ where: { visible: true }, orderBy: shopCardOrderBy(), select: shopCardSelect })
+      .then(toShopCards);
 
     // Badges and popup: only public offers (audience ALL, diffused on that channel, uses left).
     const now = new Date();
@@ -232,7 +218,6 @@ export default async function HomePage() {
     // Attach promo label to shops + sort: shops with promos first
     shops = shopsResult.map((s) => ({
       ...s,
-      openingHours: (s.openingHours as ShopData["openingHours"]) ?? null,
       activePromo: shopPromoMap.get(s.id) || null,
     }));
     shops.sort((a, b) => {
@@ -252,9 +237,6 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <h1 className="sr-only">
-        Boucheries halal près de chez vous — Click &amp; Collect halal en ligne
-      </h1>
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -307,9 +289,9 @@ export default async function HomePage() {
               <div className="absolute inset-0 scale-150 rounded-full bg-[#DC2626] opacity-20 blur-3xl dark:opacity-40" />
               <KlikLogo size={100} className="relative z-10 h-20 w-20 sm:h-[100px] sm:w-[100px]" />
             </div>
-            <h2 className="mt-3 text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:mt-5 sm:text-5xl">
+            <h1 className="mt-3 text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:mt-5 sm:text-5xl">
               Klik<span className="text-[#DC2626]">&amp;</span>Go
-            </h2>
+            </h1>
           </div>
 
           <p className="text-2xl font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">

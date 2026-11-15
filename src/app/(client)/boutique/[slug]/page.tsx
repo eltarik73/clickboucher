@@ -12,6 +12,11 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin, Phone } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
+import { displayedUnitPrice } from "@/lib/pricing/display";
+import { limitedStockSoldOut } from "@/lib/pricing/limited-stock";
+import { formatRatingValue } from "@/lib/reviews/rating";
+import { listVerifiedReviews, loadVerifiedShopRating } from "@/lib/reviews/verified-rating";
+import { shopBreadcrumb } from "@/lib/seo/breadcrumbs";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import {
   ShopProductsClient,
@@ -93,23 +98,30 @@ function prepTimeClasses(minutes: number) {
 // ── Page (Server Component) ──────────────────────
 
 export default async function BoutiquePage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
-
-  let shop;
-  try {
-    shop = await loadPublicShop(slug);
-  } catch {
-    notFound();
-  }
-
+  // A load error surfaces as a 500 (error boundary); only a missing or unreachable shop is a 404.
+  const shop = await loadPublicShop(params.slug);
   if (!shop) notFound();
 
   // Favorites & proStatus are handled client-side (FavoriteButton + ShopProductsClient),
   // so this page needs no server-side auth(). It is still rendered on every request
   // (not ISR-cached — see the note on `revalidate` at the top of this file).
 
-  // Public offers of this shop (banner + eligible products): never a code meant for a segment.
-  const activeOffers = await listShopOffers(shop.id, new Date());
+  // Social proof — orders completed this week (only display if ≥ 5)
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [activeOffers, ordersThisWeek, verifiedRating, verifiedReviews] = await Promise.all([
+    // Public offers of this shop (banner + eligible products): never a code meant for a segment.
+    listShopOffers(shop.id, new Date()),
+    prisma.order.count({
+      where: {
+        shopId: shop.id,
+        status: { in: ["READY", "PICKED_UP", "COMPLETED"] },
+        createdAt: { gte: weekAgo },
+      },
+    }),
+    // Rating (JSON-LD, header, review list): verified reviews only, never Shop.rating / ratingCount.
+    loadVerifiedShopRating(shop.id),
+    listVerifiedReviews(shop.id),
+  ]);
 
   // Banner offer (first with diffBanner)
   const bannerOffer = activeOffers.find((o) => o.diffBanner);
@@ -131,41 +143,6 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
 
   const effectiveTime = shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0);
   const heroImg = shop.imageUrl || getShopImage(0);
-
-  // Social proof — orders completed this week (only display if ≥ 5)
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const ordersThisWeek = await prisma.order.count({
-    where: {
-      shopId: shop.id,
-      status: { in: ["READY", "PICKED_UP", "COMPLETED"] },
-      createdAt: { gte: weekAgo },
-    },
-  });
-
-  // Top 2 reviews with text — embedded in ProductSchema for rich snippets
-  // (GSC asked for "review" field on Product. Reviews are per-shop in our model.)
-  const topReviewsRaw =
-    shop.ratingCount > 0
-      ? await prisma.review.findMany({
-          where: { shopId: shop.id, comment: { not: null } },
-          orderBy: { createdAt: "desc" },
-          take: 2,
-          select: {
-            rating: true,
-            comment: true,
-            createdAt: true,
-            user: { select: { firstName: true, lastName: true } },
-          },
-        })
-      : [];
-
-  const topReviews = topReviewsRaw.map((r) => ({
-    rating: r.rating,
-    comment: r.comment,
-    createdAt: r.createdAt,
-    authorName:
-      `${r.user?.firstName ?? "Client"} ${(r.user?.lastName ?? "").charAt(0)}`.trim() || "Client",
-  }));
 
   // Serialize for client component (strip Prisma internals / Date objects)
   const categories: CategoryData[] = shop.categories.map((c) => ({
@@ -245,15 +222,9 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <ShopSchema shop={shop} reviews={topReviews} />
-      <BreadcrumbSchema
-        items={[
-          { name: "Accueil", url: `${SITE_URL}` },
-          { name: "Boucheries", url: `${SITE_URL}/` },
-          { name: shop.name, url: `${SITE_URL}/boutique/${shop.slug}` },
-        ]}
-      />
-      {/* Product schemas for rich results (first 20 products) */}
+      <ShopSchema shop={shop} rating={verifiedRating} />
+      <BreadcrumbSchema items={shopBreadcrumb(shop)} />
+      {/* Product schemas (first 20 products): the price charged now, no rating */}
       {liveProducts.slice(0, 20).map((p) => (
         <ProductSchema
           key={p.id}
@@ -261,17 +232,13 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
             id: p.id,
             name: p.name,
             description: p.description,
-            priceCents: p.priceCents,
             imageUrl: p.imageUrl,
-            inStock: p.inStock,
-            category: p.categories[0],
+            category: p.categories[0]?.name ?? null,
+            unit: p.unit,
+            unitPriceCents: displayedUnitPrice(p, productsAt).unitPriceCents,
+            available: p.inStock && !limitedStockSoldOut(p),
           }}
-          shop={{
-            name: shop.name,
-            slug: shop.slug,
-            rating: shop.rating,
-            ratingCount: shop.ratingCount,
-          }}
+          shop={{ name: shop.name, slug: shop.slug }}
         />
       ))}
       <div className="mx-auto max-w-5xl">
@@ -327,13 +294,14 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
               {shop.name}
             </h1>
             <div className="mt-2.5 flex flex-wrap gap-2">
-              {/* Rating */}
-              <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
-                <Star size={12} className="fill-yellow-300 text-yellow-300" />
-                <span className="text-xs font-bold text-white">
-                  {shop.rating.toFixed(1)} · {shop.ratingCount} avis
-                </span>
-              </div>
+              {verifiedRating && (
+                <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
+                  <Star size={12} className="fill-yellow-300 text-yellow-300" />
+                  <span className="text-xs font-bold text-white">
+                    {formatRatingValue(verifiedRating.average)} · {verifiedRating.count} avis
+                  </span>
+                </div>
+              )}
 
               {/* Prep time */}
               <div className="flex items-center gap-1 rounded-[10px] bg-white/20 px-3 py-1.5 backdrop-blur-xl">
@@ -515,7 +483,12 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
         {/* ═══════════════════════════════════════════ */}
         {/* REVIEWS */}
         {/* ═══════════════════════════════════════════ */}
-        <ReviewList shopId={shop.id} rating={shop.rating} ratingCount={shop.ratingCount} />
+        <ReviewList
+          rating={
+            verifiedRating && { average: verifiedRating.average, count: verifiedRating.count }
+          }
+          reviews={verifiedReviews}
+        />
       </div>
     </div>
   );

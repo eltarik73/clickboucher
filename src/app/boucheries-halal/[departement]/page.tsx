@@ -1,18 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, MapPin, Search } from "lucide-react";
+import { ArrowRight, MapPin, Search, Store } from "lucide-react";
 import prisma from "@/lib/prisma";
-import { SEO_DEPARTMENTS, SEO_CITIES } from "@/lib/seo/cities";
-import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { SEO_DEPARTMENTS } from "@/lib/seo/cities";
+import { departmentCities, departmentPageContent } from "@/lib/seo/content/department";
+import { FACT_SUMMARY_SHORT } from "@/lib/seo/facts";
+import { REGIONAL_HUB_PATH, cityPath, departmentPath } from "@/lib/seo/routes";
+import { shopCardOrderBy, shopCardSelect, toShopCards } from "@/lib/seo/shop-cards";
+import { absoluteUrl } from "@/lib/seo/site";
+import { departmentTitle } from "@/lib/seo/titles";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { JsonLd } from "@/components/seo/JsonLd";
 
-const PAGE_LAST_UPDATED = "2026-05-01";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+const PAGE_LAST_UPDATED = "2026-11-15";
 
 export const revalidate = 3600;
+// Closed list: a slug outside SEO_DEPARTMENTS answers 404 without running the page.
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return SEO_DEPARTMENTS.map((d) => ({ departement: d.slug }));
@@ -26,27 +32,27 @@ export async function generateMetadata({
   const dept = SEO_DEPARTMENTS.find((d) => d.slug === params.departement);
   if (!dept) return { title: "Département introuvable" };
 
-  const title = `Boucheries halal en ${dept.name} — Annuaire ${dept.citySlugs.length} villes`;
+  const title = departmentTitle(dept);
+  const url = absoluteUrl(departmentPath(dept.slug));
   return {
     title,
     description: dept.description,
     keywords: [
       `boucherie halal ${dept.name.toLowerCase()}`,
       `boucheries halal ${dept.name.toLowerCase()}`,
-      `annuaire boucherie halal ${dept.name.toLowerCase()}`,
       ...dept.citySlugs.map((s) => `boucherie halal ${s.replace(/-/g, " ")}`),
     ],
     openGraph: {
       title,
       description: dept.description,
-      url: `${SITE_URL}/boucheries-halal/${dept.slug}`,
+      url,
       images: [
         { url: "/og-image.png", width: 1200, height: 630, alt: `Boucheries halal ${dept.name}` },
       ],
       siteName: "Klik&Go",
     },
     twitter: { card: "summary_large_image", title, description: dept.description },
-    alternates: { canonical: `${SITE_URL}/boucheries-halal/${dept.slug}` },
+    alternates: { canonical: url },
   };
 }
 
@@ -54,90 +60,28 @@ export default async function DepartmentPage({ params }: { params: { departement
   const dept = SEO_DEPARTMENTS.find((d) => d.slug === params.departement);
   if (!dept) notFound();
 
-  const cities = SEO_CITIES.filter((c) => dept.citySlugs.includes(c.slug));
+  const cities = departmentCities(dept);
 
-  // Fetch top shops in the department's cities
-  const shops = await prisma.shop.findMany({
+  // The first ten listed shops of the department's cities, each with its verified rating only
+  const rows = await prisma.shop.findMany({
     where: {
       visible: true,
       OR: cities.map((c) => ({ city: { contains: c.name, mode: "insensitive" as const } })),
     },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      address: true,
-      city: true,
-      description: true,
-      imageUrl: true,
-      rating: true,
-      ratingCount: true,
-      prepTimeMin: true,
-      busyMode: true,
-      busyExtraMin: true,
-      status: true,
-      phone: true,
-      latitude: true,
-      longitude: true,
-      openingHours: true,
-    },
-    orderBy: { rating: "desc" },
+    select: shopCardSelect,
+    orderBy: shopCardOrderBy(),
     take: 10,
   });
+  const shops = await toShopCards(rows);
 
+  const content = departmentPageContent(dept, shops.length);
   const otherDepts = SEO_DEPARTMENTS.filter((d) => d.slug !== dept.slug);
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <BreadcrumbSchema
-        items={[
-          { name: "Accueil", url: SITE_URL },
-          { name: "Boucheries halal Rhône-Alpes", url: `${SITE_URL}/boucheries-halal-rhone-alpes` },
-          { name: dept.name, url: `${SITE_URL}/boucheries-halal/${dept.slug}` },
-        ]}
-      />
-      {/* CollectionPage + ItemList of cities */}
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          name: `Boucheries halal en ${dept.name}`,
-          description: dept.description,
-          url: `${SITE_URL}/boucheries-halal/${dept.slug}`,
-          mainEntity: {
-            "@type": "ItemList",
-            numberOfItems: cities.length,
-            itemListElement: cities.map((city, i) => ({
-              "@type": "ListItem",
-              position: i + 1,
-              item: {
-                "@type": "Place",
-                name: `Boucheries halal à ${city.name}`,
-                url: `${SITE_URL}/boucherie-halal/${city.slug}`,
-                address: {
-                  "@type": "PostalAddress",
-                  addressLocality: city.name,
-                  addressRegion: city.region,
-                  addressCountry: "FR",
-                },
-                geo: {
-                  "@type": "GeoCoordinates",
-                  latitude: city.latitude,
-                  longitude: city.longitude,
-                },
-              },
-            })),
-          },
-        }}
-      />
-      <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
-        <p>
-          <strong>En bref :</strong> Klik&amp;Go référence {cities.length} villes avec boucheries
-          halal certifiées en {dept.name} ({dept.region}). {cities.map((c) => c.name).join(", ")}.
-          Commande en ligne possible chez les boucheries partenaires, retrait en boutique au créneau
-          choisi. Frais de service : 0,99€ par commande.
-        </p>
-      </section>
+      {content.jsonLd.map((data, i) => (
+        <JsonLd key={i} data={data} />
+      ))}
 
       {/* ── Hero ── */}
       <section className="relative bg-gradient-to-br from-[#DC2626] via-[#b91c1c] to-[#991b1b] text-white">
@@ -150,23 +94,23 @@ export default async function DepartmentPage({ params }: { params: { departement
         />
         <div className="relative mx-auto max-w-5xl px-5 py-14 sm:py-20">
           <Link
-            href="/boucheries-halal-rhone-alpes"
+            href={REGIONAL_HUB_PATH}
             className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Toute la région
           </Link>
           <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
-            Boucheries halal en {dept.name}
+            {content.heading}
           </h1>
           <p className="mt-4 max-w-3xl text-lg text-white/80">{dept.description}</p>
           <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-white/60">
             <span className="inline-flex items-center gap-1.5">
               <MapPin size={14} />
-              {cities.length} villes référencées
+              {content.cities.length} villes présentées
             </span>
             <span className="inline-flex items-center gap-1.5">
-              {shops.length} boucherie{shops.length > 1 ? "s" : ""} partenaire
-              {shops.length > 1 ? "s" : ""}
+              <Store size={14} />
+              {FACT_SUMMARY_SHORT}
             </span>
           </div>
           <LastUpdated date={PAGE_LAST_UPDATED} className="mt-4 text-white/50" />
@@ -177,16 +121,15 @@ export default async function DepartmentPage({ params }: { params: { departement
         {/* ── Villes du département ── */}
         <section className="mb-14">
           <h2 className="mb-2 font-display text-2xl font-bold text-gray-900 dark:text-white">
-            Toutes les villes du département
+            Villes {content.locative}
           </h2>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-            {cities.length} villes avec boucheries halal référencées
-          </p>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">{content.citiesIntro}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {cities.map((city) => (
+            {content.cities.map((city) => (
               <Link
                 key={city.slug}
-                href={`/boucherie-halal/${city.slug}`}
+                href={cityPath(city.slug)}
+                prefetch={false}
                 className="group flex items-center justify-between rounded-xl border border-[#ece8e3] bg-white p-4 transition hover:border-[#DC2626] hover:shadow-md dark:border-white/[0.06] dark:bg-gray-800"
               >
                 <div>
@@ -205,26 +148,15 @@ export default async function DepartmentPage({ params }: { params: { departement
           </div>
         </section>
 
-        {/* ── Top boucheries du département ── */}
+        {/* ── Boucheries inscrites du département ── */}
         {shops.length > 0 && (
           <section className="mb-14">
             <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
-              Top {shops.length} boucherie{shops.length > 1 ? "s" : ""} halal en {dept.name}
+              {content.heading} sur Klik&amp;Go
             </h2>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               {shops.map((shop, idx) => (
-                <ShopCard
-                  key={shop.id}
-                  shop={{
-                    ...shop,
-                    openingHours: shop.openingHours as Record<
-                      string,
-                      { open: string; close: string } | null
-                    > | null,
-                  }}
-                  index={idx}
-                  showFavorite={false}
-                />
+                <ShopCard key={shop.id} shop={shop} index={idx} showFavorite={false} />
               ))}
             </div>
           </section>
@@ -233,7 +165,7 @@ export default async function DepartmentPage({ params }: { params: { departement
         {/* ── Contexte départemental ── */}
         <section className="mb-14 rounded-2xl border border-[#ece8e3] bg-white p-6 dark:border-white/[0.06] dark:bg-gray-800 sm:p-8">
           <h2 className="mb-4 font-display text-2xl font-bold text-gray-900 dark:text-white">
-            Boucheries halal en {dept.name} — tout ce qu&apos;il faut savoir
+            {content.heading} : tout ce qu&apos;il faut savoir
           </h2>
           <p className="text-base leading-relaxed text-gray-700 dark:text-gray-300">
             {dept.context}
@@ -267,7 +199,7 @@ export default async function DepartmentPage({ params }: { params: { departement
             {otherDepts.map((d) => (
               <Link
                 key={d.slug}
-                href={`/boucheries-halal/${d.slug}`}
+                href={departmentPath(d.slug)}
                 className="block rounded-xl border border-[#ece8e3] bg-white p-3 text-center transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
               >
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{d.name}</p>
@@ -284,64 +216,19 @@ export default async function DepartmentPage({ params }: { params: { departement
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
-          <JsonLd
-            data={{
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: [
-                {
-                  "@type": "Question",
-                  name: `Combien de boucheries halal partenaires Klik&Go en ${dept.name} ?`,
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: `Klik&Go référence des boucheries halal certifiées dans ${cities.length} villes en ${dept.name} : ${cities.map((c) => c.name).join(", ")}.`,
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: `Comment commander de la viande halal en ligne en ${dept.name} ?`,
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Choisissez votre ville, sélectionnez une boucherie halal partenaire, ajoutez vos produits au panier, payez en ligne ou sur place, et récupérez votre commande en boutique au créneau choisi. Frais de service : 0,99€ par commande.",
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "Toutes les boucheries listées sont-elles certifiées halal ?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Oui. Toutes les boucheries partenaires Klik&Go sont des boucheries halal vérifiées. Chaque boucher garantit la certification halal de ses produits.",
-                  },
-                },
-              ],
-            }}
-          />
           <div className="space-y-3">
-            {[
-              {
-                q: `Combien de boucheries halal partenaires Klik&Go en ${dept.name} ?`,
-                a: `Klik&Go référence des boucheries halal certifiées dans ${cities.length} villes en ${dept.name} : ${cities.map((c) => c.name).join(", ")}.`,
-              },
-              {
-                q: `Comment commander de la viande halal en ligne en ${dept.name} ?`,
-                a: "Choisissez votre ville, sélectionnez une boucherie halal partenaire, ajoutez vos produits au panier, payez en ligne ou sur place, et récupérez votre commande en boutique au créneau choisi.",
-              },
-              {
-                q: "Toutes les boucheries listées sont-elles certifiées halal ?",
-                a: "Oui. Toutes les boucheries partenaires Klik&Go sont des boucheries halal vérifiées.",
-              },
-            ].map((faq, i) => (
+            {content.faqs.map((faq) => (
               <details
-                key={i}
+                key={faq.question}
                 className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
                 <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                  {faq.q}
+                  {faq.question}
                   <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>
-                <p className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-300">{faq.a}</p>
+                <p className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-300">{faq.answer}</p>
               </details>
             ))}
           </div>

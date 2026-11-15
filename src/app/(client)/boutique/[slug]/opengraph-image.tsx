@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 import prisma from "@/lib/prisma";
+import { formatRatingValue } from "@/lib/reviews/rating";
+import { loadVerifiedRatings } from "@/lib/reviews/verified-rating";
 
 export const alt = "Boutique sur Klik&Go";
 export const size = { width: 1200, height: 630 };
@@ -15,12 +17,14 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   try {
     const shop = await prisma.shop.findUnique({
       where: { slug },
-      select: { name: true, city: true, rating: true },
+      select: { id: true, name: true, city: true },
     });
     if (shop) {
       shopName = shop.name;
       shopCity = shop.city || "";
-      shopRating = shop.rating ? Number(shop.rating).toFixed(1) : "";
+      // Verified reviews only, never the seeded Shop.rating.
+      const rating = (await loadVerifiedRatings([shop.id])).get(shop.id);
+      shopRating = rating ? formatRatingValue(rating.average) : "";
     }
   } catch {
     // Fallback to formatted slug
