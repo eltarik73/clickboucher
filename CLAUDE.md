@@ -152,13 +152,13 @@ facturée, y compris pour les bots. Règles :
 - **PR template** : `.github/pull_request_template.md` — checklist build/lint/typecheck/test + screenshots si UI.
 - **Vercel preview** : l'environnement Preview de Vercel n'a PAS de `DATABASE_URL`, or le build
   prérend ≈ 290 pages sur la base → tout déploiement de preview échouait
-  (`Environment variable not found: DATABASE_URL`). `vercel.json` (`git.deploymentEnabled`) désactive
-  donc les déploiements des branches `dependabot/**` et `claude/**` ; c'est le job CI `build` qui
-  valide ces branches. Seul `main` déploie (production).
+  (`Environment variable not found: DATABASE_URL`). `vercel.json` (`git.deploymentEnabled` :
+  `"**": false, "main": true`) ne déploie donc QUE `main` (production) : aucune branche de pull
+  request ne lance de preview ; c'est le job CI `build` qui les valide.
   Pour une vraie recette en ligne : créer une base Postgres DÉDIÉE (jamais celle de production —
   le mode test y est autorisé et les URLs de preview sont publiques), y pousser le schéma + le seed,
   définir `DATABASE_URL` / `DIRECT_DATABASE_URL` et les clés Clerk de dev sur l'environnement
-  Preview, puis retirer la ligne `claude/**` de `vercel.json`.
+  Preview, puis autoriser la branche voulue dans `git.deploymentEnabled` (`"<motif>": true`).
 
 ## Stack
 

@@ -1,8 +1,8 @@
 # Recette locale — préproduction sur la machine
 
 État au 2026-11-14. Il n'y a **pas** de préproduction en ligne : l'environnement Preview de
-Vercel n'a pas de `DATABASE_URL` et les branches `claude/**` / `dependabot/**` ne s'y déploient
-pas (`vercel.json`, `CLAUDE.md` « Vercel preview »). La production est en lecture seule pour les
+Vercel n'a pas de `DATABASE_URL` et seule `main` s'y déploie, aucune autre branche
+(`vercel.json`, `CLAUDE.md` « Vercel preview »). La production est en lecture seule pour les
 agents (GET seulement : ni formulaire, ni commande, ni compte). La recette tourne donc sur un
 **build de production local**, branché sur un **PostgreSQL jetable** rempli par le seed, avec le
 **mode test** activé par un jeton signé.
