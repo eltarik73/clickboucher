@@ -67,8 +67,27 @@ enum AdjustmentStatus {
   AUTO_APPROVED
   APPROVED
   REJECTED
+  // HÉRITAGE — jamais écrites depuis C1-PAIEMENT-A (le silence du client vaut refus, l'escalade
+  // au webmaster est supprimée). Gardées pour les lignes existantes et pour le client Prisma du
+  // code précédent (fenêtre de déploiement, retour arrière).
   AUTO_VALIDATED
   ESCALATED
+}
+
+// Motif de la fermeture d'un ajustement de prix refusé (C1-PAIEMENT-A), écrit avec le statut
+// REJECTED par src/lib/services/orders/adjustment-settlement.ts et adjustment-answers.ts seulement.
+enum AdjustmentCloseReason {
+  CUSTOMER_REFUSED // le client a répondu non
+  NO_ANSWER // pas de réponse avant answerBy : le silence vaut refus
+  ORDER_CHANGED // la commande a changé avant la réponse (fermeture, rupture, retrait)
+}
+
+// Marge de pesée choisie par le client (C1-PAIEMENT-A) : dans cette limite, le boucher ajuste le
+// prix après la pesée sans lui demander ; au-delà, le client accepte ou refuse. Taux et plafond
+// de chaque choix : src/lib/pricing/tolerance.ts, seule autorité.
+enum WeighTolerance {
+  STANDARD // 5 % du total estimé, 10 € au plus
+  EXTENDED // 10 % du total estimé, 20 € au plus
 }
 
 enum Unit {
@@ -279,6 +298,14 @@ model User {
 
   pushSubscription Json? @map("push_subscription")
 
+  // ── Marge de pesée (C1-PAIEMENT-A) ──
+  // Choix du client, fait activement à sa première commande (aucune case pré-cochée) puis repris
+  // et montré aux suivantes, modifiable dans son profil. NULL = jamais choisi : sa commande est
+  // refusée tant qu'il n'a pas choisi. Écrit par src/lib/services/orders/weigh-tolerance.ts et
+  // PATCH /api/users/me. Jamais lu ni écrit pour une commande invitée : la ligne users de
+  // l'e-mail saisi peut appartenir à quelqu'un d'autre.
+  weighTolerance WeighTolerance? @map("weigh_tolerance")
+
   // HÉRITAGE — ne plus lire ni écrire. Ancien numéro client « C-012 », unique sur toute la
   // plateforme alors qu'il était attribué par boutique (refus 409 à la première commande dans
   // une deuxième boutique). Remplacé par ShopCustomer.number et Order.customerNumber.
@@ -394,10 +421,24 @@ model Shop {
   acceptOnPickup Boolean @default(true) @map("accept_on_pickup")
 
   // ── Stripe Connect (foundations — not activated) ──
-  stripeAccountId      String? @map("stripe_account_id") // acct_xxx
-  stripeAccountStatus  String? @map("stripe_account_status") // pending | restricted | active
-  stripeChargesEnabled Boolean @default(false) @map("stripe_charges_enabled")
-  stripePayoutsEnabled Boolean @default(false) @map("stripe_payouts_enabled")
+  stripeAccountId          String?  @map("stripe_account_id") // acct_xxx
+  stripeAccountStatus      String?  @map("stripe_account_status") // pending | restricted | active
+  stripeChargesEnabled     Boolean  @default(false) @map("stripe_charges_enabled")
+  stripePayoutsEnabled     Boolean  @default(false) @map("stripe_payouts_enabled")
+  // État du compte Connect recopié depuis Stripe par le webhook account.updated (C1-PAIEMENT-A ;
+  // paiement en ligne inactif) : exigences en attente (requirements.currently_due + past_due),
+  // motif de désactivation (requirements.disabled_reason), capacité card_payments active.
+  // Colonnes de la plateforme : jamais écrites par le boucher, jamais publiques.
+  stripeRequirementsDue    String[] @default([]) @map("stripe_requirements_due")
+  stripeDisabledReason     String?  @map("stripe_disabled_reason")
+  stripeCardPaymentsActive Boolean  @default(false) @map("stripe_card_payments_active")
+
+  // ── TVA du boucher (C1-PAIEMENT-A) ──
+  // Numéro de TVA intracommunautaire et franchise en base de TVA (art. 293 B du CGI), pour la
+  // commission HT et ses factures. Colonnes de la plateforme, jamais publiques ; aucun code ne
+  // les écrit encore (onboarding Connect et facturation des bouchers : chantiers suivants).
+  vatNumber    String? @map("vat_number")
+  vatFranchise Boolean @default(false) @map("vat_franchise")
 
   // ── Commission ──
   commissionPct     Float   @default(0) @map("commission_pct")
@@ -1126,9 +1167,49 @@ model Order {
   serviceFeeCents         Int     @default(0) @map("service_fee_cents")
   stripeFeeCents          Int     @default(0) @map("stripe_fee_cents")
   shopPayoutCents         Int     @default(0) @map("shop_payout_cents")
-  stripeCheckoutSessionId String? @map("stripe_checkout_session_id")
-  stripePaymentIntentId   String? @map("stripe_payment_intent_id")
+  // Uniques (C1-PAIEMENT-A) : une session ou un PaymentIntent Stripe désigne une seule commande.
+  // Plusieurs NULL restent permis (toute commande payée sur place).
+  stripeCheckoutSessionId String? @unique @map("stripe_checkout_session_id")
+  stripePaymentIntentId   String? @unique @map("stripe_payment_intent_id")
   stripeTransferId        String? @map("stripe_transfer_id")
+
+  // ── Paiement en ligne : autorisation, capture, libération (C1-PAIEMENT-A) ──
+  // Écrits uniquement par le webhook Stripe (src/lib/services/stripe/webhook/), par des écritures
+  // conditionnelles sur les seules commandes paymentMethod = ONLINE. Le paiement en ligne est
+  // inactif (devis et création refusent ONLINE) : NULL sur toute commande réelle.
+  //   stripeChargeId        = charge Stripe (ch_xxx)
+  //   authorizedAmountCents = montant autorisé sur la carte ; paymentAuthorizedAt = date
+  //   captureBefore         = échéance de l'autorisation lue chez Stripe (capture_before)
+  //   cardNetwork           = réseau de la carte (visa, mastercard, cartes_bancaires…)
+  //   capturedAmountCents   = montant réellement capturé (paidAt garde son sens : argent capturé)
+  //   paymentReleasedAt     = autorisation libérée sans capture
+  // captureFailedAt, paymentDueAt et la commission gelée (taux en points de base, montants HT et
+  // TVA en centimes) ne sont encore écrits par aucun code : capture, échéance de paiement et
+  // modèle de commission attendent la phase B et les décisions du propriétaire.
+  stripeChargeId        String?   @map("stripe_charge_id")
+  authorizedAmountCents Int?      @map("authorized_amount_cents")
+  paymentAuthorizedAt   DateTime? @map("payment_authorized_at")
+  captureBefore         DateTime? @map("capture_before")
+  cardNetwork           String?   @map("card_network")
+  capturedAmountCents   Int?      @map("captured_amount_cents")
+  captureFailedAt       DateTime? @map("capture_failed_at")
+  paymentReleasedAt     DateTime? @map("payment_released_at")
+  paymentDueAt          DateTime? @map("payment_due_at")
+  commissionRateBps     Int?      @map("commission_rate_bps")
+  commissionHtCents     Int?      @map("commission_ht_cents")
+  commissionVatCents    Int?      @map("commission_vat_cents")
+
+  // ── Marge de pesée figée à la création (C1-PAIEMENT-A) ──
+  // Copie, au moment de la commande, du choix du client (taux en points de base, plafond en
+  // centimes) et du total estimé auquel le taux s'applique (= totalCents du devis : marchandises
+  // moins remise). Écrits une seule fois par src/lib/services/orders/create.ts, depuis le choix
+  // validé par Zod, jamais depuis un montant reçu du navigateur. Marge = min(taux × total estimé,
+  // plafond) : src/lib/pricing/tolerance.ts. NULL (commande antérieure à C1-PAIEMENT-A, ou créée
+  // par le code précédent pendant le déploiement) = aucune marge : toute hausse demande l'accord
+  // explicite du client.
+  weighToleranceRateBps  Int? @map("weigh_tolerance_rate_bps")
+  weighToleranceCapCents Int? @map("weigh_tolerance_cap_cents")
+  estimatedTotalCents    Int? @map("estimated_total_cents")
 
   qrCode      String?   @unique @map("qr_code")
   qrScannedAt DateTime? @map("qr_scanned_at")
@@ -1169,6 +1250,7 @@ model Order {
   items           OrderItem[]
   events          OrderEvent[]
   priceAdjustment PriceAdjustment?
+  disputes        StripeDispute[]
 
   notifSent Json? @map("notif_sent")
 
@@ -1267,26 +1349,39 @@ model OrderEvent {
 // ══════════════════════════════════════════
 
 model PriceAdjustment {
-  id             String           @id @default(cuid())
-  orderId        String           @unique @map("order_id")
-  order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  shopId         String           @map("shop_id")
-  originalTotal  Int              @map("original_total")
-  newTotal       Int              @map("new_total")
+  id             String                 @id @default(cuid())
+  orderId        String                 @unique @map("order_id")
+  order          Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shopId         String                 @map("shop_id")
+  originalTotal  Int                    @map("original_total")
+  newTotal       Int                    @map("new_total")
   reason         String?
-  adjustmentType AdjustmentType   @map("adjustment_type")
-  status         AdjustmentStatus @default(PENDING)
-  itemsSnapshot  Json?            @map("items_snapshot")
-  tier           Int              @default(1)
-  autoApproveAt  DateTime?        @map("auto_approve_at")
-  escalateAt     DateTime?        @map("escalate_at")
-  respondedAt    DateTime?        @map("responded_at")
-  createdAt      DateTime         @default(now()) @map("created_at")
+  adjustmentType AdjustmentType         @map("adjustment_type")
+  status         AdjustmentStatus       @default(PENDING)
+  itemsSnapshot  Json?                  @map("items_snapshot")
+  // Depuis C1-PAIEMENT-A : 1 = appliqué sans demander (baisse, ou hausse dans la marge de pesée
+  // figée sur la commande), 3 = accord explicite du client demandé. 2 = HÉRITAGE, jamais écrit
+  // depuis C1-PAIEMENT-A (le code précédent validait seul les lignes de palier 2).
+  tier           Int                    @default(1)
+  // HÉRITAGE — jamais écrits depuis C1-PAIEMENT-A : validation automatique (palier 2) et escalade
+  // au webmaster (palier 3) du code précédent. Une ligne en attente qui n'a que autoApproveAt est
+  // refusée à createdAt + 5 min par le nouveau code, jamais appliquée.
+  autoApproveAt  DateTime?              @map("auto_approve_at")
+  escalateAt     DateTime?              @map("escalate_at")
+  respondedAt    DateTime?              @map("responded_at")
+  // Échéance de la réponse du client (création + 5 min, ADJUSTMENT_ANSWER_WINDOW_SECONDS de
+  // src/lib/pricing/tolerance.ts) : passé ce délai, l'ajustement en attente est fermé REJECTED,
+  // closeReason NO_ANSWER, par une écriture conditionnelle. NULL sur les lignes antérieures.
+  answerBy       DateTime?              @map("answer_by")
+  // Motif d'un refus (REJECTED) ; NULL pour les autres statuts et les lignes antérieures.
+  closeReason    AdjustmentCloseReason? @map("close_reason")
+  createdAt      DateTime               @default(now()) @map("created_at")
 
   @@index([orderId])
   @@index([shopId, status])
   @@index([status, autoApproveAt])
   @@index([status, escalateAt])
+  @@index([status, answerBy])
   @@map("price_adjustments")
 }
 
@@ -1859,10 +1954,52 @@ model ChatMessage {
 // ══════════════════════════════════════════
 
 model StripeEvent {
-  id          String   @id // event.id from Stripe (evt_xxx)
+  id          String    @id // event.id from Stripe (evt_xxx)
   type        String
-  processedAt DateTime @default(now()) @map("processed_at")
+  // Prise en charge de l'événement (marqueur inséré avant le traitement, ou repris après un
+  // marqueur abandonné) ; handledAt = traitement terminé. Un marqueur sans handledAt n'est jamais
+  // acquitté comme doublon : Stripe le relivre et il est retraité (C1-PAIEMENT-A).
+  processedAt DateTime  @default(now()) @map("processed_at")
   payload     Json?
+  // C1-PAIEMENT-A, écrits par src/lib/services/stripe/webhook/ledger.ts seulement. NULL sur les
+  // lignes antérieures : livemode = mode de l'événement, account = compte Connect émetteur
+  // (acct_xxx), NULL pour un événement de la plateforme.
+  handledAt   DateTime? @map("handled_at")
+  livemode    Boolean?
+  account     String?
 
   @@map("stripe_events")
+}
+
+// ══════════════════════════════════════════
+// STRIPE DISPUTE — litiges carte (C1-PAIEMENT-A)
+// Fiche par litige, créée et mise à jour par le webhook (charge.dispute.created / updated /
+// closed, src/lib/services/stripe/webhook/dispute-events.ts) seulement. Paiement en ligne
+// inactif : table vide. Toute lecture côté boucher est bornée par shopId.
+// ══════════════════════════════════════════
+
+model StripeDispute {
+  id              String    @id // dispute.id de Stripe (du_xxx)
+  chargeId        String    @map("charge_id")
+  paymentIntentId String?   @map("payment_intent_id")
+  // Commande retrouvée par son PaymentIntent ou sa charge ; NULL si aucune ne correspond, ou si
+  // la commande a été supprimée : la fiche du litige est gardée (preuve, rapprochement).
+  orderId         String?   @map("order_id")
+  order           Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  // Boutique de la commande, copiée à la création de la fiche (sans clé étrangère : la fiche
+  // survit à la commande et à la boutique).
+  shopId          String?   @map("shop_id")
+  amountCents     Int       @map("amount_cents")
+  currency        String
+  reason          String // dispute.reason (fraudulent, product_not_received…)
+  status          String // dispute.status (needs_response, won, lost…)
+  dueBy           DateTime? @map("due_by") // evidence_details.due_by : date limite de réponse
+  livemode        Boolean
+  closedAt        DateTime? @map("closed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([shopId, status])
+  @@map("stripe_disputes")
 }

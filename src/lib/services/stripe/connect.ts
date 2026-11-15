@@ -17,7 +17,7 @@
 
 import Stripe from "stripe";
 import prisma from "@/lib/prisma";
-import { getStripeClient } from "@/lib/stripe";
+import { getPaymentGateway } from "@/lib/payments/gateway";
 import { logger } from "@/lib/logger";
 
 export type ConnectAccountInput = {
@@ -42,8 +42,8 @@ export type ConnectAccountInput = {
 export async function createConnectAccount(
   input: ConnectAccountInput,
 ): Promise<Stripe.Account> {
-  const stripe = getStripeClient();
-  return await stripe.accounts.create(
+  const gateway = getPaymentGateway();
+  return await gateway.createConnectAccount(
     {
       type: "express",
       country: "FR",
@@ -165,8 +165,8 @@ export async function createOnboardingLink(params: {
   returnUrl: string;
   refreshUrl: string;
 }): Promise<Stripe.AccountLink> {
-  const stripe = getStripeClient();
-  return await stripe.accountLinks.create({
+  const gateway = getPaymentGateway();
+  return await gateway.createAccountLink({
     account: params.accountId,
     return_url: params.returnUrl,
     refresh_url: params.refreshUrl,
@@ -181,8 +181,8 @@ export async function createOnboardingLink(params: {
 export async function createLoginLink(
   accountId: string,
 ): Promise<Stripe.LoginLink> {
-  const stripe = getStripeClient();
-  return await stripe.accounts.createLoginLink(accountId);
+  const gateway = getPaymentGateway();
+  return await gateway.createLoginLink(accountId);
 }
 
 /**
@@ -203,8 +203,8 @@ export type ConnectAccountStatus = {
 export async function syncShopStripeStatus(
   accountId: string,
 ): Promise<ConnectAccountStatus> {
-  const stripe = getStripeClient();
-  const account = await stripe.accounts.retrieve(accountId);
+  const gateway = getPaymentGateway();
+  const account = await gateway.retrieveAccount(accountId);
 
   const chargesEnabled = account.charges_enabled ?? false;
   const payoutsEnabled = account.payouts_enabled ?? false;

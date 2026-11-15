@@ -7,6 +7,7 @@
 import { z } from "zod";
 
 import { MAX_LINE_QUANTITY, MAX_PORTION_GRAMS } from "@/lib/pricing/line";
+import { WEIGH_TOLERANCE_CHOICES } from "@/lib/pricing/tolerance";
 
 /** Lines one order may carry. */
 export const MAX_ORDER_LINES = 50;
@@ -63,6 +64,11 @@ export const createOrderSchema = orderQuoteRequestSchema
     customerNote: z.string().max(500).optional(),
     pickupSlotStart: z.string().datetime().optional(),
     pickupSlotEnd: z.string().datetime().optional(),
+    /**
+     * The customer's choice of weighing tolerance: a choice, never an amount. The server freezes
+     * the matching rate and cap on the order (src/lib/pricing/tolerance.ts).
+     */
+    weighTolerance: z.enum(WEIGH_TOLERANCE_CHOICES).optional(),
   })
   .strict();
 

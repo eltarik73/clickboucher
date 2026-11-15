@@ -25,8 +25,8 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import {
   getStripeClient,
-  STRIPE_WEBHOOK_SECRET,
   isStripeConfigured,
+  stripeWebhookSecrets,
 } from "@/lib/stripe";
 import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
@@ -34,7 +34,8 @@ import { sendNotification } from "@/lib/notifications";
 import { estimateStripeFeeCents } from "@/lib/services/stripe/commission";
 
 export async function POST(req: NextRequest) {
-  if (!isStripeConfigured() || !STRIPE_WEBHOOK_SECRET) {
+  const webhookSecret = stripeWebhookSecrets().platform;
+  if (!isStripeConfigured() || !webhookSecret) {
     logger.warn("[stripe/webhook] Stripe not configured — skipping");
     return NextResponse.json(
       { received: false, reason: "not-configured" },
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     event = getStripeClient().webhooks.constructEvent(
       body,
       sig,
-      STRIPE_WEBHOOK_SECRET,
+      webhookSecret,
     );
   } catch (err) {
     logger.warn("[stripe/webhook] signature verification failed", {

@@ -116,16 +116,21 @@ const PLATFORM_OWNED = [
   "autoPauseThreshold",
   "closedUntil",
   "onboardingStep",
-  // Stripe Connect : synchronisé depuis Stripe.
+  // Stripe Connect : synchronisé depuis Stripe (état du compte : webhook account.updated).
   "stripeAccountId",
   "stripeAccountStatus",
   "stripeChargesEnabled",
   "stripePayoutsEnabled",
+  "stripeRequirementsDue",
+  "stripeDisabledReason",
+  "stripeCardPaymentsActive",
   // Parrainage : code généré par le serveur.
   "shopReferralCode",
   "referredByShop",
-  // Informations légales et qualité.
+  // Informations légales et qualité (TVA du boucher : commission HT et ses factures).
   "vatRate",
+  "vatNumber",
+  "vatFranchise",
   "siret",
   "legalName",
   "fullAddress",
