@@ -67,6 +67,10 @@ describe("isSubmittableToEngines", () => {
     ["a text file", `${SITE_URL}/llms.txt`],
     ["an empty string", ""],
     ["a malformed URL", "https://"],
+    ["a percent-encoded shop path", "/%62outique/el-mektoub"],
+    ["a percent-encoded shop URL", `${SITE_URL}/%62outique/el-mektoub`],
+    ["a percent-encoded API URL", `${SITE_URL}/%61pi/shops`],
+    ["an encoded character in a public path", "/boucherie-halal/chamb%C3%A9ry"],
   ])("refuses %s", (_label, urlOrPath) => {
     expect(isSubmittableToEngines(urlOrPath)).toBe(false);
   });

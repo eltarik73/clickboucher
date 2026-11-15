@@ -40,14 +40,17 @@ const NEVER_SUBMITTED_ROOTS: readonly string[] = [
 const FILE_PATH = /\.[a-z0-9]+$/i;
 
 /** The path of a page of this site given as a site path or an absolute URL; null otherwise. */
+// No canonical page of the site has a percent-encoded path, and an encoded one could hide a
+// refused root (« /%62outique/… » is « /boutique/… »), so any « % » is refused.
 function sitePagePath(urlOrPath: string): string | null {
   if (urlOrPath.startsWith("/")) {
-    if (urlOrPath.startsWith("//") || /[?#]/.test(urlOrPath)) return null;
+    if (urlOrPath.startsWith("//") || /[?#%]/.test(urlOrPath)) return null;
     return urlOrPath;
   }
   if (!URL.canParse(urlOrPath)) return null;
   const url = new URL(urlOrPath);
   if (url.origin !== SITE_ORIGIN || url.search !== "" || url.hash !== "") return null;
+  if (url.pathname.includes("%")) return null;
   return url.pathname;
 }
 
