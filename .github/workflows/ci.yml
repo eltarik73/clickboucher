@@ -222,7 +222,7 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:3000/api/health > /dev/null
-          npx playwright test tests/e2e/photos.spec.ts --project=chromium
+          npx playwright test tests/e2e/photos.spec.ts tests/e2e/seo-status.spec.ts --project=chromium
 
       - name: Next server log
         if: failure()

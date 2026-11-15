@@ -73,7 +73,7 @@ export default async function PressePage() {
           <strong>Klik&Go</strong> est la marketplace de click & collect dédiée aux boucheries halal
           indépendantes. Notre mission : digitaliser les boucheries de proximité pour permettre aux
           clients de commander leur viande halal en quelques clics et de la récupérer fraîche en
-          moins de 30 minutes.
+          boutique.
         </p>
 
         <section className="mb-10 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -112,9 +112,9 @@ export default async function PressePage() {
               <TrendingUp size={18} />
               <span className="text-xs font-semibold uppercase tracking-wide">Frais service</span>
             </div>
-            <div className="text-2xl font-extrabold text-[#1C1512] dark:text-white">0,99 €</div>
+            <div className="text-2xl font-extrabold text-[#1C1512] dark:text-white">Aucun</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              par commande, transparent
+              paiement en boutique au retrait
             </div>
           </div>
         </section>
@@ -127,10 +127,10 @@ export default async function PressePage() {
             Klik&Go est né en 2025 d&apos;un constat simple : les boucheries halal de quartier sont
             des piliers de leur communauté, mais elles n&apos;ont ni le temps ni les moyens de
             digitaliser leur activité. Notre plateforme leur fournit en quelques minutes une
-            boutique en ligne professionnelle, un système de paiement sécurisé, et une visibilité
-            locale optimisée. Le client commande sa viande halal fraîche depuis son téléphone, paye
-            en ligne, et la récupère en boutique en moins de 30 minutes — sans frais supplémentaires
-            côté boucher, sans abonnement.
+            boutique en ligne professionnelle, un outil de gestion des commandes, et une visibilité
+            locale optimisée. Le client commande sa viande halal fraîche depuis son téléphone, la
+            récupère en boutique et la paie sur place — sans frais de service pour le client, sans
+            abonnement pour le boucher.
           </p>
         </section>
 
@@ -143,9 +143,9 @@ export default async function PressePage() {
             <div className="rounded-xl border-l-4 border-[#DC2626] bg-white p-4 dark:bg-white/[0.05]">
               <p className="italic text-gray-700 dark:text-gray-300">
                 &laquo; Nos boucheries partenaires ne paient aucun abonnement, aucun frais fixe.
-                Klik&amp;Go se rémunère uniquement via une commission transparente sur les commandes
-                encaissées et des frais de service côté client (0,99 €), pour que la valeur reste
-                chez l&apos;artisan. &raquo;
+                Klik&amp;Go se rémunère uniquement via une commission transparente sur les
+                commandes, sans frais de service pour le client, pour que la valeur reste chez
+                l&apos;artisan. &raquo;
               </p>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                 — Tarik Boudefar, fondateur

@@ -15,7 +15,20 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const REQUIRED_ROUTES = ["/", "/cgv", "/a-propos", "/boucherie-halal/chambery", "/sitemap.xml"];
+// Key public pages: home, legal pages, three cities, a department, an occasion, the recipes
+// (static since chantier C1-SEO: the theme filter runs in the browser) and the sitemap.
+const REQUIRED_ROUTES = [
+  "/",
+  "/cgv",
+  "/a-propos",
+  "/recettes",
+  "/boucherie-halal/chambery",
+  "/boucherie-halal/lyon",
+  "/boucherie-halal/aix-les-bains",
+  "/boucheries-halal/savoie",
+  "/occasions/aid-al-adha/chambery",
+  "/sitemap.xml",
+];
 const MIN_PRERENDERED_ROUTES = 250;
 
 const manifestPath = resolve(process.cwd(), process.argv[2] ?? ".next/prerender-manifest.json");
@@ -70,7 +83,8 @@ if (problems.length > 0) {
       `${problems.length} problème(s) de prérendu :`,
       ...problems.map((problem) => `  - ${problem}`),
       "Causes habituelles : `dynamic` sur <ClerkProvider>, cookies()/headers()/auth() dans un layout,",
-      '`export const dynamic = "force-dynamic"` ou un fetch `no-store` dans une page publique.',
+      '`export const dynamic = "force-dynamic"`, la prop `searchParams` lue par une page serveur',
+      "ou un fetch `no-store` dans une page publique.",
     ].join("\n")
   );
 }

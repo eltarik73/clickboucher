@@ -1,243 +1,186 @@
 // src/app/api/cron/seo-audit/route.ts
 //
-// Audit SEO automatique quotidien — alerte si régression critique.
-// Tourne sur Vercel (24/7, Mac peut être éteint).
-//
-// Schedule : 10:11 UTC daily (cf vercel.json)
-// Auth : Vercel Cron envoie Authorization: Bearer ${CRON_SECRET}
-//
-// Vérifications :
-//   1. Sitemap.xml accessible + URL count cohérent
-//   2. Robots.txt accessible
-//   3. SEO_CITIES pages : robots meta = "index, follow" (pas de noindex auto)
-//   4. Homepage : title + canonical présents
-//   5. Devenir-boucher-partenaire pages : robots meta correct
-//
-// Alerte Sentry si :
-//   - sitemap < 100 URLs (régression majeure)
-//   - 1+ page critique en noindex (la fameuse erreur 2026-05-09)
-//   - 1+ page critique qui ne répond pas 200 (redirection, 4xx, 5xx, timeout)
-//   - title manquant ou canonical absent
-//
-// Lecon ajoutée au skill seo-anti-penalty 2026-05-15
+// Daily read-only SEO audit of the live site (10:11 UTC, vercel.json; Vercel Cron sends
+// Authorization: Bearer ${CRON_SECRET}). It only sends GET requests to the site's own pages and
+// submits nothing to any search engine. The checks are pure (src/lib/seo/audit-checks.ts):
+// - sitemap.xml: at least 100 URLs, every city page, no /boutique/ page, no refused URL;
+// - robots.txt: answers with a Sitemap line;
+// - home: 200, indexable, title, its own canonical;
+// - every city page, the Chambéry partner page, the Savoie department and the Aïd al-Adha page of
+//   Chambéry: indexable, no shop entity, Product, rating, review or Event in the JSON-LD, no
+//   forbidden claim (rule OR of the seo-anti-penalty skill: these pages stay indexed);
+// - /sign-in and /sign-up: noindex; an unknown shop and an unknown city: a real 404;
+// - the newest listed shops: no rating beyond their verified reviews, none on a Product.
+// Every problem becomes an alert line; any alert is logged with logger.error (Sentry in production).
 
-import { NextRequest } from "next/server";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import type { NextRequest } from "next/server";
+import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { logger } from "@/lib/logger";
+import prisma from "@/lib/prisma";
+import { loadVerifiedShopRating } from "@/lib/reviews/verified-rating";
+import {
+  alertLines,
+  bodyProblems,
+  indexablePageProblems,
+  listPageProblems,
+  mustBeNoindexProblems,
+  mustBeNotFoundProblems,
+  robotsTxtProblems,
+  shopPageProblems,
+  sitemapProblems,
+  type PageCheck,
+  type PageSnapshot,
+} from "@/lib/seo/audit-checks";
 import { SEO_CITIES } from "@/lib/seo/cities";
+import {
+  cityPath,
+  departmentPath,
+  occasionCityPath,
+  partnerPath,
+  shopPath,
+} from "@/lib/seo/routes";
+import { SITE_URL } from "@/lib/seo/site";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+const PAGE_TIMEOUT_MS = 10_000;
+// The whole audit ends before the 30 s limit of API functions (vercel.json), so that it always
+// reports: a request still pending at this deadline is aborted and counts as unreachable.
+const AUDIT_DEADLINE_MS = 24_000;
+const BATCH_SIZE = 10;
+const SHOPS_CHECKED = 3;
 
-type CheckResult = {
-  url: string;
-  status: "ok" | "warn" | "error";
-  detail: string;
-};
+const CITY_PATHS = SEO_CITIES.map((city) => cityPath(city.slug));
+// Business-critical pages beside the cities: they must stay indexed and clean.
+const OTHER_LIST_PATHS = [
+  partnerPath("chambery"),
+  departmentPath("savoie"),
+  occasionCityPath("aid-al-adha", "chambery"),
+];
+const NOINDEX_PATHS = ["/sign-in", "/sign-up"];
+const NOT_FOUND_PATHS = [shopPath("__audit-absent__"), cityPath("__audit-absent__")];
 
-// Voit ce qu'un crawler voit : en-tête Accept de navigateur (le middleware
-// Clerk ne redirige que les requêtes HTML) et redirections NON suivies — une
-// 3xx, 4xx ou 5xx sur une URL auditée compte comme un échec (null).
-async function fetchHtml(url: string): Promise<string | null> {
+type CheckResult = { url: string; status: "ok" | "warn" | "error"; detail: string };
+
+// What a crawler sees: browser Accept header, redirects not followed (a 3xx is reported as such),
+// no Next.js data cache. A page that does not answer in time is a snapshot with status 0.
+async function fetchSnapshot(path: string, deadline: AbortSignal): Promise<PageSnapshot> {
   try {
-    const res = await fetch(url, {
+    const response = await fetch(`${SITE_URL}${path}`, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; KlikGoSeoAudit/1.0)",
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
       redirect: "manual",
-      signal: AbortSignal.timeout(10000),
+      cache: "no-store",
+      signal: AbortSignal.any([AbortSignal.timeout(PAGE_TIMEOUT_MS), deadline]),
     });
-    if (res.status !== 200) return null;
-    return await res.text();
-  } catch {
-    return null;
+    const html = await response.text();
+    return {
+      path,
+      status: response.status,
+      html,
+      xRobotsTag: response.headers.get("x-robots-tag"),
+    };
+  } catch (error) {
+    // Timeout or network failure: reported as an unreachable page by the checks, cause logged here.
+    logger.warn("[seo-audit] page unreachable", {
+      path,
+      cause: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    });
+    return { path, status: 0, html: null, xRobotsTag: null };
   }
 }
 
-function extractRobotsMeta(html: string): string | null {
-  const match = html.match(/<meta\s+name=["']robots["']\s+content=["']([^"']+)["']/i);
-  return match?.[1] ?? null;
+async function inBatches<T, R>(items: readonly T[], run: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  for (let start = 0; start < items.length; start += BATCH_SIZE) {
+    results.push(...(await Promise.all(items.slice(start, start + BATCH_SIZE).map(run))));
+  }
+  return results;
 }
 
-function hasNoindex(html: string): boolean {
-  const robots = extractRobotsMeta(html);
-  return robots ? /noindex/i.test(robots) : false;
-}
-
-function hasTitle(html: string): boolean {
-  return /<title>[^<]{10,}<\/title>/i.test(html);
-}
-
-function hasCanonical(html: string): boolean {
-  return /<link\s+rel=["']canonical["']/i.test(html);
+function toResult({ path, problems }: PageCheck): CheckResult {
+  return problems.length === 0
+    ? { url: path, status: "ok", detail: "OK" }
+    : { url: path, status: "error", detail: problems.join(" ; ") };
 }
 
 export async function GET(req: NextRequest) {
   try {
     if (!verifyCronAuth(req)) return apiError("UNAUTHORIZED", "Invalid cron secret");
 
-    const results: CheckResult[] = [];
-    const alerts: string[] = [];
+    const deadline = AbortSignal.timeout(AUDIT_DEADLINE_MS);
+    const snapshot = (path: string) => fetchSnapshot(path, deadline);
+    const audit = async (
+      path: string,
+      check: (page: PageSnapshot) => string[]
+    ): Promise<PageCheck> => ({
+      path,
+      problems: check(await snapshot(path)),
+    });
 
-    // 1. Sitemap
-    const sitemapXml = await fetchHtml(`${SITE_URL}/sitemap.xml`);
-    if (!sitemapXml) {
-      results.push({ url: "/sitemap.xml", status: "error", detail: "Sitemap inaccessible" });
-      alerts.push("Sitemap inaccessible");
-    } else {
-      const locCount = (sitemapXml.match(/<loc>/g) ?? []).length;
-      if (locCount < 100) {
-        results.push({
-          url: "/sitemap.xml",
-          status: "error",
-          detail: `Only ${locCount} URLs (expected ≥100)`,
-        });
-        alerts.push(`Sitemap dropped to ${locCount} URLs`);
-      } else {
-        results.push({ url: "/sitemap.xml", status: "ok", detail: `${locCount} URLs` });
-      }
-    }
-
-    // 2. Robots.txt
-    const robotsTxt = await fetchHtml(`${SITE_URL}/robots.txt`);
-    if (!robotsTxt) {
-      results.push({ url: "/robots.txt", status: "error", detail: "Robots inaccessible" });
-      alerts.push("Robots.txt inaccessible");
-    } else if (!robotsTxt.includes("Sitemap:")) {
-      results.push({ url: "/robots.txt", status: "warn", detail: "No Sitemap directive" });
-    } else {
-      results.push({ url: "/robots.txt", status: "ok", detail: "Has sitemap directive" });
-    }
-
-    // 3. Homepage
-    const home = await fetchHtml(`${SITE_URL}/`);
-    if (home) {
-      if (hasNoindex(home)) alerts.push("Homepage NOINDEX !!!");
-      if (!hasTitle(home)) alerts.push("Homepage missing <title>");
-      if (!hasCanonical(home)) alerts.push("Homepage missing canonical");
-      results.push({
-        url: "/",
-        status: hasNoindex(home) || !hasTitle(home) || !hasCanonical(home) ? "error" : "ok",
-        detail: `robots=${extractRobotsMeta(home) ?? "missing"}, title=${hasTitle(home)}, canonical=${hasCanonical(home)}`,
-      });
-    } else {
-      results.push({ url: "/", status: "error", detail: "Homepage 5xx/timeout" });
-      alerts.push("Homepage unreachable");
-    }
-
-    // 4. SEO_CITIES pages — critical anti-noindex check
-    // (la fameuse régression 2026-05-09 qui a sorti 5/6 villes de l'index)
-    const citiesToCheck = SEO_CITIES.slice(0, 10); // First 10 = high priority
-    const cityChecks = await Promise.all(
-      citiesToCheck.map(async (city) => {
-        const html = await fetchHtml(`${SITE_URL}/boucherie-halal/${city.slug}`);
-        if (!html) return { city: city.slug, status: "error" as const, robots: "fetch_failed" };
-        const robots = extractRobotsMeta(html) ?? "missing";
-        const noindex = hasNoindex(html);
-        return { city: city.slug, status: noindex ? ("error" as const) : ("ok" as const), robots };
+    const [shops, sitemap, robots, home, noindexChecks, notFoundChecks] = await Promise.all([
+      // Listed shops (src/lib/shop-publication.ts), newest first: public pages, read-only.
+      prisma.shop.findMany({
+        where: { visible: true, suspendedAt: null },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: SHOPS_CHECKED,
+        select: { id: true, slug: true },
+      }),
+      audit("/sitemap.xml", (page) =>
+        bodyProblems(page, (xml) => sitemapProblems(xml, CITY_PATHS))
+      ),
+      audit("/robots.txt", robotsTxtProblems),
+      audit("/", indexablePageProblems),
+      Promise.all(NOINDEX_PATHS.map((path) => audit(path, mustBeNoindexProblems))),
+      Promise.all(NOT_FOUND_PATHS.map((path) => audit(path, mustBeNotFoundProblems))),
+    ]);
+    const listChecks = await inBatches([...CITY_PATHS, ...OTHER_LIST_PATHS], (path) =>
+      audit(path, listPageProblems)
+    );
+    const shopChecks = await Promise.all(
+      shops.map(async (shop) => {
+        const [page, rating] = await Promise.all([
+          snapshot(shopPath(shop.slug)),
+          loadVerifiedShopRating(shop.id),
+        ]);
+        // loadVerifiedShopRating is null exactly when the shop has no verified review.
+        return { path: page.path, problems: shopPageProblems(page, rating?.count ?? 0) };
       })
     );
 
-    const cityNoindexCount = cityChecks.filter(
-      (c) => c.status === "error" && c.robots.includes("noindex")
-    ).length;
-    if (cityNoindexCount > 0) {
-      alerts.push(
-        `${cityNoindexCount} SEO_CITIES en NOINDEX ! ${cityChecks
-          .filter((c) => c.status === "error")
-          .map((c) => c.city)
-          .join(", ")}`
-      );
-    }
-
-    const cityFetchFailed = cityChecks.filter((c) => c.robots === "fetch_failed");
-    if (cityFetchFailed.length > 0) {
-      alerts.push(
-        `${cityFetchFailed.length} SEO_CITIES non-200 : ${cityFetchFailed
-          .map((c) => c.city)
-          .join(", ")}`
-      );
-    }
-
-    cityChecks.forEach((c) => {
+    const checks = [
+      sitemap,
+      robots,
+      home,
+      ...noindexChecks,
+      ...notFoundChecks,
+      ...listChecks,
+      ...shopChecks,
+    ];
+    const results = checks.map(toResult);
+    if (shops.length === 0) {
       results.push({
-        url: `/boucherie-halal/${c.city}`,
-        status: c.status,
-        detail: `robots=${c.robots}`,
-      });
-    });
-
-    // 5. Pages Aid al-Adha — business-critical (saisonnier, J-11 mai 2026)
-    // Bug détecté 2026-05-16 : noindex auto pareil que SEO_CITIES (commit ee6d0f8 REVERT)
-    const aidCities = ["chambery", "aix-les-bains", "grenoble", "lyon", "annecy", "saint-etienne"];
-    const aidChecks = await Promise.all(
-      aidCities.map(async (slug) => {
-        const html = await fetchHtml(`${SITE_URL}/occasions/aid-al-adha/${slug}`);
-        if (!html) return { slug, status: "error" as const, robots: "fetch_failed" };
-        const robots = extractRobotsMeta(html) ?? "missing";
-        return {
-          slug,
-          status: hasNoindex(html) ? ("error" as const) : ("ok" as const),
-          robots,
-        };
-      })
-    );
-    const aidNoindexCount = aidChecks.filter((c) => c.status === "error").length;
-    if (aidNoindexCount > 0) {
-      alerts.push(
-        `${aidNoindexCount} pages Aid al-Adha en NOINDEX ! ${aidChecks
-          .filter((c) => c.status === "error")
-          .map((c) => c.slug)
-          .join(", ")}`
-      );
-    }
-    aidChecks.forEach((c) => {
-      results.push({
-        url: `/occasions/aid-al-adha/${c.slug}`,
-        status: c.status,
-        detail: `robots=${c.robots}`,
-      });
-    });
-
-    // 6. Devenir-boucher-partenaire (B2B pages, business-critical)
-    const partnerCheck = await fetchHtml(`${SITE_URL}/devenir-boucher-partenaire/chambery`);
-    if (partnerCheck && hasNoindex(partnerCheck)) {
-      alerts.push("Devenir-boucher Chambéry en NOINDEX !");
-      results.push({
-        url: "/devenir-boucher-partenaire/chambery",
-        status: "error",
-        detail: "noindex",
-      });
-    } else if (partnerCheck) {
-      results.push({
-        url: "/devenir-boucher-partenaire/chambery",
-        status: "ok",
-        detail: "index, follow",
-      });
-    } else {
-      alerts.push("Devenir-boucher Chambéry non-200");
-      results.push({
-        url: "/devenir-boucher-partenaire/chambery",
-        status: "error",
-        detail: "fetch_failed",
+        url: shopPath("*"),
+        status: "warn",
+        detail: "Aucune boutique listée : pages boutique non contrôlées",
       });
     }
+    const alerts = alertLines(checks);
 
     const summary = {
       date: new Date().toISOString().split("T")[0],
       totalChecks: results.length,
-      errors: results.filter((r) => r.status === "error").length,
-      warnings: results.filter((r) => r.status === "warn").length,
+      errors: results.filter((result) => result.status === "error").length,
+      warnings: results.filter((result) => result.status === "warn").length,
       alerts,
-      results: results.filter((r) => r.status !== "ok"), // Only show problematic
+      results: results.filter((result) => result.status !== "ok"),
     };
 
     if (alerts.length > 0) {
-      // Sentry-tracked via logger.error
       logger.error(`[seo-audit] ${alerts.length} ALERTS: ${alerts.join(" | ")}`, { summary });
     } else {
       logger.info(`[seo-audit] OK - ${results.length} checks, 0 alerts`, { summary });
