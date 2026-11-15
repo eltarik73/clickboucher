@@ -1,6 +1,9 @@
 {
   "name": "clickboucher",
   "version": "0.1.0",
+  "engines": {
+    "node": "22.x"
+  },
   "private": true,
   "description": "Klik&Go — Click & Collect marketplace for halal butcher shops in France. https://klikandgo.app",
   "homepage": "https://klikandgo.app",

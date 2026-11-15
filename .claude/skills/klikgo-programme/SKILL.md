@@ -178,9 +178,9 @@ rapport d'audit brut dans un fichier commité. Ces rapports restent hors dépôt
 
 Détail (hooks, message, greffier, fusion) : [references/git-et-commits.md](references/git-et-commits.md).
 
-- Une branche par chantier (`programme/<id>-<nom>`), **locale** : `vercel.json` ne coupe la
-  preview que pour `claude/**` et `dependabot/**`, donc une branche `programme/**` poussée
-  lancerait une preview Vercel qui échoue faute de base. Seul `main` déploie, en production.
+- Une branche par chantier (`programme/<id>-<nom>`), poussée seulement pour sa pull request :
+  `vercel.json` ne déploie que `main` (production), aucune branche ne lance de preview Vercel ;
+  la CI de la pull request valide la branche.
 - Ingénieurs, designer, référenceur, recette, relecteur, auditeur : **aucune commande git qui
   modifie l'état** (add, commit, stash, checkout, reset, merge, rebase, push) ; seule exception,
   le worktree jetable de la recette (fiche `klikgo-testeur-recette`, étape 6).

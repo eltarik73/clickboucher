@@ -2,8 +2,8 @@
   "regions": ["sfo1"],
   "git": {
     "deploymentEnabled": {
-      "dependabot/**": false,
-      "claude/**": false
+      "**": false,
+      "main": true
     }
   },
   "functions": {
