@@ -642,8 +642,16 @@ export default function AdminShopsPage() {
                     step="0.5"
                     value={form.commissionPct}
                     onChange={(e) => setForm((f) => ({ ...f, commissionPct: e.target.value }))}
+                    aria-describedby="edit-commission-hint"
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#0a0a0a] dark:text-[#f8f6f3]"
                   />
+                  <p
+                    id="edit-commission-hint"
+                    className="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                  >
+                    Change le taux seulement : la commission s&apos;active ou se coupe depuis la
+                    page Commission.
+                  </p>
                 </div>
               )}
             </div>
