@@ -251,9 +251,6 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <h1 className="sr-only">
-        Boucheries halal près de chez vous — Click &amp; Collect halal en ligne
-      </h1>
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* HERO WITH INTEGRATED HEADER */}
       {/* ═══════════════════════════════════════════════════════════ */}
@@ -306,9 +303,9 @@ export default async function HomePage() {
               <div className="absolute inset-0 scale-150 rounded-full bg-[#DC2626] opacity-20 blur-3xl dark:opacity-40" />
               <KlikLogo size={100} className="relative z-10 h-20 w-20 sm:h-[100px] sm:w-[100px]" />
             </div>
-            <h2 className="mt-3 text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:mt-5 sm:text-5xl">
+            <h1 className="mt-3 text-4xl font-black tracking-tight text-gray-900 dark:text-white sm:mt-5 sm:text-5xl">
               Klik<span className="text-[#DC2626]">&amp;</span>Go
-            </h2>
+            </h1>
           </div>
 
           <p className="text-2xl font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">

@@ -119,12 +119,8 @@ const NON_TEXT_KEYS = new Set([
   "slug",
   "citySlug",
   "zipCode",
-  "category",
   "priority",
   "season",
-  "eventType",
-  "eventStart",
-  "eventEnd",
   "lastUpdated",
 ]);
 

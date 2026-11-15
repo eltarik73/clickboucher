@@ -164,14 +164,34 @@ describe("PATCH /api/admin/shops/[shopId]/validate", () => {
     expect(notified).not.toHaveBeenCalled();
   });
 
-  it("still approves the shop when the notification fails", async () => {
-    notified.mockRejectedValueOnce(new Error("IndexNow down"));
-    const { shop } = await ownedShop({ visible: false, city: "Chambéry" });
-    actAs(await createAdmin());
+  describe("IndexNow does not answer", () => {
+    const deployEnv = process.env.KLIKGO_DEPLOY_ENV;
 
-    const result = await call(patchValidate, { shopId: shop.id }, { approved: true });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.stubEnv("KLIKGO_DEPLOY_ENV", deployEnv);
+    });
 
-    expect(result).toEqual({ status: 200, body: { success: true, data: { approved: true } } });
-    expect((await prisma.shop.findUniqueOrThrow({ where: { id: shop.id } })).visible).toBe(true);
+    // The real transport of a production deployment; only the network is simulated, so nothing
+    // leaves the machine. notifyIndexNow logs the failure and resolves: the route awaits it plainly.
+    it("still approves the shop", async () => {
+      const transport = await vi.importActual<typeof import("@/lib/indexnow")>("@/lib/indexnow");
+      notified.mockImplementationOnce(transport.notifyIndexNow);
+      const network = vi.fn(async (_input: string | URL | Request) => {
+        throw new TypeError("fetch failed");
+      });
+      vi.stubGlobal("fetch", network);
+      vi.stubEnv("KLIKGO_DEPLOY_ENV", "production");
+      const { shop } = await ownedShop({ visible: false, city: "Chambéry" });
+      actAs(await createAdmin());
+
+      const result = await call(patchValidate, { shopId: shop.id }, { approved: true });
+
+      expect(network.mock.calls.map(([input]) => String(input))).toEqual([
+        "https://api.indexnow.org/IndexNow",
+      ]);
+      expect(result).toEqual({ status: 200, body: { success: true, data: { approved: true } } });
+      expect((await prisma.shop.findUniqueOrThrow({ where: { id: shop.id } })).visible).toBe(true);
+    });
   });
 });

@@ -167,9 +167,11 @@ facturée, y compris pour les bots. Règles :
     service Postgres 16 du job, schéma `itest` ; le schéma `public` poussé pour le job n'est pas modifié)
   - `build` → `npm run build` sur Postgres 16 (schema poussé) puis `node scripts/check-prerender.mjs`
     (échoue si les pages publiques ne sont plus prérendues — cf. « Coût CPU Vercel »). Ensuite, le job
-    remplit sa base par le seed et lance `tests/e2e/photos.spec.ts` (Playwright Chromium) sur l'app
-    construite (`next start`), en mode test ouvert par POST avec un `TEST_SECRET` tiré à chaque
-    lancement, et avec le stockage local des photos sur disque (aucun jeton Blob en CI).
+    remplit sa base par le seed et lance `tests/e2e/photos.spec.ts` et `tests/e2e/seo-status.spec.ts`
+    (Playwright Chromium) sur l'app construite (`next start`), en mode test ouvert par POST avec un
+    `TEST_SECRET` tiré à chaque lancement, et avec le stockage local des photos sur disque (aucun jeton
+    Blob en CI). `seo-status.spec.ts` vérifie ce que reçoivent les moteurs : vrais 404, robots, titres,
+    JSON-LD, fils d'Ariane, sitemap, et aucun appel de géolocalisation au montage de l'accueil.
 - **Uptime** : `.github/workflows/uptime.yml` — toutes les 6 h, échoue si `/` ou `/sitemap.xml`
   ne répondent pas 200 ou portent `x-vercel-error`. Contrôle EXTERNE au projet Vercel (les crons
   internes ne tournent pas quand le projet est en pause), mais PAS suffisant seul : dépôt public,
@@ -650,9 +652,11 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
   pages partenaires, occasions × villes, recettes indexables (`src/lib/seo/recipes.ts`) ; dimanche, produit × ville
   et quartiers seulement pour une ville où une boutique est inscrite. **Jamais de `/boutique/`** (boutiques de
   démonstration). `lastModified` honnête : date de contenu de la famille (constantes de `sitemap-entries.ts`,
-  `CITY_CONTENT_UPDATED`, `lastUpdated` des occasions, `updatedAt` des recettes), et pour une ville ou l'accueil la
-  date de mise en ligne de la dernière boutique (`validatedAt ?? createdAt`, jamais `updatedAt`). Changer la date
-  d'une famille le jour où son texte change vraiment, jamais autrement. `/recettes` : `weekly`.
+  `CITY_CONTENT_UPDATED`, `updatedAt` des recettes), pour une page produit × ville ou occasion × ville la date
+  qu'elle affiche (`productCityLastUpdated`, `occasionCityLastUpdated` de `src/lib/seo/content/`), et pour une
+  ville ou l'accueil la date de mise en ligne de la dernière boutique (`validatedAt ?? createdAt`, jamais
+  `updatedAt`). Changer la date d'une famille le jour où son texte change vraiment, jamais autrement.
+  `/recettes` : `weekly`.
 - **OG Image** : `opengraph-image.tsx` — prérendue au build (runtime Node), 1200×630 PNG
 - **Analytics** : Plausible (RGPD), conditionnel sur `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`
 
@@ -695,7 +699,13 @@ département, hub et occasion restent indexées même sans boutique).
 - **Titres et descriptions** : `src/lib/seo/titles.ts` — au plus 60 caractères avant « | Klik&Go », jamais
   « halal halal », rien que la page ne prouve ; descriptions de ville écrites à la main dans les données
   (140 à 160 caractères, uniques, vraies sans boutique).
-- **Pas de texte caché** : ni Speakable, ni résumé `sr-only` (« En bref »), ni SearchAction.
+- **Pas de texte caché** : ni Speakable, ni résumé `sr-only` (« En bref »), ni h1 masqué (le h1 de l'accueil
+  est le titre visible du hero), ni SearchAction, ni `NutritionInformation` calculée par des constantes.
+- **Accueil sans appel au montage** : la carte « Votre position » (`ReorderSection`) n'annonce
+  (`klikgo-location`) que la position que le visiteur vient de choisir (GPS, ville saisie) ; une position en
+  cache ne trie la liste (`NearbyShops`, `/api/shops/nearby`) que pour un visiteur connecté ou une session de test.
+- **`/recettes`** : liste statique ; le thème demandé par `?tag=` est lu par `useSearchParams` dans
+  `RecipeTagFromUrl`, seul dans sa frontière `Suspense` pour que la liste reste dans le HTML prérendu.
 - **Garde-fous** : tests `src/lib/__tests__/seo/` (dont `claims-guard`, `structure-guard`, `breadcrumb-routes`) ;
   `tests/e2e/seo-status.spec.ts` sur le build de production, lancé par le job CI `build` (vrais 404, robots,
   JSON-LD, fils d'Ariane, sitemap, aucun appel `/api/geo` ni `/api/shops/nearby` au montage de l'accueil) ;

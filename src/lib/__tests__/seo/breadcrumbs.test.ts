@@ -12,10 +12,12 @@ import {
   occasionCityBreadcrumb,
   partnerBreadcrumb,
   productCityBreadcrumb,
+  regionalHubBreadcrumb,
   shopBreadcrumb,
   sundayBreadcrumb,
   type Crumb,
 } from "@/lib/seo/breadcrumbs";
+import { seoCitySlugsForShopCity } from "@/lib/seo/city-match";
 import { closedRoutePaths } from "@/lib/seo/routes";
 import { SITE_URL } from "@/lib/seo/site";
 import { SEO_CITIES, SEO_DEPARTMENTS, type SeoCity } from "@/lib/seo/cities";
@@ -175,5 +177,23 @@ describe("shopBreadcrumb", () => {
         shopBreadcrumb({ name: "B", slug: "b", city: shopCity }).map((crumb) => pathOf(crumb.url))
       ).toEqual(["/", "/boutique/b"]);
     }
+  });
+
+  it("names the city the sitemap and IndexNow match (seoCitySlugsForShopCity)", () => {
+    for (const shopCity of ["Lyon / Villeurbanne", "Saint-Martin-d'Hères", "Aix-les-Bains"]) {
+      const [slug] = seoCitySlugsForShopCity(shopCity);
+      const trail = shopBreadcrumb({ name: "B", slug: "b", city: shopCity });
+      expect(pathOf(trail[2].url), shopCity).toBe(`/boucherie-halal/${slug}`);
+    }
+  });
+});
+
+describe("regionalHubBreadcrumb", () => {
+  it("goes home > regional hub", () => {
+    expect(regionalHubBreadcrumb().map((crumb) => pathOf(crumb.url))).toEqual([
+      "/",
+      "/boucheries-halal-rhone-alpes",
+    ]);
+    expect(departmentBreadcrumb(SEO_DEPARTMENTS[0]).slice(0, 2)).toEqual(regionalHubBreadcrumb());
   });
 });

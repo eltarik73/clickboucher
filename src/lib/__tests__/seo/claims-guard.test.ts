@@ -65,6 +65,51 @@ describe("the SEO sources print no forbidden claim", () => {
   });
 });
 
+// A count the page computes is printed as computed: « 12+ » claims more than was counted
+// (FIX-12), and a count defaulted on a database error would freeze a false 0 in the ISR cache.
+const INEXACT_FIGURE = /\}\s*\+|\.catch\(\s*\(\)\s*=>\s*0\s*\)/;
+
+describe("the SEO sources print computed figures exactly", () => {
+  it.each(FILES.filter((file) => /\.(?:ts|tsx)$/.test(file)))("%s", (file) => {
+    expect(publishedText(file).match(INEXACT_FIGURE)?.[0], file).toBeUndefined();
+  });
+});
+
+// Sitemap pages outside the chantier's paths: the facts about payment, fees, delivery,
+// certification, verification and real time hold there too (FIX-05 and FIX-12, « everywhere »).
+// The support delay « 48h ouvrées » of /contact is a real commitment: quote-catering is not applied.
+const FACT_RULES = new Set([
+  "real-time",
+  "certification",
+  "verification",
+  "online-payment",
+  "fee-amount",
+  "delivery",
+]);
+
+// Tailwind classes are not text: « active:scale-[0.99] » is no fee.
+const withoutClassNames = (code: string) => code.replace(/\bclassName="[^"]*"/g, "");
+
+describe("/contact and /espace-boucher state no false fact", () => {
+  it.each([
+    "src/app/(client)/contact/page.tsx",
+    "src/app/(client)/espace-boucher/page.tsx",
+    "src/app/(client)/espace-boucher/layout.tsx",
+  ])("%s", (file) => {
+    const hits = findForbiddenClaims(withoutClassNames(publishedText(file))).filter(({ id }) =>
+      FACT_RULES.has(id)
+    );
+    expect(hits, `forbidden claim in ${file}`).toEqual([]);
+  });
+
+  it("reads class names as code, not text", () => {
+    const code = '<button className="active:scale-[0.99]">Frais de service : 0,99 €</button>';
+    expect(findForbiddenClaims(withoutClassNames(code)).map(({ match }) => match)).toEqual([
+      "Frais de service : 0,99 €",
+    ]);
+  });
+});
+
 describe("the guard reads what a page publishes", () => {
   const source = [
     "// Never write « livraison » or « 0,99 € » here.",

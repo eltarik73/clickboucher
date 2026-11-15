@@ -16,13 +16,16 @@
 // - a template family: its content date below, bumped by hand only when its text really changes;
 // - a city page: its content date, or the listing date of the newest shop of that city if later;
 // - home: its content date or the newest listing of any shop; /bons-plans: the newest product
-//   update; /recettes: the newest indexable recipe; occasions: their own lastUpdated; a recipe:
-//   its updatedAt.
+//   update; /recettes: the newest indexable recipe; a recipe: its updatedAt;
+// - product x city and occasion x city: the date the page itself shows, from its content module
+//   (src/lib/seo/content/product-city.ts, occasion-city.ts).
 
-import { CITY_CONTENT_UPDATED, SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
+import { CITY_CONTENT_UPDATED, SEO_CITIES, SEO_DEPARTMENTS, type SeoCity } from "@/lib/seo/cities";
 import { seoCitySlugsForShopCity } from "@/lib/seo/city-match";
+import { occasionCityLastUpdated } from "@/lib/seo/content/occasion-city";
+import { productCityLastUpdated } from "@/lib/seo/content/product-city";
 import { getCityDistrictCombinations } from "@/lib/seo/districts";
-import { SEO_OCCASIONS, getOccasionCityCombinations } from "@/lib/seo/occasions";
+import { SEO_OCCASIONS, getOccasionCityCombinations, type SeoOccasion } from "@/lib/seo/occasions";
 import { getProductCityCombinations } from "@/lib/seo/products";
 import {
   REGIONAL_HUB_PATH,
@@ -74,9 +77,8 @@ export const DEPARTMENT_CONTENT_UPDATED = "2026-11-15";
 export const PARTNER_CONTENT_UPDATED = "2026-11-15";
 export const DISTRICT_CONTENT_UPDATED = "2026-11-15";
 export const SUNDAY_CONTENT_UPDATED = "2026-11-15";
-export const PRODUCT_CITY_CONTENT_UPDATED = "2026-11-15";
 // City pages: SeoCity.lastUpdated ?? CITY_CONTENT_UPDATED (src/lib/seo/cities.ts).
-// Occasion pages: SeoOccasion.lastUpdated (src/lib/seo/occasions.ts), required here.
+// Product x city and occasion x city pages: productCityLastUpdated / occasionCityLastUpdated.
 
 /** What, besides its text, changes a static page: listed shops, products or recipes. */
 type StaticFreshness = "listed-shops" | "products" | "recipes";
@@ -105,8 +107,8 @@ export const STATIC_PAGES: ReadonlyMap<string, StaticPage> = new Map([
   ["/", staticPage("2026-11-15", "weekly", 1, "listed-shops")],
   ["/bons-plans", staticPage("2026-04-22", "daily", 0.7, "products")],
   ["/recettes", staticPage("2026-11-15", "weekly", 0.7, "recipes")],
-  ["/espace-boucher", staticPage("2026-04-22", "monthly", 0.6)],
-  ["/contact", staticPage("2026-04-22", "yearly", 0.4)],
+  ["/espace-boucher", staticPage("2026-11-15", "monthly", 0.6)],
+  ["/contact", staticPage("2026-11-15", "yearly", 0.4)],
   ["/a-propos", staticPage("2026-11-15", "yearly", 0.4)],
   ["/presse", staticPage("2026-11-15", "monthly", 0.6)],
   ["/click-and-collect-halal", staticPage("2026-11-15", "weekly", 0.9)],
@@ -162,16 +164,21 @@ function newestListingByCity(shops: SitemapData["shops"]): Map<string, Date> {
   return byCity;
 }
 
+const CITIES_BY_SLUG = new Map(SEO_CITIES.map((city) => [city.slug, city]));
 const OCCASIONS_BY_SLUG = new Map(SEO_OCCASIONS.map((occasion) => [occasion.slug, occasion]));
 
-function occasionContentDate(occasionSlug: string): Date {
-  const lastUpdated = OCCASIONS_BY_SLUG.get(occasionSlug)?.lastUpdated;
-  if (lastUpdated === undefined) {
-    throw new Error(
-      `The occasion "${occasionSlug}" has no lastUpdated: set the day its text changed`
-    );
-  }
-  return dayStart(lastUpdated);
+function bySlug<T>(items: ReadonlyMap<string, T>, slug: string, kind: string): T {
+  const item = items.get(slug);
+  if (item === undefined) throw new Error(`The sitemap names an unknown ${kind} "${slug}"`);
+  return item;
+}
+
+function cityOf(slug: string): SeoCity {
+  return bySlug(CITIES_BY_SLUG, slug, "SEO city");
+}
+
+function occasionOf(slug: string): SeoOccasion {
+  return bySlug(OCCASIONS_BY_SLUG, slug, "occasion");
 }
 
 function familyEntry(family: HintedFamily, path: string, lastModified: Date): SitemapEntry {
@@ -228,7 +235,7 @@ export function buildSitemapEntries(data: SitemapData): SitemapEntry[] {
         familyEntry(
           "product-city",
           productCityPath(combo.produit, combo.ville),
-          dayStart(PRODUCT_CITY_CONTENT_UPDATED)
+          dayStart(productCityLastUpdated(cityOf(combo.ville)))
         )
       ),
     ...getCityDistrictCombinations()
@@ -244,7 +251,7 @@ export function buildSitemapEntries(data: SitemapData): SitemapEntry[] {
       familyEntry(
         "occasion-city",
         occasionCityPath(combo.occasion, combo.ville),
-        occasionContentDate(combo.occasion)
+        dayStart(occasionCityLastUpdated(occasionOf(combo.occasion)))
       )
     ),
     ...SEO_CITIES.map((city) =>

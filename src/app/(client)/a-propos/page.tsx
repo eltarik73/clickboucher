@@ -33,7 +33,7 @@ export default async function AProposPage() {
   // Stats dynamiques DB pour signal de fraîcheur + crédibilité (E-E-A-T 2026)
   const [shopCount, recipeCount] = await Promise.all([
     prisma.shop.count({ where: { visible: true } }),
-    prisma.recipe.count({ where: { published: true } }).catch(() => 0),
+    prisma.recipe.count({ where: { published: true } }),
   ]);
   const cityCount = SEO_CITIES.length;
 
@@ -97,7 +97,7 @@ export default async function AProposPage() {
           {[
             { value: shopCount, label: "Boucheries halal", icon: Store },
             { value: cityCount, label: "Villes couvertes", icon: MapPin },
-            { value: `${recipeCount}+`, label: "Recettes halal", icon: Sparkles },
+            { value: recipeCount, label: "Recettes halal", icon: Sparkles },
           ].map((stat, i) => (
             <div
               key={i}

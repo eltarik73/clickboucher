@@ -2,14 +2,15 @@
 
 // Recipe list of /recettes, filtered by theme on the client. The page renders the whole list once
 // (ISR): reading searchParams on the server would render it at every request (CLAUDE.md, « Coût
-// CPU Vercel »), and useSearchParams would leave the list out of the static HTML. The theme of a
-// ?tag= link (footer) is read from the URL after mount; a theme choice is written back with
-// history.replaceState, without a navigation.
+// CPU Vercel »). The ?tag= of the URL (footer links) is the one source of the theme it asks for:
+// RecipeTagFromUrl reads it inside its own Suspense boundary, outside of which the list stays in
+// the static HTML. A theme choice is written back with history.replaceState, without navigation.
 
-import { useEffect, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import Link from "next/link";
 import { ChefHat } from "lucide-react";
 import { SafeImage } from "@/components/ui/SafeImage";
+import { RecipeTagFromUrl } from "./RecipeTagFromUrl";
 
 /** What the page passes for each recipe: public, serialisable fields only. */
 export type RecipeListItem = {
@@ -78,10 +79,8 @@ function chipClass(pressed: boolean): string {
 
 export function RecipeBrowser({ recipes }: { recipes: RecipeListItem[] }) {
   const [tag, setTag] = useState<string | null>(null);
-
-  useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("tag");
-    if (requested !== null && themeOf(requested)) setTag(requested);
+  const applyUrlTag = useCallback((requested: string | null) => {
+    setTag(requested !== null && themeOf(requested) ? requested : null);
   }, []);
 
   function selectTag(next: string | null) {
@@ -115,6 +114,9 @@ export function RecipeBrowser({ recipes }: { recipes: RecipeListItem[] }) {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <RecipeTagFromUrl onTag={applyUrlTag} />
+      </Suspense>
       <section className="mt-6">
         <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-[#1C1512] dark:text-white">
           <ChefHat size={16} className="text-[#DC2626]" aria-hidden="true" />

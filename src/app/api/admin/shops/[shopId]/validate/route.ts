@@ -9,7 +9,6 @@ import { readJsonBody } from "@/lib/api/request-body";
 import { sendNotification } from "@/lib/notifications";
 import { writeAuditLog } from "@/lib/audit-log";
 import { notifyIndexNow } from "@/lib/indexnow";
-import { logger } from "@/lib/logger";
 import { validationIndexNowUrls } from "@/lib/seo/indexnow-urls";
 import { approveShop, setShopPublished } from "@/lib/services/shops/moderation";
 import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
@@ -43,13 +42,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { shopId: st
 
       // The listing changes the home page and the shop's city pages; the shop page itself is
       // never submitted (src/lib/seo/indexnow-urls.ts). Awaited: a serverless function may be
-      // frozen once it has answered.
-      await notifyIndexNow(validationIndexNowUrls(shop.city)).catch((error: unknown) => {
-        logger.warn("[admin/shops/validate] IndexNow notification failed", {
-          shopId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      });
+      // frozen once it has answered. notifyIndexNow never throws: it logs its own failures.
+      await notifyIndexNow(validationIndexNowUrls(shop.city));
 
       if (shop.referredByShop) {
         try {

@@ -14,12 +14,6 @@ export type SeoProduct = {
   slug: string;
   /** Affichage : "Merguez maison" */
   name: string;
-  /** Catégorie (Schema.org) : "Beef", "Lamb", "Poultry", "Charcuterie", "Mixed" */
-  category: "lamb" | "beef" | "poultry" | "minced" | "charcuterie" | "mixed";
-  /** Mot-clé principal pour title/H1 */
-  keyword: string;
-  /** Plural si nécessaire pour le contenu */
-  pluralKeyword: string;
   /** 1 phrase courte pour metadescription dynamique */
   shortDescription: string;
   /** Unique editorial paragraph about the product (true with zero shop) */
@@ -37,9 +31,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "merguez-halal",
     name: "Merguez halal",
-    category: "mixed",
-    keyword: "merguez halal",
-    pluralKeyword: "merguez halal",
     shortDescription:
       "Merguez halal : agneau, bœuf ou mélange, harissa et épices, combien en prévoir par personne et comment la cuire au barbecue, à la plancha ou au four.",
     intro:
@@ -56,9 +47,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "merguez-maison",
     name: "Merguez maison",
-    category: "mixed",
-    keyword: "merguez maison",
-    pluralKeyword: "merguez maison",
     shortDescription:
       "Merguez maison : ce qui la distingue d'une merguez industrielle, comment la reconnaître à l'étal et comment la cuire sans la dessécher.",
     intro:
@@ -75,9 +63,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "agneau-halal",
     name: "Agneau halal",
-    category: "lamb",
-    keyword: "agneau halal",
-    pluralKeyword: "morceaux d'agneau halal",
     shortDescription:
       "Agneau halal : gigot, côtes, épaule, collier, souris… quel morceau choisir pour le four, le barbecue, le tajine ou le couscous, et combien en prévoir.",
     intro:
@@ -94,9 +79,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "gigot-agneau-halal",
     name: "Gigot d'agneau halal",
-    category: "lamb",
-    keyword: "gigot d'agneau halal",
-    pluralKeyword: "gigots d'agneau halal",
     shortDescription:
       "Gigot d'agneau halal : quel poids pour combien de convives, cuisson rosée ou de sept heures, et conseils pour le faire désosser et ficeler.",
     intro:
@@ -113,9 +95,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "cote-agneau-halal",
     name: "Côte d'agneau halal",
-    category: "lamb",
-    keyword: "côte d'agneau halal",
-    pluralKeyword: "côtes d'agneau halal",
     shortDescription:
       "Côtes d'agneau halal : premières, secondes, découvertes ou filet, ce qui les distingue, combien en prévoir et comment les griller à point.",
     intro:
@@ -133,9 +112,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "boeuf-halal",
     name: "Bœuf halal",
-    category: "beef",
-    keyword: "bœuf halal",
-    pluralKeyword: "morceaux de bœuf halal",
     shortDescription:
       "Bœuf halal : entrecôte, bavette, rumsteck, paleron, joue… quel morceau choisir pour griller, poêler ou mijoter, et comment le cuire.",
     intro:
@@ -147,9 +123,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "viande-hachee-halal",
     name: "Viande hachée halal",
-    category: "minced",
-    keyword: "viande hachée halal",
-    pluralKeyword: "viandes hachées halal",
     shortDescription:
       "Viande hachée halal : bœuf, agneau ou mélange, taux de matière grasse selon la recette, quantités par personne et conseils de conservation.",
     intro:
@@ -166,9 +139,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "kefta-halal",
     name: "Kefta halal",
-    category: "minced",
-    keyword: "kefta halal",
-    pluralKeyword: "keftas halal",
     shortDescription:
       "Kefta halal : viande hachée de bœuf ou d'agneau aux épices, en boulettes, en brochettes ou en sauce tomate, avec les temps de cuisson.",
     intro:
@@ -180,9 +150,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "brochettes-halal",
     name: "Brochettes halal",
-    category: "mixed",
-    keyword: "brochettes halal",
-    pluralKeyword: "brochettes halal",
     shortDescription:
       "Brochettes halal d'agneau, de poulet ou de bœuf : marinades classiques, nombre de brochettes par personne et cuisson au barbecue ou à la plancha.",
     intro:
@@ -200,9 +167,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "poulet-halal",
     name: "Poulet halal",
-    category: "poultry",
-    keyword: "poulet halal",
-    pluralKeyword: "poulets halal",
     shortDescription:
       "Poulet halal : entier, escalopes, cuisses, pilons ou ailes, quel morceau pour quelle recette, combien par personne et temps de cuisson.",
     intro:
@@ -219,9 +183,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "poulet-fermier-halal",
     name: "Poulet fermier halal",
-    category: "poultry",
-    keyword: "poulet fermier halal",
-    pluralKeyword: "poulets fermiers halal",
     shortDescription:
       "Poulet fermier halal : ce que signifie la mention « fermier – élevé en plein air », la différence avec un poulet standard et le temps de cuisson.",
     intro:
@@ -234,9 +195,6 @@ export const SEO_PRODUCTS: readonly SeoProduct[] = [
   {
     slug: "viande-pour-couscous",
     name: "Viande pour couscous",
-    category: "mixed",
-    keyword: "viande pour couscous halal",
-    pluralKeyword: "viandes pour couscous halal",
     shortDescription:
       "Viande pour couscous halal : collier d'agneau, jarret de bœuf, merguez, poulet… les morceaux à associer et les quantités pour 4 à 12 personnes.",
     intro:

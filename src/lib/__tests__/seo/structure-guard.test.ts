@@ -6,7 +6,8 @@
 //   chantier the city, department and Sunday pages published every shop with its seeded rating.
 // - A Product and its offer exist only in src/lib/seo/jsonld/product.ts (D4); no Event at all (D16).
 // - No Speakable, no hidden « En bref » summary, no WebSite SearchAction, no invented shipping,
-//   return policy or offer end date (FIX-07, FIX-10, CRIT-11).
+//   return policy, offer end date or recipe nutrition (FIX-07, FIX-10, CRIT-11), and no hidden
+//   text on the home page: its visible hero heading is its h1.
 // - The seven routes whose list is closed answer 404 for any other slug (dynamicParams = false).
 // - Only three places call notifyIndexNow, none of them with a shop URL, and only
 //   src/lib/indexnow.ts talks to IndexNow (D7).
@@ -129,6 +130,7 @@ const BANNED_MARKUP: readonly [string, RegExp][] = [
   ["shippingDetails", /shippingDetails/],
   ["hasMerchantReturnPolicy", /hasMerchantReturnPolicy/],
   ["priceValidUntil", /priceValidUntil/],
+  ["NutritionInformation", /NutritionInformation/],
 ];
 
 const PUBLISHED_CODE = new Map(SOURCE_FILES.map((file) => [file, publishedText(file)]));
@@ -156,6 +158,7 @@ describe("markup Klik&Go cannot back is gone", () => {
     "src/app/trouver-boucherie-halal",
     "src/app/(client)/click-and-collect-halal",
     "src/app/(client)/commander-viande-halal",
+    "src/app/(client)/(accueil)",
     "src/components/seo",
   ])("%s hides no text with sr-only", (root) => {
     const offenders = codeFilesUnder(root).filter((file) =>
@@ -274,6 +277,8 @@ describe("no shop URL reaches IndexNow", () => {
       ts.isCallExpression(argument) && argument.expression.getText(),
       "notifyIndexNow(validationIndexNowUrls(…))"
     ).toBe("validationIndexNowUrls");
+    // notifyIndexNow never throws: a .catch after it would be unreachable code.
+    expect(ts.isAwaitExpression(validationCall.parent), "await notifyIndexNow(…);").toBe(true);
   });
 
   it("filters every URL through the submission policy and sends only from production", () => {

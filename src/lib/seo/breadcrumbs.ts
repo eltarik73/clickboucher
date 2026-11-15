@@ -12,6 +12,7 @@ import {
   type SeoCity,
   type SeoDepartment,
 } from "@/lib/seo/cities";
+import { seoCitySlugsForShopCity } from "@/lib/seo/city-match";
 import type { SeoDistrict } from "@/lib/seo/districts";
 import type { SeoProduct } from "@/lib/seo/products";
 import type { SeoOccasion } from "@/lib/seo/occasions";
@@ -98,12 +99,13 @@ export function districtBreadcrumb(city: SeoCity, district: SeoDistrict): Crumb[
   ]);
 }
 
+/** Home > regional hub: the trail of /boucheries-halal-rhone-alpes. */
+export function regionalHubBreadcrumb(): Crumb[] {
+  return existing([homeCrumb(), crumb(REGIONAL_HUB_CRUMB_NAME, REGIONAL_HUB_PATH)]);
+}
+
 export function departmentBreadcrumb(dept: SeoDepartment): Crumb[] {
-  return existing([
-    homeCrumb(),
-    crumb(REGIONAL_HUB_CRUMB_NAME, REGIONAL_HUB_PATH),
-    departmentCrumb(dept),
-  ]);
+  return existing([...regionalHubBreadcrumb(), departmentCrumb(dept)]);
 }
 
 export function sundayBreadcrumb(city: SeoCity): Crumb[] {
@@ -132,19 +134,13 @@ export function partnerBreadcrumb(city: SeoCity): Crumb[] {
   ]);
 }
 
-// The SEO city a shop's free-text city designates: the one whose name the shop city contains,
-// case-insensitively (the sitemap's rule), the longest name winning when several match.
-function seoCityOfShop(shopCity: string | null): SeoCity | undefined {
-  const normalized = shopCity?.toLowerCase().trim();
-  if (!normalized) return undefined;
-  return SEO_CITIES.filter((city) => normalized.includes(city.name.toLowerCase())).sort(
-    (a, b) => b.name.length - a.name.length
-  )[0];
-}
-
-/** Home > [department > city, when the shop's city is a SEO city] > shop. */
+/**
+ * Home > [department > city, when the shop's city is a SEO city] > shop. The city is the most
+ * specific match of src/lib/seo/city-match.ts, the rule of the sitemap and of IndexNow.
+ */
 export function shopBreadcrumb(shop: { name: string; slug: string; city: string | null }): Crumb[] {
-  const city = seoCityOfShop(shop.city);
+  const [citySlug] = seoCitySlugsForShopCity(shop.city);
+  const city = SEO_CITIES.find((candidate) => candidate.slug === citySlug);
   return existing(
     [...(city ? cityTrail(city) : [homeCrumb()]), crumb(shop.name, shopPath(shop.slug))],
     true

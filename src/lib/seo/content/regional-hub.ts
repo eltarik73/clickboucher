@@ -7,7 +7,7 @@
 // payment, no delivery, no certification by Klik&Go, no ranking of cities. The JSON-LD is a
 // CollectionPage whose items are plain links to the featured city pages (decision D2).
 
-import type { Crumb } from "@/lib/seo/breadcrumbs";
+import { regionalHubBreadcrumb } from "@/lib/seo/breadcrumbs";
 import { SEO_CITIES, SEO_DEPARTMENTS, type SeoCity, type SeoDepartment } from "@/lib/seo/cities";
 import { BUTCHER_INVITE, HOW_TO_ORDER_ANSWER, shopCountLabel } from "@/lib/seo/content/city";
 import { departmentCities } from "@/lib/seo/content/department";
@@ -25,8 +25,7 @@ import {
   faqPageJsonLd,
   type JsonLdObject,
 } from "@/lib/seo/jsonld/pages";
-import { HOME_PATH, REGIONAL_HUB_PATH, cityPath } from "@/lib/seo/routes";
-import { absoluteUrl } from "@/lib/seo/site";
+import { REGIONAL_HUB_PATH, cityPath } from "@/lib/seo/routes";
 
 const HUB_NAME = "Boucheries halal en Auvergne-Rhône-Alpes";
 // The departments, in French with their articles; pinned against SEO_DEPARTMENTS by a test.
@@ -101,13 +100,6 @@ function featuredCities(): SeoCity[] {
   });
 }
 
-function hubBreadcrumb(): Crumb[] {
-  return [
-    { name: "Accueil", url: absoluteUrl(HOME_PATH) },
-    { name: "Boucheries halal Rhône-Alpes", url: absoluteUrl(REGIONAL_HUB_PATH) },
-  ];
-}
-
 function shopsAnswer(shopCount: number): string {
   if (shopCount === 0) {
     return `Aucune boucherie n'est encore inscrite sur Klik&Go. ${BUTCHER_INVITE}`;
@@ -168,7 +160,7 @@ export function regionalHubContent(shopCount: number): RegionalHubContent {
     pillars: PILLARS,
     faqs,
     jsonLd: [
-      breadcrumbJsonLd(hubBreadcrumb()),
+      breadcrumbJsonLd(regionalHubBreadcrumb()),
       collectionPageJsonLd({
         name: HUB_NAME,
         description: REGIONAL_HUB_DESCRIPTION,

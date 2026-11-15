@@ -83,9 +83,9 @@ export default async function PressePage() {
               <span className="text-xs font-semibold uppercase tracking-wide">Boucheries</span>
             </div>
             <div className="text-2xl font-extrabold text-[#1C1512] dark:text-white">
-              {shopCount}+
+              {shopCount}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">partenaires actives</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">boucheries inscrites</div>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.05]">
             <div className="mb-1 flex items-center gap-2 text-[#DC2626]">
@@ -103,7 +103,7 @@ export default async function PressePage() {
               <span className="text-xs font-semibold uppercase tracking-wide">Recettes</span>
             </div>
             <div className="text-2xl font-extrabold text-[#1C1512] dark:text-white">
-              {recipeCount}+
+              {recipeCount}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">recettes halal publiées</div>
           </div>

@@ -7,6 +7,8 @@
 
 import { describe, expect, it } from "vitest";
 import { CITY_CONTENT_UPDATED, SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
+import { occasionCityLastUpdated } from "@/lib/seo/content/occasion-city";
+import { productCityLastUpdated } from "@/lib/seo/content/product-city";
 import { getCityDistrictCombinations } from "@/lib/seo/districts";
 import { SEO_OCCASIONS, getOccasionCityCombinations } from "@/lib/seo/occasions";
 import { getProductCityCombinations } from "@/lib/seo/products";
@@ -14,7 +16,6 @@ import { REGIONAL_HUB_PATH, STATIC_PUBLIC_PATHS, closedRoutePaths } from "@/lib/
 import {
   DEPARTMENT_CONTENT_UPDATED,
   PARTNER_CONTENT_UPDATED,
-  PRODUCT_CITY_CONTENT_UPDATED,
   STATIC_PAGES,
   buildSitemapEntries,
   entriesChangedSince,
@@ -191,7 +192,7 @@ describe("buildSitemapEntries: lastModified", () => {
     expect(entryAt(entries, "/cgv").lastModified).toEqual(day("2026-01-01"));
   });
 
-  it("dates the template families by their content date and occasions by their own date", () => {
+  it("dates the template families by their content date, product and occasion pages by theirs", () => {
     const entries = buildSitemapEntries({
       ...EMPTY,
       shops: [{ city: "Lyon", listedAt: day("2027-01-01") }],
@@ -202,13 +203,15 @@ describe("buildSitemapEntries: lastModified", () => {
     expect(entryAt(entries, "/devenir-boucher-partenaire/lyon").lastModified).toEqual(
       day(PARTNER_CONTENT_UPDATED)
     );
+    const lyon = SEO_CITIES.find((city) => city.slug === "lyon");
+    if (lyon === undefined) throw new Error("Lyon is not a SEO city");
     const [product] = getProductCityCombinations();
     expect(entryAt(entries, `/produits/${product.produit}/lyon`).lastModified).toEqual(
-      day(PRODUCT_CITY_CONTENT_UPDATED)
+      day(productCityLastUpdated(lyon))
     );
     for (const occasion of SEO_OCCASIONS) {
       expect(entryAt(entries, `/occasions/${occasion.slug}/lyon`).lastModified).toEqual(
-        day(occasion.lastUpdated ?? "missing")
+        day(occasionCityLastUpdated(occasion))
       );
     }
   });

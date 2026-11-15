@@ -1,6 +1,7 @@
 // /recettes filters by theme on the client (RecipeBrowser): the server renders the whole list
-// once (ISR, no searchParams read), a theme button filters it in place, and a ?tag= link from
-// another page (footer) filters it after mount.
+// once (ISR, no searchParams read), a theme button filters it in place, and the ?tag= of the URL
+// (footer link, from another page or from /recettes itself) filters it, read by useSearchParams
+// in a Suspense boundary of its own so that the list stays in the static HTML.
 import type { ComponentProps } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +12,16 @@ vi.mock("next/link", () => ({
   default: ({ prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean | null }) => (
     <a data-prefetch={String(prefetch)} {...props} />
   ),
+}));
+
+// The URL's query as the App Router exposes it. `suspend` reproduces the static prerender, where
+// useSearchParams bails out to client rendering up to the nearest Suspense boundary.
+const url = vi.hoisted(() => ({ search: "", suspend: false }));
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => {
+    if (url.suspend) throw new Promise<never>(() => undefined);
+    return new URLSearchParams(url.search);
+  },
 }));
 
 function recipe(slug: string, title: string, tags: string[], featured = false): RecipeListItem {
@@ -52,6 +63,8 @@ function themeButton(name: string): HTMLElement {
 let replaceState: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  url.search = "";
+  url.suspend = false;
   window.history.pushState(null, "", "/recettes");
   replaceState = vi.spyOn(window.history, "replaceState");
 });
@@ -62,7 +75,19 @@ afterEach(() => {
   window.history.pushState(null, "", "/");
 });
 
+async function navigateTo(search: string, rerender: () => void) {
+  url.search = search;
+  rerender();
+  await act(async () => {});
+}
+
 describe("RecipeBrowser", () => {
+  it("keeps every recipe in the static HTML while the URL reader suspends", () => {
+    url.suspend = true;
+    const html = renderToString(<RecipeBrowser recipes={RECIPES} />);
+    for (const { slug } of RECIPES) expect(html).toContain(`href="/recettes/${slug}"`);
+  });
+
   it("renders every recipe on the server and at first render, « Tout » selected", () => {
     const html = renderToString(<RecipeBrowser recipes={RECIPES} />);
     for (const { slug } of RECIPES) expect(html).toContain(`href="/recettes/${slug}"`);
@@ -107,7 +132,7 @@ describe("RecipeBrowser", () => {
   });
 
   it("applies ?tag=agneau present at mount after the effect", async () => {
-    window.history.pushState(null, "", "/recettes?tag=agneau");
+    url.search = "?tag=agneau";
 
     render(<RecipeBrowser recipes={RECIPES} />);
     await act(async () => {});
@@ -116,8 +141,26 @@ describe("RecipeBrowser", () => {
     expect(themeButton("Agneau")).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("re-filters when the URL's ?tag= changes after mount (footer link on /recettes)", async () => {
+    const view = render(<RecipeBrowser recipes={RECIPES} />);
+    const rerender = () => view.rerender(<RecipeBrowser recipes={RECIPES} />);
+    await act(async () => {});
+    expect(recipeLinks()).toHaveLength(RECIPES.length);
+
+    await navigateTo("?tag=agneau", rerender);
+    expect(recipeLinks().sort()).toEqual(["/recettes/gigot-agneau", "/recettes/tajine-agneau"]);
+    expect(themeButton("Agneau")).toHaveAttribute("aria-pressed", "true");
+
+    await navigateTo("?tag=bbq", rerender);
+    expect(recipeLinks()).toEqual(["/recettes/brochettes-boeuf"]);
+
+    await navigateTo("", rerender);
+    expect(recipeLinks()).toHaveLength(RECIPES.length);
+    expect(themeButton("Tout")).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("ignores an unknown ?tag= and shows every recipe", async () => {
-    window.history.pushState(null, "", "/recettes?tag=inconnu");
+    url.search = "?tag=inconnu";
 
     render(<RecipeBrowser recipes={RECIPES} />);
     await act(async () => {});

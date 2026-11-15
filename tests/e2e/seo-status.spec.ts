@@ -277,23 +277,13 @@ test.describe("accueil : aucun appel de géolocalisation au montage (visiteur an
     expect(await geoCallsOnHome(page, new URL(baseURL as string).origin)).toEqual([]);
   });
 
-  // Quarantined 2026-11-15, at most 14 days (testing-strategy rule 12): ReorderSection's
-  // LocationCard re-dispatches « klikgo-location » for a cached position, and NearbyShops answers
-  // with /api/shops/nearby. Owner: chef de chantier C1-SEO. Turn back into test() with the fix.
-  test.fixme(
-    "visiteur revenu avec une position mémorisée",
-    {
-      annotation: {
-        type: "issue",
-        description: "C1-SEO-T9 needsFromChef (a) : src/components/order/ReorderSection.tsx",
-      },
-    },
-    async ({ page, baseURL }) => {
-      await page.addInitScript(() => {
-        const chambery = { lat: 45.5646, lng: 5.9178, city: "Chambéry", ts: Date.now() };
-        window.localStorage.setItem("klikgo-geo", JSON.stringify(chambery));
-      });
-      expect(await geoCallsOnHome(page, new URL(baseURL as string).origin)).toEqual([]);
-    }
-  );
+  // The position card loads the cached position without announcing it: only the GPS button or a
+  // typed city sorts the list, and NearbyShops sorts from the cache for a signed-in visitor only.
+  test("visiteur revenu avec une position mémorisée", async ({ page, baseURL }) => {
+    await page.addInitScript(() => {
+      const chambery = { lat: 45.5646, lng: 5.9178, city: "Chambéry", ts: Date.now() };
+      window.localStorage.setItem("klikgo-geo", JSON.stringify(chambery));
+    });
+    expect(await geoCallsOnHome(page, new URL(baseURL as string).origin)).toEqual([]);
+  });
 });

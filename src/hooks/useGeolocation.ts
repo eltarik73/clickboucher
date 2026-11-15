@@ -11,6 +11,9 @@ type GeoState = {
   error: string | null;
 };
 
+/** A position the visitor has just chosen (GPS or typed city). */
+export type GeoPosition = { latitude: number; longitude: number };
+
 const STORAGE_KEY = "klikgo-geo";
 
 function loadCached(): GeoState | null {
@@ -75,10 +78,12 @@ export function useGeolocation() {
     }
   }, []);
 
-  const requestGPS = useCallback(async () => {
+  // requestGPS and setManualCity resolve with the position they obtained, or null on failure, so
+  // that the caller can announce an explicit choice; loading the cache at mount announces nothing.
+  const requestGPS = useCallback(async (): Promise<GeoPosition | null> => {
     if (!("geolocation" in navigator)) {
       setState((s) => ({ ...s, loading: false, error: "Géolocalisation non supportée" }));
-      return;
+      return null;
     }
 
     setState((s) => ({ ...s, loading: true, error: null }));
@@ -104,6 +109,7 @@ export function useGeolocation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ latitude, longitude, city }),
       }).catch(() => {});
+      return { latitude, longitude };
     } catch (err) {
       const geoErr = err as GeolocationPositionError;
       const msg =
@@ -113,10 +119,11 @@ export function useGeolocation() {
           ? "Position indisponible"
           : "Délai dépassé";
       setState((s) => ({ ...s, loading: false, error: msg }));
+      return null;
     }
   }, []);
 
-  const setManualCity = useCallback(async (city: string) => {
+  const setManualCity = useCallback(async (city: string): Promise<GeoPosition | null> => {
     setState((s) => ({ ...s, loading: true, error: null }));
 
     try {
@@ -127,7 +134,7 @@ export function useGeolocation() {
       );
       if (!res.ok) {
         setState((s) => ({ ...s, loading: false, error: "Service de geocodage indisponible" }));
-        return;
+        return null;
       }
       const results = await res.json();
       if (results.length > 0) {
@@ -135,7 +142,7 @@ export function useGeolocation() {
         const lng = parseFloat(results[0].lon);
         if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
           setState((s) => ({ ...s, loading: false, error: "Coordonnees invalides" }));
-          return;
+          return null;
         }
         const resolvedCity = results[0].display_name?.split(",")[0] || city;
         saveCache(lat, lng, resolvedCity);
@@ -146,12 +153,14 @@ export function useGeolocation() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ latitude: lat, longitude: lng, city: resolvedCity }),
         }).catch(() => {});
-        return;
+        return { latitude: lat, longitude: lng };
       }
       // City not found — set error, do NOT set city without coords
       setState((s) => ({ ...s, loading: false, error: "Ville introuvable" }));
+      return null;
     } catch {
       setState((s) => ({ ...s, loading: false, error: "Erreur lors du geocodage" }));
+      return null;
     }
   }, []);
 
