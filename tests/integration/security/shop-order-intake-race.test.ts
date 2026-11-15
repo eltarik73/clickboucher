@@ -8,6 +8,8 @@
 // boutique et relit sa publication dessous (lockShopTakingOrders, order-shop.ts) : une décision
 // validée avant est vue, une décision demandée pendant attend la fin de la commande, et deux
 // commandes de la même boutique ne s'attendent pas. Seuls les transports sont simulés.
+// Trois connexions au moins (pool Prisma par défaut) : une transaction retenue, la commande et
+// les lectures du devis ; avec `connection_limit=2` la commande attendrait une connexion, pas le verrou.
 import { randomUUID } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Product, Shop, User } from "@prisma/client";
