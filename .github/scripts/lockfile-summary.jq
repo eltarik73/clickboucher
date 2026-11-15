@@ -3,15 +3,17 @@
 # Usage: jq -n -r --slurpfile o old.json --slurpfile n new.json -f lockfile-summary.jq
 # Lines: "+" added, "-" removed, "~" version or other fields changed, "!" source or
 # integrity changed at the same version, an alias added, removed or changed on an
-# existing entry, or an unreadable entry. Flags in brackets: an alias (the entry
-# installs another package under this name), a source outside the npm registry, a
-# registry tarball that is not the one of that package and version. Every value
-# comes from the PR: control characters are replaced and each value is cut to 300
+# existing entry, or an unreadable entry. Flags in brackets: an entry key that is not
+# a plain node_modules package path (npm normalises such a key, e.g. one holding "#"
+# and "..", onto another install path), an alias (the entry installs another package
+# under this name), a source outside the npm registry, a registry tarball that is not
+# the one of that package and version. Every value comes from the PR: control
+# characters and Unicode line separators are replaced and each value is cut to 300
 # characters, so no value can forge a line. Format lines come first, then every
 # "!" or flagged line, then the rest, so the 3000-line cap never hides a flag
 # before an unflagged line.
 
-def s: tostring | gsub("[\\x00-\\x1f\\x7f]"; "?") | .[0:300];
+def s: tostring | gsub("[\\x00-\\x1f\\x7f\\x{85}\\x{2028}\\x{2029}]"; "?") | .[0:300];
 
 def packages: if type == "object" and (.packages | type) == "object" then .packages else {} end;
 
@@ -37,7 +39,15 @@ def alias_flag($pkg; $entry):
   if $pkg != null and $entry.name != null and ($entry.name | tostring) != $pkg
     then " [ALIAS DE : \($entry.name | s)]" else "" end;
 
-def flags($pkg; $entry): "\(alias_flag($pkg; $entry))\(source_flag($pkg; $entry))";
+# Flag for a key other than the root that is not a plain package path: node_modules/<name>,
+# possibly scoped, possibly nested; no ".", "..", "#", "?", "%", space or empty segment.
+def path_flag($key):
+  if $key == ""
+    or ($key | test("^node_modules/(@[A-Za-z0-9~-][A-Za-z0-9._~-]*/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*(/node_modules/(@[A-Za-z0-9~-][A-Za-z0-9._~-]*/)?[A-Za-z0-9~-][A-Za-z0-9._~-]*)*$"))
+    then "" else " [CHEMIN D'ENTRÉE INHABITUEL]" end;
+
+def flags($key; $pkg; $entry):
+  "\(path_flag($key))\(alias_flag($pkg; $entry))\(source_flag($pkg; $entry))";
 
 def flagged: startswith("!") or contains(" [");
 
@@ -64,15 +74,15 @@ def package_lines($old; $new):
   | ($key | installed_name) as $pkg
   | if ($x != null and ($x | type) != "object") or ($y != null and ($y | type) != "object") then
       "! \($label) : entrée illisible"
-    elif $x == null then "+ \($label) \($y.version // "?" | s)\(flags($pkg; $y))"
+    elif $x == null then "+ \($label) \($y.version // "?" | s)\(flags($key; $pkg; $y))"
     elif $y == null then "- \($label) \($x.version // "?" | s)"
     elif $pkg != null and $x.name != $y.name then
-      "! \($label) \($x.version // "?" | s) -> \($y.version // "?" | s) : alias ajouté, retiré ou changé\(flags($pkg; $y))"
+      "! \($label) \($x.version // "?" | s) -> \($y.version // "?" | s) : alias ajouté, retiré ou changé\(flags($key; $pkg; $y))"
     elif $x.version != $y.version then
-      "~ \($label) \($x.version // "?" | s) -> \($y.version // "?" | s)\(flags($pkg; $y))"
+      "~ \($label) \($x.version // "?" | s) -> \($y.version // "?" | s)\(flags($key; $pkg; $y))"
     elif $x.resolved != $y.resolved or $x.integrity != $y.integrity then
-      "! \($label) \($y.version // "?" | s) : source ou intégrité changée à version égale\(flags($pkg; $y))"
-    else "~ \($label) \($y.version // "?" | s) : autres champs modifiés\(flags($pkg; $y))" end;
+      "! \($label) \($y.version // "?" | s) : source ou intégrité changée à version égale\(flags($key; $pkg; $y))"
+    else "~ \($label) \($y.version // "?" | s) : autres champs modifiés\(flags($key; $pkg; $y))" end;
 
 ($o[0] // {}) as $old
 | ($n[0] // {}) as $new
