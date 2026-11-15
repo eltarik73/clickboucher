@@ -242,12 +242,13 @@ export default function AdminShopsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        // The commission has one writer, the audited admin route.
+        // The commission has one writer, the audited admin route. This dialog edits the rate
+        // only: whether commission is charged stays as it is.
         if (res.ok && commissionPct !== editShop.commissionPct) {
           res = await fetch(`/api/admin/shops/${editShop.id}/commission`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ commissionPct, commissionEnabled: commissionPct > 0 }),
+            body: JSON.stringify({ commissionPct }),
           });
         }
       } else {

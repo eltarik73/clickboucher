@@ -4,7 +4,8 @@
 // who typed `<img src=x onerror=…>` as first name ran script there (SEC-01, audit of 2026-11-15).
 // Every value typed by a customer or a shop is printed as text, the only script is the print
 // button's, allowed by a per-response nonce, and the page is never cached. The CSV export keeps the
-// raw text: it is data, not a page. Only the Clerk session is mocked.
+// raw text: it is data, not a page; only a cell a spreadsheet would run as a formula gets a leading
+// apostrophe. Only the Clerk session is mocked.
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -35,6 +36,7 @@ useCleanDatabase();
 const GUEST_NAME = "<img src=x onerror=alert(1)>";
 const PRODUCT_NAME = "<script>alert(2)</script>";
 const SHOP_NAME = "<svg onload=alert(3)>";
+const FORMULA_NOTE = '=HYPERLINK("http://evil.example","Voir")';
 
 beforeEach(async () => {
   const owner = await createTestUser({ role: "BOUCHER" });
@@ -50,6 +52,7 @@ beforeEach(async () => {
       customerFirstName: GUEST_NAME,
       customerLastName: "Martin",
       customerPhone: "+33611223344",
+      customerNote: FORMULA_NOTE,
     },
   });
   session.clerkId = owner.clerkId;
@@ -114,5 +117,12 @@ describe("printable order export", () => {
     expect(response.headers.get("content-type")).toBe("text/csv; charset=utf-8");
     expect(csv).toContain(`;"<img src=x onerror=alert(1)> Martin";`);
     expect(csv).toContain(`;"1x <script>alert(2)</script>";`);
+  });
+
+  it("the CSV export turns a note written as a spreadsheet formula into text", async () => {
+    const csv = await (await exportAs("csv")).text();
+
+    expect(csv).toContain(`;"'=HYPERLINK(""http://evil.example"",""Voir"")"`);
+    expect(csv).toContain(`;"+33611223344";`);
   });
 });

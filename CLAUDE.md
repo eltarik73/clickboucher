@@ -20,11 +20,14 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
   corps de `PATCH /api/boucher/onboarding`. Clé en trop → 400, rien n'est écrit. Chaque colonne de `Shop` est
   classée boucher ou plateforme dans `src/lib/__tests__/shop-field-ownership.test.ts` (colonne nouvelle à classer).
 - **Commission** : écrite seulement par `PATCH /api/admin/shops/[shopId]/commission` et `/api/admin/commission/global`
-  (audités), plus la valeur initiale de `POST /api/shops` (admin). Contrôle d'abus en lecture seule :
+  (audités), plus la valeur initiale de `POST /api/shops` (admin). Sans `commissionEnabled`, la route de la boutique
+  change le taux seul. Contrôle d'abus en lecture seule :
   `prisma/migrations/20261115120000_c1_failles_critiques/commission-audit.readonly.sql`.
 - **HTML écrit à la main** (exports, e-mails, tickets) : gabarit `html` et `escapeHtml` de `src/lib/html/escape.ts`
   uniquement, `trustedHtml` sur un littéral seulement ; garde `src/lib/__tests__/html-sinks.test.ts`, dont les
   compteurs `LEGACY_BASELINE` ne peuvent que baisser.
+- **CSV exportés** : chaque cellule par `csvCell` / `csvLine` de `src/lib/csv.ts` (cellule toujours entre
+  guillemets, formule de tableur `= + - @` neutralisée par une apostrophe).
 - **Noms d'invité** : `firstNameSchema` / `lastNameSchema` de `src/lib/validators/person-name.ts`.
 - **Suspension** = `Shop.suspendedAt`, écrite seulement par `src/lib/services/shops/moderation.ts` ; toute route
   du boucher qui change l'état de sa boutique (`/api/boucher/shop/status`, `/api/boucher/service`,

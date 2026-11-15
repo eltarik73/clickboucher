@@ -239,6 +239,22 @@ describe("commission : écrite par l'administration seule, et tracée", () => {
     ]);
   });
 
+  it("PATCH /api/admin/shops/[shopId]/commission sans commissionEnabled : le taux seul change", async () => {
+    await prisma.shop.update({ where: { id: shop.id }, data: { commissionEnabled: false } });
+
+    expect((await answer(sendCommission({ commissionPct: 7 }))).status).toBe(200);
+    expect(await rowOf(shop.id)).toMatchObject({ commissionPct: 7, commissionEnabled: false });
+    expect(await auditRows()).toEqual([
+      {
+        actorId: admin.clerkId,
+        action: "shop.commission_change",
+        target: "Shop",
+        targetId: shop.id,
+        details: { commissionPct: 7 },
+      },
+    ]);
+  });
+
   it("route de la boutique : clé en trop et JSON invalide 400, boucher 403, rien d'écrit", async () => {
     await expectRefusedUnchanged(sendCommission({ commissionPct: 12, tier: "GOLD" }));
     const before = await rowOf(shop.id);

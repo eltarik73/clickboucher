@@ -34,11 +34,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { shopId: st
       return apiError("NOT_FOUND", "Boutique introuvable");
     }
 
+    // Without commissionEnabled, only the rate changes: charging stays as it is.
     const updated = await prisma.shop.update({
       where: { id: shopId },
       data: {
         commissionPct: data.commissionPct,
-        commissionEnabled: data.commissionEnabled ?? true,
+        ...(data.commissionEnabled !== undefined && { commissionEnabled: data.commissionEnabled }),
       },
       select: { id: true, name: true, commissionPct: true, commissionEnabled: true },
     });

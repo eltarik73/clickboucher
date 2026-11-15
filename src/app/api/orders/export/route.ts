@@ -6,6 +6,7 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { handleApiError } from "@/lib/api/errors";
+import { csvLine } from "@/lib/csv";
 import { orderPerson, type OrderPersonColumns } from "@/lib/services/orders/order-person";
 import { buildOrdersPrintDocument } from "./print-document";
 
@@ -198,9 +199,7 @@ export async function GET(req: NextRequest) {
       BOM +
       headers.join(SEP) +
       "\n" +
-      csvRows
-        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(SEP))
-        .join("\n");
+      csvRows.map((row) => csvLine(row, SEP)).join("\n");
 
     return new NextResponse(csvContent, {
       status: 200,

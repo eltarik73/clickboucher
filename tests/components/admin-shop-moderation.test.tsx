@@ -150,7 +150,7 @@ describe("/admin/shops", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(writes(fetchMock)).toEqual([
       ["/api/shops/s1", { name: "Boucherie Test", ...IDENTITY }],
-      ["/api/admin/shops/s1/commission", { commissionPct: 7.5, commissionEnabled: true }],
+      ["/api/admin/shops/s1/commission", { commissionPct: 7.5 }],
     ]);
   });
 
