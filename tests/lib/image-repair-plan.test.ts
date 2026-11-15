@@ -1,10 +1,10 @@
 // @vitest-environment node
-// planRepairs (src/lib/images/repair-plan.ts) : chaque règle du plan de réparation des URL d'image,
+// planRepairs (scripts/images/lib/repair-plan.ts) : chaque règle du plan de réparation des URL d'image,
 // et les gardes des scripts du propriétaire (adresses sondées, sources copiées, base locale).
 import { describe, expect, it, vi } from "vitest";
-import type { CensusRow } from "@/lib/images/census";
 import { IMAGE_COLUMNS } from "@/lib/images/columns";
 import { classifyImageUrl, imageBlobHost } from "@/lib/images/durable-url";
+import type { CensusRow } from "../../scripts/images/lib/census";
 import {
   applyRefusal,
   imageColumnOf,
@@ -15,7 +15,7 @@ import {
   registryUsageFor,
   type ProbeResult,
   type RepairAction,
-} from "@/lib/images/repair-plan";
+} from "../../scripts/images/lib/repair-plan";
 
 const UNSPLASH =
   "https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop&q=75";

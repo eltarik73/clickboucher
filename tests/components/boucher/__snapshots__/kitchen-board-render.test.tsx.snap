@@ -2774,3 +2774,211 @@ exports[`mode cuisine : rendu du tableau > affiche les colonnes, l'en-cours scin
   </div>
 </div>
 `;
+
+exports[`mode cuisine : état de la boutique > compte la pause à rebours et reprend depuis le bandeau puis depuis la barre > bandeau pause 1`] = `
+<div
+  class="flex shrink-0 items-center justify-between gap-3 px-4 py-2"
+  style="background: rgba(245, 158, 11, 0.1); border-bottom: 1px solid rgba(245, 158, 11, 0.2);"
+>
+  <p
+    class="text-sm font-bold text-[#F59E0B]"
+  >
+    <svg
+      class="lucide lucide-pause mr-1.5 inline"
+      fill="none"
+      height="14"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="14"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        height="16"
+        rx="1"
+        width="4"
+        x="14"
+        y="4"
+      />
+      <rect
+        height="16"
+        rx="1"
+        width="4"
+        x="6"
+        y="4"
+      />
+    </svg>
+    Commandes suspendues
+     — reprise dans 10:00
+  </p>
+  <button
+    class="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#F59E0B] px-4 py-1.5 text-xs font-bold text-black transition-colors hover:bg-[#D97706]"
+  >
+    Reprendre
+  </button>
+</div>
+`;
+
+exports[`mode cuisine : état de la boutique > compte la pause à rebours et reprend depuis le bandeau puis depuis la barre > contrôles en pause 1`] = `
+<div
+  class="flex items-center gap-1.5 sm:gap-3"
+>
+  <div
+    class="flex items-center gap-1.5 sm:gap-2"
+  >
+    <button
+      class="relative h-5 w-9 rounded-full transition-colors duration-200 focus:outline-none sm:h-6 sm:w-11"
+      style="background-color: rgb(63, 63, 70);"
+    >
+      <span
+        class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 sm:h-5 sm:w-5"
+        style="transform: translateX(0);"
+      />
+    </button>
+    <div
+      class="hidden sm:block"
+    >
+      <span
+        class="text-xs font-bold text-[#78716C]"
+      >
+        Hors ligne
+      </span>
+      <span
+        class="block text-[10px] text-[#57534E]"
+      >
+        Auto 8h-19h
+      </span>
+    </div>
+  </div>
+  <div
+    class="h-5 w-px shrink-0 bg-[#262626] sm:h-6"
+  />
+  <button
+    class="flex min-h-[32px] animate-pulse items-center gap-1 rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/20 px-2 py-1 text-[10px] font-bold text-[#F59E0B] transition-all hover:bg-[#F59E0B]/30 sm:min-h-[36px] sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
+  >
+    <svg
+      class="lucide lucide-pause sm:h-3 sm:w-3"
+      fill="none"
+      height="10"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="10"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect
+        height="16"
+        rx="1"
+        width="4"
+        x="14"
+        y="4"
+      />
+      <rect
+        height="16"
+        rx="1"
+        width="4"
+        x="6"
+        y="4"
+      />
+    </svg>
+     
+    <span
+      class="hidden sm:inline"
+    >
+      10:00
+    </span>
+    <span
+      class="sm:hidden"
+    >
+      10:00
+    </span>
+  </button>
+</div>
+`;
+
+exports[`mode cuisine : état de la boutique > suspend pour la durée choisie, relit l'état et ferme la fenêtre > fenêtre pause, 30 min 1`] = `
+<div
+  class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+  role="presentation"
+>
+  <div
+    class="w-full max-w-sm space-y-5 rounded-2xl border border-[#3F3F46] bg-[#1C1C1E] p-6"
+    style="font-family: Outfit, sans-serif;"
+  >
+    <div>
+      <h3
+        class="text-lg font-bold text-white"
+      >
+        Suspendre les commandes
+      </h3>
+      <p
+        class="mt-1 text-sm text-[#78716C]"
+      >
+        Les clients verront que votre boutique est temporairement indisponible.
+      </p>
+    </div>
+    <div
+      class="grid grid-cols-3 gap-3"
+    >
+      <button
+        class="rounded-xl border py-4 text-center transition-all border-[#3F3F46] bg-white/5 text-gray-500 hover:bg-white/10 dark:text-gray-400"
+      >
+        <span
+          class="block text-2xl font-bold"
+        >
+          15
+        </span>
+        <span
+          class="mt-0.5 block text-xs opacity-70"
+        >
+          minutes
+        </span>
+      </button>
+      <button
+        class="rounded-xl border py-4 text-center transition-all border-[#F59E0B] bg-[#F59E0B]/10 text-[#F59E0B]"
+      >
+        <span
+          class="block text-2xl font-bold"
+        >
+          30
+        </span>
+        <span
+          class="mt-0.5 block text-xs opacity-70"
+        >
+          minutes
+        </span>
+      </button>
+      <button
+        class="rounded-xl border py-4 text-center transition-all border-[#3F3F46] bg-white/5 text-gray-500 hover:bg-white/10 dark:text-gray-400"
+      >
+        <span
+          class="block text-2xl font-bold"
+        >
+          60
+        </span>
+        <span
+          class="mt-0.5 block text-xs opacity-70"
+        >
+          minutes
+        </span>
+      </button>
+    </div>
+    <button
+      class="w-full rounded-xl bg-[#F59E0B] py-3.5 text-sm font-bold text-black transition-colors hover:bg-[#D97706]"
+    >
+      Suspendre pendant 
+      30
+       min
+    </button>
+    <button
+      class="w-full rounded-xl py-2.5 text-sm text-[#78716C] transition-colors hover:text-white"
+    >
+      Annuler
+    </button>
+  </div>
+</div>
+`;

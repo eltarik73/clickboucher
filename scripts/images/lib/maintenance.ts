@@ -1,4 +1,4 @@
-// src/lib/images/maintenance.ts — Les deux opérations d'écriture du propriétaire sur les images,
+// scripts/images/lib/maintenance.ts — Les deux opérations d'écriture du propriétaire sur les images,
 // appelées par scripts/images/repair.ts et purge.ts (jamais par une route).
 //
 // applyRepairs exécute un plan de planRepairs :
@@ -15,17 +15,17 @@
 // d'image l'utilise ; sinon les deux fichiers, puis les lignes du registre qui la portent.
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { classifyImageUrl, isStoreImageUrl } from "@/lib/images/durable-url";
+import { ImageRejectedError } from "@/lib/images/errors";
+import { FETCHED_SOURCE_MAX_BYTES, persistImage, type PersistedImage } from "@/lib/images/ingest";
+import { findImageReferences, imageInUse, type ImageReferences } from "@/lib/images/references";
+import { deleteFilesQuietly, storedFilesOf, type ImageStore } from "@/lib/images/store";
 import { sqlIdentifier, type CensusRow } from "./census";
-import { classifyImageUrl, isStoreImageUrl } from "./durable-url";
-import { ImageRejectedError } from "./errors";
-import { FETCHED_SOURCE_MAX_BYTES, persistImage, type PersistedImage } from "./ingest";
-import { findImageReferences, imageInUse, type ImageReferences } from "./references";
 import { imageColumnOf, registryUsageFor, type RepairAction } from "./repair-plan";
-import { deleteFilesQuietly, storedFilesOf, type ImageStore } from "./store";
 
 /** Valeur de generated_images.model et created_by d'une image copiée par la réparation. */
-export const REPAIR_REGISTRY_MODEL = "REPAIR";
-export const REPAIR_CREATED_BY = "repair";
+const REPAIR_REGISTRY_MODEL = "REPAIR";
+const REPAIR_CREATED_BY = "repair";
 const REPAIR_FOLDER = "repair";
 
 export type RepairJournalAction = "copied" | "nulled" | "skipped-changed";

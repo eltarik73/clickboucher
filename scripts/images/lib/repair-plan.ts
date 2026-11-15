@@ -1,4 +1,4 @@
-// src/lib/images/repair-plan.ts — Que faire de chaque URL d'image recensée : la garder, la copier
+// scripts/images/lib/repair-plan.ts — Que faire de chaque URL d'image recensée : la garder, la copier
 // dans notre stockage, la vider, ou la soumettre au propriétaire. Plus les gardes des scripts.
 //
 // Module pur (ni disque, ni base, ni réseau) : scripts/images/repair.ts lui passe le recensement
@@ -13,9 +13,9 @@
 //   sonde en échec pour une autre raison (délai, 5xx, pas une image…) ou absente, et toute ligne
 //   du registre generated_images (la copier créerait un second enregistrement de la même image).
 import { isLocalPostgresUrl } from "@/lib/local-postgres-url";
+import { IMAGE_COLUMNS, IMAGE_REGISTRY_TABLE, type ImageColumn } from "@/lib/images/columns";
+import { BLOB_HOST_SUFFIX, LEGACY_DISPLAY_HOSTS } from "@/lib/images/durable-url";
 import type { CensusRow } from "./census";
-import { IMAGE_COLUMNS, type ImageColumn } from "./columns";
-import { LEGACY_DISPLAY_HOSTS } from "./durable-url";
 
 export interface ProbeResult {
   url: string;
@@ -39,8 +39,6 @@ export interface PlanOptions {
 
 /** Statuts qui prouvent qu'une source a disparu ; tout autre échec reste une décision humaine. */
 const GONE_STATUSES: ReadonlySet<number> = new Set([404, 410]);
-const REGISTRY_TABLE = "generated_images";
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 
 /** Colonnes dont l'image est un visuel (bannière, boutique, offre) plutôt qu'une photo d'aliment. */
 const VISUAL_TABLES: ReadonlySet<string> = new Set([
@@ -169,7 +167,7 @@ function decide(
         }
         return { action: "DECIDE", row, reason: probeFailure(probe) };
       }
-      if (row.table === REGISTRY_TABLE) {
+      if (row.table === IMAGE_REGISTRY_TABLE) {
         return {
           action: "DECIDE",
           row,

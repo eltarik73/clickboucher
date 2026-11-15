@@ -1,15 +1,16 @@
 // scripts/images/shared.ts — Outils communs des scripts du propriétaire (census, repair, purge) :
 // arguments, sorties, sondes réseau, téléchargement d'une source, journal.
 //
-// Les règles (quoi sonder, quoi copier, quand écrire) sont dans src/lib/images/repair-plan.ts ;
+// Les règles (quoi sonder, quoi copier, quand écrire) sont dans lib/repair-plan.ts ;
 // ce fichier ne fait que les entrées-sorties. Aucune requête vers klikandgo.app n'est faite : seules
 // les adresses d'image enregistrées en base sont demandées, en GET.
 import { existsSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { parseArgs, type ParseArgsConfig } from "node:util";
 import prisma from "@/lib/prisma";
 import { FETCHED_SOURCE_MAX_BYTES } from "@/lib/images/ingest";
 import { sniffImageFormat } from "@/lib/images/process";
-import { isAllowedCopySource, isProbeableUrl, type ProbeResult } from "@/lib/images/repair-plan";
+import { isAllowedCopySource, isProbeableUrl, type ProbeResult } from "./lib/repair-plan";
 
 const USER_AGENT = "klikgo-image-maintenance/1.0";
 const PROBE_TIMEOUT_MS = 10_000;
@@ -26,35 +27,32 @@ export function err(line: string): void {
 
 export class UsageError extends Error {}
 
-export interface ParsedArgs {
-  flags: Set<string>;
-  options: Map<string, string[]>;
-  positionals: string[];
+/** Strict on purpose: a typo in a command that writes to production never passes silently. */
+export function parseCommandLine<T extends ParseArgsConfig>(config: T) {
+  try {
+    return parseArgs({ ...config, strict: true });
+  } catch (error) {
+    throw usageErrorOf(error, config);
+  }
 }
 
-/** Arguments connus seulement : un argument inconnu est refusé (une faute de frappe ne passe pas en silence). */
-export function parseArgs(
-  argv: readonly string[],
-  spec: { flags: string[]; options: string[] }
-): ParsedArgs {
-  const parsed: ParsedArgs = { flags: new Set(), options: new Map(), positionals: [] };
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (spec.flags.includes(arg)) {
-      parsed.flags.add(arg);
-    } else if (spec.options.includes(arg)) {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith("--"))
-        throw new UsageError(`${arg} attend une valeur.`);
-      parsed.options.set(arg, [...(parsed.options.get(arg) ?? []), value]);
-      i += 1;
-    } else if (arg.startsWith("--")) {
-      throw new UsageError(`Option inconnue : ${arg}`);
-    } else {
-      parsed.positionals.push(arg);
-    }
+// Node names the refused argument only inside its English message, between quotes.
+function usageErrorOf(error: unknown, config: ParseArgsConfig): unknown {
+  if (!(error instanceof TypeError) || !("code" in error)) return error;
+  const argument = /'([^' ]+)/.exec(error.message)?.[1];
+  if (argument === undefined) return error;
+  switch (error.code) {
+    case "ERR_PARSE_ARGS_UNKNOWN_OPTION":
+      return new UsageError(`Option inconnue : ${argument}`);
+    case "ERR_PARSE_ARGS_INVALID_OPTION_VALUE":
+      return config.options?.[argument.replace(/^--/, "")]?.type === "boolean"
+        ? new UsageError(`${argument} ne prend pas de valeur.`)
+        : new UsageError(`${argument} attend une valeur.`);
+    case "ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL":
+      return new UsageError(`Argument inattendu : ${argument}`);
+    default:
+      return error;
   }
-  return parsed;
 }
 
 /** Hôte et base visés, sans identifiants : seule forme de DATABASE_URL jamais affichée. */

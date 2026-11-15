@@ -1,14 +1,13 @@
-// src/lib/images/census.ts — Recensement de toutes les URL d'image enregistrées en base.
+// scripts/images/lib/census.ts — Recensement de toutes les URL d'image enregistrées en base.
 //
 // Lecture seule. Pour chaque colonne de IMAGE_COLUMNS : les valeurs non nulles, lues par lots sur la
 // clé (id), chacune classée par classifyImageUrl, et le nombre de NULL. Les produits et leurs photos
 // portent le nom du produit et le slug de la boutique, pour que le propriétaire s'y retrouve.
-// Utilisé par les scripts du propriétaire (scripts/images) ; C1-PHOTOS-C le reprend dans le cron
-// seo-audit. Seuls les identifiants de IMAGE_COLUMNS et les fragments constants de PROJECTIONS sont
-// écrits dans le SQL ; toute valeur passe en paramètre.
+// Seuls les identifiants de IMAGE_COLUMNS et les fragments constants de PROJECTIONS sont écrits dans
+// le SQL ; toute valeur passe en paramètre.
 import { Prisma, type PrismaClient } from "@prisma/client";
-import { IMAGE_COLUMNS, type ImageColumn } from "./columns";
-import { classifyImageUrl, type ImageUrlKind } from "./durable-url";
+import { IMAGE_COLUMNS, type ImageColumn } from "@/lib/images/columns";
+import { classifyImageUrl, type ImageUrlKind } from "@/lib/images/durable-url";
 
 export interface CensusRow {
   table: string;

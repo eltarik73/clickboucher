@@ -5,7 +5,7 @@
 // des produits de la boutique qui demande sont renvoyés ; un usage ailleurs (autre boutique,
 // bannière, offre, catalogue) n'est compté que par un nombre, sans rien en dire.
 import prisma from "@/lib/prisma";
-import { IMAGE_COLUMNS } from "./columns";
+import { IMAGE_COLUMNS, IMAGE_REGISTRY_TABLE } from "./columns";
 import { isStoreImageUrl } from "./durable-url";
 import { storedFilesOf } from "./store";
 
@@ -20,11 +20,10 @@ export interface ImageReferences {
 
 const NAMES_SHOWN_IN_LIST = 20;
 const NAMES_IN_MESSAGE = 5;
-const REGISTRY_TABLE = "generated_images";
 
 /** Une seule requête : la somme, sur chaque colonne d'image, des lignes qui portent l'une des URL. */
 function totalUsesQuery(): string {
-  const parts = IMAGE_COLUMNS.filter((column) => column.table !== REGISTRY_TABLE).map(
+  const parts = IMAGE_COLUMNS.filter((column) => column.table !== IMAGE_REGISTRY_TABLE).map(
     (column) =>
       `(SELECT count(*)::int FROM "${column.table}" WHERE "${column.column}" = ANY($1::text[]))`
   );

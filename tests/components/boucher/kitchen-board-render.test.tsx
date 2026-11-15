@@ -1,13 +1,14 @@
-// Mode cuisine : rendu caractérisé du tableau. Un tableau fixe (une commande par colonne, deux
-// commandes en historique) servi par un fetch simulé, à heure fixe en Europe/Paris, et le DOM
-// sérialisé figé : un découpage de la page ne doit rien changer à ce qui s'affiche.
-// jsdom n'applique pas le CSS : les deux mises en page (colonnes lg:, onglets mobiles) sont toujours
-// dans le DOM. Le tableau entier est figé une fois ; ensuite, seul ce qui change : le panneau mobile
-// de chaque onglet, puis le tiroir Historique du bureau.
+// Mode cuisine : rendu caractérisé du tableau (fetch simulé, heure fixe en Europe/Paris, DOM figé) ;
+// un découpage de la page ne doit rien changer à ce qui s'affiche. jsdom n'applique pas le CSS : les
+// deux mises en page (colonnes lg:, onglets mobiles) sont toujours dans le DOM. Le tableau entier est
+// figé une fois, puis seul ce qui change ; un changement d'état de la boutique, par sa requête.
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KitchenModePage from "@/app/(boucher)/boucher/commandes/page";
 import type { KitchenHistoryOrder, KitchenOrder } from "@/hooks/use-order-polling";
+
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 const NOW = new Date("2026-11-13T10:00:00.000Z");
 const minutesFromNow = (minutes: number) =>
@@ -123,13 +124,14 @@ const HISTORY = [
 ] satisfies KitchenHistoryOrder[];
 
 const SHOP = { name: "Boucherie Test", prepTimeMin: 20, status: "OPEN", pauseEndsAt: null };
+let shop: { status: string; pauseEndsAt: string | null } = SHOP;
 
 function json(data: unknown) {
   return Response.json({ data });
 }
 
 function serve(url: string): Response {
-  if (url === "/api/boucher/shop/status") return json(SHOP);
+  if (url === "/api/boucher/shop/status") return json({ ...SHOP, ...shop });
   if (url === "/api/boucher/orders/kitchen?history=1") {
     return json({ active: ACTIVE, activeTruncated: false, history: HISTORY });
   }
@@ -163,25 +165,27 @@ function mobilePanel(container: HTMLElement): Element {
   return panel;
 }
 
-function historyDrawer(): Element {
-  const drawer = screen
-    .getByRole("heading", { name: "Historique" })
-    .closest('[role="presentation"]');
-  if (!drawer) throw new Error("history drawer not rendered");
-  return drawer;
+/** Every request sent to the shop status route, in order: "GET" or the PATCH body. */
+function shopStatusRequests(): string[] {
+  return vi
+    .mocked(fetch)
+    .mock.calls.filter(([url]) => url === "/api/boucher/shop/status")
+    .map(([, init]) => (init?.method === "PATCH" ? String(init.body) : "GET"));
 }
 
-beforeAll(() => {
-  vi.stubEnv("TZ", "Europe/Paris");
-});
-
-afterAll(() => {
-  vi.unstubAllEnvs();
-});
+/** The modal or drawer titled `heading`, backdrop included. */
+function overlay(heading: string): Element {
+  const element = screen.getByRole("heading", { name: heading }).closest('[role="presentation"]');
+  if (!element) throw new Error(`${heading} not rendered`);
+  return element;
+}
 
 beforeEach(() => {
+  vi.stubEnv("TZ", "Europe/Paris");
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
+  shop = SHOP;
+  vi.clearAllMocks();
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => serve(url))
@@ -193,6 +197,7 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   sessionStorage.clear();
   localStorage.clear();
 });
@@ -209,6 +214,19 @@ describe("mode cuisine : rendu du tableau", () => {
     expect(mobilePanel(container)).toMatchSnapshot("onglet prêtes");
   });
 
+  it("réunit En cours et Prêtes dans la seconde colonne du bureau en mode simple", async () => {
+    localStorage.setItem("klikgo-simple-mode", "true");
+    const { container } = await renderBoard();
+    const columns = [...container.querySelector(".pb-14.lg\\:flex")!.children];
+    const header = (column: Element) => column.querySelector("h2")?.parentElement?.textContent;
+
+    expect(columns.map((column) => [column.className, header(column)])).toEqual([
+      ["w-[50%] shrink-0", "Nouvelles1"],
+      ["w-[50%] shrink-0", "En cours / Prêtes3"],
+    ]);
+    expect(columns[1].textContent).toMatch(/#042.*#043.*#044/);
+  });
+
   it("affiche l'historique dans l'onglet mobile et dans le tiroir du bureau", async () => {
     const { container } = await renderBoard();
 
@@ -216,7 +234,7 @@ describe("mode cuisine : rendu du tableau", () => {
     expect(mobilePanel(container)).toMatchSnapshot("onglet historique");
 
     await click(/^Historique/);
-    expect(historyDrawer()).toMatchSnapshot("tiroir historique");
+    expect(overlay("Historique")).toMatchSnapshot("tiroir historique");
   });
 
   it("compte les articles d'une commande terminée comme sa carte, et nomme son statut", async () => {
@@ -225,7 +243,56 @@ describe("mode cuisine : rendu du tableau", () => {
     expect(container.textContent).toContain("3 articles44,85 €");
 
     await click(/^Historique/);
-    expect(historyDrawer().textContent).toContain("#039Sarah.LRécupérée44,85 €3 articles");
-    expect(historyDrawer().textContent).toContain("#040Ines.TPartiel. refusée9,90 €1 article");
+    const drawer = overlay("Historique").textContent;
+    expect(drawer).toContain("#039Sarah.LRécupérée44,85 €3 articles");
+    expect(drawer).toContain("#040Ines.TPartiel. refusée9,90 €1 article");
+  });
+});
+
+describe("mode cuisine : état de la boutique", () => {
+  it("suspend pour la durée choisie, relit l'état et ferme la fenêtre", async () => {
+    await renderBoard();
+    await click(/^Pause$/);
+    await click(/^30/);
+    expect(overlay("Suspendre les commandes")).toMatchSnapshot("fenêtre pause, 30 min");
+    await click(/^Suspendre pendant 30 min$/);
+    await flush();
+
+    const pause = '{"action":"pause","reason":"Pause manuelle","durationMin":30}';
+    expect(shopStatusRequests()).toEqual(["GET", pause, "GET"]);
+    expect(toast.success).toHaveBeenCalledWith("Pause 30 min");
+    expect(screen.queryByRole("heading", { name: "Suspendre les commandes" })).toBeNull();
+  });
+
+  it("met la boutique hors ligne depuis l'interrupteur", async () => {
+    const { container } = await renderBoard();
+    // The online toggle is the only header button styled inline (its colour follows the status)
+    fireEvent.click(container.querySelector("header button[style]")!);
+    await flush();
+    await flush();
+
+    expect(shopStatusRequests()).toEqual(["GET", '{"action":"close"}', "GET"]);
+    expect(toast.success).toHaveBeenCalledWith("Boutique hors ligne");
+  });
+
+  it("compte la pause à rebours et reprend depuis le bandeau puis depuis la barre", async () => {
+    shop = { status: "PAUSED", pauseEndsAt: minutesFromNow(10) };
+    const { container } = await renderBoard();
+    expect(container.textContent).toContain("Commandes suspendues — reprise dans 10:00");
+    // Logo and right-hand icons do not depend on the pause: the « tableau » snapshot covers them
+    expect(container.querySelector("header")!.children[1]).toMatchSnapshot("contrôles en pause");
+    const banner = screen.getByText(/^Commandes suspendues/).parentElement;
+    expect(banner).toMatchSnapshot("bandeau pause");
+
+    await click(/^Reprendre$/);
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: /10:00/ }));
+    await flush();
+    await flush();
+
+    const resume = '{"action":"resume"}';
+    expect(shopStatusRequests()).toEqual(["GET", resume, "GET", resume, "GET"]);
+    expect(toast.success).toHaveBeenNthCalledWith(1, "Boutique en ligne");
+    expect(toast.success).toHaveBeenNthCalledWith(2, "Boutique en ligne");
   });
 });

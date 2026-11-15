@@ -1,12 +1,12 @@
 // @vitest-environment node
-// runImageCensus (src/lib/images/census.ts) sur la vraie base : comptes exacts par table, colonne
+// runImageCensus (scripts/images/lib/census.ts) sur la vraie base : comptes exacts par table, colonne
 // et catégorie (NULL compris), lignes portant le nom du produit et le slug de la boutique, lecture
 // par lots au-delà de 1 000 valeurs. Les lignes sont plantées avec les fabriques : le motif de
 // production (64 photos Unsplash sur 8 boutiques, plus une ligne non publiée d'un autre nom), deux
 // photos de notre Blob, un lien Replicate, une image data:, un ancien chemin /api/uploads, des NULL.
 import { describe, expect, it } from "vitest";
-import { runImageCensus, type CensusCount } from "@/lib/images/census";
 import { imageBlobHost } from "@/lib/images/durable-url";
+import { runImageCensus, type CensusCount } from "../../../scripts/images/lib/census";
 import { UNSPLASH_PRODUCTS, UNSPLASH_PRODUCT_NAMES } from "../../fixtures/images/unsplash-pattern";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestOffer, createTestProduct, createTestShop } from "../helpers/factories";

@@ -9,23 +9,31 @@
 // --check-local Vérifie que chaque photo du site (/img/...) existe dans public/.
 // --out         Écrit le rapport complet (comptes, lignes, sondes) dans un nouveau fichier JSON.
 // Procédure complète : docs/photos.md.
+import type { ParseArgsConfig } from "node:util";
 import prisma from "@/lib/prisma";
-import { CENSUS_KIND_ORDER, runImageCensus, type CensusRow } from "@/lib/images/census";
 import { IMAGE_COLUMNS } from "@/lib/images/columns";
-import { needsSourceProbe, type ProbeResult } from "@/lib/images/repair-plan";
+import { CENSUS_KIND_ORDER, runImageCensus, type CensusRow } from "./lib/census";
+import { needsSourceProbe, type ProbeResult } from "./lib/repair-plan";
 import {
   checkBlob,
   describeDatabase,
   localPublicFileExists,
   mapLimit,
   out,
-  parseArgs,
+  parseCommandLine,
   probeSource,
   requireDatabaseUrl,
   runScript,
   shorten,
   writeNewFile,
 } from "./shared";
+
+const OPTIONS = {
+  probe: { type: "boolean", default: false },
+  "check-blob": { type: "boolean", default: false },
+  "check-local": { type: "boolean", default: false },
+  out: { type: "string" },
+} satisfies ParseArgsConfig["options"];
 
 const UNSPLASH_HOST = "images.unsplash.com";
 
@@ -80,10 +88,7 @@ function printFailures(title: string, results: readonly ProbeResult[]): void {
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2), {
-    flags: ["--probe", "--check-blob", "--check-local"],
-    options: ["--out"],
-  });
+  const { values: args } = parseCommandLine({ args: process.argv.slice(2), options: OPTIONS });
   const databaseUrl = requireDatabaseUrl();
   out(`Base : ${describeDatabase(databaseUrl)} (lecture seule)`);
 
@@ -91,31 +96,31 @@ async function main(): Promise<void> {
   printCounts(report.counts);
   printUnsplashRows(report.rows);
 
-  const probes = args.flags.has("--probe")
+  const probes = args.probe
     ? await mapLimit(distinct(report.rows, needsSourceProbe), probeSource)
     : [];
-  if (args.flags.has("--probe")) printFailures("Sources non durables sondées", probes);
+  if (args.probe) printFailures("Sources non durables sondées", probes);
 
-  const blobChecks = args.flags.has("--check-blob")
+  const blobChecks = args["check-blob"]
     ? await mapLimit(
         distinct(report.rows, (row) => row.kind === "BLOB"),
         checkBlob
       )
     : [];
-  if (args.flags.has("--check-blob")) printFailures("Fichiers de notre stockage Blob", blobChecks);
+  if (args["check-blob"]) printFailures("Fichiers de notre stockage Blob", blobChecks);
 
-  const missingLocal = args.flags.has("--check-local")
+  const missingLocal = args["check-local"]
     ? distinct(report.rows, (row) => row.kind === "LOCAL_STATIC").filter(
         (value) => !localPublicFileExists(value)
       )
     : [];
-  if (args.flags.has("--check-local")) {
+  if (args["check-local"]) {
     out();
     out(`Photos du site absentes de public/ : ${missingLocal.length}`);
     for (const value of missingLocal) out(`  ${value}`);
   }
 
-  const file = args.options.get("--out")?.[0];
+  const file = args.out;
   if (file !== undefined) {
     const at = new Date().toISOString();
     const content = {
