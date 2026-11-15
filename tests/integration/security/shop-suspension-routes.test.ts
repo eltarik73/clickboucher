@@ -24,6 +24,7 @@ import { PATCH as patchAdminShop } from "@/app/api/admin/shops/[shopId]/route";
 import { PATCH as patchSuspend } from "@/app/api/admin/shops/[shopId]/suspend/route";
 import { PATCH as patchValidate } from "@/app/api/admin/shops/[shopId]/validate/route";
 import { PATCH as patchOnboarding } from "@/app/api/boucher/onboarding/route";
+import { PATCH as patchBoucherService } from "@/app/api/boucher/service/route";
 import { PATCH as patchShopStatus } from "@/app/api/boucher/shop/status/route";
 import { PATCH as patchServiceStatus } from "@/app/api/shops/[id]/status/route";
 import { prisma, useCleanDatabase } from "../helpers/db";
@@ -109,6 +110,16 @@ describe("le boucher ne rouvre pas sa boutique suspendue", () => {
     [
       "statut update_settings",
       () => call(patchShopStatus, {}, { action: "update_settings", prepTimeMin: 20 }),
+      FORBIDDEN_OWNER,
+    ],
+    [
+      "PATCH /api/boucher/service OPEN",
+      () => call(patchBoucherService, {}, { status: "OPEN" }),
+      FORBIDDEN_OWNER,
+    ],
+    [
+      "PATCH /api/boucher/service débordée et en pause",
+      () => call(patchBoucherService, {}, { busyMode: true, paused: true }),
       FORBIDDEN_OWNER,
     ],
     [

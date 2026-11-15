@@ -10,6 +10,7 @@ import { sendNotification } from "@/lib/notifications";
 import { writeAuditLog } from "@/lib/audit-log";
 import { notifyIndexNow } from "@/lib/indexnow";
 import { approveShop, setShopPublished } from "@/lib/services/shops/moderation";
+import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
 import { z } from "zod";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -21,7 +22,7 @@ const validateSchema = z
     approved: z.boolean(),
     adminNote: z.string().trim().max(500).optional(),
   })
-  .strict({ message: "Ce champ ne peut pas être modifié ici" });
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
 export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {

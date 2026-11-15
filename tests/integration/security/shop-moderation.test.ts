@@ -191,6 +191,53 @@ describe("validation et publication", () => {
     ]);
   });
 
+  it("la validation d'une boutique en congés la valide sans la lister : sa fin de congés la met en ligne", async () => {
+    const shop = await createTestShop({
+      visible: false,
+      onboardingCompleted: false,
+      status: "VACATION",
+      vacationMode: true,
+      vacationStart: new Date("2026-12-20T00:00:00Z"),
+      vacationEnd: new Date("2027-01-05T00:00:00Z"),
+      vacationMessage: "En congés",
+    });
+    const before = new Date();
+
+    expect(await approveShop(shop.id)).toEqual({ ok: true });
+
+    const approved = await shopRow(shop.id);
+    expect(approved).toMatchObject({
+      visible: false,
+      vacationMode: true,
+      onboardingCompleted: true,
+    });
+    expect(approved.validatedAt?.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(shopPublication(approved)).toBe("ON_VACATION");
+    expect(await logs(shop.id)).toEqual([
+      { action: "APPROVED", details: null, triggeredBy: "admin" },
+    ]);
+
+    expect(await endVacationMode(shop.id)).toEqual({ ok: true });
+    const back = await shopRow(shop.id);
+    expect(back).toMatchObject({ visible: true, vacationMode: false, status: "OPEN" });
+    expect(shopPublication(back)).toBe("PUBLISHED");
+  });
+
+  it("la publication d'une boutique en congés est refusée et n'écrit rien", async () => {
+    const shop = await createTestShop();
+    const start = new Date("2026-12-20T00:00:00Z");
+    const end = new Date("2027-01-05T00:00:00Z");
+    expect(await setVacationMode(shop.id, { start, end })).toEqual({ ok: true });
+    const onVacation = await shopRow(shop.id);
+
+    expect(await setShopPublished(shop.id, true)).toEqual(
+      conflict("Boutique en vacances : elle sera remise en ligne à la fin des vacances")
+    );
+
+    expect(await shopRow(shop.id)).toEqual(onVacation);
+    expect(await actions(shop.id)).toEqual(["VACATION_ON"]);
+  });
+
   it("la mise hors ligne annule les congés, que leur fin ne peut plus republier", async () => {
     const shop = await createTestShop();
     const start = new Date("2026-12-20T00:00:00Z");

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import ShopAdjustmentsTab from "@/components/webmaster/ShopAdjustmentsTab";
+import { refusalMessage } from "@/lib/api/client-refusal";
 import { shopPublication } from "@/lib/shop-publication";
 
 // ── Types ──
@@ -90,17 +91,6 @@ async function shopPhotoSaveError(res: Response): Promise<string> {
   return body.error?.details?.imageUrl?.[0] ?? body.error?.message ?? SHOP_PHOTO_SAVE_FAILED;
 }
 
-/** The French message of a refused admin action (`{ error: { message } }`), or a generic one. */
-async function refusalMessage(res: Response): Promise<string> {
-  const body: unknown = res.headers.get("content-type")?.includes("application/json")
-    ? await res.json()
-    : null;
-  const error = typeof body === "object" && body !== null && "error" in body ? body.error : null;
-  const message =
-    typeof error === "object" && error !== null && "message" in error ? error.message : null;
-  return typeof message === "string" ? message : "Action refusée par le serveur";
-}
-
 // ── Component ──
 
 export default function WebmasterShopDetailPage() {
@@ -138,7 +128,9 @@ export default function WebmasterShopDetailPage() {
     }
   }, [shopId]);
 
-  useEffect(() => { fetchShop(); }, [fetchShop]);
+  useEffect(() => {
+    fetchShop();
+  }, [fetchShop]);
 
   // ── Actions ──
 
@@ -152,7 +144,9 @@ export default function WebmasterShopDetailPage() {
       });
       if (res.ok) await fetchShop();
       else toast.error(await refusalMessage(res));
-    } catch { toast.error("Erreur de connexion au serveur"); }
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    }
     setActionLoading(null);
   }
 
@@ -162,14 +156,19 @@ export default function WebmasterShopDetailPage() {
       const res = await fetch(`/api/admin/shops/${shopId}/suspend`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ suspended: true, reason: suspendReason || "Suspendue par le webmaster" }),
+        body: JSON.stringify({
+          suspended: true,
+          reason: suspendReason || "Suspendue par le webmaster",
+        }),
       });
       if (res.ok) {
         setShowSuspendConfirm(false);
         setSuspendReason("");
         await fetchShop();
       } else toast.error(await refusalMessage(res));
-    } catch { toast.error("Erreur de connexion au serveur"); }
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    }
     setActionLoading(null);
   }
 
@@ -183,7 +182,9 @@ export default function WebmasterShopDetailPage() {
       });
       if (res.ok) await fetchShop();
       else toast.error(await refusalMessage(res));
-    } catch { toast.error("Erreur de connexion au serveur"); }
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    }
     setActionLoading(null);
   }
 
@@ -199,14 +200,16 @@ export default function WebmasterShopDetailPage() {
         setCommissionDirty(false);
         await fetchShop();
       } else toast.error("Erreur");
-    } catch { toast.error("Erreur de connexion au serveur"); }
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    }
     setActionLoading(null);
   }
 
   async function toggleField(field: "featured" | "visible") {
     if (!shop) return;
     const newVal = !shop[field];
-    setShop((prev) => prev ? { ...prev, [field]: newVal } : prev);
+    setShop((prev) => (prev ? { ...prev, [field]: newVal } : prev));
     try {
       const res = await fetch(`/api/admin/shops/${shopId}`, {
         method: "PATCH",
@@ -214,11 +217,11 @@ export default function WebmasterShopDetailPage() {
         body: JSON.stringify({ [field]: newVal }),
       });
       if (!res.ok) {
-        setShop((prev) => prev ? { ...prev, [field]: !newVal } : prev);
+        setShop((prev) => (prev ? { ...prev, [field]: !newVal } : prev));
         toast.error(await refusalMessage(res));
       }
     } catch {
-      setShop((prev) => prev ? { ...prev, [field]: !newVal } : prev);
+      setShop((prev) => (prev ? { ...prev, [field]: !newVal } : prev));
       toast.error("Erreur de connexion au serveur");
     }
   }
@@ -228,16 +231,16 @@ export default function WebmasterShopDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <Loader2 className="w-6 h-6 animate-spin text-[#DC2626]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#DC2626]" />
       </div>
     );
   }
 
   if (!shop) {
     return (
-      <div className="text-center py-20">
+      <div className="py-20 text-center">
         <p className="text-gray-500 dark:text-gray-400">Boutique introuvable</p>
-        <Link href="/webmaster/boutiques" className="text-sm text-[#DC2626] mt-3 inline-block">
+        <Link href="/webmaster/boutiques" className="mt-3 inline-block text-sm text-[#DC2626]">
           Retour aux boutiques
         </Link>
       </div>
@@ -246,47 +249,48 @@ export default function WebmasterShopDetailPage() {
 
   const isSuspended = !!shop.suspendedAt;
   const isNotValidated = shopPublication(shop) === "UNPUBLISHED";
-  const avgOrder = shop.stats.completedOrders > 0
-    ? Math.round(shop.stats.totalRevenue / shop.stats.completedOrders)
-    : 0;
+  const avgOrder =
+    shop.stats.completedOrders > 0
+      ? Math.round(shop.stats.totalRevenue / shop.stats.completedOrders)
+      : 0;
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-up">
+    <div className="flex animate-fade-up flex-col gap-5">
       {/* Back + Header */}
       <div className="flex items-start gap-3">
         <button
           onClick={() => router.push("/webmaster/boutiques")}
-          className="w-9 h-9 rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 flex items-center justify-center shrink-0 mt-0.5"
+          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white dark:border-white/10 dark:bg-[#141414]"
         >
           <ArrowLeft size={16} className="text-gray-500 dark:text-gray-400" />
         </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-display text-xl font-bold text-gray-900 dark:text-white truncate">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="truncate font-display text-xl font-bold text-gray-900 dark:text-white">
               {shop.name}
             </h1>
             {shop.visible && (
               <>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                   ACTIVE
                 </span>
               </>
             )}
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
             {shop.city} · {shop.address}
             {shop.owner && ` · ${shop.owner.name}`}
           </p>
         </div>
 
         {/* Quick toggles */}
-        <div className="flex gap-1.5 shrink-0">
+        <div className="flex shrink-0 gap-1.5">
           <button
             onClick={() => toggleField("featured")}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+            className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all ${
               shop.featured
                 ? "bg-amber-500/20 text-amber-600"
-                : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400"
+                : "bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400"
             }`}
             title={shop.featured ? "Retirer mise en avant" : "Mettre en avant"}
           >
@@ -295,10 +299,8 @@ export default function WebmasterShopDetailPage() {
           <button
             onClick={() => toggleField("visible")}
             disabled={isSuspended}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:pointer-events-none disabled:opacity-50 ${
-              shop.visible
-                ? "bg-emerald-500/10 text-emerald-600"
-                : "bg-red-500/10 text-red-500"
+            className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all disabled:pointer-events-none disabled:opacity-50 ${
+              shop.visible ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-500"
             }`}
             title={shop.visible ? "Masquer" : "Rendre visible"}
           >
@@ -308,23 +310,23 @@ export default function WebmasterShopDetailPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-white/5 rounded-xl p-1">
+      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-white/5">
         <button
           onClick={() => setActiveTab("general")}
-          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+          className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
             activeTab === "general"
-              ? "bg-white dark:bg-[#141414] text-gray-900 dark:text-white shadow-sm"
-              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              ? "bg-white text-gray-900 shadow-sm dark:bg-[#141414] dark:text-white"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
           Général
         </button>
         <button
           onClick={() => setActiveTab("adjustments")}
-          className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+          className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-all ${
             activeTab === "adjustments"
-              ? "bg-white dark:bg-[#141414] text-gray-900 dark:text-white shadow-sm"
-              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              ? "bg-white text-gray-900 shadow-sm dark:bg-[#141414] dark:text-white"
+              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
           Ajustements prix
@@ -332,337 +334,454 @@ export default function WebmasterShopDetailPage() {
       </div>
 
       {/* Tab: Adjustments */}
-      {activeTab === "adjustments" && (
-        <ShopAdjustmentsTab shopId={shopId} />
-      )}
+      {activeTab === "adjustments" && <ShopAdjustmentsTab shopId={shopId} />}
 
       {/* Tab: General */}
-      {activeTab === "general" && (<>
-
-      {/* Not validated alert */}
-      {isNotValidated && (
-        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={16} className="text-amber-600" />
-            <span className="text-sm font-bold text-amber-800 dark:text-amber-300">Boutique non validée</span>
-          </div>
-          <p className="text-xs text-amber-700 dark:text-amber-300/80 mb-3">
-            Cette boutique n&apos;a pas encore été validée. Approuvez-la pour la rendre visible sur la plateforme.
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleValidate(true)}
-              disabled={actionLoading === "validate"}
-              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
-            >
-              {actionLoading === "validate" ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-              Approuver (Starter, 14j essai)
-            </button>
-            <button
-              onClick={() => handleValidate(false)}
-              disabled={actionLoading === "validate"}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-100 dark:bg-red-500/10 text-red-600 text-xs font-semibold rounded-xl hover:bg-red-200 dark:hover:bg-red-500/20 transition-colors disabled:opacity-50"
-            >
-              <XCircle size={12} /> Refuser
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Suspended alert */}
-      {isSuspended && (
-        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <PauseCircle size={16} className="text-red-500" />
-            <span className="text-sm font-bold text-red-700 dark:text-red-400">Boutique suspendue</span>
-          </div>
-          {shop.suspendReason && (
-            <p className="text-xs text-red-600 dark:text-red-400/80 mb-3">Raison&nbsp;: {shop.suspendReason}</p>
-          )}
-          <button
-            onClick={handleReactivate}
-            disabled={actionLoading === "reactivate"}
-            className="flex min-h-11 items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          >
-            {actionLoading === "reactivate" ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
-            Réactiver la boutique
-          </button>
-        </div>
-      )}
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "CA total", value: centsToEuro(shop.stats.totalRevenue), icon: TrendingUp, color: "text-[#DC2626]", bg: "bg-[#DC2626]/10" },
-          { label: "Commission", value: centsToEuro(shop.stats.totalCommission), icon: Coins, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
-          { label: "Commandes", value: `${shop.stats.completedOrders} / ${shop.stats.orderCount}`, icon: ShoppingCart, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
-          { label: "Panier moyen", value: centsToEuro(avgOrder), icon: ShoppingCart, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10" },
-          { label: "Produits", value: String(shop.stats.productCount), icon: Package, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
-          { label: "Avis", value: `${shop.stats.reviewCount} · ${shop.rating.toFixed(1)}★`, icon: MessageSquare, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
-          { label: "Tickets", value: String(shop.stats.ticketCount), icon: Headphones, color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-500/10" },
-          { label: "Inscription", value: new Date(shop.createdAt).toLocaleDateString("fr-FR"), icon: CheckCircle2, color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-500/10" },
-        ].map((s) => {
-          const Icon = s.icon;
-          return (
-            <div key={s.label} className="bg-white dark:bg-[#141414] rounded-xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-3.5">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className={`w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center`}>
-                  <Icon size={13} className={s.color} />
-                </div>
-                <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{s.label}</span>
+      {activeTab === "general" && (
+        <>
+          {/* Not validated alert */}
+          {isNotValidated && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+              <div className="mb-3 flex items-center gap-2">
+                <AlertTriangle size={16} className="text-amber-600" />
+                <span className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                  Boutique non validée
+                </span>
               </div>
-              <p className={`text-base font-extrabold ${s.color}`}>{s.value}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Admin actions row */}
-      <div className="grid grid-cols-1 gap-4">
-        {/* Commission + Suspend */}
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5 space-y-5">
-          {/* Commission */}
-          <div>
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Commission</h3>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={0.5}
-                value={commissionPct}
-                onChange={(e) => { setCommissionPct(parseFloat(e.target.value) || 0); setCommissionDirty(true); }}
-                className="w-20 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-center text-gray-900 dark:text-white"
-              />
-              <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
-              {commissionDirty && (
+              <p className="mb-3 text-xs text-amber-700 dark:text-amber-300/80">
+                Cette boutique n&apos;a pas encore été validée. Approuvez-la pour la rendre visible
+                sur la plateforme.
+              </p>
+              <div className="flex gap-2">
                 <button
-                  onClick={handleCommission}
-                  disabled={actionLoading === "commission"}
-                  className="px-3 py-2 text-xs font-semibold bg-[#DC2626] text-white rounded-lg hover:bg-[#b91c1c] transition-colors disabled:opacity-50"
+                  onClick={() => handleValidate(true)}
+                  disabled={actionLoading === "validate"}
+                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {actionLoading === "commission" ? "..." : "Enregistrer"}
+                  {actionLoading === "validate" ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={12} />
+                  )}
+                  Approuver (Starter, 14j essai)
                 </button>
+                <button
+                  onClick={() => handleValidate(false)}
+                  disabled={actionLoading === "validate"}
+                  className="flex items-center gap-1.5 rounded-xl bg-red-100 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-500/10 dark:hover:bg-red-500/20"
+                >
+                  <XCircle size={12} /> Refuser
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Suspended alert */}
+          {isSuspended && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10">
+              <div className="mb-2 flex items-center gap-2">
+                <PauseCircle size={16} className="text-red-500" />
+                <span className="text-sm font-bold text-red-700 dark:text-red-400">
+                  Boutique suspendue
+                </span>
+              </div>
+              {shop.suspendReason && (
+                <p className="mb-3 text-xs text-red-600 dark:text-red-400/80">
+                  Raison&nbsp;: {shop.suspendReason}
+                </p>
               )}
-            </div>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5">
-              {shop.commissionEnabled ? "Active" : "Désactivée"} · Total perçu : {centsToEuro(shop.stats.totalCommission)}
-            </p>
-          </div>
-
-          {/* Mode occupé — durée par défaut */}
-          <div className="border-t border-gray-100 dark:border-white/5 pt-4">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Mode occupé</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Durée par défaut quand le boucher active le mode occupé</p>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min={5}
-                max={120}
-                value={shop.defaultBusyDurationMin ?? 15}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  if (!isNaN(val)) setShop((prev) => prev ? { ...prev, defaultBusyDurationMin: val } : prev);
-                }}
-                className="w-20 px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white text-center"
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400">minutes</span>
-              <button
-                onClick={async () => {
-                  try {
-                    const res = await fetch(`/api/admin/shops/${shopId}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ defaultBusyDurationMin: shop.defaultBusyDurationMin ?? 15 }),
-                    });
-                    if (res.ok) toast.success("Durée mise à jour");
-                    else toast.error("Erreur");
-                  } catch { toast.error("Erreur de connexion"); }
-                }}
-                className="px-3 py-2 text-xs font-semibold bg-primary text-white rounded-lg hover:bg-[#b91c1c] transition-colors"
-              >
-                Enregistrer
-              </button>
-            </div>
-          </div>
-
-          {/* Suspend / Reactivate */}
-          <div className="border-t border-gray-100 dark:border-white/5 pt-4">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">
-              {isSuspended ? "Boutique suspendue" : "Suspension"}
-            </h3>
-            {isSuspended ? (
               <button
                 onClick={handleReactivate}
                 disabled={actionLoading === "reactivate"}
-                className="flex min-h-11 items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="flex min-h-11 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
               >
-                {actionLoading === "reactivate" ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
-                Réactiver
+                {actionLoading === "reactivate" ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <PlayCircle size={12} />
+                )}
+                Réactiver la boutique
               </button>
-            ) : !showSuspendConfirm ? (
-              <button
-                onClick={() => setShowSuspendConfirm(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-red-100 dark:bg-red-500/10 text-red-600 text-xs font-semibold rounded-xl hover:bg-red-200 dark:hover:bg-red-500/20 transition-colors"
-              >
-                <PauseCircle size={12} /> Suspendre cette boutique
-              </button>
-            ) : (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="Raison de la suspension..."
-                  value={suspendReason}
-                  onChange={(e) => setSuspendReason(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder:text-gray-500 dark:text-gray-400"
-                />
-                <div className="flex gap-2">
+            </div>
+          )}
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              {
+                label: "CA total",
+                value: centsToEuro(shop.stats.totalRevenue),
+                icon: TrendingUp,
+                color: "text-[#DC2626]",
+                bg: "bg-[#DC2626]/10",
+              },
+              {
+                label: "Commission",
+                value: centsToEuro(shop.stats.totalCommission),
+                icon: Coins,
+                color: "text-amber-600 dark:text-amber-400",
+                bg: "bg-amber-500/10",
+              },
+              {
+                label: "Commandes",
+                value: `${shop.stats.completedOrders} / ${shop.stats.orderCount}`,
+                icon: ShoppingCart,
+                color: "text-blue-600 dark:text-blue-400",
+                bg: "bg-blue-500/10",
+              },
+              {
+                label: "Panier moyen",
+                value: centsToEuro(avgOrder),
+                icon: ShoppingCart,
+                color: "text-purple-600 dark:text-purple-400",
+                bg: "bg-purple-500/10",
+              },
+              {
+                label: "Produits",
+                value: String(shop.stats.productCount),
+                icon: Package,
+                color: "text-emerald-600 dark:text-emerald-400",
+                bg: "bg-emerald-500/10",
+              },
+              {
+                label: "Avis",
+                value: `${shop.stats.reviewCount} · ${shop.rating.toFixed(1)}★`,
+                icon: MessageSquare,
+                color: "text-amber-600 dark:text-amber-400",
+                bg: "bg-amber-500/10",
+              },
+              {
+                label: "Tickets",
+                value: String(shop.stats.ticketCount),
+                icon: Headphones,
+                color: "text-gray-600 dark:text-gray-400",
+                bg: "bg-gray-500/10",
+              },
+              {
+                label: "Inscription",
+                value: new Date(shop.createdAt).toLocaleDateString("fr-FR"),
+                icon: CheckCircle2,
+                color: "text-gray-600 dark:text-gray-400",
+                bg: "bg-gray-500/10",
+              },
+            ].map((s) => {
+              const Icon = s.icon;
+              return (
+                <div
+                  key={s.label}
+                  className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm dark:border-white/[0.06] dark:bg-[#141414]"
+                >
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <div className={`h-7 w-7 rounded-lg ${s.bg} flex items-center justify-center`}>
+                      <Icon size={13} className={s.color} />
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      {s.label}
+                    </span>
+                  </div>
+                  <p className={`text-base font-extrabold ${s.color}`}>{s.value}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Admin actions row */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Commission + Suspend */}
+            <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.06] dark:bg-[#141414]">
+              {/* Commission */}
+              <div>
+                <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white">Commission</h3>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.5}
+                    value={commissionPct}
+                    onChange={(e) => {
+                      setCommissionPct(parseFloat(e.target.value) || 0);
+                      setCommissionDirty(true);
+                    }}
+                    className="w-20 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center text-sm text-gray-900 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
+                  {commissionDirty && (
+                    <button
+                      onClick={handleCommission}
+                      disabled={actionLoading === "commission"}
+                      className="rounded-lg bg-[#DC2626] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#b91c1c] disabled:opacity-50"
+                    >
+                      {actionLoading === "commission" ? "..." : "Enregistrer"}
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+                  {shop.commissionEnabled ? "Active" : "Désactivée"} · Total perçu :{" "}
+                  {centsToEuro(shop.stats.totalCommission)}
+                </p>
+              </div>
+
+              {/* Mode occupé — durée par défaut */}
+              <div className="border-t border-gray-100 pt-4 dark:border-white/5">
+                <h3 className="mb-2 text-sm font-bold text-gray-900 dark:text-white">
+                  Mode occupé
+                </h3>
+                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                  Durée par défaut quand le boucher active le mode occupé
+                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={5}
+                    max={120}
+                    value={shop.defaultBusyDurationMin ?? 15}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val))
+                        setShop((prev) => (prev ? { ...prev, defaultBusyDurationMin: val } : prev));
+                    }}
+                    className="w-20 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center text-sm text-gray-900 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">minutes</span>
                   <button
-                    onClick={handleSuspend}
-                    disabled={actionLoading === "suspend"}
-                    className="flex-1 py-2 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/admin/shops/${shopId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            defaultBusyDurationMin: shop.defaultBusyDurationMin ?? 15,
+                          }),
+                        });
+                        if (res.ok) toast.success("Durée mise à jour");
+                        else toast.error("Erreur");
+                      } catch {
+                        toast.error("Erreur de connexion");
+                      }
+                    }}
+                    className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#b91c1c]"
                   >
-                    {actionLoading === "suspend" ? "..." : "Confirmer suspension"}
-                  </button>
-                  <button
-                    onClick={() => { setShowSuspendConfirm(false); setSuspendReason(""); }}
-                    className="py-2 px-3 text-xs text-gray-500 dark:text-gray-400"
-                  >
-                    Annuler
+                    Enregistrer
                   </button>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Shop photo management */}
-      <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-          <Camera size={15} className="text-gray-500 dark:text-gray-400" /> Photo de la boutique
-        </h3>
-
-        {/* Current photo */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-white/5 overflow-hidden flex-shrink-0">
-            {shop.imageUrl ? (
-              <Image src={shop.imageUrl} alt={shop.name} width={80} height={80} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl text-gray-300">🏪</div>
-            )}
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {shop.imageUrl ? "Photo actuelle" : "Aucune photo"}
-            </p>
-            {shop.imageUrl && (
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[200px]">{shop.imageUrl}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Default photos grid */}
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-          Choisir une photo par defaut
-        </p>
-        <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
-          {[1, 3, 4, 5, 6, 8, 10].map((n) => {
-            const url = `/img/shops/shop-${n}.jpg`;
-            const isActive = shop.imageUrl === url;
-            return (
-              <button
-                key={n}
-                onClick={async () => {
-                  const previousUrl = shop.imageUrl;
-                  const restore = () =>
-                    setShop((prev) => (prev ? { ...prev, imageUrl: previousUrl } : prev));
-                  setShop((prev) => prev ? { ...prev, imageUrl: url } : prev);
-                  try {
-                    const res = await fetch(`/api/shops/${shopId}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ imageUrl: url }),
-                    });
-                    if (!res.ok) {
-                      restore();
-                      toast.error(await shopPhotoSaveError(res));
-                    }
-                  } catch {
-                    restore();
-                    toast.error("Erreur de connexion au serveur");
-                  }
-                }}
-                className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                  isActive
-                    ? "border-[#DC2626] ring-2 ring-[#DC2626]/20"
-                    : "border-transparent hover:border-gray-300 dark:hover:border-white/20"
-                }`}
-              >
-                <Image src={url} alt={`Photo ${n}`} fill className="object-cover" />
-                {isActive && (
-                  <div className="absolute inset-0 bg-[#DC2626]/20 flex items-center justify-center">
-                    <Check size={18} className="text-white drop-shadow" />
+              {/* Suspend / Reactivate */}
+              <div className="border-t border-gray-100 pt-4 dark:border-white/5">
+                <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white">
+                  {isSuspended ? "Boutique suspendue" : "Suspension"}
+                </h3>
+                {isSuspended ? (
+                  <button
+                    onClick={handleReactivate}
+                    disabled={actionLoading === "reactivate"}
+                    className="flex min-h-11 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {actionLoading === "reactivate" ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <PlayCircle size={12} />
+                    )}
+                    Réactiver
+                  </button>
+                ) : !showSuspendConfirm ? (
+                  <button
+                    onClick={() => setShowSuspendConfirm(true)}
+                    className="flex items-center gap-1.5 rounded-xl bg-red-100 px-4 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-200 dark:bg-red-500/10 dark:hover:bg-red-500/20"
+                  >
+                    <PauseCircle size={12} /> Suspendre cette boutique
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Raison de la suspension..."
+                      value={suspendReason}
+                      onChange={(e) => setSuspendReason(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:text-white"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSuspend}
+                        disabled={actionLoading === "suspend"}
+                        className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {actionLoading === "suspend" ? "..." : "Confirmer suspension"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSuspendConfirm(false);
+                          setSuspendReason("");
+                        }}
+                        className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400"
+                      >
+                        Annuler
+                      </button>
+                    </div>
                   </div>
                 )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Owner info */}
-      {shop.owner && (
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Proprietaire</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-            <div>
-              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Nom</span>
-              <span className="text-gray-900 dark:text-white font-medium">{shop.owner.name}</span>
-            </div>
-            <div>
-              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Email</span>
-              <span className="text-gray-700 dark:text-gray-300">{shop.owner.email}</span>
-            </div>
-            <div>
-              <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Telephone</span>
-              <span className="text-gray-700 dark:text-gray-300">{shop.owner.phone || "Non renseigne"}</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Recent orders */}
-      {shop.recentOrders.length > 0 && (
-        <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-5">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Dernieres commandes</h3>
-          <div className="space-y-2">
-            {shop.recentOrders.map((order) => (
-              <div
-                key={order.id}
-                className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-white/[0.03] last:border-0"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-gray-900 dark:text-white">{order.orderNumber}</span>
-                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${ORDER_STATUS_COLORS[order.status] || ""}`}>
-                    {order.status}
+          {/* Shop photo management */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.06] dark:bg-[#141414]">
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+              <Camera size={15} className="text-gray-500 dark:text-gray-400" /> Photo de la boutique
+            </h3>
+
+            {/* Current photo */}
+            <div className="mb-4 flex items-center gap-4">
+              <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-white/5">
+                {shop.imageUrl ? (
+                  <Image
+                    src={shop.imageUrl}
+                    alt={shop.name}
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-2xl text-gray-300">
+                    🏪
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {shop.imageUrl ? "Photo actuelle" : "Aucune photo"}
+                </p>
+                {shop.imageUrl && (
+                  <p className="mt-0.5 max-w-[200px] truncate text-[10px] text-gray-500 dark:text-gray-400">
+                    {shop.imageUrl}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Default photos grid */}
+            <p className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+              Choisir une photo par defaut
+            </p>
+            <div className="grid grid-cols-4 gap-2 md:grid-cols-7">
+              {[1, 3, 4, 5, 6, 8, 10].map((n) => {
+                const url = `/img/shops/shop-${n}.jpg`;
+                const isActive = shop.imageUrl === url;
+                return (
+                  <button
+                    key={n}
+                    onClick={async () => {
+                      const previousUrl = shop.imageUrl;
+                      const restore = () =>
+                        setShop((prev) => (prev ? { ...prev, imageUrl: previousUrl } : prev));
+                      setShop((prev) => (prev ? { ...prev, imageUrl: url } : prev));
+                      try {
+                        const res = await fetch(`/api/shops/${shopId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ imageUrl: url }),
+                        });
+                        if (!res.ok) {
+                          restore();
+                          toast.error(await shopPhotoSaveError(res));
+                        }
+                      } catch {
+                        restore();
+                        toast.error("Erreur de connexion au serveur");
+                      }
+                    }}
+                    className={`relative aspect-square overflow-hidden rounded-xl border-2 transition-all ${
+                      isActive
+                        ? "border-[#DC2626] ring-2 ring-[#DC2626]/20"
+                        : "border-transparent hover:border-gray-300 dark:hover:border-white/20"
+                    }`}
+                  >
+                    <Image src={url} alt={`Photo ${n}`} fill className="object-cover" />
+                    {isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-[#DC2626]/20">
+                        <Check size={18} className="text-white drop-shadow" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Owner info */}
+          {shop.owner && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.06] dark:bg-[#141414]">
+              <h3 className="mb-2 text-sm font-bold text-gray-900 dark:text-white">Proprietaire</h3>
+              <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Nom
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {shop.owner.name}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    {centsToEuro(order.totalCents)}
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Email
                   </span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                    {new Date(order.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  <span className="text-gray-700 dark:text-gray-300">{shop.owner.email}</span>
+                </div>
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Telephone
+                  </span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {shop.owner.phone || "Non renseigne"}
                   </span>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          )}
 
-      </>)}
+          {/* Recent orders */}
+          {shop.recentOrders.length > 0 && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.06] dark:bg-[#141414]">
+              <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white">
+                Dernieres commandes
+              </h3>
+              <div className="space-y-2">
+                {shop.recentOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between border-b border-gray-50 py-2 last:border-0 dark:border-white/[0.03]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">
+                        {order.orderNumber}
+                      </span>
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 text-[9px] font-semibold ${ORDER_STATUS_COLORS[order.status] || ""}`}
+                      >
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        {centsToEuro(order.totalCents)}
+                      </span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                        {new Date(order.createdAt).toLocaleDateString("fr-FR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

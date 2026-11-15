@@ -143,10 +143,14 @@ export async function setBusyMode(
   }
 ) {
   // If already busy, extend from current end time (cumulative)
-  const shop = await prisma.shop.findUnique({ where: { id: shopId }, select: { busyMode: true, busyModeEndsAt: true } });
-  const baseTime = shop?.busyMode && shop.busyModeEndsAt && shop.busyModeEndsAt.getTime() > Date.now()
-    ? shop.busyModeEndsAt.getTime()
-    : Date.now();
+  const shop = await prisma.shop.findUnique({
+    where: { id: shopId },
+    select: { busyMode: true, busyModeEndsAt: true },
+  });
+  const baseTime =
+    shop?.busyMode && shop.busyModeEndsAt && shop.busyModeEndsAt.getTime() > Date.now()
+      ? shop.busyModeEndsAt.getTime()
+      : Date.now();
   const busyModeEndsAt = new Date(baseTime + options.durationMin * 60 * 1000);
 
   await prisma.$transaction([
@@ -226,7 +230,8 @@ export async function checkAutoPause(shopId: string) {
       `shop:${shopId}:events`,
       JSON.stringify({
         type: "SHOP_AUTO_PAUSED",
-        message: "Votre boutique a été mise en pause car plusieurs commandes sont restées sans réponse.",
+        message:
+          "Votre boutique a été mise en pause car plusieurs commandes sont restées sans réponse.",
       })
     );
   } else {

@@ -98,18 +98,22 @@ export default function OnboardingChecklist() {
     return () => clearTimeout(timer);
   }, [showConfetti]);
 
-  if (!data || (data.onboardingCompleted && data.publication !== "SUSPENDED")) return null;
+  if (!data) return null;
+  // onboardingCompleted is the owner's checklist flag, not a validation: the card goes away only
+  // once the shop is online (or on vacation), never while it waits for Klik&Go or is suspended.
+  const live = data.publication === "PUBLISHED" || data.publication === "ON_VACATION";
+  if (data.onboardingCompleted && live) return null;
 
   const completedCount = data.steps.filter((s) => s.completed).length;
   const label = publicationLabel(data.publication, data.progress);
 
   return (
-    <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden mb-6 relative">
+    <div className="relative mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-[#141414]">
       {/* Confetti overlay */}
       {showConfetti && (
-        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-          <div className="text-center animate-bounce">
-            <PartyPopper size={48} className="text-amber-500 mx-auto mb-2" />
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <div className="animate-bounce text-center">
+            <PartyPopper size={48} className="mx-auto mb-2 text-amber-500" />
             <p className="text-lg font-bold text-gray-900 dark:text-white">
               Votre boutique est en ligne !
             </p>
@@ -118,9 +122,9 @@ export default function OnboardingChecklist() {
       )}
 
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-gray-900 dark:text-[#f8f6f3] flex items-center gap-2">
+      <div className="border-b border-gray-100 px-5 py-4 dark:border-white/10">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 font-bold text-gray-900 dark:text-[#f8f6f3]">
             <Rocket size={20} className="text-[#DC2626]" />
             Préparez votre boutique
           </h2>
@@ -130,13 +134,13 @@ export default function OnboardingChecklist() {
         </div>
 
         {/* Progress bar */}
-        <div className="relative h-3 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+        <div className="relative h-3 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
           <div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#DC2626] to-[#ef4444] rounded-full transition-all duration-1000 ease-out"
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#DC2626] to-[#ef4444] transition-all duration-1000 ease-out"
             style={{ width: `${data.progress}%` }}
           />
         </div>
-        <div className="flex items-center justify-between mt-1.5">
+        <div className="mt-1.5 flex items-center justify-between">
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {data.progress}% complété
           </span>
@@ -151,15 +155,13 @@ export default function OnboardingChecklist() {
         {data.steps.map((step) => (
           <div
             key={step.key}
-            className={`px-5 py-3 flex items-center gap-3 transition-colors ${
-              step.completed
-                ? "bg-emerald-50/50 dark:bg-emerald-500/5"
-                : ""
+            className={`flex items-center gap-3 px-5 py-3 transition-colors ${
+              step.completed ? "bg-emerald-50/50 dark:bg-emerald-500/5" : ""
             }`}
           >
             {/* Checkbox */}
             <div
-              className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
                 step.completed
                   ? "bg-emerald-500 text-white"
                   : "border-2 border-gray-300 dark:border-gray-600"
@@ -169,11 +171,11 @@ export default function OnboardingChecklist() {
             </div>
 
             {/* Label */}
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <p
                 className={`text-sm font-medium ${
                   step.completed
-                    ? "text-gray-500 dark:text-gray-400 line-through"
+                    ? "text-gray-500 line-through dark:text-gray-400"
                     : "text-gray-900 dark:text-[#f8f6f3]"
                 }`}
               >
@@ -186,16 +188,14 @@ export default function OnboardingChecklist() {
             {!step.completed && step.href !== "#" && (
               <Link
                 href={step.href}
-                className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#DC2626] hover:text-[#b91c1c] transition-colors"
+                className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#DC2626] transition-colors hover:text-[#b91c1c]"
               >
                 Configurer
                 <ArrowRight size={12} />
               </Link>
             )}
             {step.completed && (
-              <span className="shrink-0 text-xs text-emerald-500 font-medium">
-                Fait
-              </span>
+              <span className="shrink-0 text-xs font-medium text-emerald-500">Fait</span>
             )}
           </div>
         ))}

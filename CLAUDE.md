@@ -26,8 +26,9 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
   uniquement, `trustedHtml` sur un littéral seulement ; garde `src/lib/__tests__/html-sinks.test.ts`, dont les
   compteurs `LEGACY_BASELINE` ne peuvent que baisser.
 - **Noms d'invité** : `firstNameSchema` / `lastNameSchema` de `src/lib/validators/person-name.ts`.
-- **Suspension** = `Shop.suspendedAt`, écrite seulement par `src/lib/services/shops/moderation.ts` ; statut et
-  onboarding du boucher → 403 tant qu'elle dure, seul l'admin la lève (« Réactiver »).
+- **Suspension** = `Shop.suspendedAt`, écrite seulement par `src/lib/services/shops/moderation.ts` ; toute route
+  du boucher qui change l'état de sa boutique (`/api/boucher/shop/status`, `/api/boucher/service`,
+  `/api/shops/[id]/status`, onboarding) → 403 tant qu'elle dure, seul l'admin la lève (« Réactiver »).
 - **`Shop.visible`** : écrivains en liste fermée (modération, congés de `src/lib/shop-vacation.ts` sous condition,
   les deux créations), verrouillée par `src/lib/__tests__/shop-visible-writers.test.ts`.
 - **Publication** : `src/lib/shop-publication.ts` répond seul à « page accessible » (`isShopPageReachable`) et

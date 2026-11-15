@@ -6,6 +6,7 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { readJsonBody } from "@/lib/api/request-body";
 import { writeAuditLog } from "@/lib/audit-log";
 import { setShopPublished } from "@/lib/services/shops/moderation";
+import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +89,7 @@ const patchShopSchema = z
     visible: z.boolean().optional(),
     defaultBusyDurationMin: z.number().int().min(5).max(120).optional(),
   })
-  .strict({ message: "Ce champ ne peut pas être modifié ici" });
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
 export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {

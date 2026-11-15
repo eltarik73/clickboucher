@@ -75,7 +75,7 @@ const safeLongitude = z
  * may not write (commission, tier, publication, moderation, photos, slug, owner) cannot be smuggled
  * next to a legitimate one, and nothing of the request is written.
  */
-const FIELD_NOT_EDITABLE_HERE = { message: "Ce champ ne peut pas être modifié ici" };
+export const FIELD_NOT_EDITABLE_HERE = { message: "Ce champ ne peut pas être modifié ici" };
 
 /**
  * What a butcher edits on HIS shop (parametres, ProductFormPage). Everything else on Shop belongs to
@@ -454,18 +454,6 @@ export const wmAuditLogQuerySchema = z.object({
 
 export const wmToggleFeatureFlagSchema = z.object({
   enabled: z.boolean(),
-});
-
-export const wmUpdateShopSchema = z.object({
-  visible: z.boolean().optional(),
-  featured: z.boolean().optional(),
-  commissionPct: z.number().min(0).max(100).optional(),
-  commissionEnabled: z.boolean().optional(),
-  suspendReason: z.string().max(500).optional(),
-});
-
-export const wmSuspendShopSchema = z.object({
-  reason: z.string().min(1).max(500),
 });
 
 // ══════════════════════════════════════════

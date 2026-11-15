@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { readJsonBody } from "@/lib/api/request-body";
 import { writeAuditLog } from "@/lib/audit-log";
+import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ const commissionSchema = z
     commissionPct: z.number().min(0).max(100),
     commissionEnabled: z.boolean().optional(),
   })
-  .strict({ message: "Ce champ ne peut pas être modifié ici" });
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
 export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {

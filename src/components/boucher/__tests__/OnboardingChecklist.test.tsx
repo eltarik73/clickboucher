@@ -1,9 +1,10 @@
 // Carte « Préparez votre boutique » du tableau de bord boucher (jsdom, fetch simulé) :
 // - elle ne met jamais la boutique en ligne : la publication est une décision de Klik&Go ;
 // - son libellé suit la publication renvoyée par GET /api/boucher/onboarding ;
-// - une boutique suspendue garde la carte, même avec son parcours terminé ;
+// - parcours terminé : la carte disparaît seulement quand la boutique est en ligne ou en vacances ;
+//   une boutique suspendue ou pas encore validée la garde, avec son libellé ;
 // - à 100 % elle envoie seulement { complete: true }.
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ShopPublication } from "@/lib/shop-publication";
 import OnboardingChecklist from "@/components/boucher/OnboardingChecklist";
@@ -122,6 +123,33 @@ describe("publication de la boutique", () => {
 
     expect(await screen.findByText("Boutique suspendue par Klik&Go")).toBeInTheDocument();
     expect(screen.queryByText(/en ligne/i)).toBeNull();
+  });
+
+  it("parcours terminé, boutique pas encore validée : la carte reste, « En attente de validation par Klik&Go », aucun PATCH", async () => {
+    const fetchMock = stubFetch({
+      progress: 100,
+      visible: false,
+      publication: "UNPUBLISHED",
+      onboardingCompleted: true,
+    });
+    render(<OnboardingChecklist />);
+
+    expect(await screen.findByText("En attente de validation par Klik&Go")).toBeInTheDocument();
+    expect(fetchMock.mock.calls).toEqual([[ONBOARDING_URL]]);
+  });
+
+  it("parcours terminé, boutique en ligne : la carte ne s'affiche pas", async () => {
+    const fetchMock = stubFetch({
+      progress: 100,
+      visible: true,
+      publication: "PUBLISHED",
+      onboardingCompleted: true,
+    });
+    const { container } = render(<OnboardingChecklist />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(container).toBeEmptyDOMElement();
   });
 });
 

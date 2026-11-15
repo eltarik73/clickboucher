@@ -69,7 +69,7 @@ describe("shopOrderRefusalMessage", () => {
   });
 
   it("répond « en vacances » à une boutique en congés", () => {
-    expect(shopOrderRefusalMessage(facts(false, false, true))).toBe("La boutique est en vacances");
+    expect(shopOrderRefusalMessage(facts(false, false, true))).toBe("La boucherie est en vacances");
   });
 
   it.each([

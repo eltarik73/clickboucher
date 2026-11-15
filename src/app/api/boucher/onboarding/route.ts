@@ -9,6 +9,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { readJsonBody } from "@/lib/api/request-body";
+import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
 import { shopSuspension } from "@/lib/shop-status";
 import {
   SHOP_SUSPENDED_OWNER_MESSAGE,
@@ -19,7 +20,7 @@ import { z } from "zod";
 
 const patchOnboardingSchema = z
   .object({ complete: z.boolean().optional() })
-  .strict({ message: "Ce champ ne peut pas être modifié ici" });
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
 export const dynamic = "force-dynamic";
 
@@ -136,7 +137,7 @@ export async function GET() {
       publication: shopPublication(shop),
     });
   } catch (error) {
-    return handleApiError(error, "boucher/onboarding");
+    return handleApiError(error, "boucher/onboarding/GET");
   }
 }
 
@@ -162,6 +163,6 @@ export async function PATCH(req: NextRequest) {
 
     return apiSuccess({ onboardingCompleted: shop.onboardingCompleted });
   } catch (error) {
-    return handleApiError(error, "boucher/onboarding/complete");
+    return handleApiError(error, "boucher/onboarding/PATCH");
   }
 }

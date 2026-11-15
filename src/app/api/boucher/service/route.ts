@@ -3,6 +3,9 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
+import { SHOP_SUSPENDED_OWNER_MESSAGE } from "@/lib/shop-publication";
+import { shopSuspension } from "@/lib/shop-status";
 import { updateServiceSchema } from "@/lib/validators";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +19,14 @@ export async function GET() {
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
       select: {
-        id: true, status: true, busyMode: true, busyExtraMin: true,
-        paused: true, prepTimeMin: true, autoAccept: true, maxOrdersPerHour: true,
+        id: true,
+        status: true,
+        busyMode: true,
+        busyExtraMin: true,
+        paused: true,
+        prepTimeMin: true,
+        autoAccept: true,
+        maxOrdersPerHour: true,
         priceAdjustmentThreshold: true,
       },
     });
@@ -32,14 +41,16 @@ export async function GET() {
   }
 }
 
+// A suspended shop belongs to the admin until it is reactivated: every change is refused.
 export async function PATCH(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
 
-    const body = await req.json();
-    const data = updateServiceSchema.parse(body);
+    if (await shopSuspension(shopId)) return apiError("FORBIDDEN", SHOP_SUSPENDED_OWNER_MESSAGE);
+
+    const data = updateServiceSchema.parse(await readJsonBody(req));
 
     const updated = await prisma.shop.update({
       where: { id: shopId },

@@ -24,7 +24,7 @@ export type ShopPublication = "PUBLISHED" | "ON_VACATION" | "UNPUBLISHED" | "SUS
 /** Customer-facing refusal: says neither « suspended » nor « not validated ». */
 export const SHOP_UNAVAILABLE_MESSAGE =
   "Cette boucherie n'est pas disponible à la commande pour le moment.";
-export const SHOP_ON_VACATION_MESSAGE = "La boutique est en vacances";
+export const SHOP_ON_VACATION_MESSAGE = "La boucherie est en vacances";
 export const SHOP_SUSPENDED_OWNER_MESSAGE =
   "Votre boutique est suspendue par Klik&Go. Contactez le support pour la réactiver.";
 export const SHOP_NOT_PUBLISHED_OWNER_MESSAGE =
