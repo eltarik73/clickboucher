@@ -68,6 +68,8 @@ const TOLERANCE_COLUMN_WRITERS: Record<string, string> = {
     "réponse du client à une rupture : une ligne remplacée compte pour son nouveau total dans l'estimation",
   "src/lib/services/orders/commands/unavailable-lines.ts":
     "rupture signalée, retrait ou remplacement : total estimé figé à nouveau sur les lignes gardées (taux et plafond inchangés), écrit par transitionOrder",
+  "src/lib/services/orders/adjustment-settlement.ts":
+    "ajustement appliqué : total estimé figé à nouveau sur les lignes encore livrées (estimatedTotalOf, via decideAdjustment)",
 };
 
 /** Une propriété de colonne figée dont la valeur n'est ni un booléen de select ni un type. */

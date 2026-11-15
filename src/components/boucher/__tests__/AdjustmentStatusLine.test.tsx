@@ -56,7 +56,7 @@ describe("AdjustmentStatusLine", () => {
     expect(html).not.toContain("pour répondre");
   });
 
-  it("shows no time for a pending row written before deadlines were stored", () => {
+  it("shows no time for a pending row without a stored deadline", () => {
     render(<AdjustmentStatusLine adjustment={adjustment({ answerBy: null })} />);
 
     expect(screen.getByText("En attente du client")).toBeInTheDocument();

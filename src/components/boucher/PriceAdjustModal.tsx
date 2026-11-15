@@ -1,36 +1,32 @@
 // PriceAdjustModal — the butcher weighs an order again, reprices its lines or types a new total.
-// Before he sends it, AdjustmentDecisionNotice says what will happen, from the server's own rules
-// (price-adjust-preview.ts): applied at once, or the customer must accept it. The server decides
-// again on send; the parent shows its answer.
+// Before he sends it, the window shows the server's own plan (price-adjust-preview.ts): the value
+// typed wrong, or whether the new price applies at once or the customer must accept it. The server
+// plans again on send and applies the platform's cap; the parent shows its answer.
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
+import type { AdjustmentType } from "@prisma/client";
 import { Euro, Loader2, PenLine, Scale, Tag, X } from "lucide-react";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import { formatPriceCents as formatPrice, formatUnit } from "@/lib/format-kitchen";
-import { MAX_INCREASE_PCT } from "@/lib/price-adjustment-config";
+import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
+import type { AdjustmentPlan } from "@/lib/pricing/adjustment";
 import { isWeighedUnit } from "@/lib/pricing/line";
-import type { AdjustmentKind } from "@/lib/pricing/tolerance";
 import AdjustmentDecisionNotice from "./AdjustmentDecisionNotice";
 import { formatItemQty, kitchenStoredLine } from "./OrderTicket";
-import {
-  draftFromInputs,
-  previewAdjustment,
-  type AdjustPriceRequest,
-  type TypedInputs,
-} from "./price-adjust-preview";
+import { previewAdjustment, type TypedInputs } from "./price-adjust-preview";
 
 type Props = {
   order: KitchenOrder;
   onClose: () => void;
   /** Sends the adjustment; resolves true once the server took it (applied or sent to the customer). */
-  onConfirm: (orderId: string, data: AdjustPriceRequest & { reason?: string }) => Promise<boolean>;
+  onConfirm: (orderId: string, data: AdjustPriceRequest) => Promise<boolean>;
 };
 
 type Item = KitchenOrder["items"][number];
 type Inputs = TypedInputs["weights"];
 
-const TABS: ReadonlyArray<{ key: AdjustmentKind; label: string; icon: typeof Scale }> = [
+const TABS: ReadonlyArray<{ key: AdjustmentType; label: string; icon: typeof Scale }> = [
   { key: "WEIGHT", label: "Pesée", icon: Scale },
   { key: "PRICE", label: "Prix unitaire", icon: Tag },
   { key: "MANUAL", label: "Total", icon: PenLine },
@@ -41,6 +37,20 @@ const FIELD =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white aria-[invalid=true]:border-red-500";
 
 const isWeighed = (item: Item) => isWeighedUnit(kitchenStoredLine(item).unit);
+const name = (item: Item) => item.product?.name || item.name;
+
+function diffTone(diff: number): string {
+  if (diff < 0) return "text-emerald-400";
+  return diff > 0 ? "text-amber-400" : "text-gray-400";
+}
+
+/** Under the totals: the refusal of a value typed wrong, or what the server will do. */
+function PlanNotice({ plan }: { plan: AdjustmentPlan | null }) {
+  if (plan === null) return null;
+  if (!plan.ok) return <p className="text-xs font-medium text-red-400">{plan.message}</p>;
+  if (plan.unchanged) return null;
+  return <AdjustmentDecisionNotice decision={plan.decision} />;
+}
 
 /** One line of the order with the field the butcher types its new weight, count or price in. */
 function LineField(props: {
@@ -55,7 +65,7 @@ function LineField(props: {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-white">{item.product?.name || item.name}</p>
+        <p className="truncate text-sm font-medium text-white">{name(item)}</p>
         <p className="text-xs text-gray-400">
           {formatItemQty(item)} · {formatPrice(item.priceCents)}{" "}
           {isWeighed(item) ? "le kg" : "l'unité"}
@@ -78,7 +88,7 @@ function LineField(props: {
 export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
   // A line out of stock is neither prepared nor charged: there is nothing to weigh or price.
   const items = order.items.filter((item) => item.available);
-  const [tab, setTab] = useState<AdjustmentKind>("WEIGHT");
+  const [tab, setTab] = useState<AdjustmentType>("WEIGHT");
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState("");
   const [weights, setWeights] = useState<Inputs>(() =>
@@ -89,21 +99,20 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
   );
   const [total, setTotal] = useState((order.totalCents / 100).toFixed(2));
 
-  const preview = previewAdjustment(order, draftFromInputs(tab, { weights, prices, total }));
-  const newTotal = preview.ok ? preview.newTotalCents : order.totalCents;
+  const preview = previewAdjustment(order, tab, { weights, prices, total });
+  const plan = preview?.plan ?? null;
+  // What the button sends: nothing while no field changes the order or one is refused.
+  const request =
+    preview !== null && preview.plan.ok && !preview.plan.unchanged ? preview.request : null;
+  const newTotal = plan?.ok ? plan.newTotalCents : order.totalCents;
   const diff = newTotal - order.totalCents;
-  const overMax = preview.ok && preview.newTotalCents > preview.maxTotalCents;
-  const ready = preview.ok && diff !== 0 && !overMax;
-  const asks = preview.ok && preview.decision.decision === "ASK";
+  const asks = plan?.ok === true && plan.decision.decision === "ASK";
 
   async function submit() {
-    if (!preview.ok || !ready) return;
+    if (request === null) return;
     setLoading(true);
     try {
-      const sent = await onConfirm(order.id, {
-        ...preview.request,
-        reason: reason.trim() || undefined,
-      });
+      const sent = await onConfirm(order.id, { ...request, reason: reason.trim() || undefined });
       if (sent) onClose();
     } finally {
       setLoading(false);
@@ -114,8 +123,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
     if (event.key === "Escape") onClose();
   }
 
-  const invalidItem = preview.ok ? null : preview.itemId;
-  const name = (item: Item) => item.product?.name || item.name;
+  const invalidItem = plan?.ok === false ? plan.orderItemId : null;
 
   return (
     <div
@@ -204,7 +212,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                 value={total}
                 onChange={(event) => setTotal(event.target.value)}
                 aria-label="Nouveau total de la commande"
-                aria-invalid={!preview.ok}
+                aria-invalid={plan?.ok === false}
                 className={`w-40 text-xl font-bold ${FIELD}`}
               />
               <span className="text-lg font-bold text-gray-400">€</span>
@@ -233,9 +241,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
             </div>
             <div className="text-center">
               <dt className="text-xs text-gray-400">Écart de cet ajustement</dt>
-              <dd
-                className={`text-sm font-bold ${diff < 0 ? "text-emerald-400" : diff > 0 ? "text-amber-400" : "text-gray-400"}`}
-              >
+              <dd className={`text-sm font-bold ${diffTone(diff)}`}>
                 {diff > 0 ? "+" : ""}
                 {formatPrice(diff)}
               </dd>
@@ -247,15 +253,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
           </dl>
 
           <div aria-live="polite">
-            {!preview.ok ? (
-              <p className="text-xs font-medium text-red-400">{preview.message}</p>
-            ) : overMax ? (
-              <p className="text-xs font-medium text-red-400">
-                {`L'ajustement ne peut pas dépasser +${MAX_INCREASE_PCT} % du total actuel (${formatPrice(preview.maxTotalCents)} au plus).`}
-              </p>
-            ) : (
-              diff !== 0 && <AdjustmentDecisionNotice decision={preview.decision} />
-            )}
+            <PlanNotice plan={plan} />
           </div>
 
           <div className="flex gap-3">
@@ -268,8 +266,8 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
             </button>
             <button
               type="button"
-              onClick={submit}
-              disabled={!ready || loading}
+              onClick={() => void submit()}
+              disabled={request === null || loading}
               className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-2 font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-40 ${
                 asks
                   ? "bg-amber-500 text-amber-950 hover:bg-amber-400"

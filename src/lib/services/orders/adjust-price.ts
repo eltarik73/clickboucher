@@ -1,26 +1,22 @@
 // Order price adjustment service, for PATCH /api/orders/[id]/adjust-price: the butcher proposes
-// new weights, unit prices or a new total; decideAdjustment (src/lib/pricing/tolerance.ts) says
-// whether it applies at once or needs the customer's explicit yes before answerBy. Lines are
-// re-priced by src/lib/pricing/adjustment.ts; adjustment-settlement.ts applies it.
-import type { OrderItem, PriceAdjustment, Prisma } from "@prisma/client";
-import { z } from "zod";
+// new weights, unit prices or a new total. Under the order lock, planAdjustment
+// (src/lib/pricing/adjustment.ts, also the preview of the butcher's window) gives the changed
+// lines, the new total and whether it applies at once or needs the customer's explicit yes before
+// answerBy. This module keeps what needs the database: the pending conflict, the platform's cap,
+// the stored row; adjustment-settlement.ts applies it.
+import type { AdjustmentType, PriceAdjustment, Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
-import { getPriceAdjConfig } from "@/lib/price-adjustment";
+import { getMaxIncreasePct } from "@/lib/price-adjustment";
+import { adjustPriceSchema } from "@/lib/price-adjustment-request";
 import { formatZodError } from "@/lib/api/errors";
 import {
-  availableLinesAfter,
-  repriceLine,
-  reweighLine,
-  type AdjustedLine,
+  planAdjustment,
+  type PlannableLine,
+  type PlannedLineChange,
 } from "@/lib/pricing/adjustment";
-import {
-  ADJUSTMENT_ANSWER_WINDOW_SECONDS,
-  decideAdjustment,
-  frozenToleranceOf,
-  type AdjustmentDecision,
-} from "@/lib/pricing/tolerance";
+import { ADJUSTMENT_ANSWER_WINDOW_SECONDS, type AdjustmentDecision } from "@/lib/pricing/tolerance";
 import { notifyAdjustmentExpired } from "./adjustment-answers";
 import { expirePendingAdjustment } from "./adjustment-closure";
 import {
@@ -30,29 +26,9 @@ import {
   type AdjustmentSnapshotLine,
 } from "./adjustment-settlement";
 
-export const adjustPriceSchema = z.object({
-  adjustmentType: z.enum(["WEIGHT", "PRICE", "MANUAL"]),
-  reason: z.string().max(500).optional(),
-  items: z
-    .array(
-      z.object({
-        orderItemId: z.string().min(1),
-        newQuantity: z.number().min(0).optional(),
-        newPriceCents: z.number().int().min(0).optional(),
-      })
-    )
-    .max(50)
-    .optional(),
-  newTotalCents: z.number().int().min(0).optional(),
-});
-
-type AdjustPriceInput = z.infer<typeof adjustPriceSchema>;
-
-type AdjustPriceErrorCode = "VALIDATION_ERROR" | "NOT_FOUND" | "CONFLICT";
-
 type Failure = {
   ok: false;
-  code: AdjustPriceErrorCode;
+  code: "VALIDATION_ERROR" | "NOT_FOUND" | "CONFLICT";
   message: string;
   details?: Record<string, string[]>;
 };
@@ -60,105 +36,57 @@ type Failure = {
 export type AdjustPriceResult =
   | {
       ok: true;
-      data: { adjustment: PriceAdjustment; applied: boolean; decision: AdjustmentDecision };
+      data:
+        | { adjustment: PriceAdjustment; applied: boolean; decision: AdjustmentDecision }
+        /** The proposal changes nothing: the order's current adjustment, nothing written. */
+        | { adjustment: PriceAdjustment | null; applied: true; _idempotent: true };
     }
   | Failure;
 
 const TRANSACTION_OPTIONS = { maxWait: 5_000, timeout: 10_000 } as const;
 
-const MISSING_DATA = "Données d'ajustement manquantes";
+const PLANNABLE_LINE_SELECT = {
+  id: true,
+  name: true,
+  unit: true,
+  quantity: true,
+  weightGrams: true,
+  priceCents: true,
+  totalCents: true,
+  available: true,
+  estimatedPriceCents: true,
+} satisfies Prisma.OrderItemSelect;
 
-const LINE_REFUSALS: Record<Extract<AdjustedLine, { ok: false }>["reason"], string> = {
-  QUANTITY_INVALID: "Quantité invalide : poids en grammes entiers, nombre entier pour les pièces",
-  PRICE_INVALID: "Prix invalide",
-  LINE_NOT_ADJUSTABLE: "Cette ligne ne peut pas être ajustée",
-};
-
-type AdjustableItem = Pick<
-  OrderItem,
-  | "id"
-  | "name"
-  | "unit"
-  | "quantity"
-  | "weightGrams"
-  | "priceCents"
-  | "totalCents"
-  | "available"
-  | "estimatedPriceCents"
->;
-
-/** New total and line changes of the request, computed from the locked order. */
-function planAdjustment(
-  data: AdjustPriceInput,
-  originalTotal: number,
-  items: readonly AdjustableItem[]
-): { newTotal: number; snapshot: AdjustmentSnapshotLine[] } | Failure {
-  if (data.adjustmentType === "MANUAL") {
-    if (data.newTotalCents === undefined) {
-      return { ok: false, code: "VALIDATION_ERROR", message: "Nouveau total manquant" };
-    }
-    return { newTotal: data.newTotalCents, snapshot: [] };
-  }
-  const changes = data.items ?? [];
-  if (changes.length === 0) return { ok: false, code: "VALIDATION_ERROR", message: MISSING_DATA };
-  if (new Set(changes.map((change) => change.orderItemId)).size !== changes.length) {
-    return { ok: false, code: "VALIDATION_ERROR", message: "Article ajusté deux fois" };
-  }
-
-  const itemById = new Map(items.map((item) => [item.id, item]));
-  const snapshot: AdjustmentSnapshotLine[] = [];
-  for (const change of changes) {
-    const item = itemById.get(change.orderItemId);
-    if (item === undefined || !item.available) {
-      return {
-        ok: false,
-        code: "VALIDATION_ERROR",
-        message: "Article absent de la commande ou en rupture",
-      };
-    }
-    const line = {
-      unit: item.unit,
-      quantity: item.quantity,
-      weightGrams: item.weightGrams,
-      priceCents: item.priceCents,
-    };
-    const adjusted =
-      data.adjustmentType === "WEIGHT"
-        ? change.newQuantity === undefined
-          ? null
-          : reweighLine(line, change.newQuantity)
-        : change.newPriceCents === undefined
-          ? null
-          : repriceLine(line, change.newPriceCents);
-    if (adjusted === null) return { ok: false, code: "VALIDATION_ERROR", message: MISSING_DATA };
-    if (!adjusted.ok) {
-      return {
-        ok: false,
-        code: "VALIDATION_ERROR",
-        message: `${item.name} : ${LINE_REFUSALS[adjusted.reason]}`,
-      };
-    }
-    snapshot.push({
+/** What the changed lines were and become, kept on the adjustment for its settlement. */
+function snapshotOf(
+  adjustmentType: AdjustmentType,
+  items: readonly PlannableLine[],
+  changes: readonly PlannedLineChange[]
+): AdjustmentSnapshotLine[] {
+  const changeById = new Map(changes.map((change) => [change.orderItemId, change]));
+  return items.flatMap((item) => {
+    const change = changeById.get(item.id);
+    if (change === undefined) return [];
+    return {
       orderItemId: item.id,
       name: item.name,
       unit: item.unit,
       oldQuantity: item.quantity,
       oldPriceCents: item.priceCents,
       oldTotalCents: item.totalCents,
-      newTotalCents: adjusted.totalCents,
-      ...(data.adjustmentType === "WEIGHT"
-        ? { newQuantity: adjusted.quantity, priceCents: item.priceCents }
-        : { newPriceCents: adjusted.priceCents, quantity: item.quantity }),
-    });
-  }
-  const diff = snapshot.reduce((sum, line) => sum + line.newTotalCents - line.oldTotalCents, 0);
-  return { newTotal: Math.max(0, originalTotal + diff), snapshot };
+      newTotalCents: change.totalCents,
+      ...(adjustmentType === "WEIGHT"
+        ? { newQuantity: change.quantity }
+        : { newPriceCents: change.priceCents }),
+    };
+  });
 }
 
 /**
  * Creates a price adjustment for an order of the butcher's shop, under the order lock: applied in
  * the same transaction (APPLY) or left PENDING, tier 3, until answerBy (ASK). A pending one past
- * its window is closed first (NO_ANSWER); one the customer may still answer is a conflict.
+ * its window is closed first (NO_ANSWER); one the customer may still answer is a conflict. A
+ * proposal that changes neither the total nor a line answers the current state, idempotently.
  */
 export async function adjustOrderPrice(
   orderId: string,
@@ -176,7 +104,7 @@ export async function adjustOrderPrice(
     };
   }
   const data = parseResult.data;
-  const config = await getPriceAdjConfig();
+  const maxIncreasePct = await getMaxIncreasePct();
 
   const { result, expired } = await prisma.$transaction(async (tx) => {
     const order = await lockOrderForAdjustment(tx, orderId, { shopId: shop.shopId });
@@ -192,10 +120,7 @@ export async function adjustOrderPrice(
     }
     const expired = await expirePendingAdjustment(tx, orderId, now);
     const answer = (outcome: AdjustPriceResult) => ({ result: outcome, expired });
-    const existing = await tx.priceAdjustment.findUnique({
-      where: { orderId },
-      select: { id: true, status: true },
-    });
+    const existing = await tx.priceAdjustment.findUnique({ where: { orderId } });
     if (existing?.status === "PENDING") {
       return answer({
         ok: false,
@@ -206,37 +131,27 @@ export async function adjustOrderPrice(
 
     const items = await tx.orderItem.findMany({
       where: { orderId },
-      select: {
-        id: true,
-        name: true,
-        unit: true,
-        quantity: true,
-        weightGrams: true,
-        priceCents: true,
-        totalCents: true,
-        available: true,
-        estimatedPriceCents: true,
-      },
+      select: PLANNABLE_LINE_SELECT,
     });
-    const plan = planAdjustment(data, order.totalCents, items);
-    if ("ok" in plan) return answer(plan);
-
-    const maxAllowed = Math.round(order.totalCents * (1 + config.maxIncreasePct / 100));
-    if (plan.newTotal > maxAllowed) {
+    const plan = planAdjustment({ ...order, items }, data);
+    if (!plan.ok) return answer({ ok: false, code: "VALIDATION_ERROR", message: plan.message });
+    if (plan.unchanged) {
+      return answer({
+        ok: true,
+        data: { adjustment: existing, applied: true, _idempotent: true },
+      });
+    }
+    const maxAllowed = Math.round(order.totalCents * (1 + maxIncreasePct / 100));
+    if (plan.newTotalCents > maxAllowed) {
       return answer({
         ok: false,
         code: "VALIDATION_ERROR",
-        message: `L'ajustement ne peut pas dépasser +${config.maxIncreasePct} % du total actuel`,
+        message: `L'ajustement ne peut pas dépasser +${maxIncreasePct} % du total actuel`,
       });
     }
-    const decision = decideAdjustment({
-      adjustmentType: data.adjustmentType,
-      currentTotalCents: order.totalCents,
-      newTotalCents: plan.newTotal,
-      tolerance: frozenToleranceOf(order),
-      lines: availableLinesAfter(items, plan.snapshot),
-    });
+    const { decision } = plan;
     const applied = decision.decision === "APPLY";
+    const snapshot = snapshotOf(data.adjustmentType, items, plan.lineChanges);
 
     // One adjustment row per order: a settled or closed one is replaced by the new proposal.
     if (existing !== null) await tx.priceAdjustment.delete({ where: { id: existing.id } });
@@ -245,7 +160,7 @@ export async function adjustOrderPrice(
         orderId,
         shopId: shop.shopId,
         originalTotal: order.totalCents,
-        newTotal: plan.newTotal,
+        newTotal: plan.newTotalCents,
         reason: data.reason,
         adjustmentType: data.adjustmentType,
         status: "PENDING",
@@ -254,8 +169,7 @@ export async function adjustOrderPrice(
         answerBy: applied
           ? undefined
           : new Date(now.getTime() + ADJUSTMENT_ANSWER_WINDOW_SECONDS * 1000),
-        itemsSnapshot:
-          plan.snapshot.length > 0 ? (plan.snapshot as Prisma.InputJsonArray) : undefined,
+        itemsSnapshot: snapshot.length > 0 ? (snapshot as Prisma.InputJsonArray) : undefined,
       },
     });
     if (!applied) return answer({ ok: true, data: { adjustment, applied, decision } });
@@ -273,7 +187,7 @@ export async function adjustOrderPrice(
   }, TRANSACTION_OPTIONS);
 
   if (expired !== null) await notifyAdjustmentExpired(expired);
-  if (!result.ok) return result;
+  if (!result.ok || "_idempotent" in result.data) return result;
   await notifyCustomer(orderId, result.data.adjustment, result.data.applied);
   return result;
 }

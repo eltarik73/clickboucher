@@ -3,9 +3,10 @@
 // A pending adjustment is closed REJECTED, with its closeReason and a PRICE_ADJUSTMENT_CLOSED
 // OrderEvent in the same transaction, when the customer refuses it (CUSTOMER_REFUSED), when its
 // answer window passes (NO_ANSWER: silence is a refusal, never an acceptance), or when a transition
-// changes the lines or closes the order (ORDER_CHANGED). Every closure is one conditional write on
-// the PENDING row: of two concurrent closures, one changes the row and writes the event, the other
-// finds nothing pending. Applying an adjustment: adjustment-settlement.ts.
+// changes the lines or closes the order (ORDER_CHANGED). endPendingAdjustment is the only writer:
+// every closure is one conditional write on the PENDING row, so of two concurrent closures one
+// changes the row and writes the event, the other finds nothing pending. Applying an adjustment:
+// adjustment-settlement.ts.
 import type { AdjustmentCloseReason, PriceAdjustment, Prisma } from "@prisma/client";
 
 import { ADJUSTMENT_ANSWER_WINDOW_SECONDS } from "@/lib/pricing/tolerance";
@@ -14,7 +15,7 @@ import { SYSTEM_ACTOR_ID } from "./transition";
 type Tx = Prisma.TransactionClient;
 
 /** Status of an adjustment that ended without being applied (refused, unanswered, order changed). */
-export const UNAPPLIED_STATUS = "REJECTED";
+const UNAPPLIED_STATUS = "REJECTED";
 
 /** Rows written before answerBy existed are answered within the window after their creation. */
 function windowStart(now: Date): Date {
@@ -42,7 +43,7 @@ export type ClosedAdjustment = Pick<
 >;
 
 /** The PRICE_ADJUSTMENT_CLOSED OrderEvent, written in the transaction of the closure. */
-export async function writeClosedEvent(
+async function writeClosedEvent(
   tx: Tx,
   closed: ClosedAdjustment,
   reason: AdjustmentCloseReason,
@@ -96,17 +97,17 @@ export async function endPendingAdjustment(
 }
 
 /**
- * Closes the order's pending adjustment unapplied. Called in the transaction of every transition
- * that changes the lines or ends the order: an adjustment computed against the old content must
- * never be applied to the new one.
+ * Closes the order's pending adjustment unapplied (ORDER_CHANGED). Called in the transaction of
+ * every transition that changes the lines or ends the order: an adjustment computed against the
+ * old content must never be applied to the new one.
  */
-export async function closePendingAdjustment(
-  tx: Tx,
-  orderId: string,
-  now: Date,
-  reason: AdjustmentCloseReason = "ORDER_CHANGED"
-): Promise<void> {
-  await endPendingAdjustment(tx, { orderId, now, reason, actorId: SYSTEM_ACTOR_ID });
+export async function closePendingAdjustment(tx: Tx, orderId: string, now: Date): Promise<void> {
+  await endPendingAdjustment(tx, {
+    orderId,
+    now,
+    reason: "ORDER_CHANGED",
+    actorId: SYSTEM_ACTOR_ID,
+  });
 }
 
 /** Closes the order's pending adjustment when its answer window has passed (NO_ANSWER). */

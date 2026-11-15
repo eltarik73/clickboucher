@@ -174,6 +174,19 @@ describe("PriceAdjustmentBanner : prix proposé, en attente de la réponse du cl
     expect(toast.success).not.toHaveBeenCalled();
   });
 
+  it("200 sans l'enveloppe de succès : la réponse n'est pas tenue pour enregistrée", async () => {
+    fetchMock.mockResolvedValue(reply(200, { data: {} }));
+    show(adjustment());
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Accepter" }));
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Votre réponse n'a pas été enregistrée. Réessayez."
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
   it("panne réseau : un message, les boutons reviennent", async () => {
     fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
     const { onUpdate } = show(adjustment());
@@ -205,7 +218,7 @@ describe("PriceAdjustmentBanner : issue de l'ajustement", () => {
     [
       "refusée par le client",
       { status: "REJECTED", closeReason: "CUSTOMER_REFUSED" },
-      "Vous avez refusé le nouveau prix : votre commande reste à 20,00 €.",
+      "Vous avez refusé le nouveau prix : le prix de votre commande n'a pas changé.",
     ],
     [
       "sans réponse",

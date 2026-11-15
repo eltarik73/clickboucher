@@ -6,7 +6,7 @@ import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
 import { holdsLimitedStock } from "@/lib/order-state-machine";
-import { closePendingAdjustment } from "@/lib/services/orders/adjustment-settlement";
+import { closePendingAdjustment } from "@/lib/services/orders/adjustment-closure";
 import { releaseOrderDiscount } from "@/lib/services/orders/discount-ledger";
 import { transitionOrder } from "@/lib/services/orders/transition";
 import {
@@ -28,7 +28,6 @@ import {
   compositionColumns,
   readLines,
   sameLines,
-  type KeptLine,
 } from "./unavailable-lines";
 
 const MINUTE_MS = 60_000;
@@ -239,9 +238,10 @@ export async function resolveUnavailableItems(input: {
     changes.push(change);
   }
 
-  // A replacement is estimated at the total the customer accepts by choosing it.
-  const replaced: KeptLine[] = changes.flatMap((change) =>
-    change.remove ? [] : [{ totalCents: change.totalCents, estimatedPriceCents: change.totalCents }]
+  const replaced = changes.flatMap((change) =>
+    change.remove
+      ? []
+      : [{ totalCents: change.totalCents, estimatedPriceCents: change.estimatedPriceCents }]
   );
   const remaining = [...order.items.filter((item) => item.available), ...replaced];
   const to: OrderStatus = remaining.length === 0 ? "DENIED" : "PENDING";

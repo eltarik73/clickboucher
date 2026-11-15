@@ -19,7 +19,7 @@ vi.mock("@/lib/emails/order-confirmation", () => ({
 }));
 vi.mock("@/lib/auth/server-auth", () => ({ getServerUserId: async () => null }));
 
-import { createOrder } from "@/lib/services/orders/create";
+import { createOrder, type CreateOrderResult } from "@/lib/services/orders/create";
 import type { CreateOrderRequest } from "@/lib/validators/order";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import {
@@ -36,7 +36,8 @@ const { POST: postGuestCheckout } = await import("@/app/api/checkout/guest/route
 useCleanDatabase();
 
 const CHOICE_REQUIRED = "Choisissez votre marge de pesée avant de commander.";
-const CHOICE_DETAIL = "Choix requis : 5 % (10 € au plus) ou 10 % (20 € au plus)";
+const CHOICE_DETAIL =
+  "Choix requis : 5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus ou 10\u00a0% du total estimé, 20,00\u00a0€ au\u00a0plus";
 const DOMAIN = "itest.klikandgo.test";
 /** What each choice freezes on the order of world() (quote total 19,12 €). */
 const FROZEN = {
@@ -61,6 +62,12 @@ async function memberBody(
   const body = await confirmedBody(request, customerOf(user));
   delete body.weighTolerance;
   return choice === undefined ? body : { ...body, weighTolerance: choice };
+}
+
+/** The order a creation returned; a refusal fails the test with its code and message. */
+function created(result: CreateOrderResult): Order {
+  if (!result.ok) throw new Error(`creation refused: ${result.code} ${result.message}`);
+  return result.order;
 }
 
 const frozenOf = (order: Order) => ({
@@ -126,14 +133,11 @@ describe("member — the first order needs an active choice", () => {
   it("STANDARD: the order freezes 5 % / 10,00 € on the quote total, the choice is saved", async () => {
     const { request } = await world();
     const user = await createTestUser();
-    const quote = await quoteOf(request, customerOf(user));
 
     const result = await createOrder(await memberBody(request, user, "STANDARD"), customerOf(user));
 
     expect(result).toMatchObject({ ok: true, status: 201 });
-    if (!result.ok) return;
-    expect(quote.totalCents).toBe(1912);
-    expect(frozenOf(result.order)).toEqual(FROZEN.STANDARD);
+    expect(frozenOf(created(result))).toEqual(FROZEN.STANDARD);
     expect(await storedChoice(user.id)).toBe("STANDARD");
   });
 
@@ -141,15 +145,15 @@ describe("member — the first order needs an active choice", () => {
     const { request } = await world();
     const user = await createTestUser();
     const customer = customerOf(user);
-    expect((await createOrder(await memberBody(request, user, "STANDARD"), customer)).ok).toBe(
-      true
+    created(await createOrder(await memberBody(request, user, "STANDARD"), customer));
+
+    const reused = created(await createOrder(await memberBody(request, user), customer));
+    const extended = created(
+      await createOrder(await memberBody(request, user, "EXTENDED"), customer)
     );
 
-    const reused = await createOrder(await memberBody(request, user), customer);
-    const extended = await createOrder(await memberBody(request, user, "EXTENDED"), customer);
-
-    expect(reused.ok && frozenOf(reused.order)).toEqual(FROZEN.STANDARD);
-    expect(extended.ok && frozenOf(extended.order)).toEqual(FROZEN.EXTENDED);
+    expect(frozenOf(reused)).toEqual(FROZEN.STANDARD);
+    expect(frozenOf(extended)).toEqual(FROZEN.EXTENDED);
     expect(await storedChoice(user.id)).toBe("EXTENDED");
   });
 
@@ -160,7 +164,7 @@ describe("member — the first order needs an active choice", () => {
 
     const result = await createOrder(await memberBody(request, user, "EXTENDED"), customerOf(user));
 
-    expect(result.ok && frozenOf(result.order)).toEqual(FROZEN.EXTENDED);
+    expect(frozenOf(created(result))).toEqual(FROZEN.EXTENDED);
     expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toEqual(before);
   });
 
@@ -168,13 +172,13 @@ describe("member — the first order needs an active choice", () => {
     const { request } = await world();
     const user = await createTestUser();
     const body = await memberBody(request, user, "STANDARD");
-    const first = await createOrder(body, customerOf(user));
+    const first = created(await createOrder(body, customerOf(user)));
 
     const replay = await createOrder({ ...body, weighTolerance: "EXTENDED" }, customerOf(user));
 
     expect(replay).toMatchObject({ ok: true, status: 200 });
-    expect(replay.ok && first.ok && replay.order.id).toBe(first.ok && first.order.id);
-    expect(replay.ok && frozenOf(replay.order)).toEqual(FROZEN.STANDARD);
+    expect(created(replay).id).toBe(first.id);
+    expect(frozenOf(created(replay))).toEqual(FROZEN.STANDARD);
     expect(await storedChoice(user.id)).toBe("STANDARD");
     expect(await prisma.order.count()).toBe(1);
   });
@@ -188,18 +192,14 @@ describe("member — the first order needs an active choice", () => {
       [{ productId: beef.id, quantity: 2, weightGrams: 500 }],
       "DIX"
     );
-    const quote = await quoteOf(request, customerOf(user));
 
-    const result = await createOrder(await memberBody(request, user, "STANDARD"), customerOf(user));
+    const order = created(
+      await createOrder(await memberBody(request, user, "STANDARD"), customerOf(user))
+    );
 
-    expect(quote.subtotalCents).toBe(1912);
-    expect(quote.discount?.discountCents).toBeGreaterThan(0);
-    expect(result.ok && result.order.estimatedTotalCents).toBe(
-      1912 - (quote.discount?.discountCents ?? 0)
-    );
-    expect(result.ok && result.order.estimatedTotalCents).toBe(
-      result.ok && result.order.totalCents
-    );
+    // 19,12 € − 10 % (191,2 cents, rounded half-up to 1,91 €) = 17,21 €.
+    expect(order.estimatedTotalCents).toBe(1721);
+    expect(order.totalCents).toBe(1721);
   });
 
   it.each([
@@ -233,7 +233,8 @@ describe("member — the first order needs an active choice", () => {
 
       const results = await Promise.all(bodies.map((body) => createOrder(body, customerOf(user))));
 
-      expect(results.map((result) => result.ok && result.status)).toEqual([201, 201]);
+      const outcomes = results.map((result) => (result.ok ? result.status : result.code));
+      expect(outcomes).toEqual([201, 201]);
       expect(await storedChoice(user.id)).toBe("EXTENDED");
     }
   );

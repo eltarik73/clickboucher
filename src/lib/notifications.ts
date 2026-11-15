@@ -11,9 +11,9 @@ import { logger } from "@/lib/logger";
 import { notificationThrottle } from "@/lib/notification-policy";
 import {
   ADJUSTMENT_ANSWER_NOTICE,
+  ADJUSTMENT_KEPT_PRICE,
   adjustmentAmount,
   adjustmentAppliedText,
-  adjustmentKeptPriceText,
 } from "@/lib/price-adjustment-messages";
 import { resolveNotificationRecipient } from "@/lib/notification-recipients";
 
@@ -256,11 +256,11 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
 
     case "PRICE_ADJUSTMENT_REJECTED":
     case "PRICE_ADJUSTMENT_EXPIRED": {
-      const refused = event === "PRICE_ADJUSTMENT_REJECTED";
+      const kept = ADJUSTMENT_KEPT_PRICE[event];
       return {
-        subject: `${refused ? "❌ Ajustement refusé" : "⏱ Pas de réponse du client"} — Commande ${data.orderNumber}`,
-        html: tpl.priceAdjustmentNotAccepted(data, refused),
-        plainText: adjustmentKeptPriceText(data, refused),
+        subject: `${kept.title} — Commande ${data.orderNumber}`,
+        html: tpl.priceAdjustmentNotAccepted(event, data),
+        plainText: kept.text(data),
       };
     }
 
@@ -466,8 +466,8 @@ function getPushPayload(event: NotifEvent, data: NotifData): PushPayload {
     case "PRICE_ADJUSTMENT_REJECTED":
     case "PRICE_ADJUSTMENT_EXPIRED":
       return {
-        title: event === "PRICE_ADJUSTMENT_REJECTED" ? "❌ Ajustement refusé" : "⏱ Pas de réponse",
-        body: adjustmentKeptPriceText(data, event === "PRICE_ADJUSTMENT_REJECTED"),
+        title: ADJUSTMENT_KEPT_PRICE[event].title,
+        body: ADJUSTMENT_KEPT_PRICE[event].text(data),
         url: `${baseUrl}/boucher/commandes`,
         tag: orderTag,
       };

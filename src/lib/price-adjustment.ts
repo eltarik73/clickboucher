@@ -1,22 +1,29 @@
-// src/lib/price-adjustment.ts — platform configuration of price adjustments (server-only).
-// Whether an adjustment applies at once or needs the customer's answer is decided by the weighing
-// tolerance frozen on the order (decideAdjustment, src/lib/pricing/tolerance.ts); applying,
-// refusing and closing adjustments: src/lib/services/orders/adjustment-settlement.ts.
+// src/lib/price-adjustment.ts — the safety cap of one price adjustment as the server applies it
+// (server-only: platform_config). Whether an adjustment applies at once or needs the customer's
+// answer is decided by the weighing tolerance frozen on the order (decideAdjustment,
+// src/lib/pricing/tolerance.ts).
 import { getPlatformConfig } from "@/lib/feature-flags";
-import { PA_KEYS, parsePriceAdjConfig } from "@/lib/price-adjustment-config";
-import type { PriceAdjConfig } from "@/lib/price-adjustment-config";
-
-export type { PriceAdjConfig } from "@/lib/price-adjustment-config";
+import { logger } from "@/lib/logger";
+import {
+  MAX_INCREASE_PCT,
+  MAX_INCREASE_PCT_KEY,
+  parseMaxIncreasePct,
+} from "@/lib/price-adjustment-config";
 
 /**
- * Load price adjustment config from PlatformConfig (DB-backed, cached 2 min).
+ * The cap in % of the order's current total: the stored one, else MAX_INCREASE_PCT. A stored value
+ * that breaks the rule (written before it, or by hand) is never applied: the default is, with a
+ * warning. Cached 2 minutes per instance by getPlatformConfig.
  */
-export async function getPriceAdjConfig(): Promise<PriceAdjConfig> {
-  const keys = Object.values(PA_KEYS);
-  const values = await Promise.all(keys.map((k) => getPlatformConfig(k)));
-  const raw: Record<string, string | null> = {};
-  keys.forEach((k, i) => {
-    raw[k] = values[i];
+export async function getMaxIncreasePct(): Promise<number> {
+  const stored = await getPlatformConfig(MAX_INCREASE_PCT_KEY);
+  if (stored === null) return MAX_INCREASE_PCT;
+  const cap = parseMaxIncreasePct(stored);
+  if (cap.success) return cap.data;
+  logger.warn("[price-adjustment] stored cap refused, default applied", {
+    key: MAX_INCREASE_PCT_KEY,
+    stored,
+    applied: MAX_INCREASE_PCT,
   });
-  return parsePriceAdjConfig(raw);
+  return MAX_INCREASE_PCT;
 }

@@ -26,10 +26,11 @@ import { StarRating } from "@/components/ui/StarRating";
 import PriceAdjustmentBanner, {
   type PriceAdjustmentView,
 } from "@/components/client/PriceAdjustmentBanner";
-import WeighToleranceNote from "@/app/(client)/suivi/[id]/WeighToleranceNote";
+import WeighToleranceNote from "@/components/client/WeighToleranceNote";
 import type { SaleUnit } from "@/lib/pricing/line";
-import { frozenToleranceOf } from "@/lib/pricing/tolerance";
+import type { FrozenToleranceColumns } from "@/lib/pricing/tolerance";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
+import { formatPrice } from "@/lib/utils";
 import { startVisiblePolling, nextOrderPollDelay } from "@/hooks/useVisiblePolling";
 
 // ── Types ────────────────────────────────────────
@@ -71,7 +72,7 @@ interface OrderUser {
   lastName: string;
 }
 
-interface OrderData {
+interface OrderData extends FrozenToleranceColumns {
   id: string;
   orderNumber: string;
   dailyNumber: number | null;
@@ -93,18 +94,10 @@ interface OrderData {
   items: OrderItem[];
   shop: OrderShop;
   user: OrderUser;
-  /** Weighing tolerance frozen on the order at creation; null on older orders. */
-  weighToleranceRateBps: number | null;
-  weighToleranceCapCents: number | null;
-  estimatedTotalCents: number | null;
   priceAdjustment?: PriceAdjustmentView | null;
 }
 
 // ── Helpers ──────────────────────────────────────
-
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
-}
 
 const TERMINAL = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
 
@@ -248,17 +241,17 @@ function OrderRecap({ order }: { order: OrderData }) {
             </span>
           </div>
           <span className="font-semibold text-[#2a2018] dark:text-white">
-            {fmtPrice(item.totalCents)}
+            {formatPrice(item.totalCents)}
           </span>
         </div>
       ))}
       <div className="mt-2 flex justify-between border-t border-[#ece8e3] pt-2 dark:border-white/10">
         <span className="text-sm font-bold text-[#2a2018] dark:text-white">Total</span>
         <span className="text-sm font-extrabold text-[#2a2018] dark:text-white">
-          {fmtPrice(totalCents)}
+          {formatPrice(totalCents)}
         </span>
       </div>
-      <WeighToleranceNote tolerance={frozenToleranceOf(order)} />
+      <WeighToleranceNote order={order} />
     </div>
   );
 }

@@ -5,15 +5,13 @@
 import { describe, expect, it } from "vitest";
 import {
   ADJUSTMENT_ANSWER_NOTICE,
+  ADJUSTMENT_KEPT_PRICE,
   adjustmentAmount,
   adjustmentAppliedText,
-  adjustmentKeptPriceText,
 } from "@/lib/price-adjustment-messages";
-import { ADJUSTMENT_ANSWER_WINDOW_SECONDS } from "@/lib/pricing/tolerance";
 
 describe("price adjustment messages", () => {
   it("names the real answer window and says silence keeps the price", () => {
-    expect(ADJUSTMENT_ANSWER_WINDOW_SECONDS).toBe(300);
     expect(ADJUSTMENT_ANSWER_NOTICE).toBe(
       "Répondez dans les 5 minutes. Sans réponse de votre part, le prix ne change pas."
     );
@@ -28,20 +26,29 @@ describe("price adjustment messages", () => {
     );
   });
 
-  it("tells the shop the price stays, after a refusal or a silence", () => {
+  it.each([
+    [
+      "PRICE_ADJUSTMENT_REJECTED",
+      "❌ Ajustement refusé",
+      "Le client a refusé : le prix de la commande #KG26-000166 reste à 1234,56 €. Repesez dans sa marge ou retirez l'article.",
+    ],
+    [
+      "PRICE_ADJUSTMENT_EXPIRED",
+      "⏱ Pas de réponse du client",
+      "Le client n'a pas répondu : le prix de la commande #KG26-000166 reste à 1234,56 €. Repesez dans sa marge ou retirez l'article.",
+    ],
+  ] as const)("%s tells the shop the price stays: %s", (event, title, text) => {
     const data = { orderNumber: "KG26-000166", originalTotal: 123456, newTotal: 130000 };
 
-    expect(adjustmentKeptPriceText(data, true)).toBe(
-      "Le client a refusé : le prix de la commande #KG26-000166 reste à 1234,56 €. Repesez dans sa marge ou retirez l'article."
-    );
-    expect(adjustmentKeptPriceText(data, false)).toMatch(/^Le client n'a pas répondu : /);
+    expect(ADJUSTMENT_KEPT_PRICE[event].title).toBe(title);
+    expect(ADJUSTMENT_KEPT_PRICE[event].text(data)).toBe(text);
   });
 
   it("refuses to print a missing amount instead of writing 0,00 €", () => {
     expect(() => adjustmentAmount(undefined, "newTotal")).toThrow(/newTotal/);
     expect(() => adjustmentAppliedText({ newTotal: 1000 })).toThrow(/originalTotal/);
-    expect(() => adjustmentKeptPriceText({ orderNumber: "KG26-000001" }, false)).toThrow(
-      /originalTotal/
-    );
+    expect(() =>
+      ADJUSTMENT_KEPT_PRICE.PRICE_ADJUSTMENT_EXPIRED.text({ orderNumber: "KG26-000001" })
+    ).toThrow(/originalTotal/);
   });
 });

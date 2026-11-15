@@ -1,9 +1,9 @@
 import { escapeHtml } from "@/lib/html/escape";
 import {
   ADJUSTMENT_ANSWER_NOTICE,
+  ADJUSTMENT_KEPT_PRICE,
   adjustmentAmount,
   adjustmentAppliedText,
-  adjustmentKeptPriceText,
   type AdjustmentMessageData,
 } from "@/lib/price-adjustment-messages";
 
@@ -432,12 +432,16 @@ export function priceAdjustmentAccepted(data: AdjustmentData): string {
   `);
 }
 
-/** To the shop when the customer refused (refused) or did not answer in time. */
-export function priceAdjustmentNotAccepted(data: AdjustmentData, refused: boolean): string {
+/** To the shop when the customer refused or did not answer in time (`event`): the price stays. */
+export function priceAdjustmentNotAccepted(
+  event: keyof typeof ADJUSTMENT_KEPT_PRICE,
+  data: AdjustmentData
+): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
+  const kept = ADJUSTMENT_KEPT_PRICE[event];
   return layout(`
-    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">${refused ? "❌ Ajustement refusé" : "⏱ Pas de réponse du client"}</h1>
-    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">${escapeHtml(adjustmentKeptPriceText(data, refused))}</p>
+    <h1 style="margin:0 0 8px;font-size:20px;color:#111827">${kept.title}</h1>
+    <p style="margin:0 0 20px;font-size:15px;color:#4b5563">${escapeHtml(kept.text(data))}</p>
     ${button(`${baseUrl}/boucher/commandes`, "Mode cuisine")}
   `);
 }

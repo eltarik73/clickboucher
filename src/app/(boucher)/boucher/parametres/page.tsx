@@ -25,7 +25,7 @@ import {
   Smartphone,
   Monitor,
 } from "lucide-react";
-import { WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
+import { formatToleranceTerms, WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
 
 // ─────────────────────────────────────────────
 // Types
@@ -67,9 +67,8 @@ type Shop = {
 
 const { STANDARD, EXTENDED } = WEIGH_TOLERANCE_TERMS;
 const WEIGHING_NOTE =
-  "Chaque client choisit sa marge " +
-  `(${STANDARD.rateBps / 100} % jusqu'à ${STANDARD.capCents / 100} € ou ` +
-  `${EXTENDED.rateBps / 100} % jusqu'à ${EXTENDED.capCents / 100} €). ` +
+  `Chaque client choisit sa marge : soit ${formatToleranceTerms(STANDARD)} ; ` +
+  `soit ${formatToleranceTerms(EXTENDED)}. ` +
   "Dans cette marge, votre nouveau prix s'applique sans le déranger ; au-delà, il doit accepter.";
 
 const DAYS = [

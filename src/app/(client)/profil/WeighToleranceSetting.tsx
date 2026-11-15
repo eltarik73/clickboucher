@@ -7,9 +7,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WeighToleranceChoice } from "@/components/cart/WeighToleranceChoice";
+import { apiErrorMessage } from "@/lib/api/error-message";
 import type { WeighToleranceChoice as Choice } from "@/lib/pricing/tolerance";
 
-/** The API's error message, or a generic one when the answer carries none. */
+/** Null once saved; else the API's error message, or a generic one when the answer carries none. */
 async function saveTolerance(choice: Choice): Promise<string | null> {
   const res = await fetch("/api/users/me", {
     method: "PATCH",
@@ -20,13 +21,15 @@ async function saveTolerance(choice: Choice): Promise<string | null> {
     throw error;
   });
   if (res === null) return "Erreur réseau : votre choix n'est pas enregistré. Réessayez.";
-  // A body that is not JSON is an unexpected answer: shown as « not saved ».
-  const body = (await res.json().catch(() => null)) as {
-    success?: boolean;
-    error?: { message?: string };
-  } | null;
-  if (res.ok && body?.success === true) return null;
-  return body?.error?.message ?? "Votre choix n'a pas été enregistré. Réessayez.";
+  // A body that is not the success envelope is an unexpected answer: shown as « not saved ».
+  const body: unknown = await res.json().catch(() => null);
+  const saved =
+    res.ok &&
+    typeof body === "object" &&
+    body !== null &&
+    "success" in body &&
+    body.success === true;
+  return saved ? null : apiErrorMessage(body, "Votre choix n'a pas été enregistré. Réessayez.");
 }
 
 export default function WeighToleranceSetting({ initial }: { initial: Choice | null }) {

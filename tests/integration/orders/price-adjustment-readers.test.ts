@@ -21,18 +21,13 @@ vi.mock("@/lib/auth/server-auth", () => ({
 vi.mock("@/lib/admin-auth", () => ({ requireAdmin: vi.fn(async () => ({ userId: "admin" })) }));
 vi.mock("next/headers", () => ({ cookies: () => ({ get: () => undefined }) }));
 
-import { WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
-import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
 import { useCleanDatabase } from "../helpers/db";
 import {
-  butcherOf,
-  createGramProduct,
-  createWeighedOrder,
-  createWorld,
+  ANSWER_WINDOW_MS,
   eventsOf,
   notificationsOf,
+  pendingWeighingIncrease,
   reload,
-  type World,
 } from "./commands-fixtures";
 
 const { GET: getStatus } = await import("@/app/api/orders/[id]/status/route");
@@ -44,32 +39,14 @@ const { default: SuiviPage } = await import("@/app/(client)/suivi/[id]/page");
 // eslint-disable-next-line react-hooks/rules-of-hooks
 useCleanDatabase();
 
-const ANSWER_WINDOW_MS = 300_000;
-
 interface ReadAdjustment {
   status: string;
   closeReason: string | null;
-  answerBy: string | null;
 }
 
-/**
- * A 20,00 € order of the world's customer, STANDARD tolerance (1,00 €), weighed at 22,00 €
- * `agoMs` ago: its answer window (5 min from the proposal) has passed when agoMs exceeds it.
- */
-async function increaseProposed(agoMs: number): Promise<{ world: World; orderId: string }> {
-  const world = await createWorld();
-  const product = await createGramProduct(world);
-  const order = await createWeighedOrder(world, product, [2000], WEIGH_TOLERANCE_TERMS.STANDARD);
-  const proposed = await adjustOrderPrice(
-    order.id,
-    butcherOf(world),
-    {
-      adjustmentType: "WEIGHT",
-      items: [{ orderItemId: order.items[0].id, newQuantity: 2.2 }],
-    },
-    new Date(Date.now() - agoMs)
-  );
-  if (!proposed.ok || proposed.data.applied) throw new Error("ajustement en attente attendu");
+/** The pending weighing increase of the fixtures, proposed `agoMs` ago, read by its customer. */
+async function increaseProposed(agoMs: number) {
+  const { world, order } = await pendingWeighingIncrease(new Date(Date.now() - agoMs));
   auth.clerkId = world.customer.clerkId;
   return { world, orderId: order.id };
 }
@@ -132,7 +109,7 @@ describe("the tracking page /suivi/[id]", () => {
 });
 
 describe("GET /api/admin/shops/[shopId]/adjustments", () => {
-  it("tells an unanswered adjustment from a refusal: closeReason and answerBy", async () => {
+  it("tells an unanswered adjustment from a refusal by its closeReason", async () => {
     const { world, orderId } = await increaseProposed(ANSWER_WINDOW_MS + 1_000);
     await readStatus(orderId);
 
@@ -145,6 +122,5 @@ describe("GET /api/admin/shops/[shopId]/adjustments", () => {
     expect(response.status).toBe(200);
     const [adjustment] = body.data.adjustments;
     expect(adjustment).toMatchObject({ status: "REJECTED", closeReason: "NO_ANSWER" });
-    expect(Date.parse(adjustment.answerBy as string)).toBeLessThan(Date.now());
   });
 });

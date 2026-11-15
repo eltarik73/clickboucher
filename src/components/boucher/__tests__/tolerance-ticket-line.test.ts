@@ -1,9 +1,17 @@
 // @vitest-environment node
 // The line of the kitchen ticket that states the weighing tolerance the customer accepted, frozen
-// on his order: the terms and the amount they allow on this order. Orders created before the
-// tolerance existed print nothing (no tolerance: every increase needs his yes).
+// on his order: the terms and the amount they allow on this order, printed under the totals.
+// Orders without a frozen tolerance print nothing (every increase needs the customer's yes).
 import { describe, expect, it } from "vitest";
+import { buildTicketHtml } from "@/components/boucher/OrderTicket";
 import { toleranceTicketLine } from "@/components/boucher/tolerance-ticket-line";
+import { kitchenOrder } from "./kitchen-order-fixtures";
+
+const NO_TOLERANCE = {
+  weighToleranceRateBps: null,
+  weighToleranceCapCents: null,
+  estimatedTotalCents: null,
+};
 
 describe("toleranceTicketLine", () => {
   it("states the STANDARD terms and the amount they allow on a small order", () => {
@@ -52,14 +60,7 @@ describe("toleranceTicketLine", () => {
   });
 
   it("prints nothing for an order created before the tolerance existed", () => {
-    expect(
-      toleranceTicketLine({
-        weighToleranceRateBps: null,
-        weighToleranceCapCents: null,
-        estimatedTotalCents: null,
-      })
-    ).toBeNull();
-    expect(toleranceTicketLine({})).toBeNull();
+    expect(toleranceTicketLine(NO_TOLERANCE)).toBeNull();
   });
 
   it("prints nothing when only part of the frozen terms is present", () => {
@@ -70,5 +71,21 @@ describe("toleranceTicketLine", () => {
         estimatedTotalCents: null,
       })
     ).toBeNull();
+  });
+});
+
+describe("the kitchen ticket", () => {
+  it("prints the weighing tolerance frozen on the order under the totals, escaped", () => {
+    const ticket = buildTicketHtml(kitchenOrder(), "Boucherie Test");
+
+    expect(ticket).toMatch(
+      /<div class="totals">[\s\S]*<div class="tolerance">Marge de pesée acceptée : 5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus \(jusqu&#39;à 1,22 €\)<\/div>\s*<\/div>/
+    );
+  });
+
+  it("prints no tolerance line for an order created before it existed", () => {
+    const ticket = buildTicketHtml(kitchenOrder(NO_TOLERANCE), "Boucherie Test");
+
+    expect(ticket).not.toContain('class="tolerance"');
   });
 });

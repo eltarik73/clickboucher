@@ -1,9 +1,10 @@
 // @vitest-environment node
 // Marge de pesée sur PostgreSQL réel : une baisse s'applique toujours ; une hausse de pesée ne
-// s'applique sans le client que tant que la hausse cumulée sur les lignes restantes reste dans
-// min(taux x total estimé, plafond) figé sur la commande ; au-delà, ou pour un prix ou un total
-// saisi à la main, ou sur une commande antérieure à la marge, le client doit répondre.
-import { describe, expect, it, vi } from "vitest";
+// s'applique sans le client que tant que la hausse cumulée, ligne par ligne, reste dans
+// min(taux x total estimé des lignes encore livrées, plafond) ; au-delà, ou pour un prix ou un
+// total saisi à la main, ou sur une commande sans marge figée, le client doit répondre. Le plafond
+// de sécurité de la plateforme borne tout ajustement.
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
@@ -12,11 +13,15 @@ vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppRaw: vi.fn(async () => true),
 }));
 
-import { WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
+import { invalidateConfig } from "@/lib/feature-flags";
+import { MAX_INCREASE_PCT_KEY } from "@/lib/price-adjustment-config";
+import { WEIGH_TOLERANCE_TERMS, type WeighToleranceTerms } from "@/lib/pricing/tolerance";
 import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestProduct } from "../helpers/factories";
 import {
+  ANSWER_WINDOW_MS,
+  adjustmentOf,
   butcherOf,
   createGramProduct,
   createOrder,
@@ -25,40 +30,36 @@ import {
   eventsOf,
   notificationsOf,
   reload,
-  type World,
+  weighGrams,
 } from "./commands-fixtures";
 
 // Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
 // eslint-disable-next-line react-hooks/rules-of-hooks
 useCleanDatabase();
 
-const ANSWER_WINDOW_MS = 300_000;
-
-/** The butcher weighs the line again: `grams` of the 1000 c/kg product cost `grams` cents. */
-function weigh(world: World, orderId: string, itemId: string, grams: number, now = new Date()) {
-  return adjustOrderPrice(
-    orderId,
-    butcherOf(world),
-    { adjustmentType: "WEIGHT", items: [{ orderItemId: itemId, newQuantity: grams / 1000 }] },
-    now
-  );
-}
-
-async function adjustmentOf(orderId: string) {
-  return prisma.priceAdjustment.findUniqueOrThrow({ where: { orderId } });
+/**
+ * An ACCEPTED order of KG lines of the 1000 c/kg product (one gram costs one cent), and the
+ * butcher weighing its first line again at `grams`.
+ */
+async function weighedOrder(lineGrams: readonly number[], terms: WeighToleranceTerms | null) {
+  const world = await createWorld();
+  const order = await createWeighedOrder(world, await createGramProduct(world), lineGrams, terms);
+  const firstLineAt = (grams: number, now?: Date) =>
+    weighGrams(order.id, butcherOf(world), { [order.items[0].id]: grams }, now);
+  return { world, order, firstLineAt };
 }
 
 describe.each([
   // Commande de 20,00 € : 5 % = 1,00 €, 10 % = 2,00 €, sous les plafonds.
-  { choice: "STANDARD", terms: WEIGH_TOLERANCE_TERMS.STANDARD, onTwenty: 100, cap: 1000 },
-  { choice: "EXTENDED", terms: WEIGH_TOLERANCE_TERMS.EXTENDED, onTwenty: 200, cap: 2000 },
-])("$choice tolerance", ({ terms, onTwenty, cap }) => {
-  it("a decrease applies at once and is recorded as applied by the butcher", async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    const order = await createWeighedOrder(world, product, [2000], terms);
+  { choice: "STANDARD", onTwenty: 100, atTolerance: "21,00 €", cap: 1000 },
+  { choice: "EXTENDED", onTwenty: 200, atTolerance: "22,00 €", cap: 2000 },
+] as const)("$choice tolerance", ({ choice, onTwenty, atTolerance, cap }) => {
+  const terms = WEIGH_TOLERANCE_TERMS[choice];
 
-    const result = await weigh(world, order.id, order.items[0].id, 1900);
+  it("a decrease applies at once and is recorded as applied by the butcher", async () => {
+    const { world, order, firstLineAt } = await weighedOrder([2000], terms);
+
+    const result = await firstLineAt(1900);
 
     expect(result).toMatchObject({
       ok: true,
@@ -78,11 +79,9 @@ describe.each([
   });
 
   it("a weighing increase of exactly the tolerance applies without asking the customer", async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    const order = await createWeighedOrder(world, product, [2000], terms);
+    const { world, order, firstLineAt } = await weighedOrder([2000], terms);
 
-    const result = await weigh(world, order.id, order.items[0].id, 2000 + onTwenty);
+    const result = await firstLineAt(2000 + onTwenty);
 
     expect(result).toMatchObject({
       ok: true,
@@ -109,18 +108,16 @@ describe.each([
     });
     const [notice] = await notificationsOf(world.customer.id, "PRICE_ADJUSTMENT_AUTO_APPROVED");
     expect(notice.message).toBe(
-      `Prix ajusté après la pesée : ${((2000 + onTwenty) / 100).toFixed(2).replace(".", ",")} €, dans la marge que vous avez choisie.`
+      `Prix ajusté après la pesée : ${atTolerance}, dans la marge que vous avez choisie.`
     );
     expect(await notificationsOf(world.customer.id, "PRICE_ADJUSTMENT_PENDING")).toHaveLength(0);
   });
 
   it("one cent more waits for the customer's answer for 5 minutes, the price unchanged", async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    const order = await createWeighedOrder(world, product, [2000], terms);
+    const { world, order, firstLineAt } = await weighedOrder([2000], terms);
     const now = new Date();
 
-    const result = await weigh(world, order.id, order.items[0].id, 2001 + onTwenty, now);
+    const result = await firstLineAt(2001 + onTwenty, now);
 
     expect(result).toMatchObject({
       ok: true,
@@ -145,13 +142,11 @@ describe.each([
   });
 
   it("two increases within the tolerance each but beyond it together: the second one asks", async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    const order = await createWeighedOrder(world, product, [2000], terms);
+    const { order, firstLineAt } = await weighedOrder([2000], terms);
     const step = (onTwenty * 6) / 10;
 
-    const first = await weigh(world, order.id, order.items[0].id, 2000 + step);
-    const second = await weigh(world, order.id, order.items[0].id, 2000 + 2 * step);
+    const first = await firstLineAt(2000 + step);
+    const second = await firstLineAt(2000 + 2 * step);
 
     expect(first).toMatchObject({ ok: true, data: { applied: true } });
     expect(second).toMatchObject({
@@ -163,47 +158,42 @@ describe.each([
   });
 
   it(`on a 300,00 € order the cap holds: +${cap / 100},00 € applies, one cent more asks`, async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    const atCap = await createWeighedOrder(world, product, [30_000], terms);
-    const beyond = await createWeighedOrder(world, product, [30_000], terms);
+    const { order, firstLineAt } = await weighedOrder([30_000], terms);
 
-    const applied = await weigh(world, atCap.id, atCap.items[0].id, 30_000 + cap);
-    const asked = await weigh(world, beyond.id, beyond.items[0].id, 30_001 + cap);
+    const applied = await firstLineAt(30_000 + cap);
+    const asked = await firstLineAt(30_001 + cap);
 
     expect(applied).toMatchObject({
       ok: true,
       data: { applied: true, decision: { toleranceCents: cap } },
     });
-    expect((await reload(atCap.id)).totalCents).toBe(30_000 + cap);
-    expect(asked).toMatchObject({ ok: true, data: { applied: false } });
-    expect((await reload(beyond.id)).totalCents).toBe(30_000);
-  });
-
-  it("a line out of stock gives no room: the remaining line is measured against its own estimate", async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    // Total estimé 40,00 € : la marge est figée sur 40,00 €, même si une ligne disparaît ensuite.
-    const room = 2 * onTwenty;
-    const within = await createWeighedOrder(world, product, [2000, 2000], terms);
-    const beyond = await createWeighedOrder(world, product, [2000, 2000], terms);
-    for (const order of [within, beyond]) {
-      await prisma.orderItem.update({
-        where: { id: order.items[1].id },
-        data: { available: false },
-      });
-      await prisma.order.update({ where: { id: order.id }, data: { totalCents: 2000 } });
-    }
-
-    const applied = await weigh(world, within.id, within.items[0].id, 2000 + room);
-    const asked = await weigh(world, beyond.id, beyond.items[0].id, 2001 + room);
-
-    expect(applied).toMatchObject({ ok: true, data: { applied: true } });
     expect(asked).toMatchObject({
       ok: true,
-      data: { applied: false, decision: { reason: "BEYOND_TOLERANCE" } },
+      data: { applied: false, decision: { toleranceCents: cap, cumulatedIncreaseCents: cap + 1 } },
     });
-    expect((await reload(beyond.id)).totalCents).toBe(2000);
+    expect((await reload(order.id)).totalCents).toBe(30_000 + cap);
+  });
+
+  it("a line out of stock gives no room, whatever the stored estimate: the base is the lines still delivered", async () => {
+    const { order, firstLineAt } = await weighedOrder([2000, 2000], terms);
+    // Total estimé figé à 40,00 € ; la seconde ligne n'est plus livrée : la marge porte sur 20,00 €.
+    await prisma.orderItem.update({ where: { id: order.items[1].id }, data: { available: false } });
+    await prisma.order.update({ where: { id: order.id }, data: { totalCents: 2000 } });
+
+    const asked = await firstLineAt(2001 + onTwenty);
+
+    expect(asked).toMatchObject({
+      ok: true,
+      data: {
+        applied: false,
+        decision: {
+          reason: "BEYOND_TOLERANCE",
+          toleranceCents: onTwenty,
+          estimatedTotalCents: 2000,
+        },
+      },
+    });
+    expect(await reload(order.id)).toMatchObject({ totalCents: 2000, estimatedTotalCents: 4000 });
   });
 });
 
@@ -251,36 +241,46 @@ describe("increases that always need the customer's answer", () => {
     expect(totals).toEqual([1500, 1499, 1500, 1499]);
   });
 
-  it("an order created before the weighing tolerance: every increase asks, a decrease applies", async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    const increased = await createWeighedOrder(world, product, [2000], null);
-    const decreased = await createWeighedOrder(world, product, [2000], null);
+  it("an order without a frozen tolerance: every increase asks, a decrease applies", async () => {
+    const increased = await weighedOrder([2000], null);
+    const decreased = await weighedOrder([2000], null);
 
-    expect(await weigh(world, increased.id, increased.items[0].id, 2001)).toMatchObject({
+    expect(await increased.firstLineAt(2001)).toMatchObject({
       ok: true,
       data: { applied: false, decision: { reason: "NO_TOLERANCE", toleranceCents: 0 } },
     });
-    expect(await weigh(world, decreased.id, decreased.items[0].id, 1999)).toMatchObject({
-      ok: true,
-      data: { applied: true },
-    });
-    expect((await reload(increased.id)).totalCents).toBe(2000);
-    expect((await reload(decreased.id)).totalCents).toBe(1999);
+    expect(await decreased.firstLineAt(1999)).toMatchObject({ ok: true, data: { applied: true } });
+    expect((await reload(increased.order.id)).totalCents).toBe(2000);
+    expect((await reload(decreased.order.id)).totalCents).toBe(1999);
   });
+});
 
-  it("the platform hard cap still refuses an increase above +50 %, whatever the tolerance", async () => {
-    const world = await createWorld();
-    const product = await createGramProduct(world);
-    const order = await createWeighedOrder(world, product, [2000], WEIGH_TOLERANCE_TERMS.EXTENDED);
+describe("the platform's safety cap of one adjustment, whatever the tolerance", () => {
+  afterEach(() => invalidateConfig(MAX_INCREASE_PCT_KEY));
 
-    const result = await weigh(world, order.id, order.items[0].id, 3001);
+  // Commande de 20,00 €, marge EXTENDED (2,00 €) : au plafond, la hausse attend le client.
+  it.each([
+    { stored: null, cap: 50, atCap: 3000 },
+    { stored: "30", cap: 30, atCap: 2600 },
+    // Pas un plafond valide (1 à 100) : le plafond par défaut s'applique.
+    { stored: "0", cap: 50, atCap: 3000 },
+  ])("stored $stored: up to +$cap % is proposed, one cent more is refused", async (row) => {
+    if (row.stored !== null) {
+      await prisma.platformConfig.create({
+        data: { key: MAX_INCREASE_PCT_KEY, value: row.stored },
+      });
+      invalidateConfig(MAX_INCREASE_PCT_KEY);
+    }
+    const { order, firstLineAt } = await weighedOrder([2000], WEIGH_TOLERANCE_TERMS.EXTENDED);
 
-    expect(result).toMatchObject({
+    expect(await firstLineAt(row.atCap + 1)).toEqual({
       ok: false,
       code: "VALIDATION_ERROR",
-      message: "L'ajustement ne peut pas dépasser +50 % du total actuel",
+      message: `L'ajustement ne peut pas dépasser +${row.cap} % du total actuel`,
     });
     expect(await prisma.priceAdjustment.count()).toBe(0);
+
+    expect(await firstLineAt(row.atCap)).toMatchObject({ ok: true, data: { applied: false } });
+    expect(await adjustmentOf(order.id)).toMatchObject({ status: "PENDING", newTotal: row.atCap });
   });
 });

@@ -2,8 +2,9 @@
 // Ajustements de prix sur PostgreSQL réel : un ajustement en attente ne s'applique qu'à la commande
 // pour laquelle il a été calculé (une rupture, une annulation ou un retrait le ferment, motif
 // ORDER_CHANGED, avec son événement), une seule réponse gagne quand plusieurs requêtes se croisent,
-// et une pesée est valorisée par le module de tarification. La marge de pesée : *-tolerance.test.ts ;
-// les réponses du client et le silence : *-answers.test.ts.
+// une pesée est valorisée par le module de tarification et une proposition qui ne change rien
+// n'écrit rien. La marge de pesée : *-tolerance.test.ts ; les réponses du client et le silence :
+// *-answers.test.ts.
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
@@ -26,9 +27,11 @@ import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestProduct } from "../helpers/factories";
 import {
   THREE_PORTIONS,
+  adjustmentOf,
   butcherOf,
   createOrder,
   createWorld,
+  customerAnswer,
   eventsOf,
   notificationsOf,
   reload,
@@ -38,6 +41,8 @@ import {
 // Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
 // eslint-disable-next-line react-hooks/rules-of-hooks
 useCleanDatabase();
+
+const ROUNDS = 5;
 
 /** Two lines: 2 x 1000 g of the world's product (2 x 1911) and one tray at 1576. */
 async function twoLineOrder(world: World) {
@@ -67,15 +72,8 @@ async function pendingManualIncrease(world: World, orderId: string) {
   expect(created).toMatchObject({ ok: true, data: { applied: false } });
 }
 
-async function adjustment(orderId: string) {
-  return prisma.priceAdjustment.findUniqueOrThrow({ where: { orderId } });
-}
-
-const answer = (world: World, orderId: string) => ({
-  orderId,
-  userId: world.customer.id,
-  now: new Date(),
-});
+const answer = (world: World, orderId: string) =>
+  customerAnswer(orderId, world.customer.id, new Date());
 
 describe("an adjustment pending when the order changes is never applied", () => {
   it("out of stock, removed line, acceptance: the total stays the recomputed one", async () => {
@@ -90,7 +88,7 @@ describe("an adjustment pending when the order changes is never applied", () => 
       productIds: [tray.id],
     });
     expect(reported.kind).toBe("done");
-    expect(await adjustment(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
+    expect(await adjustmentOf(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
     const closed = await eventsOf(order.id, "PRICE_ADJUSTMENT_CLOSED");
     expect(closed).toHaveLength(1);
     expect(closed[0]).toMatchObject({ actorId: "system" });
@@ -134,7 +132,7 @@ describe("an adjustment pending when the order changes is never applied", () => 
     expect(await acceptAdjustment(answer(world, order.id))).toMatchObject({ kind: "refused" });
 
     expect(await reload(order.id)).toMatchObject({ status: "CANCELLED", totalCents: 5398 });
-    expect(await adjustment(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
+    expect(await adjustmentOf(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
     expect(await notificationsOf(world.owner.id, "PRICE_ADJUSTMENT_ACCEPTED")).toHaveLength(0);
   });
 
@@ -149,22 +147,10 @@ describe("an adjustment pending when the order changes is never applied", () => 
     ]);
 
     const stored = await reload(order.id);
-    const settled = await adjustment(order.id);
+    const settled = await adjustmentOf(order.id);
     expect(stored.status).toBe("CANCELLED");
     expect(stored.totalCents).toBe(settled.status === "APPROVED" ? 6208 : 5398);
     expect(["APPROVED", "REJECTED"]).toContain(settled.status);
-  });
-
-  it("an order whose total changed by other means closes the adjustment instead of overwriting it", async () => {
-    const world = await createWorld();
-    const { order } = await twoLineOrder(world);
-    await pendingManualIncrease(world, order.id);
-    await prisma.order.update({ where: { id: order.id }, data: { totalCents: 5000 } });
-
-    expect(await acceptAdjustment(answer(world, order.id))).toMatchObject({ kind: "refused" });
-    expect((await reload(order.id)).totalCents).toBe(5000);
-    expect(await adjustment(order.id)).toMatchObject({ closeReason: "ORDER_CHANGED" });
-    expect(await eventsOf(order.id, "PRICE_ADJUSTMENT_CLOSED")).toHaveLength(1);
   });
 });
 
@@ -191,82 +177,84 @@ describe("the customer's answer", () => {
     const stored = await reload(order.id);
     expect(stored.totalCents).toBe(3344);
     expect(stored.items[0]).toMatchObject({ quantity: 1.75, totalCents: 3344 });
-    expect(await adjustment(order.id)).toMatchObject({ status: "APPROVED" });
+    expect(await adjustmentOf(order.id)).toMatchObject({ status: "APPROVED" });
   });
 
-  it("an acceptance and a refusal racing each other: exactly one wins", async () => {
-    const world = await createWorld();
-    const { order } = await twoLineOrder(world);
-    await pendingManualIncrease(world, order.id);
+  it.each(Array.from({ length: ROUNDS }, (_, round) => round))(
+    "round %i: an acceptance and a refusal racing each other, exactly one wins",
+    async () => {
+      const world = await createWorld();
+      const { order } = await twoLineOrder(world);
+      await pendingManualIncrease(world, order.id);
 
-    const [accepted, refused] = await Promise.all([
-      acceptAdjustment(answer(world, order.id)),
-      rejectAdjustment(answer(world, order.id)),
-    ]);
+      const [accepted, refused] = await Promise.all([
+        acceptAdjustment(answer(world, order.id)),
+        rejectAdjustment(answer(world, order.id)),
+      ]);
 
-    expect([accepted.kind, refused.kind].sort()).toEqual(["done", "refused"]);
-    const settled = await adjustment(order.id);
-    expect((await reload(order.id)).totalCents).toBe(settled.status === "APPROVED" ? 6208 : 5398);
-    const events = [
-      ...(await eventsOf(order.id, "PRICE_ADJUSTED")),
-      ...(await eventsOf(order.id, "PRICE_ADJUSTMENT_CLOSED")),
-    ];
-    expect(events).toHaveLength(1);
-  });
-
-  it("a refusal leaves the order unchanged and cannot be accepted afterwards", async () => {
-    const world = await createWorld();
-    const { order } = await twoLineOrder(world);
-    await pendingManualIncrease(world, order.id);
-
-    expect((await rejectAdjustment(answer(world, order.id))).kind).toBe("done");
-    expect(await acceptAdjustment(answer(world, order.id))).toMatchObject({ kind: "refused" });
-
-    expect((await reload(order.id)).totalCents).toBe(5398);
-    expect(await adjustment(order.id)).toMatchObject({ closeReason: "CUSTOMER_REFUSED" });
-  });
+      expect([accepted.kind, refused.kind].sort()).toEqual(["done", "refused"]);
+      const settled = await adjustmentOf(order.id);
+      expect((await reload(order.id)).totalCents).toBe(settled.status === "APPROVED" ? 6208 : 5398);
+      const events = [
+        ...(await eventsOf(order.id, "PRICE_ADJUSTED")),
+        ...(await eventsOf(order.id, "PRICE_ADJUSTMENT_CLOSED")),
+      ];
+      expect(events).toHaveLength(1);
+    }
+  );
 });
 
 describe("weighing through the pricing module", () => {
-  it("weighing the same three 500 g portions again keeps their price (3 x 956, not round(1911 x 1,5))", async () => {
+  it("the same three 500 g portions weighed again, or the current total typed, change and write nothing (3 x 956, not round(1911 x 1,5))", async () => {
     const world = await createWorld();
     const order = await createOrder(world, {
       status: "ACCEPTED",
       items: [{ productId: world.product.id, ...THREE_PORTIONS }],
     });
 
-    const result = await adjustOrderPrice(order.id, butcherOf(world), {
-      adjustmentType: "WEIGHT",
-      items: [{ orderItemId: order.items[0].id, newQuantity: 1.5 }],
-    });
-
-    expect(result).toMatchObject({ ok: true, data: { applied: true } });
+    for (const request of [
+      { adjustmentType: "WEIGHT", items: [{ orderItemId: order.items[0].id, newQuantity: 1.5 }] },
+      { adjustmentType: "MANUAL", newTotalCents: THREE_PORTIONS.totalCents },
+    ]) {
+      expect(await adjustOrderPrice(order.id, butcherOf(world), request)).toEqual({
+        ok: true,
+        data: { adjustment: null, applied: true, _idempotent: true },
+      });
+    }
     const stored = await reload(order.id);
     expect(stored.items[0]).toMatchObject({ quantity: 1.5, totalCents: THREE_PORTIONS.totalCents });
     expect(stored.totalCents).toBe(THREE_PORTIONS.totalCents);
-    // Rien n'a changé pour le client : il n'est pas dérangé.
+    expect(await prisma.priceAdjustment.count()).toBe(0);
+    expect(await eventsOf(order.id)).toHaveLength(0);
     expect(await notificationsOf(world.customer.id)).toHaveLength(0);
   });
 
-  it("a lighter weighing is applied at once at the portion price of the weighed grams", async () => {
+  it("a lighter weighing is applied at once at the portion price of the weighed grams, once when sent twice", async () => {
     const world = await createWorld();
     const order = await createOrder(world, {
       status: "PREPARING",
       items: [{ productId: world.product.id, ...THREE_PORTIONS }],
     });
-
-    await adjustOrderPrice(order.id, butcherOf(world), {
+    const request = {
       adjustmentType: "WEIGHT",
       items: [{ orderItemId: order.items[0].id, newQuantity: 1.47 }],
-    });
+    };
+
+    const first = await adjustOrderPrice(order.id, butcherOf(world), request);
+    const second = await adjustOrderPrice(order.id, butcherOf(world), request);
 
     // 1470 g ne se découpe pas en portions de 500 g : une portion de 1470 g, floor((1911 x 1470 + 500) / 1000) = 2809.
     const stored = await reload(order.id);
     expect(stored.items[0]).toMatchObject({ quantity: 1.47, totalCents: 2809 });
     expect(stored.totalCents).toBe(2809);
-    expect(await notificationsOf(world.customer.id, "PRICE_ADJUSTMENT_AUTO_APPROVED")).toHaveLength(
-      1
-    );
+    const row = await adjustmentOf(order.id);
+    expect(first).toMatchObject({ ok: true, data: { applied: true, adjustment: { id: row.id } } });
+    expect(second).toEqual({
+      ok: true,
+      data: { adjustment: row, applied: true, _idempotent: true },
+    });
+    expect(await eventsOf(order.id, "PRICE_ADJUSTED")).toHaveLength(1);
+    expect(await notificationsOf(world.customer.id)).toHaveLength(1);
   });
 
   it("refuses a weight that is not whole grams, an unreadable body and another shop's order", async () => {

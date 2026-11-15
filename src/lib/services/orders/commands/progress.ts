@@ -3,7 +3,7 @@
 import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
-import { closePendingAdjustment } from "@/lib/services/orders/adjustment-settlement";
+import { closePendingAdjustment } from "@/lib/services/orders/adjustment-closure";
 import { transitionOrder } from "@/lib/services/orders/transition";
 import { unappliedTransition, type CommandResult } from "./outcome";
 import { sendPickupReceipt } from "./pickup-receipt";

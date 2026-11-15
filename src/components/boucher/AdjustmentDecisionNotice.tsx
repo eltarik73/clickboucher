@@ -1,8 +1,8 @@
 // AdjustmentDecisionNotice — tells the butcher, before he sends a price adjustment, what the server
-// will do with it: apply it at once or ask the customer. The decision comes from decideAdjustment
-// (src/lib/pricing/tolerance.ts), the server's own rule; only the words are chosen here. A weighing
-// increase is measured from the order, not from this step: the notice shows both figures the rule
-// compares, the increase cumulated since the order and the customer's tolerance.
+// will do with it: apply it at once or ask the customer. The decision is the one of the server's
+// own plan (planAdjustment, src/lib/pricing/adjustment.ts); only the words are chosen here. A
+// weighing increase is measured on each line against its estimate, not on this step: the notice
+// shows both figures the rule compares, that increase and the customer's tolerance.
 import { CheckCircle2, Clock } from "lucide-react";
 import { formatPriceCents as formatPrice } from "@/lib/format-kitchen";
 import { ADJUSTMENT_ANSWER_WINDOW_SECONDS, type AdjustmentDecision } from "@/lib/pricing/tolerance";
@@ -10,7 +10,7 @@ import { ADJUSTMENT_ANSWER_WINDOW_SECONDS, type AdjustmentDecision } from "@/lib
 const ANSWER_MINUTES = ADJUSTMENT_ANSWER_WINDOW_SECONDS / 60;
 
 /** The sentence the butcher reads for a decision. */
-export function adjustmentDecisionText(decision: AdjustmentDecision): string {
+function adjustmentDecisionText(decision: AdjustmentDecision): string {
   switch (decision.reason) {
     case "DECREASE":
       return "Baisse de prix : appliquée tout de suite, le client est prévenu.";
@@ -32,7 +32,7 @@ export function adjustmentDecisionText(decision: AdjustmentDecision): string {
  * The two figures a weighing increase is judged on, or null when the tolerance played no part:
  * « Hausse cumulée depuis la commande : 1,60 €, marge du client : 1,22 € ».
  */
-export function adjustmentMeasureText(decision: AdjustmentDecision): string | null {
+function adjustmentMeasureText(decision: AdjustmentDecision): string | null {
   if (decision.reason !== "WITHIN_TOLERANCE" && decision.reason !== "BEYOND_TOLERANCE") return null;
   const tolerance = formatPrice(decision.toleranceCents);
   if (decision.cumulatedIncreaseCents === null) return `Marge du client : ${tolerance}`;

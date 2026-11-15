@@ -255,13 +255,25 @@ describe("notification e-mails", () => {
     expect(email).not.toContain(MARKUP);
   });
 
-  it.each(Object.keys(notificationEmails))("%s prints every typed value as text", (name) => {
+  // priceAdjustmentNotAccepted takes its event first: checked for each event below.
+  const dataOnly = Object.keys(notificationEmails).filter(
+    (name) => name !== "priceAdjustmentNotAccepted"
+  );
+
+  it.each(dataOnly)("%s prints every typed value as text", (name) => {
     const template = notificationEmails[name as keyof typeof notificationEmails] as (
       data: typeof typed
     ) => string;
 
     expect(template(typed)).not.toContain(MARKUP);
   });
+
+  it.each(["PRICE_ADJUSTMENT_REJECTED", "PRICE_ADJUSTMENT_EXPIRED"] as const)(
+    "priceAdjustmentNotAccepted (%s) prints every typed value as text",
+    (event) => {
+      expect(notificationEmails.priceAdjustmentNotAccepted(event, typed)).not.toContain(MARKUP);
+    }
+  );
 });
 
 describe("kitchen ticket", () => {
@@ -277,25 +289,5 @@ describe("kitchen ticket", () => {
     const ticket = buildTicketHtml(kitchenOrder(READABLE), "Boucherie Test");
 
     expect(ticket).toContain(`<div class="note-box">${READABLE_AS_TEXT}</div>`);
-  });
-
-  it("prints the weighing tolerance frozen on the order under the totals, escaped", () => {
-    const ticket = buildTicketHtml(
-      {
-        ...kitchenOrder(READABLE),
-        weighToleranceRateBps: 500,
-        weighToleranceCapCents: 1000,
-        estimatedTotalCents: 1200,
-      },
-      "Boucherie Test"
-    );
-
-    expect(ticket).toMatch(
-      /<div class="totals">[\s\S]*<div class="tolerance">Marge de pesée acceptée : 5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus \(jusqu&#39;à 0,60 €\)<\/div>\s*<\/div>/
-    );
-  });
-
-  it("prints no tolerance line for an order created before it existed", () => {
-    expect(buildTicketHtml(kitchenOrder(READABLE), "Boucherie Test")).not.toContain("tolerance");
   });
 });

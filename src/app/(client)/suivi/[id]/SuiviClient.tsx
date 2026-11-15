@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Phone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import type { OrderStatus } from "@prisma/client";
 import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
+import WeighToleranceNote from "@/components/client/WeighToleranceNote";
 import { Button } from "@/components/ui/button";
 import { useOrderTracker, type TrackedOrder } from "@/hooks/useOrderTracker";
 import { PARIS_TIME_ZONE } from "@/lib/paris-time";
@@ -15,7 +16,6 @@ import CancelOrderButton from "./CancelOrderButton";
 import EstimatedCountdown from "./EstimatedCountdown";
 import OrderStatusBadge from "./OrderStatusBadge";
 import TrackingTimeline from "./TrackingTimeline";
-import WeighToleranceNote, { type WeighToleranceNoteProps } from "./WeighToleranceNote";
 
 interface OrderData extends Omit<TrackedOrder, "displayNumber"> {
   orderNumber: string;
@@ -25,13 +25,10 @@ interface OrderData extends Omit<TrackedOrder, "displayNumber"> {
   customerNote: string | null;
   shop: { id: string; name: string; address: string; city: string; phone: string };
   user: { firstName: string; lastName: string };
-  weighTolerance: WeighToleranceNoteProps["tolerance"];
 }
 
-/**
- * The page's order with a fresh read applied: the fields that change while the customer watches.
- * A read older than the order on screen (an answer overtaken by a later one) changes nothing.
- */
+// The page's order with a fresh read applied: the fields that change while the customer watches.
+// A read older than the order on screen (an answer overtaken by a later one) changes nothing.
 function withUpdate(prev: OrderData, fresh: TrackedOrder): OrderData {
   if (Date.parse(fresh.updatedAt) < Date.parse(prev.updatedAt)) return prev;
   return {
@@ -46,6 +43,9 @@ function withUpdate(prev: OrderData, fresh: TrackedOrder): OrderData {
     displayNumber: fresh.displayNumber ?? prev.displayNumber,
     items: fresh.items,
     priceAdjustment: fresh.priceAdjustment,
+    weighToleranceRateBps: fresh.weighToleranceRateBps,
+    weighToleranceCapCents: fresh.weighToleranceCapCents,
+    estimatedTotalCents: fresh.estimatedTotalCents,
   };
 }
 
@@ -235,7 +235,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
               {formatPrice(order.totalCents)}
             </span>
           </div>
-          <WeighToleranceNote tolerance={order.weighTolerance} />
+          <WeighToleranceNote order={order} />
           {order.customerNote && (
             <p className="mt-3 text-xs italic text-gray-500 dark:text-gray-400">
               Note : {order.customerNote}

@@ -10,6 +10,7 @@ import type { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 import {
+  formatToleranceTerms,
   WEIGH_TOLERANCE_CHOICES,
   WEIGH_TOLERANCE_TERMS,
   type WeighToleranceChoice,
@@ -20,19 +21,11 @@ export type ToleranceResolution =
   | { ok: true; choice: WeighToleranceChoice; terms: WeighToleranceTerms; saveOnUser: boolean }
   | { ok: false; code: "VALIDATION_ERROR"; message: string; details: Record<string, string[]> };
 
-export const WEIGH_TOLERANCE_REQUIRED_MESSAGE =
-  "Choisissez votre marge de pesée avant de commander.";
+const WEIGH_TOLERANCE_REQUIRED_MESSAGE = "Choisissez votre marge de pesée avant de commander.";
 
-const frenchNumber = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 });
-
-/** "5 % (10 € au plus)": the terms of one choice, as the refusal names them. */
-function shortTerms({ rateBps, capCents }: WeighToleranceTerms): string {
-  return `${frenchNumber.format(rateBps / 100)} % (${frenchNumber.format(capCents / 100)} € au plus)`;
-}
-
-/** "Choix requis : 5 % (10 € au plus) ou 10 % (20 € au plus)". */
+/** The choices named as the cart shows them: "5 % du total estimé, 10,00 € au plus ou …". */
 const CHOICE_REQUIRED_DETAIL = `Choix requis : ${WEIGH_TOLERANCE_CHOICES.map((choice) =>
-  shortTerms(WEIGH_TOLERANCE_TERMS[choice])
+  formatToleranceTerms(WEIGH_TOLERANCE_TERMS[choice])
 ).join(" ou ")}`;
 
 function chosen(choice: WeighToleranceChoice, saveOnUser: boolean): ToleranceResolution {
@@ -40,19 +33,21 @@ function chosen(choice: WeighToleranceChoice, saveOnUser: boolean): ToleranceRes
 }
 
 /**
- * The tolerance of the order about to be created. The request's choice wins; a signed-in member
+ * The tolerance of the order about to be created. The request's choice wins; a member (memberId)
  * without one in the request gets his saved preference (read only then); otherwise the order is
- * refused. saveOnUser: a member whose request carried a choice (saved in the creation transaction).
+ * refused. A guest (memberId null) is never read from nor saved to the users row. saveOnUser: a
+ * member whose request carried a choice (saved in the creation transaction).
  */
 export async function resolveWeighTolerance(
   request: { weighTolerance?: WeighToleranceChoice },
-  customerId: string,
-  asGuest: boolean
+  memberId: string | null
 ): Promise<ToleranceResolution> {
-  if (request.weighTolerance !== undefined) return chosen(request.weighTolerance, !asGuest);
-  if (!asGuest) {
+  if (request.weighTolerance !== undefined) {
+    return chosen(request.weighTolerance, memberId !== null);
+  }
+  if (memberId !== null) {
     const saved = await prisma.user.findUnique({
-      where: { id: customerId },
+      where: { id: memberId },
       select: { weighTolerance: true },
     });
     if (saved?.weighTolerance) return chosen(saved.weighTolerance, false);

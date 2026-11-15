@@ -26,6 +26,9 @@ function cancelledOrder(): TrackedOrder {
     status: "CANCELLED",
     displayNumber: "#12",
     totalCents: 2450,
+    weighToleranceRateBps: null,
+    weighToleranceCapCents: null,
+    estimatedTotalCents: null,
     boucherNote: null,
     estimatedReady: null,
     actualReady: null,
@@ -267,7 +270,6 @@ describe("annulation depuis la page de suivi", () => {
             phone: "",
           },
           user: { firstName: "Tarik", lastName: "Benali" },
-          weighTolerance: null,
         }}
       />
     );

@@ -249,7 +249,7 @@ export async function createOrder(
   const replay = await findByIdempotencyKey(request.idempotencyKey, customer.id);
   if (replay !== null) return replay;
 
-  const tolerance = await resolveWeighTolerance(request, customer.id, guest !== undefined);
+  const tolerance = await resolveWeighTolerance(request, guest !== undefined ? null : customer.id);
   if (!tolerance.ok) return replayOr(request, customer, tolerance);
 
   const now = new Date();

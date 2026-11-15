@@ -3,6 +3,8 @@
 // est propre au fichier) ; tout le reste passe par PostgreSQL.
 import { NextRequest } from "next/server";
 import type { Order, OrderItem, Product, Shop, User } from "@prisma/client";
+import { WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
+import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
 import { prisma } from "../helpers/db";
 import {
   createTestOrder,
@@ -12,6 +14,8 @@ import {
 } from "../helpers/factories";
 
 export const MINUTE_MS = 60_000;
+/** The customer's window to answer a price adjustment. */
+export const ANSWER_WINDOW_MS = 5 * MINUTE_MS;
 
 export interface World {
   owner: User;
@@ -101,6 +105,46 @@ export async function createWeighedOrder(
             estimatedTotalCents: total,
           },
   });
+}
+
+/** The butcher weighs lines again, `weights` in grams by line id. */
+export function weighGrams(
+  orderId: string,
+  shop: { shopId: string; actorId: string },
+  weights: Record<string, number>,
+  now = new Date()
+) {
+  return adjustOrderPrice(
+    orderId,
+    shop,
+    {
+      adjustmentType: "WEIGHT",
+      items: Object.entries(weights).map(([orderItemId, grams]) => ({
+        orderItemId,
+        newQuantity: grams / 1000,
+      })),
+    },
+    now
+  );
+}
+
+export async function adjustmentOf(orderId: string) {
+  return prisma.priceAdjustment.findUniqueOrThrow({ where: { orderId } });
+}
+
+/** A 20,00 € order, STANDARD tolerance (1,00 €), weighed at 22,00 € at `now`: it waits. */
+export async function pendingWeighingIncrease(now: Date) {
+  const world = await createWorld();
+  const product = await createGramProduct(world);
+  const order = await createWeighedOrder(world, product, [2000], WEIGH_TOLERANCE_TERMS.STANDARD);
+  const created = await weighGrams(order.id, butcherOf(world), { [order.items[0].id]: 2200 }, now);
+  if (!created.ok || created.data.applied) throw new Error("ajustement en attente attendu");
+  return { world, order };
+}
+
+/** The customer's answer, as acceptAdjustment and rejectAdjustment take it. */
+export function customerAnswer(orderId: string, userId: string, now: Date) {
+  return { orderId, userId, now };
 }
 
 export function jsonRequest(url: string, method: string, body?: unknown): NextRequest {

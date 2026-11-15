@@ -127,6 +127,16 @@ export async function acceptAdjustment(input: {
   return { kind: "done", adjustment: outcome.adjustment };
 }
 
+type RejectOutcome =
+  | { kind: "not_found" }
+  | { kind: "nothing_pending" }
+  | {
+      kind: "closed";
+      refused: ClosedAdjustment | null;
+      expired: ClosedAdjustment | null;
+      adjustment: PriceAdjustment;
+    };
+
 /**
  * The customer refuses the pending adjustment of their order: the total does not change
  * (CUSTOMER_REFUSED). After the answer window it is closed as unanswered (NO_ANSWER), with the
@@ -137,9 +147,9 @@ export async function rejectAdjustment(input: {
   userId: string;
   now: Date;
 }): Promise<CustomerAdjustmentResult> {
-  const outcome = await prisma.$transaction(async (tx) => {
+  const outcome = await prisma.$transaction(async (tx): Promise<RejectOutcome> => {
     const order = await lockOrderForAdjustment(tx, input.orderId, { userId: input.userId });
-    if (order === null) return null;
+    if (order === null) return { kind: "not_found" };
     const refused = await endPendingAdjustment(tx, {
       orderId: order.id,
       now: input.now,
@@ -149,15 +159,16 @@ export async function rejectAdjustment(input: {
     });
     const expired =
       refused === null ? await expirePendingAdjustment(tx, order.id, input.now) : null;
-    if (refused === null && expired === null) return undefined;
+    if (refused === null && expired === null) return { kind: "nothing_pending" };
     return {
+      kind: "closed",
       refused,
       expired,
       adjustment: await tx.priceAdjustment.findUniqueOrThrow({ where: { orderId: order.id } }),
     };
   }, TRANSACTION_OPTIONS);
-  if (outcome === null) return { kind: "not_found" };
-  if (outcome === undefined) return { kind: "refused", message: NOTHING_PENDING };
+  if (outcome.kind === "not_found") return { kind: "not_found" };
+  if (outcome.kind === "nothing_pending") return { kind: "refused", message: NOTHING_PENDING };
 
   if (outcome.expired !== null) await notifyAdjustmentExpired(outcome.expired);
   if (outcome.refused !== null) await notifyShop("PRICE_ADJUSTMENT_REJECTED", outcome.refused);

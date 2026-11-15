@@ -34,9 +34,22 @@ export function adjustmentAppliedText(data: AdjustmentMessageData): string {
     : `Prix ajusté après la pesée : ${price}, dans la marge que vous avez choisie.`;
 }
 
-/** What the shop learns when the customer refused (`refused`) or did not answer: the price stays. */
-export function adjustmentKeptPriceText(data: AdjustmentMessageData, refused: boolean): string {
-  const who = refused ? "Le client a refusé" : "Le client n'a pas répondu";
+function keptPriceText(who: string, data: AdjustmentMessageData): string {
   const price = adjustmentAmount(data.originalTotal, "originalTotal");
   return `${who} : le prix de la commande #${data.orderNumber ?? ""} reste à ${price}. Repesez dans sa marge ou retirez l'article.`;
 }
+
+/** What the shop learns, by event, when the customer refused or did not answer: the price stays. */
+export const ADJUSTMENT_KEPT_PRICE: Record<
+  "PRICE_ADJUSTMENT_REJECTED" | "PRICE_ADJUSTMENT_EXPIRED",
+  { title: string; text(data: AdjustmentMessageData): string }
+> = {
+  PRICE_ADJUSTMENT_REJECTED: {
+    title: "❌ Ajustement refusé",
+    text: (data) => keptPriceText("Le client a refusé", data),
+  },
+  PRICE_ADJUSTMENT_EXPIRED: {
+    title: "⏱ Pas de réponse du client",
+    text: (data) => keptPriceText("Le client n'a pas répondu", data),
+  },
+};

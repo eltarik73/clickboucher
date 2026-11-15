@@ -1,82 +1,22 @@
-// The butcher's price adjustment window: before sending, it says whether the new price applies at
-// once or needs the customer's yes (same rule as the server), names its button accordingly, sends
-// only the lines he changed, and closes only once the server took the adjustment.
+// The butcher's price adjustment window: before sending, it shows the plan of the server's own
+// planner (whether the new price applies at once or needs the customer's yes, or which value is
+// typed wrong), names its button accordingly, sends only the lines he changed, never judges the
+// platform's cap (the server applies the stored one), and closes only once the server took it.
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import PriceAdjustModal from "@/components/boucher/PriceAdjustModal";
+import { BREAD, kitchenLine, kitchenOrder, MERGUEZ } from "./kitchen-order-fixtures";
 
 afterEach(cleanup);
 
-type Item = KitchenOrder["items"][number];
-
-function line(overrides: Partial<Item> & Pick<Item, "id" | "name">): Item {
-  return {
-    productId: `product-${overrides.id}`,
-    quantity: 1,
-    unit: "PIECE",
-    priceCents: 450,
-    totalCents: 450,
-    estimatedPriceCents: 450,
-    weightGrams: null,
-    sliceCount: null,
-    sliceThickness: null,
-    variant: null,
-    pieceCount: null,
-    pieceLabel: null,
-    cutOption: null,
-    available: true,
-    ...overrides,
-  };
-}
-
-// 24,50 € estimated, STANDARD tolerance: up to 1,22 € of weighing increase without asking.
-const ORDER: KitchenOrder = {
-  id: "order-1",
-  orderNumber: "KG26-000201",
-  displayNumber: "#021",
-  status: "PREPARING",
-  totalCents: 2450,
-  discountCents: 0,
-  weighToleranceRateBps: 500,
-  weighToleranceCapCents: 1000,
-  estimatedTotalCents: 2450,
-  customerNumber: null,
-  isPro: false,
-  customerNote: null,
-  requestedTime: null,
-  estimatedReady: null,
-  actualReady: null,
-  qrCode: null,
-  paymentMethod: "ON_PICKUP",
-  pickupSlotStart: null,
-  createdAt: "2026-11-15T10:00:00.000Z",
-  updatedAt: "2026-11-15T10:00:00.000Z",
-  items: [
-    line({
-      id: "a",
-      name: "Merguez",
-      unit: "KG",
-      quantity: 1,
-      weightGrams: 500,
-      priceCents: 2000,
-      totalCents: 2000,
-      estimatedPriceCents: 2000,
-    }),
-    line({ id: "b", name: "Pain" }),
-    line({ id: "c", name: "Barquette épuisée", unit: "BARQUETTE", available: false }),
-  ],
-  user: { firstName: "Zoé", lastName: "Martin" },
-  priceAdjustment: null,
-};
-
-function open(onConfirm = vi.fn(async () => true)) {
+function open(onConfirm = vi.fn(async () => true), order: KitchenOrder = kitchenOrder()) {
   const onClose = vi.fn();
-  render(<PriceAdjustModal order={ORDER} onClose={onClose} onConfirm={onConfirm} />);
+  render(<PriceAdjustModal order={order} onClose={onClose} onConfirm={onConfirm} />);
   return { onClose, onConfirm };
 }
 
-const weighField = () => screen.getByLabelText("Quantité pesée pour Merguez");
+const weighField = (name = "Merguez") => screen.getByLabelText(`Quantité pesée pour ${name}`);
 
 describe("PriceAdjustModal", () => {
   it("opens on the weighing, out-of-stock lines left out, nothing to send yet", () => {
@@ -125,16 +65,66 @@ describe("PriceAdjustModal", () => {
     expect(screen.getByRole("button", { name: "Demander l'accord du client" })).toBeEnabled();
   });
 
+  // 24,50 € -> 34,30 € (+40 %) and 39,20 € (+60 %): the platform's cap, 30 % or 50 % as stored by
+  // the webmaster, is the server's to apply; its refusal reaches the kitchen page's toast.
+  it.each([
+    ["+40 %", "1,49", "+9,80 €"],
+    ["+60 %", "1,735", "+14,70 €"],
+  ])("lets the butcher send a %s weighing: no cap is judged in the window", (_, kg, step) => {
+    open();
+
+    fireEvent.change(weighField(), { target: { value: kg } });
+
+    expect(screen.getByText("Écart de cet ajustement").nextElementSibling).toHaveTextContent(step);
+    expect(document.body.textContent).not.toMatch(/ne peut pas dépasser/);
+    expect(screen.getByRole("button", { name: "Demander l'accord du client" })).toBeEnabled();
+  });
+
+  it("sends a weighing that moves two lines and keeps the total", async () => {
+    const cote = kitchenLine({
+      id: "d",
+      name: "Côte de bœuf",
+      unit: "KG",
+      quantity: 1,
+      weightGrams: 1000,
+      priceCents: 2000,
+      totalCents: 2000,
+      estimatedPriceCents: 2000,
+    });
+    const order = kitchenOrder({
+      totalCents: 4450,
+      estimatedTotalCents: 4450,
+      items: [MERGUEZ, cote, BREAD],
+    });
+    const { onConfirm } = open(undefined, order);
+
+    fireEvent.change(weighField(), { target: { value: "1,05" } });
+    fireEvent.change(weighField("Côte de bœuf"), { target: { value: "0,95" } });
+    expect(screen.getByText("Écart de cet ajustement").nextElementSibling).toHaveTextContent(
+      "0,00 €"
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Appliquer" }));
+
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith("order-1", {
+        adjustmentType: "WEIGHT",
+        items: [
+          { orderItemId: "a", newQuantity: 1.05 },
+          { orderItemId: "d", newQuantity: 0.95 },
+        ],
+        reason: undefined,
+      })
+    );
+  });
+
   it("judges a second weighing on the increase since the order, and shows both figures", () => {
     // Merguez already weighed at 1,05 kg (+1,00 €, within the tolerance); now 1,08 kg: this step
-    // is +0,60 €, but 1,60 € since the order is beyond the 1,22 € the customer accepted.
-    const [merguez, ...others] = ORDER.items;
-    const weighedOnce: KitchenOrder = {
-      ...ORDER,
+    // is +0,60 €, but 1,60 € above its estimate is beyond the 1,22 € the customer accepted.
+    const weighedOnce = kitchenOrder({
       totalCents: 2550,
-      items: [{ ...merguez, quantity: 1.05, totalCents: 2100 }, ...others],
-    };
-    render(<PriceAdjustModal order={weighedOnce} onClose={vi.fn()} onConfirm={vi.fn()} />);
+      items: [{ ...MERGUEZ, quantity: 1.05, totalCents: 2100 }, BREAD],
+    });
+    open(undefined, weighedOnce);
 
     fireEvent.change(weighField(), { target: { value: "1,08" } });
 
@@ -183,26 +173,20 @@ describe("PriceAdjustModal", () => {
     expect(screen.getByRole("button", { name: "Appliquer" })).toBeEnabled();
   });
 
-  it("names the line typed wrong and sends nothing", () => {
-    open();
+  it("names the line typed wrong with the server's sentence, marks it and sends nothing", () => {
+    const { onConfirm } = open();
 
-    fireEvent.change(weighField(), { target: { value: "1,0505" } });
+    fireEvent.change(weighField(), { target: { value: "abc" } });
 
     expect(
-      screen.getByText("Merguez : quantité invalide (poids au gramme près, pièces sans décimale)")
+      screen.getByText(
+        "Merguez : Quantité invalide : poids en grammes entiers, nombre entier pour les pièces"
+      )
     ).toBeInTheDocument();
     expect(weighField()).toHaveAttribute("aria-invalid", "true");
+    expect(weighField("Pain")).toHaveAttribute("aria-invalid", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Appliquer" }));
     expect(screen.getByRole("button", { name: "Appliquer" })).toBeDisabled();
-  });
-
-  it("refuses more than the platform's cap before sending", () => {
-    open();
-
-    fireEvent.change(weighField(), { target: { value: "1,9" } });
-
-    expect(
-      screen.getByText("L'ajustement ne peut pas dépasser +50 % du total actuel (36,75 € au plus).")
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Demander l'accord du client" })).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 });

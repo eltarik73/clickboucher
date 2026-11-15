@@ -1,7 +1,7 @@
-// What the butcher reads before sending a price adjustment: one sentence per decision of
-// decideAdjustment (src/lib/pricing/tolerance.ts) and, when the tolerance decided, the two figures
-// it compared: the increase cumulated since the order and the customer's tolerance. The words never
-// contradict the server: applied at once, or the customer must accept.
+// What the butcher reads before sending a price adjustment: one sentence per decision of the plan
+// (decideAdjustment, src/lib/pricing/tolerance.ts) and, when the tolerance decided, the two figures
+// it compared: the increase of the lines above their estimates and the customer's tolerance. The
+// words never contradict the server: applied at once, or the customer must accept.
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AdjustmentDecision } from "@/lib/pricing/tolerance";
@@ -11,7 +11,13 @@ afterEach(cleanup);
 
 const CASES: Array<[AdjustmentDecision, string]> = [
   [
-    { decision: "APPLY", reason: "DECREASE", toleranceCents: 122, cumulatedIncreaseCents: -150 },
+    {
+      decision: "APPLY",
+      reason: "DECREASE",
+      toleranceCents: 122,
+      cumulatedIncreaseCents: 0,
+      estimatedTotalCents: 2450,
+    },
     "Baisse de prix : appliquée tout de suite, le client est prévenu.",
   ],
   [
@@ -20,6 +26,7 @@ const CASES: Array<[AdjustmentDecision, string]> = [
       reason: "WITHIN_TOLERANCE",
       toleranceCents: 122,
       cumulatedIncreaseCents: 80,
+      estimatedTotalCents: 2450,
     },
     "Dans la marge de pesée du client : appliqué sans le déranger.",
   ],
@@ -29,16 +36,29 @@ const CASES: Array<[AdjustmentDecision, string]> = [
       reason: "BEYOND_TOLERANCE",
       toleranceCents: 1000,
       cumulatedIncreaseCents: 1250,
+      estimatedTotalCents: 48_000,
     },
     "Au-delà de la marge de pesée du client : il doit accepter. " +
       "Sans réponse sous 5 minutes, le prix ne change pas.",
   ],
   [
-    { decision: "ASK", reason: "NOT_WEIGHING", toleranceCents: 2000, cumulatedIncreaseCents: 0 },
+    {
+      decision: "ASK",
+      reason: "NOT_WEIGHING",
+      toleranceCents: 2000,
+      cumulatedIncreaseCents: 0,
+      estimatedTotalCents: 31_000,
+    },
     "Hausse hors pesée : le client doit accepter.",
   ],
   [
-    { decision: "ASK", reason: "NO_TOLERANCE", toleranceCents: 0, cumulatedIncreaseCents: null },
+    {
+      decision: "ASK",
+      reason: "NO_TOLERANCE",
+      toleranceCents: 0,
+      cumulatedIncreaseCents: null,
+      estimatedTotalCents: null,
+    },
     "Commande sans marge de pesée : toute hausse demande l'accord du client.",
   ],
 ];

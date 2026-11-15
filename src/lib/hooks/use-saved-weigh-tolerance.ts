@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { WEIGH_TOLERANCE_CHOICES, type WeighToleranceChoice } from "@/lib/pricing/tolerance";
 
-export interface SavedWeighTolerance {
+interface SavedWeighTolerance {
   /** False while the saved choice of a signed-in customer is being read. */
   ready: boolean;
   saved: WeighToleranceChoice | null;
@@ -18,7 +18,7 @@ const NOTHING_SAVED: SavedWeighTolerance = { ready: true, saved: null };
 const LOADING: SavedWeighTolerance = { ready: false, saved: null };
 
 /** The saved choice in a `{ success: true, data }` answer of GET /api/users/me, or null. */
-export function savedWeighToleranceFrom(body: unknown): WeighToleranceChoice | null {
+function savedWeighToleranceFrom(body: unknown): WeighToleranceChoice | null {
   if (typeof body !== "object" || body === null) return null;
   const { success, data } = body as { success?: unknown; data?: unknown };
   if (success !== true || typeof data !== "object" || data === null) return null;

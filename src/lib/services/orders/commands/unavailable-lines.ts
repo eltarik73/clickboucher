@@ -2,7 +2,7 @@
 // items, as unavailable.ts reads them, and the order columns that follow from the lines the customer
 // still gets once he or the butcher changes its composition.
 import type { OrderItem, Prisma } from "@prisma/client";
-import { estimatedTotalOf } from "@/lib/pricing/tolerance";
+import { estimatedTotalOf, type EstimatedLine } from "@/lib/pricing/tolerance";
 import { computeOrderTotals } from "@/lib/pricing/totals";
 
 type Tx = Prisma.TransactionClient;
@@ -50,12 +50,6 @@ export async function readLines(tx: Tx, orderId: string) {
   return tx.orderItem.findMany({ where: { orderId }, select: ITEM_SNAPSHOT_SELECT });
 }
 
-/** A line the customer still gets: its total, and its estimate (its total when he accepted it). */
-export interface KeptLine {
-  totalCents: number;
-  estimatedPriceCents: number | null;
-}
-
 /**
  * The order columns that follow its composition, from the lines the customer still gets:
  * Order.totalCents (their totals minus the stored discount) and, on an order with a frozen weighing
@@ -64,7 +58,7 @@ export interface KeptLine {
  * stays counted: a line's estimate is not its weighed total.
  */
 export function compositionColumns(
-  kept: readonly KeptLine[],
+  kept: readonly EstimatedLine[],
   order: { discountCents: number; serviceFeeCents: number; estimatedTotalCents: number | null }
 ): { totalCents: number; estimatedTotalCents?: number | null } {
   const { totalCents } = computeOrderTotals({
@@ -75,9 +69,6 @@ export function compositionColumns(
   if (order.estimatedTotalCents === null) return { totalCents };
   return {
     totalCents,
-    estimatedTotalCents: estimatedTotalOf(
-      kept.map((line) => line.estimatedPriceCents),
-      order.discountCents
-    ),
+    estimatedTotalCents: estimatedTotalOf(kept, order.discountCents),
   };
 }

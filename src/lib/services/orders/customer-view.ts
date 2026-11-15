@@ -13,6 +13,8 @@
 import type { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { isAdjustmentAnswerDue } from "@/lib/pricing/tolerance";
+import { settleDueAdjustment } from "./adjustment-answers";
 import {
   orderCustomerNumber,
   orderPersonColumns,
@@ -93,7 +95,6 @@ export const customerOrderSelect = {
       reason: true,
       adjustmentType: true,
       status: true,
-      tier: true,
       itemsSnapshot: true,
       answerBy: true,
       closeReason: true,
@@ -129,6 +130,19 @@ export async function findCustomerOrder(
 ): Promise<CustomerOrder | null> {
   const row = await prisma.order.findFirst({ where, select: customerOrderQuery });
   return row === null ? null : toCustomerOrder(row);
+}
+
+/**
+ * The order the caller may read (its access already checked), as its customer sees it at `now`. A
+ * price adjustment left unanswered past its window is closed first (silence keeps the price) and
+ * the order read again. The row in hand decides it: a read without a due adjustment writes
+ * nothing, so the status route polled by /suivi opens no transaction on each poll.
+ */
+export async function readCustomerOrder(orderId: string, now: Date): Promise<CustomerOrder | null> {
+  const order = await findCustomerOrder({ id: orderId });
+  if (order === null || !isAdjustmentAnswerDue(order.priceAdjustment, now)) return order;
+  await settleDueAdjustment(orderId, now);
+  return findCustomerOrder({ id: orderId });
 }
 
 /** The orders matching `where`, newest first, at most `take`. */

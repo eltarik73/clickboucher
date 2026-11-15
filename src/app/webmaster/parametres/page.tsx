@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/lib/api/error-message";
+import { MAX_INCREASE_PCT_KEY } from "@/lib/price-adjustment-config";
 import { CommercialEmailsToggle } from "@/components/webmaster/CommercialEmailsToggle";
 
 /* ─── types ─── */
@@ -92,7 +93,6 @@ export default function WebmasterParametresPage() {
   const [paCap, setPaCap] = useState("");
   const [paCapOriginal, setPaCapOriginal] = useState("");
   const [paSaving, setPaSaving] = useState(false);
-  const [paSaved, setPaSaved] = useState(false);
   const [loadingPaConfig, setLoadingPaConfig] = useState(true);
 
   /* ── Calendar state ── */
@@ -294,23 +294,20 @@ export default function WebmasterParametresPage() {
     }
   };
 
-  /* ── Save the price adjustment cap ── */
+  /* ── Save the cap through the platform config writer, which holds it to its rule ── */
   const savePaCap = async () => {
     setPaSaving(true);
     try {
-      const res = await fetch("/api/webmaster/config/price-adjustment", {
+      const res = await fetch("/api/webmaster/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maxIncreasePct: Number(paCap) }),
+        body: JSON.stringify({ key: MAX_INCREASE_PCT_KEY, value: paCap }),
       });
       const d = await res.json();
       if (res.ok && d.success) {
-        const cap = String(d.data.maxIncreasePct);
-        setPaCap(cap);
-        setPaCapOriginal(cap);
-        setPaSaved(true);
+        setPaCap(d.data.value);
+        setPaCapOriginal(d.data.value);
         toast.success("Configuration sauvegardée");
-        setTimeout(() => setPaSaved(false), 2000);
       } else {
         toast.error(apiErrorMessage(d, "Erreur lors de la sauvegarde"));
       }
@@ -651,16 +648,11 @@ export default function WebmasterParametresPage() {
             <Loader2 size={20} className="animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : (
-          <PaField
-            configKey="pa_max_increase_pct"
-            label="Plafond de sécurité d'un ajustement, en % du total actuel"
-            description="Une hausse ne peut pas dépasser ce pourcentage du total actuel de la commande, même avec l'accord du client."
-            type="number"
+          <MaxIncreaseField
             value={paCap}
             onChange={setPaCap}
             changed={paCap !== paCapOriginal}
             saving={paSaving}
-            saved={paSaved}
             onSave={savePaCap}
           />
         )}
@@ -670,41 +662,37 @@ export default function WebmasterParametresPage() {
 }
 
 /* ================================================================== */
-/* ── PaField helper ─── */
+/* ── Price adjustment cap field ─── */
 /* ================================================================== */
-function PaField({
-  configKey,
-  label,
-  description,
-  type,
+function MaxIncreaseField({
   value,
   onChange,
   changed,
   saving,
-  saved,
   onSave,
 }: {
-  configKey: string;
-  label: string;
-  description: string;
-  type: "number" | "text";
   value: string;
   onChange: (v: string) => void;
   changed: boolean;
   saving: boolean;
-  saved: boolean;
   onSave: () => void;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={configKey} className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        {label}
+      <label
+        htmlFor="max-increase-pct"
+        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        Plafond de sécurité d&apos;un ajustement, en % du total actuel
       </label>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{description}</p>
+      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
+        Une hausse ne peut pas dépasser ce pourcentage du total actuel de la commande, même avec
+        l&apos;accord du client.
+      </p>
       <div className="flex items-center gap-2">
         <input
-          id={configKey}
-          type={type}
+          id="max-increase-pct"
+          type="number"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
@@ -713,20 +701,10 @@ function PaField({
           <button
             onClick={onSave}
             disabled={saving}
-            className={`flex items-center gap-1 px-3 py-2 text-xs rounded-xl font-medium shrink-0 transition ${
-              saved
-                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                : "bg-red-600 text-white hover:bg-red-700"
-            }`}
+            className="flex shrink-0 items-center gap-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-red-700"
           >
-            {saving ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : saved ? (
-              <Check size={12} />
-            ) : (
-              <Save size={12} />
-            )}
-            {saved ? "Sauvé" : "Sauver"}
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            Sauver
           </button>
         )}
       </div>

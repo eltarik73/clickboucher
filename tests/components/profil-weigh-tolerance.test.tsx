@@ -94,6 +94,21 @@ describe("profil : marge de pesée", () => {
     );
   });
 
+  it("200 sans l'enveloppe de succès : le choix n'est pas tenu pour enregistré", async () => {
+    fetchMock.mockResolvedValue(reply(200, { data: {} }));
+    render(<WeighToleranceSetting initial="STANDARD" />);
+
+    fireEvent.click(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: SAVE }));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Votre choix n'a pas été enregistré. Réessayez."
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
   it("panne réseau : un message, le choix reste modifiable", async () => {
     fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
     render(<WeighToleranceSetting initial={null} />);

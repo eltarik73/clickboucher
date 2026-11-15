@@ -1,6 +1,6 @@
 // /webmaster/parametres, section « Politique d'ajustement des prix » : seul le plafond de sécurité
-// d'un ajustement reste réglable, par sa route dédiée. Plus aucun interrupteur d'auto-validation
-// (elle n'existe plus), ni motif obligatoire, ni motifs par défaut, ni nombre d'ajustements.
+// d'un ajustement reste réglable. Il est lu par sa route dédiée et enregistré par l'unique écrivain
+// de platform_config, PATCH /api/webmaster/config, dont la page montre le refus tel quel.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { toast } from "sonner";
@@ -9,15 +9,20 @@ import WebmasterParametresPage from "@/app/webmaster/parametres/page";
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const CAP_URL = "/api/webmaster/config/price-adjustment";
+const CONFIG_URL = "/api/webmaster/config";
 const CAP_LABEL = "Plafond de sécurité d'un ajustement, en % du total actuel";
+const REFUSAL = "Le plafond est d'au moins 1 %";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
-  if (url === CAP_URL && init?.method === "PATCH") {
-    const { maxIncreasePct } = JSON.parse(String(init.body)) as { maxIncreasePct: number };
-    return json({ success: true, data: { maxIncreasePct } });
+  if (url === CONFIG_URL && init?.method === "PATCH") {
+    const { key, value } = JSON.parse(String(init.body)) as { key: string; value: string };
+    if (value === "0") {
+      return json({ success: false, error: { code: "VALIDATION_ERROR", message: REFUSAL } }, 400);
+    }
+    return json({ success: true, data: { id: "cfg", key, value, updatedAt: "2026-11-16" } });
   }
   if (url === CAP_URL) return json({ success: true, data: { maxIncreasePct: 50 } });
   if (url === "/api/webmaster/commercial-emails")
@@ -37,6 +42,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+async function saveCap(value: string) {
+  render(<WebmasterParametresPage />);
+  const field = await screen.findByLabelText(CAP_LABEL);
+
+  fireEvent.change(field, { target: { value } });
+  await act(async () => {
+    fireEvent.click(
+      within(field.parentElement as HTMLElement).getByRole("button", { name: "Sauver" })
+    );
+  });
+}
+
 describe("/webmaster/parametres : ajustement des prix", () => {
   it("ne montre que le plafond, lu par sa route dédiée", async () => {
     render(<WebmasterParametresPage />);
@@ -48,24 +65,28 @@ describe("/webmaster/parametres : ajustement des prix", () => {
     );
   });
 
-  it("enregistre le plafond par PATCH de sa seule clé", async () => {
-    render(<WebmasterParametresPage />);
-    const field = await screen.findByLabelText(CAP_LABEL);
+  it("enregistre le plafond sous sa clé par l'écrivain de la configuration", async () => {
+    await saveCap("40");
 
-    fireEvent.change(field, { target: { value: "40" } });
-    await act(async () => {
-      fireEvent.click(
-        within(field.parentElement as HTMLElement).getByRole("button", { name: "Sauver" })
-      );
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(CAP_URL, {
+    expect(fetchMock).toHaveBeenCalledWith(CONFIG_URL, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ maxIncreasePct: 40 }),
+      body: JSON.stringify({ key: "pa_max_increase_pct", value: "40" }),
     });
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Configuration sauvegardée"));
-    expect(screen.getByLabelText(CAP_LABEL)).toHaveValue(40);
+    const field = screen.getByLabelText(CAP_LABEL);
+    expect(field).toHaveValue(40);
+    expect(
+      within(field.parentElement as HTMLElement).queryByRole("button", { name: "Sauver" })
+    ).toBeNull();
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("montre le refus du serveur et garde la saisie", async () => {
+    await saveCap("0");
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(REFUSAL));
+    expect(screen.getByLabelText(CAP_LABEL)).toHaveValue(0);
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });

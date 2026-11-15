@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { isAdjustmentApplied } from "@/lib/pricing/adjustment";
 
 export async function GET(
   _req: NextRequest,
@@ -30,9 +31,7 @@ export async function GET(
 
     // Compute stats
     const total = adjustments.length;
-    const accepted = adjustments.filter((a) =>
-      ["AUTO_APPROVED", "APPROVED", "AUTO_VALIDATED"].includes(a.status)
-    ).length;
+    const accepted = adjustments.filter((a) => isAdjustmentApplied(a.status)).length;
     const rejected = adjustments.filter((a) => a.status === "REJECTED").length;
     const escalated = adjustments.filter((a) => a.status === "ESCALATED").length;
     const pending = adjustments.filter((a) => a.status === "PENDING").length;
@@ -68,7 +67,6 @@ export async function GET(
         status: a.status,
         // Why a REJECTED adjustment ended unapplied: the customer's no, his silence, or the order.
         closeReason: a.closeReason,
-        answerBy: a.answerBy,
         reason: a.reason,
         createdAt: a.createdAt,
         respondedAt: a.respondedAt,

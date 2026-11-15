@@ -33,6 +33,9 @@ function trackedOrder(status: OrderStatus): TrackedOrder {
     status,
     displayNumber: "#12",
     totalCents: 2450,
+    weighToleranceRateBps: 1000,
+    weighToleranceCapCents: 2000,
+    estimatedTotalCents: 2450,
     boucherNote: null,
     estimatedReady: null,
     actualReady: status === "READY" ? "2026-11-14T12:30:00.000Z" : null,
@@ -88,7 +91,6 @@ function pageOrder(status: OrderStatus): ComponentProps<typeof SuiviClient>["ord
     customerNote: null,
     shop: { id: "shop_1", name: "Boucherie Test", address: "1 rue A", city: "Chambéry", phone: "" },
     user: { firstName: "Tarik", lastName: "Benali" },
-    weighTolerance: null,
   };
 }
 
@@ -331,20 +333,20 @@ describe("page de suivi (SuiviClient) branchée sur useOrderTracker", () => {
     expect(back).toHaveAttribute("data-prefetch", "false");
   });
 
-  it("la marge de pesée acceptée s'affiche sous le total ; rien pour une commande plus ancienne", () => {
-    const tolerance = { rateBps: 1000, capCents: 2000, estimatedTotalCents: 2450 };
-    const { unmount } = render(
-      <SuiviClient order={{ ...pageOrder("PREPARING"), weighTolerance: tolerance }} />
-    );
+  it("la marge de pesée sous le total suit l'estimation relue (une ligne retirée entre-temps)", async () => {
+    const later = { estimatedTotalCents: 2000, updatedAt: "2026-11-14T12:31:00.000Z" };
+    serve(200, { success: true, data: { ...trackedOrder("PREPARING"), ...later } });
+    render(<SuiviClient order={pageOrder("PREPARING")} />);
     expect(
       screen.getByText(
         "Marge de pesée acceptée : 10 % du total estimé, 20,00 € au plus, soit jusqu'à 2,45 € sur cette commande."
       )
     ).toBeInTheDocument();
 
-    unmount();
-    render(<SuiviClient order={pageOrder("PREPARING")} />);
-    expect(screen.queryByText(/Marge de pesée/)).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(screen.getByText(/soit jusqu'à 2,00 € sur cette commande\.$/)).toBeInTheDocument();
   });
 
   it("ajustement sans réponse à l'échéance : la page relit la commande, sans attendre la sonde", async () => {
@@ -355,7 +357,7 @@ describe("page de suivi (SuiviClient) branchée sur useOrderTracker", () => {
       newTotal: 2700,
       reason: null,
       adjustmentType: "WEIGHT",
-      status: "PENDING",
+      status: "PENDING" as const,
       closeReason: null,
       answerBy: new Date(Date.now() + 2_000).toISOString(),
       createdAt: new Date(Date.now() - 298_000).toISOString(),
