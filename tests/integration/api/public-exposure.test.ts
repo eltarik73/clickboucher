@@ -204,6 +204,15 @@ describe("GET /api/shops/[id] (anonyme)", () => {
     });
   });
 
+  it("n'est jamais stockée par un cache partagé : une suspension la masque aussitôt", async () => {
+    const response = await getShop(getRequest(`/api/shops/${shop.id}`), {
+      params: { id: shop.id },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control") ?? "").not.toMatch(/public|s-maxage/);
+  });
+
   it("répond 404 pour une boutique inconnue", async () => {
     const response = await getShop(getRequest("/api/shops/inconnue"), {
       params: { id: "inconnue" },

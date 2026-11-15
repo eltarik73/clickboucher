@@ -6,7 +6,7 @@ import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { ownerShopUpdateSchema, updateShopSchema } from "@/lib/validators";
 import { readJsonBody } from "@/lib/api/request-body";
-import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { shopImageRefusal } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 import { publicProductSelect, publicShopSelect } from "@/lib/public-projections";
@@ -45,13 +45,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     // The publication facts decide reachability; they are not part of the public projection.
     const { visible, suspendedAt, vacationMode, ...shop } = found;
 
-    return apiCached(
-      {
-        ...shop,
-        effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
-      },
-      60
-    );
+    // Never stored by a shared cache: a suspension or an unpublication must hide the shop at once,
+    // and no page of the app reads this route (each request costs one query).
+    return apiSuccess({
+      ...shop,
+      effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
+    });
   } catch (error) {
     return handleApiError(error);
   }

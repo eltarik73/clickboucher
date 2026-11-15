@@ -35,7 +35,9 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - **`Shop.visible`** : écrivains en liste fermée (modération, congés de `src/lib/shop-vacation.ts` sous condition,
   les deux créations), verrouillée par `src/lib/__tests__/shop-visible-writers.test.ts`.
 - **Publication** : `src/lib/shop-publication.ts` répond seul à « page accessible » (`isShopPageReachable`) et
-  « peut commander » (`shopOrderRefusalMessage`, appelé par `prepareOrder` : devis et création).
+  « peut commander » (`shopOrderRefusalMessage`, appelé par `prepareOrder` : devis et création), revérifié sous
+  verrou partagé de la ligne boutique dans la transaction qui écrit la commande (`lockShopTakingOrders`,
+  `src/lib/services/orders/order-shop.ts`). `GET /api/shops/[id]` n'est jamais en cache partagé.
 
 ### Performance
 
