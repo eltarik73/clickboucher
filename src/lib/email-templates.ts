@@ -1,13 +1,4 @@
-// ─────────────────────────────────────────────
-// HTML escape — prevent XSS in user-supplied fields
-// ─────────────────────────────────────────────
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { escapeHtml } from "@/lib/html/escape";
 
 // ─────────────────────────────────────────────
 // Shared layout wrapper
@@ -44,7 +35,7 @@ function layout(content: string): string {
 
 function button(href: string, label: string): string {
   return `<table cellpadding="0" cellspacing="0" style="margin:24px 0"><tr><td>
-<a href="${href}" style="display:inline-block;padding:12px 28px;background:#DC2626;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px">${label}</a>
+<a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 28px;background:#DC2626;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px">${escapeHtml(label)}</a>
 </td></tr></table>`;
 }
 
@@ -61,7 +52,7 @@ export function orderAccepted(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Commande acceptée !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a été acceptée.
+      Votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez <strong>${escapeHtml(data.shopName ?? "")}</strong> a été acceptée.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -75,7 +66,7 @@ export function orderAccepted(data: {
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:20px;text-align:center">
       <tr><td>
         <p style="margin:0 0 8px;font-size:13px;color:#6b7280">QR Code de retrait</p>
-        <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#111827;word-break:break-all">${data.qrCode}</p>
+        <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#111827;word-break:break-all">${escapeHtml(data.qrCode)}</p>
       </td></tr>
     </table>`
         : ""
@@ -94,7 +85,7 @@ export function orderReady(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Votre commande est prête !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      La commande <strong>${data.orderNumber}</strong> est prête à retirer chez <strong>${data.shopName}</strong>.
+      La commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> est prête à retirer chez <strong>${escapeHtml(data.shopName ?? "")}</strong>.
     </p>
     ${
       data.qrCode
@@ -102,7 +93,7 @@ export function orderReady(data: {
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px;text-align:center">
       <tr><td>
         <p style="margin:0 0 8px;font-size:13px;color:#047857">QR Code de retrait</p>
-        <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#065f46;word-break:break-all">${data.qrCode}</p>
+        <p style="margin:0;font-size:16px;font-weight:600;font-family:monospace;color:#065f46;word-break:break-all">${escapeHtml(data.qrCode)}</p>
       </td></tr>
     </table>`
         : ""
@@ -121,12 +112,12 @@ export function orderDenied(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Commande refusée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Désolé, votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> n'a pas pu être acceptée.
+      Désolé, votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez <strong>${escapeHtml(data.shopName ?? "")}</strong> n'a pas pu être acceptée.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:13px;color:#991b1b;font-weight:600">Raison</p>
-        <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason || "Non précisée")}</p>
+        <p style="margin:0;font-size:14px;color:#7f1d1d">${escapeHtml(data.denyReason || "Non précisée")}</p>
       </td></tr>
     </table>
     <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande auprès d'une autre boucherie.</p>
@@ -139,7 +130,7 @@ export function orderPending(data: { orderNumber?: string; customerName?: string
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udd14 Nouvelle commande !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Vous avez reçu une nouvelle commande <strong>#${data.orderNumber}</strong> de <strong>${esc(data.customerName || "un client")}</strong>.
+      Vous avez reçu une nouvelle commande <strong>#${escapeHtml(data.orderNumber ?? "")}</strong> de <strong>${escapeHtml(data.customerName || "un client")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Connectez-vous à votre espace boucher pour accepter ou refuser cette commande.</p>
     ${button(`${baseUrl}/boucher/commandes`, "Gérer les commandes")}
@@ -151,7 +142,7 @@ export function orderPickedUp(data: { orderNumber?: string; shopName?: string })
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udce6 Commande récupérée !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Merci pour votre achat chez <strong>${data.shopName}</strong> ! Votre commande <strong>${data.orderNumber}</strong> a bien été récupérée.
+      Merci pour votre achat chez <strong>${escapeHtml(data.shopName ?? "")}</strong> ! Votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> a bien été récupérée.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">N'hésitez pas à laisser un avis pour aider les autres clients.</p>
     ${button(`${baseUrl}/commandes`, "Laisser un avis")}
@@ -163,7 +154,7 @@ export function stockIssue(data: { orderNumber?: string; shopName?: string }): s
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u26a0\ufe0f Rupture de stock partielle</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Certains articles de votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> ne sont plus disponibles.
+      Certains articles de votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez <strong>${escapeHtml(data.shopName ?? "")}</strong> ne sont plus disponibles.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Consultez votre commande pour choisir : continuer sans les articles manquants ou annuler.</p>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
@@ -204,7 +195,7 @@ export function cartAbandoned(data: { shopName?: string; nbItems?: number }): st
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\uded2 Votre panier vous attend !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Vous avez <strong>${data.nbItems || "des"} article(s)</strong> en attente chez <strong>${data.shopName || "votre boucherie"}</strong>.
+      Vous avez <strong>${data.nbItems || "des"} article(s)</strong> en attente chez <strong>${escapeHtml(data.shopName || "votre boucherie")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Finalisez votre commande avant qu'il ne soit trop tard !</p>
     ${button(`${baseUrl}/panier`, "Voir mon panier")}
@@ -216,7 +207,7 @@ export function accountApproved(data: { shopName?: string }): string {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83c\udf89 Bienvenue sur Klik&amp;Go !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre boutique <strong>${data.shopName || ""}</strong> est désormais activée sur Klik&amp;Go.
+      Votre boutique <strong>${escapeHtml(data.shopName ?? "")}</strong> est désormais activée sur Klik&amp;Go.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -242,7 +233,7 @@ export function weeklyReport(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcca Rapport hebdomadaire</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Voici le résumé de la semaine pour <strong>${data.shopName || "votre boutique"}</strong>.
+      Voici le résumé de la semaine pour <strong>${escapeHtml(data.shopName || "votre boutique")}</strong>.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:20px">
       <tr>
@@ -272,7 +263,7 @@ export function weeklyReport(data: {
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:12px;color:#047857;font-weight:600">\ud83c\udfc6 Produit star de la semaine</p>
-        <p style="margin:0;font-size:14px;color:#065f46;font-weight:600">${data.weeklyTopProduct}</p>
+        <p style="margin:0;font-size:14px;color:#065f46;font-weight:600">${escapeHtml(data.weeklyTopProduct)}</p>
       </td></tr>
     </table>`
         : ""
@@ -287,7 +278,7 @@ export function orderPreparing(data: { orderNumber?: string; shopName?: string }
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udc68\u200d\ud83c\udf73 Commande en préparation</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre commande <strong>${data.orderNumber}</strong> est en cours de préparation chez <strong>${data.shopName}</strong>.
+      Votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> est en cours de préparation chez <strong>${escapeHtml(data.shopName ?? "")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Le boucher prépare vos produits avec soin. Vous serez notifié dès qu'elle sera prête !</p>
     ${button(`${baseUrl}/commandes`, "Suivre ma commande")}
@@ -303,7 +294,7 @@ export function orderCancelled(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Commande annulée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a été annulée.
+      Votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez <strong>${escapeHtml(data.shopName ?? "")}</strong> a été annulée.
     </p>
     ${
       data.denyReason
@@ -311,7 +302,7 @@ export function orderCancelled(data: {
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:13px;color:#991b1b;font-weight:600">Raison</p>
-        <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason)}</p>
+        <p style="margin:0;font-size:14px;color:#7f1d1d">${escapeHtml(data.denyReason)}</p>
       </td></tr>
     </table>`
         : ""
@@ -329,7 +320,7 @@ export function orderCancelledByCustomer(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">❌ Commande annulée par le client</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      <strong>${esc(data.customerName || "Le client")}</strong> a annulé la commande <strong>#${data.orderNumber}</strong>.
+      <strong>${escapeHtml(data.customerName || "Le client")}</strong> a annulé la commande <strong>#${escapeHtml(data.orderNumber ?? "")}</strong>.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -349,7 +340,7 @@ export function orderExpired(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">❌ Commande annulée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      <strong>${esc(data.shopName || "La boutique")}</strong> n'a pas répondu à temps : votre commande <strong>${data.orderNumber}</strong> est annulée.
+      <strong>${escapeHtml(data.shopName || "La boutique")}</strong> n'a pas répondu à temps : votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> est annulée.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Vous n'avez rien à payer. Vous pouvez passer une nouvelle commande à tout moment.</p>
     ${button(data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`, "Voir ma commande")}
@@ -365,11 +356,11 @@ export function boucherNote(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcac Message du boucher</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      <strong>${data.shopName}</strong> a ajouté un message à votre commande <strong>${data.orderNumber}</strong>.
+      <strong>${escapeHtml(data.shopName ?? "")}</strong> a ajouté un message à votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong>.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
-        <p style="margin:0;font-size:14px;color:#92400e;font-style:italic">"${esc(data.note || "")}"</p>
+        <p style="margin:0;font-size:14px;color:#92400e;font-style:italic">"${escapeHtml(data.note || "")}"</p>
       </td></tr>
     </table>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
@@ -381,7 +372,7 @@ export function readyReminder(data: { orderNumber?: string; shopName?: string })
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u23f0 N'oubliez pas votre commande !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre commande <strong>${data.orderNumber}</strong> est toujours prête chez <strong>${data.shopName}</strong>.
+      Votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> est toujours prête chez <strong>${escapeHtml(data.shopName ?? "")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Rendez-vous en boucherie pour récupérer votre commande avant la fermeture.</p>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
@@ -404,7 +395,7 @@ export function priceAdjustmentPending(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udcb0 Ajustement de prix</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      <strong>${data.shopName}</strong> propose un ajustement pour votre commande <strong>${data.orderNumber}</strong>.
+      <strong>${escapeHtml(data.shopName ?? "")}</strong> propose un ajustement pour votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong>.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -429,7 +420,7 @@ export function priceAdjustmentAutoApproved(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Prix ajust\u00E9 \u00E0 la baisse</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Le prix de votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a \u00E9t\u00E9 r\u00E9duit.
+      Le prix de votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez <strong>${escapeHtml(data.shopName ?? "")}</strong> a \u00E9t\u00E9 r\u00E9duit.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -446,7 +437,7 @@ export function priceAdjustmentAccepted(data: { orderNumber?: string; shopName?:
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Ajustement accept\u00E9</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Le client a accept\u00E9 l'ajustement de prix pour la commande <strong>#${data.orderNumber}</strong>.
+      Le client a accept\u00E9 l'ajustement de prix pour la commande <strong>#${escapeHtml(data.orderNumber ?? "")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez continuer la pr\u00E9paration.</p>
     ${button(`${baseUrl}/boucher/commandes`, "Mode cuisine")}
@@ -458,7 +449,7 @@ export function priceAdjustmentRejected(data: { orderNumber?: string; shopName?:
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u274c Ajustement refus\u00E9</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Le client a refus\u00E9 l'ajustement de prix pour la commande <strong>#${data.orderNumber}</strong>.
+      Le client a refus\u00E9 l'ajustement de prix pour la commande <strong>#${escapeHtml(data.orderNumber ?? "")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Le prix initial est maintenu. Vous pouvez continuer avec la commande originale.</p>
     ${button(`${baseUrl}/boucher/commandes`, "Mode cuisine")}
@@ -476,7 +467,7 @@ export function priceAdjustmentAutoValidated(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\u2705 Ajustement valid\u00E9 automatiquement</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      L'ajustement de prix pour votre commande <strong>${data.orderNumber}</strong> chez <strong>${data.shopName}</strong> a \u00E9t\u00E9 valid\u00E9 automatiquement (d\u00E9lai expir\u00E9).
+      L'ajustement de prix pour votre commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez <strong>${escapeHtml(data.shopName ?? "")}</strong> a \u00E9t\u00E9 valid\u00E9 automatiquement (d\u00E9lai expir\u00E9).
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -498,7 +489,7 @@ export function pickupSoon(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">🚶 Bientôt prête !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre commande <strong>#${esc(data.orderNumber || "")}</strong> chez <strong>${esc(data.shopName || "")}</strong>
+      Votre commande <strong>#${escapeHtml(data.orderNumber || "")}</strong> chez <strong>${escapeHtml(data.shopName || "")}</strong>
       sera prête dans environ <strong>${data.estimatedMinutes || 5} minutes</strong>.
     </p>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280">Dirigez-vous vers la boutique pour récupérer votre commande dès qu'elle sera prête.</p>
@@ -511,7 +502,7 @@ export function calendarAlert(data: { message?: string }): string {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">📅 Événement à venir</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      ${esc(data.message || "Un événement important approche !")}
+      ${escapeHtml(data.message || "Un événement important approche !")}
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Préparez vos produits et vos stocks pour répondre à la demande.</p>
     ${button(`${baseUrl}/boucher/dashboard`, "Mon tableau de bord")}
@@ -525,12 +516,12 @@ export function calendarAlert(data: { message?: string }): string {
 export function prospectInitial(data: { name?: string; city?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const greeting = data.name
-    ? `Bonjour ${esc(data.name)},`
+    ? `Bonjour ${data.name},`
     : data.city
-      ? `Bonjour, je m'adresse aux boucheries halal de ${esc(data.city)},`
+      ? `Bonjour, je m'adresse aux boucheries halal de ${data.city},`
       : "Bonjour,";
   return layout(`
-    <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
+    <p style="margin:0 0 16px;font-size:15px;color:#111827">${escapeHtml(greeting)}</p>
     <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
       Je suis Tarik, fondateur de <strong>Klik&amp;Go</strong>, la première plateforme de click &amp; collect 100% dédiée aux boucheries halal.
       Notre service est <strong>100% gratuit</strong> — pas d'abonnement, pas de frais d'installation. Une simple commission par commande livrée.
@@ -553,12 +544,12 @@ export function prospectInitial(data: { name?: string; city?: string }): string 
 
 export function prospectRelance3j(data: { name?: string; city?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
-  const greeting = data.name ? `Bonjour ${esc(data.name)},` : "Bonjour,";
-  const cityLine = data.city ? ` à ${esc(data.city)} et alentours` : "";
+  const greeting = data.name ? `Bonjour ${data.name},` : "Bonjour,";
+  const cityLine = data.city ? ` à ${data.city} et alentours` : "";
   return layout(`
-    <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
+    <p style="margin:0 0 16px;font-size:15px;color:#111827">${escapeHtml(greeting)}</p>
     <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
-      Je me permets de revenir vers vous concernant Klik&amp;Go. <strong>Déjà 11 boucheries halal</strong>${cityLine} ont rejoint la plateforme et reçoivent leurs premières commandes en click &amp; collect — sans payer un centime d'abonnement.
+      Je me permets de revenir vers vous concernant Klik&amp;Go. <strong>Déjà 11 boucheries halal</strong>${escapeHtml(cityLine)} ont rejoint la plateforme et reçoivent leurs premières commandes en click &amp; collect — sans payer un centime d'abonnement.
     </p>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563;line-height:1.6">
       Si l'idée vous intéresse, <strong>répondez simplement "Oui" à cet email</strong> et je vous rappelle pour une démo de 10 minutes adaptée à votre boucherie.
@@ -571,9 +562,9 @@ export function prospectRelance3j(data: { name?: string; city?: string }): strin
 
 export function prospectRelance7j(data: { name?: string; city?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
-  const greeting = data.name ? `Bonjour ${esc(data.name)},` : "Bonjour,";
+  const greeting = data.name ? `Bonjour ${data.name},` : "Bonjour,";
   return layout(`
-    <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
+    <p style="margin:0 0 16px;font-size:15px;color:#111827">${escapeHtml(greeting)}</p>
     <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
       Je vous écris une dernière fois — promis, je ne vous embêterai plus après ça. Je comprends parfaitement que le click &amp; collect ne soit pas une priorité pour le moment, ou que vous préfériez attendre.
     </p>

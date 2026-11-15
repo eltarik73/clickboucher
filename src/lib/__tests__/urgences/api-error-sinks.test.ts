@@ -13,11 +13,9 @@ const SRC = path.join(ROOT, "src");
 const BARE_ERROR_SINK = /(toast\.\w+|alert|new Error)\(\s*[\w.?]+\.error\s*(\|\||\)|,)/g;
 const BARE_ERROR_ASSIGNMENT = /=\s*[\w.?]+\.error\s*\|\|/g;
 
-// Can only go down. src/app/(admin)/admin/shops/page.tsx belongs to lane B
-// (C1-FAILLES-CRITIQUES), which switches its 3 calls to apiErrorMessage and removes this entry.
-const SINK_BASELINE: Readonly<Record<string, number>> = {
-  "src/app/(admin)/admin/shops/page.tsx": 3,
-};
+// Can only go down. Empty: the last sinks (src/app/(admin)/admin/shops/page.tsx) read the refusal
+// through src/lib/api/client-refusal.ts since C1-FAILLES-CRITIQUES.
+const SINK_BASELINE: Readonly<Record<string, number>> = {};
 
 // Can only go down. Empty: the last assignment (src/app/webmaster/prospects/page.tsx) was fixed here.
 const ASSIGNMENT_BASELINE: Readonly<Record<string, number>> = {};

@@ -13,6 +13,32 @@ Klik&Go est une plateforme SaaS click-and-collect pour boucheries halal. Stack :
 - TOUTE mutation DOIT valider les inputs avec Zod côté serveur
 - JAMAIS exposer de secrets avec `NEXT_PUBLIC_` (sauf publishable keys)
 
+### Champs plateforme, HTML et publication (chantier failles critiques — 2026-11)
+
+- **Schémas du boucher = listes blanches `.strict()`** : `ownerShopUpdateSchema`, `updateServiceSchema`
+  (`src/lib/validators/index.ts`), `shopStatusActionSchema` (`src/app/api/boucher/shop/status/action-schema.ts`),
+  corps de `PATCH /api/boucher/onboarding`. Clé en trop → 400, rien n'est écrit. Chaque colonne de `Shop` est
+  classée boucher ou plateforme dans `src/lib/__tests__/shop-field-ownership.test.ts` (colonne nouvelle à classer).
+- **Commission** : écrite seulement par `PATCH /api/admin/shops/[shopId]/commission` et `/api/admin/commission/global`
+  (audités), plus la valeur initiale de `POST /api/shops` (admin). Sans `commissionEnabled`, la route de la boutique
+  change le taux seul. Contrôle d'abus en lecture seule :
+  `prisma/migrations/20261115120000_c1_failles_critiques/commission-audit.readonly.sql`.
+- **HTML écrit à la main** (exports, e-mails, tickets) : gabarit `html` et `escapeHtml` de `src/lib/html/escape.ts`
+  uniquement, `trustedHtml` sur un littéral seulement ; garde `src/lib/__tests__/html-sinks.test.ts`, dont les
+  compteurs `LEGACY_BASELINE` ne peuvent que baisser.
+- **CSV exportés** : chaque cellule par `csvCell` / `csvLine` de `src/lib/csv.ts` (cellule toujours entre
+  guillemets, formule de tableur `= + - @` neutralisée par une apostrophe).
+- **Noms d'invité** : `firstNameSchema` / `lastNameSchema` de `src/lib/validators/person-name.ts`.
+- **Suspension** = `Shop.suspendedAt`, écrite seulement par `src/lib/services/shops/moderation.ts` ; toute route
+  du boucher qui change l'état de sa boutique (`/api/boucher/shop/status`, `/api/boucher/service`,
+  `/api/shops/[id]/status`, onboarding) → 403 tant qu'elle dure, seul l'admin la lève (« Réactiver »).
+- **`Shop.visible`** : écrivains en liste fermée (modération, congés de `src/lib/shop-vacation.ts` sous condition,
+  les deux créations), verrouillée par `src/lib/__tests__/shop-visible-writers.test.ts`.
+- **Publication** : `src/lib/shop-publication.ts` répond seul à « page accessible » (`isShopPageReachable`) et
+  « peut commander » (`shopOrderRefusalMessage`, appelé par `prepareOrder` : devis et création), revérifié sous
+  verrou partagé de la ligne boutique dans la transaction qui écrit la commande (`lockShopTakingOrders`,
+  `src/lib/services/orders/order-shop.ts`). `GET /api/shops/[id]` n'est jamais en cache partagé.
+
 ### Performance
 
 - JAMAIS de requête N+1 : utiliser `include`/`select` Prisma
@@ -123,6 +149,10 @@ facturée, y compris pour les bots. Règles :
 - **Garde-fous commande** : `tests/integration/checkout-contract.test.ts` (panier → payload navigateur →
   devis → commande, sur 12 paniers types) et `tests/lib/order-writers-guard.test.ts` (liste fermée des
   fichiers qui écrivent dans `orders` ; seul `transition.ts` écrit le statut, hors webhook Stripe inactif).
+- **Garde-fous sécurité** : `src/lib/__tests__/shop-field-ownership.test.ts` (colonnes de `Shop` du boucher ou de la
+  plateforme), `src/lib/__tests__/shop-visible-writers.test.ts` (écrivains de la publication),
+  `src/lib/__tests__/html-sinks.test.ts` (HTML écrit à la main) ; en intégration `tests/integration/security/**`
+  (champs plateforme, suspension, prise de commande, XSS de l'export, noms d'invité).
 - **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, prix (`src/lib/pricing/*`), panier (`cart-line`, `order-payload`), numéros (`order-number-format`), commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils`, photos (URL durable, résolveurs, contrat d'envoi, plan d'écriture des photos produit, ingestion avec le vrai sharp, stockage, champ « Photos » du boucher) ; en intégration : devis, création, remises, numérotation, transitions et courses, stock limité, tableau cuisine, notifications, données publiques, photos (`tests/integration/images/**` : envoi et quota, miroir `Product.imageUrl`, règle d'écriture, suppression depuis la galerie, source de retouche, charges utiles, recensement et maintenance).
 - **Règle** : tout helper pur ajouté dans `src/lib/**` mérite un test ; les fonctions qui touchent Prisma/HTTP restent en intégration.
 

@@ -70,21 +70,30 @@ const safeLongitude = z
   .max(180)
   .refine((v) => isFinite(v), "Longitude invalide");
 
-export const updateShopSchema = z.object({
+/**
+ * A key outside an update schema is refused (400), never silently dropped: a shop field the caller
+ * may not write (commission, tier, publication, moderation, photos, slug, owner) cannot be smuggled
+ * next to a legitimate one, and nothing of the request is written.
+ */
+export const FIELD_NOT_EDITABLE_HERE = { message: "Ce champ ne peut pas être modifié ici" };
+
+/**
+ * What a butcher edits on HIS shop (parametres, ProductFormPage). Everything else on Shop belongs to
+ * the platform: commissionPct and commissionEnabled (admin commission routes only, audited), tier,
+ * visible, featured, validatedAt, suspendedAt (admin moderation), photos (webmaster), slug, ownerId.
+ * commissionMarkupPercent and priceRoundingEnabled are the butcher's own online mark-up.
+ */
+const ownerShopFields = {
   name: z.string().min(2).max(200).optional(),
   address: z.string().min(5).optional(),
   city: z.string().min(2).optional(),
   phone: phoneSchema.optional(),
   email: z.string().email("Email invalide").nullable().optional(),
-  // Shape only: the shop routes apply the write rule (shopImageRefusal, src/lib/images/write-scope.ts).
-  imageUrl: imageRefSchema.nullable().optional(),
-  bannerUrl: imageRefSchema.nullable().optional(),
   description: z.string().max(1000).nullable().optional(),
   welcomeMessage: z.string().max(500).nullable().optional(),
   closedMessage: z.string().max(500).nullable().optional(),
   minOrderCents: z.number().int().min(0).max(100000).optional(),
   openingHours: z.record(z.object({ open: z.string(), close: z.string() })).optional(),
-  commissionPct: z.number().min(0).max(100).optional(),
   latitude: safeLatitude.optional(),
   longitude: safeLongitude.optional(),
   deliveryRadius: z.number().min(1).max(100).optional(),
@@ -104,14 +113,23 @@ export const updateShopSchema = z.object({
     .refine((v) => [0, 30, 50, 80, 100].includes(v), "Markup invalide")
     .optional(),
   priceRoundingEnabled: z.boolean().optional(),
-});
+};
 
-export const updateShopStatusSchema = z.object({
-  busyMode: z.boolean().optional(),
-  paused: z.boolean().optional(),
-  status: z.enum(["OPEN", "BUSY", "PAUSED", "AUTO_PAUSED", "CLOSED", "VACATION"]).optional(),
-  prepTimeMin: z.number().int().min(5).max(120).optional(),
-});
+/** PATCH /api/shops/[id] by the shop's owner. */
+export const ownerShopUpdateSchema = z.object(ownerShopFields).strict(FIELD_NOT_EDITABLE_HERE);
+
+/**
+ * PATCH /api/shops/[id] by an admin: the owner's fields plus the photos. Never the commission: it
+ * is written by /api/admin/shops/[shopId]/commission and /api/admin/commission/global, both audited.
+ */
+export const updateShopSchema = z
+  .object({
+    ...ownerShopFields,
+    // Shape only: the shop route applies the write rule (shopImageRefusal, src/lib/images/write-scope.ts).
+    imageUrl: imageRefSchema.nullable().optional(),
+    bannerUrl: imageRefSchema.nullable().optional(),
+  })
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
 // -- Product Queries --
 
@@ -355,16 +373,27 @@ export const toggleFavoriteSchema = z.object({
 
 // -- Boucher Service Toggle --
 
-export const updateServiceSchema = z.object({
-  prepTimeMin: z.number().int().min(5).max(120).optional(),
-  busyMode: z.boolean().optional(),
-  busyExtraMin: z.number().int().min(0).max(60).optional(),
-  paused: z.boolean().optional(),
-  status: z.enum(["OPEN", "BUSY", "PAUSED", "AUTO_PAUSED", "CLOSED", "VACATION"]).optional(),
-  autoAccept: z.boolean().optional(),
-  maxOrdersPerHour: z.number().int().min(1).max(100).optional(),
-  priceAdjustmentThreshold: z.number().int().min(0).max(50).optional(),
-});
+/**
+ * Service settings (PATCH /api/shops/[id]/status, /api/boucher/service). `status` is limited to what
+ * the butcher's settings and /admin/shops send: VACATION, AUTO_PAUSED and BUSY are set by their own
+ * flows (vacation, auto-pause, busy mode), never written directly.
+ */
+export const updateServiceSchema = z
+  .object({
+    prepTimeMin: z.number().int().min(5).max(120).optional(),
+    busyMode: z.boolean().optional(),
+    busyExtraMin: z.number().int().min(0).max(60).optional(),
+    paused: z.boolean().optional(),
+    status: z
+      .enum(["OPEN", "CLOSED", "PAUSED"], {
+        message: "Statut invalide : OPEN, CLOSED ou PAUSED",
+      })
+      .optional(),
+    autoAccept: z.boolean().optional(),
+    maxOrdersPerHour: z.number().int().min(1).max(100).optional(),
+    priceAdjustmentThreshold: z.number().int().min(0).max(50).optional(),
+  })
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
 // -- Boucher Catalogue Update --
 
@@ -425,18 +454,6 @@ export const wmAuditLogQuerySchema = z.object({
 
 export const wmToggleFeatureFlagSchema = z.object({
   enabled: z.boolean(),
-});
-
-export const wmUpdateShopSchema = z.object({
-  visible: z.boolean().optional(),
-  featured: z.boolean().optional(),
-  commissionPct: z.number().min(0).max(100).optional(),
-  commissionEnabled: z.boolean().optional(),
-  suspendReason: z.string().max(500).optional(),
-});
-
-export const wmSuspendShopSchema = z.object({
-  reason: z.string().min(1).max(500),
 });
 
 // ══════════════════════════════════════════

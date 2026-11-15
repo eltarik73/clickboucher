@@ -6,6 +6,7 @@ import { sendWhatsAppMessage, sendWhatsAppRaw } from "@/lib/whatsapp";
 import { isPushConfigured, sendPushNotification } from "@/lib/push";
 import type { PushPayload, PushSubscriptionData } from "@/lib/push";
 import * as tpl from "@/lib/email-templates";
+import { escapeHtml } from "@/lib/html/escape";
 import { logger } from "@/lib/logger";
 import { notificationThrottle } from "@/lib/notification-policy";
 import { resolveNotificationRecipient } from "@/lib/notification-recipients";
@@ -267,7 +268,7 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
     case "PRICE_ADJUSTMENT_ESCALATED":
       return {
         subject: `⚠️ Ajustement escaladé — Commande ${data.orderNumber}`,
-        html: `<p>L'ajustement de prix pour la commande <strong>${data.orderNumber}</strong> chez ${data.shopName} n'a pas reçu de réponse client après 10 minutes.</p><p>Ancien total : ${((data.originalTotal || 0) / 100).toFixed(2)}€ → Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€</p><p>Action requise du webmaster.</p>`,
+        html: `<p>L'ajustement de prix pour la commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez ${escapeHtml(data.shopName ?? "")} n'a pas reçu de réponse client après 10 minutes.</p><p>Ancien total : ${((data.originalTotal || 0) / 100).toFixed(2)}€ → Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€</p><p>Action requise du webmaster.</p>`,
         plainText: `Ajustement escaladé — Commande ${data.orderNumber} chez ${data.shopName}. Pas de réponse client après 10 min. ${((data.originalTotal || 0) / 100).toFixed(2)}€ → ${((data.newTotal || 0) / 100).toFixed(2)}€. Action webmaster requise.`,
       };
 
@@ -281,7 +282,7 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
     case "LOYALTY_REWARD_EARNED":
       return {
         subject: `🏆 Récompense fidélité débloquée !`,
-        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>Bravo, vous avez débloqué une récompense !</h2><p>${data.message || `Votre bon de ${data.rewardAmount || ""} : <strong>${data.rewardCode || ""}</strong>`}</p><p>Utilisez ce code lors de votre prochaine commande.</p><a href="https://klikandgo.app/profil" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon profil</a></div>`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>Bravo, vous avez débloqué une récompense !</h2><p>${data.message ? escapeHtml(data.message) : `Votre bon de ${escapeHtml(data.rewardAmount ?? "")} : <strong>${escapeHtml(data.rewardCode ?? "")}</strong>`}</p><p>Utilisez ce code lors de votre prochaine commande.</p><a href="https://klikandgo.app/profil" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Voir mon profil</a></div>`,
         plainText:
           data.message || `Récompense fidélité : ${data.rewardCode} (${data.rewardAmount})`,
       };
@@ -289,14 +290,14 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
     case "PROMO_NEW":
       return {
         subject: `🎁 Nouveau code promo Klik&Go !`,
-        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>${data.promoLabel || "Nouvelle promotion"}</h2>${data.promoCode ? `<p>Utilisez le code <strong>${data.promoCode}</strong> lors de votre prochaine commande.</p>` : "<p>Profitez de cette offre sur votre prochaine commande !</p>"}<a href="https://klikandgo.app/" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Commander</a></div>`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>${escapeHtml(data.promoLabel || "Nouvelle promotion")}</h2>${data.promoCode ? `<p>Utilisez le code <strong>${escapeHtml(data.promoCode)}</strong> lors de votre prochaine commande.</p>` : "<p>Profitez de cette offre sur votre prochaine commande !</p>"}<a href="https://klikandgo.app/" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Commander</a></div>`,
         plainText: `${data.promoLabel}${data.promoCode ? ` — Code : ${data.promoCode}` : ""}`,
       };
 
     case "FLASH_OFFER":
       return {
         subject: `⚡ Offre flash chez ${data.shopName} !`,
-        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>⚡ Offre flash !</h2><p><strong>${data.promoLabel}</strong> chez ${data.shopName}.</p>${data.promoCode ? `<p>Code : <strong>${data.promoCode}</strong></p>` : ""}<p>Dépêchez-vous, l'offre est limitée dans le temps !</p><a href="https://klikandgo.app/" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">En profiter</a></div>`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px"><h1 style="color:#DC2626">Klik&Go</h1><h2>⚡ Offre flash !</h2><p><strong>${escapeHtml(data.promoLabel ?? "")}</strong> chez ${escapeHtml(data.shopName ?? "")}.</p>${data.promoCode ? `<p>Code : <strong>${escapeHtml(data.promoCode)}</strong></p>` : ""}<p>Dépêchez-vous, l'offre est limitée dans le temps !</p><a href="https://klikandgo.app/" style="display:inline-block;background:#DC2626;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">En profiter</a></div>`,
         plainText: `Offre flash chez ${data.shopName} : ${data.promoLabel}`,
       };
   }

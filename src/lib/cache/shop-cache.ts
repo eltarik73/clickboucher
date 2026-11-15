@@ -122,3 +122,11 @@ export async function readCachedShop<T extends CacheableShop>(slug: string): Pro
 export async function writeCachedShop(slug: string, shop: CacheableShop): Promise<void> {
   await redis.set(shopCacheKey(slug), encodeCachedShop(shop), { ex: SHOP_CACHE_TTL_SECONDS });
 }
+
+/**
+ * Drops the cached shop, after every decision that changes what its page shows or whether it
+ * exists (admin moderation, vacation start and end): the page reads the database at once.
+ */
+export async function invalidateCachedShop(slug: string): Promise<void> {
+  await redis.del(shopCacheKey(slug));
+}

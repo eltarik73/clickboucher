@@ -54,9 +54,9 @@ function receiptData(overrides: Partial<ReceiptData>): ReceiptData {
   };
 }
 
-/** The amount printed on the TOTAL TTC row of the e-mail. */
+/** The amount printed on the TOTAL TTC row of the e-mail (whitespace around a cell's text is not printed). */
 function printedTotal(html: string): string {
-  const match = html.match(/TOTAL TTC<\/td>\s*<td[^>]*>([^<]+)<\/td>/);
+  const match = html.match(/TOTAL TTC\s*<\/td>\s*<td[^>]*>\s*([^<]*?)\s*<\/td>/);
   if (match === null) throw new Error("TOTAL TTC row not found");
   return match[1];
 }
@@ -80,7 +80,8 @@ describe("receipt e-mail", () => {
     expect(printedTotal(html)).toBe(euros(1834));
     expect(html).toContain(`${euros(-275)}`);
     expect(html).toContain("Remise");
-    expect(html).toContain("Côtes d'agneau — non fourni");
+    // The product name is escaped like any typed text: its apostrophe is printed as &#39;.
+    expect(html).toContain("Côtes d&#39;agneau — non fourni");
     expect(html).not.toContain(euros(1777));
     expect(html).not.toContain(euros(1489 + 1777 + 620));
   });
@@ -125,6 +126,21 @@ describe("receipt e-mail", () => {
       { rate: 20, ttcCents: 539, htCents: 449, vatCents: 90 },
       { rate: 5.5, ttcCents: 1295, htCents: 1227, vatCents: 68 },
     ]);
+  });
+
+  it("prints a customer name and a product name made of markup as text", () => {
+    const { html } = buildOrderReceiptEmail(
+      receiptData({
+        customerFirstName: "<img src=x onerror=alert(1)>",
+        items: [line("<b>Merguez</b>", 620)],
+        totalCents: 620,
+      })
+    );
+
+    expect(html).toContain("Bonjour &lt;img src=x onerror=alert(1)&gt;,");
+    expect(html).toContain("&lt;b&gt;Merguez&lt;/b&gt;");
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("<b>");
   });
 
   it("refuses a positive total with no sold line to attribute its VAT to", () => {

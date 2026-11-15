@@ -1,15 +1,26 @@
-// GET /api/boucher/onboarding — Return onboarding progression
-// PATCH /api/boucher/onboarding — Mark step or complete
+// GET /api/boucher/onboarding — Return onboarding progression and where the shop's publication is
+// PATCH /api/boucher/onboarding — Mark the checklist complete (the butcher's own flag)
+//
+// Publishing is not the butcher's to do: only the admin lists a shop
+// (src/lib/services/shops/moderation.ts). onboardingCompleted is the checklist flag, not a
+// validation.
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
+import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
+import { shopSuspension } from "@/lib/shop-status";
+import {
+  SHOP_SUSPENDED_OWNER_MESSAGE,
+  shopPublication,
+  shopPublicationSelect,
+} from "@/lib/shop-publication";
 import { z } from "zod";
 
-const patchOnboardingSchema = z.object({
-  complete: z.boolean().optional(),
-  setVisible: z.boolean().optional(),
-});
+const patchOnboardingSchema = z
+  .object({ complete: z.boolean().optional() })
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +41,18 @@ export async function GET() {
 
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
-      include: { _count: { select: { products: true } } },
+      select: {
+        ...shopPublicationSelect,
+        imageUrl: true,
+        ownerPhotoUrl: true,
+        openingHours: true,
+        pickupSlots: true,
+        halalCertUrl: true,
+        acceptOnline: true,
+        acceptOnPickup: true,
+        onboardingCompleted: true,
+        _count: { select: { products: true } },
+      },
     });
 
     if (!shop) return apiError("NOT_FOUND", "Aucune boutique trouvée");
@@ -112,9 +134,10 @@ export async function GET() {
       progress,
       onboardingCompleted: shop.onboardingCompleted,
       visible: shop.visible,
+      publication: shopPublication(shop),
     });
   } catch (error) {
-    return handleApiError(error, "boucher/onboarding");
+    return handleApiError(error, "boucher/onboarding/GET");
   }
 }
 
@@ -124,26 +147,22 @@ export async function PATCH(req: NextRequest) {
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
 
-    const body = await req.json();
-    const { complete, setVisible } = patchOnboardingSchema.parse(body);
+    const { complete } = patchOnboardingSchema.parse(await readJsonBody(req));
 
-    if (setVisible) {
-      await prisma.shop.update({
-        where: { id: shopId },
-        data: { visible: true },
-      });
-      return apiSuccess({ visible: true });
-    }
+    if (await shopSuspension(shopId)) return apiError("FORBIDDEN", SHOP_SUSPENDED_OWNER_MESSAGE);
 
-    if (complete) {
-      await prisma.shop.update({
-        where: { id: shopId },
-        data: { onboardingCompleted: true },
-      });
-    }
+    const select = { onboardingCompleted: true } as const;
+    const shop = complete
+      ? await prisma.shop.update({
+          where: { id: shopId },
+          data: { onboardingCompleted: true },
+          select,
+        })
+      : await prisma.shop.findUnique({ where: { id: shopId }, select });
+    if (!shop) return apiError("NOT_FOUND", "Aucune boutique trouvée");
 
-    return apiSuccess({ onboardingCompleted: true });
+    return apiSuccess({ onboardingCompleted: shop.onboardingCompleted });
   } catch (error) {
-    return handleApiError(error, "boucher/onboarding/complete");
+    return handleApiError(error, "boucher/onboarding/PATCH");
   }
 }
