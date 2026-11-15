@@ -126,7 +126,7 @@ jobs:
       # Commit de fusion de test (parent 1 = main, parent 2 = tête de la PR) :
       # profondeur 2 pour le diff. checkout ne garde pas son jeton ; l'action
       # écrit le sien dans .git/config, d'où l'interdiction de .git plus bas.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
           persist-credentials: false
