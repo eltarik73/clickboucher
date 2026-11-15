@@ -1,51 +1,47 @@
-// IndexNow protocol — instant reindexation by Bing, Copilot, Yandex,
-// DuckDuckGo, Naver. Microsoft also feeds ChatGPT Search via Bing's index,
-// so this multiplies AI visibility (audit GEO 2026).
+// IndexNow transport: tells Bing, Yandex, Seznam, Naver… that pages of the site were added or
+// changed (https://www.indexnow.org/documentation). Server-side only, and the last gate before an
+// engine:
+// - it sends nothing outside the production deployment (isProductionDeployment()): a local
+//   production build, CI or a preview never pings, whatever NODE_ENV or NEXT_PUBLIC_SITE_URL say;
+// - it drops every URL the submission policy refuses (src/lib/seo/submission-policy.ts: shop
+//   pages, API routes, private areas, other hosts) and every relative URL.
 //
-// Usage (server-side only):
-//   import { notifyIndexNow } from "@/lib/indexnow";
-//   await notifyIndexNow(["https://klikandgo.app/boutique/foo"]);
+// Callers: the daily cron /api/cron/indexnow-fresh and the admin shop validation, with the lists
+// of src/lib/seo/indexnow-urls.ts; the admin endpoint POST /api/seo/indexnow, with explicit URLs.
+// It never throws: a refused request or a network failure is logged as a warning.
 //
-// Triggered automatically from:
-//   - shop create/update API
-//   - product publish
-//   - recipe publish
-//   - new offer / banner
+// The key file is public/<KEY>.txt.
 
+import { isProductionDeployment } from "@/lib/auth/test-mode-env";
 import { logger } from "@/lib/logger";
+import { SITE_URL } from "@/lib/seo/site";
+import { isSubmittableToEngines } from "@/lib/seo/submission-policy";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
-const HOST = SITE_URL.replace(/^https?:\/\//, "").replace(/\/$/, "");
+const ENDPOINT = "https://api.indexnow.org/IndexNow";
+const HOST = new URL(SITE_URL).host;
 const KEY = "b358f6bef780cfa8abcef149668adb3e68c093e8b6e586fc1f9d4347455a64e2";
 const KEY_LOCATION = `${SITE_URL}/${KEY}.txt`;
+// The validation route awaits the call: a stalled engine must not hold the admin's request.
+const REQUEST_TIMEOUT_MS = 10_000;
 
 export async function notifyIndexNow(urls: string[]): Promise<void> {
-  if (process.env.NODE_ENV !== "production") return;
-  if (urls.length === 0) return;
+  if (!isProductionDeployment()) return;
 
-  // Filter: only same-host URLs are accepted by IndexNow
-  const sameHostUrls = urls.filter((u) => {
-    try {
-      return new URL(u).host === HOST;
-    } catch {
-      return false;
-    }
-  });
-  if (sameHostUrls.length === 0) return;
+  // URL.canParse refuses relative URLs: IndexNow needs absolute ones, on our host (policy).
+  const urlList = Array.from(
+    new Set(urls.filter((url) => URL.canParse(url) && isSubmittableToEngines(url)))
+  );
+  if (urlList.length === 0) return;
 
   try {
-    const res = await fetch("https://api.indexnow.org/IndexNow", {
+    const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({
-        host: HOST,
-        key: KEY,
-        keyLocation: KEY_LOCATION,
-        urlList: sameHostUrls,
-      }),
+      body: JSON.stringify({ host: HOST, key: KEY, keyLocation: KEY_LOCATION, urlList }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (res.ok || res.status === 202) {
-      logger.info(`[indexnow] notified ${sameHostUrls.length} URL(s)`);
+    if (res.ok) {
+      logger.info(`[indexnow] notified ${urlList.length} URL(s)`);
     } else {
       logger.warn(`[indexnow] failed status=${res.status}`);
     }

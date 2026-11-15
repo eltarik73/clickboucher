@@ -9,11 +9,11 @@ import { readJsonBody } from "@/lib/api/request-body";
 import { sendNotification } from "@/lib/notifications";
 import { writeAuditLog } from "@/lib/audit-log";
 import { notifyIndexNow } from "@/lib/indexnow";
+import { logger } from "@/lib/logger";
+import { validationIndexNowUrls } from "@/lib/seo/indexnow-urls";
 import { approveShop, setShopPublished } from "@/lib/services/shops/moderation";
 import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
 import { z } from "zod";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const dynamic = "force-dynamic";
 
@@ -38,26 +38,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { shopId: st
 
       const shop = await prisma.shop.findUniqueOrThrow({
         where: { id: shopId },
-        select: { name: true, ownerId: true, referredByShop: true, slug: true, city: true },
+        select: { name: true, ownerId: true, referredByShop: true, city: true },
       });
 
-      // Notify Bing/IndexNow that the new shop page + sitemap are indexable
-      // (audit GEO 2026 — IndexNow protocol for instant reindexation).
-      const indexNowUrls: string[] = [
-        `${SITE_URL}/sitemap.xml`,
-        `${SITE_URL}/boutique/${shop.slug}`,
-        SITE_URL,
-      ];
-      if (shop.city) {
-        const citySlug = shop.city
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "");
-        indexNowUrls.push(`${SITE_URL}/boucherie-halal/${citySlug}`);
-      }
-      notifyIndexNow(indexNowUrls).catch(() => {}); // fire-and-forget
+      // The listing changes the home page and the shop's city pages; the shop page itself is
+      // never submitted (src/lib/seo/indexnow-urls.ts). Awaited: a serverless function may be
+      // frozen once it has answered.
+      await notifyIndexNow(validationIndexNowUrls(shop.city)).catch((error: unknown) => {
+        logger.warn("[admin/shops/validate] IndexNow notification failed", {
+          shopId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
 
       if (shop.referredByShop) {
         try {

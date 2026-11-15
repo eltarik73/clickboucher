@@ -8,7 +8,7 @@ import { SEO_CITIES } from "@/lib/seo/cities";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
-const PAGE_LAST_UPDATED = "2026-05-09";
+const PAGE_LAST_UPDATED = "2026-11-15";
 
 export const revalidate = 86400; // contenu éditorial + compteurs : 1 régénération / jour suffit
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   // titleTemplate root via absolute pour éviter "… | Klik&Go" en double (audit 2026-06-12).
   title: { absolute: "À propos de Klik&Go — Notre mission, notre équipe" },
   description:
-    "Klik&Go est la première plateforme click & collect dédiée aux boucheries halal en France. Notre mission : zéro file d'attente, 100% halal certifié, 0,99€ de frais. Découvrez notre histoire, notre équipe et nos valeurs.",
+    "Klik&Go, le click & collect des boucheries halal d'Auvergne-Rhône-Alpes : commande en ligne, retrait et paiement en boutique. Notre histoire et nos valeurs.",
   alternates: { canonical: `${SITE_URL}/a-propos` },
   openGraph: {
     title: "À propos de Klik&Go — Notre mission, notre équipe",
@@ -122,39 +122,38 @@ export default async function AProposPage() {
           </h2>
           <p>
             Le samedi midi, le vendredi soir, pendant tout le mois de Ramadan, à l&apos;approche de
-            l&apos;Aïd : les boucheries halal sont saturées. Files d&apos;attente de 30 minutes,
+            l&apos;Aïd : les boucheries halal sont saturées. De longues files d&apos;attente,
             commandes oubliées sur la pause déjeuner, stress avant les fêtes. Cette réalité n&apos;a
             pas changé depuis 30 ans &mdash; alors que toute la restauration classique a digitalisé
             son flux client (Uber Eats, Deliveroo, La Fourchette). Klik&amp;Go porte cette
             modernisation aux artisans bouchers halal de proximité, avec un outil simple : le client
-            commande en ligne au calme, paie ou réserve, le boucher prépare au créneau choisi, le
-            client récupère en deux minutes.
+            commande en ligne au calme, le boucher prépare la commande, le client la retire en
+            boutique et la paie sur place.
           </p>
 
           <h2 className="mt-8 text-xl font-bold text-gray-900 dark:text-white">
             Soutenir les bouchers halal indépendants
           </h2>
           <p>
-            Contrairement aux géants de la livraison qui prennent jusqu&apos;à 30% de commission sur
-            chaque vente (et qui imposent souvent leurs tarifs aux commerçants), Klik&amp;Go facture{" "}
-            <strong>0,99€ de frais de service par commande</strong>, payés par le client &mdash; et
-            une commission modérée pour le boucher uniquement quand il vend (pas d&apos;abonnement,
-            pas de frais d&apos;entrée). Notre modèle : si le boucher ne vend pas, il ne paie pas.
-            Les artisans halal méritent les mêmes outils numériques que les grandes chaînes, sans
-            les abus économiques qui vont avec.
+            Contrairement aux grandes plateformes de repas à domicile, qui prennent jusqu&apos;à 30%
+            de commission sur chaque vente (et qui imposent souvent leurs tarifs aux commerçants),
+            Klik&amp;Go ne facture <strong>aucun frais de service</strong> au client &mdash;
+            seulement une commission modérée au boucher, uniquement quand il vend (pas
+            d&apos;abonnement, pas de frais d&apos;entrée). Notre modèle : si le boucher ne vend
+            pas, il ne paie pas. Les artisans halal méritent les mêmes outils numériques que les
+            grandes chaînes, sans les abus économiques qui vont avec.
           </p>
 
           <h2 className="mt-8 text-xl font-bold text-gray-900 dark:text-white">
-            100% halal, 100% local, 100% transparent
+            Local, transparent, au service du boucher
           </h2>
           <p>
-            Toutes les boucheries référencées sur Klik&amp;Go sont des boucheries halal
-            indépendantes vérifiées avant mise en ligne. La certification halal (AVS, ACMIF, Mosquée
-            de Paris, etc.) est sous la responsabilité directe du boucher partenaire, qui
-            l&apos;affiche sur sa fiche. Nous ne sommes pas un revendeur qui rachète et redistribue
-            : Klik&amp;Go est un <strong>outil au service du boucher de quartier</strong>, qui garde
-            la main sur ses prix, son catalogue, ses horaires, et la relation directe avec ses
-            clients.
+            Chaque boucherie est responsable de sa certification halal et du choix de son organisme
+            certificateur : Klik&amp;Go ne certifie pas la viande. Quand la boucherie
+            l&apos;indique, l&apos;organisme certificateur figure sur la fiche du produit. Nous ne
+            sommes pas un revendeur qui rachète et redistribue : Klik&amp;Go est un{" "}
+            <strong>outil au service du boucher de quartier</strong>, qui garde la main sur ses
+            prix, son catalogue, ses horaires, et la relation directe avec ses clients.
           </p>
         </div>
 
@@ -167,8 +166,8 @@ export default async function AProposPage() {
             {[
               {
                 icon: ShieldCheck,
-                title: "Halal certifié, sans zone grise",
-                desc: "Chaque produit affiche son organisme certificateur. Pas de promesse vague, pas de raccourci sur la traçabilité.",
+                title: "Halal, sans promesse vague",
+                desc: "Klik&Go ne certifie pas la viande et ne le prétend pas : chaque boucher répond de sa certification halal, et vous pouvez lui demander quel organisme le certifie.",
               },
               {
                 icon: Users,
@@ -183,7 +182,7 @@ export default async function AProposPage() {
               {
                 icon: Sparkles,
                 title: "Transparence radicale",
-                desc: "Prix identiques à ceux du magasin, frais affichés (0,99€), aucune surprise au moment de payer. Pas d'optimisation cachée.",
+                desc: "Prix fixés par la boucherie, sans frais de service, paiement en boutique au retrait : aucune surprise au moment de payer. Pas d'optimisation cachée.",
               },
             ].map((value, i) => (
               <div
@@ -226,7 +225,7 @@ export default async function AProposPage() {
               {
                 year: "Mai 2026",
                 title: "Extension Auvergne-Rhône-Alpes",
-                desc: `Couverture étendue à ${cityCount} villes principales (Lyon, Grenoble, Saint-Étienne, Annecy, Valence). Plus de ${shopCount} boucheries référencées. Lancement du programme de fidélité 3 paliers et des recettes halal IA-générées (${recipeCount}+).`,
+                desc: `Pages dédiées aux boucheries halal de Lyon, Grenoble, Saint-Étienne et Annecy. Lancement du programme de fidélité à 3 paliers et des recettes halal générées par IA.`,
               },
             ].map((step, i) => (
               <div key={i} className="relative">

@@ -1,30 +1,40 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, MapPin, ShieldCheck, Truck, Award, Banknote } from "lucide-react";
+import { ArrowLeft, Award, Banknote, Info, MapPin, Store, type LucideIcon } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
-import { SpeakableSchema } from "@/components/seo/SpeakableSchema";
 import { LastUpdated } from "@/components/seo/LastUpdated";
-import { SEO_CITIES } from "@/lib/seo/cities";
+import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
 import { JsonLd } from "@/components/seo/JsonLd";
+import {
+  COMMON_FAQ,
+  FACT_FEES,
+  FACT_HALAL,
+  FACT_PAYMENT,
+  FACT_PICKUP,
+  FACT_SUMMARY_SHORT,
+  type Faq,
+} from "@/lib/seo/facts";
+import { faqPageJsonLd } from "@/lib/seo/jsonld/pages";
+import { SITE_URL, absoluteUrl } from "@/lib/seo/site";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
-const PAGE_LAST_UPDATED = "2026-05-01";
+const PAGE_URL = absoluteUrl("/commander-viande-halal");
+const PAGE_LAST_UPDATED = "2026-11-15";
 
 export const metadata: Metadata = {
   // Title court — titleTemplate root ajoute " | Klik&Go" auto (Bing audit 2026-05-09).
   title: "Commander viande halal en ligne — Boucher proche",
   description:
-    "Commandez votre viande halal en ligne chez votre boucher de proximité. Bœuf, agneau, veau, volaille halal certifiée. Retrait en boutique en 30 min, frais 0,99€.",
-  alternates: { canonical: `${SITE_URL}/commander-viande-halal` },
+    "Commandez votre viande halal en ligne chez votre boucher de proximité : bœuf, agneau, veau, volaille. Retrait et paiement en boutique, sans frais de service.",
+  alternates: { canonical: PAGE_URL },
   openGraph: {
     type: "website",
     locale: "fr_FR",
     siteName: "Klik&Go",
     title: "Commander de la viande halal en ligne | Klik&Go",
     description:
-      "Commandez votre viande halal en ligne chez votre boucher de proximité. Retrait en boutique en 30 min.",
-    url: `${SITE_URL}/commander-viande-halal`,
+      "Commandez votre viande halal en ligne chez votre boucher de proximité. Retrait et paiement en boutique.",
+    url: PAGE_URL,
     images: [
       { url: "/og-image.png", width: 1200, height: 630, alt: "Commander viande halal en ligne" },
     ],
@@ -39,72 +49,57 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
-export default async function CommanderViandeHalalPage() {
-  const [shopCount, sampleShops] = await Promise.all([
-    prisma.shop.count({ where: { visible: true } }),
-    prisma.shop.findMany({
-      where: { visible: true },
-      select: { slug: true, name: true, city: true, rating: true, ratingCount: true },
-      take: 6,
-      orderBy: { rating: "desc" },
-    }),
-  ]);
+const FAQS: Faq[] = [
+  {
+    question: "Comment commander de la viande halal en ligne ?",
+    answer: `Sur Klik&Go, choisissez votre boucherie halal de proximité, ajoutez vos produits au panier (bœuf, agneau, veau, volaille…) et validez votre commande. ${FACT_PICKUP} ${FACT_PAYMENT}`,
+  },
+  COMMON_FAQ.halal,
+  {
+    question: "Quels types de viande halal puis-je commander ?",
+    answer:
+      "Bœuf halal (entrecôte, faux-filet, bavette, haché…), agneau halal (épaule, gigot, côtelettes…), veau halal (escalope, blanquette…), volaille halal (poulet, dinde, escalope…), agneau de l'Aïd, kefta, merguez maison, brochettes préparées… Le catalogue dépend de chaque boucherie partenaire.",
+  },
+  {
+    question: "Où est disponible la commande de viande halal en ligne Klik&Go ?",
+    answer: `Klik&Go a une page pour ${SEO_CITIES.length} villes de ${SEO_DEPARTMENTS.length} départements d'Auvergne-Rhône-Alpes : ${SEO_DEPARTMENTS.map((d) => d.name).join(", ")}. Les boucheries proposées dépendent de chaque ville.`,
+  },
+  COMMON_FAQ.fees,
+  {
+    question: "Combien de temps pour récupérer ma commande ?",
+    answer:
+      "Le temps de préparation dépend de votre boucher et de votre commande. Vous retirez votre commande dès qu'elle est prête ou au créneau que vous choisissez, et vous suivez son avancement sur Klik&Go.",
+  },
+];
 
-  const faqs = [
-    {
-      question: "Comment commander de la viande halal en ligne ?",
-      answer:
-        "Sur Klik&Go : choisissez votre boucherie halal de proximité, ajoutez vos produits au panier (bœuf, agneau, veau, volaille…), payez en ligne et récupérez votre commande en boutique au créneau choisi. Aucun abonnement, frais de service unique de 0,99 € par commande.",
-    },
-    {
-      question: "La viande commandée est-elle bien halal certifiée ?",
-      answer:
-        "Oui. Toutes les boucheries Klik&Go sont des boucheries halal indépendantes vérifiées. Chaque produit affiche systématiquement son organisme certificateur (AVS, ACMIF, Mosquée de Paris, etc.) pour une transparence totale.",
-    },
-    {
-      question: "Quels types de viande halal puis-je commander ?",
-      answer:
-        "Bœuf halal (entrecôte, faux-filet, bavette, haché…), agneau halal (épaule, gigot, côtelettes…), veau halal (escalope, blanquette…), volaille halal (poulet, dinde, escalope…), agneau de l'Aïd, kefta, merguez maison, brochettes préparées… Le catalogue dépend de chaque boucherie partenaire.",
-    },
-    {
-      question: "Où est disponible la commande de viande halal en ligne Klik&Go ?",
-      answer: `Klik&Go propose la commande en ligne de viande halal dans ${SEO_CITIES.length} villes françaises et leurs agglomérations : ${SEO_CITIES.map((c) => c.name).join(", ")}.`,
-    },
-    {
-      question: "La viande est-elle plus chère en ligne ?",
-      answer:
-        "Non. Les prix affichés sur Klik&Go sont identiques à ceux de la boucherie en magasin. Klik&Go ajoute uniquement un frais de service unique de 0,99 € par commande, sans aucune commission cachée sur les produits.",
-    },
-    {
-      question: "Combien de temps pour récupérer ma commande ?",
-      answer:
-        "Votre boucher prépare votre commande en moins de 30 minutes en moyenne. Vous choisissez le créneau de retrait qui vous arrange — pas d'attente surprise en boutique.",
-    },
-  ];
+const REASONS: { icon: LucideIcon; title: string; text: string }[] = [
+  { icon: Info, title: "Certification halal", text: FACT_HALAL },
+  {
+    icon: Award,
+    title: "Boucheries indépendantes",
+    text: "Klik&Go s'adresse aux artisans bouchers halal de quartier, pas à la grande distribution.",
+  },
+  { icon: Store, title: "Retrait en boutique", text: FACT_PICKUP },
+  { icon: Banknote, title: "Sans frais de service", text: FACT_FEES },
+];
+
+export default async function CommanderViandeHalalPage() {
+  const sampleShops = await prisma.shop.findMany({
+    where: { visible: true },
+    select: { slug: true, name: true, city: true },
+    take: 6,
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <SpeakableSchema
-        url={`${SITE_URL}/commander-viande-halal`}
-        cssSelectors={["h1", '[data-purpose="ai-summary"]']}
-      />
       <BreadcrumbSchema
         items={[
           { name: "Accueil", url: SITE_URL },
-          { name: "Commander viande halal", url: `${SITE_URL}/commander-viande-halal` },
+          { name: "Commander viande halal", url: PAGE_URL },
         ]}
       />
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((f) => ({
-            "@type": "Question",
-            name: f.question,
-            acceptedAnswer: { "@type": "Answer", text: f.answer },
-          })),
-        }}
-      />
+      <JsonLd data={faqPageJsonLd(FAQS)} />
 
       <section className="relative bg-gradient-to-br from-[#DC2626] via-[#b91c1c] to-[#991b1b] text-white">
         <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
@@ -119,9 +114,7 @@ export default async function CommanderViandeHalalPage() {
           </h1>
           <p className="max-w-2xl text-lg leading-relaxed text-white/90">
             Bœuf, agneau, veau, volaille — <strong>commandez votre viande halal en ligne</strong>{" "}
-            chez votre boucher de proximité parmi {shopCount}+ boucheries halal certifiées. Retrait
-            en boutique en moins de 30 minutes. Pas d&apos;abonnement, frais de service 0,99 € par
-            commande.
+            chez votre boucher de proximité. {FACT_SUMMARY_SHORT}
           </p>
           <LastUpdated date={PAGE_LAST_UPDATED} className="mt-4 text-white/60" />
           <div className="mt-6 flex flex-wrap gap-3">
@@ -146,30 +139,9 @@ export default async function CommanderViandeHalalPage() {
           Pourquoi acheter sa viande halal en ligne avec Klik&amp;Go ?
         </h2>
         <div className="grid gap-3 md:grid-cols-2">
-          {[
-            {
-              icon: ShieldCheck,
-              title: "Halal certifié et tracé",
-              text: "Chaque viande affiche son organisme certificateur halal — pas de zone grise.",
-            },
-            {
-              icon: Award,
-              title: "Boucheries indépendantes",
-              text: "Uniquement des artisans bouchers halal de proximité, pas la grande distribution.",
-            },
-            {
-              icon: Truck,
-              title: "Retrait en boutique en 30 min",
-              text: "Pas de livraison, pas de chaîne du froid à risque. Tu passes quand tu veux.",
-            },
-            {
-              icon: Banknote,
-              title: "Mêmes prix qu'en magasin",
-              text: "Aucune majoration. Frais unique 0,99 € par commande, point.",
-            },
-          ].map((item, i) => (
+          {REASONS.map((item) => (
             <div
-              key={i}
+              key={item.title}
               className="flex gap-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/[0.05]"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[#DC2626] dark:bg-red-900/20">
@@ -187,30 +159,23 @@ export default async function CommanderViandeHalalPage() {
       {sampleShops.length > 0 && (
         <section className="mx-auto max-w-4xl px-5 py-8">
           <h2 className="mb-3 text-2xl font-black text-[#1C1512] dark:text-white md:text-3xl">
-            Nos boucheries halal partenaires
+            Des boucheries halal sur Klik&amp;Go
           </h2>
           <p className="mb-5 text-gray-600 dark:text-gray-400">
-            Quelques boucheries où vous pouvez commander votre viande halal en ligne dès maintenant
-            :
+            Quelques boucheries où commander votre viande halal en ligne :
           </p>
           <div className="grid gap-3 md:grid-cols-2">
             {sampleShops.map((s) => (
               <Link
                 key={s.slug}
                 href={`/boutique/${s.slug}`}
+                prefetch={false}
                 className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 transition-colors hover:border-[#DC2626] dark:border-white/10 dark:bg-white/[0.05]"
               >
                 <div>
                   <div className="text-sm font-bold text-[#1C1512] dark:text-white">{s.name}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{s.city}</div>
                 </div>
-                {s.rating > 0 && (
-                  // Audit a11y 2026-05-10 : text-amber-600 (#D97706) sur bg-white
-                  // = ratio 3.9 FAIL AA small text. text-amber-700 (#B45309) = 5.5 PASS.
-                  <div className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                    ⭐ {s.rating.toFixed(1)} ({s.ratingCount})
-                  </div>
-                )}
               </Link>
             ))}
           </div>
@@ -226,6 +191,7 @@ export default async function CommanderViandeHalalPage() {
             <Link
               key={c.slug}
               href={`/boucherie-halal/${c.slug}`}
+              prefetch={false}
               className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 transition-colors hover:border-[#DC2626] dark:border-white/10 dark:bg-white/[0.05]"
             >
               <MapPin size={16} className="shrink-0 text-[#DC2626]" />
@@ -242,9 +208,9 @@ export default async function CommanderViandeHalalPage() {
           Questions fréquentes
         </h2>
         <div className="space-y-3">
-          {faqs.map((f, i) => (
+          {FAQS.map((f) => (
             <details
-              key={i}
+              key={f.question}
               className="group rounded-2xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.05]"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between font-bold text-[#1C1512] dark:text-white">

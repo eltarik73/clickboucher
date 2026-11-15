@@ -1,6 +1,7 @@
 import NextLink from "next/link";
 import type { ComponentProps } from "react";
-import { SEO_CITIES } from "@/lib/seo/cities";
+import { SEO_CITIES, SEO_DEPARTMENTS } from "@/lib/seo/cities";
+import { departmentLocative } from "@/lib/seo/titles";
 
 // Ce footer (≈ 130 liens) est rendu sur chaque page client. Avec le prefetch par
 // défaut de next/link, chaque vue déclenchait autant de requêtes RSC dès que le
@@ -9,253 +10,99 @@ function Link(props: ComponentProps<typeof NextLink>) {
   return <NextLink prefetch={false} {...props} />;
 }
 
+type FooterLink = { href: string; label: string };
+type FooterColumn = { title: string; links: readonly FooterLink[] };
+
+// The footer is part of the client bundle of every page: the URL shapes are written here rather
+// than imported from src/lib/seo/routes.ts, which loads the district, product and occasion data.
+const COLUMNS: readonly FooterColumn[] = [
+  {
+    title: "Boucheries halal par région",
+    links: [
+      { href: "/trouver-boucherie-halal", label: "Trouver une boucherie halal" },
+      { href: "/boucheries-halal-rhone-alpes", label: "Boucheries halal en Auvergne-Rhône-Alpes" },
+      ...SEO_DEPARTMENTS.map((dept) => ({
+        href: `/boucheries-halal/${dept.slug}`,
+        label: `Boucheries halal ${departmentLocative(dept)}`,
+      })),
+    ],
+  },
+  {
+    title: "Boucheries halal par ville",
+    links: SEO_CITIES.map((c) => ({
+      href: `/boucherie-halal/${c.slug}`,
+      label: `Boucherie halal ${c.name}`,
+    })),
+  },
+  {
+    title: "Pour les bouchers",
+    links: SEO_CITIES.map((c) => ({
+      href: `/devenir-boucher-partenaire/${c.slug}`,
+      label: `Devenir partenaire ${c.name}`,
+    })),
+  },
+  {
+    title: "Recettes halal",
+    links: [
+      { href: "/recettes", label: "Toutes les recettes" },
+      { href: "/recettes?tag=agneau", label: "Recettes agneau" },
+      { href: "/recettes?tag=boeuf", label: "Recettes bœuf" },
+      { href: "/recettes?tag=volaille", label: "Recettes volaille" },
+      { href: "/recettes?tag=veau", label: "Recettes veau" },
+      { href: "/recettes?tag=ramadan", label: "Recettes ramadan" },
+      { href: "/recettes?tag=bbq", label: "Recettes BBQ" },
+    ],
+  },
+  {
+    title: "Bons plans",
+    links: [
+      { href: "/bons-plans", label: "Tous les bons plans" },
+      { href: "/bons-plans/anti-gaspi", label: "Anti-gaspi viande" },
+      { href: "/bons-plans/promos", label: "Promos halal" },
+      { href: "/bons-plans/vente-flash", label: "Vente flash" },
+      { href: "/bons-plans/packs", label: "Packs viande" },
+      { href: "/bons-plans/ramadan", label: "Spécial ramadan" },
+    ],
+  },
+  {
+    title: "Klik&Go",
+    links: [
+      { href: "/", label: "Accueil" },
+      { href: "/avantages", label: "Pourquoi Klik&Go" },
+      { href: "/click-and-collect-halal", label: "Click & Collect halal" },
+      { href: "/commander-viande-halal", label: "Commander viande halal" },
+      { href: "/espace-boucher", label: "Espace boucher" },
+      { href: "/inscription-boucher", label: "Inscrire ma boucherie" },
+      { href: "/presse", label: "Espace presse" },
+      { href: "/contact", label: "Contact" },
+      { href: "/mentions-legales", label: "Mentions légales" },
+      { href: "/politique-de-confidentialite", label: "Confidentialité" },
+      { href: "/cgv", label: "CGV" },
+    ],
+  },
+];
+
 export function SeoFooter() {
   return (
     <footer className="mt-16 border-t border-gray-200 bg-white dark:border-white/[0.06] dark:bg-[#0a0a0a]">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-10 text-sm md:grid-cols-5">
-        <div>
-          <h2 className="mb-3 font-extrabold text-[#1C1512] dark:text-white">
-            Boucheries halal par ville
-          </h2>
-          <ul className="space-y-2">
-            {SEO_CITIES.map((c) => (
-              <li key={c.slug}>
-                <Link
-                  href={`/boucherie-halal/${c.slug}`}
-                  className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400 dark:hover:text-[#DC2626]"
-                >
-                  Boucherie halal {c.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="mb-3 font-extrabold text-[#1C1512] dark:text-white">Pour les bouchers</h2>
-          <ul className="space-y-2">
-            {SEO_CITIES.map((c) => (
-              <li key={`partner-${c.slug}`}>
-                <Link
-                  href={`/devenir-boucher-partenaire/${c.slug}`}
-                  className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400 dark:hover:text-[#DC2626]"
-                >
-                  Devenir partenaire {c.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="mb-3 font-extrabold text-[#1C1512] dark:text-white">Recettes halal</h2>
-          <ul className="space-y-2">
-            <li>
-              <Link
-                href="/recettes"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Toutes les recettes
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/recettes?tag=agneau"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Recettes agneau
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/recettes?tag=boeuf"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Recettes bœuf
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/recettes?tag=volaille"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Recettes volaille
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/recettes?tag=veau"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Recettes veau
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/recettes?tag=ramadan"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Recettes ramadan
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/recettes?tag=bbq"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Recettes BBQ
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="mb-3 font-extrabold text-[#1C1512] dark:text-white">Bons plans</h2>
-          <ul className="space-y-2">
-            <li>
-              <Link
-                href="/bons-plans"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Tous les bons plans
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/bons-plans/anti-gaspi"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Anti-gaspi viande
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/bons-plans/promos"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Promos halal
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/bons-plans/vente-flash"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Vente flash
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/bons-plans/packs"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Packs viande
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/bons-plans/ramadan"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Spécial ramadan
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="mb-3 font-extrabold text-[#1C1512] dark:text-white">Klik&Go</h2>
-          <ul className="space-y-2">
-            <li>
-              <Link
-                href="/"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Accueil
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/avantages"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Pourquoi Klik&Go
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/click-and-collect-halal"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Click &amp; Collect halal
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/commander-viande-halal"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Commander viande halal
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/espace-boucher"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Espace boucher
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/inscription-boucher"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Inscrire ma boucherie
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/presse"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Espace presse
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/contact"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Contact
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/mentions-legales"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Mentions légales
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/politique-de-confidentialite"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                Confidentialité
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/cgv"
-                className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400"
-              >
-                CGV
-              </Link>
-            </li>
-          </ul>
-        </div>
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-10 text-sm md:grid-cols-3 lg:grid-cols-6">
+        {COLUMNS.map((column) => (
+          <div key={column.title}>
+            <h2 className="mb-3 font-extrabold text-[#1C1512] dark:text-white">{column.title}</h2>
+            <ul className="space-y-2">
+              {column.links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-gray-600 transition-colors hover:text-[#DC2626] dark:text-gray-400 dark:hover:text-[#DC2626]"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
 
       <div className="border-t border-gray-200 dark:border-white/[0.06]">

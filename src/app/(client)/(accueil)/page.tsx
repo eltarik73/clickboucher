@@ -1,4 +1,4 @@
-export const revalidate = 300; // ISR — régénération au plus toutes les 5 min (la liste est rafraîchie côté client par NearbyShops)
+export const revalidate = 300; // ISR: at most every 5 min; NearbyShops sorts by distance once a position is known
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -7,13 +7,14 @@ import prisma from "@/lib/prisma";
 import { badgeLabelsByShop } from "@/lib/offer-badge-label";
 import { listBadgeOffers, listPopupOffers } from "@/lib/public-offers";
 import { countBonsPlans } from "@/lib/bons-plans";
+import { FACT_SUMMARY_SHORT } from "@/lib/seo/facts";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { PromoCarousel } from "@/components/landing/PromoCarousel";
-import { HeroButtons } from "./decouvrir/HeroButtons";
-import { CartBadge } from "./decouvrir/CartBadge";
-import { AuthButton } from "./decouvrir/AuthButton";
+import { HeroButtons } from "../decouvrir/HeroButtons";
+import { CartBadge } from "../decouvrir/CartBadge";
+import { AuthButton } from "../decouvrir/AuthButton";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import NearbyShops from "./decouvrir/NearbyShops";
+import NearbyShops from "../decouvrir/NearbyShops";
 import { SearchBar } from "@/components/search/SearchBar";
 import { KlikLogo } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
@@ -37,15 +38,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const metadata: Metadata = {
   title: "Click & Collect Boucherie Halal — Commandez en ligne",
-  description:
-    "Commandez en ligne chez votre boucherie halal de proximité. Retrait rapide en boutique à Chambéry, Grenoble, Lyon. Frais de service 0,99€ seulement.",
+  description: `Click & collect halal : commandez votre viande en ligne chez une boucherie halal près de chez vous. ${FACT_SUMMARY_SHORT}`,
   openGraph: {
     type: "website",
     locale: "fr_FR",
     siteName: "Klik&Go",
     title: "Boucheries Halal près de chez vous — Click & Collect",
-    description:
-      "Trouvez votre boucherie halal et commandez en click & collect. Retrait rapide en boutique.",
+    description: `Trouvez votre boucherie halal et commandez en click & collect. ${FACT_SUMMARY_SHORT}`,
     url: SITE_URL,
     images: [
       {

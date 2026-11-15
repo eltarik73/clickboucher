@@ -7,52 +7,38 @@
  * mode, a delivery or a halal-compliance claim (wording rules D6 of chantier C1-SEO,
  * pinned by src/lib/__tests__/seo/seo-data.test.ts). Occasion names never
  * contain « halal »: the page templates add it.
+ *
+ * An occasion is not an event organised by Klik&Go: the pages mark it up as a
+ * WebPage about the occasion, never as an Event (src/lib/seo/content/occasion-city.ts),
+ * and the expected dates of the Aïd and of Ramadan live in the visible text only.
  */
 
 export type SeoOccasion = {
   slug: string;
+  /** Display name, without « halal » (the templates add it). */
   name: string;
-  /** Mot-clé principal pour title */
-  keyword: string;
-  /** Catégorie événement Schema.org. Si absent OU pas de eventStart →
-   *  on utilise WebPage au lieu de Event (GSC refuse Event sans startDate). */
-  eventType?: "FoodEvent" | "Event";
-  /** Date de l'évènement (ISO yyyy-mm-dd) — REQUIS pour schema Event.
-   *  Renseigné uniquement pour les occasions à date fixe (Aïd, Ramadan).
-   *  Mariage/aqiqa/méchoui/barbecue/buffet = pas de date → WebPage schema. */
-  eventStart?: string;
-  eventEnd?: string;
-  /** Description courte pour metadata */
+  /** Meta and hero summary of the occasion. */
   shortDescription: string;
-  /** Intro éditoriale unique 250+ mots (E-E-A-T, anti-thin) */
+  /** Unique editorial paragraph, true with zero shop. */
   intro: string;
-  /** Quantité de viande recommandée par personne */
+  /** Quantity question and answer, shown on the page and in its FAQ. */
   servingTip: { question: string; answer: string };
-  /** Délai de commande recommandé */
+  /** Recommended order lead time, shown on the page and in its FAQ. */
   bookingDelay: string;
-  /** Saison où la page est plus active */
+  /** Season when the page is most searched. */
   season?: "spring" | "summer" | "ramadan" | "year-round";
   priority: "P0" | "P1" | "P2";
-  /** Date (ISO yyyy-mm-dd) de la dernière vraie modification du contenu de
-   *  CETTE occasion. Si absent → date commune du template (page + sitemap).
-   *  À renseigner uniquement quand le texte de l'occasion change réellement. */
-  lastUpdated?: string;
+  /** ISO date (yyyy-mm-dd) of the last real change of this occasion's texts. */
+  lastUpdated: string;
 };
 
 export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
     slug: "aid-al-adha",
     name: "Aïd al-Adha",
-    keyword: "viande aïd al-adha",
-    eventType: "Event",
-    // Aïd al-Adha 1448 AH ~ 16 mai 2027 (calcul lunaire : conjonction le
-    // 6 mai 2027 ; +1j possible selon l'observation de la lune, annonce
-    // officielle début mai 2027). Festivités sur 4 jours. Prochain bump après
-    // le 20 mai 2027, pour 1449 AH (~5 mai 2028).
-    // bookingDelay : pas de ":" — la page affiche `bookingDelay.split(":")[1]`
-    // dans le hero et doit garder le libellé de repli pour l'Aïd.
-    eventStart: "2027-05-16",
-    eventEnd: "2027-05-20",
+    // The intro and bookingDelay give the expected date of the Aïd al-Adha 2027 (10 dhu
+    // al-hijja 1448, around 16 May 2027, one day later depending on the moon sighting).
+    // Update both texts and lastUpdated after the feast: 1449 AH falls around 5 May 2028.
     lastUpdated: "2026-11-15",
     shortDescription:
       "Aïd al-Adha 2027 : choisir son agneau ou son mouton, prévoir les quantités, réserver à temps et commander en click & collect sur Klik&Go.",
@@ -71,9 +57,6 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
     slug: "mechoui",
     name: "Méchoui",
-    keyword: "méchoui",
-    // Pas de eventType : pas de date fixe → WebPage schema (Event sans
-    // startDate refusé par GSC).
     lastUpdated: "2026-11-15",
     shortDescription:
       "Méchoui : choisir l'agneau entier, calculer la quantité selon le nombre d'invités, réussir la cuisson à la broche et commander à temps.",
@@ -91,8 +74,6 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
     slug: "mariage",
     name: "Mariage",
-    keyword: "viande mariage halal",
-    // Pas de eventType : date personnelle, pas universelle → WebPage schema.
     lastUpdated: "2026-11-15",
     shortDescription:
       "Mariage : combien de viande halal prévoir par invité, comment répartir agneau, bœuf et volaille, et quand passer commande pour la fête.",
@@ -110,13 +91,8 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
     slug: "ramadan",
     name: "Ramadan",
-    keyword: "viande ramadan",
-    eventType: "FoodEvent",
-    // Ramadan 1448 AH ≈ 8 fév – 8/9 mars 2027 ; Aïd el-Fitr 9 ou 10 mars 2027
-    // (conjonction le 6 fév 2027 après le coucher du soleil à La Mecque).
-    // Bumper chaque année après l'iftar du dernier jour.
-    eventStart: "2027-02-08",
-    eventEnd: "2027-03-08",
+    // The intro gives the expected dates of Ramadan 2027 (around 8 February to 8 March,
+    // Aïd el-Fitr on 9 or 10 March). Update it and lastUpdated once the month has ended.
     lastUpdated: "2026-11-15",
     shortDescription:
       "Ramadan 2027 : quantités de viande halal pour l'iftar et le suhour, plats de tradition et commande en click & collect avant la rupture du jeûne.",
@@ -135,8 +111,6 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
     slug: "aqiqa",
     name: "Aqiqa",
-    keyword: "viande aqiqa",
-    // Pas de eventType : date dépend de la naissance, pas universelle → WebPage.
     lastUpdated: "2026-11-15",
     shortDescription:
       "Aqiqa : quel mouton prévoir pour la naissance de votre enfant, comment partager la viande et quand réserver auprès de votre boucherie halal.",
@@ -155,8 +129,6 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
     slug: "barbecue",
     name: "Barbecue",
-    keyword: "barbecue halal",
-    // Pas de eventType : catégorie de produit pas un événement → WebPage.
     lastUpdated: "2026-11-15",
     shortDescription:
       "Barbecue halal : merguez, brochettes, côtes d'agneau, ailes de poulet… quantités par personne, marinades et temps de cuisson pour vos grillades.",
@@ -175,8 +147,6 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   {
     slug: "buffet",
     name: "Buffet",
-    keyword: "buffet halal",
-    // Pas de eventType : catégorie de produit pas un événement → WebPage.
     lastUpdated: "2026-11-15",
     shortDescription:
       "Buffet halal : quelles viandes servir pour un apéritif dînatoire ou une réception, en quelles quantités, et comment les commander à l'avance.",
@@ -194,7 +164,7 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
   },
 ];
 
-/** Cities prioritaires pour les pages occasion×ville */
+/** Cities of the occasion x city pages (closed list: each one is a prerendered page). */
 export const OCCASION_VILLE_PRIORITY_SLUGS = [
   "lyon",
   "grenoble",
@@ -206,7 +176,7 @@ export const OCCASION_VILLE_PRIORITY_SLUGS = [
   "aix-les-bains",
 ] as const;
 
-/** Helper : retourne tous les couples occasion×ville pour SSG */
+/** Every occasion x city pair, for generateStaticParams, the sitemap and the route registry. */
 export function getOccasionCityCombinations(): Array<{ occasion: string; ville: string }> {
   const combos: Array<{ occasion: string; ville: string }> = [];
   for (const occ of SEO_OCCASIONS) {

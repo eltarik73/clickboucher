@@ -11,16 +11,17 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
+import { departmentOfCity, partnerBreadcrumb } from "@/lib/seo/breadcrumbs";
+import { faqPageJsonLd } from "@/lib/seo/jsonld/pages";
+import { departmentLocative } from "@/lib/seo/titles";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
 import { JsonLd } from "@/components/seo/JsonLd";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
-
-// Static-with-revalidation — page content is built from city config + a partner
-// count that rarely changes. SSG with hourly revalidation is the right tradeoff.
-export const revalidate = 86400; // contenu éditorial + compteurs : 1 régénération / jour suffit
+// Built from the city data only. The daily regeneration keeps the footer year current.
+export const revalidate = 86400;
+// One page per SEO city: any other slug is a 404 without running a function.
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return SEO_CITIES.map((city) => ({ ville: city.slug }));
@@ -34,20 +35,15 @@ export default async function DevenirBoucherPartenaireVille({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) notFound();
 
-  // Trust signal — number of partner shops already onboarded in the city
-  const shopCount = await prisma.shop.count({
-    where: {
-      visible: true,
-      city: { contains: city.name, mode: "insensitive" },
-    },
-  });
-
-  const otherCities = SEO_CITIES.filter((c) => c.slug !== city.slug).slice(0, 8);
+  const department = departmentOfCity(city.slug);
+  const otherCities = SEO_CITIES.filter(
+    (c) => c.slug !== city.slug && department.citySlugs.includes(c.slug)
+  ).slice(0, 8);
 
   const faqs = [
     {
       question: "Combien ça coûte ?",
-      answer: `Klik&Go est 100% gratuit pour votre boucherie à ${city.name} : aucun abonnement, aucun frais fixe, aucun engagement. Une simple commission est prélevée sur les commandes encaissées via la plateforme — vous ne payez que si vous vendez.`,
+      answer: `Aucun abonnement, aucun frais fixe, aucun engagement pour votre boucherie à ${city.name} : Klik&Go se rémunère par une commission sur les commandes passées via la plateforme. Vous ne payez que si vous vendez.`,
     },
     {
       question: "Combien de temps pour être en ligne ?",
@@ -66,34 +62,15 @@ export default async function DevenirBoucherPartenaireVille({
     {
       question: "Comment se faire payer ?",
       answer:
-        "Pour les commandes payées en ligne, les fonds sont reversés directement sur le compte bancaire de votre boucherie via virement automatique. Pour les commandes payées sur place, vous encaissez votre client comme d'habitude au moment du retrait.",
+        "Vos clients règlent leur commande directement dans votre boucherie, au moment du retrait, avec les moyens de paiement que vous acceptez : vous encaissez comme d'habitude. Klik&Go n'encaisse aucun paiement à votre place.",
     },
   ];
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       {/* ── SEO Schemas ── */}
-      <BreadcrumbSchema
-        items={[
-          { name: "Accueil", url: SITE_URL },
-          { name: "Devenir partenaire boucher", url: `${SITE_URL}/espace-boucher` },
-          {
-            name: city.name,
-            url: `${SITE_URL}/devenir-boucher-partenaire/${city.slug}`,
-          },
-        ]}
-      />
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: { "@type": "Answer", text: faq.answer },
-          })),
-        }}
-      />
+      <BreadcrumbSchema items={partnerBreadcrumb(city)} />
+      <JsonLd data={faqPageJsonLd(faqs)} />
 
       {/* ══════════════════════════════════════════ */}
       {/* HERO — Dark premium                        */}
@@ -161,20 +138,8 @@ export default async function DevenirBoucherPartenaireVille({
             style={{ animationDelay: "100ms" }}
           >
             Click &amp; collect, vitrine en ligne, mode cuisine. Aucun abonnement, commission
-            uniquement. Rejoignez les boucheries de {city.name} qui digitalisent.
+            uniquement. Proposez la commande en ligne à vos clients de {city.name}.
           </p>
-
-          {/* Trust signal */}
-          {shopCount > 0 && (
-            <div
-              className="mt-6 inline-flex animate-fade-up items-center gap-2 text-sm text-gray-500"
-              style={{ animationDelay: "150ms" }}
-            >
-              <span className="inline-flex h-2 w-2 animate-pulse-soft rounded-full bg-emerald-500" />
-              {shopCount} boucherie{shopCount > 1 ? "s" : ""} déjà inscrite
-              {shopCount > 1 ? "s" : ""} à {city.name}
-            </div>
-          )}
 
           {/* CTA */}
           <div
@@ -294,7 +259,7 @@ export default async function DevenirBoucherPartenaireVille({
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-gray-400">
               Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement via une petite
-              commission sur les commandes encaissées —
+              commission sur les commandes reçues en ligne —
               <span className="text-gray-300"> vous ne payez que si vous vendez.</span>
             </p>
           </div>
@@ -326,7 +291,7 @@ export default async function DevenirBoucherPartenaireVille({
                   <span className="mb-2 ml-1 self-end text-base text-gray-500">/ mois</span>
                 </div>
                 <p className="mx-auto mt-4 max-w-sm text-sm text-gray-400">
-                  Commission transparente uniquement sur les commandes encaissées
+                  Commission transparente uniquement sur les commandes reçues en ligne
                 </p>
               </div>
 
@@ -335,7 +300,7 @@ export default async function DevenirBoucherPartenaireVille({
                   "Vitrine en ligne dédiée",
                   "Catalogue produits illimité",
                   "Click & collect avec QR code",
-                  "Mode Cuisine temps réel",
+                  "Mode Cuisine dans le navigateur",
                   "Notifications clients auto",
                   "Programme de fidélité intégré",
                   "Promotions & offres flash",
@@ -354,7 +319,7 @@ export default async function DevenirBoucherPartenaireVille({
               <div className="pt-8">
                 <Link
                   href="/inscription-boucher"
-                  className="group relative block w-full overflow-hidden rounded-2xl bg-[#DC2626] px-6 py-4 text-center text-base font-semibold text-white shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] transition-all duration-300 hover:scale-[1.015] hover:bg-[#b91c1c] hover:shadow-[0_20px_50px_-10px_rgba(220,38,38,0.7)] active:scale-[0.99]"
+                  className="group relative block w-full overflow-hidden rounded-2xl bg-[#DC2626] px-6 py-4 text-center text-base font-semibold text-white shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] transition-all duration-300 hover:scale-[1.015] hover:bg-[#b91c1c] hover:shadow-[0_20px_50px_-10px_rgba(220,38,38,0.7)] active:scale-[.99]"
                 >
                   <span className="relative z-10 inline-flex items-center gap-2">
                     Inscrire ma boucherie à {city.name}
@@ -419,7 +384,7 @@ export default async function DevenirBoucherPartenaireVille({
             {city.districts.length > 0 && (
               <div className="mt-8 border-t border-white/[0.06] pt-8">
                 <p className="mb-3 text-sm font-semibold text-white">
-                  Quartiers et communes desservis :
+                  Quartiers et communes à proximité :
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {city.districts.map((d) => (
@@ -470,8 +435,9 @@ export default async function DevenirBoucherPartenaireVille({
               <blockquote className="font-serif text-xl italic leading-relaxed text-white sm:text-2xl">
                 &laquo; Le samedi matin avec la file qui dépasse sur le trottoir, ça doit être un
                 souvenir, pas une fatalité. Klik&amp;Go fait simple : tes clients commandent la
-                veille, tu prépares tranquille, ils retirent en deux minutes. Pas d&apos;abonnement,
-                pas de frais cachés &mdash; tu paies seulement quand tu vends. &raquo;
+                veille, tu prépares tranquille, ils passent chercher leur commande et la paient sur
+                place. Pas d&apos;abonnement, pas de frais cachés &mdash; tu paies seulement quand
+                tu vends. &raquo;
               </blockquote>
 
               <div className="mt-6 flex items-center gap-4 border-t border-white/[0.06] pt-6">
@@ -577,7 +543,7 @@ export default async function DevenirBoucherPartenaireVille({
       <section className="relative border-t border-white/[0.05] bg-[#0a0a0a] px-5 py-16">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-5 text-sm font-semibold uppercase tracking-wider text-gray-400">
-            Devenir partenaire dans d&apos;autres villes
+            Devenir partenaire ailleurs {departmentLocative(department)}
           </h2>
           <div className="flex flex-wrap gap-2">
             {otherCities.map((c) => (

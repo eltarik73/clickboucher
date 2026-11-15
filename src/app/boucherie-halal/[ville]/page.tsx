@@ -1,25 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowRight, MapPin } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { SEO_CITIES } from "@/lib/seo/cities";
-import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
-import { ShopSchema } from "@/components/seo/ShopSchema";
-import { SpeakableSchema } from "@/components/seo/SpeakableSchema";
+import { cityPageContent } from "@/lib/seo/content/city";
+import { ORDER_STEPS } from "@/lib/seo/facts";
+import { cityPath } from "@/lib/seo/routes";
+import { absoluteUrl } from "@/lib/seo/site";
+import { cityTitle } from "@/lib/seo/titles";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { JsonLd } from "@/components/seo/JsonLd";
 
-const PAGE_LAST_UPDATED = "2026-05-01";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+const PAGE_LAST_UPDATED = "2026-11-15";
+const STEP_EMOJIS = ["🔍", "🧾", "🛍️"];
 
 // ISR — revalidate at most once per hour. Shop list rarely changes per city,
 // so a static-with-occasional-revalidation strategy is the right tradeoff
 // (audit SEO HIGH #6).
 export const revalidate = 3600;
+// Closed list: a slug outside SEO_CITIES answers 404 without running the page.
+export const dynamicParams = false;
 
 // ── Generate static pages for each city ──
 export async function generateStaticParams() {
@@ -35,27 +37,18 @@ export async function generateMetadata({
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
   if (!city) return { title: "Ville introuvable" };
 
-  // REVERT noindex auto (2026-05-10) :
-  // User feedback : "je ne trouve plus klikandgo quand je tape boucherie
-  // halal chambery ou aix-les-bains alors qu'avant on trouvait".
-  // Le noindex auto (ex-commit 018ba6a) était trop agressif. Les pages
-  // SEO_CITIES principales contiennent du contenu unique riche
-  // (city.localContext + city.specialty + city.districts + FAQ dynamique,
-  // ~700+ mots), c'est suffisant pour ne pas être considéré "thin content"
-  // par Mars 2026 Core Update. On garde donc index par défaut.
-
-  // Title hook : "Commande 30min" garde le délai concret tout en restant
-  // sous 65 chars Bing (audit Site Scan #3 du 2026-05-10 : 3 villes longues
-  // dépassaient avec "Commande en ligne 30min"). Suffix " | Klik&Go" auto.
-  const title = `Boucherie halal ${city.name} — Commande 30min`;
+  // Always indexed, even without any shop: business-critical page with unique local content
+  // (rule OR of the seo-anti-penalty skill; the automatic noindex was reverted on 2026-05-10).
+  const title = cityTitle(city);
   const description = city.description;
+  const url = absoluteUrl(cityPath(city.slug));
   return {
     title,
     description,
     openGraph: {
       title,
       description,
-      url: `${SITE_URL}/boucherie-halal/${city.slug}`,
+      url,
       images: [
         { url: "/og-image.png", width: 1200, height: 630, alt: `Boucherie halal ${city.name}` },
       ],
@@ -66,9 +59,7 @@ export async function generateMetadata({
       title,
       description,
     },
-    alternates: {
-      canonical: `${SITE_URL}/boucherie-halal/${city.slug}`,
-    },
+    alternates: { canonical: url },
   };
 }
 
@@ -107,57 +98,12 @@ export default async function CityPage({ params }: { params: { ville: string } }
     orderBy: { rating: "desc" },
   });
 
-  const faqs = [
-    {
-      question: `Comment commander de la viande halal en ligne à ${city.name} ?`,
-      answer: `Avec Klik&Go, choisissez votre boucherie halal à ${city.name}, sélectionnez vos produits, payez en ligne et récupérez votre commande en boutique au créneau choisi. Frais de service : seulement 0,99€.`,
-    },
-    {
-      question: `Quelles boucheries halal proposent le click & collect à ${city.name} ?`,
-      answer:
-        shops.length > 0
-          ? `Klik&Go référence ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name} et dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Consultez notre liste ci-dessous.`
-          : `Klik&Go arrive bientôt à ${city.name}. Nous recrutons actuellement des boucheries halal partenaires dans ${city.region === "Savoie" || city.region === "Haute-Savoie" || city.region === "Loire" ? "la " : "le "}${city.region}. Si vous êtes boucher, contactez-nous pour rejoindre la plateforme.`,
-    },
-    {
-      question: "La viande est-elle certifiée halal ?",
-      answer:
-        "Toutes les boucheries partenaires Klik&Go sont des boucheries halal vérifiées. Chaque boucher garantit la certification halal de ses produits.",
-    },
-    {
-      question: "Quels sont les frais de commande sur Klik&Go ?",
-      answer:
-        "Klik&Go facture un frais de service de 0,99€ par commande. Les prix affichés sont ceux de la boucherie, sans surcoût. Pas de commission cachée sur les produits.",
-    },
-  ];
+  const content = cityPageContent(city, shops.length);
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      {/* ── SEO Schemas ── */}
-      <SpeakableSchema
-        url={`${SITE_URL}/boucherie-halal/${city.slug}`}
-        cssSelectors={["h1", '[data-purpose="ai-summary"]', ".faq-summary"]}
-      />
-      <BreadcrumbSchema
-        items={[
-          { name: "Accueil", url: SITE_URL },
-          { name: "Boucheries", url: `${SITE_URL}/` },
-          { name: city.name, url: `${SITE_URL}/boucherie-halal/${city.slug}` },
-        ]}
-      />
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((faq) => ({
-            "@type": "Question",
-            name: faq.question,
-            acceptedAnswer: { "@type": "Answer", text: faq.answer },
-          })),
-        }}
-      />
-      {shops.map((shop) => (
-        <ShopSchema key={shop.id} shop={shop} />
+      {content.jsonLd.map((data, i) => (
+        <JsonLd key={i} data={data} />
       ))}
 
       {/* ── Hero ── */}
@@ -171,10 +117,11 @@ export default async function CityPage({ params }: { params: { ville: string } }
         />
         <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
-            href="/"
+            href={content.departmentLink.path}
+            prefetch={false}
             className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
-            &larr; Toutes les boucheries
+            &larr; {content.departmentLink.label}
           </Link>
           <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             Boucherie halal à {city.name}
@@ -210,7 +157,7 @@ export default async function CityPage({ params }: { params: { ville: string } }
           {city.districts.length > 0 && (
             <div className="mt-5">
               <p className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
-                Quartiers et communes desservis :
+                Quartiers et communes à proximité :
               </p>
               <div className="flex flex-wrap gap-2">
                 {city.districts.map((d) => (
@@ -232,28 +179,16 @@ export default async function CityPage({ params }: { params: { ville: string } }
             Comment commander en click &amp; collect à {city.name}
           </h2>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {[
-              {
-                emoji: "🔍",
-                title: "Choisissez",
-                desc: "Sélectionnez votre boucherie halal et vos produits",
-              },
-              {
-                emoji: "💳",
-                title: "Commandez",
-                desc: "Payez en ligne ou sur place, en toute sécurité",
-              },
-              { emoji: "🛍️", title: "Récupérez", desc: "Retrait en boutique au créneau choisi" },
-            ].map((step, i) => (
+            {ORDER_STEPS.map((step, i) => (
               <div
-                key={i}
+                key={step.title}
                 className="rounded-2xl border border-[#ece8e3] bg-white p-6 text-center dark:border-white/[0.06] dark:bg-gray-800"
               >
-                <div className="mb-3 text-4xl">{step.emoji}</div>
+                <div className="mb-3 text-4xl">{STEP_EMOJIS[i]}</div>
                 <h3 className="mb-1 font-bold text-gray-900 dark:text-white">
                   {i + 1}. {step.title}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{step.desc}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{step.text}</p>
               </div>
             ))}
           </div>
@@ -262,9 +197,7 @@ export default async function CityPage({ params }: { params: { ville: string } }
         {/* ── Boucheries list ── */}
         <section className="mb-14">
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
-            {shops.length > 0
-              ? `Nos ${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} à ${city.name}`
-              : `Bientôt à ${city.name}`}
+            Boucheries halal à {city.name} sur Klik&amp;Go
           </h2>
 
           {shops.length > 0 ? (
@@ -286,9 +219,7 @@ export default async function CityPage({ params }: { params: { ville: string } }
             </div>
           ) : (
             <div className="rounded-2xl border border-[#ece8e3] bg-white py-12 text-center dark:border-white/[0.06] dark:bg-gray-800">
-              <p className="mb-4 text-gray-500 dark:text-gray-400">
-                Klik&amp;Go arrive bientôt à {city.name}.
-              </p>
+              <p className="mb-4 text-gray-500 dark:text-gray-400">{content.emptyText}</p>
               <Link
                 href="/espace-boucher"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#DC2626] hover:underline"
@@ -305,9 +236,9 @@ export default async function CityPage({ params }: { params: { ville: string } }
             Questions fréquentes
           </h2>
           <div className="space-y-3">
-            {faqs.map((faq, i) => (
+            {content.faqs.map((faq) => (
               <details
-                key={i}
+                key={faq.question}
                 className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
                 <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
@@ -329,7 +260,8 @@ export default async function CityPage({ params }: { params: { ville: string } }
               Prêt à commander ?
             </h2>
             <p className="mb-6 text-white/80">
-              Découvrez toutes nos boucheries halal partenaires et commandez en quelques clics.
+              Découvrez les boucheries halal inscrites sur Klik&amp;Go et commandez en click &amp;
+              collect.
             </p>
             <Link
               href="/"
@@ -377,13 +309,21 @@ export default async function CityPage({ params }: { params: { ville: string } }
             {otherCities.map((c) => (
               <Link
                 key={c.slug}
-                href={`/boucherie-halal/${c.slug}`}
+                href={cityPath(c.slug)}
+                prefetch={false}
                 className="rounded-full border border-[#ece8e3] bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-[#DC2626] hover:text-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800 dark:text-gray-300"
               >
                 {c.name}
               </Link>
             ))}
           </div>
+          <Link
+            href={content.regionalHubLink.path}
+            prefetch={false}
+            className="mt-5 inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-[#DC2626] hover:underline"
+          >
+            {content.regionalHubLink.label} <ArrowRight size={14} />
+          </Link>
         </section>
       </div>
 

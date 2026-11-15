@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Inscription",
   description:
     "Créez votre compte Klik&Go pour commander facilement chez votre boucher halal à Chambéry.",
+  robots: { index: false, follow: false }, // robots.txt keeps /sign-up crawlable to show it
 };
 
 // Liste vide = ISR à la demande : chaque chemin est rendu une fois à la première

@@ -9,15 +9,19 @@ import {
   getDistrictsByCity,
   getCityDistrictCombinations,
 } from "@/lib/seo/districts";
-import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { districtPageContent } from "@/lib/seo/content/district";
+import { cityPath, districtPath } from "@/lib/seo/routes";
+import { absoluteUrl } from "@/lib/seo/site";
+import { districtTitle } from "@/lib/seo/titles";
 import { LastUpdated } from "@/components/seo/LastUpdated";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { JsonLd } from "@/components/seo/JsonLd";
 
-const PAGE_LAST_UPDATED = "2026-05-01";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
+const PAGE_LAST_UPDATED = "2026-11-15";
 
 export const revalidate = 3600;
+// Closed list: a city/district pair outside SEO_DISTRICTS answers 404 without running the page.
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   return getCityDistrictCombinations();
@@ -42,7 +46,8 @@ export async function generateMetadata({
   });
   const shouldNoIndex = shopCount === 0;
 
-  const title = `Boucherie halal à ${district.name} (${district.cityName})`;
+  const title = districtTitle(district);
+  const url = absoluteUrl(districtPath(district.citySlug, district.slug));
   return {
     title,
     description: district.description,
@@ -55,14 +60,12 @@ export async function generateMetadata({
     openGraph: {
       title,
       description: district.description,
-      url: `${SITE_URL}/boucherie-halal/${district.citySlug}/${district.slug}`,
+      url,
       images: [{ url: "/og-image.png", width: 1200, height: 630, alt: title }],
       siteName: "Klik&Go",
     },
     twitter: { card: "summary_large_image", title, description: district.description },
-    alternates: {
-      canonical: `${SITE_URL}/boucherie-halal/${district.citySlug}/${district.slug}`,
-    },
+    alternates: { canonical: url },
   };
 }
 
@@ -153,48 +156,16 @@ export default async function DistrictPage({
     (d) => d.slug !== district.slug
   );
 
+  const content = districtPageContent(city, district, {
+    shown: shops.length,
+    inDistrict: isDistrictPrecise,
+  });
+
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <BreadcrumbSchema
-        items={[
-          { name: "Accueil", url: SITE_URL },
-          { name: city.name, url: `${SITE_URL}/boucherie-halal/${city.slug}` },
-          { name: district.name, url: `${SITE_URL}/boucherie-halal/${city.slug}/${district.slug}` },
-        ]}
-      />
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Place",
-          name: district.name,
-          description: district.description,
-          url: `${SITE_URL}/boucherie-halal/${city.slug}/${district.slug}`,
-          containedInPlace: {
-            "@type": "City",
-            name: city.name,
-            url: `${SITE_URL}/boucherie-halal/${city.slug}`,
-          },
-          ...(district.zipCode
-            ? {
-                address: {
-                  "@type": "PostalAddress",
-                  addressLocality: city.name,
-                  postalCode: district.zipCode,
-                  addressCountry: "FR",
-                },
-              }
-            : {}),
-        }}
-      />
-      <section className="sr-only" aria-label="Résumé" data-purpose="ai-summary">
-        <p>
-          <strong>En bref :</strong> Quartier {district.name} à {city.name} (
-          {district.zipCode || city.region}).
-          {district.transports?.length ? ` Accès : ${district.transports.join(", ")}.` : ""}{" "}
-          Boucheries halal certifiées référencées par Klik&amp;Go. Click &amp; collect possible chez
-          les partenaires, retrait au créneau choisi. Frais de service : 0,99€ par commande.
-        </p>
-      </section>
+      {content.jsonLd.map((data, i) => (
+        <JsonLd key={i} data={data} />
+      ))}
 
       {/* ── Hero ── */}
       <section className="relative bg-gradient-to-br from-[#DC2626] via-[#b91c1c] to-[#991b1b] text-white">
@@ -207,7 +178,7 @@ export default async function DistrictPage({
         />
         <div className="relative mx-auto max-w-4xl px-5 py-14 sm:py-20">
           <Link
-            href={`/boucherie-halal/${city.slug}`}
+            href={cityPath(city.slug)}
             className="mb-6 inline-flex items-center gap-1.5 text-sm text-white/70 transition hover:text-white"
           >
             &larr; Toutes boucheries halal {city.name}
@@ -268,15 +239,9 @@ export default async function DistrictPage({
         {/* ── Liste boucheries (filtrage district précis si possible) ── */}
         <section className="mb-12">
           <h2 className="mb-2 font-display text-2xl font-bold text-gray-900 dark:text-white">
-            {isDistrictPrecise
-              ? `Boucheries halal à ${district.name}`
-              : `Boucheries halal ${city.name} & ${district.name}`}
+            {content.listHeading}
           </h2>
-          <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
-            {isDistrictPrecise
-              ? `${shops.length} boucherie${shops.length > 1 ? "s" : ""} halal partenaire${shops.length > 1 ? "s" : ""} Klik&Go directement dans le quartier ${district.name}.`
-              : `Aucune boucherie partenaire encore directement dans ${district.name} — voici les boucheries halal Klik&Go les plus proches dans ${city.name}.`}
-          </p>
+          <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">{content.listIntro}</p>
 
           {shops.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -297,14 +262,11 @@ export default async function DistrictPage({
             </div>
           ) : (
             <div className="rounded-2xl border border-[#ece8e3] bg-white py-12 text-center dark:border-white/[0.06] dark:bg-gray-800">
-              <p className="mb-1 font-medium text-gray-600 dark:text-gray-300">
-                Klik&amp;Go arrive bientôt à {city.name}
-              </p>
               <Link
-                href={`/boucherie-halal/${city.slug}`}
+                href={cityPath(city.slug)}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#DC2626] hover:underline"
               >
-                Voir toutes les boucheries de {city.name} <ArrowRight size={14} />
+                Boucherie halal à {city.name} <ArrowRight size={14} />
               </Link>
             </div>
           )}
@@ -320,7 +282,7 @@ export default async function DistrictPage({
               {otherDistricts.map((d) => (
                 <Link
                   key={d.slug}
-                  href={`/boucherie-halal/${d.citySlug}/${d.slug}`}
+                  href={districtPath(d.citySlug, d.slug)}
                   className="block rounded-xl border border-[#ece8e3] bg-white p-3 text-center transition hover:border-[#DC2626] dark:border-white/[0.06] dark:bg-gray-800"
                 >
                   <p className="text-xs font-semibold text-gray-900 dark:text-white">{d.name}</p>
@@ -335,68 +297,19 @@ export default async function DistrictPage({
           <h2 className="mb-6 font-display text-2xl font-bold text-gray-900 dark:text-white">
             Questions fréquentes
           </h2>
-          <JsonLd
-            data={{
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: [
-                {
-                  "@type": "Question",
-                  name: `Combien de boucheries halal à ${district.name} ?`,
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: `Le quartier ${district.name} à ${city.name} compte plusieurs boucheries halal certifiées. Klik&Go référence les boucheries halal partenaires de ce quartier et des environs. Consultez la liste ci-dessus pour les boucheries où vous pouvez commander en ligne.`,
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: `Comment se rendre dans une boucherie halal à ${district.name} ?`,
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: district.transports?.length
-                      ? `Le quartier ${district.name} est accessible via : ${district.transports.join(", ")}. Vous pouvez aussi venir en voiture, plusieurs places de stationnement sont disponibles.`
-                      : `Le quartier ${district.name} est accessible en transports en commun et en voiture.`,
-                  },
-                },
-                {
-                  "@type": "Question",
-                  name: "Puis-je commander en ligne et récupérer en boutique ?",
-                  acceptedAnswer: {
-                    "@type": "Answer",
-                    text: "Oui. Avec Klik&Go, commandez votre viande halal en ligne et récupérez votre commande en boutique au créneau choisi. Pas de file d'attente, frais de service 0,99€.",
-                  },
-                },
-              ],
-            }}
-          />
           <div className="space-y-3">
-            {[
-              {
-                q: `Combien de boucheries halal à ${district.name} ?`,
-                a: `Le quartier ${district.name} à ${city.name} compte plusieurs boucheries halal certifiées. Consultez la liste ci-dessus.`,
-              },
-              {
-                q: `Comment se rendre dans une boucherie halal à ${district.name} ?`,
-                a: district.transports?.length
-                  ? `Accessible via : ${district.transports.join(", ")}. Stationnement disponible.`
-                  : "Accessible en transports en commun et en voiture.",
-              },
-              {
-                q: "Puis-je commander en ligne et récupérer en boutique ?",
-                a: "Oui. Commandez en ligne, récupérez sans file d'attente. Frais de service 0,99€.",
-              },
-            ].map((faq, i) => (
+            {content.faqs.map((faq) => (
               <details
-                key={i}
+                key={faq.question}
                 className="group overflow-hidden rounded-xl border border-[#ece8e3] bg-white dark:border-white/[0.06] dark:bg-gray-800"
               >
                 <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                  {faq.q}
+                  {faq.question}
                   <span className="ml-3 shrink-0 text-gray-500 transition-transform group-open:rotate-180 dark:text-gray-400">
                     ▼
                   </span>
                 </summary>
-                <p className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-300">{faq.a}</p>
+                <p className="px-5 pb-4 text-sm text-gray-600 dark:text-gray-300">{faq.answer}</p>
               </details>
             ))}
           </div>
