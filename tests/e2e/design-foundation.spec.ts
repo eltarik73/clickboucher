@@ -1,59 +1,20 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { contrastRatio } from "../helpers/wcag-contrast";
+import {
+  LOCAL_ONLY,
+  addFirstProductToCart,
+  dismissOverlays,
+  guardRemote,
+  isLocal,
+  signIn,
+} from "./helpers";
 
-// Socle d'interface (C1-SOCLE-UI) : polices, contraste des boutons rouges, thème avant hydratation,
-// mouvement réduit, taille du bouton de thème, hauteur du logo de l'en-tête. Les tests @readonly peuvent
-// viser n'importe quel hôte : hors local, toute requête autre que GET est bloquée (beforeEach), y compris
-// celles des scripts de la page. Les autres se connectent en mode test et ne tournent qu'en local.
+// Design foundation: fonts, contrast of the red buttons, theme before hydration, reduced motion,
+// size of the theme button, height of the header logo. The @readonly tests may target any host:
+// off localhost every request other than GET is aborted (guardRemote). The others sign in with the
+// test mode and run only locally.
 
-type Role = "CLIENT" | "BOUCHER" | "ADMIN";
-
-function isLocal(baseURL: string | undefined): boolean {
-  if (!baseURL) return false;
-  return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(baseURL).hostname);
-}
-
-const LOCAL_ONLY = "connexion en mode test : serveur local et TEST_SECRET requis";
-
-test.beforeEach(async ({ context, baseURL }) => {
-  if (!isLocal(baseURL)) {
-    await context.route("**/*", (route) => (route.request().method() === "GET" ? route.continue() : route.abort()));
-  }
-});
-
-async function signIn(page: Page, role: Role): Promise<void> {
-  const response = await page.context().request.post("/api/test-mode/activate", {
-    data: { secret: process.env.TEST_SECRET, role },
-  });
-  expect(response.ok(), `activation du mode test (${role})`).toBe(true);
-}
-
-/** Écarte ce qui recouvre l'écran sans être le sujet : bandeau de consentement, invite PWA, écran du son. */
-async function dismissOverlays(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    window.localStorage.setItem("klikgo-analytics-consent", "refused");
-    window.localStorage.setItem("klikgo-pwa-dismiss", String(Date.now()));
-    window.sessionStorage.setItem("audioUnlocked", "true");
-  });
-}
-
-/** Ouvre une boutique ouverte depuis l'accueil, ajoute son premier produit, confirme la feuille de poids si elle s'ouvre. */
-async function addFirstProductToCart(page: Page): Promise<void> {
-  await page.goto("/");
-  const shop = page.getByRole("link", { name: /Voir la boutique/ }).filter({ hasNotText: "Fermé" }).first();
-  const href = await shop.getAttribute("href");
-  expect(href, "lien de boutique sur l'accueil").toMatch(/^\/boutique\//);
-  await page.goto(href as string);
-  await page.getByRole("button", { name: "Ajouter au panier" }).first().click();
-  const confirm = page.getByRole("button", { name: /^Ajouter\s+\d/ });
-  const sheetOpened = await confirm.waitFor({ state: "visible", timeout: 3_000 }).then(
-    () => true,
-    () => false,
-  );
-  if (sheetOpened) await confirm.click();
-  await expect
-    .poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem("klikgo-cart") ?? "{}").items?.length ?? 0))
-    .toBeGreaterThan(0);
-}
+test.beforeEach(({ context, baseURL }) => guardRemote(context, baseURL));
 
 type Rgba = [number, number, number, number];
 
@@ -72,30 +33,25 @@ async function colours(locator: Locator): Promise<{ text: Rgba; background: Rgba
     }
     let background: Rgba = [255, 255, 255, 1];
     for (const [r, g, b, a] of layers.reverse()) {
-      background = [r * a + background[0] * (1 - a), g * a + background[1] * (1 - a), b * a + background[2] * (1 - a), 1];
+      background = [
+        r * a + background[0] * (1 - a),
+        g * a + background[1] * (1 - a),
+        b * a + background[2] * (1 - a),
+        1,
+      ];
     }
     return { text: parse(getComputedStyle(element).color), background };
   });
-}
-
-function luminance([r, g, b]: Rgba): number {
-  const channel = (v: number) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-}
-
-function contrastRatio(a: Rgba, b: Rgba): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
 }
 
 async function expectWhiteOnRed(control: Locator): Promise<void> {
   await expect(control).toBeVisible();
   const { text, background } = await colours(control);
   expect(`rgb(${text.slice(0, 3).join(", ")})`, "couleur du texte").toBe("rgb(255, 255, 255)");
-  expect(background[0] >= 150 && background[1] < 100 && background[2] < 100, `fond rouge (${background})`).toBe(true);
+  expect(
+    background[0] >= 150 && background[1] < 100 && background[2] < 100,
+    `fond rouge (${background})`
+  ).toBe(true);
   expect(contrastRatio(text, background), "contraste texte / fond").toBeGreaterThanOrEqual(4.5);
 }
 
@@ -117,17 +73,27 @@ test.describe("polices", () => {
         return { faces, preloads, body: getComputedStyle(document.body).fontFamily };
       });
       const real = (prefix: string) =>
-        fonts.faces.filter((face) => face.family.includes(prefix) && !face.family.includes("Fallback"));
+        fonts.faces.filter(
+          (face) => face.family.includes(prefix) && !face.family.includes("Fallback")
+        );
       const dmSans = real("__DM_Sans");
       const outfit = real("__Outfit");
 
-      expect(dmSans.some((face) => face.status === "loaded"), "une face DM Sans chargée").toBe(true);
-      expect(outfit.some((face) => face.status === "loaded"), "une face Outfit chargée").toBe(true);
+      expect(
+        dmSans.some((face) => face.status === "loaded"),
+        "une face DM Sans chargée"
+      ).toBe(true);
+      expect(
+        outfit.some((face) => face.status === "loaded"),
+        "une face Outfit chargée"
+      ).toBe(true);
       const bodyFirst = fonts.body.split(",")[0].replace(/["']/g, "").trim();
       expect(bodyFirst, "police calculée de <body>").toBe(dmSans[0]?.family);
       for (const face of [...dmSans, ...outfit]) {
         const [min, max = min] = face.weight.split(/\s+/).map(Number);
-        expect(min <= 400 && max >= 900, `${face.family} déclare les graisses ${face.weight}`).toBe(true);
+        expect(min <= 400 && max >= 900, `${face.family} déclare les graisses ${face.weight}`).toBe(
+          true
+        );
       }
       expect(fonts.preloads, "fichiers de police préchargés").toHaveLength(2);
     });
@@ -181,7 +147,9 @@ test.describe("thème", () => {
     expect(await page.evaluate(() => window.localStorage.getItem("theme"))).toBeNull();
   });
 
-  test("@readonly le bouton « Mode sombre » pose le thème et il survit au rechargement", async ({ page }) => {
+  test("@readonly le bouton « Mode sombre » pose le thème et il survit au rechargement", async ({
+    page,
+  }) => {
     await page.goto("/");
     const html = page.locator("html");
     await expect(html).not.toHaveClass(/(^|\s)dark(\s|$)/);
@@ -195,14 +163,18 @@ test.describe("thème", () => {
 
 /** Animations CSS ou Web Animations infinies, hors rotation des indicateurs de chargement. */
 async function infiniteAnimations(page: Page): Promise<string[]> {
-  const reduced = await page.evaluate(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const reduced = await page.evaluate(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
   expect(reduced, "préférence « mouvement réduit » émulée").toBe(true);
   return page.evaluate(() =>
     document
       .getAnimations()
       .filter((animation) => animation.effect?.getComputedTiming().iterations === Infinity)
-      .map((animation) => (animation instanceof CSSAnimation ? animation.animationName : "(Web Animation)"))
-      .filter((name) => name !== "spin"),
+      .map((animation) =>
+        animation instanceof CSSAnimation ? animation.animationName : "(Web Animation)"
+      )
+      .filter((name) => name !== "spin")
   );
 }
 
@@ -228,7 +200,9 @@ test.describe("mouvement réduit", () => {
 test.describe("cible tactile", () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test("@readonly le bouton « Mode sombre » de l'accueil mesure au moins 44 × 44 px à 375 px", async ({ page }) => {
+  test("@readonly le bouton « Mode sombre » de l'accueil mesure au moins 44 × 44 px à 375 px", async ({
+    page,
+  }) => {
     await page.goto("/");
     const box = await page.getByRole("button", { name: "Mode sombre", exact: true }).boundingBox();
     expect(box, "bouton « Mode sombre » visible").not.toBeNull();
@@ -236,7 +210,9 @@ test.describe("cible tactile", () => {
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
   });
 
-  test("@readonly le bouton du logo de l'en-tête a la hauteur de sa pastille (40 px)", async ({ page }) => {
+  test("@readonly le bouton du logo de l'en-tête a la hauteur de sa pastille (40 px)", async ({
+    page,
+  }) => {
     await page.goto("/");
     const logoButton = page
       .locator("header button")
@@ -246,7 +222,9 @@ test.describe("cible tactile", () => {
     await expect(logoButton).toBeVisible();
     const sizes = await logoButton.evaluate((button) => ({
       button: button.getBoundingClientRect().height,
-      mark: (button.querySelector('svg[viewBox="0 0 100 100"]') as SVGElement).getBoundingClientRect().height,
+      mark: (
+        button.querySelector('svg[viewBox="0 0 100 100"]') as SVGElement
+      ).getBoundingClientRect().height,
     }));
     expect(sizes.mark, "pastille du lockup").toBe(40);
     expect(sizes.button, "bouton du logo, sans place réservée aux jambages").toBe(sizes.mark);

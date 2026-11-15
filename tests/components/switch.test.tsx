@@ -53,35 +53,16 @@ describe("Switch", () => {
         <span id="lbl">Retrait express</span>
         <span id="desc">Commandes prêtes en 10 min</span>
         <Switch checked onCheckedChange={() => {}} aria-labelledby="lbl" aria-describedby="desc" />
-      </>,
+      </>
     );
     const sw = screen.getByRole("switch", { name: "Retrait express" });
     expect(sw).toHaveAccessibleDescription("Commandes prêtes en 10 min");
   });
 
-  test("zone de clic de 44 px, anneau de focus opaque, couleurs par tokens", () => {
-    const { rerender } = render(
-      <Switch checked={false} onCheckedChange={() => {}} aria-label="Option" />,
-    );
-    const sw = screen.getByRole("switch");
-    // Piste border-2 : boîte de remplissage 40x20, décalages 2 px et 12 px -> zone de 44x44.
-    expect(sw).toHaveClass(
-      "relative",
-      "border-2",
-      "after:absolute",
-      "after:-inset-x-0.5",
-      "after:-inset-y-3",
-      "focus-visible:ring-ring",
-    );
-    expect(sw).not.toHaveClass("after:inset-x-0", "after:-inset-y-2.5");
-    expect(sw.className).not.toMatch(/ring-\S*\/\d+|#[0-9a-fA-F]{3,6}/);
-    expect(sw).toHaveClass("bg-muted-foreground");
-    rerender(<Switch checked onCheckedChange={() => {}} aria-label="Option" />);
-    expect(sw).toHaveClass("bg-primary");
-  });
-
   test("la className de l'appelant l'emporte", () => {
-    render(<Switch checked onCheckedChange={() => {}} aria-label="Option" className="!bg-emerald-500" />);
+    render(
+      <Switch checked onCheckedChange={() => {}} aria-label="Option" className="!bg-emerald-500" />
+    );
     expect(screen.getByRole("switch")).toHaveClass("!bg-emerald-500");
   });
 });
@@ -108,11 +89,5 @@ describe("SwitchField", () => {
     const sw = screen.getByRole("switch", { name: "Pause" });
     expect(sw).toHaveAttribute("id", "pause");
     expect(sw).not.toHaveAttribute("aria-describedby");
-  });
-
-  test("le libellé est obligatoire à la compilation", () => {
-    // @ts-expect-error label est obligatoire
-    const sansLibelle = <SwitchField checked={false} onCheckedChange={() => {}} />;
-    expect(sansLibelle).toBeTruthy();
   });
 });

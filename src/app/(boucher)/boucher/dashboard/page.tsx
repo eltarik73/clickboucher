@@ -1,11 +1,10 @@
 // src/app/(boucher)/boucher/dashboard/page.tsx — Uber Eats tablette style dashboard
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DollarSign,
@@ -15,11 +14,6 @@ import {
   Bell,
   Loader2,
   AlertCircle,
-  Pause,
-  Play,
-  Flame,
-  Palmtree,
-  WifiOff,
   Sparkles,
   Leaf,
   FileSpreadsheet,
@@ -27,275 +21,9 @@ import {
 import { usePendingOrderCount } from "@/hooks/use-pending-order-count";
 import { useVisiblePolling } from "@/hooks/useVisiblePolling";
 import OnboardingChecklist from "@/components/boucher/OnboardingChecklist";
+import { DaySummaryCard, type DaySummary } from "@/components/boucher/dashboard/DaySummaryCard";
+import { ShopStatusBar, type ShopStatus } from "@/components/boucher/dashboard/ShopStatusBar";
 import { toast } from "sonner";
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
-type ShopStatus = {
-  id: string;
-  name: string;
-  rating: number;
-  ratingCount: number;
-  status: string;
-  busyMode: boolean;
-  busyExtraMin: number;
-  busyModeEndsAt: string | null;
-  paused: boolean;
-  pauseReason: string | null;
-  pauseEndsAt: string | null;
-  autoPaused: boolean;
-  vacationMode: boolean;
-  vacationEnd: string | null;
-  vacationMessage: string | null;
-  prepTimeMin: number;
-  effectivePrepTime: number;
-};
-
-// GET /api/boucher/orders/summary (src/lib/services/orders/shop-summary.ts), dates serialized.
-type DaySummary = {
-  ordersToday: number;
-  revenueTodayCents: number;
-  recent: {
-    id: string;
-    orderNumber: string;
-    status: string;
-    totalCents: number;
-    createdAt: string;
-    expiresAt: string | null;
-    itemCount: number;
-    user: { firstName: string; lastName: string };
-  }[];
-};
-
-// ─────────────────────────────────────────────
-// Status helpers
-// ─────────────────────────────────────────────
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING: {
-    label: "En attente",
-    color: "text-amber-700 dark:text-amber-300",
-    bg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
-  },
-  ACCEPTED: {
-    label: "Acceptée",
-    color: "text-blue-700 dark:text-blue-300",
-    bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
-  },
-  PREPARING: {
-    label: "En prépa",
-    color: "text-indigo-700 dark:text-indigo-300",
-    bg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800",
-  },
-  READY: {
-    label: "Prête",
-    color: "text-emerald-700 dark:text-emerald-300",
-    bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
-  },
-  PICKED_UP: {
-    label: "Retirée",
-    color: "text-gray-600 dark:text-gray-400",
-    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700",
-  },
-  COMPLETED: {
-    label: "Terminée",
-    color: "text-green-700 dark:text-green-300",
-    bg: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800",
-  },
-  DENIED: {
-    label: "Refusée",
-    color: "text-red-700 dark:text-red-300",
-    bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",
-  },
-  CANCELLED: {
-    label: "Annulée",
-    color: "text-gray-500 dark:text-gray-400",
-    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700",
-  },
-  AUTO_CANCELLED: {
-    label: "Expirée",
-    color: "text-gray-500 dark:text-gray-400",
-    bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700",
-  },
-  PARTIALLY_DENIED: {
-    label: "Partielle",
-    color: "text-orange-700 dark:text-orange-300",
-    bg: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800",
-  },
-};
-
-function formatTime(dateStr: string) {
-  return new Date(dateStr).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-}
-
-function timeRemaining(dateStr: string): string {
-  const diff = new Date(dateStr).getTime() - Date.now();
-  if (diff <= 0) return "Expiré";
-  const h = Math.floor(diff / 3600000);
-  const min = Math.floor((diff % 3600000) / 60000);
-  const sec = Math.floor((diff % 60000) / 1000);
-  if (h > 0) return `${h} h ${min.toString().padStart(2, "0")} min`;
-  if (min > 0) return `${min} min ${sec.toString().padStart(2, "0")} s`;
-  return `${sec} s`;
-}
-
-// ─────────────────────────────────────────────
-// Status Bar component (Uber Eats style)
-// ─────────────────────────────────────────────
-function StatusBar({
-  shop,
-  onAction,
-  loading,
-}: {
-  shop: ShopStatus;
-  onAction: (action: string, data?: Record<string, unknown>) => void;
-  loading: boolean;
-}) {
-  const configs: Record<
-    string,
-    { bg: string; text: string; label: string; icon: React.ReactNode }
-  > = {
-    OPEN: {
-      bg: "bg-emerald-500",
-      text: "text-white",
-      label: "Vous êtes en ligne",
-      icon: <Play size={14} />,
-    },
-    BUSY: {
-      bg: "bg-amber-500",
-      text: "text-white",
-      label: `Mode occupé (+${shop.busyExtraMin}min)`,
-      icon: <Flame size={14} />,
-    },
-    PAUSED: {
-      bg: "bg-red-500",
-      text: "text-white",
-      label: "Commandes en pause",
-      icon: <Pause size={14} />,
-    },
-    AUTO_PAUSED: {
-      bg: "bg-red-600",
-      text: "text-white",
-      label: "Pause automatique — commandes manquées",
-      icon: <AlertCircle size={14} />,
-    },
-    CLOSED: { bg: "bg-gray-500", text: "text-white", label: "Fermé", icon: <Pause size={14} /> },
-    VACATION: {
-      bg: "bg-purple-500",
-      text: "text-white",
-      label: `Vacances${shop.vacationEnd ? ` jusqu'au ${new Date(shop.vacationEnd).toLocaleDateString("fr-FR")}` : ""}`,
-      icon: <Palmtree size={14} />,
-    },
-  };
-
-  const config = configs[shop.status] || configs.OPEN;
-  const isPausedState = shop.status === "PAUSED" || shop.status === "AUTO_PAUSED";
-  const isBusy = shop.status === "BUSY";
-  const isVacation = shop.status === "VACATION";
-
-  return (
-    <div
-      className={`${config.bg} rounded-xl px-4 py-3 ${shop.status === "AUTO_PAUSED" ? "animate-pulse" : ""}`}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          {config.icon}
-          <span className={`text-sm font-semibold ${config.text} truncate`}>{config.label}</span>
-          {shop.pauseReason && isPausedState && (
-            <span className="truncate text-xs text-white/70">({shop.pauseReason})</span>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {isPausedState && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-9 border-0 bg-white/20 text-xs text-white hover:bg-white/30"
-              onClick={() => onAction("resume")}
-              disabled={loading}
-            >
-              <Play size={12} className="mr-1" /> Reprendre
-            </Button>
-          )}
-          {isVacation && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-9 border-0 bg-white/20 text-xs text-white hover:bg-white/30"
-              onClick={() => onAction("end_vacation")}
-              disabled={loading}
-            >
-              Fin vacances
-            </Button>
-          )}
-          {isBusy && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-9 border-0 bg-white/20 text-xs text-white hover:bg-white/30"
-              onClick={() => onAction("end_busy")}
-              disabled={loading}
-            >
-              Arrêter busy
-            </Button>
-          )}
-          {shop.status === "CLOSED" && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-9 border-0 bg-emerald-500/80 text-xs text-white hover:bg-emerald-500"
-              onClick={() => onAction("resume")}
-              disabled={loading}
-            >
-              <Play size={12} className="mr-1" /> Passer en ligne
-            </Button>
-          )}
-          {shop.status === "OPEN" && (
-            <>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-9 border-0 bg-white/20 text-xs text-white hover:bg-white/30"
-                onClick={() => onAction("pause")}
-                disabled={loading}
-              >
-                <Pause size={12} className="mr-1" /> Pause
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-9 border-0 bg-white/20 text-xs text-white hover:bg-white/30"
-                onClick={() => onAction("busy", { extraMin: 15, durationMin: 60 })}
-                disabled={loading}
-              >
-                <Flame size={12} className="mr-1" /> Occupé
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-9 border-0 bg-white/20 text-xs text-white hover:bg-white/30"
-                onClick={() => onAction("close")}
-                disabled={loading}
-              >
-                <WifiOff size={12} className="mr-1" /> Fermer
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-      {shop.pauseEndsAt && isPausedState && (
-        <p className="mt-1 text-xs text-white/70">
-          Reprise auto dans {timeRemaining(shop.pauseEndsAt)}
-        </p>
-      )}
-      {shop.busyModeEndsAt && isBusy && (
-        <p className="mt-1 text-xs text-white/70">
-          Fin du mode occupé dans {timeRemaining(shop.busyModeEndsAt)}
-        </p>
-      )}
-    </div>
-  );
-}
 
 /** Cadence of the dashboard figures and shop status (the pending count has its own, 30 s). */
 const DASHBOARD_REFRESH_MS = 60_000;
@@ -308,7 +36,6 @@ export default function BoucherDashboardPage() {
   const [shop, setShop] = useState<ShopStatus | null>(null);
   const [summary, setSummary] = useState<DaySummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchShopStatus = useCallback(async (): Promise<boolean> => {
@@ -335,25 +62,29 @@ export default function BoucherDashboardPage() {
     }
   }, []);
 
-  const pendingCount = usePendingOrderCount(({ previous, current }) => {
+  const pending = usePendingOrderCount();
+  const pendingCount = pending ?? 0;
+  const lastPendingRef = useRef<number | null>(null);
+
+  // A change of the pending count reads the figures and the shop status at once; the first count
+  // the page sees is not a change.
+  useEffect(() => {
+    if (pending === null) return;
+    const previous = lastPendingRef.current;
+    lastPendingRef.current = pending;
+    if (previous === null || previous === pending) return;
     void fetchSummary();
     void fetchShopStatus();
-    if (current > previous) toast.success("Nouvelle commande !");
-  });
+    if (pending > previous) toast.success("Nouvelle commande !");
+  }, [pending, fetchSummary, fetchShopStatus]);
 
   // Day figures, recent orders and shop status: read at mount, then every minute while the tab is
   // visible, so that a change that leaves the pending count as it is (an order picked up, an
-  // auto-pause) still shows; a change of the pending count reads them at once (above).
+  // auto-pause) still shows.
   const refreshDashboard = useCallback(async (): Promise<boolean> => {
-    try {
-      const [statusRead, summaryRead] = await Promise.all([fetchShopStatus(), fetchSummary()]);
-      return statusRead && summaryRead;
-    } catch {
-      setError("Erreur de connexion au serveur");
-      return false;
-    } finally {
-      setLoading(false);
-    }
+    const [statusRead, summaryRead] = await Promise.all([fetchShopStatus(), fetchSummary()]);
+    setLoading(false);
+    return statusRead && summaryRead;
   }, [fetchShopStatus, fetchSummary]);
 
   useVisiblePolling(refreshDashboard, DASHBOARD_REFRESH_MS);
@@ -390,7 +121,6 @@ export default function BoucherDashboardPage() {
   }
 
   const caToday = (summary?.revenueTodayCents ?? 0) / 100;
-  const recentOrders = summary?.recent ?? [];
 
   if (loading) {
     return (
@@ -400,11 +130,14 @@ export default function BoucherDashboardPage() {
     );
   }
 
-  if (error) {
+  // Neither read has ever succeeded: nothing to show but the failure (the polling keeps trying).
+  if (!shop && !summary) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-5">
         <AlertCircle className="h-10 w-10 text-red-400" />
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400">{error}</p>
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          Erreur de connexion au serveur
+        </p>
       </div>
     );
   }
@@ -426,7 +159,13 @@ export default function BoucherDashboardPage() {
         <OnboardingChecklist />
 
         {/* ── Status Bar (Uber Eats style) ── */}
-        {shop && <StatusBar shop={shop} onAction={handleStatusAction} loading={actionLoading} />}
+        {shop && (
+          <ShopStatusBar
+            shop={shop}
+            onAction={(action, data) => void handleStatusAction(action, data)}
+            loading={actionLoading}
+          />
+        )}
 
         {/* ── Stats Grid 2x2 ── */}
         <div className="grid grid-cols-2 gap-3">
@@ -586,79 +325,7 @@ export default function BoucherDashboardPage() {
         </div>
 
         {/* ── Recent orders ── */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Dernières commandes
-            </h2>
-            <Link
-              href="/boucher/commandes"
-              className="text-xs font-medium text-[#DC2626] hover:underline"
-            >
-              Tout voir
-            </Link>
-          </div>
-
-          {recentOrders.length === 0 ? (
-            <Card className="border-0 bg-white shadow-sm dark:bg-[#141414]">
-              <CardContent className="py-8 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Aucune commande pour le moment
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {recentOrders.map((order) => {
-                const st = STATUS_MAP[order.status] || STATUS_MAP.PENDING;
-                const clientName = `${order.user.firstName} ${order.user.lastName.charAt(0)}.`;
-
-                return (
-                  <Link key={order.id} href="/boucher/historique">
-                    <Card className="cursor-pointer border-0 bg-white shadow-sm transition-shadow hover:shadow-md dark:bg-[#141414]">
-                      <CardContent className="p-3.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className="shrink-0">
-                              <span className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                {order.orderNumber}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-gray-800 dark:text-gray-200">
-                                {clientName}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {order.itemCount} article{order.itemCount > 1 ? "s" : ""} ·{" "}
-                                {formatTime(order.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">
-                              {(order.totalCents / 100).toFixed(2).replace(".", ",")} EUR
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={`border text-[10px] font-semibold ${st.bg} ${st.color}`}
-                            >
-                              {st.label}
-                            </Badge>
-                            {order.status === "PENDING" && order.expiresAt && (
-                              <span className="font-mono text-[9px] text-red-500">
-                                {timeRemaining(order.expiresAt)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <DaySummaryCard orders={summary?.recent ?? []} />
       </div>
     </div>
   );

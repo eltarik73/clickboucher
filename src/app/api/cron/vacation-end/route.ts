@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { verifyCronAuth } from "@/lib/cron-auth";
-import { endExpiredVacations } from "@/lib/shop-status";
+import { endExpiredVacations } from "@/lib/shop-vacation";
 
 export const dynamic = "force-dynamic";
 

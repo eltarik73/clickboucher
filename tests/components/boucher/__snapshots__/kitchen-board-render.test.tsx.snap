@@ -1,0 +1,2776 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`mode cuisine : rendu du tableau > affiche l'historique dans l'onglet mobile et dans le tiroir du bureau > onglet historique 1`] = `
+<div
+  class="flex-1 space-y-1.5 overflow-y-auto p-3 pb-4 lg:hidden"
+>
+  <div
+    class="overflow-hidden rounded-xl border border-white/5 bg-[#1a1a1a]"
+  >
+    <div
+      class="flex items-center justify-between px-4 py-3"
+    >
+      <div
+        class="flex min-w-0 items-center gap-2"
+      >
+        <span
+          class="text-base font-bold text-white"
+        >
+          #040
+        </span>
+        <span
+          class="text-sm text-gray-500 dark:text-gray-400"
+        >
+          Ines.T
+        </span>
+        <span
+          class="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold bg-orange-500/20 text-orange-400"
+        >
+          <svg
+            class="lucide lucide-circle-x"
+            fill="none"
+            height="10"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="10"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <path
+              d="m15 9-6 6"
+            />
+            <path
+              d="m9 9 6 6"
+            />
+          </svg>
+          Partiel. refusée
+        </span>
+      </div>
+      <span
+        class="ml-2 shrink-0 text-sm font-bold text-white"
+      >
+        9,90 €
+      </span>
+    </div>
+    <div
+      class="flex items-center justify-between px-4 pb-3 text-xs text-gray-500"
+    >
+      <div
+        class="flex items-center gap-3"
+      >
+        <span>
+          1
+           article
+        </span>
+      </div>
+      <span
+        class="text-gray-600"
+      >
+        13/11 10:40
+      </span>
+    </div>
+  </div>
+  <div
+    class="overflow-hidden rounded-xl border border-white/5 bg-[#1a1a1a]"
+  >
+    <div
+      class="flex items-center justify-between px-4 py-3"
+    >
+      <div
+        class="flex min-w-0 items-center gap-2"
+      >
+        <span
+          class="text-base font-bold text-white"
+        >
+          #039
+        </span>
+        <span
+          class="text-sm text-gray-500 dark:text-gray-400"
+        >
+          Sarah.L
+        </span>
+        <span
+          class="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400"
+        >
+          <svg
+            class="lucide lucide-package"
+            fill="none"
+            height="10"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="10"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="m7.5 4.27 9 5.15"
+            />
+            <path
+              d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+            />
+            <path
+              d="m3.3 7 8.7 5 8.7-5"
+            />
+            <path
+              d="M12 22V12"
+            />
+          </svg>
+          Récupérée
+        </span>
+      </div>
+      <span
+        class="ml-2 shrink-0 text-sm font-bold text-white"
+      >
+        44,85 €
+      </span>
+    </div>
+    <div
+      class="flex items-center justify-between px-4 pb-3 text-xs text-gray-500"
+    >
+      <div
+        class="flex items-center gap-3"
+      >
+        <span>
+          3
+           article
+          s
+        </span>
+      </div>
+      <span
+        class="text-gray-600"
+      >
+        13/11 10:00
+      </span>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`mode cuisine : rendu du tableau > affiche l'historique dans l'onglet mobile et dans le tiroir du bureau > tiroir historique 1`] = `
+<div
+  class="fixed inset-0 z-[70]"
+  role="presentation"
+>
+  <div
+    class="absolute inset-0 bg-black/60"
+  />
+  <div
+    class="absolute inset-x-0 bottom-0 flex h-[70vh] animate-slide-up flex-col rounded-t-2xl border-t border-white/10 bg-[#111]"
+  >
+    <div
+      class="shrink-0 px-5 pb-2 pt-3"
+    >
+      <div
+        class="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20"
+      />
+      <div
+        class="flex items-center justify-between"
+      >
+        <div
+          class="flex items-center gap-2"
+        >
+          <svg
+            class="lucide lucide-scroll-text text-gray-500 dark:text-gray-400"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M15 12h-5"
+            />
+            <path
+              d="M15 8h-5"
+            />
+            <path
+              d="M19 17V5a2 2 0 0 0-2-2H4"
+            />
+            <path
+              d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"
+            />
+          </svg>
+          <h3
+            class="text-base font-bold text-white"
+          >
+            Historique
+          </h3>
+          <span
+            class="text-xs text-gray-500"
+          >
+            7 derniers jours
+          </span>
+        </div>
+        <button
+          class="rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-colors hover:bg-white/5 hover:text-white"
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+    <div
+      class="flex-1 space-y-2 overflow-y-auto px-4 pb-6"
+    >
+      <div
+        class="overflow-hidden rounded-xl border border-white/5 bg-[#1a1a1a]"
+      >
+        <div
+          class="flex items-center justify-between px-4 py-3"
+        >
+          <div
+            class="flex min-w-0 items-center gap-2"
+          >
+            <span
+              class="text-base font-bold text-white"
+            >
+              #040
+            </span>
+            <span
+              class="text-sm text-gray-500 dark:text-gray-400"
+            >
+              Ines.T
+            </span>
+            <span
+              class="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold bg-orange-500/20 text-orange-400"
+            >
+              <svg
+                class="lucide lucide-circle-x"
+                fill="none"
+                height="10"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="10"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+                <path
+                  d="m15 9-6 6"
+                />
+                <path
+                  d="m9 9 6 6"
+                />
+              </svg>
+              Partiel. refusée
+            </span>
+          </div>
+          <span
+            class="ml-2 shrink-0 text-sm font-bold text-white"
+          >
+            9,90 €
+          </span>
+        </div>
+        <div
+          class="flex items-center justify-between px-4 pb-3 text-xs text-gray-500"
+        >
+          <div
+            class="flex items-center gap-3"
+          >
+            <span>
+              1
+               article
+            </span>
+          </div>
+          <span
+            class="text-gray-600"
+          >
+            13/11 10:40
+          </span>
+        </div>
+      </div>
+      <div
+        class="overflow-hidden rounded-xl border border-white/5 bg-[#1a1a1a]"
+      >
+        <div
+          class="flex items-center justify-between px-4 py-3"
+        >
+          <div
+            class="flex min-w-0 items-center gap-2"
+          >
+            <span
+              class="text-base font-bold text-white"
+            >
+              #039
+            </span>
+            <span
+              class="text-sm text-gray-500 dark:text-gray-400"
+            >
+              Sarah.L
+            </span>
+            <span
+              class="flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-400"
+            >
+              <svg
+                class="lucide lucide-package"
+                fill="none"
+                height="10"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="10"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="m7.5 4.27 9 5.15"
+                />
+                <path
+                  d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+                />
+                <path
+                  d="m3.3 7 8.7 5 8.7-5"
+                />
+                <path
+                  d="M12 22V12"
+                />
+              </svg>
+              Récupérée
+            </span>
+          </div>
+          <span
+            class="ml-2 shrink-0 text-sm font-bold text-white"
+          >
+            44,85 €
+          </span>
+        </div>
+        <div
+          class="flex items-center justify-between px-4 pb-3 text-xs text-gray-500"
+        >
+          <div
+            class="flex items-center gap-3"
+          >
+            <span>
+              3
+               article
+              s
+            </span>
+          </div>
+          <span
+            class="text-gray-600"
+          >
+            13/11 10:00
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`mode cuisine : rendu du tableau > affiche les colonnes, l'en-cours scindé et chaque onglet mobile > onglet nouvelles 1`] = `
+<div
+  class="flex-1 space-y-1.5 overflow-y-auto p-3 pb-4 lg:hidden"
+>
+  <div
+    class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] overflow-hidden transition-colors"
+  >
+    <div
+      class="px-3 py-2.5"
+    >
+      <div
+        class="flex items-start justify-between gap-2"
+      >
+        <div
+          class="min-w-0 flex-1"
+        >
+          <div
+            class="flex items-center gap-2"
+          >
+            <span
+              class="text-lg font-[800] leading-none tracking-tight text-white"
+            >
+              #041
+            </span>
+            <span
+              class="truncate text-xs leading-none text-[#78716C]"
+            >
+              Fatima.A
+            </span>
+          </div>
+          <div
+            class="mt-1 flex items-center gap-3"
+          >
+            <span
+              class="text-xs text-gray-500"
+            >
+              1
+               article
+            </span>
+            <span
+              class="text-sm font-bold text-white"
+            >
+              29,90 €
+            </span>
+            <span
+              class="text-xs text-gray-600"
+            >
+              3 min
+            </span>
+          </div>
+        </div>
+        <button
+          class="flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
+        >
+          <svg
+            class="lucide lucide-eye"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+            />
+          </svg>
+          VOIR
+        </button>
+      </div>
+      <div
+        class="mt-2 space-y-0.5 border-t border-white/[0.06] pt-2"
+      >
+        <div
+          class="flex items-center gap-2 text-xs"
+        >
+          <span
+            class="min-w-[28px] shrink-0 text-[13px] font-bold tabular-nums text-white"
+          >
+            2 × 500 g
+          </span>
+          <span
+            class="flex-1 truncate text-[#D6D3D1]"
+          >
+            Entrecôte
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`mode cuisine : rendu du tableau > affiche les colonnes, l'en-cours scindé et chaque onglet mobile > onglet prêtes 1`] = `
+<div
+  class="flex-1 space-y-1.5 overflow-y-auto p-3 pb-4 lg:hidden"
+>
+  <button
+    class="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#DC2626] py-3 font-bold text-white transition-all hover:bg-[#b91c1c]"
+  >
+    <svg
+      class="lucide lucide-scan-line"
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      width="16"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M3 7V5a2 2 0 0 1 2-2h2"
+      />
+      <path
+        d="M17 3h2a2 2 0 0 1 2 2v2"
+      />
+      <path
+        d="M21 17v2a2 2 0 0 1-2 2h-2"
+      />
+      <path
+        d="M7 21H5a2 2 0 0 1-2-2v-2"
+      />
+      <path
+        d="M7 12h10"
+      />
+    </svg>
+     Scanner QR
+  </button>
+  <div
+    class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] overflow-hidden transition-colors  "
+  >
+    <div
+      class="flex items-start justify-between px-3 pb-1.5 pt-2.5"
+    >
+      <div>
+        <div
+          class="flex items-center gap-2"
+        >
+          <span
+            class="text-lg font-[800] leading-none tracking-tight text-white"
+          >
+            #044
+          </span>
+          <span
+            class="text-xs leading-none text-[#78716C]"
+          >
+            Fatima.A
+          </span>
+        </div>
+        <div
+          class="mt-1 flex items-center gap-3"
+        >
+          <span
+            class="text-xs text-gray-500"
+          >
+            Client 
+            C-012
+          </span>
+        </div>
+      </div>
+      <div
+        class="flex flex-col items-end gap-0.5 text-right"
+      >
+        <span
+          class="text-[11px] text-[#57534E]"
+        >
+          <svg
+            class="lucide lucide-clock mr-0.5 inline"
+            fill="none"
+            height="10"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="10"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+            />
+            <polyline
+              points="12 6 12 12 16 14"
+            />
+          </svg>
+          10:30
+        </span>
+      </div>
+    </div>
+    <div
+      class="px-3 pb-1.5"
+    >
+      <div
+        class="space-y-1"
+      >
+        <div
+          class="flex items-center gap-2 "
+        >
+          <img
+            alt="Escalope"
+            class="h-7 w-7 shrink-0 rounded-[6px] object-cover"
+            data-nimg="1"
+            decoding="async"
+            height="28"
+            loading="lazy"
+            src="/_next/image?url=%2Fimg%2Fproducts%2Fboeuf-1.jpg&w=64&q=75"
+            srcset="/_next/image?url=%2Fimg%2Fproducts%2Fboeuf-1.jpg&w=32&q=75 1x, /_next/image?url=%2Fimg%2Fproducts%2Fboeuf-1.jpg&w=64&q=75 2x"
+            style="color: transparent;"
+            width="28"
+          />
+          <span
+            class="min-w-0 flex-1 text-xs text-[#A8A29E]"
+          >
+            <span
+              class="text-sm font-bold text-white"
+            >
+              3 × 200 g
+            </span>
+             —
+             
+            <span
+              class="text-[#A8A29E]"
+            >
+              Escalope
+            </span>
+            <span
+              class="ml-1 text-[10px] text-amber-400"
+            >
+              (
+              6
+               tr.
+              )
+            </span>
+          </span>
+          <span
+            class="ml-1 shrink-0 text-xs text-[#57534E]"
+          >
+            29,90 €
+          </span>
+        </div>
+      </div>
+    </div>
+    <div
+      class="mx-3 mb-1.5 flex items-center justify-between rounded-lg px-3 py-1.5"
+      style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgb(26, 26, 26);"
+    >
+      <span
+        class="text-xs text-[#57534E]"
+      >
+        Total
+      </span>
+      <span
+        class="text-sm font-bold text-white"
+      >
+        17,94 €
+      </span>
+    </div>
+    <div
+      class="space-y-1.5 px-3 pb-3 pt-1"
+    >
+      <div
+        class="flex gap-1.5"
+      >
+        <button
+          class="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
+        >
+          <svg
+            class="lucide lucide-printer"
+            fill="none"
+            height="13"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="13"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+            />
+            <path
+              d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"
+            />
+            <rect
+              height="8"
+              rx="1"
+              width="12"
+              x="6"
+              y="14"
+            />
+          </svg>
+        </button>
+        <button
+          class="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] bg-[#16A34A] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#15803D] active:scale-95 disabled:opacity-50"
+        >
+          <svg
+            class="lucide lucide-circle-check-big"
+            fill="none"
+            height="13"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="13"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+            />
+            <path
+              d="m9 11 3 3L22 4"
+            />
+          </svg>
+          Recuperee
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`mode cuisine : rendu du tableau > affiche les colonnes, l'en-cours scindé et chaque onglet mobile > tableau 1`] = `
+<div>
+  <div
+    class="fixed inset-0 flex flex-col bg-[#0a0a0a]"
+  >
+    <header
+      class="flex shrink-0 items-center justify-between gap-1.5 border-b border-white/5 bg-[#111] px-2 py-1.5 sm:gap-3 sm:px-4 sm:py-2"
+    >
+      <div
+        class="flex min-w-0 items-center gap-2 sm:gap-3"
+      >
+        <a
+          class="flex shrink-0 items-center gap-2"
+          href="/boucher/dashboard"
+        >
+          <div
+            class="flex h-[24px] w-[24px] items-center justify-center rounded-md bg-[#DC2626] sm:h-[26px] sm:w-[26px]"
+          >
+            <span
+              class="text-[10px] font-black leading-none text-white sm:text-xs"
+            >
+              K
+            </span>
+          </div>
+          <span
+            class="hidden text-sm font-bold text-white sm:inline"
+          >
+            Klik
+            <span
+              class="text-[#DC2626]"
+            >
+              &
+            </span>
+            Go
+          </span>
+        </a>
+        <div
+          class="hidden h-5 w-px shrink-0 bg-white/10 sm:block"
+        />
+        <span
+          class="hidden truncate text-xs text-[#78716C] sm:inline"
+        >
+          Boucherie Test
+        </span>
+      </div>
+      <div
+        class="flex items-center gap-1.5 sm:gap-3"
+      >
+        <div
+          class="flex items-center gap-1.5 sm:gap-2"
+        >
+          <button
+            class="relative h-5 w-9 rounded-full transition-colors duration-200 focus:outline-none sm:h-6 sm:w-11"
+            style="background-color: rgb(22, 163, 74);"
+          >
+            <span
+              class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 sm:h-5 sm:w-5"
+              style="transform: translateX(16px);"
+            />
+          </button>
+          <div
+            class="hidden sm:block"
+          >
+            <span
+              class="text-xs font-bold text-[#16A34A]"
+            >
+              En ligne
+            </span>
+            <span
+              class="block text-[10px] text-[#57534E]"
+            >
+              Auto 8h-19h
+            </span>
+          </div>
+        </div>
+        <div
+          class="h-5 w-px shrink-0 bg-[#262626] sm:h-6"
+        />
+        <button
+          class="flex min-h-[32px] items-center gap-1 rounded-lg border border-[#3F3F46] bg-[#1C1C1E] px-2 py-1 text-[10px] font-bold text-[#F59E0B] transition-all hover:bg-[#262626] sm:min-h-[36px] sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
+        >
+          <svg
+            class="lucide lucide-pause sm:h-3 sm:w-3"
+            fill="none"
+            height="10"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="10"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              height="16"
+              rx="1"
+              width="4"
+              x="14"
+              y="4"
+            />
+            <rect
+              height="16"
+              rx="1"
+              width="4"
+              x="6"
+              y="4"
+            />
+          </svg>
+           Pause
+        </button>
+      </div>
+      <div
+        class="flex items-center gap-1 sm:gap-2"
+      >
+        <span
+          class="text-xs font-bold tabular-nums text-white sm:text-sm lg:text-xl"
+        >
+          11:00
+        </span>
+        <button
+          class="flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg transition-colors sm:min-h-[36px] sm:min-w-[36px] bg-white/5 text-gray-500 hover:text-white dark:text-gray-400"
+          title="Son activé"
+        >
+          <svg
+            class="lucide lucide-volume2"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <polygon
+              points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+            />
+            <path
+              d="M15.54 8.46a5 5 0 0 1 0 7.07"
+            />
+            <path
+              d="M19.07 4.93a10 10 0 0 1 0 14.14"
+            />
+          </svg>
+        </button>
+        <button
+          class="hidden min-h-[36px] min-w-[36px] items-center justify-center rounded-lg transition-colors sm:flex bg-white/5 text-gray-500 hover:text-white dark:text-gray-400"
+          title="Passer en mode simple"
+        >
+          <svg
+            class="lucide lucide-layout-grid"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              height="7"
+              rx="1"
+              width="7"
+              x="3"
+              y="3"
+            />
+            <rect
+              height="7"
+              rx="1"
+              width="7"
+              x="14"
+              y="3"
+            />
+            <rect
+              height="7"
+              rx="1"
+              width="7"
+              x="14"
+              y="14"
+            />
+            <rect
+              height="7"
+              rx="1"
+              width="7"
+              x="3"
+              y="14"
+            />
+          </svg>
+        </button>
+        <button
+          class="hidden min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 transition-colors hover:bg-white/10 hover:text-white dark:text-gray-400 sm:flex"
+          title="Scanner QR"
+        >
+          <svg
+            class="lucide lucide-scan-line"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 7V5a2 2 0 0 1 2-2h2"
+            />
+            <path
+              d="M17 3h2a2 2 0 0 1 2 2v2"
+            />
+            <path
+              d="M21 17v2a2 2 0 0 1-2 2h-2"
+            />
+            <path
+              d="M7 21H5a2 2 0 0 1-2-2v-2"
+            />
+            <path
+              d="M7 12h10"
+            />
+          </svg>
+        </button>
+        <div
+          class="flex min-h-[32px] min-w-[24px] items-center justify-center sm:min-h-[36px] sm:min-w-[36px]"
+        >
+          <svg
+            class="lucide lucide-wifi text-emerald-400 sm:h-[14px] sm:w-[14px]"
+            fill="none"
+            height="12"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="12"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 20h.01"
+            />
+            <path
+              d="M2 8.82a15 15 0 0 1 20 0"
+            />
+            <path
+              d="M5 12.859a10 10 0 0 1 14 0"
+            />
+            <path
+              d="M8.5 16.429a5 5 0 0 1 7 0"
+            />
+          </svg>
+        </div>
+        <a
+          class="hidden min-h-[36px] min-w-[36px] items-center justify-center rounded-lg bg-white/5 text-gray-500 transition-colors hover:bg-white/10 hover:text-white dark:text-gray-400 sm:flex"
+          href="/boucher/parametres"
+          title="Parametres"
+        >
+          <svg
+            class="lucide lucide-settings"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+            />
+          </svg>
+        </a>
+      </div>
+    </header>
+    <div
+      class="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-center"
+    >
+      <p
+        class="text-[11px] text-amber-400"
+      >
+        Désactivez la mise en veille dans les paramètres de votre tablette
+      </p>
+    </div>
+    <div
+      class="shrink-0 border-b border-white/5 bg-[#111] px-2 py-1.5 lg:hidden"
+    >
+      <div
+        class="flex gap-1 overflow-x-auto"
+      >
+        <button
+          class="flex min-h-[44px] flex-1 flex-shrink-0 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all text-gray-500 hover:bg-white/5"
+        >
+          <svg
+            class="lucide lucide-bell"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
+            />
+            <path
+              d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
+            />
+          </svg>
+          <span
+            class="truncate"
+          >
+            Nouv.
+          </span>
+          <span
+            class="flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold bg-[#DC2626] text-white"
+          >
+            1
+          </span>
+        </button>
+        <button
+          class="flex min-h-[44px] flex-1 flex-shrink-0 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all bg-[#DC2626] text-white"
+        >
+          <svg
+            class="lucide lucide-chef-hat"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"
+            />
+            <path
+              d="M6 17h12"
+            />
+          </svg>
+          <span
+            class="truncate"
+          >
+            En cours
+          </span>
+          <span
+            class="flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold bg-white/20 text-white"
+          >
+            2
+          </span>
+        </button>
+        <button
+          class="flex min-h-[44px] flex-1 flex-shrink-0 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all text-gray-500 hover:bg-white/5"
+        >
+          <svg
+            class="lucide lucide-circle-check-big"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+            />
+            <path
+              d="m9 11 3 3L22 4"
+            />
+          </svg>
+          <span
+            class="truncate"
+          >
+            Prêtes
+          </span>
+          <span
+            class="flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold bg-white/10 text-gray-500 dark:text-gray-400"
+          >
+            1
+          </span>
+        </button>
+        <button
+          class="flex min-h-[44px] flex-1 flex-shrink-0 items-center justify-center gap-1 rounded-lg px-2 text-xs font-semibold transition-all text-gray-500 hover:bg-white/5"
+        >
+          <svg
+            class="lucide lucide-scroll-text"
+            fill="none"
+            height="14"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="14"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M15 12h-5"
+            />
+            <path
+              d="M15 8h-5"
+            />
+            <path
+              d="M19 17V5a2 2 0 0 0-2-2H4"
+            />
+            <path
+              d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"
+            />
+          </svg>
+          <span
+            class="truncate"
+          >
+            Histo.
+          </span>
+          <span
+            class="flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold bg-white/10 text-gray-500 dark:text-gray-400"
+          >
+            2
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="hidden flex-1 overflow-hidden pb-14 lg:flex"
+    >
+      <div
+        class="w-[40%] shrink-0"
+      >
+        <div
+          class="flex h-full min-w-0 flex-col"
+        >
+          <div
+            class="flex shrink-0 items-center gap-1.5 border-b border-white/5 bg-[#111] px-3 py-2"
+          >
+            <div
+              class="text-amber-400 bg-amber-500/20 rounded-md p-1"
+            >
+              <svg
+                class="lucide lucide-bell"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
+                />
+                <path
+                  d="M10.3 21a1.94 1.94 0 0 0 3.4 0"
+                />
+              </svg>
+            </div>
+            <h2
+              class="text-xs font-bold text-white"
+            >
+              Nouvelles
+            </h2>
+            <span
+              class="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[11px] font-bold bg-amber-500 text-white"
+            >
+              1
+            </span>
+          </div>
+          <div
+            class="flex-1 space-y-1.5 overflow-y-auto p-2"
+          >
+            <div
+              class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] overflow-hidden transition-colors"
+            >
+              <div
+                class="px-3 py-2.5"
+              >
+                <div
+                  class="flex items-start justify-between gap-2"
+                >
+                  <div
+                    class="min-w-0 flex-1"
+                  >
+                    <div
+                      class="flex items-center gap-2"
+                    >
+                      <span
+                        class="text-lg font-[800] leading-none tracking-tight text-white"
+                      >
+                        #041
+                      </span>
+                      <span
+                        class="truncate text-xs leading-none text-[#78716C]"
+                      >
+                        Fatima.A
+                      </span>
+                    </div>
+                    <div
+                      class="mt-1 flex items-center gap-3"
+                    >
+                      <span
+                        class="text-xs text-gray-500"
+                      >
+                        1
+                         article
+                      </span>
+                      <span
+                        class="text-sm font-bold text-white"
+                      >
+                        29,90 €
+                      </span>
+                      <span
+                        class="text-xs text-gray-600"
+                      >
+                        3 min
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    class="flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
+                  >
+                    <svg
+                      class="lucide lucide-eye"
+                      fill="none"
+                      height="16"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="3"
+                      />
+                    </svg>
+                    VOIR
+                  </button>
+                </div>
+                <div
+                  class="mt-2 space-y-0.5 border-t border-white/[0.06] pt-2"
+                >
+                  <div
+                    class="flex items-center gap-2 text-xs"
+                  >
+                    <span
+                      class="min-w-[28px] shrink-0 text-[13px] font-bold tabular-nums text-white"
+                    >
+                      2 × 500 g
+                    </span>
+                    <span
+                      class="flex-1 truncate text-[#D6D3D1]"
+                    >
+                      Entrecôte
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="w-px shrink-0 bg-white/5"
+      />
+      <div
+        class="flex h-full min-w-0 flex-1 flex-col"
+      >
+        <div
+          class="flex shrink-0 items-center gap-1.5 border-b border-white/5 bg-[#111] px-3 py-2"
+        >
+          <div
+            class="rounded-md bg-blue-500/20 p-1 text-blue-400"
+          >
+            <svg
+              class="lucide lucide-chef-hat"
+              fill="none"
+              height="16"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="16"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"
+              />
+              <path
+                d="M6 17h12"
+              />
+            </svg>
+          </div>
+          <h2
+            class="text-xs font-bold text-white"
+          >
+            En cours
+          </h2>
+          <span
+            class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1 text-[11px] font-bold text-white"
+          >
+            2
+          </span>
+        </div>
+        <div
+          class="flex-1 space-y-1.5 overflow-y-auto p-2"
+        >
+          <div
+            class="flex items-center gap-2 px-1 pt-1"
+          >
+            <div
+              class="h-2 w-2 rounded-full animate-pulse bg-emerald-400"
+            />
+            <span
+              class="text-xs font-bold uppercase tracking-wider text-emerald-400"
+            >
+              À PRÉPARER MAINTENANT
+            </span>
+            <span
+              class="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400"
+            >
+              1
+            </span>
+          </div>
+          <div
+            class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] overflow-hidden transition-colors  "
+          >
+            <div
+              class="flex items-start justify-between px-3 pb-1.5 pt-2.5"
+            >
+              <div>
+                <div
+                  class="flex items-center gap-2"
+                >
+                  <span
+                    class="text-lg font-[800] leading-none tracking-tight text-white"
+                  >
+                    #042
+                  </span>
+                  <span
+                    class="text-xs leading-none text-[#78716C]"
+                  >
+                    Karim.B
+                  </span>
+                </div>
+                <div
+                  class="mt-1 flex items-center gap-3"
+                >
+                  <span
+                    class="text-xs text-gray-500"
+                  >
+                    Client 
+                    C-012
+                  </span>
+                  <a
+                    class="flex items-center gap-1 text-xs text-blue-400 transition-colors hover:text-blue-300"
+                    href="tel:+33612345678"
+                  >
+                    <svg
+                      class="lucide lucide-phone"
+                      fill="none"
+                      height="12"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="12"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                      />
+                    </svg>
+                     
+                    +33612345678
+                  </a>
+                </div>
+              </div>
+              <div
+                class="flex flex-col items-end gap-0.5 text-right"
+              >
+                <span
+                  class="text-[11px] text-[#57534E]"
+                >
+                  <svg
+                    class="lucide lucide-clock mr-0.5 inline"
+                    fill="none"
+                    height="10"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="10"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                    />
+                    <polyline
+                      points="12 6 12 12 16 14"
+                    />
+                  </svg>
+                  10:30
+                </span>
+                <div
+                  class="inline-flex items-center gap-1.5 text-sm px-2 py-1 rounded-lg bg-blue-500/15 text-blue-400 "
+                >
+                  12 min
+                </div>
+              </div>
+            </div>
+            <div
+              class="px-3 pb-1.5"
+            >
+              <div
+                class="space-y-1"
+              >
+                <div
+                  class="flex items-center gap-2 "
+                >
+                  <img
+                    alt="Merguez"
+                    class="h-7 w-7 shrink-0 rounded-[6px] object-cover"
+                    data-nimg="1"
+                    decoding="async"
+                    height="28"
+                    loading="lazy"
+                    src="/_next/image?url=%2Fimg%2Fproducts%2Fmerguez.jpg&w=64&q=75"
+                    srcset="/_next/image?url=%2Fimg%2Fproducts%2Fmerguez.jpg&w=32&q=75 1x, /_next/image?url=%2Fimg%2Fproducts%2Fmerguez.jpg&w=64&q=75 2x"
+                    style="color: transparent;"
+                    width="28"
+                  />
+                  <span
+                    class="min-w-0 flex-1 text-xs text-[#A8A29E]"
+                  >
+                    <span
+                      class="text-sm font-bold text-white"
+                    >
+                      6 pièces
+                    </span>
+                     —
+                     
+                    <span
+                      class="text-[#A8A29E]"
+                    >
+                      Merguez
+                    </span>
+                  </span>
+                  <span
+                    class="ml-1 shrink-0 text-xs text-[#57534E]"
+                  >
+                    29,90 €
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div
+              class="mx-3 mb-1.5 flex items-center justify-between rounded-lg px-3 py-1.5"
+              style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgb(26, 26, 26);"
+            >
+              <span
+                class="text-xs text-[#57534E]"
+              >
+                Total
+              </span>
+              <span
+                class="text-sm font-bold text-white"
+              >
+                17,94 €
+              </span>
+            </div>
+            <div
+              class="space-y-1.5 px-3 pb-3 pt-1"
+            >
+              <div
+                class="space-y-1.5"
+              >
+                <div
+                  class="flex gap-1.5"
+                >
+                  <button
+                    class="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
+                  >
+                    <svg
+                      class="lucide lucide-printer"
+                      fill="none"
+                      height="13"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="13"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                      />
+                      <path
+                        d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"
+                      />
+                      <rect
+                        height="8"
+                        rx="1"
+                        width="12"
+                        x="6"
+                        y="14"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    class="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-[#92400E] p-[9px] text-xs font-bold text-[#FDE68A] transition-all hover:bg-[#78350F]"
+                  >
+                    <svg
+                      class="lucide lucide-dollar-sign"
+                      fill="none"
+                      height="13"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="13"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <line
+                        x1="12"
+                        x2="12"
+                        y1="2"
+                        y2="22"
+                      />
+                      <path
+                        d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                      />
+                    </svg>
+                     Ajuster
+                  </button>
+                  <button
+                    class="flex flex-[2] items-center justify-center gap-1 rounded-[9px] bg-[#2563EB] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#1D4ED8] active:scale-95 disabled:opacity-50"
+                  >
+                    <svg
+                      class="lucide lucide-circle-check-big"
+                      fill="none"
+                      height="13"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="13"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                      />
+                      <path
+                        d="m9 11 3 3L22 4"
+                      />
+                    </svg>
+                    Prete !
+                  </button>
+                </div>
+                <div
+                  class="flex gap-1.5"
+                >
+                  <button
+                    class="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
+                  >
+                    <svg
+                      class="lucide lucide-timer"
+                      fill="none"
+                      height="11"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="11"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <line
+                        x1="10"
+                        x2="14"
+                        y1="2"
+                        y2="2"
+                      />
+                      <line
+                        x1="12"
+                        x2="15"
+                        y1="14"
+                        y2="11"
+                      />
+                      <circle
+                        cx="12"
+                        cy="14"
+                        r="8"
+                      />
+                    </svg>
+                     +5 min
+                  </button>
+                  <button
+                    class="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
+                  >
+                    <svg
+                      class="lucide lucide-timer"
+                      fill="none"
+                      height="11"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="11"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <line
+                        x1="10"
+                        x2="14"
+                        y1="2"
+                        y2="2"
+                      />
+                      <line
+                        x1="12"
+                        x2="15"
+                        y1="14"
+                        y2="11"
+                      />
+                      <circle
+                        cx="12"
+                        cy="14"
+                        r="8"
+                      />
+                    </svg>
+                     +10 min
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="flex items-center gap-3 py-1.5"
+          >
+            <div
+              class="h-px flex-1 bg-[#1A1A1A]"
+            />
+            <svg
+              class="lucide lucide-calendar-clock text-[#F59E0B]/50"
+              fill="none"
+              height="13"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="13"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"
+              />
+              <path
+                d="M16 2v4"
+              />
+              <path
+                d="M8 2v4"
+              />
+              <path
+                d="M3 10h5"
+              />
+              <path
+                d="M17.5 17.5 16 16.3V14"
+              />
+              <circle
+                cx="16"
+                cy="16"
+                r="6"
+              />
+            </svg>
+            <div
+              class="h-px flex-1 bg-[#1A1A1A]"
+            />
+          </div>
+          <div
+            class="flex items-center gap-2 px-1"
+          >
+            <svg
+              class="lucide lucide-calendar-clock text-[#FBBF24]"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="14"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"
+              />
+              <path
+                d="M16 2v4"
+              />
+              <path
+                d="M8 2v4"
+              />
+              <path
+                d="M3 10h5"
+              />
+              <path
+                d="M17.5 17.5 16 16.3V14"
+              />
+              <circle
+                cx="16"
+                cy="16"
+                r="6"
+              />
+            </svg>
+            <span
+              class="text-xs font-bold uppercase tracking-wider text-[#FBBF24]"
+            >
+              PRÉCOMMANDES
+            </span>
+            <span
+              class="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-[#FBBF24]"
+            >
+              1
+            </span>
+          </div>
+          <div
+            class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] border-l-4 border-l-amber-500 px-3 py-2 opacity-70 transition-colors"
+          >
+            <div
+              class="flex items-center justify-between gap-2"
+            >
+              <div
+                class="flex min-w-0 items-center gap-2"
+              >
+                <span
+                  class="shrink-0 text-base font-black text-white"
+                >
+                  #043
+                </span>
+                <span
+                  class="truncate text-sm font-medium text-gray-500 dark:text-gray-400"
+                >
+                  Sarah.L
+                </span>
+                <span
+                  class="shrink-0 rounded bg-yellow-500/20 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400"
+                >
+                  FIDÈLE
+                </span>
+              </div>
+              <div
+                class="flex shrink-0 items-center gap-2"
+              >
+                <span
+                  class="text-sm font-bold text-[#FBBF24]"
+                >
+                  <svg
+                    class="lucide lucide-calendar-clock mr-1 inline"
+                    fill="none"
+                    height="13"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="13"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"
+                    />
+                    <path
+                      d="M16 2v4"
+                    />
+                    <path
+                      d="M8 2v4"
+                    />
+                    <path
+                      d="M3 10h5"
+                    />
+                    <path
+                      d="M17.5 17.5 16 16.3V14"
+                    />
+                    <circle
+                      cx="16"
+                      cy="16"
+                      r="6"
+                    />
+                  </svg>
+                  14:00
+                </span>
+                <span
+                  class="rounded-lg border px-2.5 py-1.5 text-xs font-bold bg-amber-500/10 text-amber-400 border-amber-500/20"
+                >
+                  Dans 3h
+                </span>
+                <button
+                  class="rounded-lg bg-white/5 p-2 text-gray-500 transition-colors hover:bg-white/10"
+                  title="Imprimer ticket"
+                >
+                  <svg
+                    class="lucide lucide-printer"
+                    fill="none"
+                    height="14"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="14"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                    />
+                    <path
+                      d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"
+                    />
+                    <rect
+                      height="8"
+                      rx="1"
+                      width="12"
+                      x="6"
+                      y="14"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              class="mt-1.5 flex items-center gap-3 text-xs text-gray-600"
+            >
+              <span>
+                3
+                 article
+                s
+              </span>
+              <span
+                class="font-medium text-gray-500"
+              >
+                44,85 €
+              </span>
+              <span
+                class="max-w-[200px] truncate text-blue-400/50"
+              >
+                "
+                Bien emballer
+                "
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="w-px shrink-0 bg-white/5"
+      />
+      <div
+        class="w-1/5 shrink-0"
+      >
+        <div
+          class="flex h-full min-w-0 flex-col"
+        >
+          <div
+            class="flex shrink-0 items-center gap-1.5 border-b border-white/5 bg-[#111] px-3 py-2"
+          >
+            <div
+              class="text-emerald-400 bg-emerald-500/20 rounded-md p-1"
+            >
+              <svg
+                class="lucide lucide-circle-check-big"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                />
+                <path
+                  d="m9 11 3 3L22 4"
+                />
+              </svg>
+            </div>
+            <h2
+              class="text-xs font-bold text-white"
+            >
+              Prêtes
+            </h2>
+            <span
+              class="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[11px] font-bold bg-emerald-500 text-white"
+            >
+              1
+            </span>
+          </div>
+          <div
+            class="flex-1 space-y-1.5 overflow-y-auto p-2"
+          >
+            <button
+              class="mb-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#DC2626] py-3 font-bold text-white transition-all hover:bg-[#b91c1c] active:scale-95"
+            >
+              <svg
+                class="lucide lucide-scan-line"
+                fill="none"
+                height="16"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M3 7V5a2 2 0 0 1 2-2h2"
+                />
+                <path
+                  d="M17 3h2a2 2 0 0 1 2 2v2"
+                />
+                <path
+                  d="M21 17v2a2 2 0 0 1-2 2h-2"
+                />
+                <path
+                  d="M7 21H5a2 2 0 0 1-2-2v-2"
+                />
+                <path
+                  d="M7 12h10"
+                />
+              </svg>
+               Scanner QR
+            </button>
+            <div
+              class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] overflow-hidden transition-colors  "
+            >
+              <div
+                class="flex items-start justify-between px-3 pb-1.5 pt-2.5"
+              >
+                <div>
+                  <div
+                    class="flex items-center gap-2"
+                  >
+                    <span
+                      class="text-lg font-[800] leading-none tracking-tight text-white"
+                    >
+                      #044
+                    </span>
+                    <span
+                      class="text-xs leading-none text-[#78716C]"
+                    >
+                      Fatima.A
+                    </span>
+                  </div>
+                  <div
+                    class="mt-1 flex items-center gap-3"
+                  >
+                    <span
+                      class="text-xs text-gray-500"
+                    >
+                      Client 
+                      C-012
+                    </span>
+                  </div>
+                </div>
+                <div
+                  class="flex flex-col items-end gap-0.5 text-right"
+                >
+                  <span
+                    class="text-[11px] text-[#57534E]"
+                  >
+                    <svg
+                      class="lucide lucide-clock mr-0.5 inline"
+                      fill="none"
+                      height="10"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="10"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                      />
+                      <polyline
+                        points="12 6 12 12 16 14"
+                      />
+                    </svg>
+                    10:30
+                  </span>
+                </div>
+              </div>
+              <div
+                class="px-3 pb-1.5"
+              >
+                <div
+                  class="space-y-1"
+                >
+                  <div
+                    class="flex items-center gap-2 "
+                  >
+                    <img
+                      alt="Escalope"
+                      class="h-7 w-7 shrink-0 rounded-[6px] object-cover"
+                      data-nimg="1"
+                      decoding="async"
+                      height="28"
+                      loading="lazy"
+                      src="/_next/image?url=%2Fimg%2Fproducts%2Fboeuf-1.jpg&w=64&q=75"
+                      srcset="/_next/image?url=%2Fimg%2Fproducts%2Fboeuf-1.jpg&w=32&q=75 1x, /_next/image?url=%2Fimg%2Fproducts%2Fboeuf-1.jpg&w=64&q=75 2x"
+                      style="color: transparent;"
+                      width="28"
+                    />
+                    <span
+                      class="min-w-0 flex-1 text-xs text-[#A8A29E]"
+                    >
+                      <span
+                        class="text-sm font-bold text-white"
+                      >
+                        3 × 200 g
+                      </span>
+                       —
+                       
+                      <span
+                        class="text-[#A8A29E]"
+                      >
+                        Escalope
+                      </span>
+                      <span
+                        class="ml-1 text-[10px] text-amber-400"
+                      >
+                        (
+                        6
+                         tr.
+                        )
+                      </span>
+                    </span>
+                    <span
+                      class="ml-1 shrink-0 text-xs text-[#57534E]"
+                    >
+                      29,90 €
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="mx-3 mb-1.5 flex items-center justify-between rounded-lg px-3 py-1.5"
+                style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgb(26, 26, 26);"
+              >
+                <span
+                  class="text-xs text-[#57534E]"
+                >
+                  Total
+                </span>
+                <span
+                  class="text-sm font-bold text-white"
+                >
+                  17,94 €
+                </span>
+              </div>
+              <div
+                class="space-y-1.5 px-3 pb-3 pt-1"
+              >
+                <div
+                  class="flex gap-1.5"
+                >
+                  <button
+                    class="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
+                  >
+                    <svg
+                      class="lucide lucide-printer"
+                      fill="none"
+                      height="13"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="13"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                      />
+                      <path
+                        d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"
+                      />
+                      <rect
+                        height="8"
+                        rx="1"
+                        width="12"
+                        x="6"
+                        y="14"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    class="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] bg-[#16A34A] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#15803D] active:scale-95 disabled:opacity-50"
+                  >
+                    <svg
+                      class="lucide lucide-circle-check-big"
+                      fill="none"
+                      height="13"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="13"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                      />
+                      <path
+                        d="m9 11 3 3L22 4"
+                      />
+                    </svg>
+                    Recuperee
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="fixed inset-x-0 bottom-0 z-40 hidden h-14 items-center justify-center gap-4 border-t border-zinc-800 bg-zinc-900 px-6 lg:flex"
+    >
+      <button
+        class="flex items-center gap-2 rounded-xl bg-white/5 px-5 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <svg
+          class="lucide lucide-scroll-text"
+          fill="none"
+          height="16"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="16"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M15 12h-5"
+          />
+          <path
+            d="M15 8h-5"
+          />
+          <path
+            d="M19 17V5a2 2 0 0 0-2-2H4"
+          />
+          <path
+            d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"
+          />
+        </svg>
+        Historique
+        <span
+          class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white/10 px-1.5 text-[10px] font-bold text-gray-300"
+        >
+          2
+        </span>
+      </button>
+    </div>
+    <div
+      class="flex-1 space-y-1.5 overflow-y-auto p-3 pb-4 lg:hidden"
+    >
+      <div
+        class="flex items-center gap-2 px-1 pt-1"
+      >
+        <div
+          class="h-2 w-2 rounded-full animate-pulse bg-emerald-400"
+        />
+        <span
+          class="text-xs font-bold uppercase tracking-wider text-emerald-400"
+        >
+          À PRÉPARER MAINTENANT
+        </span>
+        <span
+          class="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400"
+        >
+          1
+        </span>
+      </div>
+      <div
+        class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] overflow-hidden transition-colors  "
+      >
+        <div
+          class="flex items-start justify-between px-3 pb-1.5 pt-2.5"
+        >
+          <div>
+            <div
+              class="flex items-center gap-2"
+            >
+              <span
+                class="text-lg font-[800] leading-none tracking-tight text-white"
+              >
+                #042
+              </span>
+              <span
+                class="text-xs leading-none text-[#78716C]"
+              >
+                Karim.B
+              </span>
+            </div>
+            <div
+              class="mt-1 flex items-center gap-3"
+            >
+              <span
+                class="text-xs text-gray-500"
+              >
+                Client 
+                C-012
+              </span>
+              <a
+                class="flex items-center gap-1 text-xs text-blue-400 transition-colors hover:text-blue-300"
+                href="tel:+33612345678"
+              >
+                <svg
+                  class="lucide lucide-phone"
+                  fill="none"
+                  height="12"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="12"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                  />
+                </svg>
+                 
+                +33612345678
+              </a>
+            </div>
+          </div>
+          <div
+            class="flex flex-col items-end gap-0.5 text-right"
+          >
+            <span
+              class="text-[11px] text-[#57534E]"
+            >
+              <svg
+                class="lucide lucide-clock mr-0.5 inline"
+                fill="none"
+                height="10"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="10"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                />
+                <polyline
+                  points="12 6 12 12 16 14"
+                />
+              </svg>
+              10:30
+            </span>
+            <div
+              class="inline-flex items-center gap-1.5 text-sm px-2 py-1 rounded-lg bg-blue-500/15 text-blue-400 "
+            >
+              12 min
+            </div>
+          </div>
+        </div>
+        <div
+          class="px-3 pb-1.5"
+        >
+          <div
+            class="space-y-1"
+          >
+            <div
+              class="flex items-center gap-2 "
+            >
+              <img
+                alt="Merguez"
+                class="h-7 w-7 shrink-0 rounded-[6px] object-cover"
+                data-nimg="1"
+                decoding="async"
+                height="28"
+                loading="lazy"
+                src="/_next/image?url=%2Fimg%2Fproducts%2Fmerguez.jpg&w=64&q=75"
+                srcset="/_next/image?url=%2Fimg%2Fproducts%2Fmerguez.jpg&w=32&q=75 1x, /_next/image?url=%2Fimg%2Fproducts%2Fmerguez.jpg&w=64&q=75 2x"
+                style="color: transparent;"
+                width="28"
+              />
+              <span
+                class="min-w-0 flex-1 text-xs text-[#A8A29E]"
+              >
+                <span
+                  class="text-sm font-bold text-white"
+                >
+                  6 pièces
+                </span>
+                 —
+                 
+                <span
+                  class="text-[#A8A29E]"
+                >
+                  Merguez
+                </span>
+              </span>
+              <span
+                class="ml-1 shrink-0 text-xs text-[#57534E]"
+              >
+                29,90 €
+              </span>
+            </div>
+          </div>
+        </div>
+        <div
+          class="mx-3 mb-1.5 flex items-center justify-between rounded-lg px-3 py-1.5"
+          style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid rgb(26, 26, 26);"
+        >
+          <span
+            class="text-xs text-[#57534E]"
+          >
+            Total
+          </span>
+          <span
+            class="text-sm font-bold text-white"
+          >
+            17,94 €
+          </span>
+        </div>
+        <div
+          class="space-y-1.5 px-3 pb-3 pt-1"
+        >
+          <div
+            class="space-y-1.5"
+          >
+            <div
+              class="flex gap-1.5"
+            >
+              <button
+                class="flex shrink-0 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-500 transition-all hover:bg-white/10 dark:text-gray-400"
+              >
+                <svg
+                  class="lucide lucide-printer"
+                  fill="none"
+                  height="13"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="13"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                  />
+                  <path
+                    d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"
+                  />
+                  <rect
+                    height="8"
+                    rx="1"
+                    width="12"
+                    x="6"
+                    y="14"
+                  />
+                </svg>
+              </button>
+              <button
+                class="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-[#92400E] p-[9px] text-xs font-bold text-[#FDE68A] transition-all hover:bg-[#78350F]"
+              >
+                <svg
+                  class="lucide lucide-dollar-sign"
+                  fill="none"
+                  height="13"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="13"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <line
+                    x1="12"
+                    x2="12"
+                    y1="2"
+                    y2="22"
+                  />
+                  <path
+                    d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                  />
+                </svg>
+                 Ajuster
+              </button>
+              <button
+                class="flex flex-[2] items-center justify-center gap-1 rounded-[9px] bg-[#2563EB] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#1D4ED8] active:scale-95 disabled:opacity-50"
+              >
+                <svg
+                  class="lucide lucide-circle-check-big"
+                  fill="none"
+                  height="13"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="13"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+                  />
+                  <path
+                    d="m9 11 3 3L22 4"
+                  />
+                </svg>
+                Prete !
+              </button>
+            </div>
+            <div
+              class="flex gap-1.5"
+            >
+              <button
+                class="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
+              >
+                <svg
+                  class="lucide lucide-timer"
+                  fill="none"
+                  height="11"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="11"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <line
+                    x1="10"
+                    x2="14"
+                    y1="2"
+                    y2="2"
+                  />
+                  <line
+                    x1="12"
+                    x2="15"
+                    y1="14"
+                    y2="11"
+                  />
+                  <circle
+                    cx="12"
+                    cy="14"
+                    r="8"
+                  />
+                </svg>
+                 +5 min
+              </button>
+              <button
+                class="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
+              >
+                <svg
+                  class="lucide lucide-timer"
+                  fill="none"
+                  height="11"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="11"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <line
+                    x1="10"
+                    x2="14"
+                    y1="2"
+                    y2="2"
+                  />
+                  <line
+                    x1="12"
+                    x2="15"
+                    y1="14"
+                    y2="11"
+                  />
+                  <circle
+                    cx="12"
+                    cy="14"
+                    r="8"
+                  />
+                </svg>
+                 +10 min
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="flex items-center gap-3 py-1.5"
+      >
+        <div
+          class="h-px flex-1 bg-[#1A1A1A]"
+        />
+        <svg
+          class="lucide lucide-calendar-clock text-[#F59E0B]/50"
+          fill="none"
+          height="13"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="13"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"
+          />
+          <path
+            d="M16 2v4"
+          />
+          <path
+            d="M8 2v4"
+          />
+          <path
+            d="M3 10h5"
+          />
+          <path
+            d="M17.5 17.5 16 16.3V14"
+          />
+          <circle
+            cx="16"
+            cy="16"
+            r="6"
+          />
+        </svg>
+        <div
+          class="h-px flex-1 bg-[#1A1A1A]"
+        />
+      </div>
+      <div
+        class="flex items-center gap-2 px-1"
+      >
+        <svg
+          class="lucide lucide-calendar-clock text-[#FBBF24]"
+          fill="none"
+          height="14"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="14"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"
+          />
+          <path
+            d="M16 2v4"
+          />
+          <path
+            d="M8 2v4"
+          />
+          <path
+            d="M3 10h5"
+          />
+          <path
+            d="M17.5 17.5 16 16.3V14"
+          />
+          <circle
+            cx="16"
+            cy="16"
+            r="6"
+          />
+        </svg>
+        <span
+          class="text-xs font-bold uppercase tracking-wider text-[#FBBF24]"
+        >
+          PRÉCOMMANDES
+        </span>
+        <span
+          class="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-[#FBBF24]"
+        >
+          1
+        </span>
+      </div>
+      <div
+        class="bg-[#151515] rounded-xl border border-[#222] hover:border-[#333] border-l-4 border-l-amber-500 px-3 py-2 opacity-70 transition-colors"
+      >
+        <div
+          class="flex items-center justify-between gap-2"
+        >
+          <div
+            class="flex min-w-0 items-center gap-2"
+          >
+            <span
+              class="shrink-0 text-base font-black text-white"
+            >
+              #043
+            </span>
+            <span
+              class="truncate text-sm font-medium text-gray-500 dark:text-gray-400"
+            >
+              Sarah.L
+            </span>
+            <span
+              class="shrink-0 rounded bg-yellow-500/20 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400"
+            >
+              FIDÈLE
+            </span>
+          </div>
+          <div
+            class="flex shrink-0 items-center gap-2"
+          >
+            <span
+              class="text-sm font-bold text-[#FBBF24]"
+            >
+              <svg
+                class="lucide lucide-calendar-clock mr-1 inline"
+                fill="none"
+                height="13"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="13"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"
+                />
+                <path
+                  d="M16 2v4"
+                />
+                <path
+                  d="M8 2v4"
+                />
+                <path
+                  d="M3 10h5"
+                />
+                <path
+                  d="M17.5 17.5 16 16.3V14"
+                />
+                <circle
+                  cx="16"
+                  cy="16"
+                  r="6"
+                />
+              </svg>
+              14:00
+            </span>
+            <span
+              class="rounded-lg border px-2.5 py-1.5 text-xs font-bold bg-amber-500/10 text-amber-400 border-amber-500/20"
+            >
+              Dans 3h
+            </span>
+            <button
+              class="rounded-lg bg-white/5 p-2 text-gray-500 transition-colors hover:bg-white/10"
+              title="Imprimer ticket"
+            >
+              <svg
+                class="lucide lucide-printer"
+                fill="none"
+                height="14"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                width="14"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                />
+                <path
+                  d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"
+                />
+                <rect
+                  height="8"
+                  rx="1"
+                  width="12"
+                  x="6"
+                  y="14"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div
+          class="mt-1.5 flex items-center gap-3 text-xs text-gray-600"
+        >
+          <span>
+            3
+             article
+            s
+          </span>
+          <span
+            class="font-medium text-gray-500"
+          >
+            44,85 €
+          </span>
+          <span
+            class="max-w-[200px] truncate text-blue-400/50"
+          >
+            "
+            Bien emballer
+            "
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;

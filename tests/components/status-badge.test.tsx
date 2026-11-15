@@ -2,51 +2,38 @@ import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import { screen } from "@testing-library/dom";
 import type { OrderStatus, ShopStatus } from "@prisma/client";
+import { badgeVariants } from "@/components/ui/badge";
 import { OrderStatusBadge, ShopStatusBadge } from "@/components/ui/status-badge";
-import type { ORDER_STATUS_LABELS } from "@/lib/design-tokens";
+import type { StatusTone } from "@/lib/design-tokens";
 
-// @ts-expect-error the label maps are keyed by the Prisma enum: a plain string is not a key
-type LabelOfAnyString = (typeof ORDER_STATUS_LABELS)[string];
-
+// How a tone looks belongs to Badge: these tests pin the tone and the words of each status.
 describe("OrderStatusBadge", () => {
-  it.each<[OrderStatus, string, string, string]>([
-    ["PENDING", "En attente", "bg-warning-subtle", "text-warning-text"],
-    ["PREPARING", "En préparation", "bg-info-subtle", "text-info-text"],
-    ["READY", "Prête", "bg-success-subtle", "text-success-text"],
-    ["DENIED", "Refusée", "bg-destructive-subtle", "text-destructive-text"],
-    ["COMPLETED", "Terminée", "bg-muted", "text-muted-foreground"],
-  ])("%s : « %s » sur %s / %s, sans retour à la ligne", (status, label, bg, text) => {
+  it.each<[OrderStatus, string, StatusTone]>([
+    ["PENDING", "En attente", "warning"],
+    ["PREPARING", "En préparation", "info"],
+    ["READY", "Prête", "success"],
+    ["DENIED", "Refusée", "destructive"],
+    ["COMPLETED", "Terminée", "neutral"],
+  ])("%s : « %s », teinte %s", (status, label, tone) => {
     render(<OrderStatusBadge status={status} />);
-    expect(screen.getByText(label)).toHaveClass(bg, text, "whitespace-nowrap");
+    expect(screen.getByText(label).className).toBe(badgeVariants({ variant: tone }));
   });
 
   it("ajoute la classe de l'appelant", () => {
     render(<OrderStatusBadge status="READY" className="ml-2" />);
-    expect(screen.getByText("Prête")).toHaveClass("bg-success-subtle", "ml-2");
-  });
-
-  it("refuse un statut hors de l'énumération Prisma", () => {
-    // @ts-expect-error UNKNOWN n'est pas un OrderStatus
-    const element = <OrderStatusBadge status="UNKNOWN" />;
-    expect(element).toBeTruthy();
+    expect(screen.getByText("Prête")).toHaveClass("ml-2");
   });
 });
 
 describe("ShopStatusBadge", () => {
-  it.each<[ShopStatus, string, string, string]>([
-    ["OPEN", "Ouvert", "bg-success-subtle", "text-success-text"],
-    ["BUSY", "Occupé", "bg-warning-subtle", "text-warning-text"],
-    ["AUTO_PAUSED", "Auto-pause", "bg-destructive-subtle", "text-destructive-text"],
-    ["VACATION", "Vacances", "bg-info-subtle", "text-info-text"],
-    ["CLOSED", "Fermé", "bg-muted", "text-muted-foreground"],
-  ])("%s : « %s » sur %s / %s", (status, label, bg, text) => {
+  it.each<[ShopStatus, string, StatusTone]>([
+    ["OPEN", "Ouvert", "success"],
+    ["BUSY", "Occupé", "warning"],
+    ["AUTO_PAUSED", "Auto-pause", "destructive"],
+    ["VACATION", "Vacances", "info"],
+    ["CLOSED", "Fermé", "neutral"],
+  ])("%s : « %s », teinte %s", (status, label, tone) => {
     render(<ShopStatusBadge status={status} />);
-    expect(screen.getByText(label)).toHaveClass(bg, text);
-  });
-
-  it("refuse un statut hors de l'énumération Prisma", () => {
-    // @ts-expect-error UNKNOWN n'est pas un ShopStatus
-    const element = <ShopStatusBadge status="UNKNOWN" />;
-    expect(element).toBeTruthy();
+    expect(screen.getByText(label).className).toBe(badgeVariants({ variant: tone }));
   });
 });

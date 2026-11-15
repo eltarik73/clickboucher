@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import type { CheckoutSubmission } from "@/lib/cart/order-payload";
+import { formatPrice } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -28,10 +29,6 @@ interface OrderCountdownProps {
 type Status = "countdown" | "sending" | "success" | "error";
 
 // ── Helpers ──────────────────────────────────────────────────
-
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
-}
 
 const CIRCUMFERENCE = 2 * Math.PI * 54;
 const SUCCESS_DELAY_MS = 2000;
@@ -75,15 +72,13 @@ export function OrderCountdown({
   const [errorMsg, setErrorMsg] = useState("");
   const cancelledRef = useRef(false);
   const missingIdsRef = useRef<string[]>([]);
-  /** Countdown round whose request has been sent; a round sends exactly once. */
-  const sentRoundRef = useRef<number | null>(null);
   const [round, setRound] = useState(0);
   const prefersReducedMotion =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ── Submit ───────────────────────────────────────────────
 
-  const submitOrder = useCallback(async () => {
+  async function submitOrder() {
     setStatus("sending");
     let res: Response;
     let body: { success?: boolean; data?: unknown; error?: ApiErrorBody } | null;
@@ -122,22 +117,26 @@ export function OrderCountdown({
       error?.code === "PRODUCTS_MISSING" ? (error.details?.missingProductIds ?? []) : [];
     setErrorMsg(error?.message || "Erreur lors de la commande");
     setStatus("error");
-  }, [submission, onSuccess, onPriceChanged]);
+  }
 
-  // ── Countdown timer ──────────────────────────────────────
-
+  const submitRef = useRef(submitOrder);
   useEffect(() => {
-    if (status !== "countdown" || timeLeft <= 0) return;
-    const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [status, timeLeft]);
+    submitRef.current = submitOrder;
+  });
 
+  // ── Countdown: `duration` seconds shown, then one send with the latest props (submitRef).
+  // The cleanup clears both timers, so a round sends at most once, Strict Mode included.
   useEffect(() => {
-    if (status !== "countdown" || timeLeft > 0 || cancelledRef.current) return;
-    if (sentRoundRef.current === round) return;
-    sentRoundRef.current = round;
-    void submitOrder();
-  }, [status, timeLeft, round, submitOrder]);
+    const tick = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    const send = setTimeout(() => {
+      clearInterval(tick);
+      if (!cancelledRef.current) void submitRef.current();
+    }, duration * 1000);
+    return () => {
+      clearInterval(tick);
+      clearTimeout(send);
+    };
+  }, [round, duration]);
 
   // ── Cancel handler ───────────────────────────────────────
 
@@ -315,7 +314,7 @@ export function OrderCountdown({
         {(status === "countdown" || status === "sending") && (
           <div className="mt-8 space-y-1 text-center text-sm text-gray-500 dark:text-gray-400">
             <p>
-              {itemCount} article{itemCount > 1 ? "s" : ""} &middot; {fmtPrice(totalCents)}
+              {itemCount} article{itemCount > 1 ? "s" : ""} &middot; {formatPrice(totalCents)}
             </p>
             {pickupLabel && <p>{pickupLabel}</p>}
             {shopName && <p className="font-medium text-gray-700 dark:text-gray-300">{shopName}</p>}

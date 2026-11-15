@@ -33,9 +33,14 @@ describe("refusalMessageOf", () => {
     ["un message blanc", { error: { message: "  \n" } }],
     ["un message non textuel", { error: { message: 42 } }],
     ["un texte d'erreur blanc", { error: "   " }],
+    ["un texte d'erreur vide", { error: "" }],
+    ["un message hors de error, qu'aucune route n'envoie", { message: "Refus" }],
     ["un corps sans erreur", { success: true, data: {} }],
     ["un corps qui n'est pas un objet", "Erreur"],
+    ["un nombre", 42],
+    ["un tableau", [{ error: "Refus" }]],
     ["null", null],
+    ["undefined", undefined],
   ])("%s : null", (_label, body) => {
     expect(refusalMessageOf(body)).toBeNull();
   });

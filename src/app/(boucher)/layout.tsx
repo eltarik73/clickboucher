@@ -5,6 +5,7 @@
 
 import { usePathname } from "next/navigation";
 import { BoucherNav } from "@/components/layout/BoucherNav";
+import { PendingOrderCountProvider } from "@/hooks/use-pending-order-count";
 
 export default function BoucherLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -12,21 +13,17 @@ export default function BoucherLayout({ children }: { children: React.ReactNode 
 
   // Kitchen mode: full-screen dark, no nav
   if (isKitchenMode) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a]">
-        {children}
-      </div>
-    );
+    return <div className="min-h-screen bg-[#0a0a0a]">{children}</div>;
   }
 
-  // Dashboard mode: with sidebar nav
+  // Dashboard mode: with sidebar nav; the nav and the pages share one pending-count read.
   return (
-    <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <BoucherNav />
-      {/* Mobile: bottom padding for nav. Desktop: left padding for sidebar */}
-      <main className="pb-20 md:pb-0 md:pl-[220px]">
-        {children}
-      </main>
-    </div>
+    <PendingOrderCountProvider>
+      <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
+        <BoucherNav />
+        {/* Mobile: bottom padding for nav. Desktop: left padding for sidebar */}
+        <main className="pb-20 md:pb-0 md:pl-[220px]">{children}</main>
+      </div>
+    </PendingOrderCountProvider>
   );
 }

@@ -18,7 +18,7 @@ import {
   Mail,
 } from "lucide-react";
 import { toast } from "sonner";
-import { apiErrorMessage } from "@/lib/api/error-message";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 import { CommercialEmailsToggle } from "@/components/webmaster/CommercialEmailsToggle";
 
 /* ─── types ─── */
@@ -96,7 +96,12 @@ export default function WebmasterParametresPage() {
     pa_tier3_escalation_min: "10",
     pa_max_increase_pct: "50",
     pa_require_reason: "true",
-    pa_default_reasons: JSON.stringify(["Poids réel différent", "Rupture produit", "Erreur de prix catalogue", "Ajustement découpe"]),
+    pa_default_reasons: JSON.stringify([
+      "Poids réel différent",
+      "Rupture produit",
+      "Erreur de prix catalogue",
+      "Ajustement découpe",
+    ]),
     pa_max_adjustments_per_order: "3",
     pa_enable_auto_approve: "true",
   });
@@ -134,7 +139,7 @@ export default function WebmasterParametresPage() {
         setEditValues(vals);
         if (vals.default_commission_pct) setGlobalPct(vals.default_commission_pct);
       } else {
-        toast.error(apiErrorMessage(d, "Impossible de charger la configuration"));
+        toast.error(refusalMessageOf(d) ?? "Impossible de charger la configuration");
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -158,7 +163,9 @@ export default function WebmasterParametresPage() {
         setPaConfig((prev) => ({ ...prev, ...vals }));
         setPaOriginal((prev) => ({ ...prev, ...vals }));
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoadingPaConfig(false);
   }, []);
 
@@ -169,7 +176,7 @@ export default function WebmasterParametresPage() {
       const res = await fetch("/api/admin/calendar");
       const d = await res.json();
       if (d.success) setEvents(d.data);
-      else toast.error(apiErrorMessage(d, "Impossible de charger les événements"));
+      else toast.error(refusalMessageOf(d) ?? "Impossible de charger les événements");
     } catch {
       toast.error("Erreur de connexion au serveur");
     } finally {
@@ -200,7 +207,7 @@ export default function WebmasterParametresPage() {
         setTimeout(() => setSavedKey(null), 2000);
       } else {
         const d = await res.json().catch(() => ({}));
-        toast.error(apiErrorMessage(d, "Erreur lors de la sauvegarde"));
+        toast.error(refusalMessageOf(d) ?? "Erreur lors de la sauvegarde");
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -233,7 +240,7 @@ export default function WebmasterParametresPage() {
         setTimeout(() => setCommissionApplied(false), 3000);
       } else {
         const d = await res.json().catch(() => ({}));
-        toast.error(apiErrorMessage(d, "Erreur lors de l'application de la commission"));
+        toast.error(refusalMessageOf(d) ?? "Erreur lors de l'application de la commission");
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -257,13 +264,20 @@ export default function WebmasterParametresPage() {
         }),
       });
       if (res.ok) {
-        setNewEvent({ name: "", description: "", date: "", type: "evenement", emoji: "📅", alertDaysBefore: 7 });
+        setNewEvent({
+          name: "",
+          description: "",
+          date: "",
+          type: "evenement",
+          emoji: "📅",
+          alertDaysBefore: 7,
+        });
         setShowNewEvent(false);
         toast.success("Événement créé");
         fetchEvents();
       } else {
         const d = await res.json().catch(() => ({}));
-        toast.error(apiErrorMessage(d, "Erreur lors de la création"));
+        toast.error(refusalMessageOf(d) ?? "Erreur lors de la création");
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -357,13 +371,13 @@ export default function WebmasterParametresPage() {
   const configKeys = Object.keys(CONFIG_META);
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-up">
+    <div className="flex animate-fade-up flex-col gap-5">
       {/* Header */}
       <div>
-        <h1 className="font-display text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        <h1 className="flex items-center gap-2 font-display text-xl font-bold text-gray-900 dark:text-white">
           <Settings size={20} /> Paramètres
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
           Configuration globale de la plateforme
         </p>
       </div>
@@ -385,30 +399,30 @@ export default function WebmasterParametresPage() {
               const changed = current !== original;
 
               return (
-                <div key={key} className="flex flex-col md:flex-row md:items-end gap-2">
+                <div key={key} className="flex flex-col gap-2 md:flex-row md:items-end">
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {meta.label}
                     </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{meta.description}</p>
+                    <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                      {meta.description}
+                    </p>
                     <input
                       type={meta.type}
                       value={current}
-                      onChange={(e) =>
-                        setEditValues((v) => ({ ...v, [key]: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+                      onChange={(e) => setEditValues((v) => ({ ...v, [key]: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
                     />
                   </div>
                   <button
                     onClick={() => saveConfig(key)}
                     disabled={!changed || savingKey === key}
-                    className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl font-medium transition ${
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition ${
                       savedKey === key
-                        ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
                         : changed
                           ? "bg-red-600 text-white hover:bg-red-700"
-                          : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                          : "cursor-not-allowed bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400"
                     }`}
                   >
                     {savingKey === key ? (
@@ -431,12 +445,12 @@ export default function WebmasterParametresPage() {
       {/* Section 2: Global Commission */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <Section icon={Coins} title="Commission globale">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+        <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
           Appliquer un taux de commission identique à toutes les boutiques actives.
         </p>
-        <div className="flex flex-col md:flex-row md:items-end gap-3">
-          <div className="flex-1 max-w-xs">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="max-w-xs flex-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Taux (%)
             </label>
             <div className="flex items-center gap-3">
@@ -449,7 +463,7 @@ export default function WebmasterParametresPage() {
                 onChange={(e) => setGlobalPct(e.target.value)}
                 className="flex-1 accent-red-600"
               />
-              <span className="text-lg font-bold text-gray-900 dark:text-white w-14 text-right">
+              <span className="w-14 text-right text-lg font-bold text-gray-900 dark:text-white">
                 {globalPct}%
               </span>
             </div>
@@ -457,9 +471,9 @@ export default function WebmasterParametresPage() {
           <button
             onClick={applyGlobalCommission}
             disabled={applyingCommission}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl font-medium transition ${
+            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition ${
               commissionApplied
-                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
                 : "bg-red-600 text-white hover:bg-red-700"
             }`}
           >
@@ -470,13 +484,19 @@ export default function WebmasterParametresPage() {
             ) : (
               <Sliders size={14} />
             )}
-            {commissionApplied ? "Appliqué à toutes les boutiques" : "Appliquer à toutes les boutiques"}
+            {commissionApplied
+              ? "Appliqué à toutes les boutiques"
+              : "Appliquer à toutes les boutiques"}
           </button>
         </div>
-        <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-500/10 rounded-xl flex items-start gap-2">
-          <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+        <div className="mt-2 flex items-start gap-2 rounded-xl bg-amber-50 p-2 dark:bg-amber-500/10">
+          <AlertTriangle
+            size={14}
+            className="mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400"
+          />
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            Cette action modifie le taux de commission de <strong>toutes</strong> les boutiques. Les taux individuels déjà configurés seront écrasés.
+            Cette action modifie le taux de commission de <strong>toutes</strong> les boutiques. Les
+            taux individuels déjà configurés seront écrasés.
           </p>
         </div>
       </Section>
@@ -489,8 +509,9 @@ export default function WebmasterParametresPage() {
       {/* Section 3: Calendar Events */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <Section icon={Calendar} title="Événements calendrier">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-          Événements de la plateforme (fêtes religieuses, promotions, fermetures). Les alertes sont envoyées aux bouchers X jours avant.
+        <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          Événements de la plateforme (fêtes religieuses, promotions, fermetures). Les alertes sont
+          envoyées aux bouchers X jours avant.
         </p>
 
         {/* Event list */}
@@ -499,21 +520,23 @@ export default function WebmasterParametresPage() {
             <Loader2 size={20} className="animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : events.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">Aucun événement configuré.</p>
+          <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            Aucun événement configuré.
+          </p>
         ) : (
-          <div className="space-y-2 mb-4">
+          <div className="mb-4 space-y-2">
             {events.map((evt) => (
               <div
                 key={evt.id}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition ${
+                className={`flex items-center gap-3 rounded-xl border p-3 transition ${
                   evt.active
-                    ? "bg-gray-50 dark:bg-white/[0.02] border-gray-200 dark:border-white/[0.06]"
-                    : "bg-gray-50/50 dark:bg-white/[0.01] border-gray-100 dark:border-white/[0.03] opacity-50"
+                    ? "border-gray-200 bg-gray-50 dark:border-white/[0.06] dark:bg-white/[0.02]"
+                    : "border-gray-100 bg-gray-50/50 opacity-50 dark:border-white/[0.03] dark:bg-white/[0.01]"
                 }`}
               >
                 <span className="text-lg">{evt.emoji || "📅"}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
                     {evt.name}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -532,10 +555,10 @@ export default function WebmasterParametresPage() {
                 {/* Toggle active */}
                 <button
                   onClick={() => toggleEventActive(evt)}
-                  className={`px-2 py-1 text-[10px] font-semibold rounded-lg transition ${
+                  className={`rounded-lg px-2 py-1 text-[10px] font-semibold transition ${
                     evt.active
-                      ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                      : "bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-gray-400"
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
+                      : "bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-gray-400"
                   }`}
                 >
                   {evt.active ? "Actif" : "Inactif"}
@@ -545,7 +568,7 @@ export default function WebmasterParametresPage() {
                 <button
                   onClick={() => deleteEvent(evt.id)}
                   disabled={deletingEvent === evt.id}
-                  className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                  className="rounded-lg p-1.5 text-gray-500 transition hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-500/10"
                 >
                   {deletingEvent === evt.id ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -560,22 +583,22 @@ export default function WebmasterParametresPage() {
 
         {/* New event form */}
         {showNewEvent ? (
-          <div className="p-4 rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50/50 dark:bg-red-500/5 space-y-3">
+          <div className="space-y-3 rounded-xl border border-red-200 bg-red-50/50 p-4 dark:border-red-500/20 dark:bg-red-500/5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                 Nouvel événement
               </h3>
               <button
                 onClick={() => setShowNewEvent(false)}
-                className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="rounded-lg p-1 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                   Nom
                 </label>
                 <input
@@ -583,22 +606,22 @@ export default function WebmasterParametresPage() {
                   value={newEvent.name}
                   onChange={(e) => setNewEvent((v) => ({ ...v, name: e.target.value }))}
                   placeholder="Ex: Aïd el-Fitr"
-                  className="w-full px-3 py-2 text-sm rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none dark:border-white/10 dark:bg-[#141414] dark:text-white"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                   Date
                 </label>
                 <input
                   type="date"
                   value={newEvent.date}
                   onChange={(e) => setNewEvent((v) => ({ ...v, date: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none dark:border-white/10 dark:bg-[#141414] dark:text-white"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                   Type
                 </label>
                 <select
@@ -611,7 +634,7 @@ export default function WebmasterParametresPage() {
                       emoji: t?.emoji || "📅",
                     }));
                   }}
-                  className="w-full px-3 py-2 text-sm rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none dark:border-white/10 dark:bg-[#141414] dark:text-white"
                 >
                   {EVENT_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -621,7 +644,7 @@ export default function WebmasterParametresPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                   Alerte (jours avant)
                 </label>
                 <input
@@ -632,13 +655,13 @@ export default function WebmasterParametresPage() {
                   onChange={(e) =>
                     setNewEvent((v) => ({ ...v, alertDaysBefore: Number(e.target.value) }))
                   }
-                  className="w-full px-3 py-2 text-sm rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none dark:border-white/10 dark:bg-[#141414] dark:text-white"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">
+              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                 Description (optionnel)
               </label>
               <input
@@ -646,7 +669,7 @@ export default function WebmasterParametresPage() {
                 value={newEvent.description}
                 onChange={(e) => setNewEvent((v) => ({ ...v, description: e.target.value }))}
                 placeholder="Description courte"
-                className="w-full px-3 py-2 text-sm rounded-xl bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none dark:border-white/10 dark:bg-[#141414] dark:text-white"
               />
             </div>
 
@@ -654,7 +677,7 @@ export default function WebmasterParametresPage() {
               <button
                 onClick={createEvent}
                 disabled={!newEvent.name || !newEvent.date || creatingEvent}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition"
+                className="flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
               >
                 {creatingEvent ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -668,7 +691,7 @@ export default function WebmasterParametresPage() {
         ) : (
           <button
             onClick={() => setShowNewEvent(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl font-medium bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition"
+            className="flex items-center gap-1.5 rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-200 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
           >
             <Plus size={14} /> Ajouter un événement
           </button>
@@ -687,15 +710,29 @@ export default function WebmasterParametresPage() {
           <div className="space-y-6">
             {/* ── Seuils des paliers ── */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Seuils des paliers
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {([
-                  { key: "pa_tier1_max_pct", label: "Palier 1 max (%)", desc: "Auto-approuvé si hausse ≤ ce %" },
-                  { key: "pa_tier2_max_pct", label: "Palier 2 max (%)", desc: "Auto-validé après délai si hausse ≤ ce %" },
-                  { key: "pa_max_increase_pct", label: "Cap maximum (%)", desc: "Hausse max autorisée (sécurité)" },
-                ] as const).map(({ key, label, desc }) => (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {(
+                  [
+                    {
+                      key: "pa_tier1_max_pct",
+                      label: "Palier 1 max (%)",
+                      desc: "Auto-approuvé si hausse ≤ ce %",
+                    },
+                    {
+                      key: "pa_tier2_max_pct",
+                      label: "Palier 2 max (%)",
+                      desc: "Auto-validé après délai si hausse ≤ ce %",
+                    },
+                    {
+                      key: "pa_max_increase_pct",
+                      label: "Cap maximum (%)",
+                      desc: "Hausse max autorisée (sécurité)",
+                    },
+                  ] as const
+                ).map(({ key, label, desc }) => (
                   <PaField
                     key={key}
                     configKey={key}
@@ -714,19 +751,23 @@ export default function WebmasterParametresPage() {
             </div>
 
             {/* ── Timers ── */}
-            <div className="border-t border-gray-100 dark:border-white/5 pt-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            <div className="border-t border-gray-100 pt-4 dark:border-white/5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Timers
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <PaField
                   configKey="pa_tier2_auto_approve_sec"
                   label="Auto-validation palier 2 (sec)"
                   description="Délai avant auto-approbation du palier 2"
                   type="number"
                   value={paConfig.pa_tier2_auto_approve_sec}
-                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_tier2_auto_approve_sec: v }))}
-                  changed={paConfig.pa_tier2_auto_approve_sec !== paOriginal.pa_tier2_auto_approve_sec}
+                  onChange={(v) =>
+                    setPaConfig((prev) => ({ ...prev, pa_tier2_auto_approve_sec: v }))
+                  }
+                  changed={
+                    paConfig.pa_tier2_auto_approve_sec !== paOriginal.pa_tier2_auto_approve_sec
+                  }
                   saving={paSavingKey === "pa_tier2_auto_approve_sec"}
                   saved={paSavedKey === "pa_tier2_auto_approve_sec"}
                   onSave={() => savePaConfig("pa_tier2_auto_approve_sec")}
@@ -747,16 +788,20 @@ export default function WebmasterParametresPage() {
             </div>
 
             {/* ── Options ── */}
-            <div className="border-t border-gray-100 dark:border-white/5 pt-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            <div className="border-t border-gray-100 pt-4 dark:border-white/5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Options
               </h3>
               <div className="space-y-3">
                 {/* Toggle: require reason */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Motif obligatoire</span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Le boucher doit fournir un motif pour chaque ajustement</p>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Motif obligatoire
+                    </span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Le boucher doit fournir un motif pour chaque ajustement
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -764,13 +809,17 @@ export default function WebmasterParametresPage() {
                         const newVal = paConfig.pa_require_reason === "true" ? "false" : "true";
                         setPaConfig((prev) => ({ ...prev, pa_require_reason: newVal }));
                       }}
-                      className={`relative w-10 h-5 rounded-full transition-colors ${
-                        paConfig.pa_require_reason === "true" ? "bg-red-600" : "bg-gray-300 dark:bg-white/20"
+                      className={`relative h-5 w-10 rounded-full transition-colors ${
+                        paConfig.pa_require_reason === "true"
+                          ? "bg-red-600"
+                          : "bg-gray-300 dark:bg-white/20"
                       }`}
                     >
                       <span
-                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white dark:bg-gray-900 shadow transition-transform ${
-                          paConfig.pa_require_reason === "true" ? "translate-x-5" : "translate-x-0.5"
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform dark:bg-gray-900 ${
+                          paConfig.pa_require_reason === "true"
+                            ? "translate-x-5"
+                            : "translate-x-0.5"
                         }`}
                       />
                     </button>
@@ -778,9 +827,13 @@ export default function WebmasterParametresPage() {
                       <button
                         onClick={() => savePaConfig("pa_require_reason")}
                         disabled={paSavingKey === "pa_require_reason"}
-                        className="px-2 py-1 text-[10px] font-semibold bg-red-600 text-white rounded-lg"
+                        className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-semibold text-white"
                       >
-                        {paSavingKey === "pa_require_reason" ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                        {paSavingKey === "pa_require_reason" ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : (
+                          <Save size={10} />
+                        )}
                       </button>
                     )}
                   </div>
@@ -789,22 +842,31 @@ export default function WebmasterParametresPage() {
                 {/* Toggle: auto-approve */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Auto-approbation</span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Activer l&apos;auto-validation pour les paliers 1 et 2</p>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Auto-approbation
+                    </span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Activer l&apos;auto-validation pour les paliers 1 et 2
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
-                        const newVal = paConfig.pa_enable_auto_approve === "true" ? "false" : "true";
+                        const newVal =
+                          paConfig.pa_enable_auto_approve === "true" ? "false" : "true";
                         setPaConfig((prev) => ({ ...prev, pa_enable_auto_approve: newVal }));
                       }}
-                      className={`relative w-10 h-5 rounded-full transition-colors ${
-                        paConfig.pa_enable_auto_approve === "true" ? "bg-red-600" : "bg-gray-300 dark:bg-white/20"
+                      className={`relative h-5 w-10 rounded-full transition-colors ${
+                        paConfig.pa_enable_auto_approve === "true"
+                          ? "bg-red-600"
+                          : "bg-gray-300 dark:bg-white/20"
                       }`}
                     >
                       <span
-                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white dark:bg-gray-900 shadow transition-transform ${
-                          paConfig.pa_enable_auto_approve === "true" ? "translate-x-5" : "translate-x-0.5"
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform dark:bg-gray-900 ${
+                          paConfig.pa_enable_auto_approve === "true"
+                            ? "translate-x-5"
+                            : "translate-x-0.5"
                         }`}
                       />
                     </button>
@@ -812,9 +874,13 @@ export default function WebmasterParametresPage() {
                       <button
                         onClick={() => savePaConfig("pa_enable_auto_approve")}
                         disabled={paSavingKey === "pa_enable_auto_approve"}
-                        className="px-2 py-1 text-[10px] font-semibold bg-red-600 text-white rounded-lg"
+                        className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-semibold text-white"
                       >
-                        {paSavingKey === "pa_enable_auto_approve" ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                        {paSavingKey === "pa_enable_auto_approve" ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : (
+                          <Save size={10} />
+                        )}
                       </button>
                     )}
                   </div>
@@ -827,8 +893,13 @@ export default function WebmasterParametresPage() {
                   description="Nombre maximum d'ajustements autorisés sur une même commande"
                   type="number"
                   value={paConfig.pa_max_adjustments_per_order}
-                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_max_adjustments_per_order: v }))}
-                  changed={paConfig.pa_max_adjustments_per_order !== paOriginal.pa_max_adjustments_per_order}
+                  onChange={(v) =>
+                    setPaConfig((prev) => ({ ...prev, pa_max_adjustments_per_order: v }))
+                  }
+                  changed={
+                    paConfig.pa_max_adjustments_per_order !==
+                    paOriginal.pa_max_adjustments_per_order
+                  }
                   saving={paSavingKey === "pa_max_adjustments_per_order"}
                   saved={paSavedKey === "pa_max_adjustments_per_order"}
                   onSave={() => savePaConfig("pa_max_adjustments_per_order")}
@@ -837,20 +908,22 @@ export default function WebmasterParametresPage() {
             </div>
 
             {/* ── Default reasons ── */}
-            <div className="border-t border-gray-100 dark:border-white/5 pt-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            <div className="border-t border-gray-100 pt-4 dark:border-white/5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 Motifs par défaut
               </h3>
-              <div className="space-y-2 mb-3">
+              <div className="mb-3 space-y-2">
                 {paReasons.map((reason, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06]"
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-white/[0.06] dark:bg-white/[0.02]"
                   >
-                    <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">{reason}</span>
+                    <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+                      {reason}
+                    </span>
                     <button
                       onClick={() => removeReason(idx)}
-                      className="p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                      className="rounded-lg p-1 text-gray-500 transition hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-500/10"
                     >
                       <X size={14} />
                     </button>
@@ -862,14 +935,18 @@ export default function WebmasterParametresPage() {
                   type="text"
                   value={newReason}
                   onChange={(e) => setNewReason(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") { addReason(newReason); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      addReason(newReason);
+                    }
+                  }}
                   placeholder="Nouveau motif..."
-                  className="flex-1 px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none"
+                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-white"
                 />
                 <button
                   onClick={() => addReason(newReason)}
                   disabled={!newReason.trim()}
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 transition"
+                  className="flex items-center gap-1 rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-200 disabled:opacity-50 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
                 >
                   <Plus size={14} /> Ajouter
                 </button>
@@ -878,7 +955,7 @@ export default function WebmasterParametresPage() {
                 <button
                   onClick={() => savePaConfig("pa_default_reasons")}
                   disabled={paSavingKey === "pa_default_reasons"}
-                  className="mt-3 flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl font-medium bg-red-600 text-white hover:bg-red-700 transition"
+                  className="mt-3 flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                 >
                   {paSavingKey === "pa_default_reasons" ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -926,21 +1003,21 @@ function PaField({
   return (
     <div className="flex flex-col gap-1">
       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{description}</p>
+      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>
       <div className="flex items-center gap-2">
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 text-sm rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
         />
         {changed && (
           <button
             onClick={onSave}
             disabled={saving}
-            className={`flex items-center gap-1 px-3 py-2 text-xs rounded-xl font-medium shrink-0 transition ${
+            className={`flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition ${
               saved
-                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
                 : "bg-red-600 text-white hover:bg-red-700"
             }`}
           >
@@ -972,8 +1049,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-200 dark:border-white/[0.06] shadow-sm p-4 md:p-5">
-      <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/[0.06] dark:bg-[#141414] md:p-5">
+      <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
         <Icon size={16} /> {title}
       </h2>
       {children}

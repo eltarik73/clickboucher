@@ -29,6 +29,11 @@ function plan(input: Omit<ProductImageWriteInput, "inScope"> & { inScope?: Reado
   return planProductImageWrite({ inScope: OWN, ...input });
 }
 
+/** Plan of a write without a photo list: photos as stored, `imageUrl` the value to store. */
+function photosAsStored(imageUrl: string | null) {
+  return { ok: true, images: "unchanged", imageUrl };
+}
+
 beforeEach(() => {
   vi.stubEnv("VERCEL_ENV", "");
   vi.stubEnv("KLIKGO_DEPLOY_ENV", "");
@@ -81,10 +86,9 @@ describe("miroir : images fournies et non vides", () => {
 });
 
 describe("miroir : images fournies et vides", () => {
-  it("un produit qui n'a qu'une imageUrl la garde (clé absente)", () => {
+  it("un produit qui n'a qu'une imageUrl la garde", () => {
     const result = plan({ stored: { imageUrl: UNSPLASH, images: [] }, images: [] });
-    expect(result).toEqual({ ok: true, images: [] });
-    expect(result).not.toHaveProperty("imageUrl");
+    expect(result).toEqual({ ok: true, images: [], imageUrl: UNSPLASH });
   });
 
   it("clearImageUrl → null", () => {
@@ -104,7 +108,7 @@ describe("miroir : images fournies et vides", () => {
 
   it("imageUrl différente des images retirées → inchangée", () => {
     const result = plan({ stored: { imageUrl: CATALOGUE, images: [{ url: A }] }, images: [] });
-    expect(result).toEqual({ ok: true, images: [] });
+    expect(result).toEqual({ ok: true, images: [], imageUrl: CATALOGUE });
   });
 
   it("à la création : l'imageUrl fournie, sinon null", () => {
@@ -118,35 +122,32 @@ describe("miroir : images fournies et vides", () => {
 });
 
 describe("miroir : images non fournies", () => {
-  it("rien de fourni → rien à écrire", () => {
-    expect(plan({ stored: { imageUrl: UNSPLASH, images: [] } })).toEqual({ ok: true });
+  it("rien de fourni → photos et imageUrl telles qu'enregistrées", () => {
+    expect(plan({ stored: { imageUrl: UNSPLASH, images: [] } })).toEqual(photosAsStored(UNSPLASH));
+    expect(plan({ stored: null })).toEqual(photosAsStored(null));
   });
 
   it("produit à imageUrl seule : clearImageUrl → null", () => {
-    expect(plan({ stored: { imageUrl: CATALOGUE, images: [] }, clearImageUrl: true })).toEqual({
-      ok: true,
-      imageUrl: null,
-    });
+    expect(plan({ stored: { imageUrl: CATALOGUE, images: [] }, clearImageUrl: true })).toEqual(
+      photosAsStored(null)
+    );
   });
 
   it("l'imageUrl fournie est écrite, null compris", () => {
-    expect(plan({ stored: { imageUrl: null, images: [] }, imageUrl: CATALOGUE })).toEqual({
-      ok: true,
-      imageUrl: CATALOGUE,
-    });
-    expect(plan({ stored: { imageUrl: CATALOGUE, images: [] }, imageUrl: null })).toEqual({
-      ok: true,
-      imageUrl: null,
-    });
+    expect(plan({ stored: { imageUrl: null, images: [] }, imageUrl: CATALOGUE })).toEqual(
+      photosAsStored(CATALOGUE)
+    );
+    expect(plan({ stored: { imageUrl: CATALOGUE, images: [] }, imageUrl: null })).toEqual(
+      photosAsStored(null)
+    );
   });
 });
 
 describe("règle d'écriture et droit acquis", () => {
   it("une valeur Unsplash inchangée est acceptée en modification", () => {
-    expect(plan({ stored: { imageUrl: UNSPLASH, images: [] }, imageUrl: UNSPLASH })).toEqual({
-      ok: true,
-      imageUrl: UNSPLASH,
-    });
+    expect(plan({ stored: { imageUrl: UNSPLASH, images: [] }, imageUrl: UNSPLASH })).toEqual(
+      photosAsStored(UNSPLASH)
+    );
     expect(
       plan({ stored: { imageUrl: null, images: [{ url: UNSPLASH }] }, images: [{ url: UNSPLASH }] })
     ).toMatchObject({
@@ -225,10 +226,7 @@ describe("refus", () => {
   it("clearImageUrl avec imageUrl null n'est pas une contradiction", () => {
     expect(
       plan({ stored: { imageUrl: A, images: [] }, imageUrl: null, clearImageUrl: true })
-    ).toEqual({
-      ok: true,
-      imageUrl: null,
-    });
+    ).toEqual(photosAsStored(null));
   });
 });
 
@@ -265,7 +263,8 @@ describe("normalisation", () => {
     });
     expect(
       twoFlagged.ok &&
-        twoFlagged.images?.filter((image) => image.isPrimary).map((image) => image.url)
+        twoFlagged.images !== "unchanged" &&
+        twoFlagged.images.filter((image) => image.isPrimary).map((image) => image.url)
     ).toEqual([B]);
     expect(twoFlagged).toMatchObject({ imageUrl: B });
 
@@ -278,7 +277,8 @@ describe("normalisation", () => {
     });
     expect(
       noneFlagged.ok &&
-        noneFlagged.images?.filter((image) => image.isPrimary).map((image) => image.url)
+        noneFlagged.images !== "unchanged" &&
+        noneFlagged.images.filter((image) => image.isPrimary).map((image) => image.url)
     ).toEqual([A]);
     expect(noneFlagged).toMatchObject({ imageUrl: A });
   });
@@ -292,6 +292,8 @@ describe("normalisation", () => {
         { url: C, alt: null },
       ],
     });
-    expect(result.ok && result.images?.map((image) => image.alt)).toEqual(["Merguez", null, null]);
+    expect(
+      result.ok && result.images !== "unchanged" && result.images.map((image) => image.alt)
+    ).toEqual(["Merguez", null, null]);
   });
 });

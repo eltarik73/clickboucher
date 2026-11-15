@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
       data: {
         name: data.name,
         description: data.description,
-        imageUrl: photoPlan.imageUrl ?? null,
+        imageUrl: photoPlan.imageUrl,
         priceCents: data.priceCents,
         boutiquePriceCents: data.boutiquePriceCents ?? null,
         proPriceCents: data.proPriceCents,
@@ -244,10 +244,7 @@ export async function POST(req: NextRequest) {
         packContent: data.packContent,
         packWeight: data.packWeight,
         packOldPriceCents: data.packOldPriceCents,
-        images:
-          photoPlan.images && photoPlan.images.length > 0
-            ? { create: photoPlan.images }
-            : undefined,
+        images: photoPlan.images === "unchanged" ? undefined : { create: photoPlan.images },
         ...(data.labels?.length && {
           labels: {
             create: data.labels.map((l) => ({

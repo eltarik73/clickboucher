@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { invalidateCachedProducts } from "@/lib/cache/products-cache";
 import prisma from "@/lib/prisma";
-import { redis } from "@/lib/redis";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { z } from "zod";
 
@@ -13,10 +13,7 @@ export const dynamic = "force-dynamic";
 
 // ── PATCH /api/products/[id]/active ─────────────
 // Boucher (owner) only — quick isActive toggle
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
     const authResult = await getAuthenticatedBoucher();
@@ -45,12 +42,7 @@ export async function PATCH(
       select: { id: true, name: true, isActive: true },
     });
 
-    // Invalidate product cache
-    try {
-      await redis.del(`products:shop:${product.shopId}`);
-    } catch {
-      // Redis down — continue
-    }
+    await invalidateCachedProducts(product.shopId);
 
     return apiSuccess(updated);
   } catch (error) {

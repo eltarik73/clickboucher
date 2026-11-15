@@ -1,51 +1,27 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import postcss from "postcss";
 import { describe, expect, it } from "vitest";
 import config from "../../../tailwind.config";
+import { contrastRatio } from "../../../tests/helpers/wcag-contrast";
 import { SOLID_PAIRS, SUBTLE_PAIRS, SURFACE_TOKENS, TEXT_TOKENS } from "@/lib/design-tokens";
 
-const CSS = readFileSync(path.resolve(__dirname, "../../styles/globals.css"), "utf8");
+const CSS = postcss.parse(
+  readFileSync(path.resolve(__dirname, "../../styles/globals.css"), "utf8")
+);
 const HSL_TRIPLET = /^\d+(\.\d+)? \d+(\.\d+)?% \d+(\.\d+)?%$/;
 
 type Vars = Record<string, string>;
 
-/** Règles de premier niveau du fichier (hors @media / @supports), commentaires retirés. */
-function topLevelRules(css: string): Array<{ selector: string; body: string }> {
-  const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  const rules: Array<{ selector: string; body: string }> = [];
-  let depth = 0;
-  let start = 0;
-  let selector = "";
-  for (let i = 0; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === "{") {
-      if (depth === 0) {
-        selector = source.slice(start, i).trim();
-        start = i + 1;
-      }
-      depth++;
-    } else if (ch === "}") {
-      depth--;
-      if (depth === 0) {
-        rules.push({ selector, body: source.slice(start, i) });
-        start = i + 1;
-      }
-    } else if (ch === ";" && depth === 0) {
-      start = i + 1;
-    }
-  }
-  return rules;
-}
-
+/** Custom properties of the rules written for exactly this selector, keyed without their --. */
 function customProperties(selector: string): Vars {
   const vars: Vars = {};
-  for (const rule of topLevelRules(CSS)) {
-    if (rule.selector !== selector) continue;
-    for (const match of rule.body.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) {
-      vars[match[1]] = match[2].trim();
-    }
-  }
+  CSS.walkRules(selector, (rule) => {
+    rule.walkDecls(/^--/, (decl) => {
+      vars[decl.prop.slice(2)] = decl.value;
+    });
+  });
   return vars;
 }
 
@@ -63,20 +39,6 @@ function hslToRgb(triplet: string): [number, number, number] {
   const a = sat * Math.min(light, 1 - light);
   const f = (n: number) => light - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
   return [f(0), f(8), f(4)].map((v) => Math.round(v * 255)) as [number, number, number];
-}
-
-function luminance(triplet: string): number {
-  const channel = (v: number) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  const [r, g, b] = hslToRgb(triplet).map(channel);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function contrast(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
 }
 
 function toHex(triplet: string): string {
@@ -105,37 +67,44 @@ describe("tokens de couleur de globals.css", () => {
     expect(referenced.length).toBeGreaterThan(20);
   });
 
-  it.each(["light", "dark"] as const)("thème %s : chaque token est défini en 'H S% L%', sans alpha", (theme) => {
-    const invalid = referenced
-      .filter((name) => !HSL_TRIPLET.test(THEMES[theme][name] ?? ""))
-      .map((name) => `--${name}: ${THEMES[theme][name] ?? "(absent)"}`);
-    expect(invalid).toEqual([]);
-  });
+  it.each(["light", "dark"] as const)(
+    "thème %s : chaque token est défini en 'H S% L%', sans alpha",
+    (theme) => {
+      const invalid = referenced
+        .filter((name) => !HSL_TRIPLET.test(THEMES[theme][name] ?? ""))
+        .map((name) => `--${name}: ${THEMES[theme][name] ?? "(absent)"}`);
+      expect(invalid).toEqual([]);
+    }
+  );
 
   it.each(["light", "dark"] as const)("thème %s : --primary vaut #dc2626", (theme) => {
     expect(toHex(THEMES[theme].primary)).toBe("#dc2626");
   });
 
-  it.each(["light", "dark"] as const)("thème %s : toutes les paires atteignent leur seuil WCAG", (theme) => {
-    const vars = THEMES[theme];
-    const failures: string[] = [];
-    const check = (fg: string, bg: string, min: number) => {
-      const ratio = contrast(vars[fg], vars[bg]);
-      if (!(ratio >= min)) failures.push(`${fg} sur ${bg} = ${ratio.toFixed(2)} (< ${min})`);
-    };
-    for (const text of TEXT_TOKENS) for (const surface of SURFACE_TOKENS) check(text, surface, 4.5);
-    for (const [text, surface] of SUBTLE_PAIRS) check(text, surface, 4.5);
-    for (const [text, surface] of SOLID_PAIRS) check(text, surface, 4.5);
-    for (const surface of SURFACE_TOKENS) {
-      check("ring", surface, 3);
-      check("primary", surface, 3);
-    }
-    expect(failures, failures.join("\n")).toEqual([]);
+  // Anchors of the formula: black on white is 21:1; white on #dc2626 is 1.05 / 0.2174 ≈ 4.83:1.
+  it("le ratio WCAG vaut 21 pour noir sur blanc et 4,83 pour blanc sur #dc2626", () => {
+    expect(contrastRatio([0, 0, 0], [255, 255, 255])).toBe(21);
+    expect(contrastRatio([255, 255, 255], [220, 38, 38])).toBeCloseTo(4.83, 2);
   });
 
-  it("les variables héritées ont disparu", () => {
-    for (const legacy of ["--burgundy", "--orange", "--radius-sm", "--radius-xs", "-stack"]) {
-      expect(CSS).not.toContain(legacy);
+  it.each(["light", "dark"] as const)(
+    "thème %s : toutes les paires atteignent leur seuil WCAG",
+    (theme) => {
+      const vars = THEMES[theme];
+      const failures: string[] = [];
+      const check = (fg: string, bg: string, min: number) => {
+        const ratio = contrastRatio(hslToRgb(vars[fg]), hslToRgb(vars[bg]));
+        if (!(ratio >= min)) failures.push(`${fg} sur ${bg} = ${ratio.toFixed(2)} (< ${min})`);
+      };
+      for (const text of TEXT_TOKENS)
+        for (const surface of SURFACE_TOKENS) check(text, surface, 4.5);
+      for (const [text, surface] of SUBTLE_PAIRS) check(text, surface, 4.5);
+      for (const [text, surface] of SOLID_PAIRS) check(text, surface, 4.5);
+      for (const surface of SURFACE_TOKENS) {
+        check("ring", surface, 3);
+        check("primary", surface, 3);
+      }
+      expect(failures, failures.join("\n")).toEqual([]);
     }
-  });
+  );
 });

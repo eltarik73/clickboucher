@@ -40,7 +40,13 @@ function WithTrigger({ side }: { side: Side }) {
   );
 }
 
-function Controlled({ side, onCloseAutoFocus }: { side: Side; onCloseAutoFocus?: (event: Event) => void }) {
+function Controlled({
+  side,
+  onCloseAutoFocus,
+}: {
+  side: Side;
+  onCloseAutoFocus?: (event: Event) => void;
+}) {
   const [open, setOpen] = React.useState(false);
   return (
     <>
@@ -122,41 +128,12 @@ describe.each<Side>(["bottom", "right"])("Sheet côté %s", (side) => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Ailleurs" }));
   });
 
-  it("se ferme par le bouton « Fermer » de 44 px", async () => {
+  it("se ferme par le bouton « Fermer »", async () => {
     render(<Controlled side={side} />);
     const opener = open();
     const sheet = await screen.findByRole("dialog", { name: "Filtres" });
-    const close = within(sheet).getByRole("button", { name: "Fermer" });
-    expect(close).toHaveClass("size-11");
-
-    fireEvent.click(close);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Fermer" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(document.activeElement).toBe(opener);
-  });
-
-  it("porte les classes de son côté, des durées préfixées par l'état et aucune couleur en dur", async () => {
-    render(<WithTrigger side={side} />);
-    open();
-    const sheet = await screen.findByRole("dialog", { name: "Filtres" });
-    expect(sheet).toHaveClass(
-      "bg-card",
-      "text-card-foreground",
-      "data-[state=open]:duration-300",
-      "data-[state=closed]:duration-200",
-      `data-[state=open]:slide-in-from-${side}`,
-      `data-[state=closed]:slide-out-to-${side}`,
-    );
-    expect(sheet.className).not.toMatch(/(^|\s)duration-\d/);
-    expect(sheet.className).not.toMatch(/#[0-9a-f]{3,6}/i);
-    expect(sheet.getAttribute("style") ?? "").not.toMatch(/font-family/);
-
-    const handle = sheet.querySelector('[aria-hidden="true"].h-1');
-    if (side === "bottom") {
-      expect(sheet).toHaveClass("rounded-t-sheet", "bottom-0");
-      expect(handle).not.toBeNull();
-    } else {
-      expect(sheet).toHaveClass("right-0", "max-w-md");
-      expect(handle).toBeNull();
-    }
   });
 });

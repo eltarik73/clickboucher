@@ -119,7 +119,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     } = data;
 
     const photoPlan = await planProductImageWriteInShop(
-      { stored: { imageUrl: product.imageUrl, images: product.images }, images, imageUrl, clearImageUrl },
+      {
+        stored: { imageUrl: product.imageUrl, images: product.images },
+        images,
+        imageUrl,
+        clearImageUrl,
+      },
       product.shopId
     );
     if (!photoPlan.ok) return apiError("VALIDATION_ERROR", photoPlan.messageFr);
@@ -127,6 +132,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const updateData: Record<string, unknown> = {
       ...scalarData,
       ...antiGaspiEndOnPriceWrite(product, scalarData.priceCents, new Date()),
+      imageUrl: photoPlan.imageUrl,
     };
     if (promoEnd !== undefined) {
       updateData.promoEnd = promoEnd ? new Date(promoEnd) : null;
@@ -140,11 +146,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     // Photos replaced inside the single product.update below: Prisma runs its nested writes in one
     // transaction, so a failed update keeps the previous photos.
-    if (photoPlan.images !== undefined) {
+    if (photoPlan.images !== "unchanged") {
       updateData.images = { deleteMany: {}, create: photoPlan.images };
-    }
-    if ("imageUrl" in photoPlan) {
-      updateData.imageUrl = photoPlan.imageUrl;
     }
 
     // Replace labels if provided (delete old, create new with productId)

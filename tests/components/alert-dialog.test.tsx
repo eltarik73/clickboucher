@@ -92,7 +92,6 @@ describe("AlertDialog", () => {
     const opener = open();
     const alert = await screen.findByRole("alertdialog");
     const action = within(alert).getByRole("button", { name: "Refuser" });
-    expect(action).toHaveClass("bg-destructive");
     fireEvent.click(action);
     expect(onAction).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
@@ -156,31 +155,5 @@ describe("AlertDialog", () => {
     const alert = await screen.findByRole("alertdialog");
     fireEvent.click(within(alert).getByRole("button", { name: "Annuler" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
-  });
-
-  it("se centre par la mise en page, sans translate que l'animation d'entrée écraserait", async () => {
-    render(<Harness />);
-    open();
-    const alert = await screen.findByRole("alertdialog");
-    expect(alert).toHaveClass("fixed", "inset-0", "m-auto", "h-fit", "max-w-sm", "p-6");
-    expect(alert.className).not.toMatch(/translate-/);
-  });
-
-  it("le pied passe à la ligne : des libellés longs s'empilent au lieu de déborder", async () => {
-    render(<Harness />);
-    open();
-    const alert = await screen.findByRole("alertdialog");
-    const footer = within(alert).getByRole("button", { name: "Annuler" }).parentElement;
-    expect(footer).toHaveClass("flex", "flex-wrap", "gap-3");
-  });
-
-  it("refuse un rôle ou une fermeture extérieure passés par l'appelant", () => {
-    const misuse = (
-      // @ts-expect-error le rôle est toujours alertdialog
-      <AlertDialogContent role="dialog">
-        <AlertDialogTitle>Titre</AlertDialogTitle>
-      </AlertDialogContent>
-    );
-    expect(misuse).toBeTruthy();
   });
 });

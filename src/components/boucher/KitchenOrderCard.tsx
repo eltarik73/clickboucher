@@ -21,11 +21,12 @@ import {
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
 import { ProductPhoto } from "@/components/media/ProductPhoto";
-import { formatItemQty, kitchenStoredLine, printOrderTicket } from "./OrderTicket";
+import { formatItemQty, printOrderTicket } from "./OrderTicket";
+import { PREPARATION_WINDOW_MS } from "@/hooks/kitchen-board-diff";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import { formatCustomerNumber } from "@/lib/order-number-format";
 import { storedLineUnits } from "@/lib/pricing/line";
-// ORDER_STATUS_BORDER removed in v3 — tickets use uniform border style
+import type { BoucherAction } from "@/lib/services/orders/commands/action-schema";
 import { toast } from "sonner";
 import {
   formatPriceCents as formatPrice,
@@ -40,7 +41,7 @@ type Props = {
   order: KitchenOrder;
   shopName?: string;
   shopPrepTime?: number;
-  onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
+  onAction: (orderId: string, action: BoucherAction) => Promise<void>;
   onStockIssue: (order: KitchenOrder) => void;
   onView?: (orderId: string) => void;
   onAdjustPrice?: (order: KitchenOrder) => void;
@@ -102,16 +103,15 @@ export default function KitchenOrderCard({
       : 0;
 
   // Scheduled order detection
-  const THIRTY_MIN = 30 * 60 * 1000;
   const isScheduled =
     !!order.pickupSlotStart && new Date(order.pickupSlotStart).getTime() > Date.now();
   const isScheduledFuture =
     isScheduled &&
-    new Date(order.pickupSlotStart!).getTime() > Date.now() + THIRTY_MIN &&
+    new Date(order.pickupSlotStart!).getTime() > Date.now() + PREPARATION_WINDOW_MS &&
     (order.status === "ACCEPTED" || order.status === "PREPARING");
   const isScheduledSoon =
     isScheduled &&
-    new Date(order.pickupSlotStart!).getTime() <= Date.now() + THIRTY_MIN &&
+    new Date(order.pickupSlotStart!).getTime() <= Date.now() + PREPARATION_WINDOW_MS &&
     (order.status === "ACCEPTED" || order.status === "PREPARING");
   const scheduledMs = order.pickupSlotStart
     ? new Date(order.pickupSlotStart).getTime() - Date.now()
@@ -135,12 +135,12 @@ export default function KitchenOrderCard({
     }
   }
 
-  async function doAction(action: string, data?: Record<string, unknown>) {
+  async function doAction(action: BoucherAction) {
     setLoading(true);
     try {
-      await onAction(order.id, action, data);
+      await onAction(order.id, action);
       // Auto-print 1 ticket silently on accept
-      if (action === "accept") {
+      if (action.action === "accept") {
         silentPrint();
       }
       setShowAcceptForm(false);
@@ -158,7 +158,7 @@ export default function KitchenOrderCard({
 
   // ── SCHEDULED FUTURE COMPACT VIEW (>30min before pickup, no action buttons) ──
   if (isScheduledFuture) {
-    const itemCount = order.items.reduce((s, i) => s + storedLineUnits(kitchenStoredLine(i)), 0);
+    const itemCount = order.items.reduce((sum, item) => sum + storedLineUnits(item), 0);
     return (
       <div
         className={`${CARD_BG} ${CARD_RADIUS} ${CARD_BORDER} ${CARD_HOVER} border-l-4 border-l-amber-500 px-3 py-2 opacity-70 transition-colors`}
@@ -542,7 +542,7 @@ export default function KitchenOrderCard({
             <button
               onClick={() => {
                 if (isScheduled) {
-                  doAction("accept", { estimatedMinutes: 0 });
+                  doAction({ action: "accept", estimatedMinutes: 0 });
                 } else {
                   setShowAcceptForm(true);
                   setAcceptMinutes(shopPrepTime);
@@ -588,7 +588,7 @@ export default function KitchenOrderCard({
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => doAction("accept", { estimatedMinutes: acceptMinutes })}
+                onClick={() => doAction({ action: "accept", estimatedMinutes: acceptMinutes })}
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white transition-all hover:bg-emerald-700 disabled:opacity-50"
               >
@@ -643,7 +643,7 @@ export default function KitchenOrderCard({
             />
             <div className="flex gap-2">
               <button
-                onClick={() => doAction("deny", { reason: denyReason })}
+                onClick={() => doAction({ action: "deny", reason: denyReason })}
                 disabled={loading || !denyReason.trim()}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white transition-all hover:bg-red-700 disabled:opacity-50"
               >
@@ -682,14 +682,14 @@ export default function KitchenOrderCard({
                 </button>
               )}
               <button
-                onClick={() => doAction("start_preparing")}
+                onClick={() => doAction({ action: "start_preparing" })}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
                 className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-[9px] text-xs font-bold text-gray-300 transition-all hover:bg-white/10 disabled:opacity-50"
               >
                 <ChefHat size={13} /> Preparer
               </button>
               <button
-                onClick={() => doAction("mark_ready")}
+                onClick={() => doAction({ action: "mark_ready" })}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
                 className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-[#2563EB] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#1D4ED8] active:scale-95 disabled:opacity-50"
               >
@@ -698,14 +698,14 @@ export default function KitchenOrderCard({
             </div>
             <div className="flex gap-1.5">
               <button
-                onClick={() => doAction("add_time", { addMinutes: 5 })}
+                onClick={() => doAction({ action: "add_time", addMinutes: 5 })}
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
                 <Timer size={11} /> +5 min
               </button>
               <button
-                onClick={() => doAction("add_time", { addMinutes: 10 })}
+                onClick={() => doAction({ action: "add_time", addMinutes: 10 })}
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
@@ -734,7 +734,7 @@ export default function KitchenOrderCard({
                 </button>
               )}
               <button
-                onClick={() => doAction("mark_ready")}
+                onClick={() => doAction({ action: "mark_ready" })}
                 disabled={loading || order.priceAdjustment?.status === "PENDING"}
                 className="flex flex-[2] items-center justify-center gap-1 rounded-[9px] bg-[#2563EB] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#1D4ED8] active:scale-95 disabled:opacity-50"
               >
@@ -748,14 +748,14 @@ export default function KitchenOrderCard({
             </div>
             <div className="flex gap-1.5">
               <button
-                onClick={() => doAction("add_time", { addMinutes: 5 })}
+                onClick={() => doAction({ action: "add_time", addMinutes: 5 })}
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
                 <Timer size={11} /> +5 min
               </button>
               <button
-                onClick={() => doAction("add_time", { addMinutes: 10 })}
+                onClick={() => doAction({ action: "add_time", addMinutes: 10 })}
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-1 rounded-[9px] bg-white/5 p-1.5 text-[10px] font-medium text-gray-500 transition-all hover:bg-white/10"
               >
@@ -777,10 +777,10 @@ export default function KitchenOrderCard({
             <button
               onClick={() => {
                 if (!order.qrCode) {
-                  doAction("manual_pickup");
+                  doAction({ action: "manual_pickup" });
                   return;
                 }
-                doAction("confirm_pickup", { qrCode: order.qrCode });
+                doAction({ action: "confirm_pickup", qrCode: order.qrCode });
               }}
               disabled={loading}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] bg-[#16A34A] p-[9px] text-xs font-bold text-white transition-all hover:bg-[#15803D] active:scale-95 disabled:opacity-50"

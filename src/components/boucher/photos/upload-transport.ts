@@ -7,6 +7,7 @@
 // text/plain de Vercel, une page HTML ou une coupure réseau donnent un message français, jamais
 // « Unexpected token ». interpretUploadResponse l'applique à la réponse d'un envoi.
 import type { z } from "zod";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 import {
   buildUploadForm,
   UPLOAD_ENDPOINT,
@@ -41,12 +42,6 @@ function field(value: unknown, name: string): unknown {
     : undefined;
 }
 
-/** error.message de l'enveloppe { success: false, error: { code, message } } de src/lib/api/errors.ts. */
-function serverMessage(body: unknown): string | null {
-  const message = field(field(body, "error"), "message");
-  return typeof message === "string" && message.trim() !== "" ? message : null;
-}
-
 /** Issue d'une réponse { success, data | error } : `data` lu par `dataSchema`, ou un message français. */
 export function interpretApiResponse<T>(
   status: number,
@@ -64,7 +59,7 @@ export function interpretApiResponse<T>(
   }
   // Une session absente ou expirée se règle en se reconnectant, quel que soit le texte du serveur.
   if (status === 401) return failure(UPLOAD_MESSAGES_FR.SESSION);
-  const fromServer = serverMessage(body);
+  const fromServer = refusalMessageOf(body);
   if (fromServer !== null) return failure(fromServer);
   if (status === 413) return failure(UPLOAD_MESSAGES_FR.HTTP_413);
   if (status === 502 || status === 503 || status === 504)

@@ -19,7 +19,8 @@
 // its primary photo decides: a requested change of imageUrl (clearImageUrl, or an imageUrl other than
 // the stored one) is refused with PRIMARY_PHOTO_DECIDES_FR, the stored value re-sent is a no-op;
 // images not given otherwise (create, or a product without stored images) → null if clearImageUrl, the
-// given imageUrl if defined, otherwise unchanged. A missing key in the plan means 'leave as is'.
+// given imageUrl if defined, otherwise unchanged. The plan holds final values: imageUrl is the value to
+// store (the stored one, or null on create, when unchanged); images is "unchanged" when no list is given.
 //
 // Précisions d'application : « together with imageUrl » = imageUrl est une chaîne (null n'est pas
 // une contradiction) ; une imageUrl fournie est contrôlée par la règle d'écriture même quand le
@@ -65,7 +66,7 @@ export interface ProductImageWriteInput {
 
 export type ProductImageWritePlan =
   | { ok: false; messageFr: string }
-  | { ok: true; images?: NormalizedProductImage[]; imageUrl?: string | null };
+  | { ok: true; imageUrl: string | null; images: NormalizedProductImage[] | "unchanged" };
 
 interface NormalizedImages {
   images: NormalizedProductImage[];
@@ -102,35 +103,34 @@ export function requestedImageValues(
   return values;
 }
 
-/** imageUrl à écrire quand des images sont fournies mais vides ; undefined = inchangée. */
+/** imageUrl to store when an empty photo list is given. */
 function mirrorWhenEmptied(
   stored: StoredProductPhotos | null,
   imageUrl: string | null | undefined,
   clearImageUrl: boolean
-): string | null | undefined {
+): string | null {
   if (clearImageUrl) return null;
   if (stored === null) return imageUrl ?? null;
-  const mirroredRemovedPhoto =
-    stored.imageUrl !== null && stored.images.some((image) => image.url === stored.imageUrl);
-  return mirroredRemovedPhoto ? null : undefined;
+  // An imageUrl that mirrored one of the removed photos goes with them.
+  return stored.images.some((image) => image.url === stored.imageUrl) ? null : stored.imageUrl;
 }
 
-type MirrorDecision =
-  | { ok: false; messageFr: string }
-  | { ok: true; imageUrl: string | null | undefined };
+type MirrorDecision = { ok: false; messageFr: string } | { ok: true; imageUrl: string | null };
 
-/** imageUrl à écrire quand aucune liste d'images n'est fournie ; undefined = inchangée. */
+/** imageUrl to store when no photo list is given. */
 function mirrorWithoutImages(
   stored: StoredProductPhotos | null,
   imageUrl: string | null | undefined,
   clearImageUrl: boolean
 ): MirrorDecision {
   const requested = clearImageUrl ? null : imageUrl;
-  if (stored === null || stored.images.length === 0) return { ok: true, imageUrl: requested };
-  // Le produit a des photos : imageUrl reste le miroir de sa principale.
-  if (requested === undefined || requested === stored.imageUrl)
-    return { ok: true, imageUrl: undefined };
-  return { ok: false, messageFr: PRIMARY_PHOTO_DECIDES_FR };
+  const current = stored?.imageUrl ?? null;
+  if (requested === undefined || requested === current) return { ok: true, imageUrl: current };
+  // A product with photos keeps imageUrl as the mirror of its primary photo.
+  if (stored !== null && stored.images.length > 0) {
+    return { ok: false, messageFr: PRIMARY_PHOTO_DECIDES_FR };
+  }
+  return { ok: true, imageUrl: requested };
 }
 
 export function planProductImageWrite(input: ProductImageWriteInput): ProductImageWritePlan {
@@ -151,20 +151,14 @@ export function planProductImageWrite(input: ProductImageWriteInput): ProductIma
     return { ok: false, messageFr: IMAGE_URL_REFUSED_FR };
   }
 
-  let nextImageUrl: string | null | undefined;
   if (normalized === undefined) {
     const decision = mirrorWithoutImages(stored, imageUrl, clearImageUrl);
     if (!decision.ok) return decision;
-    nextImageUrl = decision.imageUrl;
-  } else if (normalized.primaryUrl !== null) {
-    nextImageUrl = normalized.primaryUrl;
-  } else {
-    nextImageUrl = mirrorWhenEmptied(stored, imageUrl, clearImageUrl);
+    return { ok: true, imageUrl: decision.imageUrl, images: "unchanged" };
   }
-
   return {
     ok: true,
-    ...(normalized === undefined ? {} : { images: normalized.images }),
-    ...(nextImageUrl === undefined ? {} : { imageUrl: nextImageUrl }),
+    imageUrl: normalized.primaryUrl ?? mirrorWhenEmptied(stored, imageUrl, clearImageUrl),
+    images: normalized.images,
   };
 }

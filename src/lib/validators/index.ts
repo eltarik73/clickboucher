@@ -1,5 +1,6 @@
 // KLIK&GO — Zod Validation Schemas
 
+import { OrderStatus } from "@prisma/client";
 import { z } from "zod";
 import { imageRefSchema } from "@/lib/images/durable-url";
 import { MAX_PRODUCT_PHOTOS, TOO_MANY_PRODUCT_PHOTOS_FR } from "@/lib/images/product-image-write";
@@ -355,7 +356,7 @@ export const updateAntiGaspiSchema = z.object({
 //    src/lib/services/orders/commands/action-schema.ts) --
 
 export const orderListQuerySchema = z.object({
-  status: z.string().optional(),
+  status: z.nativeEnum(OrderStatus).optional(),
   shopId: z.string().cuid().optional(),
 });
 

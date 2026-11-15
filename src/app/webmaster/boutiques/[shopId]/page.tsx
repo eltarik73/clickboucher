@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import ShopAdjustmentsTab from "@/components/webmaster/ShopAdjustmentsTab";
-import { refusalMessage } from "@/lib/api/client-refusal";
+import { z } from "zod";
+import { refusalMessage, refusalMessageOf } from "@/lib/api/client-refusal";
 import { shopPublication } from "@/lib/shop-publication";
 
 // ── Types ──
@@ -81,14 +82,17 @@ function centsToEuro(c: number) {
 import { ORDER_STATUS_COLORS } from "@/lib/design-tokens";
 
 const SHOP_PHOTO_SAVE_FAILED = "La photo n'a pas pu être enregistrée.";
+// A schema refusal's message is only « Données invalides »: the photo's own reason is its detail.
+const photoRefusalSchema = z.object({
+  error: z.object({ details: z.object({ imageUrl: z.array(z.string()).nonempty() }) }),
+});
 
 /** French reason of a refused shop photo save; an answer that is not JSON gets the generic one. */
 async function shopPhotoSaveError(res: Response): Promise<string> {
   if (!res.headers.get("content-type")?.includes("application/json")) return SHOP_PHOTO_SAVE_FAILED;
-  const body = (await res.json()) as {
-    error?: { message?: string; details?: { imageUrl?: string[] } };
-  };
-  return body.error?.details?.imageUrl?.[0] ?? body.error?.message ?? SHOP_PHOTO_SAVE_FAILED;
+  const body: unknown = await res.json();
+  const photoReason = photoRefusalSchema.safeParse(body).data?.error.details.imageUrl[0];
+  return photoReason ?? refusalMessageOf(body) ?? SHOP_PHOTO_SAVE_FAILED;
 }
 
 // ── Component ──

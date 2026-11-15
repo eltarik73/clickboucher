@@ -43,20 +43,38 @@ describe("produit à photos : la photo principale fait foi pour imageUrl", () =>
     ["une autre imageUrl", { imageUrl: CATALOGUE }],
     ["une autre photo de la boutique", { imageUrl: C }],
   ])("%s sans images → refusé, rien à écrire", (_case, request) => {
-    expect(plan({ stored: withPhotos, ...request })).toEqual({ ok: false, messageFr: PRIMARY_PHOTO_DECIDES_FR });
-    expect(PRIMARY_PHOTO_DECIDES_FR).toBe("La photo principale du produit fait foi : modifiez les photos du produit.");
+    expect(plan({ stored: withPhotos, ...request })).toEqual({
+      ok: false,
+      messageFr: PRIMARY_PHOTO_DECIDES_FR,
+    });
+    expect(PRIMARY_PHOTO_DECIDES_FR).toBe(
+      "La photo principale du produit fait foi : modifiez les photos du produit."
+    );
   });
 
-  it("l'imageUrl enregistrée renvoyée telle quelle → rien à écrire", () => {
-    expect(plan({ stored: withPhotos, imageUrl: A })).toEqual({ ok: true });
+  it("l'imageUrl enregistrée renvoyée telle quelle → photos et imageUrl inchangées", () => {
+    expect(plan({ stored: withPhotos, imageUrl: A })).toEqual({
+      ok: true,
+      images: "unchanged",
+      imageUrl: A,
+    });
   });
 
-  it("clearImageUrl quand imageUrl est déjà null → rien à écrire", () => {
-    expect(plan({ stored: { imageUrl: null, images: [{ url: A }] }, clearImageUrl: true })).toEqual({ ok: true });
+  it("clearImageUrl quand imageUrl est déjà null → photos et imageUrl inchangées", () => {
+    expect(plan({ stored: { imageUrl: null, images: [{ url: A }] }, clearImageUrl: true })).toEqual(
+      {
+        ok: true,
+        images: "unchanged",
+        imageUrl: null,
+      }
+    );
   });
 
   it("avec images, clearImageUrl reste sans effet : le miroir suit la principale", () => {
-    expect(plan({ stored: withPhotos, images: [{ url: B }], clearImageUrl: true })).toMatchObject({ ok: true, imageUrl: B });
+    expect(plan({ stored: withPhotos, images: [{ url: B }], clearImageUrl: true })).toMatchObject({
+      ok: true,
+      imageUrl: B,
+    });
   });
 });
 
@@ -64,7 +82,10 @@ describe("périmètre : un fichier de notre magasin doit appartenir à la boutiq
   const RIVAL = `${STORE}/shops/rival/product/x.webp`;
 
   it("un fichier hors périmètre est refusé, en photo comme en imageUrl", () => {
-    expect(plan({ stored: null, images: [{ url: RIVAL }] })).toEqual({ ok: false, messageFr: IMAGE_URL_REFUSED_FR });
+    expect(plan({ stored: null, images: [{ url: RIVAL }] })).toEqual({
+      ok: false,
+      messageFr: IMAGE_URL_REFUSED_FR,
+    });
     expect(plan({ stored: { imageUrl: null, images: [] }, imageUrl: RIVAL })).toEqual({
       ok: false,
       messageFr: IMAGE_URL_REFUSED_FR,
@@ -72,19 +93,26 @@ describe("périmètre : un fichier de notre magasin doit appartenir à la boutiq
   });
 
   it("le même fichier est accepté quand il est dans le périmètre", () => {
-    expect(plan({ stored: null, images: [{ url: RIVAL }], inScope: new Set([RIVAL]) })).toMatchObject({
+    expect(
+      plan({ stored: null, images: [{ url: RIVAL }], inScope: new Set([RIVAL]) })
+    ).toMatchObject({
       ok: true,
       imageUrl: RIVAL,
     });
   });
 
   it("une photo du site (/img) n'a pas de propriétaire : acceptée sans périmètre", () => {
-    expect(plan({ stored: null, images: [{ url: CATALOGUE }], inScope: new Set() })).toMatchObject({ ok: true });
+    expect(plan({ stored: null, images: [{ url: CATALOGUE }], inScope: new Set() })).toMatchObject({
+      ok: true,
+    });
   });
 
   it("un fichier historique déjà enregistré sur la ligne garde son droit acquis", () => {
     const legacy = `${STORE}/products/product-1772114082715-3e9f77cb76d4b0eb.webp`;
     const stored = { imageUrl: legacy, images: [{ url: legacy }] };
-    expect(plan({ stored, images: [{ url: legacy }], inScope: new Set() })).toMatchObject({ ok: true, imageUrl: legacy });
+    expect(plan({ stored, images: [{ url: legacy }], inScope: new Set() })).toMatchObject({
+      ok: true,
+      imageUrl: legacy,
+    });
   });
 });

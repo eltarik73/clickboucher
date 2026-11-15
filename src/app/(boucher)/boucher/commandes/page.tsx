@@ -6,6 +6,7 @@
 // 30 min before pickup → move up to "À préparer maintenant" section + sound + notification
 "use client";
 
+import type { OrderStatus } from "@prisma/client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Bell,
@@ -30,6 +31,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 // Logo uses <a> tag for dashboard navigation (no client-side nav needed)
+import { PREPARATION_WINDOW_MS } from "@/hooks/kitchen-board-diff";
 import {
   useOrderPolling,
   type KitchenHistoryOrder,
@@ -42,6 +44,10 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useKitchenNotifications } from "@/hooks/use-kitchen-notifications";
 import dynamic from "next/dynamic";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
+import { ORDER_STATUS_LABELS } from "@/lib/design-tokens";
+import { formatClientName } from "@/lib/format-kitchen";
+import { storedLineUnits } from "@/lib/pricing/line";
+import type { BoucherAction } from "@/lib/services/orders/commands/action-schema";
 
 // Lazy-load: conditionally displayed (modals, overlays, scanner)
 const AudioUnlockScreen = dynamic(() => import("@/components/boucher/AudioUnlockScreen"), {
@@ -65,7 +71,6 @@ import { toast } from "sonner";
 // Types
 // ─────────────────────────────────────────────
 type Tab = "nouvelles" | "en-cours" | "pretes" | "historique";
-const THIRTY_MIN = 30 * 60 * 1000;
 // Wi-Fi icon turns red when no poll has succeeded for this long (above the 15 s hidden-tab cadence)
 const CONNECTION_STALE_MS = 20_000;
 // Minimum delay between two shop-status refetches for the same expired pause
@@ -95,23 +100,38 @@ function formatDate(dateStr: string) {
 }
 
 // ─────────────────────────────────────────────
-// Status badge for history
+// Status badge for history (labels: ORDER_STATUS_LABELS)
 // ─────────────────────────────────────────────
-const STATUS_BADGE: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
-  PICKED_UP: { label: "Récupérée", color: "bg-emerald-500/20 text-emerald-400", icon: Package },
-  COMPLETED: { label: "Terminée", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
-  DENIED: { label: "Refusée", color: "bg-red-500/20 text-red-400", icon: XCircle },
-  CANCELLED: { label: "Annulée", color: "bg-red-500/20 text-red-400", icon: Ban },
-  AUTO_CANCELLED: {
-    label: "Expirée",
-    color: "bg-gray-500/20 text-gray-500 dark:text-gray-400",
-    icon: Ban,
-  },
-  PARTIALLY_DENIED: {
-    label: "Partielle",
-    color: "bg-orange-500/20 text-orange-400",
-    icon: XCircle,
-  },
+type HistoryBadge = { color: string; icon: typeof CheckCircle };
+// The history lists finished orders and those waiting for their customer, never these statuses.
+const NOT_IN_HISTORY_BADGE: HistoryBadge = {
+  color: "bg-gray-500/20 text-gray-500 dark:text-gray-400",
+  icon: Clock,
+};
+const STATUS_BADGE: Record<OrderStatus, HistoryBadge> = {
+  PENDING: NOT_IN_HISTORY_BADGE,
+  ACCEPTED: NOT_IN_HISTORY_BADGE,
+  PREPARING: NOT_IN_HISTORY_BADGE,
+  READY: NOT_IN_HISTORY_BADGE,
+  PICKED_UP: { color: "bg-emerald-500/20 text-emerald-400", icon: Package },
+  COMPLETED: { color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle },
+  DENIED: { color: "bg-red-500/20 text-red-400", icon: XCircle },
+  CANCELLED: { color: "bg-red-500/20 text-red-400", icon: Ban },
+  AUTO_CANCELLED: { color: "bg-gray-500/20 text-gray-500 dark:text-gray-400", icon: Ban },
+  PARTIALLY_DENIED: { color: "bg-orange-500/20 text-orange-400", icon: XCircle },
+};
+
+const ACTION_LABELS: Record<BoucherAction["action"], string> = {
+  accept: "Commande acceptee",
+  deny: "Commande refusee",
+  start_preparing: "Preparation lancee",
+  mark_ready: "Commande prete !",
+  confirm_pickup: "Retrait confirme",
+  manual_pickup: "Retrait confirme",
+  add_time: "Temps ajoute",
+  item_unavailable: "Rupture signalee",
+  cancel: "Commande annulee",
+  add_note: "Note enregistrée",
 };
 
 // ─────────────────────────────────────────────
@@ -335,57 +355,25 @@ export default function KitchenModePage() {
   }, []);
 
   // ── Handle order action (unified API) ──
-  async function handleAction(orderId: string, action: string, data?: Record<string, unknown>) {
+  async function handleAction(orderId: string, action: BoucherAction) {
     try {
       const res = await fetch(`/api/boucher/orders/${orderId}/action`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...data }),
+        body: JSON.stringify(action),
       });
       if (res.ok) {
         // Stop marimba on accept/deny actions
-        if (["accept", "deny", "cancel"].includes(action)) {
+        if (["accept", "deny", "cancel"].includes(action.action)) {
           stopOrderAlert();
         }
         await refetch();
-        const actionLabels: Record<string, string> = {
-          accept: "Commande acceptee",
-          deny: "Commande refusee",
-          start_preparing: "Preparation lancee",
-          mark_ready: "Commande prete !",
-          confirm_pickup: "Retrait confirme",
-          manual_pickup: "Retrait confirme",
-          add_time: "Temps ajoute",
-          item_unavailable: "Rupture signalee",
-          cancel: "Commande annulee",
-        };
-        toast.success(actionLabels[action] || "Action effectuee");
+        toast.success(ACTION_LABELS[action.action]);
       } else {
         const json = await res.json().catch(() => null);
         await refetch();
         const msg = json?.error?.message || "Erreur lors de l'action";
         toast.error(msg);
-      }
-    } catch {
-      toast.error("Erreur de connexion au serveur");
-    }
-  }
-
-  // ── Handle stock issue ──
-  async function handleStockIssue(orderId: string, itemIds: string[]) {
-    try {
-      const res = await fetch(`/api/boucher/orders/${orderId}/action`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "item_unavailable", itemIds }),
-      });
-      if (res.ok) {
-        await refetch();
-        toast.success("Rupture signalee");
-      } else {
-        const json = await res.json().catch(() => null);
-        await refetch();
-        toast.error(json?.error?.message || "Erreur lors du signalement");
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -437,12 +425,12 @@ export default function KitchenModePage() {
   // Split inProgressOrders into: prepare now vs scheduled waiting
   const prepareNowOrders = inProgressOrders.filter((o) => {
     if (!o.pickupSlotStart) return true; // ASAP
-    return new Date(o.pickupSlotStart).getTime() <= Date.now() + THIRTY_MIN;
+    return new Date(o.pickupSlotStart).getTime() <= Date.now() + PREPARATION_WINDOW_MS;
   });
   const scheduledWaitingOrders = inProgressOrders
     .filter((o) => {
       if (!o.pickupSlotStart) return false;
-      return new Date(o.pickupSlotStart).getTime() > Date.now() + THIRTY_MIN;
+      return new Date(o.pickupSlotStart).getTime() > Date.now() + PREPARATION_WINDOW_MS;
     })
     .sort(
       (a, b) => new Date(a.pickupSlotStart!).getTime() - new Date(b.pickupSlotStart!).getTime()
@@ -525,7 +513,9 @@ export default function KitchenModePage() {
         <ItemUnavailableModal
           order={stockIssueOrder}
           onClose={() => setStockIssueOrder(null)}
-          onConfirm={handleStockIssue}
+          onConfirm={(orderId, itemIds) =>
+            handleAction(orderId, { action: "item_unavailable", itemIds })
+          }
         />
       )}
 
@@ -1304,7 +1294,7 @@ function KitchenColumn({
   orders: KitchenOrder[];
   shopName: string;
   shopPrepTime: number;
-  onAction: (orderId: string, action: string, data?: Record<string, unknown>) => Promise<void>;
+  onAction: (orderId: string, action: BoucherAction) => Promise<void>;
   onStockIssue: (order: KitchenOrder) => void;
   onView?: (orderId: string) => void;
   onAdjustPrice?: (order: KitchenOrder) => void;
@@ -1376,22 +1366,11 @@ function KitchenColumn({
 // History card (read-only, compact)
 // ─────────────────────────────────────────────
 function HistoryCard({ order }: { order: KitchenHistoryOrder }) {
-  const badge = STATUS_BADGE[order.status] || {
-    label: order.status,
-    color: "bg-gray-500/20 text-gray-500 dark:text-gray-400",
-    icon: Clock,
-  };
+  const badge = STATUS_BADGE[order.status];
   const BadgeIcon = badge.icon;
-
-  const clientName = order.user
-    ? order.user.firstName.charAt(0).toUpperCase() +
-      order.user.firstName.slice(1).toLowerCase() +
-      "." +
-      order.user.lastName.charAt(0).toUpperCase()
-    : "Client";
-
+  const clientName = formatClientName(order.user.firstName, order.user.lastName);
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
-  const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
+  const itemCount = order.items.reduce((sum, item) => sum + storedLineUnits(item), 0);
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/5 bg-[#1a1a1a]">
@@ -1404,7 +1383,7 @@ function HistoryCard({ order }: { order: KitchenHistoryOrder }) {
             className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold ${badge.color}`}
           >
             <BadgeIcon size={10} />
-            {badge.label}
+            {ORDER_STATUS_LABELS[order.status]}
           </span>
         </div>
         <span className="ml-2 shrink-0 text-sm font-bold text-white">

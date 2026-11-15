@@ -168,6 +168,7 @@ function kitchenItem(id: string, name: string, totalCents: number, available = t
     pieceLabel: null,
     cutOption: null,
     available,
+    product: { name, unit: "PIECE", imageUrl: null },
   };
 }
 
@@ -191,7 +192,7 @@ function kitchenOrder(overrides: Partial<KitchenOrder>): KitchenOrder {
     createdAt: "2026-11-13T11:00:00.000Z",
     updatedAt: "2026-11-13T11:00:00.000Z",
     items: [],
-    user: { firstName: "fatima", lastName: "amrani" },
+    user: { firstName: "fatima", lastName: "amrani", phone: null, loyaltyBadge: null },
     priceAdjustment: null,
     ...overrides,
   };

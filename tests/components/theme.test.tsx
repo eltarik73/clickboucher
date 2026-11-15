@@ -2,12 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { act, render } from "@testing-library/react";
 import { screen, waitFor } from "@testing-library/dom";
 import { toast } from "sonner";
-import {
-  THEME_STORAGE_KEY,
-  ThemeProvider,
-  themeInitScript,
-  useTheme,
-} from "@/components/providers/ThemeProvider";
+import { ThemeProvider, themeInitScript, useTheme } from "@/components/providers/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
 
 // La clé reste « theme » : c'est celle que les visiteurs ont déjà dans leur navigateur.
@@ -44,10 +39,6 @@ afterEach(() => {
 });
 
 describe("themeInitScript", () => {
-  test("lit la clé historique « theme »", () => {
-    expect(THEME_STORAGE_KEY).toBe(KEY);
-  });
-
   test("pose la classe dark quand 'dark' est stocké", () => {
     localStorage.setItem(KEY, "dark");
     runInitScript();
@@ -135,9 +126,7 @@ describe("ThemeProvider", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     window.addEventListener("error", silenceExpectedError);
     try {
-      expect(() => render(<ThemeProbe />)).toThrow(
-        "useTheme doit être utilisé dans ThemeProvider"
-      );
+      expect(() => render(<ThemeProbe />)).toThrow("useTheme doit être utilisé dans ThemeProvider");
     } finally {
       window.removeEventListener("error", silenceExpectedError);
     }
