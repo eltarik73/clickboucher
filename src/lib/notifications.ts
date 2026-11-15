@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { sendWhatsAppMessage, sendWhatsAppRaw } from "@/lib/whatsapp";
-import { sendPushNotification, type PushPayload, type PushSubscriptionData } from "@/lib/push";
+import { isPushConfigured, sendPushNotification } from "@/lib/push";
+import type { PushPayload, PushSubscriptionData } from "@/lib/push";
 import * as tpl from "@/lib/email-templates";
 import { logger } from "@/lib/logger";
 import { notificationThrottle } from "@/lib/notification-policy";
@@ -588,8 +589,7 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
     // ── Email ──
     if (user.notifEmail && user.email) {
       try {
-        await sendEmail(user.email, subject, html);
-        channels.push("email");
+        if (await sendEmail(user.email, subject, html)) channels.push("email");
       } catch (e) {
         logger.error("[notifications][email] Error", e);
       }
@@ -599,19 +599,17 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
     if (user.notifWhatsapp && user.phone) {
       try {
         const waTemplateKey = getWhatsAppTemplateKey(event);
-        if (waTemplateKey) {
-          await sendWhatsAppMessage(user.phone, waTemplateKey, {
-            orderNumber: data.orderNumber || "",
-            shopName: data.shopName || "",
-            customerName: data.customerName || "",
-            nbItems: String(data.nbItems || 0),
-            slot: data.slot || "dès que possible",
-            reason: data.denyReason || "",
-          });
-        } else {
-          await sendWhatsAppRaw(user.phone, plainText);
-        }
-        channels.push("whatsapp");
+        const whatsappSent = waTemplateKey
+          ? await sendWhatsAppMessage(user.phone, waTemplateKey, {
+              orderNumber: data.orderNumber || "",
+              shopName: data.shopName || "",
+              customerName: data.customerName || "",
+              nbItems: String(data.nbItems || 0),
+              slot: data.slot || "dès que possible",
+              reason: data.denyReason || "",
+            })
+          : await sendWhatsAppRaw(user.phone, plainText);
+        if (whatsappSent) channels.push("whatsapp");
       } catch (e) {
         logger.error("[notifications][whatsapp] Error", e);
       }
@@ -641,7 +639,13 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
         if (promoPushCount >= 3) promoPushAllowed = false;
       }
     }
-    if (user.notifPush && user.pushSubscription && (!isPromoEvent || promoPushAllowed)) {
+    // Sans clés VAPID le push n'est pas tenté : ni compté servi, ni abonnement effacé.
+    if (
+      user.notifPush &&
+      user.pushSubscription &&
+      isPushConfigured() &&
+      (!isPromoEvent || promoPushAllowed)
+    ) {
       try {
         const sub = user.pushSubscription as PushSubscriptionData;
         if (sub.endpoint && sub.keys) {

@@ -138,32 +138,28 @@ npm install
 # 2. Copier et remplir les variables d'environnement
 cp .env.example .env
 
-# 3. Lancer Prisma (Bloc 2+)
+# 3. Base locale : PostgreSQL dans Docker (docker-compose.yml), schéma, données de démo
+docker compose up -d
+#    dans .env : DATABASE_URL="postgresql://clickboucher:clickboucher_dev@localhost:5432/clickboucher?schema=public"
 npx prisma generate
-npx prisma migrate dev
-npx prisma db seed
+npx prisma db push
+npm run db:seed
 
 # 4. Lancer le serveur de développement
 npm run dev
 ```
 
-Ouvrir [http://localhost:3000](http://localhost:3000) — redirige vers `/decouvrir`.
+Ouvrir [http://localhost:3000](http://localhost:3000) (accueil). Le schéma local se crée par `prisma db push`,
+comme dans la CI. Le seed vide les tables avant de les remplir : il refuse toute base qui n'est pas locale
+(localhost, 127.0.0.1 ou ::1).
 
-## Deploiement Railway (full stack)
+## Déploiement en production
 
-```bash
-# 1. Railway — creer le projet
-# → Ajouter un service PostgreSQL
-# → Ajouter un service depuis le repo Git (Next.js)
-# → Variables : DATABASE_URL (auto), CLERK keys, etc.
+L'application est déployée par **Vercel** à chaque mise à jour de `main` ; **Railway** n'héberge que la
+base PostgreSQL (aucun service Next.js sur Railway).
 
-# 2. Build command (configure dans Railway)
-npx prisma generate && npm run build
-
-# 3. Start command
-npm run start
-
-# 4. Premiere migration en production
-npx prisma migrate deploy
-npx prisma db seed
-```
+- Le build Vercel (`npm run build`) applique les migrations par `npx prisma migrate deploy`, en production
+  uniquement et après les pré-vols `preflight.sql` (`scripts/prisma-migrate-prod-only.mjs`). C'est la seule
+  commande Prisma qui s'exécute contre la base de production.
+- Le seed ne s'exécute jamais en production : `prisma/seed.ts` vide les tables et refuse toute base qui
+  n'est pas locale.

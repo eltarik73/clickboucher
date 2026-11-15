@@ -12,7 +12,7 @@ import { getShopImage } from "@/lib/product-images";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin, Phone } from "lucide-react";
 import prisma from "@/lib/prisma";
-import { redis } from "@/lib/redis";
+import { readCachedShop, writeCachedShop } from "@/lib/cache/shop-cache";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import {
   ShopProductsClient,
@@ -58,31 +58,10 @@ async function fetchShopFromDB(slug: string) {
 type ShopWithProducts = NonNullable<Awaited<ReturnType<typeof fetchShopFromDB>>>;
 
 const getShop = cache(async (slug: string): Promise<ShopWithProducts | null> => {
-  // Try Redis cache first (TTL 60s)
-  const cacheKey = `shop:${slug}`;
-  try {
-    const cached = await redis.get<string>(cacheKey);
-    if (cached) {
-      const parsed = (typeof cached === "string" ? JSON.parse(cached) : cached) as ShopWithProducts;
-      // Restore Date objects
-      if (parsed?.products) {
-        for (const p of parsed.products) {
-          if (p.promoEnd) p.promoEnd = new Date(p.promoEnd);
-        }
-      }
-      return parsed;
-    }
-  } catch {}
-
+  const cached = await readCachedShop<ShopWithProducts>(slug);
+  if (cached !== null) return cached;
   const shop = await fetchShopFromDB(slug);
-
-  // Cache for 60 seconds
-  if (shop) {
-    try {
-      await redis.set(cacheKey, JSON.stringify(shop), { ex: 60 });
-    } catch {}
-  }
-
+  if (shop !== null) await writeCachedShop(slug, shop);
   return shop;
 });
 

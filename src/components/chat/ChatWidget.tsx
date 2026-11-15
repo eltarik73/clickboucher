@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Send, X, CheckCircle } from "lucide-react";
 import { useCart } from "@/lib/hooks/use-cart";
 import { normalizeCartLine } from "@/lib/cart/stored-cart";
+import { apiErrorMessage } from "@/lib/api/error-message";
 
 // ── Types ────────────────────────────────────────
 
@@ -356,7 +357,7 @@ export function ChatWidget() {
 
         if (!res.ok) {
           const err = await res.json().catch(() => null);
-          throw new Error(err?.error || "Erreur serveur");
+          throw new Error(apiErrorMessage(err, "Erreur serveur"));
         }
 
         const data = await res.json();

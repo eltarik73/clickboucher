@@ -19,13 +19,12 @@ import {
   Play,
   Flame,
   Palmtree,
-  Wifi,
   WifiOff,
   Sparkles,
   Leaf,
   FileSpreadsheet,
 } from "lucide-react";
-import { useOrderStream } from "@/hooks/useOrderStream";
+import { usePendingOrderCount } from "@/hooks/use-pending-order-count";
 import OnboardingChecklist from "@/components/boucher/OnboardingChecklist";
 import { toast } from "sonner";
 
@@ -304,26 +303,9 @@ export default function BoucherDashboardPage() {
   const { user } = useUser();
   const [shop, setShop] = useState<ShopStatus | null>(null);
   const [summary, setSummary] = useState<DaySummary | null>(null);
-  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-
-  // SSE real-time stream
-  const { connected, pendingCount: ssePendingCount } = useOrderStream({
-    onNewOrder: () => {
-      toast.success("Nouvelle commande !");
-      fetchSummary();
-    },
-    onStatusChange: () => {
-      fetchShopStatus();
-      fetchSummary();
-    },
-    onAutoPaused: (message) => {
-      toast.error(message);
-      fetchShopStatus();
-    },
-  });
 
   const fetchShopStatus = useCallback(async () => {
     try {
@@ -349,21 +331,11 @@ export default function BoucherDashboardPage() {
     }
   }, []);
 
-  // The server count of orders waiting for an answer, read again whenever the stream's count moves.
-  useEffect(() => {
-    async function fetchPendingCount() {
-      try {
-        const res = await fetch("/api/boucher/orders/pending-count");
-        if (res.ok) {
-          const json = await res.json();
-          setPendingCount(json.data?.pending ?? 0);
-        }
-      } catch {
-        /* silent */
-      }
-    }
-    fetchPendingCount();
-  }, [ssePendingCount]);
+  const pendingCount = usePendingOrderCount(({ previous, current }) => {
+    void fetchSummary();
+    void fetchShopStatus();
+    if (current > previous) toast.success("Nouvelle commande !");
+  });
 
   useEffect(() => {
     async function load() {
@@ -439,23 +411,6 @@ export default function BoucherDashboardPage() {
               Bonjour {user?.firstName || "Chef"}
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">{shop?.name}</p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            {connected ? (
-              <Badge
-                variant="outline"
-                className="gap-1 border-emerald-200 bg-emerald-50 text-[10px] text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
-              >
-                <Wifi size={10} /> En ligne
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="gap-1 border-red-200 bg-red-50 text-[10px] text-red-600 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
-              >
-                <WifiOff size={10} /> Hors ligne
-              </Badge>
-            )}
           </div>
         </div>
 

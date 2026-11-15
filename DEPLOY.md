@@ -1,4 +1,4 @@
-# Deploiement ClickBoucher — Full Railway
+# Déploiement Klik&Go — Vercel (application) et Railway (PostgreSQL)
 
 ## Architecture
 
@@ -6,16 +6,16 @@
                     INTERNET
                        |
               +--------v--------+
-              |    RAILWAY      |
-              |  +-----------+  |     +----------------+
-              |  | Next.js   |  |     |  STRIPE (CB)   |
-              |  | App Router|<-------+  Webhooks      |
-              |  | + API     |  |     +----------------+
-              |  +-----+-----+  |
-              |        |        |     +----------------+
-              |  +-----v-----+  |     |  TWILIO        |
-              |  | PostgreSQL|  |     |  SMS/WhatsApp  |
-              |  +-----------+  |     +----------------+
+              |     VERCEL      |
+              |  Next.js (App   |
+              |  Router + API,  |
+              |  crons)         |
+              +--------+--------+
+                       |
+              +--------v--------+
+              |     RAILWAY     |
+              |   PostgreSQL    |
+              |   (base seule)  |
               +-----------------+
 ```
 
@@ -50,10 +50,10 @@ cp .env.example .env
 docker compose up -d
 # -> DATABASE_URL="postgresql://clickboucher:clickboucher_dev@localhost:5432/clickboucher?schema=public"
 
-# 4. Base de donnees
+# 4. Base de donnees : schema par db push (comme la CI), puis donnees de demo
 npx prisma generate
-npx prisma migrate dev --name init
-npx prisma db seed
+npx prisma db push
+npm run db:seed
 
 # 5. Lancer
 npm run dev
@@ -63,68 +63,39 @@ npm run dev
 
 | Service | URL |
 |---------|-----|
-| Client | http://localhost:3000/decouvrir |
+| Client | http://localhost:3000/ |
 | Boucher | http://localhost:3000/boucher/dashboard |
 | API Health | http://localhost:3000/api/health |
 | Prisma Studio | http://localhost:5555 (`npx prisma studio`) |
 
 ---
 
-## 2. Deploiement Railway
+## 2. Déploiement en production
 
-### 2.1 Creer le projet
+L'application Next.js est déployée par **Vercel** (projet relié au dépôt GitHub) à chaque mise à jour de
+`main`. **Railway** n'héberge que la base PostgreSQL : aucun service Next.js ne doit y tourner (l'ancien
+service `clickboucher` du projet Railway reste désactivé, voir CLAUDE.md « Stack », « Hébergement »).
 
-1. Aller sur [railway.app](https://railway.app)
-2. New Project > Deploy from GitHub repo
-3. Selectionner le repo `clickboucher`
+### 2.1 Variables d'environnement
 
-### 2.2 Ajouter PostgreSQL
+Vercel > Settings > Environment Variables. Liste et rôle de chaque variable : CLAUDE.md « Variables
+d'environnement ». `DATABASE_URL` est l'URL poolée (PgBouncer) de la base Railway, `DIRECT_DATABASE_URL`
+son URL directe, utilisée par les migrations.
 
-1. Dans le projet Railway, cliquer **+ New** > **Database** > **PostgreSQL**
-2. La variable `DATABASE_URL` sera automatiquement disponible pour le service Next.js
-3. Lier la variable : Service Next.js > Variables > Add Reference > `DATABASE_URL`
+### 2.2 Migrations en production
 
-### 2.3 Configurer le service Next.js
+Le build Vercel (`npm run build`) lance `scripts/prisma-migrate-prod-only.mjs` : en production seulement
+(`VERCEL_ENV=production`), il exécute en lecture seule les pré-vols `preflight.sql`, puis
+`npx prisma migrate deploy`. C'est la seule commande Prisma qui s'exécute contre la base de production.
 
-**Variables d'environnement** (Settings > Variables) :
+Le seed ne s'exécute jamais en production : `prisma/seed.ts` vide les tables avant de les remplir et refuse
+toute base qui n'est pas locale (localhost, 127.0.0.1 ou ::1).
 
-```
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
-NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/decouvrir
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/decouvrir
-AUTH_SECRET=<random-64-chars>
-PAYMENT_PROVIDER=mock
-NOTIFICATION_PROVIDER=stub
-NEXT_PUBLIC_APP_URL=https://<votre-app>.up.railway.app
-```
-
-**Build Command** :
-```
-npx prisma generate && npm run build
-```
-
-**Start Command** :
-```
-npm run start
-```
-
-**Port** : `3000`
-
-### 2.4 Migration en production
+### 2.3 Vérifier le déploiement
 
 ```bash
-# Depuis le terminal local, avec DATABASE_URL de Railway
-DATABASE_URL="postgresql://..." npx prisma migrate deploy
-DATABASE_URL="postgresql://..." npx prisma db seed
-```
-
-### 2.5 Verifier le deploiement
-
-```bash
-curl https://<votre-app>.up.railway.app/api/health
-# -> { "status": "healthy", "checks": { "database": { "status": "ok" } } }
+curl https://klikandgo.app/api/health
+# -> { "status": "ok", "checks": { "db": "ok", "redis": "ok" | "skip" }, ... }
 ```
 
 ---

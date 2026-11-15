@@ -32,6 +32,7 @@ import {
   useProductPhotos,
 } from "@/components/boucher/photos/useProductPhotos";
 import { ProductPhoto } from "@/components/media/ProductPhoto";
+import { CutOptionPriceInput } from "@/components/boucher/CutOptionPriceInput";
 import {
   computeOnlinePriceCents,
   getEffectiveCommissionRate,
@@ -1335,10 +1336,10 @@ export function ProductFormPage({ shopId, categories, product }: Props) {
                     placeholder="Nom option"
                     className="flex-1 bg-transparent text-sm text-white placeholder:text-stone-500 focus:outline-none" />
                   <div className="relative w-24">
-                    <input type="number" step="0.01" min="0"
-                      value={(opt.priceCents / 100).toFixed(2)}
-                      onChange={(e) => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], priceCents: Math.round(parseFloat(e.target.value || "0") * 100) }; setCutOptionsList(next); }}
-                      className="w-full bg-stone-700 border border-stone-600 rounded-lg px-2 py-1.5 text-sm text-white pr-7" />
+                    <CutOptionPriceInput priceCents={opt.priceCents}
+                      onPriceCentsChange={(cents) => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], priceCents: cents }; setCutOptionsList(next); }}
+                      className="w-full bg-stone-700 border border-stone-600 rounded-lg px-2 py-1.5 text-sm text-white pr-7"
+                      aria-label={`Prix au kilo de l'option ${opt.name || idx + 1}`} />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-stone-500">{"\u20AC"}/kg</span>
                   </div>
                   <button type="button" onClick={() => setCutOptionsList(cutOptionsList.filter((_, i) => i !== idx))}

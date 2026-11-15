@@ -61,16 +61,20 @@ npx prisma generate
 echo "   ✅ Client Prisma généré"
 
 echo ""
-read -p "   Lancer les migrations et le seed ? (o/N) " -n 1 -r
+read -p "   Démarrer PostgreSQL (Docker), créer le schéma et insérer les données de démo ? (o/N) " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Oo]$ ]]; then
-  echo "   Migration..."
-  npx prisma migrate dev --name init
-  echo "   ✅ Migration appliquée"
+  echo "   PostgreSQL (docker compose)..."
+  docker compose up -d --wait
+  echo "   ✅ PostgreSQL démarré"
 
-  echo "   Seed (données de demo)..."
-  npx prisma db seed
-  echo "   ✅ Données de demo insérées"
+  echo "   Schéma (prisma db push)..."
+  npx prisma db push
+  echo "   ✅ Schéma créé"
+
+  echo "   Seed (données de démo, base locale uniquement)..."
+  npm run db:seed
+  echo "   ✅ Données de démo insérées"
 fi
 
 # ── 5. Done ───────────────────────────────────
@@ -85,8 +89,8 @@ echo "  npm run start        Lancer la build"
 echo "  npx prisma studio    Visualiser la DB"
 echo ""
 echo "URLs :"
-echo "  Client : http://localhost:3000/decouvrir"
-echo "  Boucher: http://localhost:3000/dashboard/commandes"
+echo "  Client : http://localhost:3000/"
+echo "  Boucher: http://localhost:3000/boucher/dashboard"
 echo "  API    : http://localhost:3000/api/health"
 echo "  Prisma : http://localhost:5555 (prisma studio)"
 echo "═══════════════════════════════════════"
