@@ -20,6 +20,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import PrepTimer from "./PrepTimer";
+import AdjustmentStatusLine from "./AdjustmentStatusLine";
 import { ProductPhoto } from "@/components/media/ProductPhoto";
 import { formatItemQty, kitchenStoredLine, printOrderTicket } from "./OrderTicket";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
@@ -455,40 +456,8 @@ export default function KitchenOrderCard({
         </div>
       </div>
 
-      {/* ── Price adjustment badge ── */}
-      {order.priceAdjustment?.status === "PENDING" && (
-        <div className="mx-3 mb-1.5 rounded-lg border border-amber-500/30 bg-amber-500/15 px-3 py-1.5">
-          <p className="text-center text-xs font-bold text-amber-400">
-            Ajustement en attente de validation client
-          </p>
-          <p className="mt-0.5 text-center text-[10px] text-amber-400/70">
-            {formatPrice(order.priceAdjustment.originalTotal)} →{" "}
-            {formatPrice(order.priceAdjustment.newTotal)}
-          </p>
-        </div>
-      )}
-
-      {order.priceAdjustment?.status === "AUTO_APPROVED" && (
-        <div className="mx-3 mb-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
-          <p className="text-center text-[10px] text-emerald-400">
-            Prix ajuste ({formatPrice(order.priceAdjustment.newTotal)})
-          </p>
-        </div>
-      )}
-
-      {order.priceAdjustment?.status === "APPROVED" && (
-        <div className="mx-3 mb-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
-          <p className="text-center text-[10px] text-emerald-400">
-            Accepte ({formatPrice(order.priceAdjustment.newTotal)})
-          </p>
-        </div>
-      )}
-
-      {order.priceAdjustment?.status === "REJECTED" && (
-        <div className="mx-3 mb-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5">
-          <p className="text-center text-[10px] text-red-400">Ajustement refuse</p>
-        </div>
-      )}
+      {/* ── Price adjustment status ── */}
+      {order.priceAdjustment && <AdjustmentStatusLine adjustment={order.priceAdjustment} />}
 
       {/* ── Total (v3 — subtle bg) ── */}
       <div

@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { useOrderTracker, type TrackedOrder } from "@/hooks/useOrderTracker";
 import { PARIS_TIME_ZONE } from "@/lib/paris-time";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
+import { formatPrice } from "@/lib/utils";
 import CancelOrderButton from "./CancelOrderButton";
 import EstimatedCountdown from "./EstimatedCountdown";
 import OrderStatusBadge from "./OrderStatusBadge";
 import TrackingTimeline from "./TrackingTimeline";
+import WeighToleranceNote, { type WeighToleranceNoteProps } from "./WeighToleranceNote";
 
 interface OrderData extends Omit<TrackedOrder, "displayNumber"> {
   orderNumber: string;
@@ -23,10 +25,7 @@ interface OrderData extends Omit<TrackedOrder, "displayNumber"> {
   customerNote: string | null;
   shop: { id: string; name: string; address: string; city: string; phone: string };
   user: { firstName: string; lastName: string };
-}
-
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " €";
+  weighTolerance: WeighToleranceNoteProps["tolerance"];
 }
 
 /**
@@ -225,7 +224,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
                   </span>
                 </div>
                 <span className="shrink-0 font-semibold text-gray-900 dark:text-white">
-                  {fmtPrice(item.totalCents)}
+                  {formatPrice(item.totalCents)}
                 </span>
               </div>
             ))}
@@ -233,9 +232,10 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           <div className="mt-3 flex justify-between border-t border-[#ece8e3] pt-3 dark:border-white/10">
             <span className="text-sm font-bold text-gray-900 dark:text-white">Total</span>
             <span className="text-lg font-extrabold text-gray-900 dark:text-white">
-              {fmtPrice(order.totalCents)}
+              {formatPrice(order.totalCents)}
             </span>
           </div>
+          <WeighToleranceNote tolerance={order.weighTolerance} />
           {order.customerNote && (
             <p className="mt-3 text-xs italic text-gray-500 dark:text-gray-400">
               Note : {order.customerNote}

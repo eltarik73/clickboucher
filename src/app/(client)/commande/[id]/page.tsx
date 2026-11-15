@@ -23,8 +23,12 @@ const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG),
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
-import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
+import PriceAdjustmentBanner, {
+  type PriceAdjustmentView,
+} from "@/components/client/PriceAdjustmentBanner";
+import WeighToleranceNote from "@/app/(client)/suivi/[id]/WeighToleranceNote";
 import type { SaleUnit } from "@/lib/pricing/line";
+import { frozenToleranceOf } from "@/lib/pricing/tolerance";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
 import { startVisiblePolling, nextOrderPollDelay } from "@/hooks/useVisiblePolling";
 
@@ -89,18 +93,11 @@ interface OrderData {
   items: OrderItem[];
   shop: OrderShop;
   user: OrderUser;
-  priceAdjustment?: {
-    id: string;
-    originalTotal: number;
-    newTotal: number;
-    reason: string | null;
-    adjustmentType: string;
-    status: string;
-    tier: number;
-    autoApproveAt: string | null;
-    escalateAt: string | null;
-    createdAt: string;
-  } | null;
+  /** Weighing tolerance frozen on the order at creation; null on older orders. */
+  weighToleranceRateBps: number | null;
+  weighToleranceCapCents: number | null;
+  estimatedTotalCents: number | null;
+  priceAdjustment?: PriceAdjustmentView | null;
 }
 
 // ── Helpers ──────────────────────────────────────
@@ -237,7 +234,8 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
 
 // ── Order Items Recap ────────────────────────────
 
-function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: number }) {
+function OrderRecap({ order }: { order: OrderData }) {
+  const { items, totalCents } = order;
   return (
     <div className="mt-6 rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
       <h3 className="mb-3 text-sm font-bold text-[#2a2018] dark:text-white">Recapitulatif</h3>
@@ -260,6 +258,7 @@ function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: num
           {fmtPrice(totalCents)}
         </span>
       </div>
+      <WeighToleranceNote tolerance={frozenToleranceOf(order)} />
     </div>
   );
 }
@@ -879,7 +878,7 @@ export default function CommandePage({ params }: { params: { id: string } }) {
         )}
 
         {/* ═══ ORDER RECAP ═══ */}
-        <OrderRecap items={order.items} totalCents={order.totalCents} />
+        <OrderRecap order={order} />
       </main>
     </div>
   );

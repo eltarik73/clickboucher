@@ -90,6 +90,34 @@ facturée, y compris pour les bots. Règles :
 - Signature webhook TOUJOURS vérifiée avec `constructEvent()`
 - `STRIPE_SECRET_KEY` JAMAIS côté client
 - Idempotency key sur chaque Payment Intent
+- **Paiement en ligne toujours refusé** tant que le propriétaire n'a pas décidé : `paymentMethodSchema`
+  (`src/lib/validators/order.ts`, `ON_PICKUP` seul) refuse `ONLINE` au devis et à la création (400 « Le paiement en
+  ligne n'est pas encore disponible. Réglez sur place au retrait. »), le panier envoie `ON_PICKUP`
+  (`src/lib/cart/order-payload.ts`). Garde : `tests/integration/orders/online-refused.test.ts`.
+- **Garde d'environnement** (`src/lib/stripe.ts`, `stripeKeyRefusal`) : en production Vercel (`isProductionDeployment()`,
+  `src/lib/auth/test-mode-env.ts`) seule une clé live (`sk_live_`, `rk_live_`) est acceptée, partout ailleurs seule une
+  clé de test (`sk_test_`, `rk_test_`) ; tout le reste est refusé. `isStripeConfigured()` n'est vrai que pour une clé
+  acceptée ; `getStripeClient()` relit la clé à chaque appel et lève `Stripe unavailable: <motif>` sans jamais l'écrire.
+  Client : `STRIPE_CLIENT_CONFIG` (10 s, 1 nouvel essai, `apiVersion` du SDK installé, à relire dans
+  `node_modules/stripe/esm/apiVersion.js` à chaque mise à jour de `stripe`).
+- **Secrets lus à l'appel**, jamais à l'import ; deux secrets de webhook (`stripeWebhookSecrets()`) :
+  `STRIPE_WEBHOOK_SECRET` (endpoint « Your account ») et `STRIPE_CONNECT_WEBHOOK_SECRET` (« Connected accounts »),
+  ignorés s'ils ne commencent pas par `whsec_`.
+- **Tout appel réseau à Stripe** passe par `getPaymentGateway()` (`src/lib/payments/gateway.ts`, seul appelant de
+  `getStripeClient()`), **jamais dans une transaction Prisma** : valider, puis appeler Stripe, puis écrire le résultat.
+  Garde : `tests/lib/stripe-guard.test.ts` (listes fermées : import du paquet, construction du client, lecture des
+  variables `STRIPE_*`, passerelle dans un fichier qui ouvre une transaction).
+- **Webhook dormant** `POST /api/payments/webhook` (hors matcher du middleware, aucun helper d'auth) : 503 sans clé
+  acceptée ou sans aucun secret ; signature vérifiée localement, secret plateforme puis Connect (`verifyStripeWebhook`,
+  `src/lib/services/stripe/webhook/verify.ts`), sinon 400 sans rien écrire ; `livemode` différent du déploiement → 200
+  ignoré. Registre `StripeEvent` (`ledger.ts`) : marqueur avant le traitement, `handledAt` après ; rejeu → 200
+  `duplicate` ; marqueur non traité de moins de 60 s → 409, plus ancien repris ; échec → marqueur supprimé et 500.
+  Statut uniquement par `transitionOrder` : seul `checkout.session.expired` en change un (`PENDING` → `AUTO_CANCELLED`
+  d'une commande `ONLINE` ni autorisée ni payée) ; sur `orders`, les autres n'écrivent que des colonnes de paiement des
+  commandes `ONLINE`, par `updateMany` conditionnel ; ailleurs, les litiges (`StripeDispute`) et l'état Stripe de la
+  boutique (`account.updated`, qui peut couper `acceptOnline`, jamais l'activer). Ce que chaque gestionnaire écrit :
+  en-tête de `src/lib/services/stripe/webhook/*`. Aucun gestionnaire n'appelle Stripe, n'accepte ni n'annonce une
+  commande.
 
 ### UX & Design
 
@@ -143,17 +171,21 @@ facturée, y compris pour les bots. Règles :
     données via `tests/integration/helpers/factories.ts`.
   - **Ne JAMAIS mocker Prisma** (`@/lib/prisma`) ni quoi que ce soit qui parle à PostgreSQL : tout ce qui
     touche la base se teste en intégration. Mocks permis : transports sortants (`@/lib/email`, `@/lib/push`,
-    `@/lib/whatsapp`, `@/lib/emails/*`) et helpers d'auth quand on appelle un route handler directement.
+    `@/lib/whatsapp`, `@/lib/emails/*`), helpers d'auth quand on appelle un route handler directement, et la
+    passerelle Stripe `@/lib/payments/gateway` (faux : `tests/integration/helpers/fake-payment-gateway.ts`, qui
+    enregistre chaque appel et refuse tout appel non prévu). Webhooks testés avec des charges signées localement
+    (`Stripe.webhooks.generateTestHeaderString`, `tests/integration/payments/stripe-event-fixtures.ts`) : jamais de
+    clé réelle ni d'appel réseau.
   - E2E : Playwright dans `tests/` (`npm run test:e2e`).
   - Pour un test sans DOM, ajoute `// @vitest-environment node` en tête de fichier (l'environnement par défaut est `jsdom`).
 - **Garde-fous commande** : `tests/integration/checkout-contract.test.ts` (panier → payload navigateur →
   devis → commande, sur 12 paniers types) et `tests/lib/order-writers-guard.test.ts` (liste fermée des
-  fichiers qui écrivent dans `orders` ; seul `transition.ts` écrit le statut, hors webhook Stripe inactif).
+  fichiers qui écrivent dans `orders`, chacun avec sa raison ; seul `transition.ts` écrit le statut, sans exception).
 - **Garde-fous sécurité** : `src/lib/__tests__/shop-field-ownership.test.ts` (colonnes de `Shop` du boucher ou de la
   plateforme), `src/lib/__tests__/shop-visible-writers.test.ts` (écrivains de la publication),
   `src/lib/__tests__/html-sinks.test.ts` (HTML écrit à la main) ; en intégration `tests/integration/security/**`
   (champs plateforme, suspension, prise de commande, XSS de l'export, noms d'invité).
-- **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, prix (`src/lib/pricing/*`), panier (`cart-line`, `order-payload`), numéros (`order-number-format`), commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils`, photos (URL durable, résolveurs, contrat d'envoi, plan d'écriture des photos produit, ingestion avec le vrai sharp, stockage, champ « Photos » du boucher) ; en intégration : devis, création, remises, numérotation, transitions et courses, stock limité, tableau cuisine, notifications, données publiques, photos (`tests/integration/images/**` : envoi et quota, miroir `Product.imageUrl`, règle d'écriture, suppression depuis la galerie, source de retouche, charges utiles, recensement et maintenance).
+- **Couvert actuellement** : formatters Kitchen (`format-kitchen.ts`), state machine commande, prix (`src/lib/pricing/*`), panier (`cart-line`, `order-payload`), numéros (`order-number-format`), commission, créneaux ouverture, RBAC Clerk, segments marketing, `api/errors`, `auth/test-auth`, `seo/cities`, `estimate`, `utils`, photos (URL durable, résolveurs, contrat d'envoi, plan d'écriture des photos produit, ingestion avec le vrai sharp, stockage, champ « Photos » du boucher), marge de pesée et décision d'ajustement (`pricing-tolerance`, `pricing-adjustment-lines`, textes `price-adjustment-messages`, champ `weighTolerance` du validateur), garde de clé Stripe (`stripe-env`), garde Stripe statique (`tests/lib/stripe-guard.test.ts`) ; en intégration : devis, création, remises, numérotation, transitions et courses, stock limité, tableau cuisine, notifications, données publiques, photos (`tests/integration/images/**` : envoi et quota, miroir `Product.imageUrl`, règle d'écriture, suppression depuis la galerie, source de retouche, charges utiles, recensement et maintenance), marge de pesée à la création (`orders/weigh-tolerance`) et dans le profil (`api/users-me-tolerance`), paiement en ligne refusé (`orders/online-refused`), ajustements de prix (`orders/price-adjustment*` : matrice de la marge, accord explicite, silence = refus, lignes héritées), paiement (`tests/integration/payments/**` : schéma et migration, route du webhook et registre des événements, effets sur les commandes, comptes connectés et litiges).
 - **Règle** : tout helper pur ajouté dans `src/lib/**` mérite un test ; les fonctions qui touchent Prisma/HTTP restent en intégration.
 
 ## CI/CD
@@ -318,6 +350,12 @@ const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, t
   toutes les lignes de ces produits. Chaque ligne affiche son message et un bouton « Retirer cet article »
   (`src/components/cart/CheckoutLineRow.tsx`) ; le message générique ne sert que si aucun détail ne
   nomme une ligne. Garder le format de clé `items.N.<champ>` dans `quote.ts`.
+- **Marge de pesée et bouton de commande** : au-dessus du bouton, la clause « Pour gagner du temps, votre boucher
+  ajuste le prix après la pesée sans vous déranger, dans la limite choisie » et le choix 5 % / 10 %
+  (`WeighToleranceChoice`), sans choix pré-coché (art. L121-17 du Code de la consommation). Le choix affiché part dans
+  `weighTolerance` de la requête de création (`CheckoutSelection.weighTolerance`, `src/lib/cart/order-payload.ts`),
+  jamais dans le devis. Bouton final : « Commander avec obligation de paiement » (art. L221-14). Règle et serveur :
+  « Ajustement de prix (marge de pesée) ».
 
 ## Photos
 
@@ -420,22 +458,54 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 - **Exemples** : 13h09→13h30 | 13h22→14h00 | 14h05→14h30 | 14h31→15h00
 - **Formule** : `rawMin = now + 10; remainder = rawMin % intervalMin; nowMinutes = remainder === 0 ? rawMin : rawMin + intervalMin - remainder`
 
-## Ajustement de Prix (3 paliers)
+## Ajustement de prix (marge de pesée)
 
-- **Palier 1** (baisse, ou hausse ≤ 10 % par défaut) : appliqué immédiatement (`computeTier`, `src/lib/price-adjustment.ts`)
-- **Palier 2** (hausse ≤ 20 % par défaut) : le client accepte ou refuse ; sans réponse, validé à l'échéance, 30 s par
-  défaut (`TIER_2_AUTO_APPROVE_SEC`, `src/lib/price-adjustment-config.ts`)
-- **Palier 3** (hausse plus forte, plafond 50 %) : jamais validé automatiquement ; sans réponse après 10 min, escaladé
-  au webmaster (`ESCALATED`). Les échéances sont appliquées à la lecture de la commande (`adjustment-answers.ts`), sans cron
+- **Choix du client** : `STANDARD` = 5 % du total estimé, 10 € au plus ; `EXTENDED` = 10 %, 20 € au plus
+  (`WEIGH_TOLERANCE_TERMS`, `src/lib/pricing/tolerance.ts`). Marge = `min(taux × total estimé, plafond)`, arrondie vers
+  le bas (`toleranceCents`). Préférence du membre : `User.weighTolerance`, NULL tant qu'il n'a pas choisi (choix actif à
+  la première commande, aucun défaut), modifiable dans le profil (`PATCH /api/users/me { weighTolerance }`).
+- **À la création** (`resolveWeighTolerance`, `src/lib/services/orders/weigh-tolerance.ts`) : le panier envoie le choix
+  dans `weighTolerance` (un nom, jamais un montant ; le devis ne le porte pas). Choix de la requête, sinon préférence
+  enregistrée, sinon 400 `VALIDATION_ERROR` « Choisissez votre marge de pesée avant de commander. » ; le choix envoyé
+  par un membre est enregistré dans la transaction de création. Invité : choix obligatoire à chaque commande, jamais lu
+  ni écrit sur `users`. La commande fige `weighToleranceRateBps`, `weighToleranceCapCents` et `estimatedTotalCents`
+  (= `totalCents` du devis) ; NULL (commande antérieure) = aucune marge : toute hausse demande l'accord du client.
+- **Règle, une seule autorité** : `decideAdjustment` (`src/lib/pricing/tolerance.ts`), appelée par
+  `src/lib/services/orders/adjust-price.ts` et revérifiée par l'écrivain. Baisse (ou total inchangé) : appliquée
+  aussitôt (`AUTO_APPROVED`). Hausse de pesée (`WEIGHT`) : appliquée sans demander tant que la hausse cumulée, somme
+  sur les lignes disponibles de (total de la ligne − `estimatedPriceCents`), reste dans la marge figée
+  (`availableLinesAfter`, `src/lib/pricing/adjustment.ts` : une ligne en rupture ne donne aucune marge aux autres).
+  Sinon (au-delà de la marge, `PRICE` ou `MANUAL`, commande sans marge, ligne sans estimation) : ajustement `PENDING`,
+  le client doit répondre explicitement. Filet de la plateforme conservé : jamais plus de `pa_max_increase_pct`
+  (50 % par défaut) au-dessus du total actuel.
+- **Délai de réponse** : 5 min (`ADJUSTMENT_ANSWER_WINDOW_SECONDS`, colonne `answerBy`), seule constante du serveur,
+  du compte à rebours et des textes. **Le silence vaut refus** : passé `answerBy` (ligne sans `answerBy` : 5 min après
+  `createdAt`), l'ajustement est fermé `REJECTED`, `closeReason` `NO_ANSWER`, à la lecture (`settleDueAdjustment` /
+  `settleDueAdjustmentsWithin` : page de la commande, cuisine, listes, résumé du jour), sans cron, et la boutique est
+  prévenue (`PRICE_ADJUSTMENT_EXPIRED`). Un oui tardif ne change rien. Jamais de validation automatique, plus
+  d'escalade au webmaster.
+- **Après un refus** (`CUSTOMER_REFUSED` ou `NO_ANSWER`) : la commande garde son dernier prix accepté ; le boucher peut
+  repeser dans la marge ou déclarer l'article en rupture. Une ligne `PriceAdjustment` par commande, remplacée par la
+  proposition suivante ; tant que le client peut encore répondre, une nouvelle proposition est refusée (409).
 - **Route** : `PATCH /api/orders/[id]/adjust-price` — SEUL moyen de changer le total d'une commande après sa
-  création (les actions `adjust_weight` / `adjust_price` de la route boucher unifiée n'existent plus)
-- **Seuls écrivains d'un total ajusté** : `src/lib/services/orders/adjustment-settlement.ts` (verrou de la
-  commande, mise à jour conditionnelle de l'ajustement `PENDING`, refus si la commande a changé depuis :
-  l'ajustement est alors fermé `REJECTED`) et `adjustment-answers.ts` (échéance du palier 2, escalade du
-  palier 3, acceptation et refus du client ; seul le gagnant notifie, après commit). Toute fermeture de
-  commande, rupture ou retrait ferme l'ajustement en attente. Lignes repesées via `src/lib/pricing/adjustment.ts`.
-- **Config** : seuils et délais communs à la plateforme (`platform_configs`, clés `PA_KEYS`), réglés par le webmaster
-  dans `/webmaster/parametres` ; aucun réglage par boutique
+  création (les actions `adjust_weight` / `adjust_price` de la route boucher unifiée n'existent plus). Réponses du
+  client : `POST /api/orders/[id]/adjustment/accept` et `/reject`.
+- **Seuls écrivains d'un total ajusté** : `src/lib/services/orders/adjustment-settlement.ts` (`settleAdjustmentInTx` :
+  verrou de la commande, mise à jour conditionnelle `PENDING` → `AUTO_APPROVED` / `APPROVED`, refus si la commande a
+  changé depuis : fermé `REJECTED`, `ORDER_CHANGED`) et `adjustment-answers.ts` (oui du client avant `answerBy`, refus,
+  silence ; seul le gagnant notifie, après commit). Les fermetures sans application passent par `adjustment-closure.ts`
+  (écriture conditionnelle de la ligne `PENDING`, jamais du total). Toute fermeture de commande, rupture ou retrait
+  ferme l'ajustement en attente (`closePendingAdjustment`). Lignes repesées via `src/lib/pricing/adjustment.ts`.
+- **Preuve du consentement** : un `OrderEvent` dans la même transaction, `PRICE_ADJUSTED` (from, to, settledAs,
+  adjustmentType, toleranceCents, cumulatedIncreaseCents) ou `PRICE_ADJUSTMENT_CLOSED` (reason, from, to,
+  adjustmentType) ; ces événements sont l'historique des ajustements.
+- **Notifications** : au client `PRICE_ADJUSTMENT_AUTO_APPROVED` (appliqué) ou `PRICE_ADJUSTMENT_PENDING` (à répondre) ;
+  à la boutique `PRICE_ADJUSTMENT_ACCEPTED`, `PRICE_ADJUSTMENT_REJECTED`, `PRICE_ADJUSTMENT_EXPIRED`. Textes écrits une
+  fois dans `src/lib/price-adjustment-messages.ts`.
+- **Héritage** : le nouveau code écrit `tier` 1 (appliqué sans demander) ou 3 (réponse demandée), jamais 2, ni
+  `autoApproveAt`, `escalateAt`, `AUTO_VALIDATED`, `ESCALATED` : ces valeurs ne restent que sur d'anciennes lignes et ne
+  décident de rien ; une ligne en attente héritée n'est jamais appliquée sans réponse. `Shop.priceAdjustmentThreshold`
+  (colonne conservée, migration additive) ne décide plus de rien.
 
 ## Authentification API (CRITIQUE)
 
@@ -557,7 +627,8 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL, NEXT_PUBLIC_CLERK_SIGN_UP_URL,
 TEST_MODE, TEST_SECRET, ALLOW_TEST_IN_PROD,
 NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_PLAUSIBLE_DOMAIN,
 ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN,
-SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKEN
+SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKEN,
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_CONNECT_WEBHOOK_SECRET
 ```
 
 - `DATABASE_URL` : pooled (pgbouncer) — `?pgbouncer=true&connection_limit=1` sur Vercel. Utilisé par l'app au runtime.
@@ -568,6 +639,9 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
 - `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` : DSN Sentry — server + client. Si absent, le SDK est no-op (zéro overhead).
 - `SENTRY_ORG` / `SENTRY_PROJECT` : `klikandgo` / `klikandgo-web` par défaut (utilisés pour upload source maps).
 - `SENTRY_AUTH_TOKEN` : token org pour upload des source maps au build (Vercel uniquement). Sans token → `dryRun: true`.
+- `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_CONNECT_WEBHOOK_SECRET` : server-only, lus à l'appel par
+  `src/lib/stripe.ts` seul ; jamais de clé live hors Production (refusée par le code) ; aucune valeur dans le dépôt.
+  Voir « Stripe ».
 - Note : les `NEXT_PUBLIC_*` sont baked au build time — tout changement nécessite un redéploiement.
 
 ## Monitoring (Sentry)

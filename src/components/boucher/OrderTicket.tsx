@@ -12,6 +12,7 @@ import { escapeHtml } from "@/lib/html/escape";
 import type { SaleUnit, StoredLine } from "@/lib/pricing/line";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
 import { summarizeReceipt } from "@/lib/pricing/receipt";
+import { toleranceTicketLine } from "./tolerance-ticket-line";
 
 type KitchenItem = KitchenOrder["items"][number];
 
@@ -74,12 +75,12 @@ export function formatItemQty(
   return formatStoredLineQuantity(kitchenStoredLine(item));
 }
 
-/** Build the HTML for a single Uber Eats style ticket */
 /** An order paid online has been paid; any other is settled at the counter when collected. */
 function amountLabel(order: Pick<KitchenOrder, "paymentMethod">): string {
   return order.paymentMethod === "ONLINE" ? "Montant pay\u00E9" : "\u00C0 r\u00E9gler sur place";
 }
 
+/** Build the HTML for a single Uber Eats style ticket */
 export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
   const clientName = order.user
     ? formatClientName(order.user.firstName, order.user.lastName)
@@ -87,11 +88,9 @@ export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
 
-  // Pickup time
   const isScheduled = !!order.pickupSlotStart;
   const pickupTimeStr = isScheduled ? formatTime(order.pickupSlotStart!) : null;
 
-  // Prep date
   const prepDateStr = isScheduled
     ? formatDateFull(order.pickupSlotStart!)
     : order.estimatedReady
@@ -127,6 +126,7 @@ export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
     </div>`;
     })
     .join("");
+  const tolerance = toleranceTicketLine(order);
   const amountRows = [
     `<div class="total-row"><span>Sous-total</span><span>${formatPrice(receipt.subtotalCents)}</span></div>`,
     receipt.discountCents > 0
@@ -136,12 +136,11 @@ export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
       ? `<div class="total-row"><span>Ajustement</span><span>${formatPrice(receipt.adjustmentCents)}</span></div>`
       : "",
     `<div class="total-row"><span>${amountLabel(order)}</span><span>${formatPrice(receipt.goodsTotalCents)}</span></div>`,
+    tolerance === null ? "" : `<div class="tolerance">${escapeHtml(tolerance)}</div>`,
   ].join("");
 
-  // Pickup code (4 digits)
   const pickupCode = order.qrCode ? getPickupCode(order.qrCode) : null;
 
-  // Customer note
   const noteHtml = order.customerNote
     ? `<div class="note-section">
         <div class="note-title">Remarque du client :</div>
@@ -246,6 +245,7 @@ const TICKET_CSS = `
     .total-row span:first-child { float: left; }
     .total-row span:last-child { float: right; }
     .total-row::after { content: ''; display: table; clear: both; }
+    .tolerance { font-size: 10px; line-height: 1.3; padding-top: 4px; }
     .code-section { text-align: center; font-size: 16px; font-weight: 900; padding: 8px 0; letter-spacing: 1px; }
     .footer { text-align: center; font-size: 12px; padding: 6px 0; color: #333; }
     @media print {

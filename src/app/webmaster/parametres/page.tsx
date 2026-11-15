@@ -90,10 +90,6 @@ export default function WebmasterParametresPage() {
 
   /* ── Price adjustment config state ── */
   const [paConfig, setPaConfig] = useState<Record<string, string>>({
-    pa_tier1_max_pct: "10",
-    pa_tier2_max_pct: "20",
-    pa_tier2_auto_approve_sec: "30",
-    pa_tier3_escalation_min: "10",
     pa_max_increase_pct: "50",
     pa_require_reason: "true",
     pa_default_reasons: JSON.stringify(["Poids réel différent", "Rupture produit", "Erreur de prix catalogue", "Ajustement découpe"]),
@@ -685,65 +681,23 @@ export default function WebmasterParametresPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* ── Seuils des paliers ── */}
+            {/* ── Cap ── */}
             <div>
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                Seuils des paliers
+                Plafond
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {([
-                  { key: "pa_tier1_max_pct", label: "Palier 1 max (%)", desc: "Auto-approuvé si hausse ≤ ce %" },
-                  { key: "pa_tier2_max_pct", label: "Palier 2 max (%)", desc: "Auto-validé après délai si hausse ≤ ce %" },
-                  { key: "pa_max_increase_pct", label: "Cap maximum (%)", desc: "Hausse max autorisée (sécurité)" },
-                ] as const).map(({ key, label, desc }) => (
-                  <PaField
-                    key={key}
-                    configKey={key}
-                    label={label}
-                    description={desc}
-                    type="number"
-                    value={paConfig[key]}
-                    onChange={(v) => setPaConfig((prev) => ({ ...prev, [key]: v }))}
-                    changed={paConfig[key] !== paOriginal[key]}
-                    saving={paSavingKey === key}
-                    saved={paSavedKey === key}
-                    onSave={() => savePaConfig(key)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* ── Timers ── */}
-            <div className="border-t border-gray-100 dark:border-white/5 pt-4">
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                Timers
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <PaField
-                  configKey="pa_tier2_auto_approve_sec"
-                  label="Auto-validation palier 2 (sec)"
-                  description="Délai avant auto-approbation du palier 2"
-                  type="number"
-                  value={paConfig.pa_tier2_auto_approve_sec}
-                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_tier2_auto_approve_sec: v }))}
-                  changed={paConfig.pa_tier2_auto_approve_sec !== paOriginal.pa_tier2_auto_approve_sec}
-                  saving={paSavingKey === "pa_tier2_auto_approve_sec"}
-                  saved={paSavedKey === "pa_tier2_auto_approve_sec"}
-                  onSave={() => savePaConfig("pa_tier2_auto_approve_sec")}
-                />
-                <PaField
-                  configKey="pa_tier3_escalation_min"
-                  label="Escalade palier 3 (min)"
-                  description="Délai avant escalade au webmaster"
-                  type="number"
-                  value={paConfig.pa_tier3_escalation_min}
-                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_tier3_escalation_min: v }))}
-                  changed={paConfig.pa_tier3_escalation_min !== paOriginal.pa_tier3_escalation_min}
-                  saving={paSavingKey === "pa_tier3_escalation_min"}
-                  saved={paSavedKey === "pa_tier3_escalation_min"}
-                  onSave={() => savePaConfig("pa_tier3_escalation_min")}
-                />
-              </div>
+              <PaField
+                configKey="pa_max_increase_pct"
+                label="Cap maximum (%)"
+                description="Hausse max autorisée (sécurité)"
+                type="number"
+                value={paConfig.pa_max_increase_pct}
+                onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_max_increase_pct: v }))}
+                changed={paConfig.pa_max_increase_pct !== paOriginal.pa_max_increase_pct}
+                saving={paSavingKey === "pa_max_increase_pct"}
+                saved={paSavedKey === "pa_max_increase_pct"}
+                onSave={() => savePaConfig("pa_max_increase_pct")}
+              />
             </div>
 
             {/* ── Options ── */}

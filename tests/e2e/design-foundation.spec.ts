@@ -147,13 +147,17 @@ test.describe("boutons rouges en mode clair", () => {
     await expectWhiteOnRed(page.getByRole("link", { name: "Demander l'accès PRO" }));
   });
 
-  test("« Confirmer ma commande » du panier", async ({ page, baseURL }) => {
+  test("« Commander avec obligation de paiement » du panier", async ({ page, baseURL }) => {
     test.skip(!isLocal(baseURL) || !process.env.TEST_SECRET, LOCAL_ONLY);
     await dismissOverlays(page);
     await signIn(page, "CLIENT");
     await addFirstProductToCart(page);
     await page.goto("/panier");
-    await expectWhiteOnRed(page.getByRole("button", { name: "Confirmer ma commande" }));
+    // The button stays disabled until a weighing tolerance is chosen (nothing is pre-ticked).
+    await page.getByRole("radio", { name: /^5 % du total estimé/ }).check();
+    const order = page.getByRole("button", { name: "Commander avec obligation de paiement" });
+    await expect(order).toBeEnabled();
+    await expectWhiteOnRed(order);
   });
 
   test("« Ajouter » de /boucher/produits", async ({ page, baseURL }) => {

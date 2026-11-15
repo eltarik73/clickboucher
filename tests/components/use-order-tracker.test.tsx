@@ -88,6 +88,7 @@ function pageOrder(status: OrderStatus): ComponentProps<typeof SuiviClient>["ord
     customerNote: null,
     shop: { id: "shop_1", name: "Boucherie Test", address: "1 rue A", city: "Chambéry", phone: "" },
     user: { firstName: "Tarik", lastName: "Benali" },
+    weighTolerance: null,
   };
 }
 
@@ -328,6 +329,45 @@ describe("page de suivi (SuiviClient) branchée sur useOrderTracker", () => {
     const back = screen.getByRole("link", { name: "Mes commandes" });
     expect(back).toHaveAttribute("href", "/commandes");
     expect(back).toHaveAttribute("data-prefetch", "false");
+  });
+
+  it("la marge de pesée acceptée s'affiche sous le total ; rien pour une commande plus ancienne", () => {
+    const tolerance = { rateBps: 1000, capCents: 2000, estimatedTotalCents: 2450 };
+    const { unmount } = render(
+      <SuiviClient order={{ ...pageOrder("PREPARING"), weighTolerance: tolerance }} />
+    );
+    expect(
+      screen.getByText(
+        "Marge de pesée acceptée : 10 % du total estimé, 20,00 € au plus, soit jusqu'à 2,45 € sur cette commande."
+      )
+    ).toBeInTheDocument();
+
+    unmount();
+    render(<SuiviClient order={pageOrder("PREPARING")} />);
+    expect(screen.queryByText(/Marge de pesée/)).toBeNull();
+  });
+
+  it("ajustement sans réponse à l'échéance : la page relit la commande, sans attendre la sonde", async () => {
+    serveOrder("PREPARING");
+    const adjustment = {
+      id: "adj_1",
+      originalTotal: 2450,
+      newTotal: 2700,
+      reason: null,
+      adjustmentType: "WEIGHT",
+      status: "PENDING",
+      closeReason: null,
+      answerBy: new Date(Date.now() + 2_000).toISOString(),
+      createdAt: new Date(Date.now() - 298_000).toISOString(),
+    };
+    render(<SuiviClient order={{ ...pageOrder("PREPARING"), priceAdjustment: adjustment }} />);
+    expect(screen.getByRole("button", { name: "Accepter" })).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(fetchMock).toHaveBeenCalledWith("/api/orders/ord_1/status", { cache: "no-store" });
+    expect(screen.queryByRole("button", { name: "Accepter" })).toBeNull();
   });
 
   it("une commande dont un article manque mène au choix d'un remplacement", () => {

@@ -5,12 +5,6 @@
 
 // ── Default values (used as fallback when DB config is missing) ──
 
-/** @deprecated display only, removed by C1-PAIEMENT-A-T8 (old 3-tier rule, no longer applied). */
-export const TIER_1_MAX = 10;
-
-/** @deprecated display only, removed by C1-PAIEMENT-A-T8 (old 3-tier rule, no longer applied). */
-export const TIER_2_MAX = 20;
-
 /** Hard cap safety net (max increase %) */
 export const MAX_INCREASE_PCT = 50;
 

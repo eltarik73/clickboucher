@@ -1,317 +1,199 @@
-// PriceAdjustmentBanner — 3-tier client price adjustment UI
+// PriceAdjustmentBanner — the customer's side of a price adjustment, on his tracking pages. A price
+// beyond his weighing tolerance waits for his explicit yes until answerBy (legacy rows: createdAt +
+// the answer window); silence keeps the price. The server decides (adjustment-answers.ts).
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { CheckCircle, XCircle, Loader2, Clock, AlertTriangle, Shield } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, Info, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
+import { ADJUSTMENT_ANSWER_WINDOW_SECONDS } from "@/lib/pricing/tolerance";
+import { formatPrice } from "@/lib/utils";
 
-type PriceAdjustment = {
+/** What the banner reads of Order.priceAdjustment in the customer view (dates as ISO strings). */
+export interface PriceAdjustmentView {
   id: string;
   originalTotal: number;
   newTotal: number;
   reason: string | null;
-  adjustmentType: string;
   status: string;
-  tier: number;
-  autoApproveAt: string | null;
-  escalateAt: string | null;
+  closeReason: string | null;
+  answerBy: string | null;
   createdAt: string;
-};
-
-type Props = {
-  orderId: string;
-  adjustment: PriceAdjustment;
-  onUpdate: () => void;
-};
-
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
 }
 
-export default function PriceAdjustmentBanner({ orderId, adjustment, onUpdate }: Props) {
-  const [loading, setLoading] = useState<"accept" | "reject" | null>(null);
-  const [secondsLeft, setSecondsLeft] = useState(0);
+type Props = { orderId: string; adjustment: PriceAdjustmentView; onUpdate: () => void };
+type Answer = "reject" | "accept";
+type ApiBody = { success?: boolean; error?: { message?: string } } | null;
+const SILENCE_KEEPS_PRICE = "Sans réponse de votre part dans ce délai, le prix ne change pas.";
+const EXPIRED = "Délai dépassé : le prix de votre commande n'a pas changé.";
+const NOT_APPLIED = "Ajustement non appliqué : le prix n'a pas changé.";
+const DECREASED = "Bonne nouvelle : le prix a baissé";
+const WITHIN_TOLERANCE = "Prix ajusté après la pesée, dans la marge que vous avez choisie";
+const NETWORK_ERROR = "Erreur réseau : votre réponse n'est pas partie. Réessayez.";
+const UNRECORDED = "Votre réponse n'a pas été enregistrée. Réessayez.";
+const AMBER_TEXT = "text-amber-900 dark:text-amber-200";
+const STRONG_TEXT = "font-bold text-gray-900 dark:text-white";
+const ERROR_TEXT = "text-xs text-red-700 dark:text-red-400";
+const PENDING_TONE =
+  "space-y-3 border-amber-300 bg-amber-50 p-4 dark:border-amber-700/40 dark:bg-amber-950/30";
+const REJECT =
+  "border border-red-300 bg-white text-red-700 hover:bg-red-50 dark:border-red-800/50 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-950/30";
+const ACCEPT = "bg-emerald-700 text-white hover:bg-emerald-800";
+const ANSWERS: Record<Answer, { label: string; done: string; style: string }> = {
+  reject: { label: "Refuser", done: "Nouveau prix refusé : le prix ne change pas", style: REJECT },
+  accept: { label: "Accepter", done: "Nouveau prix accepté", style: ACCEPT },
+};
 
-  // Countdown timer (for tier 2 auto-approve)
+const signed = (cents: number) =>
+  `${cents > 0 ? "+" : cents < 0 ? "-" : ""}${formatPrice(Math.abs(cents))}`;
+const clock = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+
+/** Posts the answer. message: null once recorded, else what to show; reached: the server answered. */
+async function postAnswer(orderId: string, answer: Answer) {
+  const url = `/api/orders/${encodeURIComponent(orderId)}/adjustment/${answer}`;
+  const res = await fetch(url, { method: "POST" }).catch((error: unknown) => {
+    if (error instanceof TypeError) return null;
+    throw error;
+  });
+  if (res === null) return { message: NETWORK_ERROR, reached: false };
+  // A body that is not JSON is an unexpected answer: shown as « not recorded ».
+  const body = (await res.json().catch(() => null)) as ApiBody;
+  if (res.ok && body?.success === true) return { message: null, reached: true };
+  return { message: body?.error?.message ?? UNRECORDED, reached: true };
+}
+
+function PendingPrompt({ orderId, adjustment, onUpdate }: Props) {
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [busy, setBusy] = useState<Answer | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const expiryNotified = useRef(false);
+  // Epoch ms after which the customer can no longer answer.
+  const deadline =
+    adjustment.answerBy !== null
+      ? Date.parse(adjustment.answerBy)
+      : Date.parse(adjustment.createdAt) + ADJUSTMENT_ANSWER_WINDOW_SECONDS * 1000;
+
+  // The clock is read after mount only; the interval only counts, it never calls the network.
   useEffect(() => {
-    if (!adjustment.autoApproveAt) return;
-
-    const update = () => {
-      const remaining = Math.max(0, new Date(adjustment.autoApproveAt!).getTime() - Date.now());
-      setSecondsLeft(Math.ceil(remaining / 1000));
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left === 0) clearInterval(timer);
     };
-    update();
-    const iv = setInterval(update, 1000);
-    return () => clearInterval(iv);
-  }, [adjustment.autoApproveAt]);
+    const timer = setInterval(tick, 1000);
+    tick();
+    return () => clearInterval(timer);
+  }, [deadline]);
 
-  // Auto-refresh when timer expires (triggers lazy auto-approve on server)
+  // Past the deadline the server closes the adjustment: the page reads the order again, once.
   useEffect(() => {
-    if (adjustment.status !== "PENDING") return;
-    if (!adjustment.autoApproveAt) return;
-    if (secondsLeft > 0) return;
+    if (secondsLeft !== 0 || expiryNotified.current) return;
+    expiryNotified.current = true;
+    onUpdate();
+  }, [secondsLeft, onUpdate]);
 
-    const timeout = setTimeout(() => onUpdate(), 1500);
-    return () => clearTimeout(timeout);
-  }, [secondsLeft, adjustment.status, adjustment.autoApproveAt, onUpdate]);
+  const answer = async (choice: Answer) => {
+    setBusy(choice);
+    setError(null);
+    const { message, reached } = await postAnswer(orderId, choice);
+    setBusy(null);
+    if (message === null) toast.success(ANSWERS[choice].done);
+    else setError(message);
+    if (reached) onUpdate();
+  };
 
-  const handleAction = useCallback(async (action: "accept" | "reject") => {
-    setLoading(action);
-    try {
-      const res = await fetch(`/api/orders/${orderId}/adjustment/${action}`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(action === "accept" ? "Ajustement accepte" : "Ajustement refuse");
-        onUpdate();
-      } else {
-        toast.error(data.error?.message || "Erreur");
-      }
-    } catch {
-      toast.error("Erreur reseau");
-    } finally {
-      setLoading(null);
-    }
-  }, [orderId, onUpdate]);
+  const rows = [
+    ["Prix actuel", formatPrice(adjustment.originalTotal), "text-gray-900 dark:text-white"],
+    ["Nouveau prix", formatPrice(adjustment.newTotal), STRONG_TEXT],
+    ["Différence", signed(adjustment.newTotal - adjustment.originalTotal), STRONG_TEXT],
+  ];
 
-  const diff = adjustment.newTotal - adjustment.originalTotal;
-  const diffPct = adjustment.originalTotal > 0
-    ? ((adjustment.newTotal - adjustment.originalTotal) / adjustment.originalTotal) * 100
-    : 0;
-  const tier = adjustment.tier || 1;
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
-
-  // ═══════════════════════════════════════════
-  // PENDING — tier-specific UI
-  // ═══════════════════════════════════════════
-  if (adjustment.status === "PENDING") {
-    // ── Tier 2: 30s countdown + refuse button only ──
-    if (tier === 2) {
-      return (
-        <div className="p-4 bg-amber-50 dark:bg-amber-900/15 rounded-2xl border border-amber-200 dark:border-amber-700/30 space-y-3">
-          <div className="flex items-center gap-2">
-            <Clock size={18} className="text-amber-600 dark:text-amber-400" />
-            <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
-              Ajustement de prix (palier 2)
-            </h3>
-            {secondsLeft > 0 && (
-              <span className="ml-auto text-lg font-mono font-bold text-amber-600 dark:text-amber-400">
-                {secondsLeft}s
-              </span>
-            )}
+  return (
+    <section className={`rounded-2xl border ${PENDING_TONE}`}>
+      <h3 className={`flex items-center gap-2 text-sm font-bold ${AMBER_TEXT}`}>
+        <Scale size={18} aria-hidden="true" className="shrink-0" />
+        Votre boucher propose un nouveau prix
+      </h3>
+      <dl className="grid grid-cols-3 gap-2 rounded-xl bg-white p-3 text-center dark:bg-[#141414]">
+        {rows.map(([term, value, tone]) => (
+          <div key={term}>
+            <dt className="text-xs text-gray-600 dark:text-gray-400">{term}</dt>
+            <dd className={`text-sm ${tone}`}>{value}</dd>
           </div>
-
-          <p className="text-xs text-amber-700 dark:text-amber-400/80">
-            Hausse de <span className="font-bold">+{diffPct.toFixed(1)}%</span> — sera accepte automatiquement{" "}
-            {secondsLeft > 0 ? `dans ${secondsLeft}s` : ""}
-          </p>
-
-          {adjustment.reason && (
-            <p className="text-xs text-amber-700 dark:text-amber-400/70 italic">
-              &quot;{adjustment.reason}&quot;
+        ))}
+      </dl>
+      {adjustment.reason && <p className={`text-xs ${AMBER_TEXT}`}>Motif : {adjustment.reason}</p>}
+      {secondsLeft === 0 ? (
+        <p className={`text-sm font-semibold ${AMBER_TEXT}`}>{EXPIRED}</p>
+      ) : (
+        <>
+          {secondsLeft !== null && (
+            <p className={`text-xs ${AMBER_TEXT}`}>
+              Il vous reste <b role="timer">{clock(secondsLeft)}</b> pour répondre.
             </p>
           )}
-
-          {/* Price comparison */}
-          <div className="flex items-center justify-between bg-white dark:bg-[#141414] rounded-xl px-4 py-3 border border-amber-200/50 dark:border-white/5">
-            <div>
-              <p className="text-[11px] text-[#999] dark:text-gray-400">Ancien prix</p>
-              <p className="text-sm text-[#555] dark:text-gray-300 line-through">{fmtPrice(adjustment.originalTotal)}</p>
-            </div>
-            <div className="text-xl font-bold text-[#2a2018] dark:text-white">&rarr;</div>
-            <div className="text-right">
-              <p className="text-[11px] text-[#999] dark:text-gray-400">Nouveau prix</p>
-              <p className="text-lg font-bold text-[#2a2018] dark:text-white">{fmtPrice(adjustment.newTotal)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-amber-600">
-                +{fmtPrice(diff)}
-              </p>
-            </div>
-          </div>
-
-          {secondsLeft <= 0 ? (
-            <div className="text-center py-2">
-              <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                Delai expire — valide automatiquement
-              </p>
-            </div>
-          ) : (
-            <button
-              onClick={() => handleAction("reject")}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-            >
-              {loading === "reject" ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
-              Refuser l&apos;ajustement
-            </button>
-          )}
-        </div>
-      );
-    }
-
-    // ── Tier 3: blocking modal — accept/refuse, no auto-approve ──
-    if (tier === 3) {
-      return (
-        <div className="p-4 bg-red-50 dark:bg-red-900/15 rounded-2xl border-2 border-red-300 dark:border-red-700/40 space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
-            <h3 className="text-sm font-bold text-red-800 dark:text-red-300">
-              Ajustement important (palier 3)
-            </h3>
-          </div>
-
-          <p className="text-xs text-red-700 dark:text-red-400/80 font-medium">
-            Le boucher demande une hausse de <span className="font-bold">+{diffPct.toFixed(1)}%</span>.
-            Votre approbation est requise.
-          </p>
-
-          {adjustment.reason && (
-            <p className="text-xs text-red-700 dark:text-red-400/70 italic bg-red-100 dark:bg-red-900/20 rounded-lg px-3 py-2">
-              &quot;{adjustment.reason}&quot;
+          <p className={`text-xs ${AMBER_TEXT}`}>{SILENCE_KEEPS_PRICE}</p>
+          {error && (
+            <p role="alert" className={ERROR_TEXT}>
+              {error}
             </p>
           )}
-
-          {/* Price comparison */}
-          <div className="flex items-center justify-between bg-white dark:bg-[#141414] rounded-xl px-4 py-3 border border-red-200/50 dark:border-white/5">
-            <div>
-              <p className="text-[11px] text-[#999] dark:text-gray-400">Ancien prix</p>
-              <p className="text-sm text-[#555] dark:text-gray-300 line-through">{fmtPrice(adjustment.originalTotal)}</p>
-            </div>
-            <div className="text-xl font-bold text-[#2a2018] dark:text-white">&rarr;</div>
-            <div className="text-right">
-              <p className="text-[11px] text-[#999] dark:text-gray-400">Nouveau prix</p>
-              <p className="text-lg font-bold text-red-600 dark:text-red-400">{fmtPrice(adjustment.newTotal)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-red-600">
-                +{fmtPrice(diff)}
-              </p>
-            </div>
-          </div>
-
           <div className="flex gap-3">
-            <button
-              onClick={() => handleAction("reject")}
-              disabled={loading !== null}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-            >
-              {loading === "reject" ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
-              Refuser
-            </button>
-            <button
-              onClick={() => handleAction("accept")}
-              disabled={loading !== null}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-colors disabled:opacity-50"
-            >
-              {loading === "accept" ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-              Accepter
-            </button>
+            {(["reject", "accept"] as const).map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                onClick={() => void answer(choice)}
+                disabled={busy !== null}
+                aria-busy={busy === choice}
+                className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 ${ANSWERS[choice].style}`}
+              >
+                {busy === choice && <Loader2 size={16} aria-hidden className="animate-spin" />}
+                {ANSWERS[choice].label}
+              </button>
+            ))}
           </div>
-        </div>
-      );
-    }
+        </>
+      )}
+    </section>
+  );
+}
 
-    // ── Tier 1 PENDING (shouldn't normally happen, but handle gracefully) ──
-    return (
-      <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-200 dark:border-emerald-800/30">
-        <div className="flex items-center gap-2">
-          <Loader2 size={16} className="text-emerald-500 animate-spin" />
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            Ajustement en cours de validation...
-          </p>
-        </div>
+/** Text of each settled status (AUTO_VALIDATED, ESCALATED: legacy) and those whose price applies. */
+const OUTCOMES: Partial<Record<string, (a: PriceAdjustmentView) => string>> = {
+  AUTO_APPROVED: (a) => (a.newTotal < a.originalTotal ? DECREASED : WITHIN_TOLERANCE),
+  APPROVED: () => "Nouveau prix accepté",
+  AUTO_VALIDATED: () => "Prix ajusté",
+  REJECTED: (a) =>
+    a.closeReason === "CUSTOMER_REFUSED"
+      ? `Vous avez refusé le nouveau prix : votre commande reste à ${formatPrice(a.originalTotal)}.`
+      : a.closeReason === "NO_ANSWER"
+        ? EXPIRED
+        : NOT_APPLIED,
+  ESCALATED: () => NOT_APPLIED,
+};
+const APPLIED = ["AUTO_APPROVED", "APPROVED", "AUTO_VALIDATED"];
+const APPLIED_TONE =
+  "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-300";
+const KEPT_TONE =
+  "border-[#ece8e3] bg-white text-gray-800 dark:border-white/10 dark:bg-[#141414] dark:text-gray-200";
+
+export default function PriceAdjustmentBanner(props: Props) {
+  const { adjustment } = props;
+  if (adjustment.status === "PENDING") return <PendingPrompt key={adjustment.id} {...props} />;
+  const text = OUTCOMES[adjustment.status]?.(adjustment);
+  if (text === undefined) return null;
+  const applied = APPLIED.includes(adjustment.status);
+  const [Icon, tone] = applied ? [CheckCircle2, APPLIED_TONE] : [Info, KEPT_TONE];
+  const change = `${formatPrice(adjustment.originalTotal)} → ${formatPrice(adjustment.newTotal)}`;
+  return (
+    <div className={`flex items-start gap-2 rounded-2xl border p-3 ${tone}`}>
+      <Icon size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
+      <div className="text-sm">
+        <p className="font-semibold">{text}</p>
+        {applied && <p className="text-xs">{change}</p>}
       </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // AUTO_APPROVED — info banner (tier 1)
-  // ═══════════════════════════════════════════
-  if (adjustment.status === "AUTO_APPROVED") {
-    return (
-      <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-200 dark:border-emerald-800/30">
-        <div className="flex items-center gap-2">
-          <Shield size={16} className="text-emerald-500" />
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            Prix ajuste : {fmtPrice(adjustment.originalTotal)} &rarr;{" "}
-            <span className="font-bold">{fmtPrice(adjustment.newTotal)}</span>
-            {diff <= 0 ? " (baisse)" : ` (+${diffPct.toFixed(1)}%)`}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // AUTO_VALIDATED — tier 2 auto-approved after timeout
-  // ═══════════════════════════════════════════
-  if (adjustment.status === "AUTO_VALIDATED") {
-    return (
-      <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-200 dark:border-amber-800/30">
-        <div className="flex items-center gap-2">
-          <Clock size={16} className="text-amber-500" />
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            Prix ajuste automatiquement : {fmtPrice(adjustment.originalTotal)} &rarr;{" "}
-            <span className="font-bold">{fmtPrice(adjustment.newTotal)}</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // APPROVED — confirmed by client
-  // ═══════════════════════════════════════════
-  if (adjustment.status === "APPROVED") {
-    return (
-      <div className="p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-200 dark:border-emerald-800/30">
-        <div className="flex items-center gap-2">
-          <CheckCircle size={16} className="text-emerald-500" />
-          <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            Ajustement accepte : <span className="font-bold">{fmtPrice(adjustment.newTotal)}</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // REJECTED
-  // ═══════════════════════════════════════════
-  if (adjustment.status === "REJECTED") {
-    return (
-      <div className="p-3 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-200 dark:border-red-800/30">
-        <div className="flex items-center gap-2">
-          <XCircle size={16} className="text-red-500" />
-          <p className="text-sm text-red-700 dark:text-red-400">
-            Ajustement refuse — prix initial maintenu ({fmtPrice(adjustment.originalTotal)})
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // ESCALATED — tier 3 timed out, sent to webmaster
-  // ═══════════════════════════════════════════
-  if (adjustment.status === "ESCALATED") {
-    return (
-      <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-2xl border border-orange-200 dark:border-orange-800/30 space-y-2">
-        <div className="flex items-center gap-2">
-          <AlertTriangle size={16} className="text-orange-500" />
-          <p className="text-sm font-bold text-orange-700 dark:text-orange-400">
-            Ajustement escalade
-          </p>
-        </div>
-        <p className="text-xs text-orange-600 dark:text-orange-400/70">
-          L&apos;ajustement de {fmtPrice(adjustment.originalTotal)} &rarr; {fmtPrice(adjustment.newTotal)} a ete transmis au service client pour resolution.
-        </p>
-      </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }

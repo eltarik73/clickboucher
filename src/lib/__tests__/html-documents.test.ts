@@ -101,6 +101,9 @@ function kitchenOrder(name: string): KitchenOrder {
     status: "ACCEPTED",
     totalCents: 1200,
     discountCents: 0,
+    weighToleranceRateBps: null,
+    weighToleranceCapCents: null,
+    estimatedTotalCents: null,
     customerNumber: null,
     isPro: false,
     customerNote: name,
@@ -121,6 +124,7 @@ function kitchenOrder(name: string): KitchenOrder {
         unit: "PIECE",
         priceCents: 1200,
         totalCents: 1200,
+        estimatedPriceCents: 1200,
         weightGrams: null,
         sliceCount: null,
         sliceThickness: null,
@@ -273,5 +277,25 @@ describe("kitchen ticket", () => {
     const ticket = buildTicketHtml(kitchenOrder(READABLE), "Boucherie Test");
 
     expect(ticket).toContain(`<div class="note-box">${READABLE_AS_TEXT}</div>`);
+  });
+
+  it("prints the weighing tolerance frozen on the order under the totals, escaped", () => {
+    const ticket = buildTicketHtml(
+      {
+        ...kitchenOrder(READABLE),
+        weighToleranceRateBps: 500,
+        weighToleranceCapCents: 1000,
+        estimatedTotalCents: 1200,
+      },
+      "Boucherie Test"
+    );
+
+    expect(ticket).toMatch(
+      /<div class="totals">[\s\S]*<div class="tolerance">Marge de pesée acceptée : 5 % du total estimé, 10,00 € au plus \(jusqu&#39;à 0,60 €\)<\/div>\s*<\/div>/
+    );
+  });
+
+  it("prints no tolerance line for an order created before it existed", () => {
+    expect(buildTicketHtml(kitchenOrder(READABLE), "Boucherie Test")).not.toContain("tolerance");
   });
 });

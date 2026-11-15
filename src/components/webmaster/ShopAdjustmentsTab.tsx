@@ -20,6 +20,8 @@ type Adjustment = {
   newTotal: number;
   tier: number;
   status: string;
+  /** Why a REJECTED adjustment ended unapplied, when the API returns it. */
+  closeReason?: string | null;
   reason: string | null;
   createdAt: string;
   respondedAt: string | null;
@@ -45,15 +47,23 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   PENDING: { label: "En attente", color: "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" },
   AUTO_APPROVED: { label: "Auto-approuvé", color: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" },
   APPROVED: { label: "Accepté", color: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" },
-  AUTO_VALIDATED: { label: "Auto-validé", color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400" },
+  AUTO_VALIDATED: { label: "Validé sans réponse (ancienne règle)", color: "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400" },
   REJECTED: { label: "Refusé", color: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400" },
-  ESCALATED: { label: "Escaladé", color: "bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400" },
+  ESCALATED: { label: "Escaladé (ancienne règle)", color: "bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400" },
 };
 
-const TIER_COLORS: Record<number, string> = {
-  1: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400",
-  2: "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400",
-  3: "bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400",
+/** Why a REJECTED adjustment ended unapplied (PriceAdjustment.closeReason). */
+const CLOSE_REASON_LABELS: Record<string, string> = {
+  CUSTOMER_REFUSED: "Refusé par le client",
+  NO_ANSWER: "Sans réponse du client",
+  ORDER_CHANGED: "Annulé : commande modifiée",
+};
+
+/** Tier 1 applied without asking, tier 3 waited for the customer; tier 2 is the former rule. */
+const TIER_BADGES: Record<number, { label: string; color: string }> = {
+  1: { label: "Sans demande", color: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" },
+  2: { label: "Ancien palier 2", color: "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400" },
+  3: { label: "Accord demandé", color: "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" },
 };
 
 export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
@@ -115,7 +125,7 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
           { label: "Total", value: String(stats.total), icon: Scale, color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-500/10" },
           { label: "Acceptés", value: String(stats.accepted), icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
           { label: "Refusés", value: String(stats.rejected), icon: XCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10" },
-          { label: "Escaladés", value: String(stats.escalated), icon: AlertTriangle, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10" },
+          { label: "Escaladés (ancienne règle)", value: String(stats.escalated), icon: AlertTriangle, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10" },
           { label: "Taux acceptation", value: `${stats.acceptanceRate}%`, icon: TrendingUp, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
           { label: "Variance moyenne", value: `${stats.avgVariancePct}%`, icon: ArrowUpDown, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
         ].map((s) => {
@@ -154,7 +164,7 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
                   <th className="px-3 py-2.5 text-right font-semibold text-gray-500 dark:text-gray-400">Ancien</th>
                   <th className="px-3 py-2.5 text-right font-semibold text-gray-500 dark:text-gray-400">Nouveau</th>
                   <th className="px-3 py-2.5 text-right font-semibold text-gray-500 dark:text-gray-400">Ecart</th>
-                  <th className="px-3 py-2.5 text-center font-semibold text-gray-500 dark:text-gray-400">Palier</th>
+                  <th className="px-3 py-2.5 text-center font-semibold text-gray-500 dark:text-gray-400">Accord client</th>
                   <th className="px-3 py-2.5 text-center font-semibold text-gray-500 dark:text-gray-400">Statut</th>
                   <th className="px-3 py-2.5 text-right font-semibold text-gray-500 dark:text-gray-400">Date</th>
                 </tr>
@@ -166,7 +176,8 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
                     : "0";
                   const isIncrease = adj.newTotal > adj.originalTotal;
                   const statusInfo = STATUS_LABELS[adj.status] || { label: adj.status, color: "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400" };
-                  const tierColor = TIER_COLORS[adj.tier] || "";
+                  const statusLabel = (adj.status === "REJECTED" && adj.closeReason && CLOSE_REASON_LABELS[adj.closeReason]) || statusInfo.label;
+                  const tierBadge = TIER_BADGES[adj.tier] ?? { label: `Palier ${adj.tier}`, color: "" };
 
                   return (
                     <tr key={adj.id} className="border-t border-gray-50 dark:border-white/[0.03] hover:bg-gray-50/50 dark:hover:bg-white/[0.02]">
@@ -178,13 +189,13 @@ export default function ShopAdjustmentsTab({ shopId }: { shopId: string }) {
                         {isIncrease ? "+" : ""}{diffPct}%
                       </td>
                       <td className="px-3 py-2.5 text-center">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${tierColor}`}>
-                          P{adj.tier}
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${tierBadge.color}`}>
+                          {tierBadge.label}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-center">
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${statusInfo.color}`}>
-                          {statusInfo.label}
+                          {statusLabel}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right text-gray-500 dark:text-gray-400">

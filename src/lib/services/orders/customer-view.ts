@@ -97,10 +97,6 @@ export const customerOrderSelect = {
       itemsSnapshot: true,
       answerBy: true,
       closeReason: true,
-      // Legacy columns, never written since C1-PAIEMENT-A: still read by the tracking page
-      // (src/app/(client)/suivi/[id]/page.tsx) until C1-PAIEMENT-A-T7 drops them there.
-      autoApproveAt: true,
-      escalateAt: true,
       respondedAt: true,
       createdAt: true,
     },

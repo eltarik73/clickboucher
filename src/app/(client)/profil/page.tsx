@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { getShopImage } from "@/lib/product-images";
+import type { WeighToleranceChoice } from "@/lib/pricing/tolerance";
+import WeighToleranceSetting from "./WeighToleranceSetting";
 
 // ── Types ────────────────────────────────────────
 
@@ -56,6 +58,7 @@ interface UserProfile {
   notifEmail: boolean;
   notifSms: boolean;
   notifWhatsapp: boolean;
+  weighTolerance: WeighToleranceChoice | null;
   proAccesses: ProAccessInfo[];
   favoriteShops: FavoriteShop[];
 }
@@ -524,6 +527,8 @@ export default function ProfilPage() {
             </Button>
           </div>
         </section>
+
+        <WeighToleranceSetting initial={profile.weighTolerance} />
 
         {/* ═══════════════════════════════════════ */}
         {/* 4. BOUCHERIES FAVORITES                */}

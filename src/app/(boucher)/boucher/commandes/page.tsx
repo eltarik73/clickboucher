@@ -392,7 +392,7 @@ export default function KitchenModePage() {
     }
   }
 
-  // ── Handle price adjustment ──
+  // ── Handle price adjustment: true once the server took it (applied, or sent to the customer) ──
   async function handleAdjustPrice(orderId: string, data: Record<string, unknown>) {
     try {
       const res = await fetch(`/api/orders/${orderId}/adjust-price`, {
@@ -400,21 +400,17 @@ export default function KitchenModePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      const json = await res.json().catch(() => null);
       if (res.ok) {
-        const json = await res.json();
         await refetch();
-        if (json.data?.autoApproved) {
-          toast.success("Prix ajusté automatiquement (baisse)");
-        } else {
-          toast.success("Ajustement envoyé — en attente du client (5 min)");
-        }
-      } else {
-        const json = await res.json().catch(() => null);
-        toast.error(json?.error?.message || "Erreur lors de l'ajustement");
+        toast.success(json?.data?.applied === true ? "Prix mis à jour" : "Demande envoyée au client");
+        return true;
       }
+      toast.error(json?.error?.message || "Erreur lors de l'ajustement");
     } catch {
       toast.error("Erreur de connexion au serveur");
     }
+    return false;
   }
 
   // ── Audio unlock screen (not before the session flag is read) ──

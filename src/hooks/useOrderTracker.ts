@@ -26,9 +26,10 @@ export interface TrackedPriceAdjustment {
   reason: string | null;
   adjustmentType: string;
   status: string;
-  tier: number;
-  autoApproveAt: string | null;
-  escalateAt: string | null;
+  /** CUSTOMER_REFUSED | NO_ANSWER | ORDER_CHANGED once REJECTED; null otherwise and on older rows. */
+  closeReason: string | null;
+  /** Deadline of the customer's answer; null on rows created before C1-PAIEMENT-A. */
+  answerBy: string | null;
   createdAt: string;
 }
 

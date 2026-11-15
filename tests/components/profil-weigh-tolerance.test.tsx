@@ -1,0 +1,105 @@
+// /profil, section « Marge de pesée » : le choix enregistré est affiché, rien n'est coché pour qui
+// n'a jamais choisi, l'enregistrement passe par PATCH /api/users/me { weighTolerance } seul.
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { screen } from "@testing-library/dom";
+import WeighToleranceSetting from "@/app/(client)/profil/WeighToleranceSetting";
+
+const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({ toast }));
+
+const SAVE = "Enregistrer ma marge";
+const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>();
+
+function reply(status: number, body: unknown): Response {
+  return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
+}
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  toast.success.mockReset();
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe("profil : marge de pesée", () => {
+  it("jamais choisie : rien de coché, rien à enregistrer, aucun appel", () => {
+    render(<WeighToleranceSetting initial={null} />);
+
+    for (const radio of screen.getAllByRole("radio")) expect(radio).not.toBeChecked();
+    expect(screen.getByRole("button", { name: SAVE })).toBeDisabled();
+    expect(screen.queryByText("Votre choix enregistré")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("le choix enregistré est coché et signalé ; le bouton ne sert qu'à un changement", () => {
+    render(<WeighToleranceSetting initial="STANDARD" />);
+
+    const standard = screen.getByRole("radio", { name: /^5 % du total estimé/ });
+    expect(standard).toBeChecked();
+    expect(standard).toHaveAccessibleName(/Votre choix enregistré$/);
+    expect(screen.getByRole("button", { name: SAVE })).toBeDisabled();
+    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    expect(screen.getByRole("button", { name: SAVE })).toBeEnabled();
+  });
+
+  it("enregistrer : PATCH du seul choix, toast, le nouveau choix devient le choix enregistré", async () => {
+    fetchMock.mockResolvedValue(
+      reply(200, { success: true, data: { weighTolerance: "EXTENDED" } })
+    );
+    render(<WeighToleranceSetting initial="STANDARD" />);
+
+    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: SAVE }));
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/users/me", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weighTolerance: "EXTENDED" }),
+    });
+    expect(toast.success).toHaveBeenCalledWith("Marge de pesée enregistrée");
+    expect(screen.getByRole("radio", { name: /^10 % du total estimé/ })).toHaveAccessibleName(
+      /Votre choix enregistré$/
+    );
+    expect(screen.getByRole("button", { name: SAVE })).toBeDisabled();
+  });
+
+  it("refus du serveur : son message s'affiche, l'ancien choix reste le choix enregistré", async () => {
+    fetchMock.mockResolvedValue(
+      reply(429, { success: false, error: { code: "RATE_LIMITED", message: "Trop de requêtes" } })
+    );
+    render(<WeighToleranceSetting initial="STANDARD" />);
+
+    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: SAVE }));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Trop de requêtes");
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(screen.getByRole("radio", { name: /^5 % du total estimé/ })).toHaveAccessibleName(
+      /Votre choix enregistré$/
+    );
+  });
+
+  it("panne réseau : un message, le choix reste modifiable", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<WeighToleranceSetting initial={null} />);
+
+    fireEvent.click(screen.getByRole("radio", { name: /^5 % du total estimé/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: SAVE }));
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Erreur réseau : votre choix n'est pas enregistré. Réessayez."
+    );
+    expect(screen.getByRole("radio", { name: /^10 % du total estimé/ })).toBeEnabled();
+  });
+});

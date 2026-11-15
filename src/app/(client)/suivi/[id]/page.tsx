@@ -6,6 +6,7 @@ import { authorizeOrderAccess } from "@/lib/auth/order-access";
 import { isCredentialShaped, orderAccessPath, orderPagePath } from "@/lib/auth/order-credential";
 import { findCustomerOrder } from "@/lib/services/orders/customer-view";
 import { formatCustomerNumber } from "@/lib/order-number-format";
+import { frozenToleranceOf } from "@/lib/pricing/tolerance";
 import SuiviClient from "./SuiviClient";
 
 // Tracking page of an order, for its customer: the order's credential cookie or the signed-in owner
@@ -72,6 +73,7 @@ export default async function SuiviPage({
           firstName: order.user.firstName,
           lastName: order.user.lastName,
         },
+        weighTolerance: frozenToleranceOf(order),
         priceAdjustment: order.priceAdjustment
           ? {
               id: order.priceAdjustment.id,
@@ -80,9 +82,8 @@ export default async function SuiviPage({
               reason: order.priceAdjustment.reason,
               adjustmentType: order.priceAdjustment.adjustmentType,
               status: order.priceAdjustment.status,
-              tier: order.priceAdjustment.tier,
-              autoApproveAt: order.priceAdjustment.autoApproveAt?.toISOString() ?? null,
-              escalateAt: order.priceAdjustment.escalateAt?.toISOString() ?? null,
+              closeReason: order.priceAdjustment.closeReason,
+              answerBy: order.priceAdjustment.answerBy?.toISOString() ?? null,
               createdAt: order.priceAdjustment.createdAt.toISOString(),
             }
           : null,
