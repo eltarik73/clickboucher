@@ -97,7 +97,8 @@ const SENSITIVE_SHOP_VALUES = {
   siret: "98765432109876",
   legalName: "SARL ITEST SECRETE",
   suspendReason: "motif-de-suspension-itest-secret",
-  suspendedAt: new Date("2030-01-02T03:04:05.000Z"),
+  // Not suspended: a suspended shop has no public page (cases below); the key must still not leak.
+  suspendedAt: null,
   missedOrdersCount: 4242,
   autoAccept: true,
   cachedAcceptanceRate: 0.123456,
@@ -203,11 +204,50 @@ describe("GET /api/shops/[id] (anonyme)", () => {
     });
   });
 
+  it("n'est jamais stockée par un cache partagé : une suspension la masque aussitôt", async () => {
+    const response = await getShop(getRequest(`/api/shops/${shop.id}`), {
+      params: { id: shop.id },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control") ?? "").not.toMatch(/public|s-maxage/);
+  });
+
   it("répond 404 pour une boutique inconnue", async () => {
     const response = await getShop(getRequest("/api/shops/inconnue"), {
       params: { id: "inconnue" },
     });
     expect(response.status).toBe(404);
+  });
+
+  it.each([
+    ["suspendue, même encore listée", { suspendedAt: new Date("2026-11-10T09:00:00.000Z") }],
+    ["non validée et pas en congés", { visible: false, vacationMode: false }],
+  ])("répond 404 pour une boutique %s", async (_, state) => {
+    const hidden = await createTestShop({ ownerId: owner.id, ...state });
+
+    const response = await getShop(getRequest(`/api/shops/${hidden.id}`), {
+      params: { id: hidden.id },
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      success: false,
+      error: { code: "NOT_FOUND", message: "Boucherie introuvable" },
+    });
+  });
+
+  it("répond 200 pour une boutique en congés (non listée), sans ses indicateurs de publication", async () => {
+    const away = await createTestShop({ ownerId: owner.id, visible: false, vacationMode: true });
+
+    const { json } = await readBody(
+      await getShop(getRequest(`/api/shops/${away.id}`), { params: { id: away.id } })
+    );
+
+    expect(json.data).toMatchObject({ id: away.id, slug: away.slug });
+    const keys = collectKeys(json);
+    for (const key of ["visible", "vacationMode", "suspendedAt"])
+      expect(keys.has(key), key).toBe(false);
   });
 });
 

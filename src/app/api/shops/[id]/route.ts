@@ -1,25 +1,30 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
+import type { z } from "zod";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
-import { updateShopSchema } from "@/lib/validators";
-import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
+import { ownerShopUpdateSchema, updateShopSchema } from "@/lib/validators";
+import { readJsonBody } from "@/lib/api/request-body";
+import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { shopImageRefusal } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 import { publicProductSelect, publicShopSelect } from "@/lib/public-projections";
+import { isShopPageReachable, shopPublicationSelect } from "@/lib/shop-publication";
 
 // ── GET /api/shops/[id] ────────────────────────
 // Public — shop detail with categories & products, allow-listed fields only
 // (src/lib/public-projections.ts). The owner reads his own shop through /api/shops/my-shop.
+// A shop whose page is not reachable (suspended, never validated, unpublished) does not exist here.
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
 
-    const shop = await prisma.shop.findUnique({
+    const found = await prisma.shop.findUnique({
       where: { id },
       select: {
         ...publicShopSelect,
+        ...shopPublicationSelect,
         categories: {
           orderBy: { order: "asc" },
           select: { id: true, name: true, emoji: true, order: true, imageUrl: true },
@@ -34,17 +39,18 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       },
     });
 
-    if (!shop) {
+    if (!found || !isShopPageReachable(found)) {
       return apiError("NOT_FOUND", "Boucherie introuvable");
     }
+    // The publication facts decide reachability; they are not part of the public projection.
+    const { visible, suspendedAt, vacationMode, ...shop } = found;
 
-    return apiCached(
-      {
-        ...shop,
-        effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
-      },
-      60
-    );
+    // Never stored by a shared cache: a suspension or an unpublication must hide the shop at once,
+    // and no page of the app reads this route (each request costs one query).
+    return apiSuccess({
+      ...shop,
+      effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
+    });
   } catch (error) {
     return handleApiError(error);
   }
@@ -97,14 +103,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
     }
 
-    const body = await req.json();
-    const data = updateShopSchema.parse(body);
+    const body = await readJsonBody(req);
+    // Both schemas are strict: a platform-owned key (commission, publication, photos for an owner)
+    // answers 400 and nothing is written. The owner's fields are a subset of the admin's.
+    const data: z.infer<typeof updateShopSchema> = isAdmin(role)
+      ? updateShopSchema.parse(body)
+      : ownerShopUpdateSchema.parse(body);
 
-    // Photos are webmaster-only: strip imageUrl/bannerUrl for non-admins
-    if (!isAdmin(role)) {
-      delete (data as Record<string, unknown>).imageUrl;
-      delete (data as Record<string, unknown>).bannerUrl;
-    }
     const photoRefusal = await shopImageRefusal(data, id);
     if (photoRefusal) {
       const { field, messageFr } = photoRefusal;

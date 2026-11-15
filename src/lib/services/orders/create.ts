@@ -33,6 +33,7 @@ import type { ResolvedDiscount } from "./discount";
 import { guestOrderColumns, type GuestOrderPlacement } from "./guest-placement";
 import { reserveLimitedStock, stockLinesFromItems } from "./limited-stock";
 import { allocateCustomerNumber, allocateDailyNumber, allocateOrderNumber } from "./numbering";
+import { lockShopTakingOrders } from "./order-shop";
 import { prepareOrder, type OrderCustomer, type OrderQuote, type OrderShop } from "./quote";
 import { checkShopCanTakeOrder } from "./shop-capacity";
 import { ACCEPTED_EVENT_TYPE, stockUnitsPayload } from "./stock-hold";
@@ -118,9 +119,11 @@ function insertOrder({
   now,
   guest,
 }: Placement): Promise<{ order: CreatedOrder; displayNumber: string }> {
-  // Lock order, the same in every path that creates an order: guest cap locks, offer, counters
-  // (customer, day, year), then the products' limited stock.
+  // Lock order, the same in every path that creates an order: the shop row (still taking orders,
+  // order-shop.ts), guest cap locks, offer, counters (customer, day, year), then the products'
+  // limited stock.
   return prisma.$transaction(async (tx) => {
+    await lockShopTakingOrders(tx, shop.id);
     const refusal = await guest?.admit?.(tx);
     if (refusal) throw new GuestAdmissionRefusedError(refusal);
     if (discount?.offerId) {

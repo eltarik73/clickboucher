@@ -3,27 +3,28 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { writeAuditLog } from "@/lib/audit-log";
+import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const commissionSchema = z.object({
-  commissionPct: z.number().min(0).max(100),
-  commissionEnabled: z.boolean().optional(),
-});
+// One of the two writers of Shop.commissionPct (with /api/admin/commission/global), both audited.
+const commissionSchema = z
+  .object({
+    commissionPct: z.number().min(0).max(100),
+    commissionEnabled: z.boolean().optional(),
+  })
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { shopId: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
     const { shopId } = params;
-    const body = await req.json();
-    const data = commissionSchema.parse(body);
+    const data = commissionSchema.parse(await readJsonBody(req));
 
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
@@ -33,11 +34,12 @@ export async function PATCH(
       return apiError("NOT_FOUND", "Boutique introuvable");
     }
 
+    // Without commissionEnabled, only the rate changes: charging stays as it is.
     const updated = await prisma.shop.update({
       where: { id: shopId },
       data: {
         commissionPct: data.commissionPct,
-        commissionEnabled: data.commissionEnabled ?? true,
+        ...(data.commissionEnabled !== undefined && { commissionEnabled: data.commissionEnabled }),
       },
       select: { id: true, name: true, commissionPct: true, commissionEnabled: true },
     });

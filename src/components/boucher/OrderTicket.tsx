@@ -8,6 +8,7 @@ import {
   formatTime,
   formatClientName,
 } from "@/lib/format-kitchen";
+import { escapeHtml } from "@/lib/html/escape";
 import type { SaleUnit, StoredLine } from "@/lib/pricing/line";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
 import { summarizeReceipt } from "@/lib/pricing/receipt";
@@ -363,14 +364,4 @@ export function printOrderTicketFallback(order: KitchenOrder, shopName?: string)
     win.document.write(html);
     win.document.close();
   }
-}
-
-/** Escape HTML entities for safe injection */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }

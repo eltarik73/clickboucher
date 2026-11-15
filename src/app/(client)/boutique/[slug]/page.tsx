@@ -1,10 +1,9 @@
 // Pas d'ISR ici : sans generateStaticParams, ce segment dynamique est rendu à
 // chaque requête et `revalidate` seul ne met pas la page en cache. Ne pas
-// ajouter generateStaticParams tel quel : getShop lit Upstash (fetch no-store),
+// ajouter generateStaticParams tel quel : loadPublicShop lit Upstash (fetch no-store),
 // ce qui fait échouer la génération statique en production.
 export const revalidate = 30;
 
-import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,7 +11,6 @@ import { getShopImage } from "@/lib/product-images";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Star, Clock, MapPin, Phone } from "lucide-react";
 import prisma from "@/lib/prisma";
-import { redis } from "@/lib/redis";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import {
   ShopProductsClient,
@@ -34,57 +32,7 @@ import { AntiGaspiBanner } from "@/components/client/AntiGaspiBanner";
 // boutique (-8 à -15% conversion estimé pour décision tardive).
 import { OpeningHoursAccordion } from "@/components/shop/OpeningHoursAccordion";
 import type { OpeningHours } from "@/lib/shop-hours";
-
-// ── Cached shop query with Redis (shared between generateMetadata & page) ──
-
-async function fetchShopFromDB(slug: string) {
-  return prisma.shop.findUnique({
-    where: { slug },
-    include: {
-      categories: { orderBy: { order: "asc" } },
-      products: {
-        where: { isActive: true },
-        include: {
-          categories: true,
-          images: { orderBy: { order: "asc" } },
-          labels: true,
-        },
-        orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
-      },
-    },
-  });
-}
-
-type ShopWithProducts = NonNullable<Awaited<ReturnType<typeof fetchShopFromDB>>>;
-
-const getShop = cache(async (slug: string): Promise<ShopWithProducts | null> => {
-  // Try Redis cache first (TTL 60s)
-  const cacheKey = `shop:${slug}`;
-  try {
-    const cached = await redis.get<string>(cacheKey);
-    if (cached) {
-      const parsed = (typeof cached === "string" ? JSON.parse(cached) : cached) as ShopWithProducts;
-      // Restore Date objects
-      if (parsed?.products) {
-        for (const p of parsed.products) {
-          if (p.promoEnd) p.promoEnd = new Date(p.promoEnd);
-        }
-      }
-      return parsed;
-    }
-  } catch {}
-
-  const shop = await fetchShopFromDB(slug);
-
-  // Cache for 60 seconds
-  if (shop) {
-    try {
-      await redis.set(cacheKey, JSON.stringify(shop), { ex: 60 });
-    } catch {}
-  }
-
-  return shop;
-});
+import { loadPublicShop } from "./load-shop";
 
 // ── Dynamic metadata for SEO ────────────────────
 
@@ -95,11 +43,11 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const shop = await getShop(params.slug);
+  const shop = await loadPublicShop(params.slug);
 
   // Audit 2026-06-12 : déclencher le 404 ici (avant le flush des headers en
   // streaming) au lieu de retourner un title — sinon la page renvoyait
-  // HTTP 200 + double meta robots contradictoire (soft-404). getShop est
+  // HTTP 200 + double meta robots contradictoire (soft-404). loadPublicShop est
   // mémoïsé (cache() + Redis), donc zéro requête supplémentaire pour le body.
   if (!shop) {
     notFound();
@@ -148,7 +96,7 @@ export default async function BoutiquePage({ params }: { params: { slug: string 
 
   let shop;
   try {
-    shop = await getShop(slug);
+    shop = await loadPublicShop(slug);
   } catch {
     notFound();
   }

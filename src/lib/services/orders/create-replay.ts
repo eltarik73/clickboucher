@@ -7,6 +7,7 @@ import type { CreateOrderResult } from "./create";
 import { DiscountUnavailableError } from "./discount-ledger";
 import { discountUnavailableMessage } from "./discount";
 import { LimitedStockError } from "./limited-stock";
+import { ShopStoppedTakingOrdersError } from "./order-shop";
 import type { OrderCustomer, OrderQuote } from "./quote";
 
 export type Failure = Extract<CreateOrderResult, { ok: false }>;
@@ -79,6 +80,9 @@ export async function creationFailure(
     placement.customer.id
   );
   if (replay !== null) return replay;
+  if (error instanceof ShopStoppedTakingOrdersError) {
+    return { ok: false, code: "SERVICE_DISABLED", message: error.refusal };
+  }
   if (error instanceof GuestAdmissionRefusedError) {
     return { ok: false, code: "RATE_LIMITED", message: error.refusal };
   }
