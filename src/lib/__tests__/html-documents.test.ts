@@ -1,8 +1,9 @@
 // @vitest-environment node
 // The HTML documents written by hand print what a person typed as text, never as markup (SEC-01,
 // audit of 2026-11-15): the printable order export, the confirmation and receipt e-mails, the
-// kitchen ticket. A guest named <img src=x onerror=alert(1)> stays a name; « Zoé O'Brien » stays
-// readable (accents kept, apostrophe as &#39;).
+// notification e-mails, the kitchen ticket. A guest named <img src=x onerror=alert(1)> stays a
+// name, a shop renamed <b>x</b> by its butcher stays a name; « Zoé O'Brien » stays readable
+// (accents kept, apostrophe as &#39;).
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const sentEmails = vi.hoisted(() => [] as Array<{ to: string; subject: string; html: string }>);
@@ -21,6 +22,7 @@ import {
   sendOrderConfirmationEmail,
 } from "@/lib/emails/order-confirmation";
 import { buildOrderReceiptEmail, type ReceiptData } from "@/lib/emails/order-receipt";
+import * as notificationEmails from "@/lib/email-templates";
 
 const PAYLOAD = "<img src=x onerror=alert(1)>";
 const PAYLOAD_AS_TEXT = "&lt;img src=x onerror=alert(1)&gt;";
@@ -217,6 +219,44 @@ describe("receipt e-mail", () => {
 
     expect(html).toContain(`Bonjour ${READABLE_AS_TEXT},`);
     expect(subject).toBe(`🧾 Reçu — Commande #012 — ${READABLE}`);
+  });
+});
+
+describe("notification e-mails", () => {
+  const MARKUP = "<b>x</b>";
+  const MARKUP_AS_TEXT = "&lt;b&gt;x&lt;/b&gt;";
+  // Every text field of NotifData set to markup (a shop renamed by its butcher, a product, a note).
+  const typed = {
+    orderId: MARKUP,
+    orderNumber: MARKUP,
+    shopName: MARKUP,
+    qrCode: MARKUP,
+    denyReason: MARKUP,
+    customerName: MARKUP,
+    note: MARKUP,
+    message: MARKUP,
+    weeklyTopProduct: MARKUP,
+    name: MARKUP,
+    city: MARKUP,
+    estimatedMinutes: 20,
+    nbItems: 2,
+    originalTotal: 1500,
+    newTotal: 1200,
+  };
+
+  it("prints a shop named <b>x</b> as text in the order-accepted e-mail", () => {
+    const email = notificationEmails.orderAccepted(typed);
+
+    expect(email).toContain(`chez <strong>${MARKUP_AS_TEXT}</strong>`);
+    expect(email).not.toContain(MARKUP);
+  });
+
+  it.each(Object.keys(notificationEmails))("%s prints every typed value as text", (name) => {
+    const template = notificationEmails[name as keyof typeof notificationEmails] as (
+      data: typeof typed
+    ) => string;
+
+    expect(template(typed)).not.toContain(MARKUP);
   });
 });
 

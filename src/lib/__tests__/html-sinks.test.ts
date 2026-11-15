@@ -33,13 +33,16 @@ const LEGACY_BASELINE: Readonly<Record<string, { count: number; reason: string }
     reason: "ticket built with escapeHtml on every typed value; the rest are its own fragments",
   },
   "src/lib/email-templates.ts": {
-    count: 87,
+    count: 46,
     reason:
-      "notification e-mails: shop names (typed by the butcher) and order numbers inserted raw",
+      "notification e-mails built with escapeHtml on every typed value; the rest are its own " +
+      "fragments: the layout slot, 29 buttons, 4 optional blocks, 12 numbers it formats",
   },
   "src/lib/notifications.ts": {
-    count: 14,
-    reason: "inline e-mails (escalated adjustment, loyalty, promotions): shop name and codes raw",
+    count: 5,
+    reason:
+      "inline e-mails built with escapeHtml on every typed value; the rest are 3 optional " +
+      "blocks and 2 totals it formats in euros",
   },
   "src/lib/marketing/send-campaign.ts": {
     count: 11,
