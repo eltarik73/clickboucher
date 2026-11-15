@@ -59,6 +59,7 @@ const confirmedOrder = () => ({
   expectedTotalCents: AMOUNT_DUE_CENTS,
 });
 
+/** A promise the test resolves itself; always opened in a `finally` so no transaction is left open. */
 function gate(): { opened: Promise<void>; open: () => void } {
   let open = () => {};
   const opened = new Promise<void>((resolve) => {
@@ -67,12 +68,17 @@ function gate(): { opened: Promise<void>; open: () => void } {
   return { opened, open };
 }
 
-/** Resolves once another session waits for a row lock (polls pg_locks for two seconds at most). */
+/**
+ * Resolves once another session of this database waits for a row lock (polls pg_locks for two
+ * seconds at most; other databases of the local cluster are ignored).
+ */
 async function someoneWaitsForARowLock(): Promise<void> {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const [{ waiting }] = await prisma.$queryRaw<{ waiting: number }[]>`
-      SELECT count(*)::int AS waiting FROM pg_locks
-      WHERE NOT granted AND locktype IN ('transactionid', 'tuple')`;
+      SELECT count(*)::int AS waiting
+      FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
+      WHERE NOT l.granted AND l.locktype IN ('transactionid', 'tuple')
+        AND a.datname = current_database()`;
     if (waiting > 0) return;
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
@@ -96,8 +102,11 @@ describe("commande en cours pendant une décision de l'administration", () => {
     await written.opened;
 
     const order = createOrder(confirmedOrder(), customerOf(customer));
-    await someoneWaitsForARowLock();
-    committed.open();
+    try {
+      await someoneWaitsForARowLock();
+    } finally {
+      committed.open();
+    }
     await suspension;
 
     expect(await order).toEqual({
@@ -124,9 +133,12 @@ describe("commande en cours pendant une décision de l'administration", () => {
       events.push("suspension appliquée");
       return result;
     });
-    await someoneWaitsForARowLock();
-    expect(events).toEqual([]);
-    committed.open();
+    try {
+      await someoneWaitsForARowLock();
+      expect(events).toEqual([]);
+    } finally {
+      committed.open();
+    }
 
     await orderTransaction;
     expect(await suspension).toEqual({ ok: true });
@@ -143,8 +155,11 @@ describe("commande en cours pendant une décision de l'administration", () => {
     }, HELD);
     await firstLocked.opened;
 
-    await prisma.$transaction((tx) => lockShopTakingOrders(tx, shop.id), HELD);
-    release.open();
+    try {
+      await prisma.$transaction((tx) => lockShopTakingOrders(tx, shop.id), HELD);
+    } finally {
+      release.open();
+    }
     await first;
   });
 });

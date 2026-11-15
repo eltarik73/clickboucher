@@ -6,6 +6,8 @@
 //
 // Avant : une entrée illisible était avalée par un `catch {}` vide, sans trace. Désormais c'est un
 // raté explicite : la boutique est relue en base et l'incident est journalisé.
+// Les congés (début, fin par le boucher, fin par le cron) effacent la copie et le statut en cache,
+// comme la modération : la page montre le changement aussitôt.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const store = vi.hoisted(() => new Map<string, unknown>());
@@ -26,6 +28,7 @@ vi.mock("react", async (importOriginal) => ({
 }));
 
 import { loadPublicShop } from "@/app/(client)/boutique/[slug]/load-shop";
+import { endExpiredVacations, endVacationMode, setVacationMode } from "@/lib/shop-vacation";
 import { useCleanDatabase } from "../helpers/db";
 import { createTestShop } from "../helpers/factories";
 
@@ -59,5 +62,49 @@ describe("copie Redis de la page boutique", () => {
     store.set(`shop:${shop.slug}`, { ...fromDb, name: "Nom en cache" });
 
     expect((await loadPublicShop(shop.slug))?.name).toBe("Nom en cache");
+  });
+});
+
+describe("congés : la copie de la page et le statut en cache sont effacés à chaque changement", () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const cached = (shop: { id: string; slug: string }) => {
+    store.set(`shop:${shop.slug}`, "copie");
+    store.set(`shop:status:${shop.id}`, "OPEN");
+  };
+  const keysOf = (shop: { id: string; slug: string }) =>
+    [`shop:${shop.slug}`, `shop:status:${shop.id}`].filter((key) => store.has(key));
+
+  it("début et fin des congés par le boucher", async () => {
+    const shop = await createTestShop();
+    const start = new Date();
+    const end = new Date(start.getTime() + 7 * DAY_MS);
+
+    cached(shop);
+    expect(await setVacationMode(shop.id, { start, end })).toEqual({ ok: true });
+    expect(keysOf(shop)).toEqual([]);
+
+    cached(shop);
+    expect(await endVacationMode(shop.id)).toEqual({ ok: true });
+    expect(keysOf(shop)).toEqual([]);
+  });
+
+  it("fin des congés par le cron, pour chaque boutique remise en ligne", async () => {
+    const ended = new Date(Date.UTC(2026, 10, 1));
+    const first = await createTestShop({ visible: false, vacationMode: true, vacationEnd: ended });
+    const second = await createTestShop({ visible: false, vacationMode: true, vacationEnd: ended });
+    const untouched = await createTestShop();
+    for (const shop of [first, second, untouched]) cached(shop);
+
+    expect(await endExpiredVacations(new Date(Date.UTC(2026, 10, 2)))).toBe(2);
+    expect([...keysOf(first), ...keysOf(second)]).toEqual([]);
+    expect(keysOf(untouched)).toHaveLength(2);
+  });
+
+  it("un refus ne touche à aucune entrée", async () => {
+    const shop = await createTestShop({ visible: false });
+    cached(shop);
+
+    expect(await endVacationMode(shop.id)).toEqual({ ok: false, reason: "NOT_ON_VACATION" });
+    expect(keysOf(shop)).toHaveLength(2);
   });
 });

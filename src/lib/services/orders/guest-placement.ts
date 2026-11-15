@@ -18,7 +18,10 @@ export interface GuestOrderPlacement {
   contact: Pick<GuestIdentity, "firstName" | "lastName" | "phone">;
   /** orderAccessPath(orderId, token): the link of the confirmation e-mail. */
   trackingPath: (orderId: string) => string;
-  /** First statement of the creation transaction; a message refuses the order (RATE_LIMITED). */
+  /**
+   * Runs in the creation transaction right after the shop row lock (lockShopTakingOrders); a
+   * message refuses the order (RATE_LIMITED).
+   */
   admit?: (tx: Prisma.TransactionClient) => Promise<string | null>;
 }
 
