@@ -4,10 +4,11 @@
 // lève jamais d'erreur, comme le wrapper src/lib/redis.ts ; React.cache par l'identité (il
 // n'existe que sous la condition « react-server » de Next).
 //
+// Les entrées sont écrites et lues par src/lib/cache/shop-cache.ts (clé versionnée, dates typées).
 // Avant : une entrée illisible était avalée par un `catch {}` vide, sans trace. Désormais c'est un
 // raté explicite : la boutique est relue en base et l'incident est journalisé.
-// Les congés (début, fin par le boucher, fin par le cron) effacent la copie et le statut en cache,
-// comme la modération : la page montre le changement aussitôt.
+// La modération et les congés (début, fin par le boucher, fin par le cron) effacent la copie et le
+// statut en cache : la page montre le changement aussitôt.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const store = vi.hoisted(() => new Map<string, unknown>());
@@ -28,6 +29,8 @@ vi.mock("react", async (importOriginal) => ({
 }));
 
 import { loadPublicShop } from "@/app/(client)/boutique/[slug]/load-shop";
+import { decodeCachedShop, encodeCachedShop, shopCacheKey } from "@/lib/cache/shop-cache";
+import { suspendShop } from "@/lib/services/shops/moderation";
 import { endExpiredVacations, endVacationMode, setVacationMode } from "@/lib/shop-vacation";
 import { useCleanDatabase } from "../helpers/db";
 import { createTestShop } from "../helpers/factories";
@@ -43,36 +46,53 @@ afterEach(() => {
 describe("copie Redis de la page boutique", () => {
   it("une entrée illisible est un raté : boutique relue en base, incident journalisé, copie refaite", async () => {
     const shop = await createTestShop();
-    const key = `shop:${shop.slug}`;
-    store.set(key, '{"id":"tronqu');
+    const key = shopCacheKey(shop.slug);
+    store.set(key, '{"v":2,"shop":{"id":"tronqu');
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
     const loaded = await loadPublicShop(shop.slug);
 
     expect(loaded?.id).toBe(shop.id);
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(String(warn.mock.calls[0][0])).toContain("Redis");
-    expect(warn.mock.calls[0][1]).toMatchObject({ cacheKey: key });
-    expect(JSON.parse(String(store.get(key)))).toMatchObject({ id: shop.id, slug: shop.slug });
+    expect(String(warn.mock.calls[0][0])).toContain("shop-cache");
+    expect(warn.mock.calls[0][1]).toMatchObject({ key });
+    expect(decodeCachedShop(store.get(key), shop.slug)).toMatchObject({
+      id: shop.id,
+      slug: shop.slug,
+    });
   });
 
   it("une entrée déjà décodée par Upstash est servie telle quelle, sans relire la base", async () => {
     const shop = await createTestShop();
     const fromDb = await loadPublicShop(shop.slug);
-    store.set(`shop:${shop.slug}`, { ...fromDb, name: "Nom en cache" });
+    if (fromDb === null) throw new Error("boutique de test introuvable");
+    // Upstash rend le JSON déjà analysé.
+    const renamed = { ...fromDb, name: "Nom en cache" };
+    store.set(shopCacheKey(shop.slug), JSON.parse(encodeCachedShop(renamed)));
 
     expect((await loadPublicShop(shop.slug))?.name).toBe("Nom en cache");
+  });
+
+  it("une suspension par l'administration efface la copie : la page disparaît aussitôt", async () => {
+    const shop = await createTestShop();
+    expect((await loadPublicShop(shop.slug))?.id).toBe(shop.id);
+    expect(store.has(shopCacheKey(shop.slug))).toBe(true);
+
+    expect(await suspendShop(shop.id, "Contrôle sanitaire")).toEqual({ ok: true });
+
+    expect(store.has(shopCacheKey(shop.slug))).toBe(false);
+    expect(await loadPublicShop(shop.slug)).toBeNull();
   });
 });
 
 describe("congés : la copie de la page et le statut en cache sont effacés à chaque changement", () => {
   const DAY_MS = 24 * 60 * 60 * 1000;
   const cached = (shop: { id: string; slug: string }) => {
-    store.set(`shop:${shop.slug}`, "copie");
+    store.set(shopCacheKey(shop.slug), "copie");
     store.set(`shop:status:${shop.id}`, "OPEN");
   };
   const keysOf = (shop: { id: string; slug: string }) =>
-    [`shop:${shop.slug}`, `shop:status:${shop.id}`].filter((key) => store.has(key));
+    [shopCacheKey(shop.slug), `shop:status:${shop.id}`].filter((key) => store.has(key));
 
   it("début et fin des congés par le boucher", async () => {
     const shop = await createTestShop();

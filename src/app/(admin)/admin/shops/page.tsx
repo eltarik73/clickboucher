@@ -300,8 +300,7 @@ export default function AdminShopsPage() {
     try {
       const res = await fetch(`/api/shops/${deleteTarget.id}`, { method: "DELETE" });
       if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        alert(err?.error || err?.message || "Erreur lors de la suppression");
+        alert(await refusalMessage(res));
         return;
       }
       setDeleteTarget(null);

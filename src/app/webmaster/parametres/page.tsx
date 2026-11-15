@@ -15,8 +15,11 @@ import {
   AlertTriangle,
   X,
   Scale,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api/error-message";
+import { CommercialEmailsToggle } from "@/components/webmaster/CommercialEmailsToggle";
 
 /* ─── types ─── */
 interface ConfigItem {
@@ -131,7 +134,7 @@ export default function WebmasterParametresPage() {
         setEditValues(vals);
         if (vals.default_commission_pct) setGlobalPct(vals.default_commission_pct);
       } else {
-        toast.error(d.error || "Impossible de charger la configuration");
+        toast.error(apiErrorMessage(d, "Impossible de charger la configuration"));
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -166,7 +169,7 @@ export default function WebmasterParametresPage() {
       const res = await fetch("/api/admin/calendar");
       const d = await res.json();
       if (d.success) setEvents(d.data);
-      else toast.error(d.error || "Impossible de charger les événements");
+      else toast.error(apiErrorMessage(d, "Impossible de charger les événements"));
     } catch {
       toast.error("Erreur de connexion au serveur");
     } finally {
@@ -197,7 +200,7 @@ export default function WebmasterParametresPage() {
         setTimeout(() => setSavedKey(null), 2000);
       } else {
         const d = await res.json().catch(() => ({}));
-        toast.error(d.error || "Erreur lors de la sauvegarde");
+        toast.error(apiErrorMessage(d, "Erreur lors de la sauvegarde"));
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -230,7 +233,7 @@ export default function WebmasterParametresPage() {
         setTimeout(() => setCommissionApplied(false), 3000);
       } else {
         const d = await res.json().catch(() => ({}));
-        toast.error(d.error || "Erreur lors de l'application de la commission");
+        toast.error(apiErrorMessage(d, "Erreur lors de l'application de la commission"));
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -260,7 +263,7 @@ export default function WebmasterParametresPage() {
         fetchEvents();
       } else {
         const d = await res.json().catch(() => ({}));
-        toast.error(d.error || "Erreur lors de la création");
+        toast.error(apiErrorMessage(d, "Erreur lors de la création"));
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
@@ -476,6 +479,10 @@ export default function WebmasterParametresPage() {
             Cette action modifie le taux de commission de <strong>toutes</strong> les boutiques. Les taux individuels déjà configurés seront écrasés.
           </p>
         </div>
+      </Section>
+
+      <Section icon={Mail} title="E-mails commerciaux">
+        <CommercialEmailsToggle />
       </Section>
 
       {/* ═══════════════════════════════════════════════════════════════ */}

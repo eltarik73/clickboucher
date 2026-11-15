@@ -9,6 +9,7 @@ import { FlashCountdown } from "@/components/product/FlashCountdown";
 import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 import { resolveUnitPrice } from "@/lib/pricing/unit-price";
 import { flashSaleListWhere } from "@/lib/bons-plans";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -27,7 +28,7 @@ function fmtPrice(cents: number) {
 export default async function VenteFlashPage() {
   const now = new Date();
 
-  const products = await prisma.product.findMany({
+  const rows = await prisma.product.findMany({
     where: flashSaleListWhere(now),
     include: {
       shop: { select: { id: true, name: true, slug: true } },
@@ -36,6 +37,7 @@ export default async function VenteFlashPage() {
     },
     orderBy: { updatedAt: "desc" },
   });
+  const products = rows.map((row) => settleAntiGaspi(row, now));
 
   if (products.length === 0) {
     return (

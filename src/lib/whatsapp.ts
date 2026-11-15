@@ -1,4 +1,5 @@
 // src/lib/whatsapp.ts — Twilio WhatsApp integration (graceful fallback if not configured)
+import { maskPhone } from "@/lib/log-mask";
 import { logger } from "@/lib/logger";
 
 type WhatsAppTemplate = {
@@ -57,8 +58,8 @@ export async function sendWhatsAppRaw(to: string, body: string): Promise<boolean
   const config = getTwilioClient();
 
   if (!config) {
-    logger.info(`📱 WHATSAPP (stub) → ${to}: ${body}`);
-    return true;
+    logger.warn("[whatsapp] Twilio non configuré : message non envoyé", { to: maskPhone(to) });
+    return false;
   }
 
   try {

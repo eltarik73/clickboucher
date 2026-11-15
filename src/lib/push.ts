@@ -4,7 +4,8 @@ import { logger } from "@/lib/logger";
 
 let configured = false;
 
-function ensureConfig(): boolean {
+/** Les trois variables VAPID sont présentes et acceptées par web-push. */
+export function isPushConfigured(): boolean {
   if (configured) return true;
 
   const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -42,12 +43,17 @@ export type PushPayload = {
   actions?: { action: string; title: string }[];
 };
 
+/**
+ * false : envoi en échec (abonnement expiré ou autre erreur), et l'appelant efface l'abonnement.
+ * Sans clés VAPID rien ne part mais la réponse reste true pour ne rien effacer : l'appelant
+ * consulte isPushConfigured() avant d'envoyer.
+ */
 export async function sendPushNotification(
   subscription: PushSubscriptionData,
   payload: PushPayload
 ): Promise<boolean> {
-  if (!ensureConfig()) {
-    logger.info(`🔔 PUSH (stub) → ${payload.title}: ${payload.body}`);
+  if (!isPushConfigured()) {
+    logger.warn("[push] VAPID non configuré : notification non envoyée");
     return true;
   }
 

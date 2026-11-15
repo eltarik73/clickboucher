@@ -45,12 +45,15 @@ export async function stockLinesOfOrder(tx: Tx, orderId: string): Promise<StockL
 /**
  * Gives back the units taken by the order's latest acceptance. An acceptance recorded by the code
  * before chantier 0 carries no `stockUnits`: its units are then recomputed from the lines, the only
- * information that exists for it.
+ * information that exists for it. An anti-gaspi discount that has expired gets nothing back.
  */
 export async function releaseHeldStock(
   tx: Tx,
   order: { id: string; shopId: string }
 ): Promise<void> {
+  // The closing commands that call this (close.ts, unavailable.ts) pass no clock to their effects:
+  // the release reads it once, inside their transaction.
+  const now = new Date();
   const accepted = await tx.orderEvent.findFirst({
     where: { orderId: order.id, type: ACCEPTED_EVENT_TYPE },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -58,5 +61,5 @@ export async function releaseHeldStock(
   });
   const recorded = acceptedPayloadSchema.safeParse(accepted?.payloadJson);
   const lines = recorded.success ? recorded.data.stockUnits : await stockLinesOfOrder(tx, order.id);
-  await releaseLimitedStock(tx, order.shopId, lines);
+  await releaseLimitedStock(tx, order.shopId, lines, now);
 }

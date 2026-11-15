@@ -26,6 +26,7 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api/error-message";
 
 // ---------------------------------------------------------------------------
 // Predefined subject / body templates for "AI" generation
@@ -319,9 +320,16 @@ export function CampaignForm({
 
       // Actually send the campaign if scheduled
       if (status === "SCHEDULED") {
-        await fetch(`/api/dashboard/campaigns/${json.data.id}/send`, {
+        const sendRes = await fetch(`/api/dashboard/campaigns/${json.data.id}/send`, {
           method: "POST",
         });
+        if (!sendRes.ok) {
+          toast.error(apiErrorMessage(await sendRes.json(), "L'envoi a échoué"), {
+            description: "Campagne enregistrée, non envoyée",
+          });
+          onCreated();
+          return;
+        }
       }
 
       toast.success(

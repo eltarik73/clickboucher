@@ -18,6 +18,7 @@ import {
   Check,
   Globe,
 } from "lucide-react";
+import { apiErrorMessage } from "@/lib/api/error-message";
 
 type ProspectStatus =
   | "NEW"
@@ -540,7 +541,7 @@ function ScrapeModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       });
       const data = await res.json();
       if (!res.ok) {
-        const err = data?.error || "Erreur scraping";
+        const err = apiErrorMessage(data, "Erreur scraping");
         const hint = data?.hint ? `\n\n💡 ${data.hint}` : "";
         toast.error(`${err}${hint}`);
         setScraping(false);

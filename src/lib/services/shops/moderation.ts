@@ -12,6 +12,7 @@
 // so nothing the admin does lists a shop on vacation; its end of vacation lists it.
 import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
+import { invalidateCachedShop } from "@/lib/cache/shop-cache";
 import { redis } from "@/lib/redis";
 import { SHOP_SUSPENDED_ADMIN_MESSAGE } from "@/lib/shop-publication";
 
@@ -84,7 +85,7 @@ async function recordDecision(tx: Tx, shopId: string, log: DecisionLog): Promise
 async function settle(shopId: string, outcome: Outcome): Promise<ModerationResult> {
   if (!outcome.ok) return outcome;
   await redis.del(`shop:status:${shopId}`);
-  await redis.del(`shop:${outcome.slug}`);
+  await invalidateCachedShop(outcome.slug);
   return { ok: true };
 }
 

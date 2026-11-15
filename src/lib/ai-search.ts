@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
+import { antiGaspiPricingSelect, settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 
 // ── Synonym map ─────────────────────────────────
 const SYNONYMS: Record<string, string[]> = {
@@ -92,13 +93,15 @@ export async function searchProducts(
     where.shop = { visible: true };
   }
 
-  const products = await prisma.product.findMany({
+  const now = new Date();
+  const rows = await prisma.product.findMany({
     where,
     select: {
       id: true,
       name: true,
       description: true,
       priceCents: true,
+      ...antiGaspiPricingSelect,
       unit: true,
       promoPct: true,
       promoEnd: true,
@@ -109,6 +112,8 @@ export async function searchProducts(
     },
     take: limit * 3, // Fetch more for scoring
   });
+  // As the quote charges them: an expired anti-gaspi at its original price, mode off.
+  const products = rows.map((row) => settleAntiGaspi(row, now));
 
   // ── Score by relevance ────────────────────────
   const scored = products.map((p) => {
@@ -124,7 +129,7 @@ export async function searchProducts(
     }
 
     // Boost promos
-    if (p.promoPct && p.promoEnd && new Date(p.promoEnd) > new Date()) {
+    if (p.promoPct && p.promoEnd && new Date(p.promoEnd) > now) {
       score += 2;
     }
 

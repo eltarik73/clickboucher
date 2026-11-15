@@ -7,14 +7,17 @@
 import type { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { antiGaspiPricingSelect, settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 
 /** Where an offer is diffused: the shop-card badge, the shop banner, the home-page popup. */
 export type OfferChannel = "badge" | "banner" | "popup";
 
+// The home-page popup is shown to every visitor: it carries platform offers only (no shop). A
+// shop's offer flagged diffPopup does not count as diffused by the popup, whoever set the flag.
 const CHANNEL_FLAG = {
   badge: { diffBadge: true },
   banner: { diffBanner: true },
-  popup: { diffPopup: true },
+  popup: { diffPopup: true, shopId: null },
 } as const satisfies Record<OfferChannel, Prisma.OfferWhereInput>;
 
 /** The public offers; with a channel, only those diffused on that channel. */
@@ -122,8 +125,8 @@ export function listPopupOffers(now: Date, take: number) {
  * The public offers of one shop (its own, and the platform offers it accepted), newest first, with
  * their banner and the shop's eligible products. The banner shows the first one diffused as a banner.
  */
-export function listShopOffers(shopId: string, now: Date) {
-  return prisma.offer.findMany({
+export async function listShopOffers(shopId: string, now: Date) {
+  const offers = await prisma.offer.findMany({
     where: {
       AND: [
         publicOfferWhere(now),
@@ -145,11 +148,25 @@ export function listShopOffers(shopId: string, now: Date) {
         where: { shopId },
         select: {
           product: {
-            select: { id: true, name: true, imageUrl: true, priceCents: true, unit: true },
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+              priceCents: true,
+              unit: true,
+              ...antiGaspiPricingSelect,
+            },
           },
         },
       },
     },
     orderBy: { createdAt: "desc" },
   });
+  // Eligible products at the price the quote charges: an expired anti-gaspi is over.
+  return offers.map((offer) => ({
+    ...offer,
+    eligibleProducts: offer.eligibleProducts.map(({ product }) => ({
+      product: settleAntiGaspi(product, now),
+    })),
+  }));
 }

@@ -19,6 +19,8 @@ useCleanDatabase();
 
 const ANTI_GASPI_END = new Date("2026-11-14T18:00:00Z");
 const FLASH_END = new Date("2026-11-13T20:00:00Z");
+// The clock of every reservation and release: before ANTI_GASPI_END, so the discount is in force.
+const NOW = new Date("2026-11-14T12:00:00Z");
 
 async function antiGaspiProduct(
   shopId: string,
@@ -49,11 +51,11 @@ function product(id: string) {
 }
 
 function reserve(shopId: string, lines: StockLine[]) {
-  return prisma.$transaction((tx) => reserveLimitedStock(tx, shopId, lines));
+  return prisma.$transaction((tx) => reserveLimitedStock(tx, shopId, lines, NOW));
 }
 
 function release(shopId: string, lines: StockLine[]) {
-  return prisma.$transaction((tx) => releaseLimitedStock(tx, shopId, lines));
+  return prisma.$transaction((tx) => releaseLimitedStock(tx, shopId, lines, NOW));
 }
 
 describe("stockLinesFromItems", () => {
