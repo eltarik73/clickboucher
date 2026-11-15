@@ -1,82 +1,39 @@
-// src/lib/price-adjustment-config.ts — Client-safe constants + types of the platform settings of
-// price adjustments. No server imports here — safe for "use client" components.
-// Whether an adjustment applies without asking the customer is not a setting: it is the weighing
-// tolerance the customer chose, frozen on the order (src/lib/pricing/tolerance.ts).
+// src/lib/price-adjustment-config.ts — the platform's setting of price adjustments, client-safe
+// (no server imports: read by "use client" components). One setting remains: the safety cap of one
+// adjustment, in % of the order's current total. Whether an adjustment applies without asking the
+// customer is not a setting: it is the weighing tolerance the customer chose, frozen on the order
+// (src/lib/pricing/tolerance.ts).
+import { z } from "zod";
 
-// ── Default values (used as fallback when DB config is missing) ──
-
-/** Hard cap safety net (max increase %) */
+/** Safety cap of one adjustment, in % of the current total, when platform_config holds none. */
 export const MAX_INCREASE_PCT = 50;
 
-// ── PlatformConfig keys ──
-
+/** The PlatformConfig key of the setting. */
 export const PA_KEYS = {
   maxIncreasePct: "pa_max_increase_pct",
-  requireReason: "pa_require_reason",
-  defaultReasons: "pa_default_reasons",
-  maxAdjustmentsPerOrder: "pa_max_adjustments_per_order",
-  enableAutoApprove: "pa_enable_auto_approve",
 } as const;
 
-// ── Type ──
+/** What the webmaster may store as the cap: a whole percentage from 1 to 100. */
+export const maxIncreasePctSchema = z
+  .number({ invalid_type_error: "Le plafond est un nombre de pourcents" })
+  .int("Le plafond est un nombre entier de pourcents")
+  .min(1, "Le plafond est d'au moins 1 %")
+  .max(100, "Le plafond est d'au plus 100 %");
 
 export type PriceAdjConfig = {
   maxIncreasePct: number;
-  requireReason: boolean;
-  defaultReasons: string[];
-  maxAdjustmentsPerOrder: number;
-  enableAutoApprove: boolean;
 };
-
-// ── Defaults ──
 
 export const PA_DEFAULTS: PriceAdjConfig = {
   maxIncreasePct: MAX_INCREASE_PCT,
-  requireReason: true,
-  defaultReasons: [
-    "Poids réel différent",
-    "Rupture produit",
-    "Erreur de prix catalogue",
-    "Ajustement découpe",
-  ],
-  maxAdjustmentsPerOrder: 3,
-  enableAutoApprove: true,
 };
 
-// ── Parser (string values from DB → typed config) ──
-
+/** String values from platform_config -> typed setting; the default when the row is missing. */
 export function parsePriceAdjConfig(
   raw: Record<string, string | null | undefined>
 ): PriceAdjConfig {
-  const num = (key: string, fallback: number) => {
-    const v = raw[key];
-    if (v == null || v === "") return fallback;
-    const n = Number(v);
-    return isNaN(n) ? fallback : n;
-  };
-
-  const bool = (key: string, fallback: boolean) => {
-    const v = raw[key];
-    if (v == null || v === "") return fallback;
-    return v === "true" || v === "1";
-  };
-
-  const jsonArr = (key: string, fallback: string[]) => {
-    const v = raw[key];
-    if (v == null || v === "") return fallback;
-    try {
-      const parsed = JSON.parse(v);
-      return Array.isArray(parsed) ? parsed : fallback;
-    } catch {
-      return fallback;
-    }
-  };
-
-  return {
-    maxIncreasePct: num(PA_KEYS.maxIncreasePct, PA_DEFAULTS.maxIncreasePct),
-    requireReason: bool(PA_KEYS.requireReason, PA_DEFAULTS.requireReason),
-    defaultReasons: jsonArr(PA_KEYS.defaultReasons, PA_DEFAULTS.defaultReasons),
-    maxAdjustmentsPerOrder: num(PA_KEYS.maxAdjustmentsPerOrder, PA_DEFAULTS.maxAdjustmentsPerOrder),
-    enableAutoApprove: bool(PA_KEYS.enableAutoApprove, PA_DEFAULTS.enableAutoApprove),
-  };
+  const stored = raw[PA_KEYS.maxIncreasePct];
+  if (stored == null || stored === "") return PA_DEFAULTS;
+  const value = Number(stored);
+  return { maxIncreasePct: isNaN(value) ? PA_DEFAULTS.maxIncreasePct : value };
 }

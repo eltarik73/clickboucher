@@ -96,9 +96,10 @@ describe("PriceAdjustModal", () => {
 
     fireEvent.change(weighField(), { target: { value: "1,05" } });
     expect(
-      screen.getByText(
-        "Dans la marge de pesée du client (jusqu'à 1,22 €) : appliqué sans le déranger."
-      )
+      screen.getByText("Dans la marge de pesée du client : appliqué sans le déranger.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Hausse cumulée depuis la commande : 1,00 €, marge du client : 1,22 €")
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Appliquer" }));
 
@@ -117,9 +118,30 @@ describe("PriceAdjustModal", () => {
 
     expect(
       screen.getByText(
-        "Au-delà de la marge du client (1,22 €) : il doit accepter. " +
+        "Au-delà de la marge de pesée du client : il doit accepter. " +
           "Sans réponse sous 5 minutes, le prix ne change pas."
       )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Demander l'accord du client" })).toBeEnabled();
+  });
+
+  it("judges a second weighing on the increase since the order, and shows both figures", () => {
+    // Merguez already weighed at 1,05 kg (+1,00 €, within the tolerance); now 1,08 kg: this step
+    // is +0,60 €, but 1,60 € since the order is beyond the 1,22 € the customer accepted.
+    const [merguez, ...others] = ORDER.items;
+    const weighedOnce: KitchenOrder = {
+      ...ORDER,
+      totalCents: 2550,
+      items: [{ ...merguez, quantity: 1.05, totalCents: 2100 }, ...others],
+    };
+    render(<PriceAdjustModal order={weighedOnce} onClose={vi.fn()} onConfirm={vi.fn()} />);
+
+    fireEvent.change(weighField(), { target: { value: "1,08" } });
+
+    const step = screen.getByText("Écart de cet ajustement").nextElementSibling;
+    expect(step).toHaveTextContent("+0,60 €");
+    expect(
+      screen.getByText("Hausse cumulée depuis la commande : 1,60 €, marge du client : 1,22 €")
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Demander l'accord du client" })).toBeEnabled();
   });

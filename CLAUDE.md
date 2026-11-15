@@ -477,11 +477,13 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   (`availableLinesAfter`, `src/lib/pricing/adjustment.ts` : une ligne en rupture ne donne aucune marge aux autres).
   Sinon (au-delà de la marge, `PRICE` ou `MANUAL`, commande sans marge, ligne sans estimation) : ajustement `PENDING`,
   le client doit répondre explicitement. Filet de la plateforme conservé : jamais plus de `pa_max_increase_pct`
-  (50 % par défaut) au-dessus du total actuel.
+  (50 % par défaut ; seul réglage restant, `PATCH /api/webmaster/config/price-adjustment`, entier de 1 à 100) au-dessus
+  du total actuel.
 - **Délai de réponse** : 5 min (`ADJUSTMENT_ANSWER_WINDOW_SECONDS`, colonne `answerBy`), seule constante du serveur,
   du compte à rebours et des textes. **Le silence vaut refus** : passé `answerBy` (ligne sans `answerBy` : 5 min après
   `createdAt`), l'ajustement est fermé `REJECTED`, `closeReason` `NO_ANSWER`, à la lecture (`settleDueAdjustment` /
-  `settleDueAdjustmentsWithin` : page de la commande, cuisine, listes, résumé du jour), sans cron, et la boutique est
+  `settleDueAdjustmentsWithin` : page de la commande, page de suivi et sa route `/status` (seulement si la ligne lue
+  est échue, `isAdjustmentAnswerDue`), cuisine, listes, résumé du jour), sans cron, et la boutique est
   prévenue (`PRICE_ADJUSTMENT_EXPIRED`). Un oui tardif ne change rien. Jamais de validation automatique, plus
   d'escalade au webmaster.
 - **Après un refus** (`CUSTOMER_REFUSED` ou `NO_ANSWER`) : la commande garde son dernier prix accepté ; le boucher peut

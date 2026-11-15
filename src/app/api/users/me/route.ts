@@ -7,7 +7,7 @@ import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { KITCHEN_ACTIVE_STATUSES } from "@/lib/order-state-machine";
-import { WEIGH_TOLERANCE_CHOICES } from "@/lib/pricing/tolerance";
+import { weighToleranceChoiceSchema } from "@/lib/validators/order";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ const updateMeSchema = z
       .nullable()
       .optional(),
     /** The weighing tolerance reused by the member's next orders: a choice, never an amount. */
-    weighTolerance: z.enum(WEIGH_TOLERANCE_CHOICES).optional(),
+    weighTolerance: weighToleranceChoiceSchema.optional(),
   })
   .strict()
   .refine((data) => Object.values(data).some((value) => value !== undefined), {

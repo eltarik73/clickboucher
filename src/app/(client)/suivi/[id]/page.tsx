@@ -6,11 +6,14 @@ import { authorizeOrderAccess } from "@/lib/auth/order-access";
 import { isCredentialShaped, orderAccessPath, orderPagePath } from "@/lib/auth/order-credential";
 import { findCustomerOrder } from "@/lib/services/orders/customer-view";
 import { formatCustomerNumber } from "@/lib/order-number-format";
-import { frozenToleranceOf } from "@/lib/pricing/tolerance";
+import { frozenToleranceOf, isAdjustmentAnswerDue } from "@/lib/pricing/tolerance";
+import { settleDueAdjustment } from "@/lib/services/orders/adjustment-answers";
 import SuiviClient from "./SuiviClient";
 
 // Tracking page of an order, for its customer: the order's credential cookie or the signed-in owner
 // (src/lib/auth/order-access.ts). Anyone else: sign-in without a session, 404 otherwise.
+// A price adjustment left unanswered past its window is closed (silence is a refusal) before the
+// page is rendered, as GET /api/orders/[id]/status does for the page's polling.
 export default async function SuiviPage({
   params,
   searchParams,
@@ -35,7 +38,12 @@ export default async function SuiviPage({
     notFound();
   }
 
-  const order = await findCustomerOrder({ id: access.orderId });
+  const now = new Date();
+  let order = await findCustomerOrder({ id: access.orderId });
+  if (order && isAdjustmentAnswerDue(order.priceAdjustment, now)) {
+    await settleDueAdjustment(access.orderId, now);
+    order = await findCustomerOrder({ id: access.orderId });
+  }
   if (!order) notFound();
 
   return (

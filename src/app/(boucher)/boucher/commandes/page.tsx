@@ -403,7 +403,9 @@ export default function KitchenModePage() {
       const json = await res.json().catch(() => null);
       if (res.ok) {
         await refetch();
-        toast.success(json?.data?.applied === true ? "Prix mis à jour" : "Demande envoyée au client");
+        toast.success(
+          json?.data?.applied === true ? "Prix mis à jour" : "Demande envoyée au client"
+        );
         return true;
       }
       toast.error(json?.error?.message || "Erreur lors de l'ajustement");

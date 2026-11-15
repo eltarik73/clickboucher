@@ -43,6 +43,7 @@ describe("createOrderSchema: weighTolerance", () => {
     (value) => {
       const issues = issuesOf(request({ weighTolerance: value }));
       expect(issues.map((issue) => issue.path.join("."))).toEqual(["weighTolerance"]);
+      expect(issues[0].message).toBe("Marge de pesée inconnue");
     }
   );
 

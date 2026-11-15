@@ -63,6 +63,7 @@ async function guestBody(names: { firstName: string; lastName: string }) {
     ...request,
     idempotencyKey: randomUUID(),
     expectedTotalCents: quote.amountDueCents,
+    weighTolerance: "STANDARD",
     email: EMAIL,
     phone: "06 12 34 56 78",
     ...names,

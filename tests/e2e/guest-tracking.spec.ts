@@ -155,6 +155,7 @@ async function placeGuestOrder(page: Page, email: string): Promise<PlacedGuestOr
     ...(quote.request().postDataJSON() as Record<string, unknown>),
     idempotencyKey: randomUUID(),
     expectedTotalCents: quoteData.amountDueCents,
+    weighTolerance: "STANDARD",
     email,
     firstName: "Invité",
     lastName: "Testeur",

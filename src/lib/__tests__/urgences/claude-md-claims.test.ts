@@ -52,7 +52,13 @@ describe("CLAUDE.md : affirmations fausses retirées (audit du 2026-11-15)", () 
     ["getProductImage.ts", "fichier inexistant, les modules de src/lib sont en kebab-case"],
     ["OrderTimeline", "composant inexistant"],
     ["CalendarBanner", "composant sans importeur"],
-    ["client a 5 min", "palier 2 : 30 s par défaut ; palier 3 : jamais validé automatiquement"],
+    ["3 paliers", "l'ajustement de prix suit la marge de pesée du client (C1-PAIEMENT-A)"],
+    ["computeTier", "paliers d'ajustement supprimés : decideAdjustment décide (C1-PAIEMENT-A)"],
+    ["hors webhook Stripe inactif", "le webhook passe par transitionOrder (C1-PAIEMENT-A)"],
+    [
+      "escaladé au webmaster",
+      "escalade supprimée : le silence du client vaut refus (C1-PAIEMENT-A)",
+    ],
     ["git push main", "main est protégée : fusion d'une pull request"],
     ["add/commit/push sans demander", "jamais de push sur main"],
     ["Node 20", "CI, .nvmrc et engines de package.json sont en Node 22 depuis 1824d4f"],
@@ -72,6 +78,9 @@ describe("CLAUDE.md : faits vérifiés et décisions du propriétaire du 2026-11
     "Branche `main` protégée",
     "1 234,56 €",
     "src/hooks/use-pending-order-count.ts",
+    "Ajustement de prix (marge de pesée)",
+    "Commander avec obligation de paiement",
+    "src/lib/payments/gateway.ts",
   ])("contient « %s »", (fact) => {
     expect(CLAUDE_MD).toContain(fact);
   });

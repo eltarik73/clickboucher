@@ -1,6 +1,6 @@
 // src/lib/services/orders/commands/action-schema.ts — body of PATCH /api/boucher/orders/[orderId]/action.
 // The weight and price adjustments are not actions of this route: a total changes after creation
-// only through the tier service /api/orders/[id]/adjust-price, which records the change.
+// only through /api/orders/[id]/adjust-price (adjust-price.ts), which records the change.
 import { z } from "zod";
 
 export const boucherActionSchema = z.discriminatedUnion("action", [

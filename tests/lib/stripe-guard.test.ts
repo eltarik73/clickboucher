@@ -2,8 +2,8 @@
 // Static guard: who may talk to Stripe.
 //
 // - The package `stripe` is imported only by src/lib/stripe.ts (client and key guard),
-//   src/lib/payments/** (the gateway) and src/lib/services/stripe/** (payment services); the
-//   webhook route may import its types, nothing else.
+//   src/lib/payments/** (the gateway) and src/lib/services/stripe/** (payment services); a file
+//   listed in STRIPE_TYPE_IMPORTERS may import its types, nothing else (none today).
 // - Only src/lib/stripe.ts builds a Stripe client and reads a Stripe variable from the environment
 //   (at call time, see src/lib/__tests__/stripe-env.test.ts).
 // - getStripeClient() is called only by src/lib/payments/gateway.ts: every network call to Stripe
@@ -23,16 +23,12 @@ const SCANNED_DIRS = ["src", "scripts"];
 const STRIPE_PACKAGE_ZONES = ["src/lib/stripe.ts", "src/lib/payments/", "src/lib/services/stripe/"];
 
 /** Files outside those zones allowed to import the package's types (`import type`) and nothing else. */
-const STRIPE_TYPE_IMPORTERS: Record<string, string> = {
-  "src/app/api/payments/webhook/route.ts": "types of the events it receives",
-};
+const STRIPE_TYPE_IMPORTERS: Record<string, string> = {};
 
 /** Files that name getStripeClient, each with its reason. */
 const STRIPE_CLIENT_USERS: Record<string, string> = {
   "src/lib/stripe.ts": "defines it: key guard and client",
   "src/lib/payments/gateway.ts": "its only caller: every network call to Stripe",
-  "src/app/api/payments/webhook/route.ts":
-    "transitional: signature check on the client, replaced by the static check of C1-PAIEMENT-A-T6",
 };
 
 /** Files that build a Stripe client. */
@@ -107,7 +103,9 @@ function importsModuleAsValue(code: string, moduleName: string): boolean {
 }
 
 function importsModule(code: string, moduleName: string): boolean {
-  const typeImport = new RegExp(`\\bimport\\s+type\\b[^'"\`;]*?\\bfrom\\s*${specifierOf(moduleName)}`);
+  const typeImport = new RegExp(
+    `\\bimport\\s+type\\b[^'"\`;]*?\\bfrom\\s*${specifierOf(moduleName)}`
+  );
   return importsModuleAsValue(code, moduleName) || typeImport.test(code);
 }
 
@@ -140,15 +138,22 @@ const HOW_TO =
 
 describe("Stripe guard", () => {
   it("only the Stripe zones load the package; the listed files import its types only", () => {
-    const outside = files.filter(({ file, code }) => !inStripeZone(file) && importsModule(code, "stripe"));
-    const unlisted = outside.filter(({ file }) => !(file in STRIPE_TYPE_IMPORTERS)).map(({ file }) => file);
-    const loading = outside.filter(({ code }) => importsModuleAsValue(code, "stripe")).map(({ file }) => file);
-    expect(unlisted, HOW_TO).toEqual([]);
+    const outside = files.filter(
+      ({ file, code }) => !inStripeZone(file) && importsModule(code, "stripe")
+    );
+    const loading = outside
+      .filter(({ code }) => importsModuleAsValue(code, "stripe"))
+      .map(({ file }) => file);
+    expect(outside.map(({ file }) => file).sort(), HOW_TO).toEqual(
+      Object.keys(STRIPE_TYPE_IMPORTERS).sort()
+    );
     expect(loading, HOW_TO).toEqual([]);
   });
 
   it("only src/lib/stripe.ts builds a client and reads a STRIPE_* variable", () => {
-    expect(matching(buildsStripeClient), HOW_TO).toEqual(Object.keys(STRIPE_CLIENT_BUILDERS).sort());
+    expect(matching(buildsStripeClient), HOW_TO).toEqual(
+      Object.keys(STRIPE_CLIENT_BUILDERS).sort()
+    );
     expect(matching(readsStripeEnv), HOW_TO).toEqual(Object.keys(STRIPE_ENV_READERS).sort());
   });
 
@@ -179,13 +184,27 @@ describe("Stripe guard", () => {
     expect(imports('const LIBS = ["stripe"];')).toBe(false);
 
     const code = (text: string) => withoutComments(text);
-    expect(callsGatewayInTransactionFile(code("await prisma.$transaction(f);\nawait getPaymentGateway().createLoginLink(id);"))).toBe(true);
-    expect(callsGatewayInTransactionFile(code("// prisma.$transaction\nawait getPaymentGateway().createLoginLink(id);"))).toBe(false);
-    expect(callsGatewayInTransactionFile(code("prisma.$transaction(f);\nexport function getPaymentGateway() {}"))).toBe(false);
+    expect(
+      callsGatewayInTransactionFile(
+        code("await prisma.$transaction(f);\nawait getPaymentGateway().createLoginLink(id);")
+      )
+    ).toBe(true);
+    expect(
+      callsGatewayInTransactionFile(
+        code("// prisma.$transaction\nawait getPaymentGateway().createLoginLink(id);")
+      )
+    ).toBe(false);
+    expect(
+      callsGatewayInTransactionFile(
+        code("prisma.$transaction(f);\nexport function getPaymentGateway() {}")
+      )
+    ).toBe(false);
     expect(readsStripeEnv(code("const key = process.env.STRIPE_SECRET_KEY;"))).toBe(true);
     expect(readsStripeEnv(code('const key = process.env["STRIPE_SECRET_KEY"];'))).toBe(true);
     expect(readsStripeEnv(code("const { STRIPE_SECRET_KEY: key } = process.env;"))).toBe(true);
-    expect(readsStripeEnv(code("const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;"))).toBe(false);
+    expect(
+      readsStripeEnv(code("const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;"))
+    ).toBe(false);
     expect(buildsStripeClient(code("const s = new Stripe(key, config);"))).toBe(true);
     expect(buildsStripeClient(code("// new Stripe(key, config)"))).toBe(false);
     expect(namesStripeClient(code("const { getStripeClient: client } = stripeModule;"))).toBe(true);

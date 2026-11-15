@@ -6,8 +6,8 @@ import { screen, within } from "@testing-library/dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WeighToleranceChoice } from "@/components/cart/WeighToleranceChoice";
 
-const STANDARD = /^5 % du total estimé, 10,00 € au plus/;
-const EXTENDED = /^10 % du total estimé, 20,00 € au plus/;
+const STANDARD = /^5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus/;
+const EXTENDED = /^10\u00a0% du total estimé, 20,00\u00a0€ au\u00a0plus/;
 
 afterEach(cleanup);
 
@@ -96,10 +96,10 @@ describe("WeighToleranceChoice", () => {
     );
 
     expect(screen.getByRole("radio", { name: STANDARD })).toHaveAccessibleName(
-      "5 % du total estimé, 10,00 € au plus soit jusqu'à 1,86 € sur cette commande"
+      "5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus soit jusqu'à 1,86 € sur cette commande"
     );
     expect(screen.getByRole("radio", { name: EXTENDED })).toHaveAccessibleName(
-      "10 % du total estimé, 20,00 € au plus soit jusqu'à 3,73 € sur cette commande"
+      "10\u00a0% du total estimé, 20,00\u00a0€ au\u00a0plus soit jusqu'à 3,73 € sur cette commande"
     );
   });
 

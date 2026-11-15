@@ -157,7 +157,7 @@ describe("panier : bouton de commande et marge de pesée", () => {
   it("choisir une marge active le bouton et retire l'invite", () => {
     render(<PanierPage />);
 
-    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ }));
     expect(orderButton()).toBeEnabled();
     expect(screen.queryByText(MISSING_CHOICE)).toBeNull();
   });
@@ -169,7 +169,7 @@ describe("panier : bouton de commande et marge de pesée", () => {
     const button = orderButton();
     expect(group.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const controls = [...document.querySelectorAll("a, button, input, select, textarea")];
-    const lastRadio = screen.getByRole("radio", { name: /^10 % du total estimé/ });
+    const lastRadio = screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ });
     expect(controls.indexOf(button)).toBe(controls.indexOf(lastRadio) + 1);
     expect(screen.getByText(MISSING_CHOICE).compareDocumentPosition(button)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
@@ -178,7 +178,7 @@ describe("panier : bouton de commande et marge de pesée", () => {
 
   it("le devis ne porte jamais le choix : seule la commande le transmet", () => {
     render(<PanierPage />);
-    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ }));
 
     expect(mocks.quoteRequests.length).toBeGreaterThan(1);
     for (const request of mocks.quoteRequests) {
@@ -195,7 +195,7 @@ describe("panier : bouton de commande et marge de pesée", () => {
   it("invité : la commande envoyée porte le choix", () => {
     render(<PanierPage />);
 
-    fireEvent.click(screen.getByRole("radio", { name: /^5 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^5\u00a0% du total estimé/ }));
     fireEvent.change(screen.getByPlaceholderText("Email *"), { target: { value: "a@b.fr" } });
     fireEvent.change(screen.getByPlaceholderText("Prénom *"), { target: { value: "Ada" } });
     fireEvent.change(screen.getByPlaceholderText("Nom *"), { target: { value: "Lovelace" } });
@@ -212,7 +212,7 @@ describe("panier : bouton de commande et marge de pesée", () => {
     serveProfile(200, "EXTENDED");
     render(<PanierPage />);
 
-    const extended = screen.getByRole("radio", { name: /^10 % du total estimé/ });
+    const extended = screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ });
     await waitFor(() => expect(extended).toBeChecked());
     expect(extended).toHaveAccessibleName(/Votre choix enregistré$/);
     expect(profileReads()).toBe(1);
@@ -230,9 +230,9 @@ describe("panier : bouton de commande et marge de pesée", () => {
     render(<PanierPage />);
 
     await waitFor(() =>
-      expect(screen.getByRole("radio", { name: /^10 % du total estimé/ })).toBeChecked()
+      expect(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ })).toBeChecked()
     );
-    fireEvent.click(screen.getByRole("radio", { name: /^5 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^5\u00a0% du total estimé/ }));
     fireEvent.click(orderButton());
     expect(lastSubmission().body.weighTolerance).toBe("STANDARD");
   });

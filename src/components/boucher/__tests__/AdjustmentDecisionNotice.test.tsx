@@ -1,6 +1,7 @@
 // What the butcher reads before sending a price adjustment: one sentence per decision of
-// decideAdjustment (src/lib/pricing/tolerance.ts), with the customer's tolerance in euros when it
-// matters. The words never contradict the server: applied at once, or the customer must accept.
+// decideAdjustment (src/lib/pricing/tolerance.ts) and, when the tolerance decided, the two figures
+// it compared: the increase cumulated since the order and the customer's tolerance. The words never
+// contradict the server: applied at once, or the customer must accept.
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AdjustmentDecision } from "@/lib/pricing/tolerance";
@@ -20,7 +21,7 @@ const CASES: Array<[AdjustmentDecision, string]> = [
       toleranceCents: 122,
       cumulatedIncreaseCents: 80,
     },
-    "Dans la marge de pesée du client (jusqu'à 1,22 €) : appliqué sans le déranger.",
+    "Dans la marge de pesée du client : appliqué sans le déranger.",
   ],
   [
     {
@@ -29,7 +30,7 @@ const CASES: Array<[AdjustmentDecision, string]> = [
       toleranceCents: 1000,
       cumulatedIncreaseCents: 1250,
     },
-    "Au-delà de la marge du client (10,00 €) : il doit accepter. " +
+    "Au-delà de la marge de pesée du client : il doit accepter. " +
       "Sans réponse sous 5 minutes, le prix ne change pas.",
   ],
   [
@@ -47,6 +48,23 @@ describe("AdjustmentDecisionNotice", () => {
     render(<AdjustmentDecisionNotice decision={decision} />);
 
     expect(screen.getByText(sentence)).toBeInTheDocument();
+  });
+
+  it.each([
+    [CASES[1][0], "Hausse cumulée depuis la commande : 0,80 €, marge du client : 1,22 €"],
+    [CASES[2][0], "Hausse cumulée depuis la commande : 12,50 €, marge du client : 10,00 €"],
+  ])("states the cumulated increase and the tolerance the rule compared (%o)", (decision, text) => {
+    render(<AdjustmentDecisionNotice decision={decision} />);
+
+    expect(screen.getByText(text)).toBeInTheDocument();
+  });
+
+  it("gives no figures when the tolerance did not decide", () => {
+    for (const [decision] of [CASES[0], CASES[3], CASES[4]]) {
+      const { container, unmount } = render(<AdjustmentDecisionNotice decision={decision} />);
+      expect(container.textContent).not.toMatch(/cumulée|marge du client :/);
+      unmount();
+    }
   });
 
   it("marks an adjustment applied at once apart from one that waits for the customer", () => {

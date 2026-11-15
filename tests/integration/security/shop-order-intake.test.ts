@@ -84,6 +84,7 @@ const confirmedOrder = () => ({
   ...basket(),
   idempotencyKey: randomUUID(),
   expectedTotalCents: AMOUNT_DUE_CENTS,
+  weighTolerance: "STANDARD",
 });
 
 interface Answer {

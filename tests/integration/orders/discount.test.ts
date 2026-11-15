@@ -210,6 +210,7 @@ describe("resolveDiscount through the quote — refused with a French message", 
       ...request,
       idempotencyKey: randomUUID(),
       expectedTotalCents: quote.amountDueCents,
+      weighTolerance: "STANDARD",
     };
 
     const result = await createOrder(fullPrice, customer);

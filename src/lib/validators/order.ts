@@ -12,6 +12,14 @@ import { WEIGH_TOLERANCE_CHOICES } from "@/lib/pricing/tolerance";
 /** Lines one order may carry. */
 export const MAX_ORDER_LINES = 50;
 
+/**
+ * A weighing tolerance choice (src/lib/pricing/tolerance.ts): at order creation and in the
+ * customer's profile (PATCH /api/users/me). Anything else, an amount included, is refused.
+ */
+export const weighToleranceChoiceSchema = z.enum(WEIGH_TOLERANCE_CHOICES, {
+  message: "Marge de pesée inconnue",
+});
+
 const paymentMethodSchema = z.literal("ON_PICKUP", {
   errorMap: () => ({
     message: "Le paiement en ligne n'est pas encore disponible. Réglez sur place au retrait.",
@@ -68,7 +76,7 @@ export const createOrderSchema = orderQuoteRequestSchema
      * The customer's choice of weighing tolerance: a choice, never an amount. The server freezes
      * the matching rate and cap on the order (src/lib/pricing/tolerance.ts).
      */
-    weighTolerance: z.enum(WEIGH_TOLERANCE_CHOICES).optional(),
+    weighTolerance: weighToleranceChoiceSchema.optional(),
   })
   .strict();
 

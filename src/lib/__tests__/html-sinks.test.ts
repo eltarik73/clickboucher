@@ -33,16 +33,16 @@ const LEGACY_BASELINE: Readonly<Record<string, { count: number; reason: string }
     reason: "ticket built with escapeHtml on every typed value; the rest are its own fragments",
   },
   "src/lib/email-templates.ts": {
-    count: 46,
+    count: 44,
     reason:
       "notification e-mails built with escapeHtml on every typed value; the rest are its own " +
-      "fragments: the layout slot, 29 buttons, 4 optional blocks, 12 numbers it formats",
+      "fragments: the layout slot, 28 buttons, 4 optional blocks, 10 numbers and amounts it " +
+      "formats, 1 title chosen between two literals",
   },
   "src/lib/notifications.ts": {
-    count: 5,
+    count: 3,
     reason:
-      "inline e-mails built with escapeHtml on every typed value; the rest are 3 optional " +
-      "blocks and 2 totals it formats in euros",
+      "inline e-mails built with escapeHtml on every typed value; the rest are 3 optional blocks",
   },
   "src/lib/marketing/send-campaign.ts": {
     count: 11,

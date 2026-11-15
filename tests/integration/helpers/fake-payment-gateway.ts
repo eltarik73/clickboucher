@@ -28,7 +28,10 @@ export function createFakePaymentGateway(): FakePaymentGateway {
   const calls: FakePaymentGateway["calls"] = [];
   let script: Script = {};
 
-  async function answer<M extends GatewayMethod>(method: M, args: unknown[]): Promise<GatewayResult<M>> {
+  async function answer<M extends GatewayMethod>(
+    method: M,
+    args: unknown[]
+  ): Promise<GatewayResult<M>> {
     calls.push({ method, args });
     const value = script[method];
     if (value === undefined) throw new Error(`FakePaymentGateway: unexpected call ${method}`);

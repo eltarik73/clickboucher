@@ -1,12 +1,18 @@
 // /profil, section « Marge de pesée » : le choix enregistré est affiché, rien n'est coché pour qui
 // n'a jamais choisi, l'enregistrement passe par PATCH /api/users/me { weighTolerance } seul.
+// La page entière : enregistrer les préférences garde les sections que PATCH ne renvoie pas.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { screen } from "@testing-library/dom";
+import ProfilPage from "@/app/(client)/profil/page";
 import WeighToleranceSetting from "@/app/(client)/profil/WeighToleranceSetting";
 
 const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
+vi.mock("@clerk/nextjs", () => ({
+  useUser: () => ({ isLoaded: true, isSignedIn: true, user: { id: "user_profil" } }),
+  useClerk: () => ({ signOut: vi.fn(), openUserProfile: vi.fn() }),
+}));
 
 const SAVE = "Enregistrer ma marge";
 const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>();
@@ -39,11 +45,11 @@ describe("profil : marge de pesée", () => {
   it("le choix enregistré est coché et signalé ; le bouton ne sert qu'à un changement", () => {
     render(<WeighToleranceSetting initial="STANDARD" />);
 
-    const standard = screen.getByRole("radio", { name: /^5 % du total estimé/ });
+    const standard = screen.getByRole("radio", { name: /^5\u00a0% du total estimé/ });
     expect(standard).toBeChecked();
     expect(standard).toHaveAccessibleName(/Votre choix enregistré$/);
     expect(screen.getByRole("button", { name: SAVE })).toBeDisabled();
-    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ }));
     expect(screen.getByRole("button", { name: SAVE })).toBeEnabled();
   });
 
@@ -53,7 +59,7 @@ describe("profil : marge de pesée", () => {
     );
     render(<WeighToleranceSetting initial="STANDARD" />);
 
-    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ }));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: SAVE }));
     });
@@ -64,7 +70,7 @@ describe("profil : marge de pesée", () => {
       body: JSON.stringify({ weighTolerance: "EXTENDED" }),
     });
     expect(toast.success).toHaveBeenCalledWith("Marge de pesée enregistrée");
-    expect(screen.getByRole("radio", { name: /^10 % du total estimé/ })).toHaveAccessibleName(
+    expect(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ })).toHaveAccessibleName(
       /Votre choix enregistré$/
     );
     expect(screen.getByRole("button", { name: SAVE })).toBeDisabled();
@@ -76,14 +82,14 @@ describe("profil : marge de pesée", () => {
     );
     render(<WeighToleranceSetting initial="STANDARD" />);
 
-    fireEvent.click(screen.getByRole("radio", { name: /^10 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ }));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: SAVE }));
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent("Trop de requêtes");
     expect(toast.success).not.toHaveBeenCalled();
-    expect(screen.getByRole("radio", { name: /^5 % du total estimé/ })).toHaveAccessibleName(
+    expect(screen.getByRole("radio", { name: /^5\u00a0% du total estimé/ })).toHaveAccessibleName(
       /Votre choix enregistré$/
     );
   });
@@ -92,7 +98,7 @@ describe("profil : marge de pesée", () => {
     fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
     render(<WeighToleranceSetting initial={null} />);
 
-    fireEvent.click(screen.getByRole("radio", { name: /^5 % du total estimé/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^5\u00a0% du total estimé/ }));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: SAVE }));
     });
@@ -100,6 +106,49 @@ describe("profil : marge de pesée", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Erreur réseau : votre choix n'est pas enregistré. Réessayez."
     );
-    expect(screen.getByRole("radio", { name: /^10 % du total estimé/ })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ })).toBeEnabled();
+  });
+});
+
+describe("profil : la page entière", () => {
+  const PROFILE = {
+    id: "u1",
+    clerkId: "user_profil",
+    email: "fatima@example.test",
+    phone: null,
+    firstName: "Fatima",
+    lastName: "Amrani",
+    role: "CLIENT",
+    companyName: null,
+    siret: null,
+    proStatus: null,
+    notifEmail: true,
+    notifSms: false,
+    notifWhatsapp: false,
+    weighTolerance: "STANDARD",
+    proAccesses: [],
+    favoriteShops: [
+      { id: "s1", name: "Boucherie du Marché", slug: "marche", imageUrl: null, city: "Chambéry" },
+    ],
+  };
+
+  it("enregistrer les préférences garde les favoris : PATCH ne renvoie que la ligne users", async () => {
+    const { favoriteShops: _favorites, proAccesses: _accesses, ...usersRow } = PROFILE;
+    fetchMock.mockImplementation(async (_url, init) =>
+      init?.method === "PATCH"
+        ? reply(200, { success: true, data: { ...usersRow, updatedAt: "2026-11-15T10:00:00Z" } })
+        : reply(200, { success: true, data: PROFILE })
+    );
+    render(<ProfilPage />);
+    expect(await screen.findByText("Boucherie du Marché")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer les préférences" }));
+    });
+
+    expect(toast.success).toHaveBeenCalledWith("Préférences enregistrées");
+    expect(screen.getByRole("heading", { name: "Boucheries favorites" })).toBeInTheDocument();
+    expect(screen.getByText("Boucherie du Marché")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Zone dangereuse" })).toBeInTheDocument();
   });
 });

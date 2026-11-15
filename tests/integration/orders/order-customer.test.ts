@@ -103,6 +103,7 @@ describe("quote and order of a signed-in customer without a users row", () => {
         ...request,
         idempotencyKey: "4a1f0c55-7a0e-4a43-9c1e-7d1b2f3a4b5c",
         expectedTotalCents: quote.amountDueCents,
+        weighTolerance: "STANDARD",
         requestedTime: "asap",
       })
     );

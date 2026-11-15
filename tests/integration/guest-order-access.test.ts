@@ -79,7 +79,12 @@ function nextClientIp(): string {
 async function orderBody(): Promise<Record<string, unknown>> {
   const request = quoteRequest(shop.id, [{ productId: product.id, quantity: 1, weightGrams: 500 }]);
   const quote = await quoteOf(request, null);
-  return { ...request, idempotencyKey: randomUUID(), expectedTotalCents: quote.amountDueCents };
+  return {
+    ...request,
+    idempotencyKey: randomUUID(),
+    expectedTotalCents: quote.amountDueCents,
+    weighTolerance: "STANDARD",
+  };
 }
 
 interface Answer {

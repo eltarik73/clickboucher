@@ -26,23 +26,26 @@ const dummy = (prefix: string, mode: string) => `${prefix}_${mode}_${BODY}`;
 const KEYS: Record<string, string | undefined> = {
   missing: undefined,
   empty: "",
-  "sk_live_": dummy("sk", "live"),
-  "rk_live_": dummy("rk", "live"),
-  "sk_test_": dummy("sk", "test"),
-  "rk_test_": dummy("rk", "test"),
-  "pk_live_": dummy("pk", "live"),
+  sk_live_: dummy("sk", "live"),
+  rk_live_: dummy("rk", "live"),
+  sk_test_: dummy("sk", "test"),
+  rk_test_: dummy("rk", "test"),
+  pk_live_: dummy("pk", "live"),
   garbage: "not-a-stripe-key",
 };
 
 /** Expected refusal of each key, on the production deployment and anywhere else. */
-const EXPECTED: Record<string, { production: StripeKeyRefusal | null; elsewhere: StripeKeyRefusal | null }> = {
+const EXPECTED: Record<
+  string,
+  { production: StripeKeyRefusal | null; elsewhere: StripeKeyRefusal | null }
+> = {
   missing: { production: "MISSING", elsewhere: "MISSING" },
   empty: { production: "MISSING", elsewhere: "MISSING" },
-  "sk_live_": { production: null, elsewhere: "LIVE_KEY_OUTSIDE_PRODUCTION" },
-  "rk_live_": { production: null, elsewhere: "LIVE_KEY_OUTSIDE_PRODUCTION" },
-  "sk_test_": { production: "TEST_KEY_IN_PRODUCTION", elsewhere: null },
-  "rk_test_": { production: "TEST_KEY_IN_PRODUCTION", elsewhere: null },
-  "pk_live_": { production: "UNKNOWN_FORMAT", elsewhere: "UNKNOWN_FORMAT" },
+  sk_live_: { production: null, elsewhere: "LIVE_KEY_OUTSIDE_PRODUCTION" },
+  rk_live_: { production: null, elsewhere: "LIVE_KEY_OUTSIDE_PRODUCTION" },
+  sk_test_: { production: "TEST_KEY_IN_PRODUCTION", elsewhere: null },
+  rk_test_: { production: "TEST_KEY_IN_PRODUCTION", elsewhere: null },
+  pk_live_: { production: "UNKNOWN_FORMAT", elsewhere: "UNKNOWN_FORMAT" },
   garbage: { production: "UNKNOWN_FORMAT", elsewhere: "UNKNOWN_FORMAT" },
 };
 
@@ -52,8 +55,18 @@ const ENVIRONMENTS: ReadonlyArray<{
   deployEnv: string | undefined;
   production: boolean;
 }> = [
-  { name: "VERCEL_ENV=production", vercelEnv: "production", deployEnv: undefined, production: true },
-  { name: "KLIKGO_DEPLOY_ENV=production", vercelEnv: undefined, deployEnv: "production", production: true },
+  {
+    name: "VERCEL_ENV=production",
+    vercelEnv: "production",
+    deployEnv: undefined,
+    production: true,
+  },
+  {
+    name: "KLIKGO_DEPLOY_ENV=production",
+    vercelEnv: undefined,
+    deployEnv: "production",
+    production: true,
+  },
   { name: "preview", vercelEnv: "preview", deployEnv: "preview", production: false },
   { name: "no deployment variable", vercelEnv: undefined, deployEnv: undefined, production: false },
 ];
@@ -169,7 +182,9 @@ describe("getStripeClient", () => {
 
     setDeployment("production", undefined);
 
-    expect(thrownMessage(() => getStripeClient())).toBe("Stripe unavailable: TEST_KEY_IN_PRODUCTION");
+    expect(thrownMessage(() => getStripeClient())).toBe(
+      "Stripe unavailable: TEST_KEY_IN_PRODUCTION"
+    );
   });
 });
 

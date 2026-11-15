@@ -232,7 +232,7 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
               <dd className="text-sm text-gray-300">{formatPrice(order.totalCents)}</dd>
             </div>
             <div className="text-center">
-              <dt className="text-xs text-gray-400">Écart</dt>
+              <dt className="text-xs text-gray-400">Écart de cet ajustement</dt>
               <dd
                 className={`text-sm font-bold ${diff < 0 ? "text-emerald-400" : diff > 0 ? "text-amber-400" : "text-gray-400"}`}
               >

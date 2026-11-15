@@ -758,6 +758,7 @@ describe("commandes : vue client", () => {
           ...request,
           idempotencyKey: randomUUID(),
           expectedTotalCents: quote.amountDueCents,
+          weighTolerance: "STANDARD",
           email: "invite-itest@klikandgo.test",
           firstName: "Invité",
           lastName: "Test",

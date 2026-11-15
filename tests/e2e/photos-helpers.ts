@@ -180,6 +180,7 @@ export async function orderFromCart(page: Page, productIds: readonly string[]): 
     requestedTime: "asap",
     pickupSlot: null,
     customerNote: "",
+    weighTolerance: "STANDARD",
   };
   const quote = await page.request.post("/api/orders/quote", { data: buildQuoteRequest(selection) });
   expect(quote.status(), "devis du panier").toBe(200);

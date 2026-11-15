@@ -66,6 +66,9 @@ export async function GET(
         newTotal: a.newTotal,
         tier: a.tier,
         status: a.status,
+        // Why a REJECTED adjustment ended unapplied: the customer's no, his silence, or the order.
+        closeReason: a.closeReason,
+        answerBy: a.answerBy,
         reason: a.reason,
         createdAt: a.createdAt,
         respondedAt: a.respondedAt,

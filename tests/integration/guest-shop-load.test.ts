@@ -99,6 +99,7 @@ async function guestOrder(
     ...slotFields,
     idempotencyKey: randomUUID(),
     expectedTotalCents: (await quoteOf(request, null)).amountDueCents,
+    weighTolerance: "STANDARD",
     firstName: "Nora",
     lastName: "Invitée",
     ...contact,

@@ -19,6 +19,7 @@ import Stripe from "stripe";
 import prisma from "@/lib/prisma";
 import { getPaymentGateway } from "@/lib/payments/gateway";
 import { logger } from "@/lib/logger";
+import { connectAccountState, type ConnectAccountState } from "./account-state";
 
 export type ConnectAccountInput = {
   email: string;
@@ -195,7 +196,7 @@ export type ConnectAccountStatus = {
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
-  status: "active" | "pending" | "restricted";
+  status: ConnectAccountState;
   requirementsCurrentlyDue: string[];
   requirementsPastDue: string[];
 };
@@ -210,28 +211,14 @@ export async function syncShopStripeStatus(
   const payoutsEnabled = account.payouts_enabled ?? false;
   const detailsSubmitted = account.details_submitted ?? false;
   const requirements = account.requirements;
-  const pastDue = requirements?.past_due ?? [];
-
-  // Status logic :
-  // - "active" : tout vert, le boucher peut encaisser
-  // - "restricted" : Stripe a bloqué (KYC en retard, fonds gelés)
-  // - "pending" : KYC en cours ou pas démarré
-  let status: ConnectAccountStatus["status"];
-  if (chargesEnabled && payoutsEnabled) {
-    status = "active";
-  } else if (pastDue.length > 0 || requirements?.disabled_reason) {
-    status = "restricted";
-  } else {
-    status = "pending";
-  }
 
   return {
     accountId: account.id,
     chargesEnabled,
     payoutsEnabled,
     detailsSubmitted,
-    status,
+    status: connectAccountState(account),
     requirementsCurrentlyDue: requirements?.currently_due ?? [],
-    requirementsPastDue: pastDue,
+    requirementsPastDue: requirements?.past_due ?? [],
   };
 }

@@ -14,7 +14,7 @@ describe("toleranceTicketLine", () => {
     });
 
     expect(line).toBe(
-      "Marge de pesée acceptée : 5 % du total estimé, 10,00 € au plus (jusqu'à 1,22 €)"
+      "Marge de pesée acceptée : 5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus (jusqu'à 1,22 €)"
     );
   });
 
@@ -26,7 +26,7 @@ describe("toleranceTicketLine", () => {
     });
 
     expect(line).toBe(
-      "Marge de pesée acceptée : 5 % du total estimé, 10,00 € au plus (jusqu'à 10,00 €)"
+      "Marge de pesée acceptée : 5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus (jusqu'à 10,00 €)"
     );
   });
 
@@ -37,14 +37,18 @@ describe("toleranceTicketLine", () => {
         weighToleranceCapCents: 2000,
         estimatedTotalCents: 8_990,
       })
-    ).toBe("Marge de pesée acceptée : 10 % du total estimé, 20,00 € au plus (jusqu'à 8,99 €)");
+    ).toBe(
+      "Marge de pesée acceptée : 10\u00a0% du total estimé, 20,00\u00a0€ au\u00a0plus (jusqu'à 8,99 €)"
+    );
     expect(
       toleranceTicketLine({
         weighToleranceRateBps: 1000,
         weighToleranceCapCents: 2000,
         estimatedTotalCents: 31_000,
       })
-    ).toBe("Marge de pesée acceptée : 10 % du total estimé, 20,00 € au plus (jusqu'à 20,00 €)");
+    ).toBe(
+      "Marge de pesée acceptée : 10\u00a0% du total estimé, 20,00\u00a0€ au\u00a0plus (jusqu'à 20,00 €)"
+    );
   });
 
   it("prints nothing for an order created before the tolerance existed", () => {

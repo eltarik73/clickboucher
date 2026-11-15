@@ -59,6 +59,7 @@ const confirmedOrder = () => ({
   ...quoteRequest(shop.id, [{ productId: product.id, quantity: 1, weightGrams: 350 }]),
   idempotencyKey: randomUUID(),
   expectedTotalCents: AMOUNT_DUE_CENTS,
+  weighTolerance: "STANDARD",
 });
 
 /** A promise the test resolves itself; always opened in a `finally` so no transaction is left open. */

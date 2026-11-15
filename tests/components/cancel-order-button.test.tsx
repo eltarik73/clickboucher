@@ -267,6 +267,7 @@ describe("annulation depuis la page de suivi", () => {
             phone: "",
           },
           user: { firstName: "Tarik", lastName: "Benali" },
+          weighTolerance: null,
         }}
       />
     );

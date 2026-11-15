@@ -37,8 +37,9 @@ describe("/webmaster/parametres on an apiError answer", () => {
       </ThemeProvider>
     );
 
-    // The configuration and the calendar loads both answered 403: one toast each.
-    await waitFor(() => expect(screen.getAllByText(FORBIDDEN_MESSAGE)).toHaveLength(2));
+    // The configuration, the calendar and the price adjustment cap loads all answered 403: one
+    // toast each.
+    await waitFor(() => expect(screen.getAllByText(FORBIDDEN_MESSAGE)).toHaveLength(3));
     expect(document.body.textContent).not.toContain("[object Object]");
     expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   });

@@ -154,7 +154,7 @@ test.describe("boutons rouges en mode clair", () => {
     await addFirstProductToCart(page);
     await page.goto("/panier");
     // The button stays disabled until a weighing tolerance is chosen (nothing is pre-ticked).
-    await page.getByRole("radio", { name: /^5 % du total estimé/ }).check();
+    await page.getByRole("radio", { name: /^5\s% du total estimé/ }).check();
     const order = page.getByRole("button", { name: "Commander avec obligation de paiement" });
     await expect(order).toBeEnabled();
     await expectWhiteOnRed(order);

@@ -291,7 +291,7 @@ describe("kitchen ticket", () => {
     );
 
     expect(ticket).toMatch(
-      /<div class="totals">[\s\S]*<div class="tolerance">Marge de pesée acceptée : 5 % du total estimé, 10,00 € au plus \(jusqu&#39;à 0,60 €\)<\/div>\s*<\/div>/
+      /<div class="totals">[\s\S]*<div class="tolerance">Marge de pesée acceptée : 5\u00a0% du total estimé, 10,00\u00a0€ au\u00a0plus \(jusqu&#39;à 0,60 €\)<\/div>\s*<\/div>/
     );
   });
 

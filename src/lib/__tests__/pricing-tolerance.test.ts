@@ -123,21 +123,32 @@ describe("frozenToleranceOf and toleranceChoiceOf", () => {
 });
 
 describe("formatToleranceTerms", () => {
+  // No-break spaces: before « % » and « € », and inside « au plus » (no line break at 375 px).
+  const NB = "\u00a0";
+  const written = (percent: string, cap: string) =>
+    `${percent}${NB}% du total estimé, ${cap}${NB}€ au${NB}plus`;
+
   it.each([
-    [STANDARD, "5 % du total estimé, 10,00 € au plus"],
-    [EXTENDED, "10 % du total estimé, 20,00 € au plus"],
-    [{ rateBps: 250, capCents: 500 }, "2,5 % du total estimé, 5,00 € au plus"],
-    [{ rateBps: 125, capCents: 1999 }, "1,25 % du total estimé, 19,99 € au plus"],
-    [{ rateBps: 1050, capCents: 5 }, "10,5 % du total estimé, 0,05 € au plus"],
-    [{ rateBps: 10000, capCents: 0 }, "100 % du total estimé, 0,00 € au plus"],
+    [STANDARD, written("5", "10,00")],
+    [EXTENDED, written("10", "20,00")],
+    [{ rateBps: 250, capCents: 500 }, written("2,5", "5,00")],
+    [{ rateBps: 125, capCents: 1999 }, written("1,25", "19,99")],
+    [{ rateBps: 1050, capCents: 5 }, written("10,5", "0,05")],
+    [{ rateBps: 10000, capCents: 0 }, written("100", "0,00")],
   ])("%o -> %s", (terms, expected) => {
     expect(formatToleranceTerms(terms)).toBe(expected);
   });
 
+  it("never leaves an ordinary space before a unit nor inside « au plus »", () => {
+    const text = formatToleranceTerms(EXTENDED);
+    expect(text).not.toMatch(/ [%€]| au plus/);
+    expect(text.match(/\u00a0/g)).toHaveLength(3);
+  });
+
   it.each([0, 5, 99, 100, 1000, 1999, 2000, 123456])(
-    "writes a cap of %i cents exactly like formatPrice",
+    "writes a cap of %i cents like formatPrice, up to the no-break spaces",
     (capCents) => {
-      const text = formatToleranceTerms({ rateBps: 500, capCents });
+      const text = formatToleranceTerms({ rateBps: 500, capCents }).replace(/\u00a0/g, " ");
       expect(text).toBe(`5 % du total estimé, ${formatPrice(capCents)} au plus`);
     }
   );

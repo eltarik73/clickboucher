@@ -32,6 +32,33 @@ export interface FrozenTolerance extends WeighToleranceTerms {
 /** Seconds the customer has to answer a price adjustment; silence is a refusal. */
 export const ADJUSTMENT_ANSWER_WINDOW_SECONDS = 300;
 
+/** The dates of a price adjustment that its answer window depends on. */
+export interface AdjustmentAnswerDates {
+  answerBy: Date | null;
+  createdAt: Date;
+}
+
+/** When the customer's answer window ends: answerBy, or createdAt + the window on older rows. */
+export function adjustmentAnswerDeadline(adjustment: AdjustmentAnswerDates): Date {
+  return (
+    adjustment.answerBy ??
+    new Date(adjustment.createdAt.getTime() + ADJUSTMENT_ANSWER_WINDOW_SECONDS * 1000)
+  );
+}
+
+/**
+ * A pending adjustment whose answer window has passed at `now`, to be closed as unanswered. The
+ * same rule as expiredAdjustmentWhere (src/lib/services/orders/adjustment-closure.ts), which
+ * writes it in SQL: a reader that already holds the row decides without a query.
+ */
+export function isAdjustmentAnswerDue(
+  adjustment: (AdjustmentAnswerDates & { status: string }) | null,
+  now: Date
+): boolean {
+  if (adjustment === null || adjustment.status !== "PENDING") return false;
+  return adjustmentAnswerDeadline(adjustment).getTime() <= now.getTime();
+}
+
 const BASIS_POINTS = 10_000;
 
 function assertTerms(terms: WeighToleranceTerms): void {
@@ -78,11 +105,18 @@ function hundredths(value: number): string {
   return `${Math.floor(value / 100)},${String(value % 100).padStart(2, "0")}`;
 }
 
-/** "5 % du total estimé, 10,00 € au plus"; the cap is written like formatPrice of src/lib/utils. */
+/** No-break space: a number stays with its unit, « au plus » stays on one line. */
+const NBSP = "\u00a0";
+
+/**
+ * "5 % du total estimé, 10,00 € au plus", with a no-break space before « % » and « € » and inside
+ * « au plus »; the cap is written like formatPrice of src/lib/utils, up to those spaces.
+ */
 export function formatToleranceTerms(terms: WeighToleranceTerms): string {
   assertTerms(terms);
   const percent = hundredths(terms.rateBps).replace(/,?0+$/, "");
-  return `${percent} % du total estimé, ${hundredths(terms.capCents)} € au plus`;
+  const cap = hundredths(terms.capCents);
+  return `${percent}${NBSP}% du total estimé, ${cap}${NBSP}€ au${NBSP}plus`;
 }
 
 export type AdjustmentKind = "WEIGHT" | "PRICE" | "MANUAL";

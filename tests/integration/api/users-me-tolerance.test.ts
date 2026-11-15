@@ -116,6 +116,12 @@ describe("PATCH /api/users/me — weighing tolerance", () => {
     expect(await rowOf(member)).toEqual(before);
   });
 
+  it("names an unknown choice in French", async () => {
+    const refused = await patch(JSON.stringify({ weighTolerance: "GENEREUX" }));
+
+    expect(refused.body.error?.details).toEqual({ weighTolerance: ["Marge de pesée inconnue"] });
+  });
+
   it("answers 400 VALIDATION_ERROR to a body that is not JSON, without a server error", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const before = await rowOf(member);

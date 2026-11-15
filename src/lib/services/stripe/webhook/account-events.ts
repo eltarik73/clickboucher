@@ -8,20 +8,7 @@
 import type Stripe from "stripe";
 import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
-
-export type ConnectAccountState = "active" | "pending" | "restricted";
-
-/**
- * Shop.stripeAccountStatus: "active" when the account can take payments and receive payouts,
- * "restricted" when Stripe blocked it (overdue requirements, disabled), "pending" otherwise
- * (onboarding not finished). Same rule as syncShopStripeStatus in src/lib/services/stripe/connect.ts.
- */
-export function connectAccountState(account: Stripe.Account): ConnectAccountState {
-  if (account.charges_enabled && account.payouts_enabled) return "active";
-  const pastDue = account.requirements?.past_due ?? [];
-  if (pastDue.length > 0 || account.requirements?.disabled_reason) return "restricted";
-  return "pending";
-}
+import { connectAccountState } from "../account-state";
 
 /**
  * Copies the account state onto the shop that holds the account. The first event of a new account
