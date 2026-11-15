@@ -798,5 +798,8 @@ Mono-contexte : `GLOSSARY.md` et `docs/adr/` à la racine, créés au besoin. Vo
 
 - Plus aucun push direct sur `main`, administrateur compris : tout passe par une pull request.
 - Fusion seulement quand les quatre contrôles de la CI sont verts : `Lint`, `Typecheck`,
-  `Tests (vitest)`, `Build (next build + prerender check)`, sur une branche à jour avec `main`.
-- Vercel déploie la production à chaque fusion dans `main`.
+  `Tests (vitest)`, `Build (next build + prerender check)` (émis par GitHub Actions), sur une
+  branche à jour avec `main`. Aucune approbation exigée (développeur seul).
+- Historique linéaire : fusion en squash ; ni push forcé ni suppression de `main`.
+- Vercel déploie la production à chaque fusion dans `main`, et seulement `main`.
+- Réglage : `gh api repos/eltarik73/clickboucher/branches/main/protection` (lecture).
