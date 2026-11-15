@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
-import { updateShopSchema } from "@/lib/validators";
+import { ownerShopUpdateSchema, updateShopSchema } from "@/lib/validators";
+import { readJsonBody } from "@/lib/api/request-body";
 import { apiSuccess, apiCached, apiError, handleApiError } from "@/lib/api/errors";
 import { shopImageRefusal } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
@@ -97,14 +98,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
     }
 
-    const body = await req.json();
-    const data = updateShopSchema.parse(body);
+    const body = await readJsonBody(req);
+    // Commission and photos belong to the platform: an owner's request cannot carry them.
+    const data = isAdmin(role) ? updateShopSchema.parse(body) : ownerShopUpdateSchema.parse(body);
 
-    // Photos are webmaster-only: strip imageUrl/bannerUrl for non-admins
-    if (!isAdmin(role)) {
-      delete (data as Record<string, unknown>).imageUrl;
-      delete (data as Record<string, unknown>).bannerUrl;
-    }
     const photoRefusal = await shopImageRefusal(data, id);
     if (photoRefusal) {
       const { field, messageFr } = photoRefusal;

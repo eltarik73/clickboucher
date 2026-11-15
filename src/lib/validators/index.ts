@@ -106,6 +106,17 @@ export const updateShopSchema = z.object({
   priceRoundingEnabled: z.boolean().optional(),
 });
 
+/**
+ * Ce qu'un boucher peut modifier sur SA boutique : tout `updateShopSchema` sauf la commission de la
+ * plateforme (fixée par l'administration) et les photos (webmaster). Les clés retirées sont
+ * ignorées par Zod : un boucher qui envoie `commissionPct` ne change rien.
+ */
+export const ownerShopUpdateSchema = updateShopSchema.omit({
+  commissionPct: true,
+  imageUrl: true,
+  bannerUrl: true,
+});
+
 export const updateShopStatusSchema = z.object({
   busyMode: z.boolean().optional(),
   paused: z.boolean().optional(),
