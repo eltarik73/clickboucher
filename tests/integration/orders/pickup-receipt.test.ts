@@ -64,7 +64,7 @@ describe("reçu de retrait", () => {
     const receipt = sendEmail.mock.calls.find(([, subject]) => subject.includes("Reçu"));
     expect(receipt).toBeDefined();
     const html = receipt?.[2] as string;
-    expect(html).toMatch(/TOTAL TTC<\/td>\s*<td[^>]*>18,34 €<\/td>/);
+    expect(html).toMatch(/TOTAL TTC\s*<\/td>\s*<td[^>]*>\s*18,34 €\s*<\/td>/);
     expect(html).toContain("-2,75 €");
     expect(html).toContain("— non fourni");
     expect(html).not.toContain("17,77 €");

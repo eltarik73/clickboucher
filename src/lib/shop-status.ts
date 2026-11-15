@@ -2,6 +2,15 @@
 import prisma from "./prisma";
 import { redis } from "./redis";
 import type { ShopStatus } from "@prisma/client";
+import { endVacationMode } from "./shop-vacation";
+
+// ── Mode Vacances (Deliveroo "vacation mode") : src/lib/shop-vacation.ts ──
+export {
+  endExpiredVacations,
+  endVacationMode,
+  setVacationMode,
+  type VacationChange,
+} from "./shop-vacation";
 
 // ── Cache du statut dans Redis (comme Uber : lookup ultra rapide) ──
 
@@ -47,13 +56,10 @@ export async function getShopStatus(shopId: string): Promise<ShopStatus> {
     status = "OPEN";
   }
 
-  // Auto-expiration du mode vacances
+  // Auto-expiration du mode vacances : la même fin de congés que celle du boucher
   if (shop.vacationMode && shop.vacationEnd && now > shop.vacationEnd) {
-    await prisma.shop.update({
-      where: { id: shopId },
-      data: { vacationMode: false, vacationStart: null, vacationEnd: null, vacationMessage: null, visible: true, status: "OPEN" },
-    });
-    status = "OPEN";
+    const ended = await endVacationMode(shopId, "system");
+    if (ended.ok) status = "OPEN";
   }
 
   // Cache 60s
@@ -137,10 +143,14 @@ export async function setBusyMode(
   }
 ) {
   // If already busy, extend from current end time (cumulative)
-  const shop = await prisma.shop.findUnique({ where: { id: shopId }, select: { busyMode: true, busyModeEndsAt: true } });
-  const baseTime = shop?.busyMode && shop.busyModeEndsAt && shop.busyModeEndsAt.getTime() > Date.now()
-    ? shop.busyModeEndsAt.getTime()
-    : Date.now();
+  const shop = await prisma.shop.findUnique({
+    where: { id: shopId },
+    select: { busyMode: true, busyModeEndsAt: true },
+  });
+  const baseTime =
+    shop?.busyMode && shop.busyModeEndsAt && shop.busyModeEndsAt.getTime() > Date.now()
+      ? shop.busyModeEndsAt.getTime()
+      : Date.now();
   const busyModeEndsAt = new Date(baseTime + options.durationMin * 60 * 1000);
 
   await prisma.$transaction([
@@ -220,7 +230,8 @@ export async function checkAutoPause(shopId: string) {
       `shop:${shopId}:events`,
       JSON.stringify({
         type: "SHOP_AUTO_PAUSED",
-        message: "Votre boutique a été mise en pause car plusieurs commandes sont restées sans réponse.",
+        message:
+          "Votre boutique a été mise en pause car plusieurs commandes sont restées sans réponse.",
       })
     );
   } else {
@@ -231,54 +242,16 @@ export async function checkAutoPause(shopId: string) {
   }
 }
 
-// ── Mode Vacances (Deliveroo "vacation mode") ──
+// ── Suspension (posée et levée par l'administration seule : services/shops/moderation.ts) ──
 
-export async function setVacationMode(
-  shopId: string,
-  options: { start: Date; end: Date; message?: string }
-) {
-  await prisma.$transaction([
-    prisma.shop.update({
-      where: { id: shopId },
-      data: {
-        status: "VACATION",
-        vacationMode: true,
-        vacationStart: options.start,
-        vacationEnd: options.end,
-        vacationMessage: options.message || "Nous sommes en vacances, à bientôt !",
-        visible: false,
-      },
-    }),
-    prisma.shopLog.create({
-      data: {
-        shopId,
-        action: "VACATION_ON",
-        details: `Du ${options.start.toISOString()} au ${options.end.toISOString()}`,
-        triggeredBy: "boucher",
-      },
-    }),
-  ]);
-  await redis.del(`shop:status:${shopId}`);
-}
-
-// ── End Vacation ──
-
-export async function endVacationMode(shopId: string) {
-  await prisma.$transaction([
-    prisma.shop.update({
-      where: { id: shopId },
-      data: {
-        status: "OPEN",
-        vacationMode: false,
-        vacationStart: null,
-        vacationEnd: null,
-        vacationMessage: null,
-        visible: true,
-      },
-    }),
-    prisma.shopLog.create({
-      data: { shopId, action: "VACATION_OFF", triggeredBy: "boucher" },
-    }),
-  ]);
-  await redis.del(`shop:status:${shopId}`);
+/** The suspension of a shop, or null when the shop does not exist or is not suspended. */
+export async function shopSuspension(
+  shopId: string
+): Promise<{ suspendedAt: Date; reason: string | null } | null> {
+  const shop = await prisma.shop.findUnique({
+    where: { id: shopId },
+    select: { suspendedAt: true, suspendReason: true },
+  });
+  if (!shop?.suspendedAt) return null;
+  return { suspendedAt: shop.suspendedAt, reason: shop.suspendReason };
 }

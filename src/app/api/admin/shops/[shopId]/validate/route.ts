@@ -1,58 +1,55 @@
-// PATCH /api/admin/shops/[shopId]/validate — Approve or reject a shop
+// PATCH /api/admin/shops/[shopId]/validate — Approve or reject a shop (admin only).
+// Approving lists the shop and dates the act; a suspended shop must be reactivated first (409).
+// Rejecting unlists it and cancels its vacation, whose end would list it again.
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { sendNotification } from "@/lib/notifications";
 import { writeAuditLog } from "@/lib/audit-log";
 import { notifyIndexNow } from "@/lib/indexnow";
+import { approveShop, setShopPublished } from "@/lib/services/shops/moderation";
+import { FIELD_NOT_EDITABLE_HERE } from "@/lib/validators";
 import { z } from "zod";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
 export const dynamic = "force-dynamic";
 
-const validateSchema = z.object({
-  approved: z.boolean(),
-  adminNote: z.string().max(500).optional(),
-});
+const validateSchema = z
+  .object({
+    approved: z.boolean(),
+    adminNote: z.string().trim().max(500).optional(),
+  })
+  .strict(FIELD_NOT_EDITABLE_HERE);
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { shopId: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
     const { shopId } = params;
-    const body = await req.json();
-    const data = validateSchema.parse(body);
-
-    const shop = await prisma.shop.findUnique({
-      where: { id: shopId },
-      select: { id: true, name: true, visible: true, ownerId: true, referredByShop: true },
-    });
-    if (!shop) {
-      return apiError("NOT_FOUND", "Boutique introuvable");
-    }
+    const data = validateSchema.parse(await readJsonBody(req));
 
     if (data.approved) {
-      const updatedShop = await prisma.shop.update({
+      const approval = await approveShop(shopId);
+      if (!approval.ok) return apiError(approval.code, approval.message);
+
+      const shop = await prisma.shop.findUniqueOrThrow({
         where: { id: shopId },
-        data: { visible: true, onboardingCompleted: true },
-        select: { slug: true, city: true },
+        select: { name: true, ownerId: true, referredByShop: true, slug: true, city: true },
       });
 
       // Notify Bing/IndexNow that the new shop page + sitemap are indexable
       // (audit GEO 2026 — IndexNow protocol for instant reindexation).
       const indexNowUrls: string[] = [
         `${SITE_URL}/sitemap.xml`,
-        `${SITE_URL}/boutique/${updatedShop.slug}`,
+        `${SITE_URL}/boutique/${shop.slug}`,
         SITE_URL,
       ];
-      if (updatedShop.city) {
-        const citySlug = updatedShop.city
+      if (shop.city) {
+        const citySlug = shop.city
           .toLowerCase()
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
@@ -116,22 +113,20 @@ export async function PATCH(
       });
 
       return apiSuccess({ approved: true });
-    } else {
-      await prisma.shop.update({
-        where: { id: shopId },
-        data: { visible: false },
-      });
-
-      await writeAuditLog({
-        actorId: admin.userId,
-        action: "shop.reject",
-        target: "Shop",
-        targetId: shopId,
-        details: { adminNote: data.adminNote },
-      });
-
-      return apiSuccess({ approved: false });
     }
+
+    const rejection = await setShopPublished(shopId, false);
+    if (!rejection.ok) return apiError(rejection.code, rejection.message);
+
+    await writeAuditLog({
+      actorId: admin.userId,
+      action: "shop.reject",
+      target: "Shop",
+      targetId: shopId,
+      details: { adminNote: data.adminNote },
+    });
+
+    return apiSuccess({ approved: false });
   } catch (error) {
     return handleApiError(error, "admin/shops/validate");
   }

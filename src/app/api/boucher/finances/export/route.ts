@@ -11,13 +11,7 @@ import prisma from "@/lib/prisma";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiError, handleApiError } from "@/lib/api/errors";
 import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
-
-function escapeCsv(s: string | null | undefined): string {
-  if (s === null || s === undefined) return "";
-  const str = String(s);
-  if (/[",;\n\r]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
-  return str;
-}
+import { csvCell } from "@/lib/csv";
 
 function fmtEuro(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",");
@@ -80,16 +74,16 @@ export async function GET(req: NextRequest) {
     ];
 
     const rows = orders.map((o) => [
-      escapeCsv(o.paidAt ? o.paidAt.toISOString().slice(0, 10) : ""),
-      escapeCsv(o.displayNumber || o.orderNumber),
-      escapeCsv(orderClientName(o)),
-      escapeCsv(o.user.email),
+      csvCell(o.paidAt ? o.paidAt.toISOString().slice(0, 10) : ""),
+      csvCell(o.displayNumber || o.orderNumber),
+      csvCell(orderClientName(o)),
+      csvCell(o.user.email),
       fmtEuro(o.totalCents),
       fmtEuro(o.platformFeeCents),
       fmtEuro(o.serviceFeeCents),
       fmtEuro(o.stripeFeeCents),
       fmtEuro(o.shopPayoutCents),
-      escapeCsv(o.paymentMethod),
+      csvCell(o.paymentMethod),
     ]);
 
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");

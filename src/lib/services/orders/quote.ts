@@ -1,7 +1,9 @@
 // src/lib/services/orders/quote.ts — the server's price of a basket.
 // The cart shows this quote and the order is created from it, priced from database rows only by
 // src/lib/pricing (unit prices, lines, discounts, totals); this module loads the rows, checks
-// availability and assembles the result.
+// availability and assembles the result. A shop that is not online (suspended, unpublished, on
+// vacation: src/lib/shop-publication.ts) is refused here, so neither the quote nor any order
+// creation goes further.
 import type { Prisma, Role } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
@@ -17,8 +19,12 @@ import { limitedStockRemaining } from "@/lib/pricing/limited-stock";
 import { PREPARATION_ISSUE_MESSAGES, checkPreparation } from "@/lib/pricing/preparation";
 import { CUT_OPTION_ISSUE_MESSAGES, resolveUnitPrice } from "@/lib/pricing/unit-price";
 import { computeOrderTotals, serviceFeeCentsFor } from "@/lib/pricing/totals";
+import { shopOrderRefusalMessage } from "@/lib/shop-publication";
 import type { OrderLineInput, OrderQuoteRequest } from "@/lib/validators/order";
 import { resolveDiscount, type ResolvedDiscount } from "./discount";
+import { orderShopSelect, type OrderShop } from "./order-shop";
+
+export type { OrderShop } from "./order-shop";
 
 export interface OrderCustomer {
   id: string;
@@ -67,30 +73,15 @@ export interface OrderQuote {
 
 export type QuoteFailure = {
   ok: false;
-  code: "VALIDATION_ERROR" | "NOT_FOUND" | "PRODUCTS_MISSING" | "STOCK_INSUFFICIENT";
+  code:
+    | "VALIDATION_ERROR"
+    | "NOT_FOUND"
+    | "SERVICE_DISABLED"
+    | "PRODUCTS_MISSING"
+    | "STOCK_INSUFFICIENT";
   message: string;
   details?: Record<string, string[]>;
 };
-
-export const orderShopSelect = {
-  id: true,
-  name: true,
-  address: true,
-  city: true,
-  autoAccept: true,
-  acceptTimeoutMin: true,
-  busyMode: true,
-  busyExtraMin: true,
-  prepTimeMin: true,
-  maxOrdersPerSlot: true,
-  maxOrdersPerHour: true,
-  autoBusyThreshold: true,
-  minOrderCents: true,
-  commissionPct: true,
-  commissionEnabled: true,
-} satisfies Prisma.ShopSelect;
-
-export type OrderShop = Prisma.ShopGetPayload<{ select: typeof orderShopSelect }>;
 
 const quotedProductSelect = {
   id: true,
@@ -210,6 +201,8 @@ export async function prepareOrder(
     }),
   ]);
   if (shop === null) return { ok: false, code: "NOT_FOUND", message: "Boucherie introuvable" };
+  const refusal = shopOrderRefusalMessage(shop);
+  if (refusal !== null) return { ok: false, code: "SERVICE_DISABLED", message: refusal };
 
   const products = new Map(productRows.map((product) => [product.id, product]));
   const missingProductIds = productIds.filter((id) => !products.has(id));
