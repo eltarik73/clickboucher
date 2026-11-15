@@ -129,7 +129,8 @@ facturée, y compris pour les bots. Règles :
 ## CI/CD
 
 - **Workflow** : `.github/workflows/ci.yml` — déclenché sur push `main` + PRs.
-- **Jobs parallèles** (Node 20, ubuntu-latest) :
+- **Jobs parallèles** (Node 22, `ubuntu-24.04` figé : `ubuntu-latest` est passé à 26.04, où Playwright
+  n'installe pas Chromium) :
   - `lint` → `npm run lint` (ESLint)
   - `typecheck` → `npx tsc --noEmit`
   - `test` → `npm run test:run` (unitaires) puis `npm run test:integration` (intégration sur le
@@ -151,13 +152,13 @@ facturée, y compris pour les bots. Règles :
 - **PR template** : `.github/pull_request_template.md` — checklist build/lint/typecheck/test + screenshots si UI.
 - **Vercel preview** : l'environnement Preview de Vercel n'a PAS de `DATABASE_URL`, or le build
   prérend ≈ 290 pages sur la base → tout déploiement de preview échouait
-  (`Environment variable not found: DATABASE_URL`). `vercel.json` (`git.deploymentEnabled`) désactive
-  donc les déploiements des branches `dependabot/**` et `claude/**` ; c'est le job CI `build` qui
-  valide ces branches. Seul `main` déploie (production).
+  (`Environment variable not found: DATABASE_URL`). `vercel.json` (`git.deploymentEnabled` :
+  `"**": false, "main": true`) ne déploie donc QUE `main` (production) : aucune branche de pull
+  request ne lance de preview ; c'est le job CI `build` qui les valide.
   Pour une vraie recette en ligne : créer une base Postgres DÉDIÉE (jamais celle de production —
   le mode test y est autorisé et les URLs de preview sont publiques), y pousser le schéma + le seed,
   définir `DATABASE_URL` / `DIRECT_DATABASE_URL` et les clés Clerk de dev sur l'environnement
-  Preview, puis retirer la ligne `claude/**` de `vercel.json`.
+  Preview, puis autoriser la branche voulue dans `git.deploymentEnabled` (`"<motif>": true`).
 
 ## Stack
 
@@ -790,4 +791,15 @@ Mono-contexte : `GLOSSARY.md` et `docs/adr/` à la racine, créés au besoin. Vo
 - Fais les choix toi-même et avance
 - Applique les modifications directement
 - Lance npm run build automatiquement
-- Fais git add/commit/push sans demander
+- Fais git add/commit sans demander ; publie par une **pull request** (`gh pr create`) puis fusionne
+  quand la CI est verte (`gh pr merge --squash`)
+
+### Branche `main` protégée (décision du propriétaire, 2026-11-15)
+
+- Plus aucun push direct sur `main`, administrateur compris : tout passe par une pull request.
+- Fusion seulement quand les quatre contrôles de la CI sont verts : `Lint`, `Typecheck`,
+  `Tests (vitest)`, `Build (next build + prerender check)` (émis par GitHub Actions), sur une
+  branche à jour avec `main`. Aucune approbation exigée (développeur seul).
+- Historique linéaire : fusion en squash ; ni push forcé ni suppression de `main`.
+- Vercel déploie la production à chaque fusion dans `main`, et seulement `main`.
+- Réglage : `gh api repos/eltarik73/clickboucher/branches/main/protection` (lecture).
