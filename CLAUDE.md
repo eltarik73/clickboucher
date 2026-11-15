@@ -129,7 +129,8 @@ facturée, y compris pour les bots. Règles :
 ## CI/CD
 
 - **Workflow** : `.github/workflows/ci.yml` — déclenché sur push `main` + PRs.
-- **Jobs parallèles** (Node 20, ubuntu-latest) :
+- **Jobs parallèles** (Node 22, `ubuntu-24.04` figé : `ubuntu-latest` est passé à 26.04, où Playwright
+  n'installe pas Chromium) :
   - `lint` → `npm run lint` (ESLint)
   - `typecheck` → `npx tsc --noEmit`
   - `test` → `npm run test:run` (unitaires) puis `npm run test:integration` (intégration sur le
@@ -790,4 +791,12 @@ Mono-contexte : `GLOSSARY.md` et `docs/adr/` à la racine, créés au besoin. Vo
 - Fais les choix toi-même et avance
 - Applique les modifications directement
 - Lance npm run build automatiquement
-- Fais git add/commit/push sans demander
+- Fais git add/commit sans demander ; publie par une **pull request** (`gh pr create`) puis fusionne
+  quand la CI est verte (`gh pr merge --squash`)
+
+### Branche `main` protégée (décision du propriétaire, 2026-11-15)
+
+- Plus aucun push direct sur `main`, administrateur compris : tout passe par une pull request.
+- Fusion seulement quand les quatre contrôles de la CI sont verts : `Lint`, `Typecheck`,
+  `Tests (vitest)`, `Build (next build + prerender check)`, sur une branche à jour avec `main`.
+- Vercel déploie la production à chaque fusion dans `main`.
