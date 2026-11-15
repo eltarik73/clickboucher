@@ -4,7 +4,11 @@
 // its units while it is in a status where holdsLimitedStock() is true: the caller reserves them on
 // entering that set and releases them on leaving it, in the transaction of the transition.
 // One unit = one portion (KG, TRANCHE) or one piece / tray, never a kilogram.
+// An anti-gaspi counter counts only while the discount is in force (antiGaspiInForceWhere): past
+// antiGaspiEndAt the product sells at its original price without limit, and its counter is neither
+// taken from nor given back to (the butcher's « end anti-gaspi » action empties it).
 import type { Prisma } from "@prisma/client";
+import { antiGaspiInForceWhere } from "@/lib/pricing/anti-gaspi";
 import { storedLineUnits, type StoredLine } from "@/lib/pricing/line";
 
 type Tx = Prisma.TransactionClient;
@@ -62,17 +66,20 @@ function normalizedLines(lines: readonly StockLine[]): StockLine[] {
 
 /**
  * Takes `line.units` from one counter (anti-gaspi or flash sale) of a product of the shop that is in
- * that limited mode. The counter is only written here and by the release: it reaches 0 and stays in
- * its limited mode at 0, so the quote refuses new orders and the next reservation fails, until the
- * butcher ends the mode or gives stock back. Throws LimitedStockError when it would go below 0.
+ * that limited mode at `now`. The counter is only written here and by the release: it reaches 0 and
+ * stays in its limited mode at 0, so the quote refuses new orders and the next reservation fails,
+ * until the butcher ends the mode or gives stock back. Throws LimitedStockError when it would go
+ * below 0.
  */
 async function reserveCounter(
   tx: Tx,
   shopId: string,
   line: StockLine,
-  counter: "antiGaspiStock" | "flashSaleStock"
+  counter: "antiGaspiStock" | "flashSaleStock",
+  now: Date
 ): Promise<void> {
-  const mode = counter === "antiGaspiStock" ? { isAntiGaspi: true } : { isFlashSale: true };
+  const mode: Prisma.ProductWhereInput =
+    counter === "antiGaspiStock" ? antiGaspiInForceWhere(now) : { isFlashSale: true };
   const { count } = await tx.product.updateMany({
     where: { id: line.productId, shopId, ...mode, [counter]: { not: null } },
     data: { [counter]: { decrement: line.units } },
@@ -87,34 +94,43 @@ async function reserveCounter(
 }
 
 /**
- * Takes the units from every limited product of the shop. Products of another shop and products
- * without a limited mode are not touched. Throws LimitedStockError when a counter would go below 0:
- * the caller's transaction must roll back (it holds the decrements already made).
+ * Takes the units from every limited product of the shop at `now`. Products of another shop,
+ * products without a limited mode and anti-gaspi discounts past their end date are not touched.
+ * Throws LimitedStockError when a counter would go below 0: the caller's transaction must roll
+ * back (it holds the decrements already made).
  */
 export async function reserveLimitedStock(
   tx: Tx,
   shopId: string,
-  lines: readonly StockLine[]
+  lines: readonly StockLine[],
+  now: Date
 ): Promise<void> {
   for (const line of normalizedLines(lines)) {
-    await reserveCounter(tx, shopId, line, "antiGaspiStock");
-    await reserveCounter(tx, shopId, line, "flashSaleStock");
+    await reserveCounter(tx, shopId, line, "antiGaspiStock", now);
+    await reserveCounter(tx, shopId, line, "flashSaleStock", now);
   }
 }
 
 /**
  * Gives the units back to the products of the shop that are still in their limited mode with a
- * counter (a sold-out product stays in its mode at 0 and gets them back). A product whose mode the
- * butcher switched off meanwhile is left alone: its stock is no longer counted.
+ * counter at `now` (a sold-out product stays in its mode at 0 and gets them back). A product whose
+ * mode the butcher switched off meanwhile, or whose anti-gaspi discount has expired, is left
+ * alone: its stock is no longer counted.
  */
 export async function releaseLimitedStock(
   tx: Tx,
   shopId: string,
-  lines: readonly StockLine[]
+  lines: readonly StockLine[],
+  now: Date
 ): Promise<void> {
   for (const line of normalizedLines(lines)) {
     await tx.product.updateMany({
-      where: { id: line.productId, shopId, isAntiGaspi: true, antiGaspiStock: { not: null } },
+      where: {
+        id: line.productId,
+        shopId,
+        ...antiGaspiInForceWhere(now),
+        antiGaspiStock: { not: null },
+      },
       data: { antiGaspiStock: { increment: line.units } },
     });
     await tx.product.updateMany({

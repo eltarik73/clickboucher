@@ -7,6 +7,7 @@
 // suspended one: a suspension is lifted by the admin only (src/lib/services/shops/moderation.ts).
 import type { Prisma } from "@prisma/client";
 import prisma from "./prisma";
+import { invalidateCachedShop } from "./cache/shop-cache";
 import { redis } from "./redis";
 
 export type VacationChange =
@@ -34,7 +35,7 @@ const VACATION_END = {
 async function dropShopCaches(shops: readonly ShopRef[]): Promise<void> {
   for (const shop of shops) {
     await redis.del(`shop:status:${shop.id}`);
-    await redis.del(`shop:${shop.slug}`);
+    await invalidateCachedShop(shop.slug);
   }
 }
 

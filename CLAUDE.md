@@ -112,13 +112,14 @@ facturée, y compris pour les bots. Règles :
 
 - Routes API : `app/api/[resource]/route.ts`
 - Composants : PascalCase (`ProductCard.tsx`)
-- Utilitaires : camelCase (`getProductImage.ts`)
+- Modules de `src/lib` : fichiers en kebab-case (`src/lib/shop-hours.ts`, `src/lib/order-state-machine.ts`)
 - Variables d'environnement : SCREAMING_SNAKE_CASE
 
 ## Build & Deploy
 
 - `npm run build` doit passer sans erreur avant tout push
-- Déploiement automatique via Vercel sur `git push main`
+- Déploiement automatique par Vercel quand une pull request est fusionnée dans `main` (protégée : jamais de
+  push direct, voir « Décisions du propriétaire (2026-11-15) »)
 - Migrations prod : `npx prisma migrate deploy` (JAMAIS `migrate dev`)
 
 ## Tests
@@ -130,7 +131,6 @@ facturée, y compris pour les bots. Règles :
   - `npm run test:integration` → tests d'intégration sur un PostgreSQL RÉEL (utilisée par CI)
   - `npm run test:watch` → mode watch local (unitaires)
   - `npm run test:coverage` → rapport couverture v8 (text + html + lcov, unitaires)
-  - `npm run test:ui` → UI Vitest dans le navigateur (unitaires)
 - **Intégration en local** : `DATABASE_URL=postgresql://<user>:<mdp>@127.0.0.1:<port>/<base>?schema=public npm run test:integration`
   (base locale jetable, ex. un conteneur Docker Postgres 16 ; jamais la base de production). L'hôte doit être
   `localhost`, `127.0.0.1` ou `::1`, sinon le setup refuse de démarrer. La suite tourne dans le schéma
@@ -204,7 +204,7 @@ facturée, y compris pour les bots. Règles :
 - **QR Code** : qrcode.react + html5-qrcode (scan)
 - **Charts** : Recharts (dashboard boucher)
 - **Hébergement** :
-  - **Frontend Next.js + serverless** : Vercel (auto-deploy on push to main) — **seul service web actif**
+  - **Frontend Next.js + serverless** : Vercel (déploiement automatique de `main`) — **seul service web actif**
   - **PostgreSQL** : Railway (DB uniquement, host `switchyard.proxy.rlwy.net`)
   - ⚠️ **Pas de service Next.js sur Railway** : l'ancien service `clickboucher` du projet Railway `perpetual-clarity` doit rester désactivé (ou supprimé). Sinon il essaie de re-builder à chaque push GitHub et envoie des emails "Build failed" inutiles. Si tu reçois ces mails : Railway dashboard → projet `perpetual-clarity` → service `clickboucher` (PAS le service Postgres) → Settings → désactiver Auto Deploy ou Delete Service.
 - **Repo** : https://github.com/eltarik73/clickboucher
@@ -222,6 +222,9 @@ npm run db:seed      # prisma db seed (npx tsx prisma/seed.ts)
 npm run db:studio    # prisma studio
 npm run db:reset     # prisma migrate reset
 ```
+
+- **Installation locale** : `docker compose up -d`, `npx prisma db push`, `npm run db:seed` (la CI aussi pousse le
+  schéma puis lance le seed). Le seed refuse toute base dont l'hôte n'est pas local (`prisma/seed-guard.ts`).
 
 ## Structure du projet
 
@@ -242,12 +245,13 @@ src/
 │   │   └── validation/[id]/      # Validation poids
 │   ├── (boucher)/
 │   │   └── boucher/
-│   │       ├── commandes/        # Mode Cuisine (4 colonnes, polling 5s)
-│   │       └── dashboard/        # Back-office boucher
-│   │           ├── commandes/    # Gestion commandes
-│   │           ├── catalogue/    # Produits + packs
-│   │           ├── clients/      # Clients (part. + pro)
-│   │           └── parametres/   # Réglages boutique
+│   │       ├── commandes/        # Mode Cuisine (3 colonnes sur grand écran, 4 onglets sur mobile, polling 5s)
+│   │       ├── dashboard/        # Accueil du back-office + anti-gaspi, calendrier, export, finances, parrainage, statistiques
+│   │       ├── produits/         # Catalogue (liste, nouveau, [id]/modifier)
+│   │       ├── historique/       # Commandes des 7 derniers jours
+│   │       ├── clients/          # Clients de la boutique
+│   │       ├── parametres/       # Réglages boutique
+│   │       └── images/  performance/  support/
 │   ├── boucherie-halal/[ville]/   # Pages SEO par ville (SSG)
 │   ├── robots.ts                 # robots.txt dynamique
 │   ├── sitemap.ts                # Sitemap XML (shops + villes)
@@ -261,10 +265,10 @@ src/
 │       └── calendar-events/  cron/  health/  webmaster/
 ├── components/
 │   ├── ui/          # shadcn/ui primitives
-│   ├── cart/        # CartDrawer, CartPanel, CartFAB, CartItem
+│   ├── cart/        # CheckoutLineRow, CartSuggestions (page /panier)
 │   ├── shop/        # ShopCard
 │   ├── product/     # ProductCard
-│   ├── order/       # OrderCard, OrderTimeline
+│   ├── order/       # OrderTracker, ActiveOrderBanner, QRCodeDisplay, QRScanner, RatingPopup, Reorder*, order-timeline
 │   ├── checkout/    # Checkout flow
 │   ├── boucher/     # KitchenOrderCard, OrderTicket, PrepTimer, OrderAlertOverlay, PriceAdjustModal
 │   ├── seo/         # OrganizationSchema, ShopSchema, BreadcrumbSchema, ProductSchema
@@ -272,6 +276,7 @@ src/
 │   └── providers/   # CartProviderWrapper
 ├── hooks/
 │   ├── use-order-polling.ts  # Polling kitchen (5s), filtered views, scheduled detection
+│   ├── use-pending-order-count.ts  # Compteur « en attente » du tableau de bord (useVisiblePolling, 30 s)
 │   ├── use-kitchen-notifications.ts  # Browser notifications, title blink
 │   └── use-wake-lock.ts     # Screen wake lock for tablet
 ├── lib/
@@ -281,7 +286,7 @@ src/
 │   ├── sounds.ts            # startOrderAlert() / stopOrderAlert()
 │   ├── boucher-auth.ts      # getAuthenticatedBoucher()
 │   ├── api/errors.ts         # apiError / apiSuccess / handleApiError
-│   ├── cart/                 # cart-line.ts (ligne de panier, réducteur), order-payload.ts (requête de commande)
+│   ├── cart/                 # cart-line.ts (ligne de panier, réducteur), stored-cart.ts (panier stocké), order-payload.ts (requête de commande)
 │   ├── pricing/              # SEULE source des prix : ligne, prix unitaire, remise, totaux, affichage
 │   ├── seo/                  # cities.ts (SEO_CITIES config)
 │   ├── services/             # Business logic (orders/ : quote, create, numbering, transition, commands/)
@@ -301,9 +306,9 @@ const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, t
 // state = { shopId, shopName, shopSlug, items: CartItem[] }
 ```
 
-- **Ligne de panier** : `CartItem` est défini dans `src/lib/cart/cart-line.ts` (réducteur, `cartLineId`,
-  `normalizeStoredCart`). Elle a le sens d'une ligne de requête (voir « Commandes : quantités, prix,
-  totaux » plus bas) : jamais de quantité pré-multipliée par le poids.
+- **Ligne de panier** : `CartItem` est défini dans `src/lib/cart/cart-line.ts` (réducteur, `cartLineId`) ; le
+  panier stocké est relu par `normalizeStoredCart` (`src/lib/cart/stored-cart.ts`). Une ligne a le sens d'une ligne de
+  requête (voir « Commandes : quantités, prix, totaux » plus bas) : jamais de quantité pré-multipliée par le poids.
 - **`totalCents` du panier = estimation locale.** Le panier (`/panier`) affiche le devis du serveur
   (`POST /api/orders/quote`, hook `use-order-quote`) et envoie la commande via
   `src/lib/cart/order-payload.ts`, seul constructeur de la requête.
@@ -352,8 +357,9 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 
 ## Mode Cuisine (Kitchen Mode)
 
-- **Page** : `src/app/(boucher)/boucher/commandes/page.tsx` (v9)
-- **Layout desktop** : 3 colonnes — Nouvelles (25%) | En cours (flex, split view) | Prêtes (25%) + Historique bottom bar
+- **Page** : `src/app/(boucher)/boucher/commandes/page.tsx`
+- **Layout desktop** (`lg`) : 3 colonnes — Nouvelles (40 %) | En cours (reste, 2 sections) | Prêtes (20 %), + Historique
+  dans la barre du bas ; mode simple : 2 colonnes (Nouvelles | En cours / Prêtes)
 - **Layout mobile** : 4 onglets (Nouv. / En cours / Prêtes / Histo.)
 - **Polling** : `useOrderPolling` hook (5s), callbacks: `onNewOrder`, `onStatusChange`, `onScheduledReady`
 - **Source** : `GET /api/boucher/orders/kitchen` → `{ active, activeTruncated }` : TOUTES les commandes
@@ -366,9 +372,11 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   Badge du menu : `GET /api/boucher/orders/pending-count`.
 - **Accueil du tableau de bord boucher** : chiffres du jour (journée de Paris) et 5 dernières commandes par
   `GET /api/boucher/orders/summary` (`src/lib/services/orders/shop-summary.ts`), compteur « en attente » par
-  `pending-count` — jamais à partir de `GET /api/orders`, limité à 50.
+  `pending-count` — jamais à partir de `GET /api/orders`, limité à 50. Ce compteur est relu toutes les 30 s par
+  `src/hooks/use-pending-order-count.ts` (`useVisiblePolling`) ; le résumé du jour et le statut de la boutique sont relus
+  toutes les minutes (et aussitôt quand ce compteur change) ; aucun flux SSE (`src/lib/__tests__/urgences/no-sse.test.ts`).
 - **Composants** : `KitchenOrderCard`, `OrderTicket` (80mm thermal Uber Eats style), `PrepTimer`, `OrderAlertOverlay`
-- **"En cours" split** : 2 sections TOUJOURS visibles (même vides) — section haute "À préparer maintenant" (ASAP + scheduled ≤30min) + section basse "Programmées (en attente)" (scheduled >30min, compact cards avec countdown)
+- **"En cours" split** : 2 sections TOUJOURS visibles (même vides) — section haute "À préparer maintenant" (ASAP + scheduled ≤30min) + section basse "Précommandes" (scheduled >30min, compact cards avec countdown)
 - **Cards programmées compactes** : ligne unique — `#num Prénom.N | heure retrait | countdown | bouton imprimer`
 
 ## Commandes Programmées
@@ -376,7 +384,7 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 - Les commandes avec `pickupSlotStart` arrivent en **PENDING** dans Nouvelles (PAS auto-acceptées)
 - Bandeau orange "📅 PROGRAMMÉE — Retrait à HH:MM" visible sur la card
 - Boucher clique Accepter (pas de sélecteur de délai — l'API utilise pickupSlotStart comme estimatedReady)
-- Après acceptation → va dans "En cours" section "Programmées (en attente)" avec countdown
+- Après acceptation → va dans "En cours" section "Précommandes" avec countdown
 - 30 min avant retrait → bascule en section "À préparer maintenant" + son Marimba + notification boucher + notification client via `/api/orders/[id]/scheduled-notify`
 - Boucher traite normalement : En préparation → Prête
 - Tickets imprimés avec bannière "📅 COMMANDE PROGRAMMÉE — RETRAIT HH:MM"
@@ -414,9 +422,11 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 
 ## Ajustement de Prix (3 paliers)
 
-- **Palier 1** (baisse) : auto-approuvé immédiatement
-- **Palier 2** (hausse ≤ seuil) : client a 5 min pour accepter/refuser, auto-validé sinon
-- **Palier 3** (hausse > seuil) : client a 5 min, escaladé au webmaster si pas de réponse après 10 min
+- **Palier 1** (baisse, ou hausse ≤ 10 % par défaut) : appliqué immédiatement (`computeTier`, `src/lib/price-adjustment.ts`)
+- **Palier 2** (hausse ≤ 20 % par défaut) : le client accepte ou refuse ; sans réponse, validé à l'échéance, 30 s par
+  défaut (`TIER_2_AUTO_APPROVE_SEC`, `src/lib/price-adjustment-config.ts`)
+- **Palier 3** (hausse plus forte, plafond 50 %) : jamais validé automatiquement ; sans réponse après 10 min, escaladé
+  au webmaster (`ESCALATED`). Les échéances sont appliquées à la lecture de la commande (`adjustment-answers.ts`), sans cron
 - **Route** : `PATCH /api/orders/[id]/adjust-price` — SEUL moyen de changer le total d'une commande après sa
   création (les actions `adjust_weight` / `adjust_price` de la route boucher unifiée n'existent plus)
 - **Seuls écrivains d'un total ajusté** : `src/lib/services/orders/adjustment-settlement.ts` (verrou de la
@@ -424,7 +434,8 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   l'ajustement est alors fermé `REJECTED`) et `adjustment-answers.ts` (échéance du palier 2, escalade du
   palier 3, acceptation et refus du client ; seul le gagnant notifie, après commit). Toute fermeture de
   commande, rupture ou retrait ferme l'ajustement en attente. Lignes repesées via `src/lib/pricing/adjustment.ts`.
-- **Config** : seuil configurable par boutique via webmaster dashboard
+- **Config** : seuils et délais communs à la plateforme (`platform_configs`, clés `PA_KEYS`), réglés par le webmaster
+  dans `/webmaster/parametres` ; aucun réglage par boutique
 
 ## Authentification API (CRITIQUE)
 
@@ -519,7 +530,9 @@ const shop = await prisma.shop.findFirst({
 - **SafeImage** : `src/components/ui/SafeImage.tsx` — wraps next/image avec fallback SVG on error
 - **Quality** : 60 pour les cards boutiques, cache 30 jours
 - **Lazy-load** : PWA (ServiceWorker, InstallPrompt, OfflineBanner) + OfferPopup + TestRoleSwitcher → `dynamic({ ssr: false })`
-- **Server Components** : HowItWorks et CalendarBanner — PAS de "use client" (0 hydratation)
+- **Server Component** : HowItWorks — PAS de "use client" (0 hydratation)
+- **Service worker** (`public/sw.js`, cache `klikgo-v2`) : navigations réseau seul, `/offline.html` en secours ; ne
+  stocke aucune page visitée, aucune charge RSC ni réponse `private` / `no-store`, seulement des fichiers statiques
 - **Preconnect** : Clerk + Google Fonts dans layout.tsx `<head>`
 - **loading.tsx** : Le skeleton hero doit matcher la vraie page (bg-white, PAS bg-noir)
 - **OfferPopup** : Utilise `<img>` natif (PAS next/image) pour éviter 400 sur URLs externes
@@ -580,8 +593,12 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
   BOGO et BUNDLE refusés (« Cette offre n'est pas encore utilisable en ligne »), FREE_FEES refusé tant qu'aucun
   frais de service n'est facturé (paiement sur place). Codes réservés aux clients connectés (pas aux invités).
 - **Diffusion** : Badge client, bannière (gradient, image IA, position), popup (couleur, fréquence, image IA)
-- **Routes boucher** : `/api/boucher/promo-codes` — CRUD + produits éligibles
-- **Routes webmaster** : `/api/webmaster/promo-codes` — CRUD + propose aux bouchers + stats KPI
+- **Routes boucher** : `/api/shop/offers` (offres de la boutique, propositions en attente, création),
+  `[offerId]/products` (produits éligibles), `[offerId]/respond` (réponse à une proposition du webmaster)
+- **Routes webmaster** (admin) : `/api/dashboard/offers` (CRUD, `[offerId]/propose` aux bouchers, `[offerId]/products`),
+  `/api/dashboard/campaigns` (+ `[campaignId]/send`), `/api/dashboard/marketing/` (audiences, stats, visuel IA)
+- **Envoi des e-mails commerciaux** : interrupteur de `src/lib/commercial-emails.ts`, en pause par défaut, réglé dans
+  `/webmaster/parametres` ; il bloque campagnes, relances de panier abandonné et e-mails aux prospects, jamais ceux de commande
 - **Client** : MarketingBanner (auto-rotate 5s) + OfferPopup (fréquence localStorage)
 - **Badge promo** : Sur les cartes boutiques — badge rouge `#DC2626` avec label (ex: "Frais offerts", "-20%")
 - **Tri** : Boutiques avec promos actives remontées EN PREMIER dans la liste
@@ -590,13 +607,14 @@ SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_AUTH_TOKE
 
 ## Programme Fidélité
 
-- **3 paliers** : 3 commandes → -2€, 7 commandes → -5€, 15 commandes → -10€
-- **Modèle** : `LoyaltyReward` — code unique (KG-XXXXXX), lié au user, expire 30 jours
-- **Processus** : `processLoyaltyOnPickup()` appelé après retrait → crée reward + notifie
+- **Obtention d'une récompense : non implémentée.** Aucun code de production ne crée de `LoyaltyReward` (seuls les
+  tests en créent) ; les paliers du modèle (3, 7, 15 commandes) ne sont attribués nulle part.
+- **Modèle** : `LoyaltyReward` — code unique, lié au user, `expiresAt`, `usedAt`
 - **Validation** : par le devis serveur (`POST /api/orders/quote`, `promoCode`), après les `Offer` ; consommé
   (`usedAt`) dans la transaction de création, libéré si la commande est refusée / annulée / expirée
-- **Config boucher** : `/api/loyalty/config` — chaque boucher peut configurer sa propre règle fidélité
-- **Pages** : `/avantages` (client), `/webmaster/fidelite` (admin), `/boucher/dashboard/promos` (boucher)
+- **Config boucher** : `/api/loyalty/config` — règle `LoyaltyRule` de la boutique ; noter une commande retirée
+  incrémente le compteur `LoyaltyPoint` (`commands/rate.ts`), sans créer de code
+- **Page** : `/avantages` (client) ; ses blocs fidélité restent masqués, la page ne charge aucun statut de fidélité
 
 ## Résolution userId (CRITIQUE — Bug fix Mars 2026)
 
@@ -607,13 +625,6 @@ const clerkId = await getServerUserId(); // Retourne Clerk ID (user_xxx)
 const dbUser = await prisma.user.findUnique({ where: { clerkId }, select: { id: true } });
 const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons DB
 ```
-
-## Audit Prod (Mars 2026) — 117/117 tests passés
-
-- CLIENT : 23 tests OK — pages, APIs, panier, fidélité, favoris, recherche
-- BOUCHER : 33 tests OK — 16 pages, 13 APIs, 4 tests sécurité
-- ADMIN/WEBMASTER : 61 tests OK — 32 pages, 24 APIs, 5 tests sécurité
-- Marketing + Fidélité : 27 tests OK — promos, campagnes, images, validation codes
 
 ## SEO
 
@@ -642,7 +653,7 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 ### Pages SEO Villes
 
 - **Route** : `/boucherie-halal/[ville]` — SSG via `generateStaticParams()`
-- **Config** : `src/lib/seo/cities.ts` — 6 villes (Chambéry, Aix-les-Bains, Grenoble, Lyon, Saint-Étienne, Annecy)
+- **Config** : `src/lib/seo/cities.ts` — voir `SEO_CITIES` (55 villes au 2026-11-15) et `SEO_DEPARTMENTS`
 - **Schemas** : BreadcrumbSchema + FAQPage (4 questions) + ShopSchema par boutique
 - **Maillage** : Liens ville dans footer accueil, homepage, info bar boutique, liens croisés entre villes
 
@@ -681,15 +692,16 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 - Poids en **grammes** (`weightGrams`)
 - Unités : KG, PIECE, BARQUETTE, TRANCHE
 - Imports panier : toujours `use-cart` (pas `useCart`)
-- Output standalone pour Vercel (`next.config.mjs`)
+- Sortie `standalone` seulement hors Vercel (`output: process.env.VERCEL ? undefined : "standalone"`, `next.config.mjs`)
 - CSP configurée pour Clerk + Cloudflare + Anthropic
 - `sessionClaims` Clerk supprimé — utiliser DB lookup pour les rôles
-- Route `/boutique/[slug]` utilise le **slug** (ex: `/boutique/boucherie-tarik`)
+- Route `/boutique/[slug]` utilise le **slug** (ex: `/boutique/boucherie-tarik`) ; son cache Redis passe par
+  `src/lib/cache/shop-cache.ts` seul (clé `shop:v2:<slug>`, 60 s, dates relues en `Date`, entrée illisible = absente)
 - `git add prisma/schema.prisma` obligatoire à chaque modif du schema
 - **Homepage** = `/` (PAS `/decouvrir`) — `/decouvrir` redirige 301 vers `/`
 - **Pas de livraison** — toujours "frais offerts", jamais "livraison"
 - **Images** : SafeImage pour fallback, WebP first (pas AVIF), quality 60 pour cards
-- **Composants statiques** : `HowItWorks`, `CalendarBanner` sont Server Components (pas de "use client")
+- **Composant statique** : `HowItWorks` est un Server Component (pas de "use client")
 - **PWA/Popup** : toujours lazy-load avec `dynamic({ ssr: false })`
 
 ### Commandes : quantités, prix, totaux, numéros, statuts (chantier 0 — 2026-11)
@@ -733,6 +745,8 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
   `auto-cancel`). Garde : `tests/lib/order-writers-guard.test.ts`.
 - **Notifications de commande** : jamais limitées ; la limite « 1 par type et par heure » ne vaut que pour
   les événements marketing / récapitulatifs (`src/lib/notification-policy.ts`).
+- **Transports** : `sendEmail` (`src/lib/email.ts`) renvoie `false` quand rien n'est parti (clé absente, refus de Resend,
+  exception) ; un canal n'est inscrit que sur `true`. Journaux : destinataire masqué (`src/lib/log-mask.ts`).
 - **Découpe à 0** : les validateurs produit refusent une découpe sous 1 centime, mais d'anciennes lignes
   peuvent en porter une : `resolveUnitPrice` refuse alors la découpe demandée (`CUT_OPTION_UNPRICED`), le
   devis répond 400 « <produit> : découpe indisponible ». Côté client, seules les découpes de
@@ -741,12 +755,22 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
   (`limitedStockSoldOut` → « Épuisé », ajout impossible ; `limitedStockRemaining` plafonne la quantité ;
   `limitedStockLowCount` donne le N de « Plus que N », de 1 à 5). Un produit limité à 0 RESTE dans son mode :
   le devis le refuse jusqu'à ce que le boucher termine le mode ou que du stock revienne.
+- **Fin de l'anti-gaspi** : passé `antiGaspiEndAt`, le prix d'origine revient et le compteur ne limite plus rien
+  (`src/lib/pricing/anti-gaspi.ts`). Toute lecture d'un produit montrée à un client ou au boucher passe par
+  `settleAntiGaspi` (en base : `antiGaspiInForceWhere`, `limitedStockOnSaleWhere(now)`) ; toute écriture de
+  `priceCents` ajoute `antiGaspiEndOnPriceWrite` : le mode échu se termine, le prix saisi est celui payé. Le
+  recalcul après un changement de majoration (`src/lib/services/shops/markup-reprice.ts`) garde le prix d'un
+  anti-gaspi en cours et recalcule son prix de retour. Un cache de produits garde les lignes lues et règle
+  l'anti-gaspi à chaque lecture (`GET /api/products`) ; les produits des offres d'une boutique sont réglés
+  par `listShopOffers`.
 - **Vue client d'une commande** : liste blanche `customerOrderSelect` (`src/lib/services/orders/customer-view.ts`)
   pour toute réponse à un client ou un invité (lecture, création, annulation, note, choix d'alternatives,
   liste) ; propriété vérifiée DANS la requête, hors périmètre → 404. `GET /api/orders/[id]/status` ne renvoie
   que le prénom et le nom du client.
 - **Corps JSON des routes** : `readJsonBody(req)` (`src/lib/api/request-body.ts`), jamais `req.json()` : un corps
   absent ou mal formé répond 400 `VALIDATION_ERROR` sans journal d'erreur ni Sentry.
+- **Message d'erreur côté client** : `apiErrorMessage(body, repli)` (`src/lib/api/error-message.ts`) ; jamais un
+  `.error` passé tel quel à `toast`, `alert` ou `new Error` (garde `src/lib/__tests__/urgences/api-error-sinks.test.ts`).
 - **Invité** : deux premières requêtes d'un même nouvel e-mail en concurrence sur `users.email` → la perdante
   relit l'utilisateur et poursuit (rejeu idempotent), jamais 500.
 - **Codes promo publics** : toute requête d'offre pour une page publique (`/bons-plans`, badges et popup de
@@ -781,7 +805,7 @@ vers un modèle actif, augmenter `maxDuration` de la route, créer les recettes 
 
 **Secret requis** : `ANTHROPIC_API_KEY` dans GitHub repo secrets.
 
-Pour bénéficier de ces reviews → travailler en feature branch + PR (au lieu de push direct main).
+Tout changement passe par une branche de travail et une pull request vers `main` (protégée) : ces revues s'y appliquent.
 
 ### Skills Klik&Go 2026
 
@@ -813,6 +837,20 @@ Les cinq rôles par défaut, écrits sur la ligne `Status:` du ticket. Voir `doc
 ### Domain docs
 
 Mono-contexte : `GLOSSARY.md` et `docs/adr/` à la racine, créés au besoin. Voir `docs/agents/domain.md`.
+
+## Décisions du propriétaire (2026-11-15)
+
+- **Montants affichés « 1 234,56 € »** : `Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" })` —
+  espace fine insécable (U+202F) pour les milliers, virgule décimale, espace insécable (U+00A0) avant €.
+  `formatPrice` (`src/lib/utils.ts`) reste l'autorité d'affichage mais ne produit pas encore ce format (aucun
+  séparateur de milliers) : son alignement revient au chantier prix / interface ; aucun autre formateur à ajouter.
+- **`main` protégée** : tout changement passe par une pull request dont la CI est verte ; jamais de push direct
+  sur `main` (règles détaillées : « Branche `main` protégée », sous « Permissions »).
+- **Node 22** partout : jobs de la CI (voir « CI/CD »), `.nvmrc` et `engines` de `package.json`.
+- **Commande invitée à supprimer** : un e-mail = un compte, aucune fusion de commandes invitées dans un compte. Ne
+  plus investir dans les parcours invités (`/api/checkout/guest`, section « Accès invité aux commandes »).
+- **E-mails commerciaux en pause** derrière l'interrupteur « Envoi des e-mails commerciaux »
+  (`src/lib/commercial-emails.ts`, voir « Marketing Hub V2 ») tant que l'admin ne l'active pas.
 
 ## Permissions
 

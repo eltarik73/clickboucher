@@ -11,6 +11,7 @@ import { shopImageRefusal } from "@/lib/images/write-scope";
 import { isAdmin } from "@/lib/roles";
 import { publicProductSelect, publicShopSelect } from "@/lib/public-projections";
 import { isShopPageReachable, shopPublicationSelect } from "@/lib/shop-publication";
+import { repriceShopProducts } from "@/lib/services/shops/markup-reprice";
 
 // ── GET /api/shops/[id] ────────────────────────
 // Public — shop detail with categories & products, allow-listed fields only
@@ -125,40 +126,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       data,
     });
 
-    // When the shop's markup or rounding flag changes, recompute every product's
-    // online priceCents from its boutiquePriceCents so the catalog stays consistent.
-    // Without this, only the next product the boucher edits picks up the new markup.
-    if (pricingFieldsChanged) {
-      const { computeOnlinePriceCents, getEffectiveCommissionRate } =
-        await import("@/lib/services/stripe/commission");
-      const effRate = getEffectiveCommissionRate({
-        tier: updated.tier,
-        earlyAdopterUntil: updated.earlyAdopterUntil,
-      });
-      // Stream product updates in batches; only touch products with a real boutique price.
-      const products = await prisma.product.findMany({
-        where: { shopId: id, boutiquePriceCents: { not: null, gt: 0 } },
-        select: { id: true, boutiquePriceCents: true, priceCents: true },
-      });
-      const updates = products
-        .map((p) => ({
-          id: p.id,
-          newPrice: computeOnlinePriceCents(
-            p.boutiquePriceCents ?? 0,
-            effRate,
-            updated.commissionMarkupPercent,
-            updated.priceRoundingEnabled
-          ),
-        }))
-        .filter((u) => u.newPrice !== products.find((p) => p.id === u.id)!.priceCents);
-      if (updates.length > 0) {
-        await prisma.$transaction(
-          updates.map((u) =>
-            prisma.product.update({ where: { id: u.id }, data: { priceCents: u.newPrice } })
-          )
-        );
-      }
-    }
+    // When the markup or rounding setting changes, every product's online price follows it at once
+    // (otherwise only the next product the butcher edits would pick it up).
+    if (pricingFieldsChanged) await repriceShopProducts(updated, new Date());
 
     return apiSuccess(updated);
   } catch (error) {

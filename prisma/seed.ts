@@ -5,6 +5,7 @@
 // ═══════════════════════════════════════════════
 
 import { PrismaClient, Role, ProStatus, OrderStatus, Unit } from "@prisma/client";
+import { seedTargetIssue } from "./seed-guard";
 
 const prisma = new PrismaClient();
 
@@ -290,6 +291,12 @@ const LABEL_COLORS: Record<string, string> = {
 // ═══════════════════════════════════════════════
 
 async function main() {
+  const issue = seedTargetIssue(process.env.DATABASE_URL);
+  if (issue !== null) {
+    console.error(issue);
+    process.exit(1);
+  }
+
   console.log("🌱 Seeding Klik&Go V4 database...\n");
 
   // ── Clean ────────────────────────────────

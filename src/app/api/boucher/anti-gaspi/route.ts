@@ -4,10 +4,15 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { enableAntiGaspiSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import {
+  antiGaspiExpired,
+  antiGaspiInForceWhere,
+  publicPriceCents,
+} from "@/lib/pricing/anti-gaspi";
 
 export const dynamic = "force-dynamic";
 
-/** GET — List all anti-gaspi products for this shop */
+/** GET — List the shop's products whose anti-gaspi is in force (an expired one is over) */
 export async function GET() {
   try {
     const authResult = await getAuthenticatedBoucher();
@@ -15,7 +20,7 @@ export async function GET() {
     const { shopId } = authResult;
 
     const products = await prisma.product.findMany({
-      where: { shopId, isAntiGaspi: true },
+      where: { shopId, ...antiGaspiInForceWhere(new Date()) },
       select: {
         id: true, name: true, imageUrl: true, priceCents: true, unit: true,
         antiGaspiStock: true, antiGaspiOrigPriceCents: true,
@@ -48,12 +53,15 @@ export async function POST(req: NextRequest) {
     if (!product) {
       return apiError("NOT_FOUND", "Produit introuvable");
     }
-    if (product.isAntiGaspi) {
+    const now = new Date();
+    if (product.isAntiGaspi && !antiGaspiExpired(product, now)) {
       return apiError("VALIDATION_ERROR", "Ce produit est deja en anti-gaspi");
     }
 
-    // Calculate discounted price
-    const newPriceCents = Math.round(product.priceCents * (1 - data.discountPercent / 100));
+    // The discount applies to the price customers pay now: after an expired anti-gaspi, its
+    // original price, never the old discounted one still stored in priceCents.
+    const basePriceCents = publicPriceCents(product, now);
+    const newPriceCents = Math.round(basePriceCents * (1 - data.discountPercent / 100));
 
     // Default end: end of today
     const endAt = data.endAt
@@ -64,7 +72,7 @@ export async function POST(req: NextRequest) {
       where: { id: data.productId },
       data: {
         isAntiGaspi: true,
-        antiGaspiOrigPriceCents: product.priceCents,
+        antiGaspiOrigPriceCents: basePriceCents,
         priceCents: newPriceCents,
         antiGaspiStock: data.antiGaspiStock ?? null,
         antiGaspiReason: data.reason ?? null,

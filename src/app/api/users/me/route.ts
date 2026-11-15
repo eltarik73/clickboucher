@@ -5,6 +5,7 @@ import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
+import { KITCHEN_ACTIVE_STATUSES } from "@/lib/order-state-machine";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -61,14 +62,15 @@ export async function GET() {
     // Flatten proAccesses for client
     const data = {
       ...user,
-      proAccesses: user?.proAccesses?.map((pa) => ({
-        id: pa.id,
-        shopId: pa.shop.id,
-        shopName: pa.shop.name,
-        shopSlug: pa.shop.slug,
-        status: pa.status,
-        companyName: pa.companyName,
-      })) ?? [],
+      proAccesses:
+        user?.proAccesses?.map((pa) => ({
+          id: pa.id,
+          shopId: pa.shop.id,
+          shopName: pa.shop.name,
+          shopSlug: pa.shop.slug,
+          status: pa.status,
+          companyName: pa.companyName,
+        })) ?? [],
     };
 
     return apiSuccess(data);
@@ -102,7 +104,10 @@ export async function PATCH(req: NextRequest) {
     // If enabling SMS or WhatsApp, phone is required
     if ((data.notifSms || data.notifWhatsapp) && data.phone === undefined) {
       if (!user.phone && !data.phone) {
-        return apiError("VALIDATION_ERROR", "Numéro de téléphone requis pour les notifications SMS/WhatsApp");
+        return apiError(
+          "VALIDATION_ERROR",
+          "Numéro de téléphone requis pour les notifications SMS/WhatsApp"
+        );
       }
     }
 
@@ -143,7 +148,7 @@ export async function DELETE() {
     const activeOrders = await prisma.order.count({
       where: {
         userId: user.id,
-        status: { in: ["PENDING", "ACCEPTED", "PREPARING", "READY"] },
+        status: { in: [...KITCHEN_ACTIVE_STATUSES] },
       },
     });
 

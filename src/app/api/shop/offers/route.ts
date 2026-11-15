@@ -1,11 +1,43 @@
 // src/app/api/shop/offers/route.ts — Boucher offers management
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { createOfferSchema } from "@/lib/validations/offer";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * What a butcher sets on its own offer. The payer is always the butcher, the shop always its own,
+ * and the home-page popup and banner (free text, remote image, shown to every visitor) are
+ * published by the platform only: their fields are refused, never ignored. ButcherOfferForm sends
+ * payer "BUTCHER", diffBanner false and diffPopup false, so those exact values stay accepted.
+ */
+const butcherOfferSchema = createOfferSchema
+  .omit({
+    payer: true,
+    shopId: true,
+    diffBanner: true,
+    diffPopup: true,
+    bannerTitle: true,
+    bannerSubtitle: true,
+    bannerColor: true,
+    bannerPosition: true,
+    bannerImageUrl: true,
+    popupTitle: true,
+    popupMessage: true,
+    popupColor: true,
+    popupFrequency: true,
+    popupImageUrl: true,
+  })
+  .extend({
+    payer: z.literal("BUTCHER").optional(),
+    diffBanner: z.literal(false).optional(),
+    diffPopup: z.literal(false).optional(),
+  })
+  .strict();
 
 /**
  * GET /api/shop/offers
@@ -65,8 +97,7 @@ export async function POST(req: NextRequest) {
     const auth = await getAuthenticatedBoucher();
     if (auth.error) return auth.error;
 
-    const body = await req.json();
-    const parsed = createOfferSchema.parse({ ...body, payer: "BUTCHER" });
+    const parsed = butcherOfferSchema.parse(await readJsonBody(req));
 
     // Check code uniqueness
     const existing = await prisma.offer.findUnique({
@@ -91,18 +122,8 @@ export async function POST(req: NextRequest) {
         maxUses: parsed.maxUses ?? null,
         status: "ACTIVE",
         diffBadge: parsed.diffBadge,
-        diffBanner: parsed.diffBanner,
-        diffPopup: parsed.diffPopup,
-        bannerTitle: parsed.bannerTitle ?? null,
-        bannerSubtitle: parsed.bannerSubtitle ?? null,
-        bannerColor: parsed.bannerColor ?? null,
-        bannerPosition: parsed.bannerPosition ?? null,
-        bannerImageUrl: parsed.bannerImageUrl ?? null,
-        popupTitle: parsed.popupTitle ?? null,
-        popupMessage: parsed.popupMessage ?? null,
-        popupColor: parsed.popupColor ?? null,
-        popupFrequency: parsed.popupFrequency ?? null,
-        popupImageUrl: parsed.popupImageUrl ?? null,
+        diffBanner: false,
+        diffPopup: false,
       },
     });
 

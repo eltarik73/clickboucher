@@ -8,6 +8,7 @@ import { ArrowLeft, Leaf, Loader2, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { ANTI_GASPI_REASONS, AntiGaspiActiveInfo } from "@/components/boucher/AntiGaspiActiveInfo";
 
 interface Product {
@@ -93,7 +94,7 @@ export default function AntiGaspiPage() {
         });
         if (!res.ok) {
           const json = await res.json();
-          throw new Error(json.error || "Erreur");
+          throw new Error(apiErrorMessage(json, "Erreur"));
         }
         toast.success(`${product.name} — anti-gaspi active a -${form.discount}%`);
       }

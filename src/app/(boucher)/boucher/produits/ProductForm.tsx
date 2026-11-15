@@ -25,6 +25,7 @@ import ImageSearchModal from "@/components/boucher/ImageSearchModal";
 import ImageGenerateModal from "@/components/boucher/ImageGenerateModal";
 import ImageRetouchModal from "@/components/boucher/ImageRetouchModal";
 import { ProductPhotosField } from "@/components/boucher/photos/ProductPhotosField";
+import { CutOptionPriceInput } from "@/components/boucher/CutOptionPriceInput";
 import {
   addExistingRefusalFr,
   useProductPhotos,
@@ -719,9 +720,10 @@ export function ProductForm({ shopId, categories, product, onClose, onSaved, onD
                           <Input value={opt.name} onChange={e => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], name: e.target.value }; setCutOptionsList(next); }}
                             placeholder="Nom option" className="h-9 text-sm flex-1" />
                           <div className="relative w-28">
-                            <Input type="number" step="0.01" min="0" value={(opt.priceCents / 100).toFixed(2)}
-                              onChange={e => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], priceCents: Math.round(parseFloat(e.target.value || "0") * 100) }; setCutOptionsList(next); }}
-                              className="h-9 text-sm pr-8" />
+                            <CutOptionPriceInput priceCents={opt.priceCents}
+                              onPriceCentsChange={cents => { const next = [...cutOptionsList]; next[idx] = { ...next[idx], priceCents: cents }; setCutOptionsList(next); }}
+                              className="flex h-9 w-full rounded-control border border-input bg-background px-4 pr-8 text-sm text-foreground ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              aria-label={`Prix au kilo de l'option ${opt.name || idx + 1}`} />
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">{"\u20AC"}/kg</span>
                           </div>
                           <button type="button" onClick={() => setCutOptionsList(cutOptionsList.filter((_, i) => i !== idx))}

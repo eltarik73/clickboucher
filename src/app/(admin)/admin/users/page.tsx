@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { apiErrorMessage } from "@/lib/api/error-message";
 
 // ── Types ────────────────────────────────────────
 type User = {
@@ -182,7 +183,7 @@ export default function AdminUsersPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => null);
-        alert(err?.error || "Erreur");
+        alert(apiErrorMessage(err, "Erreur"));
         return;
       }
       setRoleTarget(null);

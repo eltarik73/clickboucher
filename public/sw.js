@@ -1,16 +1,36 @@
 // Klik&Go — Service Worker
-// Network First for API, Cache First for static assets, Offline fallback
+// Navigations : réseau seul, /offline.html si le réseau manque ; aucune page n'est stockée.
+// Fichiers statiques de même origine : cache d'abord, stockés seulement si la réponse le permet.
+// Tout le reste (API, charges RSC, /_next/image, autres origines) n'est pas intercepté.
 
-const CACHE_NAME = "klikgo-v1";
+// Incrémenter à chaque modification de ce fichier : activate supprime tout autre cache.
+const CACHE_NAME = "klikgo-v2";
 const OFFLINE_URL = "/offline.html";
 
 const STATIC_ASSETS = [
-  "/",
   "/offline.html",
   "/manifest.json",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
 ];
+
+const STATIC_EXTENSION = /\.(js|css|png|jpg|jpeg|svg|gif|webp|woff2?|ttf|eot|ico|wav|mp3)$/;
+const STATIC_PREFIXES = ["/icons/", "/images/", "/sounds/", "/_next/static/"];
+
+function isStaticAsset(url) {
+  return (
+    url.origin === self.location.origin &&
+    (STATIC_EXTENSION.test(url.pathname) ||
+      STATIC_PREFIXES.some((prefix) => url.pathname.startsWith(prefix)))
+  );
+}
+
+// Seule une réponse 200 de même origine, ni `private` ni `no-store`, entre dans Cache Storage.
+function isStorable(response) {
+  if (response.status !== 200 || response.type !== "basic") return false;
+  const cacheControl = (response.headers.get("Cache-Control") || "").toLowerCase();
+  return !cacheControl.includes("no-store") && !cacheControl.includes("private");
+}
 
 // ── Install: pre-cache essentials ──
 self.addEventListener("install", (event) => {
@@ -23,65 +43,43 @@ self.addEventListener("install", (event) => {
 // ── Activate: clean old caches ──
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
       )
-    )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // ── Fetch strategy ──
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
   if (request.method !== "GET") return;
 
-  // Skip API routes — always network, no cache
+  const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) return;
-
-  // Skip Clerk auth routes
   if (url.pathname.startsWith("/v1/") || url.hostname.includes("clerk")) return;
 
-  // Static assets (images, fonts, CSS, JS) — Cache First
-  if (
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|gif|webp|woff2?|ttf|eot|ico|wav|mp3)$/) ||
-    url.pathname.startsWith("/icons/") ||
-    url.pathname.startsWith("/images/") ||
-    url.pathname.startsWith("/sounds/") ||
-    url.pathname.startsWith("/_next/static/")
-  ) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        });
-      })
-    );
+  if (request.mode === "navigate") {
+    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
     return;
   }
 
-  // HTML pages — Network First with offline fallback
+  if (!isStaticAsset(url)) return;
+
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      })
-      .catch(() =>
-        caches.match(request).then((cached) => cached || caches.match(OFFLINE_URL))
-      )
+    caches.match(request).then(
+      (cached) =>
+        cached ||
+        fetch(request).then((response) => {
+          if (isStorable(response)) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)));
+          }
+          return response;
+        })
+    )
   );
 });
 

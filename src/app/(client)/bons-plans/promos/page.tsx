@@ -8,6 +8,7 @@ import { resolveProductImage } from "@/lib/product-images";
 import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 import { promoBadgeLabel } from "@/lib/pricing/display";
 import { resolveUnitPrice } from "@/lib/pricing/unit-price";
+import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 import { promoListWhere } from "@/lib/bons-plans";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
@@ -26,7 +27,7 @@ function fmtPrice(cents: number) {
 
 export default async function PromosPage() {
   const now = new Date();
-  const candidates = await prisma.product.findMany({
+  const rows = await prisma.product.findMany({
     where: promoListWhere(now),
     include: {
       shop: { select: { id: true, name: true, slug: true } },
@@ -35,6 +36,7 @@ export default async function PromosPage() {
     },
     orderBy: { promoPct: "desc" },
   });
+  const candidates = rows.map((row) => settleAntiGaspi(row, now));
   // The price charged for each product (pricing module); only products whose promotion it applies.
   const products = candidates.flatMap((product) => {
     const price = resolveUnitPrice(product, { isPro: false, now });

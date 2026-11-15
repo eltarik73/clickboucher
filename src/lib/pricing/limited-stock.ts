@@ -3,8 +3,11 @@
 // An anti-gaspi or flash-sale product carries a counter of sale units (one portion, piece or tray)
 // while it is in that mode. The counter reaches 0 and the product stays in its mode at 0: the quote
 // refuses it until the butcher ends the mode or gives stock back. The storefront reads the same
-// counters here to show « Épuisé » instead of an add button. Pure and client-safe.
+// counters here to show « Épuisé » instead of an add button. An anti-gaspi whose end date has
+// passed is over (anti-gaspi.ts): readers pass settled rows (settleAntiGaspi) to the functions
+// below, and the database filter applies the same end date. Pure and client-safe.
 import type { Prisma } from "@prisma/client";
+import { antiGaspiInForceWhere } from "./anti-gaspi";
 
 /** The limited-mode columns of Product. Absent fields mean the mode is off. */
 export interface LimitedStockFields {
@@ -41,13 +44,23 @@ export function limitedStockLowCount(product: LimitedStockFields): number | null
 }
 
 /**
- * The same rule as `!limitedStockSoldOut` as a Prisma filter, for lists and counts read from the
- * database: each mode is off, unlimited (null) or above 0. `NOT: { antiGaspiStock: 0 }` would be
- * wrong: in SQL it also drops the rows whose counter is NULL.
+ * The same rule as `!limitedStockSoldOut` of the settled row, as a Prisma filter for lists and
+ * counts read from the database: each mode is off (an anti-gaspi past its end date is off),
+ * unlimited (null) or above 0. `NOT: { antiGaspiStock: 0 }` would be wrong: in SQL it also drops
+ * the rows whose counter is NULL. The negated in-force filter never meets NULL: it tests
+ * `antiGaspiEndAt IS NULL` before comparing the date.
  */
-export const limitedStockOnSaleWhere = {
-  AND: [
-    { OR: [{ isAntiGaspi: false }, { antiGaspiStock: null }, { antiGaspiStock: { gt: 0 } }] },
-    { OR: [{ isFlashSale: false }, { flashSaleStock: null }, { flashSaleStock: { gt: 0 } }] },
-  ],
-} satisfies Prisma.ProductWhereInput;
+export function limitedStockOnSaleWhere(now: Date): Prisma.ProductWhereInput {
+  return {
+    AND: [
+      {
+        OR: [
+          { NOT: antiGaspiInForceWhere(now) },
+          { antiGaspiStock: null },
+          { antiGaspiStock: { gt: 0 } },
+        ],
+      },
+      { OR: [{ isFlashSale: false }, { flashSaleStock: null }, { flashSaleStock: { gt: 0 } }] },
+    ],
+  };
+}

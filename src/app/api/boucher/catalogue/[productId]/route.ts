@@ -3,6 +3,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { antiGaspiEndOnPriceWrite } from "@/lib/pricing/anti-gaspi";
 
 export const dynamic = "force-dynamic";
 
@@ -32,14 +33,17 @@ export async function PATCH(
 
     const product = await prisma.product.findUnique({
       where: { id: params.productId },
-      select: { id: true, shopId: true },
+      select: { id: true, shopId: true, isAntiGaspi: true, antiGaspiEndAt: true },
     });
     if (!product) return apiError("NOT_FOUND", "Produit introuvable");
     if (product.shopId !== shopId) return apiError("FORBIDDEN", "Accès refusé");
 
     const updated = await prisma.product.update({
       where: { id: params.productId },
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        ...antiGaspiEndOnPriceWrite(product, parsed.data.priceCents, new Date()),
+      },
     });
 
     return apiSuccess(updated);
