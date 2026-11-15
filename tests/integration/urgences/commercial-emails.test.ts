@@ -215,7 +215,7 @@ describe("en pause : rien ne part et chaque réponse le dit", () => {
     expect(after.sentAt).toBeNull();
   });
 
-  it("la route d'envoi de campagne répond 409 avec la phrase française, sans repasser la campagne en brouillon", async () => {
+  it("la route d'envoi de campagne répond 409 avec la phrase française et repasse la campagne programmée en brouillon", async () => {
     const { campaign } = await campaignWithTwoRecipients("SCHEDULED");
 
     const res = await sendCampaign(campaign.id);
@@ -227,7 +227,8 @@ describe("en pause : rien ne part et chaque réponse le dit", () => {
     });
     expect(vi.mocked(sendEmail)).not.toHaveBeenCalled();
     const after = await prisma.campaign.findUniqueOrThrow({ where: { id: campaign.id } });
-    expect(after).toMatchObject({ status: "SCHEDULED", sentAt: null, sentCount: 0 });
+    // Nothing sends a SCHEDULED campaign later: back to draft, to be sent once the switch is on.
+    expect(after).toMatchObject({ status: "DRAFT", sentAt: null, sentCount: 0 });
   });
 
   it("le cron des paniers abandonnés marque le panier mais n'envoie aucune relance", async () => {

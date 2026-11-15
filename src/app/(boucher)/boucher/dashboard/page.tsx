@@ -1,7 +1,7 @@
 // src/app/(boucher)/boucher/dashboard/page.tsx — Uber Eats tablette style dashboard
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { usePendingOrderCount } from "@/hooks/use-pending-order-count";
+import { useVisiblePolling } from "@/hooks/useVisiblePolling";
 import OnboardingChecklist from "@/components/boucher/OnboardingChecklist";
 import { toast } from "sonner";
 
@@ -296,6 +297,9 @@ function StatusBar({
   );
 }
 
+/** Cadence of the dashboard figures and shop status (the pending count has its own, 30 s). */
+const DASHBOARD_REFRESH_MS = 60_000;
+
 // ─────────────────────────────────────────────
 // Dashboard Page
 // ─────────────────────────────────────────────
@@ -307,27 +311,27 @@ export default function BoucherDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchShopStatus = useCallback(async () => {
+  const fetchShopStatus = useCallback(async (): Promise<boolean> => {
     try {
       const res = await fetch("/api/boucher/shop/status");
-      if (res.ok) {
-        const json = await res.json();
-        setShop(json.data);
-      }
+      if (!res.ok) return false;
+      const json = await res.json();
+      setShop(json.data);
+      return true;
     } catch {
-      /* silent */
+      return false;
     }
   }, []);
 
-  const fetchSummary = useCallback(async () => {
+  const fetchSummary = useCallback(async (): Promise<boolean> => {
     try {
       const res = await fetch("/api/boucher/orders/summary");
-      if (res.ok) {
-        const json = await res.json();
-        setSummary(json.data);
-      }
+      if (!res.ok) return false;
+      const json = await res.json();
+      setSummary(json.data);
+      return true;
     } catch {
-      /* silent */
+      return false;
     }
   }, []);
 
@@ -337,18 +341,22 @@ export default function BoucherDashboardPage() {
     if (current > previous) toast.success("Nouvelle commande !");
   });
 
-  useEffect(() => {
-    async function load() {
-      try {
-        await Promise.all([fetchShopStatus(), fetchSummary()]);
-      } catch {
-        setError("Erreur de connexion au serveur");
-      } finally {
-        setLoading(false);
-      }
+  // Day figures, recent orders and shop status: read at mount, then every minute while the tab is
+  // visible, so that a change that leaves the pending count as it is (an order picked up, an
+  // auto-pause) still shows; a change of the pending count reads them at once (above).
+  const refreshDashboard = useCallback(async (): Promise<boolean> => {
+    try {
+      const [statusRead, summaryRead] = await Promise.all([fetchShopStatus(), fetchSummary()]);
+      return statusRead && summaryRead;
+    } catch {
+      setError("Erreur de connexion au serveur");
+      return false;
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [fetchShopStatus, fetchSummary]);
+
+  useVisiblePolling(refreshDashboard, DASHBOARD_REFRESH_MS);
 
   // ── Shop status action ──
   async function handleStatusAction(action: string, data?: Record<string, unknown>) {

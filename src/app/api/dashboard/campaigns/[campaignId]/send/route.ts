@@ -33,6 +33,12 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
     const result = await executeCampaignSend(campaignId);
     if (result.status === "PAUSED") {
+      // Nothing sends a SCHEDULED campaign later: it goes back to draft, to be sent again once
+      // commercial e-mails are switched on (as after a transport failure).
+      await prisma.campaign.updateMany({
+        where: { id: campaignId, status: "SCHEDULED" },
+        data: { status: "DRAFT" },
+      });
       return apiError("CONFLICT", COMMERCIAL_EMAILS_PAUSED_MESSAGE);
     }
     if (result.status === "FAILED") {
@@ -45,9 +51,10 @@ export async function POST(_req: NextRequest, { params }: Params) {
     return apiSuccess({
       sent: result.sent,
       total: result.total,
-      message: result.total === 0
-        ? "Aucun destinataire trouvé pour cette audience"
-        : `${result.sent} email${result.sent > 1 ? "s" : ""} envoyé${result.sent > 1 ? "s" : ""} sur ${result.total}`,
+      message:
+        result.total === 0
+          ? "Aucun destinataire trouvé pour cette audience"
+          : `${result.sent} email${result.sent > 1 ? "s" : ""} envoyé${result.sent > 1 ? "s" : ""} sur ${result.total}`,
     });
   } catch (error) {
     // Revert to DRAFT on failure

@@ -373,7 +373,8 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 - **Accueil du tableau de bord boucher** : chiffres du jour (journée de Paris) et 5 dernières commandes par
   `GET /api/boucher/orders/summary` (`src/lib/services/orders/shop-summary.ts`), compteur « en attente » par
   `pending-count` — jamais à partir de `GET /api/orders`, limité à 50. Ce compteur est relu toutes les 30 s par
-  `src/hooks/use-pending-order-count.ts` (`useVisiblePolling`) ; aucun flux SSE (`src/lib/__tests__/urgences/no-sse.test.ts`).
+  `src/hooks/use-pending-order-count.ts` (`useVisiblePolling`) ; le résumé du jour et le statut de la boutique sont relus
+  toutes les minutes (et aussitôt quand ce compteur change) ; aucun flux SSE (`src/lib/__tests__/urgences/no-sse.test.ts`).
 - **Composants** : `KitchenOrderCard`, `OrderTicket` (80mm thermal Uber Eats style), `PrepTimer`, `OrderAlertOverlay`
 - **"En cours" split** : 2 sections TOUJOURS visibles (même vides) — section haute "À préparer maintenant" (ASAP + scheduled ≤30min) + section basse "Précommandes" (scheduled >30min, compact cards avec countdown)
 - **Cards programmées compactes** : ligne unique — `#num Prénom.N | heure retrait | countdown | bouton imprimer`
@@ -757,7 +758,11 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 - **Fin de l'anti-gaspi** : passé `antiGaspiEndAt`, le prix d'origine revient et le compteur ne limite plus rien
   (`src/lib/pricing/anti-gaspi.ts`). Toute lecture d'un produit montrée à un client ou au boucher passe par
   `settleAntiGaspi` (en base : `antiGaspiInForceWhere`, `limitedStockOnSaleWhere(now)`) ; toute écriture de
-  `priceCents` ajoute `antiGaspiEndOnPriceWrite` : le mode échu se termine, le prix saisi est celui payé.
+  `priceCents` ajoute `antiGaspiEndOnPriceWrite` : le mode échu se termine, le prix saisi est celui payé. Le
+  recalcul après un changement de majoration (`src/lib/services/shops/markup-reprice.ts`) garde le prix d'un
+  anti-gaspi en cours et recalcule son prix de retour. Un cache de produits garde les lignes lues et règle
+  l'anti-gaspi à chaque lecture (`GET /api/products`) ; les produits des offres d'une boutique sont réglés
+  par `listShopOffers`.
 - **Vue client d'une commande** : liste blanche `customerOrderSelect` (`src/lib/services/orders/customer-view.ts`)
   pour toute réponse à un client ou un invité (lecture, création, annulation, note, choix d'alternatives,
   liste) ; propriété vérifiée DANS la requête, hors périmètre → 404. `GET /api/orders/[id]/status` ne renvoie

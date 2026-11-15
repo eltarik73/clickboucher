@@ -3,7 +3,7 @@
 // publique montre le produit comme le devis le facture, au prix d'origine, hors anti-gaspi, et son
 // compteur anti-gaspi à 0 ne le cache plus ni ne le dit « Épuisé ». Lectures couvertes : recherche,
 // suggestions du panier, produits d'une boutique (public et pro), fiche produit, listes et compteurs
-// des bons plans.
+// des bons plans, produits éligibles aux offres de la page boutique.
 //
 // Simulés : les helpers d'auth (identité de l'appelant), seule doublure permise ici.
 import { isValidElement, type ReactNode } from "react";
@@ -28,11 +28,17 @@ import type { Product, Shop } from "@prisma/client";
 import { BonsPlansProductCard } from "@/components/client/BonsPlansProductCard";
 import { BonsPlansClient } from "@/app/(client)/bons-plans/BonsPlansClient";
 import { countBonsPlans } from "@/lib/bons-plans";
+import { listShopOffers } from "@/lib/public-offers";
 import { settleAntiGaspi } from "@/lib/pricing/anti-gaspi";
 import { limitedStockOnSaleWhere, limitedStockSoldOut } from "@/lib/pricing/limited-stock";
 import { actAs, session } from "../images/product-routes-harness";
 import { prisma, useCleanDatabase } from "../helpers/db";
-import { createTestProduct, createTestShop, createTestUser } from "../helpers/factories";
+import {
+  createTestOffer,
+  createTestProduct,
+  createTestShop,
+  createTestUser,
+} from "../helpers/factories";
 
 const { GET: search } = await import("@/app/api/search/route");
 const { GET: suggestions } = await import("@/app/api/suggestions/route");
@@ -226,5 +232,20 @@ describe("limitedStockOnSaleWhere(now)", () => {
     expect(onSale.map((p) => p.name)).not.toContain("AG fin demain / 0 FS null");
     expect(onSale.map((p) => p.name)).not.toContain("AG fin aucune / 0 FS null");
     expect(onSale.map((p) => p.name)).not.toContain("AG fin hier / 3 FS 0");
+  });
+});
+
+describe("offres de la page boutique", () => {
+  it("listShopOffers : un produit éligible dont l'anti-gaspi est échu vaut 2000", async () => {
+    const offer = await createTestOffer({ shopId: shop.id, payer: "BUTCHER", diffBanner: true });
+    await prisma.offerProduct.create({
+      data: { offerId: offer.id, productId: product.id, shopId: shop.id },
+    });
+
+    const [listed] = await listShopOffers(shop.id, new Date());
+
+    expect(listed.eligibleProducts).toEqual([
+      { product: expect.objectContaining({ id: product.id, ...AS_QUOTED }) },
+    ]);
   });
 });

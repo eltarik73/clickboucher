@@ -241,4 +241,21 @@ describe("/boucher/dashboard", () => {
     ).toHaveLength(summaryReads + 1);
     expect(eventSourceMock).not.toHaveBeenCalled();
   });
+
+  it("reads the day figures and the shop status again every minute, pending count unchanged", async () => {
+    servePending(2);
+    render(<BoucherDashboardPage />);
+    await flush();
+    const reads = (path: string) => fetchMock.mock.calls.filter(([input]) => input === path).length;
+    const summaryAtMount = reads("/api/boucher/orders/summary");
+    const statusAtMount = reads("/api/boucher/shop/status");
+    expect(summaryAtMount).toBe(1);
+
+    // An order picked up leaves the pending count at 2: only the minute refresh shows it.
+    await flush(60_000);
+
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(reads("/api/boucher/orders/summary")).toBe(summaryAtMount + 1);
+    expect(reads("/api/boucher/shop/status")).toBe(statusAtMount + 1);
+  });
 });

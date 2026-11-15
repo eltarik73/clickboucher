@@ -94,6 +94,22 @@ function settled<T extends AntiGaspiColumns>(rows: T[], now: Date): T[] {
   return rows.map((row) => settleAntiGaspi(row, now));
 }
 
+type PublicProductRow = Prisma.ProductGetPayload<{ select: typeof publicProductSelect }>;
+
+/**
+ * The cached public rows settled at `now`, or null (a miss) when the entry is not a list or holds
+ * an unreadable date. The cache holds the rows as read, so that an anti-gaspi ending within its
+ * 60 s is over at the next read, as in the quote.
+ */
+function settledFromCache(cached: unknown, now: Date): PublicProductRow[] | null {
+  if (!Array.isArray(cached)) return null;
+  try {
+    return settled(cached as PublicProductRow[], now);
+  } catch {
+    return null;
+  }
+}
+
 // Full include block for create/update
 const PRODUCT_INCLUDE = {
   categories: true,
@@ -139,33 +155,34 @@ export async function GET(req: NextRequest) {
     const productsCacheKey =
       audience === "PUBLIC" && !hasFilters ? `products:shop:${query.shopId}` : null;
 
-    if (productsCacheKey) {
-      try {
-        const cached = await redis.get<unknown>(productsCacheKey);
-        if (cached) return apiSuccess(cached);
-      } catch {
-        // Redis down — continue without cache
-      }
-    }
-
     const now = new Date();
-    const data =
-      audience === "MANAGER"
-        ? settled(await findProducts(where, MANAGER_PRODUCT_SELECT), now)
-        : audience === "PRO"
-          ? settled(await findProducts(where, proProductSelect), now)
-          : settled(await findProducts(where, publicProductSelect), now);
-
-    // ── Cache store (TTL 60s) ──
     if (productsCacheKey) {
       try {
-        await redis.set(productsCacheKey, data, { ex: 60 });
+        const hit = settledFromCache(await redis.get<unknown>(productsCacheKey), now);
+        if (hit) return apiSuccess(hit);
       } catch {
         // Redis down — continue without cache
       }
     }
 
-    return apiSuccess(data);
+    if (audience === "MANAGER") {
+      return apiSuccess(settled(await findProducts(where, MANAGER_PRODUCT_SELECT), now));
+    }
+    if (audience === "PRO") {
+      return apiSuccess(settled(await findProducts(where, proProductSelect), now));
+    }
+    const rows = await findProducts(where, publicProductSelect);
+
+    // ── Cache store (TTL 60s): the rows as read, settled at each read ──
+    if (productsCacheKey) {
+      try {
+        await redis.set(productsCacheKey, rows, { ex: 60 });
+      } catch {
+        // Redis down — continue without cache
+      }
+    }
+
+    return apiSuccess(settled(rows, now));
   } catch (error) {
     return handleApiError(error);
   }
