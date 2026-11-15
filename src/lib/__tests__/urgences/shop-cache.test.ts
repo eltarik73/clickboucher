@@ -12,7 +12,6 @@ import { logger } from "@/lib/logger";
 import {
   decodeCachedShop,
   encodeCachedShop,
-  invalidateCachedShop,
   readCachedShop,
   shopCacheKey,
   writeCachedShop,
@@ -40,9 +39,6 @@ vi.mock("@/lib/redis", () => ({
     async set(key: string, value: unknown, opts?: { ex?: number }): Promise<void> {
       store.entries.set(key, typeof value === "string" ? value : JSON.stringify(value));
       store.writes.push({ key, opts });
-    },
-    async del(key: string): Promise<void> {
-      store.entries.delete(key);
     },
   },
 }));
@@ -160,14 +156,6 @@ describe("writeCachedShop puis readCachedShop", () => {
 
     expect(await readCachedShop<FixtureShop>(SLUG)).toBeNull();
     expect(warn).not.toHaveBeenCalled();
-  });
-
-  it("ne trouve plus rien après invalidateCachedShop", async () => {
-    await writeCachedShop(SLUG, fixtureShop());
-    await invalidateCachedShop(SLUG);
-
-    expect(store.entries.has("shop:v2:boucherie-du-test")).toBe(false);
-    expect(await readCachedShop<FixtureShop>(SLUG)).toBeNull();
   });
 });
 

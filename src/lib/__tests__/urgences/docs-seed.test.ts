@@ -3,7 +3,8 @@
 // Régressions attrapées : README.md et DEPLOY.md ont prescrit `prisma db seed` contre la base de
 // production (le seed vide 26 tables) ; l'installation locale passait par `prisma migrate dev`,
 // alors que la CI et les voies locales créent le schéma par `prisma db push` ; un seed qui viderait
-// une table avant d'avoir vérifié sa cible.
+// une table avant d'avoir vérifié sa cible ; Node.js 18 encore prescrit après la décision du
+// propriétaire du 2026-11-15 (Node 22).
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -86,6 +87,10 @@ describe.each(["README.md", "DEPLOY.md"])("%s", (file) => {
   it("n'utilise pas prisma migrate dev", () => {
     expect(markdown).not.toMatch(/migrate dev/);
   });
+
+  it("demande Node.js 22 et aucune autre version", () => {
+    expect([...new Set(markdown.match(/Node\.js \d+/g))]).toEqual(["Node.js 22"]);
+  });
 });
 
 describe("setup.sh", () => {
@@ -102,6 +107,11 @@ describe("setup.sh", () => {
 
   it("n'utilise pas prisma migrate dev", () => {
     expect(script).not.toMatch(/migrate dev/);
+  });
+
+  it("refuse un Node.js de version majeure inférieure à 22", () => {
+    expect(script).toContain('if [ "$NODE_VERSION" -lt 22 ]; then');
+    expect(script).not.toMatch(/Node\.js 18|-lt 18/);
   });
 });
 

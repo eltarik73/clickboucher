@@ -35,6 +35,12 @@ export async function POST(_req: NextRequest, { params }: Params) {
     if (result.status === "PAUSED") {
       return apiError("CONFLICT", COMMERCIAL_EMAILS_PAUSED_MESSAGE);
     }
+    if (result.status === "FAILED") {
+      return apiError(
+        "SERVICE_DISABLED",
+        "Aucun e-mail n'a pu être envoyé. La campagne reste en brouillon."
+      );
+    }
 
     return apiSuccess({
       sent: result.sent,

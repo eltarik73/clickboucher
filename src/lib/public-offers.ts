@@ -11,10 +11,12 @@ import prisma from "@/lib/prisma";
 /** Where an offer is diffused: the shop-card badge, the shop banner, the home-page popup. */
 export type OfferChannel = "badge" | "banner" | "popup";
 
+// The home-page popup is shown to every visitor: it carries platform offers only (no shop). A
+// shop's offer flagged diffPopup does not count as diffused by the popup, whoever set the flag.
 const CHANNEL_FLAG = {
   badge: { diffBadge: true },
   banner: { diffBanner: true },
-  popup: { diffPopup: true },
+  popup: { diffPopup: true, shopId: null },
 } as const satisfies Record<OfferChannel, Prisma.OfferWhereInput>;
 
 /** The public offers; with a channel, only those diffused on that channel. */

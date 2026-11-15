@@ -408,6 +408,37 @@ describe("activé par un admin : les mêmes opérations envoient", () => {
     expect(after.status).toBe("SENT");
   });
 
+  it("le transport n'accepte aucun e-mail : la route répond une erreur et la campagne reste en brouillon", async () => {
+    vi.mocked(sendEmail).mockResolvedValue(false);
+    const { campaign } = await campaignWithTwoRecipients("SCHEDULED");
+
+    const res = await sendCampaign(campaign.id);
+
+    expect(res.status).toBe(503);
+    expect(await bodyOf(res)).toEqual({
+      success: false,
+      error: {
+        code: "SERVICE_DISABLED",
+        message: "Aucun e-mail n'a pu être envoyé. La campagne reste en brouillon.",
+      },
+    });
+    expect(vi.mocked(sendEmail)).toHaveBeenCalledTimes(2);
+    const after = await prisma.campaign.findUniqueOrThrow({ where: { id: campaign.id } });
+    expect(after).toMatchObject({ status: "DRAFT", sentAt: null, sentCount: 0 });
+  });
+
+  it("un seul e-mail accepté sur deux : la campagne passe SENT avec sentCount 1", async () => {
+    vi.mocked(sendEmail).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const { campaign } = await campaignWithTwoRecipients();
+
+    const result = await executeCampaignSend(campaign.id);
+
+    expect(result).toEqual({ status: "SENT", sent: 1, total: 2 });
+    const after = await prisma.campaign.findUniqueOrThrow({ where: { id: campaign.id } });
+    expect(after).toMatchObject({ status: "SENT", sentCount: 1 });
+    expect(after.sentAt).toBeInstanceOf(Date);
+  });
+
   it("le cron des paniers abandonnés envoie la relance et la compte", async () => {
     const { customer, cart } = await abandonedCart();
 

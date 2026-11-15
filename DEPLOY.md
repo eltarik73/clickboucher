@@ -25,7 +25,7 @@
 
 ### Prerequis
 
-- Node.js 18+
+- Node.js 22
 - PostgreSQL 14+ (ou Docker)
 - Git
 

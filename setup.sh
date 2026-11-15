@@ -14,13 +14,13 @@ echo ""
 echo "1️⃣  Vérification des prérequis..."
 
 if ! command -v node &> /dev/null; then
-  echo "❌ Node.js non trouvé. Installez Node.js 18+ (https://nodejs.org)"
+  echo "❌ Node.js non trouvé. Installez Node.js 22 (https://nodejs.org)"
   exit 1
 fi
 
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-  echo "❌ Node.js $NODE_VERSION détecté. Version 18+ requise."
+if [ "$NODE_VERSION" -lt 22 ]; then
+  echo "❌ Node.js $NODE_VERSION détecté. Version 22 requise."
   exit 1
 fi
 echo "   ✅ Node.js $(node -v)"

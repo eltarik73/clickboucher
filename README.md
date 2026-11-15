@@ -131,6 +131,8 @@ clickboucher/
 
 ## Démarrage rapide
 
+Prérequis : Node.js 22, Docker (PostgreSQL 16 de `docker-compose.yml`), Git.
+
 ```bash
 # 1. Installer les dépendances
 npm install

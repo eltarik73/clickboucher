@@ -122,7 +122,3 @@ export async function readCachedShop<T extends CacheableShop>(slug: string): Pro
 export async function writeCachedShop(slug: string, shop: CacheableShop): Promise<void> {
   await redis.set(shopCacheKey(slug), encodeCachedShop(shop), { ex: SHOP_CACHE_TTL_SECONDS });
 }
-
-export async function invalidateCachedShop(slug: string): Promise<void> {
-  await redis.del(shopCacheKey(slug));
-}
