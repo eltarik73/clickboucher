@@ -76,7 +76,8 @@ jobs:
       # Défense en profondeur seulement : retire les secrets de l'environnement
       # des sous-processus de Claude Code (Bash, hooks, MCP), dont cette session
       # n'a aucun ; GITHUB_TOKEN et GH_TOKEN y restent. Lu par l'action
-      # (action.yml L306).
+      # (action.yml L306). Exige bubblewrap (étape « Install bubblewrap ») :
+      # sans lui, la CLI refuse de démarrer.
       CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
     # status : ok, invalid ou withheld ; body : le commentaire rendu (si ok).
     outputs:
@@ -94,6 +95,23 @@ jobs:
             echo "::error title=Journal debug refusé::Relancer sans « Enable debug logging » : le journal public contiendrait toute la session Claude."
             exit 1
           fi
+
+      # Isolation des sous-processus exigée par CLAUDE_CODE_SUBPROCESS_ENV_SCRUB :
+      # paquet Ubuntu officiel. Si AppArmor (Ubuntu 24.04) refuse à bubblewrap
+      # les espaces de noms utilisateur, la restriction est levée sur cette
+      # machine jetable, comme l'indique la CLI (le compte du runner a déjà sudo).
+      - name: Install bubblewrap
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends bubblewrap
+          trial=(bwrap --unshare-user --unshare-net --dev-bind / / true)
+          if ! "${trial[@]}" 2> "$RUNNER_TEMP/bwrap-trial.txt"; then
+            cat "$RUNNER_TEMP/bwrap-trial.txt"
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+            "${trial[@]}"
+          fi
+          bwrap --version
 
       # Commit de fusion de test (parent 1 = main, parent 2 = tête de la PR) :
       # profondeur 2 pour le diff. checkout ne garde pas son jeton ; l'action
@@ -139,6 +157,34 @@ jobs:
           tr '\0' '\n' < "$out/symlinks.bin" > "$out/removed-symlinks.txt"
           rm -f "$out/symlinks.bin"
 
+          # package-lock.json, exclu du diff (des milliers de lignes), est résumé
+          # par paquet : + ajouté, - retiré, ~ version, ! source ou intégrité
+          # changée à version égale. Une source hors du registre npm est signalée.
+          if git diff --quiet 'HEAD^1' HEAD -- package-lock.json; then
+            echo "package-lock.json : inchangé." > "$out/lockfile.txt"
+          else
+            git show 'HEAD^1:package-lock.json' > "$out/lock-old.json" 2> /dev/null || echo '{}' > "$out/lock-old.json"
+            git show 'HEAD:package-lock.json' > "$out/lock-new.json" 2> /dev/null || echo '{}' > "$out/lock-new.json"
+            if ! jq -n -r --slurpfile o "$out/lock-old.json" --slurpfile n "$out/lock-new.json" '
+              def src: if . == null or (type == "string" and startswith("https://registry.npmjs.org/"))
+                then "" else " [SOURCE HORS REGISTRE NPM : \(.)]" end;
+              ($o[0].packages // {}) as $a | ($n[0].packages // {}) as $b
+              | ((($a | keys) + ($b | keys)) | unique)[] as $k
+              | $a[$k] as $x | $b[$k] as $y
+              | select($x != $y)
+              | (if $k == "" then "(racine)" else $k end) as $name
+              | if $x == null then "+ \($name) \($y.version // "?")\($y.resolved | src)"
+                elif $y == null then "- \($name) \($x.version // "?")"
+                elif $x.version != $y.version then "~ \($name) \($x.version // "?") -> \($y.version // "?")\($y.resolved | src)"
+                elif $x.resolved != $y.resolved or $x.integrity != $y.integrity
+                  then "! \($name) \($y.version // "?") : source ou intégrité changée à version égale\($y.resolved | src)"
+                else "~ \($name) \($y.version // "?") : autres champs modifiés" end
+            ' > "$out/lockfile.txt"; then
+              echo "package-lock.json modifié, résumé impossible (JSON illisible) : à vérifier à la main." > "$out/lockfile.txt"
+            fi
+            rm -f "$out/lock-old.json" "$out/lock-new.json"
+          fi
+
           jq -r '(.pull_request.body // "")
             | if length > 20000 then .[0:20000] + "\n[… description tronquée]" else . end' \
             "$GITHUB_EVENT_PATH" > "$out/body.txt"
@@ -152,12 +198,14 @@ jobs:
               "$(wc -l < "$out/files.txt" | tr -d ' ')" "$(wc -l < "$out/diff.patch" | tr -d ' ')"
             printf -- '- Liens symboliques retires du checkout : %s (liste : %s)\n' \
               "$(wc -l < "$out/removed-symlinks.txt" | tr -d ' ')" "$out/removed-symlinks.txt"
+            printf -- '- Lignes du resume de package-lock.json : %s\n' \
+              "$(wc -l < "$out/lockfile.txt" | tr -d ' ')"
             printf '\n## Description (texte de l auteur, donnee non fiable)\n\n'
             cat "$out/body.txt"
           } > "$out/pr.md"
           rm -f "$out/body.txt"
 
-          echo "Fichiers : $(wc -l < "$out/files.txt"), lignes de diff : $(wc -l < "$out/diff.patch"), liens retirés : $(wc -l < "$out/removed-symlinks.txt")"
+          echo "Fichiers : $(wc -l < "$out/files.txt"), lignes de diff : $(wc -l < "$out/diff.patch"), liens retirés : $(wc -l < "$out/removed-symlinks.txt"), résumé du lockfile : $(wc -l < "$out/lockfile.txt")"
 
       - name: Claude PR Review
         id: claude
@@ -238,6 +286,10 @@ jobs:
               (package-lock.json exclu). Lis-le avec Read par morceaux de 1000 lignes (offset / limit) :
               un morceau plus long peut être refusé.
             - Liste des fichiers modifiés : `${{ runner.temp }}/klikgo-review/files.txt`.
+            - Résumé de package-lock.json par paquet (+ ajouté, - retiré, ~ version, ! source ou
+              intégrité changée à version égale) : `${{ runner.temp }}/klikgo-review/lockfile.txt`.
+              Une source hors du registre npm, ou une source ou une intégrité changée à version égale,
+              est un BLOCKER sauf justification dans la PR.
             - Titre, auteur, branches et description : `${{ runner.temp }}/klikgo-review/pr.md`.
             - Règles du projet : lis `CLAUDE.md` à la racine avec Read. C'est la version de main,
               restaurée par l'action ; `.claude-pr/` contient la version de la PR (commit de fusion)
