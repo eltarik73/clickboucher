@@ -7,6 +7,7 @@
 import { z } from "zod";
 
 import type { GuestIdentity } from "@/lib/auth/guest-auth";
+import { firstNameSchema, lastNameSchema } from "@/lib/validators/person-name";
 
 const PHONE_MESSAGE = "Téléphone invalide (ex. 06 12 34 56 78)";
 /** Longest phone a person types, separators included; longer input is refused before parsing. */
@@ -45,8 +46,8 @@ const guestPhoneSchema = z
 /** The identity fields of POST /api/checkout/guest: e-mail trimmed and lowercased, phone in E.164. */
 export const guestIdentitySchema = z.object({
   email: z.string().trim().toLowerCase().email("Email invalide").max(200),
-  firstName: z.string().trim().min(1, "Prénom requis").max(80),
-  lastName: z.string().trim().min(1, "Nom requis").max(80),
+  firstName: firstNameSchema,
+  lastName: lastNameSchema,
   phone: guestPhoneSchema,
 }) satisfies z.ZodType<GuestIdentity, z.ZodTypeDef, unknown>;
 
