@@ -470,11 +470,15 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   par un membre est enregistré dans la transaction de création. Invité : choix obligatoire à chaque commande, jamais lu
   ni écrit sur `users`. La commande fige `weighToleranceRateBps`, `weighToleranceCapCents` et `estimatedTotalCents`
   (= `totalCents` du devis) ; NULL (commande antérieure) = aucune marge : toute hausse demande l'accord du client.
+  Nouvelle composition (rupture signalée, article retiré ou remplacé, `src/lib/services/orders/commands/unavailable.ts`) :
+  une ligne remplacée est estimée à son nouveau total et `estimatedTotalCents` est figé à nouveau sur les lignes
+  gardées (`estimatedTotalOf`) ; taux et plafond inchangés.
 - **Règle, une seule autorité** : `decideAdjustment` (`src/lib/pricing/tolerance.ts`), appelée par
-  `src/lib/services/orders/adjust-price.ts` et revérifiée par l'écrivain. Baisse (ou total inchangé) : appliquée
-  aussitôt (`AUTO_APPROVED`). Hausse de pesée (`WEIGHT`) : appliquée sans demander tant que la hausse cumulée, somme
-  sur les lignes disponibles de (total de la ligne − `estimatedPriceCents`), reste dans la marge figée
-  (`availableLinesAfter`, `src/lib/pricing/adjustment.ts` : une ligne en rupture ne donne aucune marge aux autres).
+  `src/lib/services/orders/adjust-price.ts` et revérifiée par l'écrivain. Baisse (ou total inchangé) qui n'augmente
+  aucune ligne : appliquée aussitôt (`AUTO_APPROVED`). Un changement qui augmente une ligne est une hausse, même si le
+  total baisse. Hausse de pesée (`WEIGHT`) : appliquée sans demander tant que la hausse cumulée, somme sur les lignes
+  livrées de (total de la ligne − `estimatedPriceCents`), reste dans la marge figée (`availableLinesAfter`,
+  `src/lib/pricing/adjustment.ts` : une ligne en rupture, retirée ou repesée à 0 ne donne aucune marge aux autres).
   Sinon (au-delà de la marge, `PRICE` ou `MANUAL`, commande sans marge, ligne sans estimation) : ajustement `PENDING`,
   le client doit répondre explicitement. Filet de la plateforme conservé : jamais plus de `pa_max_increase_pct`
   (50 % par défaut ; seul réglage restant, `PATCH /api/webmaster/config/price-adjustment`, entier de 1 à 100) au-dessus

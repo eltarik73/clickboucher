@@ -2,12 +2,16 @@
 // by the butcher applies at once or needs the customer's answer.
 //
 // The server freezes the rate and cap of the customer's choice on the order, with the estimated
-// total. A decrease always applies; a weighing increase applies without asking while the increase
-// cumulated since the order, measured against the estimates of the lines still in it, stays
-// within the tolerance: a removed line gives no room, small steps cannot add up past it.
+// total; when the customer accepts a new composition (a line out of stock removed or replaced), the
+// estimated total is frozen again from the lines he still gets (estimatedTotalOf). A decrease that
+// raises no line always applies; a change that raises a line applies without asking only for a
+// weighing whose increase cumulated since the order, measured against the estimates of the lines
+// still delivered, stays within the tolerance: a line out of stock, removed or weighed again at 0
+// gives no room, and small steps cannot add up past it.
 //
 // Pure and client-safe: no database, no clock, no I/O. Cents and basis points (500 = 5 %).
 import { assertCents } from "./line";
+import { computeOrderTotals } from "./totals";
 
 export const WEIGH_TOLERANCE_CHOICES = ["STANDARD", "EXTENDED"] as const;
 export type WeighToleranceChoice = (typeof WEIGH_TOLERANCE_CHOICES)[number];
@@ -79,6 +83,21 @@ export function toleranceCents(terms: WeighToleranceTerms, estimatedTotalCents: 
   return Math.min(proportional, terms.capCents);
 }
 
+/**
+ * The estimated total of a composition: the estimates of its lines (their totals when the customer
+ * accepted them) minus the stored discount, summed like Order.totalCents (computeOrderTotals);
+ * null when a line has no estimate, which leaves the order without tolerance.
+ */
+export function estimatedTotalOf(
+  estimatesCents: ReadonlyArray<number | null>,
+  discountCents: number
+): number | null {
+  const known = estimatesCents.filter((estimate): estimate is number => estimate !== null);
+  if (known.length !== estimatesCents.length) return null;
+  return computeOrderTotals({ lineTotalsCents: known, discountCents, serviceFeeCents: 0 })
+    .totalCents;
+}
+
 /** The tolerance frozen on an order; null unless the three columns are set (older orders). */
 export function frozenToleranceOf(order: {
   weighToleranceRateBps: number | null;
@@ -126,11 +145,18 @@ export interface AdjustmentDecisionInput {
   currentTotalCents: number;
   newTotalCents: number;
   tolerance: FrozenTolerance | null;
-  /** Available lines AFTER the change. */
-  lines: ReadonlyArray<{ estimatedCents: number | null; totalCents: number }>;
+  /** Available lines AFTER the change, with their total before it. */
+  lines: ReadonlyArray<{
+    estimatedCents: number | null;
+    totalCents: number;
+    previousTotalCents: number;
+  }>;
 }
 
-/** toleranceCents: 0 without tolerance. cumulatedIncreaseCents: null when a line has no estimate. */
+/**
+ * toleranceCents: 0 without tolerance. cumulatedIncreaseCents: null when a delivered line has no
+ * estimate.
+ */
 interface Measured {
   toleranceCents: number;
   cumulatedIncreaseCents: number | null;
@@ -140,23 +166,31 @@ export type AdjustmentDecision =
   | ({ decision: "APPLY"; reason: "DECREASE" | "WITHIN_TOLERANCE" } & Measured)
   | ({ decision: "ASK"; reason: "NOT_WEIGHING" | "NO_TOLERANCE" | "BEYOND_TOLERANCE" } & Measured);
 
-/** Sum of (total - estimate) over the lines, possibly negative; null when a line has no estimate. */
+/**
+ * Sum of (total - estimate) over the lines still delivered, possibly negative; null when one of
+ * them has no estimate. A line at 0 after the change (weighed again at 0: not delivered) is left
+ * out like a line out of stock: it gives no room to the others.
+ */
 function cumulatedIncrease(lines: AdjustmentDecisionInput["lines"]): number | null {
   let cumulated = 0;
-  for (const { estimatedCents, totalCents } of lines) {
+  for (const { estimatedCents, totalCents, previousTotalCents } of lines) {
     assertCents("totalCents", totalCents);
+    assertCents("previousTotalCents", previousTotalCents);
+    if (estimatedCents !== null) assertCents("estimatedCents", estimatedCents);
+    if (totalCents === 0) continue;
     if (estimatedCents === null) return null;
-    assertCents("estimatedCents", estimatedCents);
     cumulated += totalCents - estimatedCents;
   }
   return cumulated;
 }
 
 /**
- * APPLY at once, or ASK for the customer's explicit yes. A decrease or an unchanged total applies.
- * An increase applies without asking only for a weighing, on an order with a frozen tolerance,
- * when every line has its estimate and the cumulated increase stays within the tolerance.
- * Throws RangeError on amounts that are not whole, non-negative cents.
+ * APPLY at once, or ASK for the customer's explicit yes. A change that keeps or lowers the total
+ * without raising any line applies (DECREASE), even after an increase the customer accepted.
+ * A change that raises a line is an increase on that line, even when another line goes down or
+ * to 0 and the total with it: it applies without asking only for a weighing, on an order with a
+ * frozen tolerance, when every delivered line has its estimate and the cumulated increase stays
+ * within the tolerance. Throws RangeError on amounts that are not whole, non-negative cents.
  */
 export function decideAdjustment(input: AdjustmentDecisionInput): AdjustmentDecision {
   assertCents("currentTotalCents", input.currentTotalCents);
@@ -167,7 +201,8 @@ export function decideAdjustment(input: AdjustmentDecisionInput): AdjustmentDeci
   const cumulated = cumulatedIncrease(input.lines);
   const measured: Measured = { toleranceCents: allowance, cumulatedIncreaseCents: cumulated };
 
-  if (input.newTotalCents <= input.currentTotalCents) {
+  const raisesALine = input.lines.some((line) => line.totalCents > line.previousTotalCents);
+  if (input.newTotalCents <= input.currentTotalCents && !raisesALine) {
     return { decision: "APPLY", reason: "DECREASE", ...measured };
   }
   if (input.adjustmentType !== "WEIGHT") {

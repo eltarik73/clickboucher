@@ -6,6 +6,7 @@
 // relève chaque appel `order.update(` / `order.updateMany(` sur un client Prisma ou de transaction.
 // Un nouvel écrivain fait échouer le test : il faut l'ajouter à la liste ci-dessous, avec sa raison,
 // en connaissance de cause — et s'il écrit le statut, passer par transitionOrder à la place.
+// Les colonnes que mesure la marge de pesée ont leur propre liste fermée (TOLERANCE_COLUMN_WRITERS).
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -49,6 +50,29 @@ const OPAQUE_DATA_WRITERS: Record<string, string> = {
     'compute() est typé Omit<Prisma.OrderUncheckedUpdateManyInput, "status">',
   "src/lib/services/orders/commands/rate.ts": "ratingData = { rating, ratingComment }",
 };
+
+/**
+ * Fichiers serveur (qui parlent à la base) dont le code donne une valeur aux colonnes figées de la
+ * marge de pesée : orders.weigh_tolerance_rate_bps, weigh_tolerance_cap_cents,
+ * estimated_total_cents et order_items.estimated_price_cents. Chacun avec sa raison.
+ */
+const TOLERANCE_COLUMN_WRITERS: Record<string, string> = {
+  "src/lib/services/orders/create.ts":
+    "création : chaque ligne est estimée à son total du devis (estimatedPriceCents)",
+  "src/lib/services/orders/weigh-tolerance.ts":
+    "création : taux, plafond et total estimé figés sur la commande (frozenToleranceColumns)",
+  "src/lib/services/orders/commands/alternatives.ts":
+    "remplacement choisi par le client : la ligne est estimée à son nouveau total (estimatedPriceCents)",
+  "src/lib/services/orders/commands/unavailable.ts":
+    "réponse du client à une rupture : une ligne remplacée compte pour son nouveau total dans l'estimation",
+  "src/lib/services/orders/commands/unavailable-lines.ts":
+    "rupture signalée, retrait ou remplacement : total estimé figé à nouveau sur les lignes gardées (taux et plafond inchangés), écrit par transitionOrder",
+};
+
+/** Une propriété de colonne figée dont la valeur n'est ni un booléen de select ni un type. */
+const TOLERANCE_COLUMN_VALUE =
+  /\b(?:weighToleranceRateBps|weighToleranceCapCents|estimatedTotalCents|estimatedPriceCents)\s*:(?!\s*(?:true|false|number)\b)/;
+const TALKS_TO_DATABASE = /from\s+["']@\/lib\/prisma["']|\bTransactionClient\b/;
 
 // ── Lecture du code ──────────────────────────
 
@@ -166,6 +190,14 @@ function orderWrites(): OrderWrite[] {
   });
 }
 
+function toleranceColumnWriters(): string[] {
+  return sourceFiles(SRC).flatMap((full) => {
+    const text = readFileSync(full, "utf8");
+    if (!TALKS_TO_DATABASE.test(text) || !TOLERANCE_COLUMN_VALUE.test(codeOnly(text))) return [];
+    return [path.relative(ROOT, full).split(path.sep).join("/")];
+  });
+}
+
 const writesStatus = (data: string) => /\bstatus\b\s*(?::|,|\})/.test(data);
 const isLiteral = (data: string) => data.startsWith("{");
 
@@ -191,6 +223,22 @@ describe("écrivains de la table orders", () => {
       ...new Set(writes.filter((w) => w.data === null || !isLiteral(w.data)).map((w) => w.file)),
     ].sort();
     expect(opaque).toEqual(Object.keys(OPAQUE_DATA_WRITERS).sort());
+  });
+
+  it("seuls les fichiers listés donnent une valeur aux colonnes figées de la marge de pesée", () => {
+    expect(toleranceColumnWriters().sort()).toEqual(Object.keys(TOLERANCE_COLUMN_WRITERS).sort());
+  });
+
+  it("la lecture du code distingue une valeur de colonne figée d'un select ou d'un type", () => {
+    for (const read of ["{ estimatedPriceCents: true }", "estimatedTotalCents: number | null;"]) {
+      expect(TOLERANCE_COLUMN_VALUE.test(codeOnly(read))).toBe(false);
+    }
+    for (const written of [
+      "{ estimatedTotalCents: estimatedTotalOf(a, b) }",
+      "estimatedPriceCents: null",
+    ]) {
+      expect(TOLERANCE_COLUMN_VALUE.test(codeOnly(written))).toBe(true);
+    }
   });
 
   it("la lecture du code reconnaît une écriture de statut", () => {

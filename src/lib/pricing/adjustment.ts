@@ -87,18 +87,20 @@ export interface MeasuredLine {
 
 /**
  * The available lines of the order once `changes` apply, as decideAdjustment (tolerance.ts) reads
- * them: a changed line takes its new total, a line weighed again at 0 stays a line of total 0, and
- * a line out of stock or removed is left out, so it gives no room to the others.
+ * them: a changed line takes its new total and keeps its total before the change, a line out of
+ * stock or removed is left out. A line weighed again at 0 stays a line of total 0, which
+ * decideAdjustment does not measure: neither gives room to the others.
  */
 export function availableLinesAfter(
   lines: readonly MeasuredLine[],
   changes: ReadonlyArray<{ orderItemId: string; newTotalCents: number }>
-): Array<{ estimatedCents: number | null; totalCents: number }> {
+): Array<{ estimatedCents: number | null; totalCents: number; previousTotalCents: number }> {
   const newTotals = new Map(changes.map((change) => [change.orderItemId, change.newTotalCents]));
   return lines
     .filter((line) => line.available)
     .map((line) => ({
       estimatedCents: line.estimatedPriceCents,
       totalCents: newTotals.get(line.id) ?? line.totalCents,
+      previousTotalCents: line.totalCents,
     }));
 }

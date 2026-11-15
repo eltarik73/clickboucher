@@ -165,10 +165,11 @@ const frozen = (terms: WeighToleranceTerms, estimatedTotalCents: number): Frozen
 const S40 = frozen(STANDARD, 4000); // 5 % x 40,00 € = 2,00 €
 const S60 = frozen(STANDARD, 6000); // 5 % x 60,00 € = 3,00 €
 
-/** One available line after the change: its estimate at creation and its new total. */
-const line = (estimatedCents: number | null, totalCents: number) => ({
+/** A line after the change: its estimate, its new total, its total before (default: estimate). */
+const line = (estimatedCents: number | null, totalCents: number, previous?: number) => ({
   estimatedCents,
   totalCents,
+  previousTotalCents: previous ?? estimatedCents ?? totalCents,
 });
 
 function change(
@@ -230,7 +231,7 @@ describe("decideAdjustment", () => {
     ],
     [
       "the increase is cumulated since the order: +1,50 € applied, then +0,51 € is asked",
-      change(4150, 4201, [line(4000, 4201)]),
+      change(4150, 4201, [line(4000, 4201, 4150)]),
       ask("BEYOND_TOLERANCE", 200, 201),
     ],
     [
@@ -280,7 +281,7 @@ describe("decideAdjustment", () => {
     ],
     [
       "a line without estimate cannot be measured: asked",
-      change(4000, 4001, [line(3000, 3000), line(null, 1001)]),
+      change(4000, 4001, [line(3000, 3000), line(null, 1001, 1000)]),
       ask("NO_TOLERANCE", 200, null),
     ],
   ])("%s", (_label, input, expected) => {
@@ -292,6 +293,7 @@ describe("decideAdjustment", () => {
     expect(() => decideAdjustment(change(4000, -1, lines))).toThrow(RangeError);
     expect(() => decideAdjustment(change(40.5, 4000, lines))).toThrow(RangeError);
     expect(() => decideAdjustment(change(4000, 4100, [line(4000, 4100.5)]))).toThrow(RangeError);
-    expect(() => decideAdjustment(change(4000, 4100, [line(-1, 4100)]))).toThrow(RangeError);
+    expect(() => decideAdjustment(change(4000, 4100, [line(-1, 4100, 4000)]))).toThrow(RangeError);
+    expect(() => decideAdjustment(change(4000, 4100, [line(4000, 4100, 0.5)]))).toThrow(RangeError);
   });
 });
