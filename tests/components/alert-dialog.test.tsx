@@ -11,6 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 function Harness(props: { onAction?: (event: React.MouseEvent<HTMLButtonElement>) => void }) {
   const [open, setOpen] = React.useState(false);
@@ -104,6 +105,49 @@ describe("AlertDialog", () => {
     const alert = await screen.findByRole("alertdialog");
     fireEvent.click(within(alert).getByRole("button", { name: "Refuser" }));
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  it("la ref passée à « Annuler » atteint le bouton, qui reçoit aussi le focus initial", async () => {
+    const ref = React.createRef<HTMLButtonElement>();
+    render(
+      <AlertDialog open>
+        <AlertDialogContent>
+          <AlertDialogTitle>Refuser la commande ?</AlertDialogTitle>
+          <AlertDialogDescription>Le client sera prévenu.</AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel ref={ref}>Annuler</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+    const cancel = await screen.findByRole("button", { name: "Annuler" });
+    expect(ref.current).toBe(cancel);
+    expect(document.activeElement).toBe(cancel);
+  });
+
+  it("titre et description ont le style de ceux de Dialog", async () => {
+    const dialog = render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Modifier la boutique</DialogTitle>
+          <DialogDescription>Visible tout de suite.</DialogDescription>
+        </DialogContent>
+      </Dialog>
+    );
+    const dialogTitle = (await screen.findByText("Modifier la boutique")).className;
+    const dialogDescription = screen.getByText("Visible tout de suite.").className;
+    dialog.unmount();
+
+    render(
+      <AlertDialog open>
+        <AlertDialogContent>
+          <AlertDialogTitle>Refuser la commande ?</AlertDialogTitle>
+          <AlertDialogDescription>Le client sera prévenu.</AlertDialogDescription>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+    expect((await screen.findByText("Refuser la commande ?")).className).toBe(dialogTitle);
+    expect(screen.getByText("Le client sera prévenu.").className).toBe(dialogDescription);
   });
 
   it("le bouton d'annulation ferme", async () => {

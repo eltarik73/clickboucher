@@ -32,8 +32,7 @@ export function ProductPhoto({
   return (
     <PhotoWithFallback
       {...layout}
-      candidates={photo.candidates}
-      ownCandidate={photo.own}
+      photo={photo}
       alt={alt ?? name}
       variant={variant}
       unavailableBadge={unavailableBadge}

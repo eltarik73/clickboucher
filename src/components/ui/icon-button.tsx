@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
@@ -21,62 +20,34 @@ const iconButtonVariants = cva(
       variant: "ghost",
       size: "md",
     },
-  },
+  }
 );
 
-type IconButtonBase = {
+export type IconButtonProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "children" | "aria-label" | "aria-labelledby"
+> & {
   label: string;
   icon: React.ReactNode;
   variant?: "ghost" | "subtle" | "solid";
   size?: "md" | "lg";
-  className?: string;
 };
 
-export type IconButtonProps =
-  | (IconButtonBase &
-      Omit<
-        React.ButtonHTMLAttributes<HTMLButtonElement>,
-        "children" | "aria-label" | "aria-labelledby" | "className"
-      > & { asChild?: false })
-  | (IconButtonBase & { asChild: true; children: React.ReactElement });
-
-const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>((props, ref) => {
-  if (props.asChild) {
-    const { asChild, label, icon, variant, size, className, children, ...rest } = props;
-    const child = React.Children.only(children);
-    return (
-      <Slot
-        ref={ref}
-        aria-label={label}
-        className={cn(iconButtonVariants({ variant, size }), className)}
-        {...rest}
-      >
-        {React.cloneElement(
-          child,
-          undefined,
-          <span aria-hidden="true" className="inline-flex">
-            {icon}
-          </span>,
-        )}
-      </Slot>
-    );
-  }
-
-  const { asChild, label, icon, variant, size, className, type = "button", ...rest } = props;
-  return (
+const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
+  ({ label, icon, variant, size, className, type = "button", ...props }, ref) => (
     <button
       ref={ref}
       type={type}
       aria-label={label}
       className={cn(iconButtonVariants({ variant, size }), className)}
-      {...rest}
+      {...props}
     >
       <span aria-hidden="true" className="inline-flex">
         {icon}
       </span>
     </button>
-  );
-});
+  )
+);
 IconButton.displayName = "IconButton";
 
 export { IconButton, iconButtonVariants };

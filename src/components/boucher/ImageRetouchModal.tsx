@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import PresetChips from "./image-studio/PresetChips";
 import { requestRetouch, retouchSourceUrl } from "./photos/retouch-request";
-import { useImageUpload } from "./photos/useImageUpload";
+import { uploadImage } from "./photos/upload-transport";
 
 type Usage = "PRODUCT" | "CAMPAIGN" | "BANNER";
 
@@ -46,7 +46,9 @@ export default function ImageRetouchModal({
   usage = "PRODUCT",
   sourceImageUrl,
 }: Props) {
-  const [sourceUrl, setSourceUrl] = useState<string | null>(retouchSourceUrl(sourceImageUrl) ?? null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(
+    retouchSourceUrl(sourceImageUrl) ?? null
+  );
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [preset, setPreset] = useState<string>("CLEAN_BACKGROUND");
@@ -57,7 +59,6 @@ export default function ImageRetouchModal({
   const [originalServerUrl, setOriginalServerUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { upload } = useImageUpload("RETOUCH_SOURCE");
 
   useEffect(() => {
     if (open) {
@@ -81,7 +82,7 @@ export default function ImageRetouchModal({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  // Taille et format sont traités à l'envoi (useImageUpload) : réduction, ou message français.
+  // Taille et format sont traités à l'envoi (uploadImage) : réduction, ou message français.
   function handleFile(f: File | null | undefined) {
     if (!f) return;
     setSourceFile(f);
@@ -102,7 +103,7 @@ export default function ImageRetouchModal({
       if (sourceFile) {
         // La source passe d'abord par l'envoi commun (POST /api/uploads/image), une seule fois.
         setSending(true);
-        const uploaded = await upload(sourceFile, () => undefined);
+        const uploaded = await uploadImage(sourceFile, "RETOUCH_SOURCE", () => undefined);
         setSending(false);
         if (!uploaded.ok) {
           setError(uploaded.messageFr);
@@ -113,7 +114,13 @@ export default function ImageRetouchModal({
         setSourceUrl(source);
       }
       const outcome = await requestRetouch(
-        { sourceUrl: source, preset, variations: 4, usage, customPrompt: customPrompt.trim() || undefined },
+        {
+          sourceUrl: source,
+          preset,
+          variations: 4,
+          usage,
+          customPrompt: customPrompt.trim() || undefined,
+        },
         window.location.origin
       );
       if (!outcome.ok) {
@@ -210,7 +217,9 @@ export default function ImageRetouchModal({
               >
                 <Upload size={32} />
                 <span className="text-sm font-medium">Choisis ou glisse ta photo</span>
-                <span className="text-xs">JPEG, PNG ou WebP — allégée automatiquement à l'envoi</span>
+                <span className="text-xs">
+                  JPEG, PNG ou WebP — allégée automatiquement à l'envoi
+                </span>
               </button>
             )}
             <input

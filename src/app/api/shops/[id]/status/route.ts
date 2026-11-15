@@ -4,14 +4,15 @@ import { NextRequest } from "next/server";
 import { getServerUserId, getBoucherOwnerUserId } from "@/lib/auth/server-auth";
 import prisma from "@/lib/prisma";
 import { updateServiceSchema } from "@/lib/validators";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, formatZodError, handleApiError } from "@/lib/api/errors";
 import { readJsonBody } from "@/lib/api/request-body";
 import { isAdmin } from "@/lib/roles";
-import { SHOP_SUSPENDED_ADMIN_MESSAGE, SHOP_SUSPENDED_OWNER_MESSAGE } from "@/lib/shop-publication";
+import { shopWriteRefusal } from "@/lib/services/shops/owner-write-http";
+import { updateShopService } from "@/lib/services/shops/service-settings";
 
 // ── PATCH /api/shops/[id]/status ───────────────
-// Boucher (owner) or Admin — toggle operational status. A suspended shop is closed until the admin
-// reactivates it (PATCH /api/admin/shops/[shopId]/suspend): its status cannot change here.
+// Boucher (owner) or Admin — the shop's service settings. A suspended shop is closed until the admin
+// reactivates it (PATCH /api/admin/shops/[shopId]/suspend): the write refuses it, for both.
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
@@ -31,7 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Verify ownership or admin
     const shop = await prisma.shop.findUnique({
       where: { id },
-      select: { ownerId: true, suspendedAt: true },
+      select: { ownerId: true },
     });
 
     if (!shop) {
@@ -43,30 +44,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return apiError("FORBIDDEN", "Vous n'êtes pas propriétaire de cette boucherie");
     }
 
-    if (shop.suspendedAt) {
-      return admin
-        ? apiError("CONFLICT", SHOP_SUSPENDED_ADMIN_MESSAGE)
-        : apiError("FORBIDDEN", SHOP_SUSPENDED_OWNER_MESSAGE);
+    const parsed = updateServiceSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
     }
 
-    const data = updateServiceSchema.parse(await readJsonBody(req));
+    const result = await updateShopService(id, parsed.data);
+    if (!result.ok) return shopWriteRefusal(result.reason, admin ? "admin" : "owner");
 
-    const updated = await prisma.shop.update({
-      where: { id },
-      data,
-    });
-
-    return apiSuccess({
-      id: updated.id,
-      busyMode: updated.busyMode,
-      busyExtraMin: updated.busyExtraMin,
-      paused: updated.paused,
-      status: updated.status,
-      prepTimeMin: updated.prepTimeMin,
-      autoAccept: updated.autoAccept,
-      maxOrdersPerHour: updated.maxOrdersPerHour,
-      effectivePrepTime: updated.prepTimeMin + (updated.busyMode ? updated.busyExtraMin : 0),
-    });
+    return apiSuccess(result.service);
   } catch (error) {
     return handleApiError(error, "shops/[id]/status");
   }

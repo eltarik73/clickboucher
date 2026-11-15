@@ -41,7 +41,7 @@ vi.mock("react", async (importOriginal) => ({
 import { quoteOrder } from "@/lib/services/orders/quote";
 import { reactivateShop, suspendShop } from "@/lib/services/shops/moderation";
 import { SHOP_ON_VACATION_MESSAGE, SHOP_UNAVAILABLE_MESSAGE } from "@/lib/shop-publication";
-import { setVacationMode } from "@/lib/shop-status";
+import { setVacationMode } from "@/lib/shop-vacation";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestProduct, createTestShop, createTestUser } from "../helpers/factories";
 import { quoteRequest } from "../orders/create-order-fixtures";

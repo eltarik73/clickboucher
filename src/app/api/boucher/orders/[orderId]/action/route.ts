@@ -3,7 +3,8 @@
 // src/lib/services/orders/commands, which owns the status rules.
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import { handleApiError } from "@/lib/api/errors";
+import { apiError, formatZodError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { acceptOrder } from "@/lib/services/orders/commands/accept";
 import {
   boucherActionSchema,
@@ -61,8 +62,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { orderId: s
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
 
-    const action = boucherActionSchema.parse(await req.json());
-    const result = await runAction(action, {
+    const parsed = boucherActionSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
+    }
+    const result = await runAction(parsed.data, {
       orderId: params.orderId,
       shopId: authResult.shopId,
       actorId: authResult.userId,

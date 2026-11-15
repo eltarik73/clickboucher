@@ -1,7 +1,9 @@
 // @vitest-environment node
-// Transports non configurés (WhatsApp sans Twilio, push sans clés VAPID) : ils ne se disent pas
-// servis, ne contactent personne et ne journalisent ni le numéro, ni le titre, ni le corps.
-import webpush from "web-push";
+// Transports WhatsApp et push. Non configurés (sans Twilio, sans clés VAPID), ils ne se disent pas
+// servis et ne contactent personne. Le push dit ce qu'est devenu l'envoi : sent, expired (abonnement
+// disparu, à effacer), failed (à garder), not_configured. Aucun journal ne cite le numéro, le titre,
+// le corps ni l'adresse de l'abonnement.
+import webpush, { WebPushError } from "web-push";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const PHONE = "+33612345678";
@@ -78,6 +80,18 @@ describe("WhatsApp sans Twilio", () => {
   });
 });
 
+const SUBSCRIPTION = {
+  endpoint: "https://push.example/send/abc123secret",
+  keys: { p256dh: "p", auth: "a" },
+};
+const PAYLOAD = { title: "Commande prête chez Boucherie du Lac", body: BODY };
+
+function expectNoPersonalData(): void {
+  expect(allLogs()).not.toContain("Boucherie du Lac");
+  expect(allLogs()).not.toContain("KG26-000166");
+  expect(allLogs()).not.toContain("abc123secret");
+}
+
 describe("push sans clés VAPID", () => {
   beforeEach(() => {
     vi.stubEnv("VAPID_PUBLIC_KEY", "");
@@ -85,39 +99,83 @@ describe("push sans clés VAPID", () => {
     vi.stubEnv("VAPID_EMAIL", "");
   });
 
-  it("isPushConfigured rend false", async () => {
-    const { isPushConfigured } = await import("@/lib/push");
-
-    expect(isPushConfigured()).toBe(false);
-  });
-
-  it("sendPushNotification ne journalise ni le titre ni le corps et ne dit pas l'abonnement expiré", async () => {
+  it("sendPushNotification rend not_configured, ne contacte personne et ne journalise ni le titre ni le corps", async () => {
+    const send = vi.spyOn(webpush, "sendNotification");
     const { sendPushNotification } = await import("@/lib/push");
 
-    const result = await sendPushNotification(
-      { endpoint: "https://push.example/abc", keys: { p256dh: "p", auth: "a" } },
-      { title: "Commande prête chez Boucherie du Lac", body: BODY }
-    );
-
-    // false signifie « abonnement expiré, à supprimer » pour l'appelant : jamais pour une
-    // configuration absente (notifications.ts consulte isPushConfigured avant d'envoyer).
-    expect(result).toBe(true);
+    expect(await sendPushNotification(SUBSCRIPTION, PAYLOAD)).toBe("not_configured");
+    expect(send).not.toHaveBeenCalled();
     const warnings = logged.filter((line) => line.method === "warn").map((line) => line.text);
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("VAPID");
-    expect(allLogs()).not.toContain("Boucherie du Lac");
-    expect(allLogs()).not.toContain("KG26-000166");
+    expectNoPersonalData();
+  });
+});
+
+describe("push avec des clés VAPID refusées par web-push", () => {
+  it("sendPushNotification rend not_configured, journalise une erreur et n'envoie rien", async () => {
+    vi.stubEnv("VAPID_PUBLIC_KEY", "pas-une-cle");
+    vi.stubEnv("VAPID_PRIVATE_KEY", "pas-une-cle");
+    vi.stubEnv("VAPID_EMAIL", "contact@klikandgo.app");
+    const send = vi.spyOn(webpush, "sendNotification");
+    const { sendPushNotification } = await import("@/lib/push");
+
+    expect(await sendPushNotification(SUBSCRIPTION, PAYLOAD)).toBe("not_configured");
+    expect(send).not.toHaveBeenCalled();
+    expect(logged.filter((line) => line.method === "error")).toHaveLength(1);
+    expectNoPersonalData();
   });
 });
 
 describe("push avec clés VAPID valides", () => {
-  it("isPushConfigured rend true", async () => {
+  beforeEach(() => {
     const keys = webpush.generateVAPIDKeys();
     vi.stubEnv("VAPID_PUBLIC_KEY", keys.publicKey);
     vi.stubEnv("VAPID_PRIVATE_KEY", keys.privateKey);
     vi.stubEnv("VAPID_EMAIL", "contact@klikandgo.app");
-    const { isPushConfigured } = await import("@/lib/push");
+  });
 
-    expect(isPushConfigured()).toBe(true);
+  function refusedWith(statusCode: number): WebPushError {
+    return new WebPushError(
+      "Received unexpected response code",
+      statusCode,
+      {},
+      "",
+      SUBSCRIPTION.endpoint
+    );
+  }
+
+  it("rend sent quand le service de push accepte la notification", async () => {
+    const send = vi.spyOn(webpush, "sendNotification").mockResolvedValue({
+      statusCode: 201,
+      body: "",
+      headers: {},
+    });
+    const { sendPushNotification } = await import("@/lib/push");
+
+    expect(await sendPushNotification(SUBSCRIPTION, PAYLOAD)).toBe("sent");
+    expect(send).toHaveBeenCalledWith(SUBSCRIPTION, JSON.stringify(PAYLOAD));
+  });
+
+  // RFC 8030 § 7.3 : 404 et 410 disent l'abonnement disparu, à effacer.
+  it.each([404, 410])("rend expired sur %i", async (statusCode) => {
+    vi.spyOn(webpush, "sendNotification").mockRejectedValue(refusedWith(statusCode));
+    const { sendPushNotification } = await import("@/lib/push");
+
+    expect(await sendPushNotification(SUBSCRIPTION, PAYLOAD)).toBe("expired");
+    expectNoPersonalData();
+  });
+
+  it.each([
+    ["une erreur 500", refusedWith(500)],
+    ["une limitation 429", refusedWith(429)],
+    ["une erreur réseau", new Error("socket hang up")],
+  ])("rend failed sur %s, sans rien journaliser de personnel", async (_label, error) => {
+    vi.spyOn(webpush, "sendNotification").mockRejectedValue(error);
+    const { sendPushNotification } = await import("@/lib/push");
+
+    expect(await sendPushNotification(SUBSCRIPTION, PAYLOAD)).toBe("failed");
+    expect(logged.filter((line) => line.method === "error")).toHaveLength(1);
+    expectNoPersonalData();
   });
 });

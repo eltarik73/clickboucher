@@ -1,5 +1,5 @@
-import { BrandLogo, type WordmarkSize } from "@/components/brand/BrandLogo";
 import { SecretTapLogo } from "@/components/layout/SecretTapLogo";
+import { KlikLogo, KlikWordmark, type WordmarkSize } from "@/components/ui/KlikLogo";
 
 export function KlikGoLogo({
   logoSize = 40,
@@ -10,7 +10,10 @@ export function KlikGoLogo({
 }) {
   return (
     <SecretTapLogo>
-      <BrandLogo variant="lockup" markSize={logoSize} wordmarkSize={wordmarkSize} />
+      <span className="inline-flex items-center gap-2.5 align-middle">
+        <KlikLogo size={logoSize} aria-hidden />
+        <KlikWordmark size={wordmarkSize} />
+      </span>
     </SecretTapLogo>
   );
 }

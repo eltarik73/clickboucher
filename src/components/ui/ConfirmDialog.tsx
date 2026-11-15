@@ -24,7 +24,7 @@ interface ConfirmDialogProps {
   onCloseAutoFocus?: (event: Event) => void;
 }
 
-export function ConfirmDialog({
+function ConfirmDialog({
   open,
   onOpenChange,
   title,
@@ -50,10 +50,13 @@ export function ConfirmDialog({
           </div>
         ) : null}
         <AlertDialogTitle>{title}</AlertDialogTitle>
-        <AlertDialogDescription>{description}</AlertDialogDescription>
+        <AlertDialogDescription className="mt-2">{description}</AlertDialogDescription>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => onCancel?.()}>{cancelLabel}</AlertDialogCancel>
-          <AlertDialogAction variant={danger ? "destructive" : "default"} onClick={() => onConfirm()}>
+          <AlertDialogAction
+            variant={danger ? "destructive" : "default"}
+            onClick={() => onConfirm()}
+          >
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -61,3 +64,5 @@ export function ConfirmDialog({
     </AlertDialog>
   );
 }
+
+export { ConfirmDialog };

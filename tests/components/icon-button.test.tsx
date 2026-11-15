@@ -43,19 +43,6 @@ describe("IconButton", () => {
     expect(screen.getByRole("button", { name: "Fermer" })).toHaveAttribute("type", "submit");
   });
 
-  it("asChild rend un lien nommé par le libellé qui contient l'icône", () => {
-    const { container } = render(
-      <IconButton asChild label="Retour à l'accueil" icon={<X />}>
-        <a href="/" />
-      </IconButton>,
-    );
-    const link = screen.getByRole("link", { name: "Retour à l'accueil" });
-    expect(link).toHaveAttribute("href", "/");
-    expect(link).toHaveClass("size-11");
-    expect(link.querySelector("span[aria-hidden='true'] svg")).not.toBeNull();
-    expect(container.querySelector("button")).toBeNull();
-  });
-
   it("transmet la ref et onClick", () => {
     const ref = React.createRef<HTMLButtonElement>();
     const onClick = vi.fn();
@@ -66,8 +53,11 @@ describe("IconButton", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["ghost", "subtle", "solid"] as const)("la variante %s n'utilise que des jetons", (variant) => {
-    const classes = iconButtonVariants({ variant });
-    expect(classes).not.toMatch(/#|gray-|transition-all|(^|\s)outline-none/);
-  });
+  it.each(["ghost", "subtle", "solid"] as const)(
+    "la variante %s n'utilise que des jetons",
+    (variant) => {
+      const classes = iconButtonVariants({ variant });
+      expect(classes).not.toMatch(/#|gray-|transition-all|(^|\s)outline-none/);
+    }
+  );
 });

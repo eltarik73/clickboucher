@@ -1,21 +1,19 @@
 // @vitest-environment node
 // Canaux enregistrés sur PostgreSQL réel : un canal n'entre dans order.notifSent et ne rend la
-// notification « délivrée » que si son transport a réellement envoyé. Le push n'est tenté que si
-// les clés VAPID sont configurées, et l'abonnement n'est pas effacé quand il ne l'est pas.
+// notification « délivrée » que si son transport a réellement envoyé. L'abonnement push n'est
+// effacé que lorsque le service de push le dit disparu, jamais sur un échec passager ni sans clés
+// VAPID.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({
-  isPushConfigured: vi.fn(() => true),
-  sendPushNotification: vi.fn(async () => true),
-}));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
 }));
 
 import { sendEmail } from "@/lib/email";
-import { isPushConfigured, sendPushNotification } from "@/lib/push";
+import { sendPushNotification } from "@/lib/push";
 import { sendWhatsAppMessage, sendWhatsAppRaw } from "@/lib/whatsapp";
 import { sendNotification } from "@/lib/notifications";
 import { prisma, useCleanDatabase } from "../helpers/db";
@@ -29,8 +27,7 @@ const PUSH_SUBSCRIPTION = { endpoint: "https://push.itest/abc", keys: { p256dh: 
 
 beforeEach(() => {
   vi.mocked(sendEmail).mockReset().mockResolvedValue(true);
-  vi.mocked(isPushConfigured).mockReset().mockReturnValue(true);
-  vi.mocked(sendPushNotification).mockReset().mockResolvedValue(true);
+  vi.mocked(sendPushNotification).mockReset().mockResolvedValue("sent");
   vi.mocked(sendWhatsAppMessage).mockReset().mockResolvedValue(true);
   vi.mocked(sendWhatsAppRaw).mockReset().mockResolvedValue(true);
 });
@@ -139,35 +136,27 @@ describe("WhatsApp", () => {
 });
 
 describe("push", () => {
-  it("sans clés VAPID, le push n'est pas tenté, pas enregistré, et l'abonnement est conservé", async () => {
-    const customer = await createTestUser({
-      notifEmail: false,
-      pushSubscription: PUSH_SUBSCRIPTION,
-    });
-    const { order, data } = await acceptedOrderFor(customer);
-    vi.mocked(isPushConfigured).mockReturnValue(false);
+  async function subscribedCustomer() {
+    return createTestUser({ notifEmail: false, pushSubscription: PUSH_SUBSCRIPTION });
+  }
 
-    const result = await sendNotification("ORDER_ACCEPTED", data);
-
-    expect(vi.mocked(sendPushNotification)).not.toHaveBeenCalled();
-    expect(result).toEqual({ sent: false, channels: [] });
-    expect(await notifSentOf(order.id)).toBeNull();
-    const rows = await notificationsOf(customer.id);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ type: "ORDER_ACCEPTED", delivered: false });
-    const reloaded = await prisma.user.findUniqueOrThrow({
-      where: { id: customer.id },
+  async function pushSubscriptionOf(userId: string) {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
       select: { pushSubscription: true },
     });
-    expect(reloaded.pushSubscription).toEqual(PUSH_SUBSCRIPTION);
-  });
+    return user.pushSubscription;
+  }
 
-  // Témoin : la garde ne doit pas couper le push quand les clés sont là.
-  it("avec clés VAPID, le push envoyé est enregistré", async () => {
-    const customer = await createTestUser({
-      notifEmail: false,
-      pushSubscription: PUSH_SUBSCRIPTION,
-    });
+  async function expectNothingRecorded(orderId: string, userId: string) {
+    expect(await notifSentOf(orderId)).toBeNull();
+    const rows = await notificationsOf(userId);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ type: "ORDER_ACCEPTED", delivered: false });
+  }
+
+  it("un push envoyé est enregistré et l'abonnement est conservé", async () => {
+    const customer = await subscribedCustomer();
     const { order, data } = await acceptedOrderFor(customer);
 
     const result = await sendNotification("ORDER_ACCEPTED", data);
@@ -180,5 +169,42 @@ describe("push", () => {
     expect(await notifSentOf(order.id)).toEqual([
       { event: "ORDER_ACCEPTED", channels: ["push"], at: expect.any(String) },
     ]);
+    expect(await pushSubscriptionOf(customer.id)).toEqual(PUSH_SUBSCRIPTION);
+  });
+
+  it("un abonnement disparu (404 / 410) n'est pas enregistré et il est effacé", async () => {
+    const customer = await subscribedCustomer();
+    const { order, data } = await acceptedOrderFor(customer);
+    vi.mocked(sendPushNotification).mockResolvedValue("expired");
+
+    const result = await sendNotification("ORDER_ACCEPTED", data);
+
+    expect(result).toEqual({ sent: false, channels: [] });
+    await expectNothingRecorded(order.id, customer.id);
+    expect(await pushSubscriptionOf(customer.id)).toBeNull();
+  });
+
+  it("un échec passager (500, réseau) n'est pas enregistré et l'abonnement est conservé", async () => {
+    const customer = await subscribedCustomer();
+    const { order, data } = await acceptedOrderFor(customer);
+    vi.mocked(sendPushNotification).mockResolvedValue("failed");
+
+    const result = await sendNotification("ORDER_ACCEPTED", data);
+
+    expect(result).toEqual({ sent: false, channels: [] });
+    await expectNothingRecorded(order.id, customer.id);
+    expect(await pushSubscriptionOf(customer.id)).toEqual(PUSH_SUBSCRIPTION);
+  });
+
+  it("sans clés VAPID, rien n'est enregistré et l'abonnement est conservé", async () => {
+    const customer = await subscribedCustomer();
+    const { order, data } = await acceptedOrderFor(customer);
+    vi.mocked(sendPushNotification).mockResolvedValue("not_configured");
+
+    const result = await sendNotification("ORDER_ACCEPTED", data);
+
+    expect(result).toEqual({ sent: false, channels: [] });
+    await expectNothingRecorded(order.id, customer.id);
+    expect(await pushSubscriptionOf(customer.id)).toEqual(PUSH_SUBSCRIPTION);
   });
 });

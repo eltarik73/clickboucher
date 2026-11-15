@@ -11,17 +11,19 @@ describe("EmptyState", () => {
         title="Votre panier est vide"
         description="Ajoutez des produits pour commencer."
         action={<a href="/">Découvrir les boucheries</a>}
-      />,
+      />
     );
-    expect(screen.getByRole("heading", { level: 2, name: "Votre panier est vide" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Votre panier est vide" })
+    ).toBeInTheDocument();
     expect(screen.getByText("Ajoutez des produits pour commencer.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Découvrir les boucheries" })).toBeInTheDocument();
     expect(screen.getByTestId("icone").parentElement).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("accepte un titre de niveau 3 et se passe de description", () => {
-    const { container } = render(<EmptyState icon={<svg />} title="Aucune commande" headingLevel={3} />);
-    expect(screen.getByRole("heading", { level: 3, name: "Aucune commande" })).toBeInTheDocument();
+  it("se passe de description", () => {
+    const { container } = render(<EmptyState icon={<svg />} title="Aucune commande" />);
+    expect(screen.getByRole("heading", { level: 2, name: "Aucune commande" })).toBeInTheDocument();
     expect(container.querySelector("p")).toBeNull();
   });
 

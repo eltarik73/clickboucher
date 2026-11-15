@@ -8,7 +8,7 @@
 // Pure: no I/O, no clock.
 
 import { resolveShopPhoto } from "@/lib/images/product-photo";
-import { publishedRatingValue } from "@/lib/reviews/rating";
+import { MAX_PUBLISHED_REVIEWS, publishedRatingValue } from "@/lib/reviews/rating";
 import type { VerifiedReview, VerifiedShopRating } from "@/lib/reviews/verified-rating";
 import { getDayHours, type OpeningHours } from "@/lib/shop-hours";
 import type { JsonLdObject } from "@/lib/seo/jsonld/pages";
@@ -30,8 +30,6 @@ export type ShopJsonLdInput = {
   openingHours: unknown;
 };
 
-/** Most reviews a shop's JSON-LD carries (loadVerifiedShopRating loads no more). */
-export const MAX_PUBLISHED_REVIEWS = 2;
 const BEST_RATING = 5;
 const WORST_RATING = 1;
 

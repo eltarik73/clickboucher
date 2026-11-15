@@ -11,7 +11,6 @@
 import { useState } from "react";
 import { ImageOff, Loader2, RotateCcw, Star, X } from "lucide-react";
 import { ProductPhoto } from "@/components/media/ProductPhoto";
-import { isDisplayableImageUrl } from "@/lib/images/durable-url";
 import type { PhotoTile } from "./photos-state";
 
 export type PhotosAppearance = "stone" | "adaptive";
@@ -127,15 +126,6 @@ function LocalPreview({
   );
 }
 
-/** Même badge que PhotoWithFallback quand la photo propre ne s'affiche pas. */
-function UnavailableBadge() {
-  return (
-    <span className="pointer-events-none absolute left-1 top-1 z-10 rounded bg-black/70 px-1 py-0.5 text-[10px] font-semibold leading-none text-white">
-      Photo indisponible
-    </span>
-  );
-}
-
 export function PhotoTileView({
   tile,
   number,
@@ -161,18 +151,15 @@ export function PhotoTileView({
             muted={palette.muted}
           />
         ) : (
-          <>
-            <ProductPhoto
-              product={{ imageUrl: tile.url, name: productName }}
-              alt={`Photo ${number}`}
-              variant="thumb"
-              fill
-              sizes="200px"
-              className="object-cover"
-              unavailableBadge
-            />
-            {!isDisplayableImageUrl(tile.url) && <UnavailableBadge />}
-          </>
+          <ProductPhoto
+            product={{ imageUrl: tile.url, name: productName }}
+            alt={`Photo ${number}`}
+            variant="thumb"
+            fill
+            sizes="200px"
+            className="object-cover"
+            unavailableBadge
+          />
         )}
         {isPrimary && (
           <span className="absolute right-1.5 top-1.5 rounded bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white">

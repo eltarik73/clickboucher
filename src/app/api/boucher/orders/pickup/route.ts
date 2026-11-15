@@ -5,7 +5,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
+import { apiError, apiSuccess, formatZodError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { storedLineUnits } from "@/lib/pricing/line";
 import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
 import { transitionResponse } from "@/lib/services/orders/commands/http";
@@ -48,12 +49,15 @@ export async function POST(req: NextRequest) {
     if (authResult.error) return authResult.error;
     const { shopId, userId } = authResult;
 
-    const { qrCode } = pickupByQrSchema.parse(await req.json());
+    const parsed = pickupByQrSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
+    }
     const result = await confirmPickup({
       shopId,
       actorId: userId,
       now: new Date(),
-      target: { qrCode },
+      target: { qrCode: parsed.data.qrCode },
     });
     if (result.kind === "done") return apiSuccess(await pickupSummary(result.data.id, shopId));
     if (result.kind === "replay") {

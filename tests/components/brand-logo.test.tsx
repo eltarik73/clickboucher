@@ -1,60 +1,97 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { screen } from "@testing-library/dom";
-import { BrandLogo } from "@/components/brand/BrandLogo";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
 import { KlikGoLogo } from "@/components/layout/KlikGoLogo";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
-/** useId change d'un rendu à l'autre : on compare le balisage à identifiant près. */
+/** useId differs from one render to the next: markup is compared with the gradient id replaced. */
 const normalize = (html: string) => html.replace(/brand-mark-[A-Za-z0-9_-]+/g, "brand-mark-ID");
 
-describe("BrandLogo", () => {
-  it("variante mark : une image nommée Klik&Go à la taille demandée", () => {
-    render(<BrandLogo variant="mark" markSize={56} className="relative" />);
-    const img = screen.getByRole("img", { name: "Klik&Go" });
-    expect(img).toHaveStyle({ width: "56px", height: "56px" });
-    expect(img).toHaveClass("rounded-full", "relative");
+const MARK_BODY =
+  '<defs><linearGradient id="brand-mark-ID" x1="0%" y1="0%" x2="100%" y2="100%">' +
+  '<stop offset="0%" stop-color="#a83320"></stop><stop offset="50%" stop-color="#DC2626"></stop>' +
+  '<stop offset="100%" stop-color="#DC2626"></stop></linearGradient></defs>' +
+  '<circle cx="50" cy="50" r="46" fill="url(#brand-mark-ID)"></circle>' +
+  '<path d="M35 25 L35 75 L45 75 L45 55 L60 75 L73 75 L55 52 L72 25 L59 25 L45 47 L45 25 Z" fill="white"></path>' +
+  '<rect x="76" y="33" width="14" height="3.5" rx="1.75" fill="white" opacity="0.7"></rect>' +
+  '<rect x="79" y="43" width="16" height="3" rx="1.5" fill="white" opacity="0.5"></rect>' +
+  '<rect x="76" y="53" width="12" height="2.5" rx="1.25" fill="white" opacity="0.3"></rect>';
+
+const WORDMARK_BODY =
+  '<span class="text-foreground">Klik</span>' +
+  '<span class="font-black not-italic text-primary">&amp;</span>' +
+  '<span class="text-foreground">Go</span>';
+
+const TAP_BUTTON =
+  '<button type="button" class="bg-transparent border-none cursor-pointer p-0 select-none">';
+
+describe("logo Klik&Go", () => {
+  it("KlikLogo : une image nommée Klik&Go, taille par style, classe de l'appelant ajoutée", () => {
+    const { container } = render(<KlikLogo size={48} className="relative z-10" />);
+    expect(screen.getByRole("img", { name: "Klik&Go" })).toBeInTheDocument();
+    expect(normalize(container.innerHTML)).toBe(
+      '<svg viewBox="0 0 100 100" style="width: 48px; height: 48px;" class="rounded-full relative z-10" role="img" aria-label="Klik&amp;Go">' +
+        MARK_BODY +
+        "</svg>"
+    );
   });
 
-  it("variante mark : 40 px par défaut", () => {
-    render(<BrandLogo variant="mark" />);
-    expect(screen.getByRole("img", { name: "Klik&Go" })).toHaveStyle({ width: "40px", height: "40px" });
+  it("KlikLogo : 40 px par défaut", () => {
+    const { container } = render(<KlikLogo />);
+    expect(normalize(container.innerHTML)).toBe(
+      '<svg viewBox="0 0 100 100" style="width: 40px; height: 40px;" class="rounded-full" role="img" aria-label="Klik&amp;Go">' +
+        MARK_BODY +
+        "</svg>"
+    );
   });
 
-  it("variante wordmark : texte en tokens, sans couleur hexadécimale ni poids en ligne", () => {
-    const { container } = render(<BrandLogo variant="wordmark" wordmarkSize="xl" />);
-    const root = container.firstElementChild as HTMLElement;
-    expect(root).toHaveTextContent("Klik&Go");
-    expect(root).toHaveClass("font-extrabold", "tracking-tight", "text-2xl");
-    expect(root.getAttribute("style")).toBeNull();
-    expect(screen.getByText("&")).toHaveClass("text-primary", "font-black");
-    expect(container.innerHTML).not.toMatch(/text-\[#|gray-/);
+  it("KlikWordmark : taille base par défaut, taille et classe de l'appelant", () => {
+    const base = render(<KlikWordmark />).container.innerHTML;
+    const xl = render(<KlikWordmark size="xl" className="mt-3" />).container.innerHTML;
+    expect(base).toBe(
+      `<span class="font-extrabold tracking-tight text-base">${WORDMARK_BODY}</span>`
+    );
+    expect(xl).toBe(
+      `<span class="font-extrabold tracking-tight text-2xl mt-3">${WORDMARK_BODY}</span>`
+    );
   });
 
-  it("variante lockup : le nom lisible est le texte, la pastille est décorative", () => {
-    const { container } = render(<BrandLogo />);
-    expect(container.firstElementChild).toHaveTextContent("Klik&Go");
-    expect(screen.queryByRole("img")).toBeNull();
-    const svg = container.querySelector("svg");
-    expect(svg).toHaveAttribute("aria-hidden", "true");
-    expect(svg).not.toHaveAttribute("aria-label");
-    expect(svg).toHaveStyle({ width: "40px" });
-    expect(container.querySelector(".text-xl")).not.toBeNull();
+  it("KlikGoLogo : un seul nom accessible « Klik&Go », porté par le texte ; la pastille est masquée", () => {
+    const { container } = render(<KlikGoLogo logoSize={28} wordmarkSize="sm" />);
+    expect(screen.getByRole("button", { name: "Klik&Go" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("img")).toHaveLength(0);
+    expect(normalize(container.innerHTML)).toBe(
+      TAP_BUTTON +
+        '<span class="inline-flex items-center gap-2.5 align-middle">' +
+        '<svg viewBox="0 0 100 100" style="width: 28px; height: 28px;" class="rounded-full" aria-hidden="true">' +
+        MARK_BODY +
+        "</svg>" +
+        `<span class="font-extrabold tracking-tight text-sm">${WORDMARK_BODY}</span>` +
+        "</span></button>"
+    );
   });
 
-  it("variante lockup : boîte en ligne alignée au milieu, pas sur la ligne de base", () => {
-    const { container } = render(<BrandLogo />);
-    expect(container.firstElementChild).toHaveClass("inline-flex", "items-center", "align-middle");
+  it("KlikGoLogo : pastille de 40 px et mot-symbole lg par défaut", () => {
+    const { container } = render(<KlikGoLogo />);
+    expect(normalize(container.innerHTML)).toBe(
+      TAP_BUTTON +
+        '<span class="inline-flex items-center gap-2.5 align-middle">' +
+        '<svg viewBox="0 0 100 100" style="width: 40px; height: 40px;" class="rounded-full" aria-hidden="true">' +
+        MARK_BODY +
+        "</svg>" +
+        `<span class="font-extrabold tracking-tight text-xl">${WORDMARK_BODY}</span>` +
+        "</span></button>"
+    );
   });
 
   it("deux pastilles sur une page ont des identifiants de dégradé distincts", () => {
     const { container } = render(
       <>
-        <BrandLogo variant="mark" />
-        <BrandLogo variant="mark" />
-      </>,
+        <KlikLogo />
+        <KlikLogo />
+      </>
     );
     const ids = Array.from(container.querySelectorAll("linearGradient")).map((g) => g.id);
     expect(ids).toHaveLength(2);
@@ -63,27 +100,5 @@ describe("BrandLogo", () => {
       expect(svg.querySelector("circle")).toHaveAttribute("fill", `url(#${ids[i]})`);
       expect(ids[i]).toMatch(/^brand-mark-[A-Za-z0-9_-]+$/);
     });
-  });
-});
-
-describe("Délégation des anciens logos", () => {
-  it("KlikLogo rend la variante mark", () => {
-    const a = render(<KlikLogo size={48} className="relative z-10" />).container.innerHTML;
-    const b = render(<BrandLogo variant="mark" markSize={48} className="relative z-10" />).container.innerHTML;
-    expect(normalize(a)).toBe(normalize(b));
-  });
-
-  it("KlikWordmark rend la variante wordmark (taille base par défaut)", () => {
-    const a = render(<KlikWordmark />).container.innerHTML;
-    const b = render(<BrandLogo variant="wordmark" wordmarkSize="base" />).container.innerHTML;
-    expect(normalize(a)).toBe(normalize(b));
-  });
-
-  it("KlikGoLogo enveloppe la variante lockup dans SecretTapLogo", () => {
-    const { container } = render(<KlikGoLogo logoSize={28} wordmarkSize="sm" />);
-    const button = container.querySelector("button");
-    expect(button).not.toBeNull();
-    const b = render(<BrandLogo variant="lockup" markSize={28} wordmarkSize="sm" />).container.innerHTML;
-    expect(normalize((button as HTMLButtonElement).innerHTML)).toBe(normalize(b));
   });
 });

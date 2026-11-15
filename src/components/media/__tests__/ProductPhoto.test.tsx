@@ -187,6 +187,24 @@ describe("ProductPhoto", () => {
     expect(screen.getByRole("img", { name: "Merguez" })).toBeInTheDocument();
   });
 
+  it("une photo propre qui ne peut pas être affichée porte le badge une seule fois, avant tout échec", () => {
+    const expiring = "https://replicate.delivery/xezq/abc/out-0.webp";
+    const { container } = render(
+      <ProductPhoto
+        product={{ name: "Merguez", imageUrl: expiring }}
+        width={56}
+        height={56}
+        unavailableBadge
+      />
+    );
+
+    expect(shownCandidate(container)).toBe(LOCAL);
+    expect(screen.getAllByText("Photo indisponible")).toHaveLength(1);
+    failShownImage(container);
+    expect(screen.getAllByText("Photo indisponible")).toHaveLength(1);
+    expect(requested).toEqual([LOCAL]);
+  });
+
   it("une image déjà en échec avant l'hydratation (complete, naturalWidth 0) avance sans événement", () => {
     Object.defineProperty(HTMLImageElement.prototype, "complete", {
       configurable: true,

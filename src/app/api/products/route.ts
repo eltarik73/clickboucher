@@ -3,8 +3,8 @@ import { NextRequest } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { resolveUserRole } from "@/lib/auth/server-auth";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import { readCachedProducts, writeCachedProducts } from "@/lib/cache/products-cache";
 import prisma from "@/lib/prisma";
-import { redis } from "@/lib/redis";
 import { productListQuerySchema, createProductSchema } from "@/lib/validators";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
 import { planProductImageWriteInShop } from "@/lib/images/write-scope";
@@ -96,20 +96,6 @@ function settled<T extends AntiGaspiColumns>(rows: T[], now: Date): T[] {
 
 type PublicProductRow = Prisma.ProductGetPayload<{ select: typeof publicProductSelect }>;
 
-/**
- * The cached public rows settled at `now`, or null (a miss) when the entry is not a list or holds
- * an unreadable date. The cache holds the rows as read, so that an anti-gaspi ending within its
- * 60 s is over at the next read, as in the quote.
- */
-function settledFromCache(cached: unknown, now: Date): PublicProductRow[] | null {
-  if (!Array.isArray(cached)) return null;
-  try {
-    return settled(cached as PublicProductRow[], now);
-  } catch {
-    return null;
-  }
-}
-
 // Full include block for create/update
 const PRODUCT_INCLUDE = {
   categories: true,
@@ -147,22 +133,16 @@ export async function GET(req: NextRequest) {
     // Resolved BEFORE the cache: the response depends on the caller, the cache must not.
     const audience = await priceAudienceOf({ shopId: query.shopId });
 
-    // ── Cache lookup for unfiltered product lists ──
-    // Only the public projection is cached (key shared with the invalidation in
-    // /api/products/[id]/active): pro and manager responses never read nor write it.
+    // Only the unfiltered public projection is cached: pro and manager responses never read nor
+    // write it. The cache holds the rows as read and each read settles them at its own time.
     const hasFilters =
       query.categoryId || query.inStock || query.featured || query.tag || query.search;
-    const productsCacheKey =
-      audience === "PUBLIC" && !hasFilters ? `products:shop:${query.shopId}` : null;
+    const cacheable = audience === "PUBLIC" && !hasFilters;
 
     const now = new Date();
-    if (productsCacheKey) {
-      try {
-        const hit = settledFromCache(await redis.get<unknown>(productsCacheKey), now);
-        if (hit) return apiSuccess(hit);
-      } catch {
-        // Redis down — continue without cache
-      }
+    if (cacheable) {
+      const cached = await readCachedProducts<PublicProductRow>(query.shopId);
+      if (cached !== null) return apiSuccess(settled(cached, now));
     }
 
     if (audience === "MANAGER") {
@@ -172,15 +152,7 @@ export async function GET(req: NextRequest) {
       return apiSuccess(settled(await findProducts(where, proProductSelect), now));
     }
     const rows = await findProducts(where, publicProductSelect);
-
-    // ── Cache store (TTL 60s): the rows as read, settled at each read ──
-    if (productsCacheKey) {
-      try {
-        await redis.set(productsCacheKey, rows, { ex: 60 });
-      } catch {
-        // Redis down — continue without cache
-      }
-    }
+    if (cacheable) await writeCachedProducts(query.shopId, rows);
 
     return apiSuccess(settled(rows, now));
   } catch (error) {

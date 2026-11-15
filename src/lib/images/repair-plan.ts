@@ -12,6 +12,7 @@
 // - DECIDE, jamais touché par le script : data:/blob:, valeur inconnue, photo du site absente,
 //   sonde en échec pour une autre raison (délai, 5xx, pas une image…) ou absente, et toute ligne
 //   du registre generated_images (la copier créerait un second enregistrement de la même image).
+import { isLocalPostgresUrl } from "@/lib/local-postgres-url";
 import type { CensusRow } from "./census";
 import { IMAGE_COLUMNS, type ImageColumn } from "./columns";
 import { LEGACY_DISPLAY_HOSTS } from "./durable-url";
@@ -99,17 +100,6 @@ export function needsSourceProbe(row: Pick<CensusRow, "kind" | "value">): boolea
   return copyable && parseHttps(row.value) !== null;
 }
 
-/** La base visée est-elle locale (localhost, 127.0.0.1, ::1), paramètre host compris ? */
-export function isLocalDatabaseUrl(databaseUrl: string | undefined): boolean {
-  if (databaseUrl === undefined || !URL.canParse(databaseUrl)) return false;
-  const url = new URL(databaseUrl);
-  if (url.protocol !== "postgresql:" && url.protocol !== "postgres:") return false;
-  const hosts = [url.hostname, ...url.searchParams.getAll("host")].map((host) =>
-    host.replace(/^\[(.*)\]$/, "$1").toLowerCase()
-  );
-  return hosts.every((host) => host === "localhost" || host === "127.0.0.1" || host === "::1");
-}
-
 /**
  * Écrire n'est permis qu'avec le vrai magasin Blob, ou en répétition locale : base locale et
  * magasin sur disque. Renvoie null si permis, sinon l'explication en français.
@@ -118,7 +108,7 @@ export function applyRefusal(
   storeKind: "blob" | "local",
   databaseUrl: string | undefined
 ): string | null {
-  if (storeKind === "blob" || isLocalDatabaseUrl(databaseUrl)) return null;
+  if (storeKind === "blob" || isLocalPostgresUrl(databaseUrl)) return null;
   return (
     "Écriture refusée : aucun BLOB_READ_WRITE_TOKEN n'est défini, les fichiers iraient sur le disque " +
     "de cette machine alors que la base n'est pas locale. Exportez le jeton Blob dans votre terminal, " +

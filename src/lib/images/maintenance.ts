@@ -14,21 +14,14 @@
 // purgeImage efface une image de notre stockage (retrait sur demande) : refusée tant qu'une colonne
 // d'image l'utilise ; sinon les deux fichiers, puis les lignes du registre qui la portent.
 import { Prisma } from "@prisma/client";
-import { logger } from "@/lib/logger";
 import prisma from "@/lib/prisma";
 import { sqlIdentifier, type CensusRow } from "./census";
-import { classifyImageUrl } from "./durable-url";
+import { classifyImageUrl, isStoreImageUrl } from "./durable-url";
 import { ImageRejectedError } from "./errors";
-import {
-  FETCHED_SOURCE_MAX_BYTES,
-  persistImage,
-  prismaImageRegistry,
-  type PersistedImage,
-} from "./ingest";
+import { FETCHED_SOURCE_MAX_BYTES, persistImage, type PersistedImage } from "./ingest";
 import { findImageReferences, imageInUse, type ImageReferences } from "./references";
 import { imageColumnOf, registryUsageFor, type RepairAction } from "./repair-plan";
-import type { ImageStore } from "./store";
-import { thumbnailOf } from "./thumbnail";
+import { deleteFilesQuietly, storedFilesOf, type ImageStore } from "./store";
 
 /** Valeur de generated_images.model et created_by d'une image copiée par la réparation. */
 export const REPAIR_REGISTRY_MODEL = "REPAIR";
@@ -115,16 +108,7 @@ function journalRows(
 /** Copie devenue inutile (toutes ses lignes ont changé) : ligne du registre puis fichiers. */
 async function discardCopy(image: PersistedImage, store: ImageStore): Promise<void> {
   await prisma.generatedImage.deleteMany({ where: { id: image.id } });
-  for (const url of [image.url, image.thumbUrl]) {
-    try {
-      await store.del(url);
-    } catch (error) {
-      logger.warn("[images] copie de réparation inutilisée restée dans le stockage", {
-        url,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
+  await deleteFilesQuietly(store, [image.url, image.thumbUrl], "copie de réparation inutilisée");
 }
 
 async function applyCopy(
@@ -157,7 +141,7 @@ async function applyCopy(
         maxBytes: FETCHED_SOURCE_MAX_BYTES,
         folder: REPAIR_FOLDER,
       },
-      { store: deps.store, registry: prismaImageRegistry }
+      deps.store
     );
   } catch (error) {
     // Un fichier refusé n'arrête que cette copie ; une panne du stockage ou de la base arrête tout.
@@ -199,7 +183,7 @@ export async function applyRepairs(
 
 export interface PurgePlan {
   url: string;
-  /** La photo et sa vignette quand elle en a une. */
+  /** La photo et sa vignette quand elle en a une ; aucun fichier hors de notre stockage. */
   files: string[];
   references: ImageReferences;
   registryRows: number;
@@ -215,14 +199,12 @@ export class PurgeRefusedError extends Error {
 }
 
 export async function planPurge(url: string): Promise<PurgePlan> {
-  const thumb = thumbnailOf(url);
   const [references, registryRows] = await Promise.all([
     findImageReferences(url, null),
     prisma.generatedImage.count({ where: { imageUrl: url } }),
   ]);
-  const kind = classifyImageUrl(url);
   let refusal: string | null = null;
-  if (kind !== "BLOB" && kind !== "LOCAL_STORE") {
+  if (!isStoreImageUrl(url)) {
     refusal =
       "Cette adresse n'est pas un fichier de notre stockage : il n'y a rien à effacer chez nous.";
   } else if (imageInUse(references)) {
@@ -230,9 +212,14 @@ export async function planPurge(url: string): Promise<PurgePlan> {
       `Image encore utilisée par ${references.otherUses} ligne(s) de la base : ` +
       "remplacez-la partout (le recensement les liste) avant de l'effacer.";
   }
-  return { url, files: thumb === null ? [url] : [url, thumb], references, registryRows, refusal };
+  return { url, files: storedFilesOf(url), references, registryRows, refusal };
 }
 
+/**
+ * Files first, then registry rows, and a failed file deletion throws: the owner must see it, and the
+ * kept row lets the purge run again. The gallery route (DELETE /api/boucher/images/[id]) deletes the
+ * row first and tolerates a failed file deletion: the butcher's removed image must leave the gallery.
+ */
 export async function purgeImage(
   url: string,
   store: ImageStore

@@ -5,8 +5,22 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/icon-button";
-import { CENTERED_SURFACE_CLASSES } from "@/components/ui/overlay-surface";
 import { useReturnFocus } from "@/components/ui/use-return-focus";
+
+/*
+ * Centred surface of Dialog and AlertDialog. It is centred by layout (inset-0 + m-auto + h-fit),
+ * not by a translate: the enter and exit animations of tailwindcss-animate drive the transform
+ * property, which therefore must not carry the position. Each dialog adds only its max width and
+ * its padding.
+ */
+const CENTERED_SURFACE_CLASSES = [
+  "fixed inset-0 z-50 m-auto h-fit w-[calc(100%-2rem)]",
+  "max-h-[90dvh] overflow-y-auto rounded-card bg-card text-card-foreground shadow-lg",
+  "data-[state=open]:animate-in data-[state=closed]:animate-out",
+  "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+  "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+  "data-[state=open]:duration-200 data-[state=closed]:duration-150",
+].join(" ");
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -21,8 +35,8 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     className={cn(
       "fixed inset-0 z-50 bg-black/50",
-      "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-      className,
+      "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
     )}
     {...props}
   />
@@ -45,7 +59,11 @@ const DialogContent = React.forwardRef<
       >
         {children}
         <DialogPrimitive.Close asChild>
-          <IconButton label="Fermer" icon={<X className="size-5" />} className="absolute right-2 top-2" />
+          <IconButton
+            label="Fermer"
+            icon={<X className="size-5" />}
+            className="absolute right-2 top-2"
+          />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>
@@ -64,7 +82,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-bold text-foreground", className)}
+    className={cn("font-display text-subtitle text-foreground", className)}
     {...props}
   />
 ));
@@ -76,13 +94,14 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-body text-muted-foreground", className)}
     {...props}
   />
 ));
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {
+  CENTERED_SURFACE_CLASSES,
   Dialog,
   DialogPortal,
   DialogOverlay,

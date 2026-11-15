@@ -1,24 +1,17 @@
+import * as React from "react";
 import { cn, formatPrice } from "@/lib/utils";
 
 export interface PriceProps extends Omit<React.HTMLAttributes<HTMLSpanElement>, "children"> {
   cents: number;
-  suffix?: string;
-  struck?: boolean;
 }
 
-/** Montant affiché d'un bloc : formatPrice reste la seule règle de formatage. */
-export function Price({ cents, suffix, struck = false, className, ...props }: PriceProps) {
-  const text = formatPrice(cents) + (suffix ?? "");
+/** An amount on screen: formatPrice stays the only formatting rule. */
+function Price({ cents, className, ...props }: PriceProps) {
   return (
     <span className={cn("whitespace-nowrap tabular-nums", className)} {...props}>
-      {struck ? (
-        <>
-          <span className="sr-only">Ancien prix : </span>
-          <s>{text}</s>
-        </>
-      ) : (
-        text
-      )}
+      {formatPrice(cents)}
     </span>
   );
 }
+
+export { Price };

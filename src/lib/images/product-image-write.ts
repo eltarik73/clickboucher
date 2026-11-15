@@ -10,8 +10,8 @@
 // pas les deux. »; more than MAX_PRODUCT_PHOTOS = 5 images after de-duplication → « 5 photos maximum
 // par produit. »; any new value failing imageWriteRefusal (durable, and for a file of our store, in the
 // row's scope: inScope) → IMAGE_URL_REFUSED_FR.
-// Normalisation: de-duplicate by url keeping the first; stable sort by (order ?? index); orders
-// rewritten 0..n-1; exactly one isPrimary (the first flagged, else index 0); alt trimmed, empty → null.
+// Normalisation: order and primary by rankProductPhotos (rank.ts); orders rewritten 0..n-1; exactly
+// one isPrimary; alt trimmed, empty → null.
 // Mirror: images given and non-empty → imageUrl = primary url (clearImageUrl is irrelevant); images
 // given and empty → null if clearImageUrl, null if the stored imageUrl was one of the stored images
 // (it mirrored a photo now removed), on create the given imageUrl ?? null, otherwise imageUrl unchanged
@@ -22,10 +22,10 @@
 // given imageUrl if defined, otherwise unchanged. A missing key in the plan means 'leave as is'.
 //
 // Précisions d'application : « together with imageUrl » = imageUrl est une chaîne (null n'est pas
-// une contradiction) ; « index » = position après dédoublonnage ; la première image marquée l'est
-// dans l'ordre trié ; une imageUrl fournie est contrôlée par la règle d'écriture même quand le
+// une contradiction) ; une imageUrl fournie est contrôlée par la règle d'écriture même quand le
 // miroir ne l'utilise pas.
 import { IMAGE_URL_REFUSED_FR, imageWriteRefusal } from "./durable-url";
+import { rankProductPhotos } from "./rank";
 
 export const MAX_PRODUCT_PHOTOS = 5;
 
@@ -74,25 +74,13 @@ interface NormalizedImages {
 }
 
 function normalizeImages(images: readonly ProductImageInput[]): NormalizedImages {
-  const seen = new Set<string>();
-  const unique = images.filter((image) => {
-    if (seen.has(image.url)) return false;
-    seen.add(image.url);
-    return true;
-  });
-  const sorted = unique
-    .map((image, index) => ({ image, index, rank: image.order ?? index }))
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .map((entry) => entry.image);
-  if (sorted.length === 0) return { images: [], primaryUrl: null };
-  const flagged = sorted.findIndex((image) => image.isPrimary === true);
-  const primaryIndex = flagged === -1 ? 0 : flagged;
+  const { photos, primary } = rankProductPhotos(images);
   return {
-    images: sorted.map((image, order) => {
+    images: photos.map((image, order) => {
       const alt = image.alt?.trim() ?? "";
-      return { url: image.url, alt: alt === "" ? null : alt, order, isPrimary: order === primaryIndex };
+      return { url: image.url, alt: alt === "" ? null : alt, order, isPrimary: image === primary };
     }),
-    primaryUrl: sorted[primaryIndex].url,
+    primaryUrl: primary?.url ?? null,
   };
 }
 
@@ -106,7 +94,9 @@ export function storedImageValues(stored: StoredProductPhotos | null): Set<strin
 }
 
 /** Valeurs demandées par l'écriture : URL des photos fournies, puis imageUrl si c'est une chaîne. */
-export function requestedImageValues(input: Pick<ProductImageWriteInput, "images" | "imageUrl">): string[] {
+export function requestedImageValues(
+  input: Pick<ProductImageWriteInput, "images" | "imageUrl">
+): string[] {
   const values = (input.images ?? []).map((image) => image.url);
   if (typeof input.imageUrl === "string") values.push(input.imageUrl);
   return values;
@@ -125,7 +115,9 @@ function mirrorWhenEmptied(
   return mirroredRemovedPhoto ? null : undefined;
 }
 
-type MirrorDecision = { ok: false; messageFr: string } | { ok: true; imageUrl: string | null | undefined };
+type MirrorDecision =
+  | { ok: false; messageFr: string }
+  | { ok: true; imageUrl: string | null | undefined };
 
 /** imageUrl à écrire quand aucune liste d'images n'est fournie ; undefined = inchangée. */
 function mirrorWithoutImages(
@@ -136,7 +128,8 @@ function mirrorWithoutImages(
   const requested = clearImageUrl ? null : imageUrl;
   if (stored === null || stored.images.length === 0) return { ok: true, imageUrl: requested };
   // Le produit a des photos : imageUrl reste le miroir de sa principale.
-  if (requested === undefined || requested === stored.imageUrl) return { ok: true, imageUrl: undefined };
+  if (requested === undefined || requested === stored.imageUrl)
+    return { ok: true, imageUrl: undefined };
   return { ok: false, messageFr: PRIMARY_PHOTO_DECIDES_FR };
 }
 

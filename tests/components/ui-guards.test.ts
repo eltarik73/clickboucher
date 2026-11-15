@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 const ROOT = path.resolve(__dirname, "../..");
 const SRC = path.join(ROOT, "src");
 const UI_DIR = path.join(SRC, "components/ui");
-const BRAND_DIR = path.join(SRC, "components/brand");
 const COMPONENT_TESTS = path.join(ROOT, "tests/components");
 const EXTENSIONS = [".tsx", ".ts"];
 
@@ -18,7 +17,8 @@ const AWAITING_ADOPTION: Record<string, string> = {
   "src/components/ui/sheet.tsx": "C2-PARCOURS-COMMANDE (panier, choix du poids)",
   "src/components/ui/form-field.tsx": "C2-PARCOURS-COMMANDE (formulaire invité)",
   "src/components/ui/price.tsx": "C2-VITRINE (prix des fiches produit)",
-  "src/components/ui/heading.tsx": "C2-CLIENT (titres des pages client ; importé aujourd'hui par empty-state seul)",
+  "src/components/ui/heading.tsx":
+    "C2-CLIENT (titres des pages client ; importé aujourd'hui par empty-state seul)",
   "src/components/ui/empty-state.tsx": "C2-CLIENT (panier, favoris, commandes vides)",
   "src/components/ui/status-badge.tsx": "C2-PARCOURS-COMMANDE (statut de commande au suivi)",
 };
@@ -26,7 +26,13 @@ const AWAITING_ADOPTION: Record<string, string> = {
 /** Nombre d'éléments <Switch> sans nom accessible hors de src/components/ui. Il ne peut que baisser. */
 const UNLABELLED_SWITCH_BASELINE = 16;
 
-const DELETED_PRIMITIVES = ["Toast.tsx", "quick-actions.tsx", "toggle-pill.tsx", "stepper.tsx", "skeleton.tsx"];
+const DELETED_PRIMITIVES = [
+  "Toast.tsx",
+  "quick-actions.tsx",
+  "toggle-pill.tsx",
+  "stepper.tsx",
+  "skeleton.tsx",
+];
 
 const REBUILT_FILES = [
   "src/components/ui/button.tsx",
@@ -46,7 +52,7 @@ const REBUILT_FILES = [
   "src/components/ui/status-badge.tsx",
   "src/components/ui/ThemeToggle.tsx",
   "src/components/ui/toaster.tsx",
-  "src/components/brand/BrandLogo.tsx",
+  "src/components/ui/KlikLogo.tsx",
 ];
 
 function rel(file: string): string {
@@ -66,7 +72,7 @@ function read(file: string): string {
 }
 
 /** Fichiers source d'une primitive, chemin sans extension → chemin relatif au dépôt. */
-const PRIMITIVES = [...walk(UI_DIR), ...walk(BRAND_DIR)];
+const PRIMITIVES = walk(UI_DIR);
 
 function withoutExtension(file: string): string {
   return file.replace(/\.(tsx|ts)$/, "");
@@ -130,7 +136,8 @@ describe("garde-fous des primitives d'interface", () => {
       const text = read(file);
       for (const match of text.matchAll(/outline-none/g)) {
         const index = match.index ?? 0;
-        const prefixed = text.slice(Math.max(0, index - "focus-visible:".length), index) === "focus-visible:";
+        const prefixed =
+          text.slice(Math.max(0, index - "focus-visible:".length), index) === "focus-visible:";
         const literal = enclosingLiteral(text, index);
         if (!prefixed || !literal.includes("focus-visible:ring-2")) {
           offenders.push(`${rel(file)} : « ${literal.trim().slice(0, 120)} »`);
@@ -147,15 +154,16 @@ describe("garde-fous des primitives d'interface", () => {
       const importers = importersOf(primitive, sources).filter((file) => !awaiting.has(rel(file)));
       return importers.length === 0;
     }).map(rel);
-    expect(withoutImporter.sort(), "primitive sans importeur hors liste, ou primitive adoptée encore listée").toEqual(
-      [...awaiting].sort(),
-    );
+    expect(
+      withoutImporter.sort(),
+      "primitive sans importeur hors liste, ou primitive adoptée encore listée"
+    ).toEqual([...awaiting].sort());
   });
 
   it("chaque primitive en attente d'adoption est importée par un test de tests/components", () => {
     const tests = walk(COMPONENT_TESTS);
     const untested = Object.keys(AWAITING_ADOPTION).filter(
-      (primitive) => importersOf(path.join(ROOT, primitive), tests).length === 0,
+      (primitive) => importersOf(path.join(ROOT, primitive), tests).length === 0
     );
     expect(untested, "primitive en attente sans test").toEqual([]);
   });
@@ -175,7 +183,7 @@ describe("garde-fous des primitives d'interface", () => {
     }
     expect(
       unlabelled.length,
-      `<Switch> sans aria-label ni aria-labelledby (utiliser SwitchField) :\n${unlabelled.join("\n")}`,
+      `<Switch> sans aria-label ni aria-labelledby (utiliser SwitchField) :\n${unlabelled.join("\n")}`
     ).toBeLessThanOrEqual(UNLABELLED_SWITCH_BASELINE);
   });
 

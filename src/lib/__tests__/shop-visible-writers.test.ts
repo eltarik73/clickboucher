@@ -41,10 +41,8 @@ const OPAQUE_SHOP_WRITERS: Record<string, string> = {
   "src/lib/services/shops/moderation.ts": "decision.data : décisions écrites dans ce même fichier",
   "src/app/api/shops/[id]/route.ts":
     "sortie de ownerShopUpdateSchema / updateShopSchema (.strict, sans champ de plateforme)",
-  "src/app/api/shops/[id]/status/route.ts": "sortie de updateServiceSchema (.strict)",
-  "src/app/api/boucher/service/route.ts": "sortie de updateServiceSchema (.strict)",
-  "src/app/api/boucher/shop/status/route.ts":
-    "membre update_settings de shopStatusActionSchema (.strict), sans son champ action",
+  "src/lib/services/shops/owner-write.ts":
+    "écritures du propriétaire : leur type interdit les colonnes de publication (never)",
 };
 
 const WRITE_METHODS = new Set([

@@ -7,10 +7,10 @@
 // cached figures, the seed writes reviews without any order, and POST /api/reviews accepts a
 // review without one. Review has no Prisma relation to Order, hence the SQL join. Table names are
 // left unqualified so that the connection's schema applies (the integration suite runs in itest).
-import { Prisma, type OrderStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { COLLECTED_ORDER_STATUSES } from "@/lib/order-state-machine";
 import prisma from "@/lib/prisma";
-import type { RatingSummary } from "@/lib/reviews/rating";
-import { MAX_PUBLISHED_REVIEWS } from "@/lib/seo/jsonld/shop";
+import { MAX_PUBLISHED_REVIEWS, type RatingSummary } from "@/lib/reviews/rating";
 
 export type VerifiedReview = {
   rating: number;
@@ -33,12 +33,6 @@ export type VerifiedReviewItem = {
   createdAt: string;
   user: { firstName: string; lastInitial: string };
 };
-
-/** An order in one of these statuses was collected by its customer. */
-const COLLECTED_ORDER_STATUSES = [
-  "PICKED_UP",
-  "COMPLETED",
-] as const satisfies readonly OrderStatus[];
 
 /** Most verified reviews the shop page lists. */
 export const MAX_LISTED_REVIEWS = 50;

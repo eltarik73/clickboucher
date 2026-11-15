@@ -54,6 +54,9 @@ const FORBIDDEN_OWNER = { status: 403, code: "FORBIDDEN", message: SUSPENDED_OWN
 const CONFLICT_ADMIN = { status: 409, code: "CONFLICT", message: SUSPENDED_ADMIN };
 const VACATION = { start: "2026-12-20T00:00:00.000Z", end: "2027-01-05T00:00:00.000Z" };
 
+const shopLogs = (shopId: string) =>
+  prisma.shopLog.findMany({ where: { shopId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }] });
+
 /** A published shop, then suspended by an admin through the route; the admin stays signed in. */
 async function suspendedShop(): Promise<{ admin: User; owner: User; shop: Shop }> {
   const admin = await createAdmin();
@@ -95,7 +98,13 @@ describe("le boucher ne rouvre pas sa boutique suspendue", () => {
       () => call(patchOnboarding, {}, { complete: true }),
       FORBIDDEN_OWNER,
     ],
+    ["statut pause", () => call(patchShopStatus, {}, { action: "pause" }), FORBIDDEN_OWNER],
     ["statut resume", () => call(patchShopStatus, {}, { action: "resume" }), FORBIDDEN_OWNER],
+    [
+      "statut busy",
+      () => call(patchShopStatus, {}, { action: "busy", extraMin: 10, durationMin: 30 }),
+      FORBIDDEN_OWNER,
+    ],
     [
       "statut end_vacation",
       () => call(patchShopStatus, {}, { action: "end_vacation" }),
@@ -107,6 +116,7 @@ describe("le boucher ne rouvre pas sa boutique suspendue", () => {
       () => call(patchShopStatus, {}, { action: "vacation", ...VACATION }),
       FORBIDDEN_OWNER,
     ],
+    ["statut close", () => call(patchShopStatus, {}, { action: "close" }), FORBIDDEN_OWNER],
     [
       "statut update_settings",
       () => call(patchShopStatus, {}, { action: "update_settings", prepTimeMin: 20 }),
@@ -128,19 +138,43 @@ describe("le boucher ne rouvre pas sa boutique suspendue", () => {
       FORBIDDEN_OWNER,
     ],
     [
+      "PATCH /api/shops/[id]/status préparation 25 min",
+      (shopId) => call(patchServiceStatus, { id: shopId }, { prepTimeMin: 25 }),
+      FORBIDDEN_OWNER,
+    ],
+    [
       "onboarding { setVisible }",
       () => call(patchOnboarding, {}, { setVisible: true }),
       { status: 400, code: "VALIDATION_ERROR", message: "Données invalides" },
     ],
   ];
 
-  it.each(attempts)("%s : refusé, la ligne ne bouge pas", async (_label, attempt, expected) => {
+  it.each(attempts)(
+    "%s : refusé, ni la ligne ni le journal ne bougent",
+    async (_label, attempt, expected) => {
+      const { owner, shop } = await suspendedShop();
+      const before = await shopRow(shop.id);
+      const logsBefore = await shopLogs(shop.id);
+      actAs(owner);
+
+      expect(refusal(await attempt(shop.id))).toEqual(expected);
+
+      expect(await shopRow(shop.id)).toEqual(before);
+      expect(await shopLogs(shop.id)).toEqual(logsBefore);
+    }
+  );
+
+  it("onboarding sans complete : rien à écrire, donc rien à refuser", async () => {
     const { owner, shop } = await suspendedShop();
     const before = await shopRow(shop.id);
     actAs(owner);
 
-    expect(refusal(await attempt(shop.id))).toEqual(expected);
+    const result = await call(patchOnboarding, {}, {});
 
+    expect(result).toEqual({
+      status: 200,
+      body: { success: true, data: { onboardingCompleted: false } },
+    });
     expect(await shopRow(shop.id)).toEqual(before);
   });
 

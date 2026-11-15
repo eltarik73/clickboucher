@@ -9,7 +9,6 @@ import {
   applyRefusal,
   imageColumnOf,
   isAllowedCopySource,
-  isLocalDatabaseUrl,
   isProbeableUrl,
   needsSourceProbe,
   planRepairs,
@@ -246,16 +245,6 @@ describe("gardes des scripts", () => {
       "campaigns.visual_image_url": "BANNER",
       "site_banners.image_url": "BANNER",
     });
-  });
-
-  it("base locale : localhost, 127.0.0.1 ou ::1, paramètre host compris", () => {
-    expect(isLocalDatabaseUrl("postgresql://ci:ci@127.0.0.1:55433/ci_photos_kit")).toBe(true);
-    expect(isLocalDatabaseUrl("postgres://u@localhost/db")).toBe(true);
-    expect(isLocalDatabaseUrl("postgresql://u@[::1]:5432/db")).toBe(true);
-    expect(isLocalDatabaseUrl("postgresql://u@switchyard.proxy.rlwy.net:5432/railway")).toBe(false);
-    expect(isLocalDatabaseUrl("postgresql://u@localhost/db?host=db.example.com")).toBe(false);
-    expect(isLocalDatabaseUrl("mysql://u@localhost/db")).toBe(false);
-    expect(isLocalDatabaseUrl(undefined)).toBe(false);
   });
 
   it("écriture permise avec le magasin Blob, ou en local avec le disque ; refusée sinon", () => {

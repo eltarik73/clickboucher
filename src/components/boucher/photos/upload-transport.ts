@@ -1,5 +1,6 @@
 // src/components/boucher/photos/upload-transport.ts — Envoi d'une photo à POST /api/uploads/image.
 //
+// uploadImage prépare la photo (prepareUpload : réduction, refus en français) puis l'envoie.
 // XMLHttpRequest plutôt que fetch : lui seul donne la progression de l'envoi.
 // interpretApiResponse (pure) transforme toute réponse d'une route photo en issue affichable : le
 // corps n'est lu comme JSON que si le serveur le déclare et qu'il se lit ; un 413 ou un 504
@@ -15,6 +16,8 @@ import {
   type UploadPurpose,
   type UploadResult,
 } from "@/lib/images/upload-contract";
+import { browserEncoder } from "./browser-encoder";
+import { prepareUpload } from "./prepare-upload";
 
 export type ApiOutcome<T> = { ok: true; result: T } | { ok: false; messageFr: string };
 export type UploadOutcome = ApiOutcome<UploadResult>;
@@ -110,4 +113,19 @@ export function sendUpload(
     xhr.onabort = () => resolve(failure(UPLOAD_MESSAGES_FR.NETWORK));
     xhr.send(buildUploadForm(blob, purpose, filename));
   });
+}
+
+/**
+ * Prepares then sends a photo. onProgress(null) while the browser prepares it (decoding,
+ * resizing), then the share sent (0 to 1). The promise always resolves to a displayable outcome.
+ */
+export async function uploadImage(
+  file: File,
+  purpose: UploadPurpose,
+  onProgress: (ratio: number | null) => void
+): Promise<UploadOutcome> {
+  onProgress(null);
+  const prepared = await prepareUpload(file, browserEncoder);
+  if (!prepared.ok) return prepared;
+  return sendUpload(prepared.blob, prepared.filename, purpose, onProgress);
 }
