@@ -8,6 +8,7 @@ import prisma from "@/lib/prisma";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { RecipeSchema } from "@/components/seo/RecipeSchema";
 import { BreadcrumbSchema } from "@/components/seo/BreadcrumbSchema";
+import { isRecipeIndexable } from "@/lib/seo/recipes";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 
@@ -63,11 +64,9 @@ export async function generateMetadata({
   const title = `${titleBase} — Halal`;
   const description = `${recipe.description} Pour ${recipe.servings} personnes en ${recipe.totalTime} min. ${recipe.meatQuantity} de viande halal — commande click & collect chez votre boucher.`;
 
-  // Mars 2026 Core Update : Google rejette en masse le contenu IA thin.
-  // GSC remontait 32 recettes en "Détectée non indexée". On noindex les
-  // recettes générées qui n'ont pas été manuellement reviewées (featured),
-  // pour préserver le signal de qualité du domaine entier.
-  const shouldNoIndex = recipe.aiGenerated && !recipe.featured;
+  // AI-generated recipes not reviewed by hand (featured) stay out of the index: the same rule as
+  // the sitemap and the /recettes ItemList (src/lib/seo/recipes.ts).
+  const shouldNoIndex = !isRecipeIndexable(recipe);
 
   return {
     title,

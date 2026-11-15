@@ -8,7 +8,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
 export const metadata: Metadata = {
   title: "Devenir partenaire boucher — 100% gratuit",
   description:
-    "Rejoignez Klik&Go : aucun abonnement, aucun frais fixe. Commission uniquement sur les commandes encaissées. Vitrine en ligne, mode cuisine, fidélité, statistiques inclus.",
+    "Rejoignez Klik&Go : aucun abonnement, aucun frais fixe. Commission uniquement sur les commandes passées via la plateforme. Vitrine en ligne, mode cuisine, fidélité, statistiques inclus.",
   openGraph: {
     title: "Devenir partenaire boucher — Klik&Go (100% gratuit)",
     description:
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Devenir partenaire boucher — Klik&Go",
-    description: "Aucun abonnement. Commission uniquement sur les commandes encaissées.",
+    description: "Aucun abonnement. Commission uniquement sur les commandes passées via la plateforme.",
   },
   alternates: { canonical: `${SITE_URL}/espace-boucher` },
 };

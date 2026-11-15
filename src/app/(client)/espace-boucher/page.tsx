@@ -241,7 +241,7 @@ export default function EspaceBoucherPage() {
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-gray-400">
               Aucun abonnement, aucun frais fixe. Klik&amp;Go se rémunère uniquement via une petite
-              commission sur les commandes encaissées —
+              commission sur les commandes passées via la plateforme —
               <span className="text-gray-300"> vous ne payez que si vous vendez.</span>
             </p>
           </div>
@@ -276,7 +276,7 @@ export default function EspaceBoucherPage() {
                   <span className="mb-2 ml-1 self-end text-base text-gray-500">/ mois</span>
                 </div>
                 <p className="mx-auto mt-4 max-w-sm text-sm text-gray-400">
-                  Commission transparente uniquement sur les commandes encaissées
+                  Commission transparente uniquement sur les commandes passées via la plateforme
                 </p>
               </div>
 
@@ -286,7 +286,7 @@ export default function EspaceBoucherPage() {
                   "Vitrine en ligne dédiée",
                   "Catalogue produits illimité",
                   "Click & collect avec QR code",
-                  "Mode Cuisine temps réel",
+                  "Mode Cuisine dans le navigateur",
                   "Notifications clients auto",
                   "Programme de fidélité intégré",
                   "Promotions & offres flash",
@@ -395,7 +395,7 @@ export default function EspaceBoucherPage() {
         <div className="space-y-3">
           <FaqItem
             question="Combien ça coûte vraiment ?"
-            answer="Klik&Go est 100% gratuit pour votre boucherie : aucun abonnement, aucun frais fixe, aucun engagement. Nous prélevons uniquement une petite commission sur chaque commande encaissée — vous ne payez que si vous vendez."
+            answer="Klik&Go est 100% gratuit pour votre boucherie : aucun abonnement, aucun frais fixe, aucun engagement. Nous prélevons uniquement une petite commission sur chaque commande passée via la plateforme — vous ne payez que si vous vendez."
           />
           <FaqItem
             question="Ai-je besoin de matériel spécifique ?"
@@ -411,7 +411,7 @@ export default function EspaceBoucherPage() {
           />
           <FaqItem
             question="Quand suis-je payé ?"
-            answer="Les paiements en ligne sont versés automatiquement sur votre compte bancaire via Stripe. Pour les paiements sur place, vous encaissez directement votre client en boutique au moment du retrait."
+            answer="Vos clients règlent leur commande directement dans votre boucherie, au moment du retrait, avec les moyens de paiement que vous acceptez : vous encaissez comme d'habitude. Klik&Go n'encaisse aucun paiement à votre place."
           />
         </div>
       </section>

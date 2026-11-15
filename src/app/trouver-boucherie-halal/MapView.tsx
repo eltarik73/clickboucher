@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { formatRatingValue, type RatingSummary } from "@/lib/reviews/rating";
 
 // Fix default marker icon paths (Leaflet bug avec bundlers)
 // On utilise des URLs CDN pour éviter d'avoir à gérer les assets locaux.
@@ -39,7 +40,8 @@ type ShopOnMap = {
   address: string;
   latitude: number;
   longitude: number;
-  rating: number | null;
+  /** Verified rating only (src/lib/reviews/verified-rating.ts), null without one. */
+  verifiedRating: RatingSummary | null;
   distance?: number;
 };
 
@@ -108,10 +110,12 @@ export function MapView({ userPos, shops, maxDistanceKm }: Props) {
                     </span>
                   </>
                 )}
-                {shop.rating != null && (
+                {shop.verifiedRating && (
                   <>
                     <br />
-                    <span style={{ fontSize: 11 }}>⭐ {shop.rating.toFixed(1)}/5</span>
+                    <span style={{ fontSize: 11 }}>
+                      ⭐ {formatRatingValue(shop.verifiedRating.average)}/5
+                    </span>
                   </>
                 )}
                 <br />

@@ -191,8 +191,10 @@ jobs:
       - name: Next.js build
         run: npm run build
 
-      # Échoue si /, /cgv, /a-propos, /boucherie-halal/chambery ou /sitemap.xml
-      # ne sont plus prérendus, ou si moins de 250 routes le sont.
+      # Échoue si /, /cgv, /a-propos, /recettes, /boucherie-halal/chambery,
+      # /boucherie-halal/lyon, /boucherie-halal/aix-les-bains, /boucheries-halal/savoie,
+      # /occasions/aid-al-adha/chambery ou /sitemap.xml ne sont plus prérendus, ou si moins
+      # de 250 routes le sont.
       - name: Check prerendered routes
         run: node scripts/check-prerender.mjs
 
@@ -202,6 +204,8 @@ jobs:
       # Stockage des photos : aucun BLOB_READ_WRITE_TOKEN ici, le serveur choisit donc le stockage
       # local sur disque (.image-store/). Mode test ouvert par POST /api/test-mode/activate avec un
       # secret tiré à chaque lancement : aucune valeur secrète n'est écrite dans ce fichier.
+      # Le même serveur sert ensuite les contrôles SEO (tests/e2e/seo-status.spec.ts : vrais 404,
+      # robots, JSON-LD, sitemap), en lecture seule.
       - name: Seed CI database (photos e2e)
         run: npx prisma db seed
 
@@ -222,7 +226,7 @@ jobs:
             sleep 1
           done
           curl -sf http://localhost:3000/api/health > /dev/null
-          npx playwright test tests/e2e/photos.spec.ts --project=chromium
+          npx playwright test tests/e2e/photos.spec.ts tests/e2e/seo-status.spec.ts --project=chromium
 
       - name: Next server log
         if: failure()

@@ -1,40 +1,24 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { SEO_CITIES } from "@/lib/seo/cities";
-import prisma from "@/lib/prisma";
+import { partnerPath } from "@/lib/seo/routes";
+import { absoluteUrl } from "@/lib/seo/site";
+import { partnerDescription, partnerTitle } from "@/lib/seo/titles";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://klikandgo.app";
-
+// Partner pages are business-critical: they stay indexable whatever the number of shops in the
+// city (rule OR of the seo-anti-penalty skill), so this metadata sets no robots and states no
+// shop count. Title and description come from the shared builders (src/lib/seo/titles.ts).
 export async function generateMetadata({
   params,
 }: {
   params: { ville: string };
 }): Promise<Metadata> {
   const city = SEO_CITIES.find((c) => c.slug === params.ville);
-  if (!city) return { title: "Ville introuvable" };
+  if (!city) notFound();
 
-  // Count partner shops for descriptive metadata (used in description for trust signal)
-  const shopCount = await prisma.shop.count({
-    where: {
-      visible: true,
-      city: { contains: city.name, mode: "insensitive" },
-    },
-  });
-
-  // Title court — titleTemplate root ajoute " | Klik&Go" auto (~11 chars).
-  // Audit Bing Site Scan #3 (2026-05-10) : 7 villes longues > 65 chars total.
-  // Nouveau format : "Boucher partenaire {Ville} — Gratuit" → 35-50 chars + 11 = max ~62.
-  const title = `Boucher partenaire ${city.name} — 100% gratuit`;
-  const shopCountStr =
-    shopCount > 0
-      ? `${shopCount} boucherie${shopCount > 1 ? "s" : ""} déjà inscrite${shopCount > 1 ? "s" : ""} à ${city.name}.`
-      : `Soyez la première boucherie halal partenaire Klik&Go à ${city.name}.`;
-  const description = `Boucher halal à ${city.name} ? Rejoignez Klik&Go : 100% gratuit, commission uniquement, aucun abonnement. Vitrine en ligne, mode cuisine, click & collect. ${shopCountStr}`;
-
-  // REVERT noindex auto (2026-05-10) : voir page /boucherie-halal/[ville].
-  // Le faketestimonial Yacine identique partout (signal manipulation reviews)
-  // a été supprimé commit f048ae3. Le contenu restant (3 étapes, FAQ ville,
-  // pricing, CTA) est unique par ville via {city.name}. Justifie l'indexation
-  // pour acquisition boucher — page strategique business.
+  const title = partnerTitle(city);
+  const description = partnerDescription(city);
+  const url = absoluteUrl(partnerPath(city.slug));
 
   return {
     title,
@@ -42,7 +26,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `${SITE_URL}/devenir-boucher-partenaire/${city.slug}`,
+      url,
       siteName: "Klik&Go",
       locale: "fr_FR",
       type: "website",
@@ -61,7 +45,7 @@ export async function generateMetadata({
       description,
     },
     alternates: {
-      canonical: `${SITE_URL}/devenir-boucher-partenaire/${city.slug}`,
+      canonical: url,
     },
   };
 }

@@ -178,7 +178,7 @@ export function GeoLocator({ shops }: Props) {
                     address: s.address,
                     latitude: s.latitude!,
                     longitude: s.longitude!,
-                    rating: s.rating,
+                    verifiedRating: s.verifiedRating ?? null,
                     distance: s.distance ?? undefined,
                   }))}
                 maxDistanceKm={maxDistanceKm}

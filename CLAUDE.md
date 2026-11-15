@@ -167,9 +167,11 @@ facturée, y compris pour les bots. Règles :
     service Postgres 16 du job, schéma `itest` ; le schéma `public` poussé pour le job n'est pas modifié)
   - `build` → `npm run build` sur Postgres 16 (schema poussé) puis `node scripts/check-prerender.mjs`
     (échoue si les pages publiques ne sont plus prérendues — cf. « Coût CPU Vercel »). Ensuite, le job
-    remplit sa base par le seed et lance `tests/e2e/photos.spec.ts` (Playwright Chromium) sur l'app
-    construite (`next start`), en mode test ouvert par POST avec un `TEST_SECRET` tiré à chaque
-    lancement, et avec le stockage local des photos sur disque (aucun jeton Blob en CI).
+    remplit sa base par le seed et lance `tests/e2e/photos.spec.ts` et `tests/e2e/seo-status.spec.ts`
+    (Playwright Chromium) sur l'app construite (`next start`), en mode test ouvert par POST avec un
+    `TEST_SECRET` tiré à chaque lancement, et avec le stockage local des photos sur disque (aucun jeton
+    Blob en CI). `seo-status.spec.ts` vérifie ce que reçoivent les moteurs : vrais 404, robots, titres,
+    JSON-LD, fils d'Ariane, sitemap, et aucun appel de géolocalisation au montage de l'accueil.
 - **Uptime** : `.github/workflows/uptime.yml` — toutes les 6 h, échoue si `/` ou `/sitemap.xml`
   ne répondent pas 200 ou portent `x-vercel-error`. Contrôle EXTERNE au projet Vercel (les crons
   internes ne tournent pas quand le projet est en pause), mais PAS suffisant seul : dépôt public,
@@ -232,9 +234,11 @@ npm run db:reset     # prisma migrate reset
 src/
 ├── app/
 │   ├── (client)/                 # Route group client
-│   │   ├── page.tsx              # Homepage (boutiques + offres, ISR 300s)
+│   │   ├── (accueil)/            # Accueil `/` : page.tsx (boutiques + offres, ISR 300 s) et son loading.tsx,
+│   │   │                         # limité à l'accueil (au niveau du groupe, il changeait tout notFound() en 200)
 │   │   ├── decouvrir/            # Redirect → / (legacy)
-│   │   ├── boutique/[slug]/       # Détail boutique + produits
+│   │   ├── boutique/[slug]/       # Détail boutique + produits (dynamique, sans loading.tsx : vrai 404)
+│   │   ├── recettes/             # Liste statique (ISR) filtrée côté client (RecipeBrowser), [slug] à la demande
 │   │   ├── panier/               # Panier
 │   │   ├── checkout/             # Paiement
 │   │   ├── commandes/            # Suivi commandes
@@ -252,9 +256,12 @@ src/
 │   │       ├── clients/          # Clients de la boutique
 │   │       ├── parametres/       # Réglages boutique
 │   │       └── images/  performance/  support/
-│   ├── boucherie-halal/[ville]/   # Pages SEO par ville (SSG)
+│   ├── boucherie-halal/[ville]/   # Pages SEO par ville (SSG) et [quartier]/
+│   ├── boucheries-halal/[departement]/  boucheries-halal-rhone-alpes/  boucheries-halal-ouvertes-dimanche/[ville]/
+│   ├── produits/[produit]/[ville]/  occasions/[occasion]/[ville]/  devenir-boucher-partenaire/[ville]/
+│   │                             # Pages SEO à liste fermée (dynamicParams = false, voir « Règles SEO »)
 │   ├── robots.ts                 # robots.txt dynamique
-│   ├── sitemap.ts                # Sitemap XML (shops + villes)
+│   ├── sitemap.ts                # Sitemap XML (src/lib/seo/sitemap-entries.ts) — jamais de /boutique/
 │   ├── opengraph-image.tsx       # OG image (prérendue au build, runtime Node)
 │   └── api/                      # 27+ groupes de routes API
 │       ├── shops/  orders/  products/  cart/  payments/
@@ -271,7 +278,7 @@ src/
 │   ├── order/       # OrderTracker, ActiveOrderBanner, QRCodeDisplay, QRScanner, RatingPopup, Reorder*, order-timeline
 │   ├── checkout/    # Checkout flow
 │   ├── boucher/     # KitchenOrderCard, OrderTicket, PrepTimer, OrderAlertOverlay, PriceAdjustModal
-│   ├── seo/         # OrganizationSchema, ShopSchema, BreadcrumbSchema, ProductSchema
+│   ├── seo/         # JsonLd, OrganizationSchema, ShopSchema (boutique seule), ProductSchema, BreadcrumbSchema, RecipeSchema, LastUpdated
 │   ├── webmaster/   # ShopAdjustmentsTab, etc.
 │   └── providers/   # CartProviderWrapper
 ├── hooks/
@@ -288,7 +295,10 @@ src/
 │   ├── api/errors.ts         # apiError / apiSuccess / handleApiError
 │   ├── cart/                 # cart-line.ts (ligne de panier, réducteur), stored-cart.ts (panier stocké), order-payload.ts (requête de commande)
 │   ├── pricing/              # SEULE source des prix : ligne, prix unitaire, remise, totaux, affichage
-│   ├── seo/                  # cities.ts (SEO_CITIES config)
+│   ├── reviews/              # verified-rating.ts : seule note publiable (avis vérifiés) ; rating.ts : arrondi affiché
+│   ├── seo/                  # cities.ts (+ cities/ par département), facts, claims, routes, breadcrumbs, titles,
+│   │                         # content/ (pages SEO), jsonld/, sitemap-entries, submission-policy, indexnow-urls,
+│   │                         # shop-cards (cartes boutique des pages liste)
 │   ├── services/             # Business logic (orders/ : quote, create, numbering, transition, commands/)
 │   └── validators/           # Schémas Zod
 └── types/index.ts
@@ -633,10 +643,80 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 - **metadataBase** : `new URL(SITE_URL)` dans `layout.tsx` pour résolution automatique OG/canonical
 - **Title template** : `%s | Klik&Go`
 - **robots.ts** : Bloque /api/, /dashboard/, /admin/, /checkout/, /boucher/, /panier/, /profil/, /commandes/
-- **noindex** : Pages privées (checkout, panier, commandes, profil, onboarding) avec `robots: { index: false }`
-- **Sitemap** : Pages statiques + boutiques (DB) + villes (SEO_CITIES)
+- **noindex** : Pages privées (checkout, panier, commandes, profil, onboarding) avec `robots: { index: false }` ;
+  `/sign-in`, `/sign-up`, les outils boucher `/shop/*` (`src/app/shop/layout.tsx`) et `/commande/[id]` (son
+  `layout.tsx`) avec `robots: { index: false, follow: false }`. robots.txt laisse ces pages explorables pour que
+  le noindex soit lu, et aucune règle Disallow n'est le préfixe d'un chemin du sitemap (une règle « /boucher »
+  sans barre bloquerait /boucherie-halal) : `src/lib/__tests__/seo/robots.test.ts`.
+- **Sitemap** : `src/app/sitemap.ts` = `buildSitemapEntries` (`src/lib/seo/sitemap-entries.ts`, pur) sur
+  `loadSitemapData` (`sitemap-data.ts`). Toujours : pages statiques, hub régional, départements, toutes les villes,
+  pages partenaires, occasions × villes, recettes indexables (`src/lib/seo/recipes.ts`) ; dimanche, produit × ville
+  et quartiers seulement pour une ville où une boutique est inscrite. **Jamais de `/boutique/`** (boutiques de
+  démonstration). `lastModified` honnête : date de contenu de la famille (constantes de `sitemap-entries.ts`,
+  `CITY_CONTENT_UPDATED`, `updatedAt` des recettes), pour une page produit × ville ou occasion × ville la date
+  qu'elle affiche (`productCityLastUpdated`, `occasionCityLastUpdated` de `src/lib/seo/content/`), et pour une
+  ville ou l'accueil la date de mise en ligne de la dernière boutique (`validatedAt ?? createdAt`, jamais
+  `updatedAt`). Changer la date d'une famille seulement quand son texte change, et la fixer au jour où ce texte
+  arrive en production (voir le cron `indexnow-fresh` plus bas).
+  `/recettes` : `weekly`.
 - **OG Image** : `opengraph-image.tsx` — prérendue au build (runtime Node), 1200×630 PNG
 - **Analytics** : Plausible (RGPD), conditionnel sur `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`
+
+### Règles SEO (chantier C1-SEO — 2026-11-15)
+
+Avant toute action SEO : `.claude/skills/seo-anti-penalty/SKILL.md` (règle OR : les pages ville, partenaire,
+département, hub et occasion restent indexées même sans boutique).
+
+- **Note publiée = avis vérifiés** : seul `src/lib/reviews/verified-rating.ts` lit une note publiable ; un avis
+  compte s'il est lié (`orderId`) à une commande PICKED_UP ou COMPLETED du même client dans la même boutique.
+  `aggregateRating` (et au plus 2 `review`) seulement si ce compte dépasse 0. Jamais `Shop.rating` /
+  `Shop.ratingCount` (le seed porte des notes inventées), ni dans un JSON-LD ni à l'écran : les cartes des pages
+  liste, de l'accueil et de `/trouver-boucherie-halal` passent par `toShopCards` (`src/lib/seo/shop-cards.ts` :
+  colonnes de la carte, ordre alphabétique, `loadVerifiedRatings` en une requête groupée) ; l'en-tête de la
+  boutique, `ReviewList` (avis vérifiés seulement, `listVerifiedReviews`, aucun appel API au montage) et l'image
+  OG lisent les mêmes chiffres, arrondis comme le JSON-LD (`src/lib/reviews/rating.ts`). Garde :
+  `src/lib/__tests__/seo/rating-publication.test.ts`.
+- **Entité boutique sur `/boutique/[slug]` seulement** : aucune page liste (ville, quartier, département, hub,
+  dimanche, produit × ville, occasion × ville, accueil) ne rend `ShopSchema` ni un objet Store, LocalBusiness ou
+  FoodEstablishment ; la liste visible reste. En JSON-LD, une liste est une `ItemList` de `ListItem`
+  `{ position, url, name }` vers nos propres pages.
+- **Formulations** : faits commerciaux dans `src/lib/seo/facts.ts` (paiement en boutique au retrait, sans frais de
+  service, retrait au créneau choisi, certification halal à la charge de chaque boutique) ; règles dans
+  `src/lib/seo/claims.ts` (`findForbiddenClaims`) : pas de paiement en ligne ; aucun montant de frais (« sans frais
+  de service ») ; « livraison », « livré », « livrer » seulement niés ; aucun délai promis (« au créneau choisi ») ;
+  ni devis, ni traiteur, ni « sous 48 h » ; Klik&Go ne certifie ni ne vérifie aucune boutique ; pas de « temps
+  réel » ; aucun superlatif ni nombre que la page ne calcule pas ; les données statiques (villes, quartiers,
+  produits, occasions) restent vraies avec zéro boutique. Garde : `src/lib/__tests__/seo/claims-guard.test.ts`.
+- **Soumission aux moteurs** : `isSubmittableToEngines` (`src/lib/seo/submission-policy.ts`) décide de ce qui part :
+  jamais `/boutique/`, `/api/` ni une zone privée. Le sitemap, le cron IndexNow, la validation admin d'une boutique
+  (accueil + pages de sa ville, `validationIndexNowUrls`) et `notifyIndexNow` lui-même passent par elle ;
+  `notifyIndexNow` n'envoie rien hors production Vercel (`isProductionDeployment()`). Aucun test, script ou build
+  local n'envoie quoi que ce soit à un moteur : transport toujours simulé. Les actions Search Console et Bing
+  restent celles du propriétaire.
+- **Listes fermées** : `boucherie-halal/[ville]`, `boucherie-halal/[ville]/[quartier]`,
+  `boucheries-halal/[departement]`, `boucheries-halal-ouvertes-dimanche/[ville]`, `produits/[produit]/[ville]`,
+  `occasions/[occasion]/[ville]` et `devenir-boucher-partenaire/[ville]` exportent `dynamicParams = false` :
+  `generateStaticParams` lit les données, tout autre slug répond 404 sans exécuter de fonction. Registre de ces
+  pages : `src/lib/seo/routes.ts` (`closedRoutePaths`) ; villes du dimanche : `SUNDAY_CITY_SLUGS`
+  (`src/lib/seo/sunday.ts`). Les fils d'Ariane (`src/lib/seo/breadcrumbs.ts`) ne pointent que vers ce registre
+  (accueil > département > ville > page) et lèvent une erreur sinon.
+- **Vrai 404** : aucun `loading.tsx` au-dessus d'une route qui peut appeler `notFound()` (`/boutique/[slug]`,
+  `/recettes/[slug]`) : la réponse serait streamée en 200 (soft 404 dans Search Console).
+- **Titres et descriptions** : `src/lib/seo/titles.ts` — au plus 60 caractères avant « | Klik&Go », jamais
+  « halal halal », rien que la page ne prouve ; descriptions de ville écrites à la main dans les données
+  (140 à 160 caractères, uniques, vraies sans boutique).
+- **Pas de texte caché** : ni Speakable, ni résumé `sr-only` (« En bref »), ni h1 masqué (le h1 de l'accueil
+  est le titre visible du hero), ni SearchAction, ni `NutritionInformation` calculée par des constantes.
+- **Accueil sans appel au montage** : la carte « Votre position » (`ReorderSection`) n'annonce
+  (`klikgo-location`) que la position que le visiteur vient de choisir (GPS, ville saisie) ; une position en
+  cache ne trie la liste (`NearbyShops`, `/api/shops/nearby`) que pour un visiteur connecté ou une session de test.
+- **`/recettes`** : liste statique ; le thème demandé par `?tag=` est lu par `useSearchParams` dans
+  `RecipeTagFromUrl`, seul dans sa frontière `Suspense` pour que la liste reste dans le HTML prérendu.
+- **Garde-fous** : tests `src/lib/__tests__/seo/` (dont `claims-guard`, `structure-guard`, `breadcrumb-routes`) ;
+  `tests/e2e/seo-status.spec.ts` sur le build de production, lancé par le job CI `build` (vrais 404, robots,
+  JSON-LD, fils d'Ariane, sitemap, aucun appel `/api/geo` ni `/api/shops/nearby` au montage de l'accueil) ;
+  `scripts/check-prerender.mjs` exige aussi `/recettes`, `/boucherie-halal/lyon`, `/boucherie-halal/aix-les-bains`,
+  `/boucheries-halal/savoie` et `/occasions/aid-al-adha/chambery`.
 
 ### JSON-LD Schemas (`src/components/seo/`)
 
@@ -644,18 +724,27 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
   `src/lib/seo/jsonld/serialize.ts` qui échappe `<`, `>`, `&`, U+2028, U+2029). Jamais de
   `JSON.stringify` dans un `dangerouslySetInnerHTML` : un avis contenant `</script>` exécutait du script
   (corrigé le 2026-11-14). Garde-fou : `src/lib/__tests__/json-ld.test.ts`.
-
-- `OrganizationSchema` — Global dans layout.tsx
-- `ShopSchema` — Type Store, sur boutique + city pages
-- `BreadcrumbSchema` — Sur boutique + city pages
-- `ProductSchema` — Type Product, premiers 20 produits par boutique (priceCents → EUR)
+- **Constructeurs purs** dans `src/lib/seo/jsonld/` ; les composants ne font que les appeler :
+- `OrganizationSchema` — Global dans layout.tsx (`organization.ts`) : Organization + WebSite, sans SearchAction.
+- `ShopSchema` — Store / FoodEstablishment / LocalBusiness, **uniquement sur `/boutique/[slug]`** (`shop.ts`) :
+  données de la boutique seulement (pas de priceRange, paymentAccepted, servesCuisine…), note seulement vérifiée.
+- `ProductSchema` — Product, 20 premiers produits de la boutique (`product.ts`) : jamais aggregateRating, review,
+  shippingDetails, hasMerchantReturnPolicy ni priceValidUntil ; prix public affiché ; KG / TRANCHE en
+  `UnitPriceSpecification` (référence 1 KGM), PIECE / BARQUETTE en `offers.price`.
+- `BreadcrumbSchema` — éléments donnés par `src/lib/seo/breadcrumbs.ts`.
+- Pages ville, quartier, département, hub, dimanche, produit × ville et occasion × ville : contenu et JSON-LD dans
+  `src/lib/seo/content/*.ts` (`pages.ts` : BreadcrumbList, WebPage ou CollectionPage, FAQPage identique à la FAQ
+  visible). Jamais d'Event (une occasion est une WebPage `about` Thing), jamais de Product.
+- Garde de structure : `src/lib/__tests__/seo/structure-guard.test.ts` (un seul constructeur par type).
 
 ### Pages SEO Villes
 
-- **Route** : `/boucherie-halal/[ville]` — SSG via `generateStaticParams()`
-- **Config** : `src/lib/seo/cities.ts` — voir `SEO_CITIES` (55 villes au 2026-11-15) et `SEO_DEPARTMENTS`
-- **Schemas** : BreadcrumbSchema + FAQPage (4 questions) + ShopSchema par boutique
-- **Maillage** : Liens ville dans footer accueil, homepage, info bar boutique, liens croisés entre villes
+- **Route** : `/boucherie-halal/[ville]` — SSG via `generateStaticParams()`, `dynamicParams = false`
+- **Config** : `src/lib/seo/cities.ts` — voir `SEO_CITIES` (55 villes au 2026-11-15) et `SEO_DEPARTMENTS` ;
+  données par département sous `src/lib/seo/cities/` : une ville n'existe que dans son département
+- **Schemas** : BreadcrumbList (accueil > département > ville) + WebPage (about Place) + FAQPage — plus de ShopSchema
+- **Maillage** : Liens ville dans footer accueil, homepage, info bar boutique, liens croisés entre villes ; chaque
+  ville renvoie à son département et au hub régional, le pied de page SEO aux départements et au hub
 
 ### Redirections
 
@@ -665,8 +754,8 @@ const userId = dbUser?.id || clerkId; // Prisma ID (cm...) pour les comparaisons
 
 ### GEO / AIO (visibilité dans les IA — ChatGPT, Claude, Perplexity, Gemini, Bing Copilot)
 
-- **`public/llms.txt`** : description structurée de Klik&Go pour les LLMs (standard 2026 adopté par Anthropic/Stripe/Cloudflare). Bumper `lastModified` si la description change.
-- **IndexNow** (Bing/Copilot/Yandex/DuckDuckGo) : `src/lib/indexnow.ts` + clé publique dans `public/{key}.txt`. Auto-trigger sur shop validate. Endpoint manuel `POST /api/seo/indexnow` (admin).
+- **`public/llms.txt`** : description structurée de Klik&Go pour les LLMs (standard 2026 adopté par Anthropic/Stripe/Cloudflare). Bumper `lastModified` si la description change. Ses faits suivent `src/lib/seo/facts.ts` (relu par `claims-guard`) ; la section « Pour les agents IA » relève du propriétaire.
+- **IndexNow** (Bing/Copilot/Yandex/DuckDuckGo) : `src/lib/indexnow.ts`, seul transport (un doublon à une autre clé a été supprimé le 2026-11-15), + clé publique dans `public/{key}.txt`. N'envoie qu'en production Vercel et filtre chaque URL par la politique de soumission (voir « Règles SEO »). Validation d'une boutique : accueil + pages de sa ville, jamais la boutique. Endpoint manuel `POST /api/seo/indexnow` (admin), même filtre.
 - **AI crawlers dans `robots.ts`** : règles explicites pour GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, ChatGPT-User, Claude-User, Google-Extended, PerplexityBot, Applebot-Extended. Allow par défaut.
 - **Freshness** : composant `<LastUpdated date="YYYY-MM-DD" />` sur pages SEO — bumper `PAGE_LAST_UPDATED` quand le contenu change vraiment (signal fort pour Perplexity/ChatGPT).
 
@@ -786,9 +875,22 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 
 Définis dans `vercel.json` :
 
-- `/api/cron/indexnow-fresh` — 03h11 UTC — ping Bing/Copilot/Yandex sur SEO_CITIES + top shops
+- `/api/cron/indexnow-fresh` — 03h11 UTC — envoie à IndexNow (Bing/Copilot/Yandex) les seules URL du sitemap dont
+  `lastModified` tombe dans le jour UTC précédent, [minuit, minuit suivant[ (`freshIndexNowUrls`,
+  `src/lib/seo/indexnow-urls.ts`) : chaque changement part une seule fois, rien un jour sans changement, jamais
+  `/boutique/` ni `/bons-plans` (daté par toute écriture de produit, il reste au sitemap). **Une date de contenu
+  (constantes de `sitemap-entries.ts`, `CITY_CONTENT_UPDATED`, `lastUpdated` des villes et occasions, contenus
+  produit × ville et occasion × ville) se fixe au jour du déploiement en production** (au merge) : le passage du
+  lendemain l'envoie. Un texte arrivé en production après le passage de 03h11 UTC du lendemain de sa date n'est
+  jamais envoyé : le propriétaire soumet alors ses URL à la main (`POST /api/seo/indexnow`, admin).
 - `/api/cron/bing-daily` — 09h17 UTC — audit Bing Webmaster (crawl, queries, alertes Sentry si erreurs)
-- `/api/cron/seo-audit` — 10h11 UTC — vérif noindex regression, sitemap count, robots, canonical (alertes si SEO_CITIES en noindex)
+- `/api/cron/seo-audit` — 10h11 UTC — audit en lecture seule du site (contrôles purs de `src/lib/seo/audit-checks.ts`) :
+  sitemap (au moins 100 URL, toutes les villes, aucun `/boutique/`), robots.txt, accueil, pages ville et pages clés
+  (200, indexables, sans entité boutique, Product, note, avis, Event ni formulation interdite), `/sign-in` et
+  `/sign-up` en noindex (une redirection hors du site, la poignée de main Clerk des clés de développement, n'est
+  qu'un avertissement), vrai 404 pour une boutique et une ville inconnues, note d'une boutique égale à ses avis
+  vérifiés ; toute anomalie part en alerte (`logger.error`, Sentry en production), un avertissement reste dans le
+  rapport
 
 Auth via `verifyCronAuth(req)` — Vercel Crons envoie `Authorization: Bearer ${CRON_SECRET}`.
 
