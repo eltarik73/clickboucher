@@ -1,9 +1,12 @@
 /**
- * SEO occasions config — pages occasion x ville (Sprint 7).
- * Aïd al-Adha est volontairement exclu (sera fait en Sprint 13 séparé).
+ * Editorial data of the occasion x city pages (/occasions/[occasion]/[ville]).
  *
- * Cible : "mechoui [ville]", "viande mariage halal [ville]", "ramadan boucherie [ville]",
- * "aqiqa mouton [ville]", "barbecue halal [ville]"
+ * Every text here is rendered whatever the number of shops in the city, so it
+ * must stay true with zero shop: it describes the occasion, the quantities and
+ * the lead times, never what a listed shop offers, and never a fee, a payment
+ * mode, a delivery or a halal-compliance claim (wording rules D6 of chantier C1-SEO,
+ * pinned by src/lib/__tests__/seo/seo-data.test.ts). Occasion names never
+ * contain « halal »: the page templates add it.
  */
 
 export type SeoOccasion = {
@@ -50,17 +53,18 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     // dans le hero et doit garder le libellé de repli pour l'Aïd.
     eventStart: "2027-05-16",
     eventEnd: "2027-05-20",
-    lastUpdated: "2026-11-13",
+    lastUpdated: "2026-11-15",
     shortDescription:
-      "Commandez votre mouton ou agneau halal pour l'Aïd al-Adha 2027. Sacrifice rituel, découpe, conditionnement par votre boucher partenaire Klik&Go.",
+      "Aïd al-Adha 2027 : choisir son agneau ou son mouton, prévoir les quantités, réserver à temps et commander en click & collect sur Klik&Go.",
     intro:
-      "L'Aïd al-Adha (Aïd el-Kebir) est la plus grande fête religieuse musulmane, célébrant le sacrifice d'Abraham. Le 10e jour du mois de Dhul-Hijjah, chaque famille musulmane sacrifie un mouton, une chèvre, une vache ou un chameau, partagé en trois parts égales : la famille, les voisins et amis, et les pauvres. En 2027, l'Aïd al-Adha est attendu autour du 16 mai (date définitive annoncée début mai, selon l'observation de la lune). Sur Klik&Go, les boucheries halal partenaires vous accompagnent pour la commande, le sacrifice rituel certifié halal, la découpe selon vos besoins (en parts familiales, conditionné sous vide ou en barquettes), et la mise à disposition au créneau choisi. Vous pouvez commander un mouton entier (12-18 kg vivant, soit 6-9 kg de viande nette), une demi-bête, ou directement des morceaux pré-découpés (gigot, épaule, côtelettes, abats). Anticipez : les boucheries halal ont énormément de commandes pendant l'Aïd, le carnet se remplit vite — réservez idéalement 3-4 semaines avant la date.",
+      "L'Aïd al-Adha, aussi appelé Aïd el-Kébir, est l'une des deux grandes fêtes de l'islam. Il commémore le sacrifice d'Abraham et tombe le 10e jour du mois de dhou al-hijja. Les familles qui en ont les moyens sacrifient un animal, le plus souvent un mouton, dont la viande est traditionnellement partagée en trois parts : le foyer, les proches et les personnes dans le besoin. En 2027, l'Aïd al-Adha est attendu autour du 16 mai ; la date exacte est confirmée quelques jours avant, selon l'observation de la lune. En France, l'abattage rituel n'est autorisé qu'en abattoir. Pour une bête entière, demandez donc à votre boucherie halal comment elle s'organise avec l'abattoir et sous quelle forme la viande vous sera remise : carcasse entière, demi-carcasse ou morceaux découpés et mis sous vide. Si vous n'avez pas besoin d'une bête entière, le gigot, l'épaule, les côtelettes, le collier et la souris d'agneau s'achètent au poids, pour les repas de fête comme pour les invités. Les semaines qui précèdent l'Aïd sont très chargées pour les boucheries halal : réservez tôt, et vérifiez avec le boucher le jour et le créneau où vous viendrez chercher votre commande.",
     servingTip: {
-      question: "Quelle quantité d'agneau / mouton pour l'Aïd 2027 ?",
+      question: "Quelle quantité d'agneau ou de mouton prévoir pour l'Aïd ?",
       answer:
-        "Pour une famille de 5 personnes, comptez un mouton entier (12-15 kg vivant, soit 6-8 kg de viande nette). Pour 8-10 personnes, un agneau de 18-20 kg. La règle traditionnelle : 1/3 famille (~2-3 kg), 1/3 voisins (~2-3 kg), 1/3 pauvres (~2-3 kg).",
+        "Une bête entière se partage traditionnellement en trois parts : le foyer, les proches et les personnes dans le besoin. Le poids de viande dépend de l'animal : demandez à votre boucher le poids de carcasse attendu avant de réserver. Si vous commandez des morceaux pour les repas de fête, comptez 300 à 400 g d'agneau avec os par adulte, par exemple pour un gigot ou une épaule rôtie.",
     },
-    bookingDelay: "RÉSERVEZ 3-4 SEMAINES AVANT — les bouchers halal saturent vite leur carnet de commandes pour l'Aïd. En 2027, l'Aïd al-Adha est attendu mi-mai, réservez dès la mi-avril.",
+    bookingDelay:
+      "Réservez 3 à 4 semaines avant la fête — pour l'Aïd 2027, attendu autour du 16 mai, dès la mi-avril.",
     season: "summer",
     priority: "P0",
   },
@@ -70,16 +74,17 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     keyword: "méchoui",
     // Pas de eventType : pas de date fixe → WebPage schema (Event sans
     // startDate refusé par GSC).
+    lastUpdated: "2026-11-15",
     shortDescription:
-      "Commandez votre méchoui halal — agneau entier rôti, parfait pour mariages, événements familiaux et fêtes communautaires.",
+      "Méchoui : choisir l'agneau entier, calculer la quantité selon le nombre d'invités, réussir la cuisson à la broche et commander à temps.",
     intro:
-      "Le méchoui est l'art ancestral de cuire un agneau entier à la broche, souvent au feu de bois ou au charbon. Originaire d'Afrique du Nord, c'est l'un des plats festifs les plus prestigieux de la cuisine maghrébine et un incontournable des grandes occasions : mariages, baptêmes, anniversaires, fêtes communautaires, méchouis privés au bord du lac. Sur Klik&Go, les boucheries halal partenaires vous proposent des agneaux entiers halal certifiés, sélectionnés auprès d'éleveurs alpins (Bauges, Chartreuse, Forez), avec un poids garanti (12-18 kg pour un agneau standard, soit 20-30 personnes selon les accompagnements). Vous pouvez commander l'agneau seul (à cuire vous-même), avec service traiteur (le boucher le cuit pour vous), ou en pack complet (agneau + merguez + brochettes pour les invités plus difficiles). Comptez environ 500-700g de viande par adulte pour un méchoui festif.",
+      "Le méchoui est un agneau entier rôti lentement à la broche, au feu de bois ou sur des braises. Venu du Maghreb, c'est un plat de fête : mariages, naissances, retrouvailles familiales, grandes tablées d'été. Tout commence par la bête : un agneau jeune, entier et vidé, dont la taille doit correspondre à votre broche et au nombre de vos invités. La veille, on l'enduit d'un mélange de beurre, d'ail, de cumin, de paprika et de sel ; le jour venu, on le cuit plusieurs heures en l'arrosant régulièrement, jusqu'à ce que la viande se détache sans effort. Quand le méchoui est le plat principal, comptez 500 à 700 g d'agneau avec os par adulte, un peu moins si vous servez aussi des merguez ou des brochettes. Un agneau entier ne s'improvise pas : la boucherie doit souvent le commander, il faut donc réserver plusieurs jours à l'avance et préciser le poids souhaité. Sur Klik&Go, chaque boucherie présente ses produits sur sa page : vérifiez si elle propose l'agneau entier, puis choisissez votre créneau de retrait en boutique.",
     servingTip: {
       question: "Combien d'agneau pour un méchoui de 30 personnes ?",
       answer:
-        "Pour 30 personnes, comptez un agneau entier de 18-20 kg (avec os), accompagné de merguez (60-90 pièces) et de brochettes (30-50). Soit environ 500-700g de viande par adulte. Pour 50 personnes : 2 agneaux de 14-16 kg chacun.",
+        "Sur la base de 500 à 700 g d'agneau avec os par adulte, 30 invités demandent 15 à 21 kg d'agneau, soit en général un agneau entier d'environ 18 à 20 kg. Pour 50 personnes, prévoyez deux agneaux. Si vous servez aussi des merguez et des brochettes, vous pouvez réduire un peu la quantité d'agneau.",
     },
-    bookingDelay: "Délai de commande : minimum 5-7 jours avant l'événement (l'agneau entier doit être commandé chez l'éleveur).",
+    bookingDelay: "Délai conseillé : commandez au moins une semaine avant l'événement.",
     season: "summer",
     priority: "P0",
   },
@@ -88,16 +93,17 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     name: "Mariage",
     keyword: "viande mariage halal",
     // Pas de eventType : date personnelle, pas universelle → WebPage schema.
+    lastUpdated: "2026-11-15",
     shortDescription:
-      "Commandez la viande halal de votre mariage : agneau, bœuf, volaille, méchoui, brochettes — packs sur mesure.",
+      "Mariage : combien de viande halal prévoir par invité, comment répartir agneau, bœuf et volaille, et quand passer commande pour la fête.",
     intro:
-      "Le mariage musulman est l'une des plus grandes occasions de la vie : 100, 200, parfois 500 invités à régaler. La viande halal est le centre du repas — méchoui d'agneau, brochettes, kefta, couscous royal, tajines de poulet et d'agneau aux pruneaux. Sur Klik&Go, les boucheries halal partenaires vous accompagnent dans la préparation de votre mariage : devis sur mesure, packs négociés selon le nombre d'invités, livraison en plusieurs lots si besoin, possibilité de prestation traiteur (cuisson sur place). Commandez vos viandes 2 à 4 semaines avant la date, pour garantir l'approvisionnement en agneaux entiers et en pièces nobles. Toutes les viandes sont halal certifiées, issues d'élevages français sélectionnés.",
+      "Un mariage réunit souvent une centaine d'invités, parfois bien plus, autour d'un repas où la viande halal tient la place centrale : méchoui d'agneau, brochettes, kefta, couscous royal, tajines de poulet ou d'agneau aux pruneaux. Pour bien commander, partez du menu. Un plat en sauce demande moins de viande par personne qu'un buffet de grillades, et les entrées, les accompagnements et les desserts font varier les quantités. Pour un repas de fête complet, comptez en moyenne 600 à 700 g de viande crue, os compris, par adulte. Faites ensuite la liste par type de viande (agneau, bœuf, volaille, viande hachée) et prenez contact avec la boucherie plusieurs semaines avant la date : les agneaux entiers et les grosses quantités se réservent. Pensez aussi à l'organisation du jour J : où stocker la viande au froid, qui la cuit, à quelle heure. Sur Klik&Go, vous pouvez répartir vos achats en plusieurs commandes, chacune avec son créneau de retrait en boutique, par exemple les viandes à mariner la veille et les grillades le jour même.",
     servingTip: {
       question: "Combien de viande pour un mariage de 100 personnes ?",
       answer:
-        "Pour un mariage de 100 personnes en buffet halal, comptez environ 60-70 kg de viande au total : 1 agneau entier (méchoui), 200 brochettes mixtes, 5 kg de kefta, 30 poulets fermiers, 10 kg de viande hachée pour boulettes. Soit 600-700g par adulte.",
+        "Pour 100 adultes, comptez 60 à 70 kg de viande crue, os compris, soit 600 à 700 g par personne. Exemple de répartition : un agneau entier d'environ 18 kg pour le méchoui, 20 kg de brochettes (environ 200 pièces de 100 g), une quinzaine de poulets (environ 20 kg) et 7 kg de viande hachée pour la kefta.",
     },
-    bookingDelay: "Délai : 2 à 4 semaines avant la date du mariage. Devis personnalisé sous 48h.",
+    bookingDelay: "Délai conseillé : 2 à 4 semaines avant la date du mariage.",
     season: "year-round",
     priority: "P0",
   },
@@ -111,16 +117,18 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     // Bumper chaque année après l'iftar du dernier jour.
     eventStart: "2027-02-08",
     eventEnd: "2027-03-08",
+    lastUpdated: "2026-11-15",
     shortDescription:
-      "Commandez votre viande halal pour le Ramadan : packs iftar, suhour, repas familiaux. Click & collect pour briser le jeûne sans stress.",
+      "Ramadan 2027 : quantités de viande halal pour l'iftar et le suhour, plats de tradition et commande en click & collect avant la rupture du jeûne.",
     intro:
-      "Le mois sacré du Ramadan est le moment où les familles musulmanes se retrouvent chaque soir pour rompre le jeûne (iftar) et préparent souvent un suhour copieux avant l'aube. La viande halal occupe une place centrale dans les repas du Ramadan : harira au bœuf, chorba, brochettes, méchoui le week-end, tajines lents, boulettes en sauce, pastilla aux fruits secs. Sur Klik&Go, les boucheries halal partenaires proposent des packs Ramadan adaptés à votre famille : packs iftar pour 4-6 personnes, packs suhour avec viande hachée et brochettes, packs week-end pour les grands repas. Vous pouvez aussi commander à la pièce. Click & collect possible : commandez l'après-midi, récupérez avant l'iftar, sans file d'attente. Frais de service : 0,99€ par commande.",
+      "Pendant le mois de Ramadan, les familles musulmanes jeûnent de l'aube au coucher du soleil, se retrouvent chaque soir pour rompre le jeûne (l'iftar) et prennent un repas avant l'aube (le suhour). En 2027, le Ramadan devrait commencer autour du 8 février et s'achever début mars, l'Aïd el-Fitr étant attendu le 9 ou le 10 mars ; les dates exactes dépendent de l'observation de la lune. La viande halal tient une place importante dans les repas du soir : harira à l'agneau ou au bœuf, chorba, brochettes, boulettes en sauce, tajines mijotés, pastilla au poulet, méchoui le week-end. Pour éviter les courses de dernière minute, beaucoup de familles prévoient leurs quantités pour la semaine : viande hachée pour la kefta et la harira, morceaux d'agneau à mijoter, poulet entier, merguez. Le click & collect permet de commander dans la journée et de passer récupérer la viande au créneau choisi, avant l'iftar.",
     servingTip: {
       question: "Quelle quantité de viande pour le Ramadan ?",
       answer:
-        "Pour une famille de 5 personnes en Ramadan, comptez environ 4-5 kg de viande halal par semaine : 1 kg viande hachée (kefta, harira), 1.5 kg agneau (tajine, brochettes), 1 poulet entier, 500g merguez. Adaptez selon vos repas et invités.",
+        "Pour une famille de 5 personnes, comptez environ 4 à 5 kg de viande halal par semaine de Ramadan : 1 kg de viande hachée (kefta, harira), 1,5 kg d'agneau (tajine, brochettes), un poulet entier et 500 g de merguez. Adaptez selon vos repas et vos invités.",
     },
-    bookingDelay: "Commande possible jusqu'au jour même selon créneau. Pour les grands repas (>10 personnes), prévoir 24h.",
+    bookingDelay:
+      "Délai conseillé : le jour même selon les créneaux disponibles, la veille pour un iftar de plus de 10 personnes.",
     season: "ramadan",
     priority: "P0",
   },
@@ -129,52 +137,58 @@ export const SEO_OCCASIONS: readonly SeoOccasion[] = [
     name: "Aqiqa",
     keyword: "viande aqiqa",
     // Pas de eventType : date dépend de la naissance, pas universelle → WebPage.
+    lastUpdated: "2026-11-15",
     shortDescription:
-      "Commandez votre mouton halal pour l'aqiqa (naissance bébé) — sacrifice et préparation par votre boucher.",
+      "Aqiqa : quel mouton prévoir pour la naissance de votre enfant, comment partager la viande et quand réserver auprès de votre boucherie halal.",
     intro:
-      "L'aqiqa est une tradition musulmane qui célèbre la naissance d'un enfant : le 7e jour après la naissance, les parents sacrifient un mouton (ou deux pour un garçon, un pour une fille selon certaines écoles), partagé entre la famille, les voisins et les nécessiteux. Sur Klik&Go, les boucheries halal partenaires vous accompagnent dans cette tradition : commande d'un mouton halal certifié (12-15 kg en moyenne), sacrifice rituel, découpe selon vos besoins (3 parts traditionnellement : famille, voisins, nécessiteux), conditionnement en barquettes ou sous vide. Vous pouvez aussi opter pour la cuisson partielle (méchoui pour la fête de famille) ou la préparation en plats (tajine, couscous). Délai recommandé : commander dès la naissance pour garantir la disponibilité.",
+      "L'aqiqa est une tradition musulmane qui célèbre la naissance d'un enfant. Elle est recommandée le septième jour après la naissance ; selon une pratique courante, on sacrifie deux moutons pour un garçon et un pour une fille, et la viande est partagée entre la famille, les proches et les personnes dans le besoin. Beaucoup de familles en profitent pour réunir leurs proches autour d'un repas : couscous, tajine, agneau rôti. Comme pour l'Aïd, l'abattage rituel n'est autorisé en France qu'en abattoir : prévenez votre boucherie halal dès la naissance, pour qu'elle vous explique comment elle s'organise, quel poids de carcasse attendre et sous quelle forme la viande vous sera remise, entière, en demi-carcasse ou découpée en parts. Si vous préparez seulement le repas de fête, des morceaux au poids suffisent : épaule ou gigot pour le four, collier et souris pour le tajine.",
     servingTip: {
       question: "Quel poids de mouton pour une aqiqa ?",
       answer:
-        "Un mouton standard pour aqiqa pèse 12-15 kg (vivant), soit environ 6-8 kg de viande nette après abattage. Suffit pour 15-20 parts si découpé en 3 (famille, voisins, dons). Pour un garçon (2 moutons), prévoyez le double.",
+        "La tradition prévoit un mouton pour une fille et deux pour un garçon. Le poids de viande dépend de l'animal : demandez à votre boucher le poids de carcasse attendu avant de réserver. Pour le repas qui accompagne l'aqiqa, comptez 300 à 400 g d'agneau avec os par adulte.",
     },
-    bookingDelay: "Délai : 3-5 jours minimum (l'éleveur doit préparer l'animal).",
+    bookingDelay:
+      "Délai conseillé : prévenez la boucherie dès la naissance, au moins 3 à 5 jours avant la date choisie.",
     season: "year-round",
     priority: "P1",
   },
   {
     slug: "barbecue",
-    name: "Barbecue halal",
+    name: "Barbecue",
     keyword: "barbecue halal",
     // Pas de eventType : catégorie de produit pas un événement → WebPage.
+    lastUpdated: "2026-11-15",
     shortDescription:
-      "Pack barbecue halal — merguez, brochettes, côtes d'agneau, marinades — préparé par votre boucher pour vos grillades.",
+      "Barbecue halal : merguez, brochettes, côtes d'agneau, ailes de poulet… quantités par personne, marinades et temps de cuisson pour vos grillades.",
     intro:
-      "Le barbecue halal est la star de l'été en France : entre amis, en famille, au bord du lac d'Annecy ou dans le jardin, il rassemble. Sur Klik&Go, les boucheries halal partenaires préparent des packs barbecue clés en main pour 4, 6, 10, 15 ou 20 personnes : merguez maison, brochettes d'agneau marinées, côtes d'agneau, côtes de bœuf, ailes de poulet épicées, kefta sur brochettes. Vous pouvez aussi composer votre pack à la carte selon vos goûts et votre budget. Commander en ligne le matin et récupérer en sortant du travail = vous arrivez chez vous prêt à allumer le barbecue. Toutes les viandes sont halal certifiées, marinades maison, sans conservateurs ni colorants.",
+      "Dès les beaux jours, le barbecue rassemble famille et amis, dans le jardin, sur une terrasse ou au bord d'un lac. Côté viande halal, les classiques se complètent : merguez, brochettes d'agneau ou de poulet marinées, côtes d'agneau, côte de bœuf, ailes de poulet épicées, kefta en brochettes. Misez sur la variété plutôt que sur la quantité d'un seul produit : prévoyez environ 600 g de viande crue par adulte quand le barbecue est le repas principal, moins s'il y a beaucoup d'accompagnements. Les marinades (huile d'olive, citron, ail, cumin, paprika, herbes) se préparent la veille pour l'agneau et le bœuf ; pour le poulet, quelques heures suffisent. Sortez la viande du réfrigérateur une demi-heure avant de la poser sur la grille, et cuisez les merguez à feu moyen pour qu'elles ne brûlent pas à l'extérieur. Avec le click & collect, vous pouvez commander le matin et passer récupérer votre viande en fin de journée, au créneau choisi.",
     servingTip: {
       question: "Quelle quantité de viande pour un barbecue halal de 10 personnes ?",
       answer:
-        "Pour 10 personnes (adultes), comptez environ 5-6 kg de viande au total : 30 merguez (3 par personne), 10 brochettes d'agneau, 10 brochettes de poulet, 10 côtes d'agneau, 1 kg de viande hachée pour quelques burgers. Soit ~600g par personne.",
+        "Pour 10 adultes, comptez 5 à 6 kg de viande au total, soit environ 600 g par personne : 30 merguez (3 par personne), 10 brochettes d'agneau, 10 brochettes de poulet, 10 côtes d'agneau et 1 kg de viande hachée pour quelques burgers.",
     },
-    bookingDelay: "Pour le week-end, commandez avant jeudi soir. Pour la semaine, créneau du jour possible.",
+    bookingDelay:
+      "Délai conseillé : un à deux jours avant pour un barbecue de week-end, le jour même en semaine selon les créneaux.",
     season: "summer",
     priority: "P0",
   },
   {
     slug: "buffet",
-    name: "Buffet halal",
+    name: "Buffet",
     keyword: "buffet halal",
     // Pas de eventType : catégorie de produit pas un événement → WebPage.
+    lastUpdated: "2026-11-15",
     shortDescription:
-      "Commandez votre buffet halal pour événements professionnels, anniversaires, baptêmes — pack viande complet.",
+      "Buffet halal : quelles viandes servir pour un apéritif dînatoire ou une réception, en quelles quantités, et comment les commander à l'avance.",
     intro:
-      "Pour vos événements (anniversaire, baptême, fête de fin d'année, séminaire d'entreprise), Klik&Go vous propose des packs buffet halal sur mesure : assortiment de viandes pour brochettes, kefta sur baguette, mini-merguez en pic apéro, viande hachée pour mini-burgers, tartare halal pour les amateurs. Les boucheries halal partenaires préparent vos viandes la veille ou le jour même, conditionnées en barquettes individuelles ou en plateaux pour faciliter le service. Vous pouvez compléter avec des spécialités du boucher (samoussas, briouates, crêpes berbères) selon disponibilité. Devis sur mesure, livraison ou retrait en boutique au créneau choisi.",
+      "Anniversaire, baptême, fête de fin d'année, réception d'entreprise : un buffet se compose de bouchées faciles à prendre à la main. Côté viande halal, les formats pratiques sont les mini-brochettes d'agneau ou de poulet, la kefta en boulettes ou sur pique, les mini-merguez, la viande hachée pour des mini-burgers et les blancs de poulet à paner. Pour un apéritif dînatoire, comptez 250 à 300 g de viande par personne ; pour une réception où d'autres plats sont servis, 150 g peuvent suffire. Préparez une liste par produit et précisez au boucher le format souhaité (taille des brochettes, calibre des merguez) dans la note de votre commande : la découpe et le façonnage demandent du temps pour les grandes quantités. Prévoyez enfin de garder la viande au froid jusqu'à la cuisson et de ne la sortir qu'au dernier moment.",
     servingTip: {
       question: "Combien de viande pour un buffet halal de 20 personnes ?",
       answer:
-        "Pour un buffet halal de 20 personnes (apéritif dinatoire), comptez environ 5 kg de viande variée : 40 mini-brochettes, 20 mini-merguez, 1.5 kg de kefta sur pic, 1 kg de viande hachée pour mini-burgers, 1 kg de poulet pané maison. Soit 250-300g par personne.",
+        "Pour un apéritif dînatoire de 20 personnes, comptez environ 5 kg de viande variée, soit 250 à 300 g par personne : 40 mini-brochettes, 20 mini-merguez, 1,5 kg de kefta sur pique, 1 kg de viande hachée pour des mini-burgers et 1 kg de blancs de poulet à paner.",
     },
-    bookingDelay: "Délai : 5-7 jours pour les buffets >30 personnes. 48h pour les petits buffets.",
+    bookingDelay:
+      "Délai conseillé : une semaine avant pour une réception de plus de 30 personnes, deux à trois jours avant pour un petit buffet.",
     season: "year-round",
     priority: "P1",
   },
