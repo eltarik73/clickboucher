@@ -3,27 +3,43 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
+import { writeAuditLog } from "@/lib/audit-log";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const globalCommissionSchema = z.object({
-  commissionPct: z.number().min(0).max(100),
-  commissionEnabled: z.boolean().optional().default(true),
-});
+const globalCommissionSchema = z
+  .object({
+    commissionPct: z.number().min(0).max(100),
+    commissionEnabled: z.boolean().optional().default(true),
+  })
+  .strict({ message: "Ce champ ne peut pas être modifié ici" });
 
 export async function PATCH(req: NextRequest) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
-    const body = await req.json();
-    const data = globalCommissionSchema.parse(body);
+    const data = globalCommissionSchema.parse(await readJsonBody(req));
 
     const result = await prisma.shop.updateMany({
       data: {
         commissionPct: data.commissionPct,
         commissionEnabled: data.commissionEnabled,
+      },
+    });
+
+    // Every shop's commission changed: traced like a per-shop change (shop.commission_change), so
+    // a rate that matches no admin decision can be told from an admin's (commission-audit.readonly.sql).
+    await writeAuditLog({
+      actorId: admin.userId,
+      action: "commission.global_change",
+      target: "Shop",
+      details: {
+        commissionPct: data.commissionPct,
+        commissionEnabled: data.commissionEnabled,
+        updated: result.count,
       },
     });
 

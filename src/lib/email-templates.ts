@@ -1,13 +1,4 @@
-// ─────────────────────────────────────────────
-// HTML escape — prevent XSS in user-supplied fields
-// ─────────────────────────────────────────────
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { escapeHtml } from "@/lib/html/escape";
 
 // ─────────────────────────────────────────────
 // Shared layout wrapper
@@ -126,7 +117,7 @@ export function orderDenied(data: {
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:13px;color:#991b1b;font-weight:600">Raison</p>
-        <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason || "Non précisée")}</p>
+        <p style="margin:0;font-size:14px;color:#7f1d1d">${escapeHtml(data.denyReason || "Non précisée")}</p>
       </td></tr>
     </table>
     <p style="margin:0;font-size:13px;color:#6b7280">Vous pouvez passer une nouvelle commande auprès d'une autre boucherie.</p>
@@ -139,7 +130,7 @@ export function orderPending(data: { orderNumber?: string; customerName?: string
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">\ud83d\udd14 Nouvelle commande !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Vous avez reçu une nouvelle commande <strong>#${data.orderNumber}</strong> de <strong>${esc(data.customerName || "un client")}</strong>.
+      Vous avez reçu une nouvelle commande <strong>#${data.orderNumber}</strong> de <strong>${escapeHtml(data.customerName || "un client")}</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Connectez-vous à votre espace boucher pour accepter ou refuser cette commande.</p>
     ${button(`${baseUrl}/boucher/commandes`, "Gérer les commandes")}
@@ -311,7 +302,7 @@ export function orderCancelled(data: {
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
         <p style="margin:0 0 4px;font-size:13px;color:#991b1b;font-weight:600">Raison</p>
-        <p style="margin:0;font-size:14px;color:#7f1d1d">${esc(data.denyReason)}</p>
+        <p style="margin:0;font-size:14px;color:#7f1d1d">${escapeHtml(data.denyReason)}</p>
       </td></tr>
     </table>`
         : ""
@@ -329,7 +320,7 @@ export function orderCancelledByCustomer(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">❌ Commande annulée par le client</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      <strong>${esc(data.customerName || "Le client")}</strong> a annulé la commande <strong>#${data.orderNumber}</strong>.
+      <strong>${escapeHtml(data.customerName || "Le client")}</strong> a annulé la commande <strong>#${data.orderNumber}</strong>.
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
@@ -349,7 +340,7 @@ export function orderExpired(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">❌ Commande annulée</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      <strong>${esc(data.shopName || "La boutique")}</strong> n'a pas répondu à temps : votre commande <strong>${data.orderNumber}</strong> est annulée.
+      <strong>${escapeHtml(data.shopName || "La boutique")}</strong> n'a pas répondu à temps : votre commande <strong>${data.orderNumber}</strong> est annulée.
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Vous n'avez rien à payer. Vous pouvez passer une nouvelle commande à tout moment.</p>
     ${button(data.orderId ? `${baseUrl}/suivi/${data.orderId}` : `${baseUrl}/commandes`, "Voir ma commande")}
@@ -369,7 +360,7 @@ export function boucherNote(data: {
     </p>
     <table cellpadding="0" cellspacing="0" style="width:100%;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:20px">
       <tr><td>
-        <p style="margin:0;font-size:14px;color:#92400e;font-style:italic">"${esc(data.note || "")}"</p>
+        <p style="margin:0;font-size:14px;color:#92400e;font-style:italic">"${escapeHtml(data.note || "")}"</p>
       </td></tr>
     </table>
     ${button(`${baseUrl}/commandes`, "Voir ma commande")}
@@ -498,7 +489,7 @@ export function pickupSoon(data: {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">🚶 Bientôt prête !</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      Votre commande <strong>#${esc(data.orderNumber || "")}</strong> chez <strong>${esc(data.shopName || "")}</strong>
+      Votre commande <strong>#${escapeHtml(data.orderNumber || "")}</strong> chez <strong>${escapeHtml(data.shopName || "")}</strong>
       sera prête dans environ <strong>${data.estimatedMinutes || 5} minutes</strong>.
     </p>
     <p style="margin:0 0 20px;font-size:14px;color:#6b7280">Dirigez-vous vers la boutique pour récupérer votre commande dès qu'elle sera prête.</p>
@@ -511,7 +502,7 @@ export function calendarAlert(data: { message?: string }): string {
   return layout(`
     <h1 style="margin:0 0 8px;font-size:20px;color:#111827">📅 Événement à venir</h1>
     <p style="margin:0 0 20px;font-size:15px;color:#4b5563">
-      ${esc(data.message || "Un événement important approche !")}
+      ${escapeHtml(data.message || "Un événement important approche !")}
     </p>
     <p style="margin:0;font-size:13px;color:#6b7280">Préparez vos produits et vos stocks pour répondre à la demande.</p>
     ${button(`${baseUrl}/boucher/dashboard`, "Mon tableau de bord")}
@@ -525,9 +516,9 @@ export function calendarAlert(data: { message?: string }): string {
 export function prospectInitial(data: { name?: string; city?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
   const greeting = data.name
-    ? `Bonjour ${esc(data.name)},`
+    ? `Bonjour ${escapeHtml(data.name)},`
     : data.city
-      ? `Bonjour, je m'adresse aux boucheries halal de ${esc(data.city)},`
+      ? `Bonjour, je m'adresse aux boucheries halal de ${escapeHtml(data.city)},`
       : "Bonjour,";
   return layout(`
     <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
@@ -553,8 +544,8 @@ export function prospectInitial(data: { name?: string; city?: string }): string 
 
 export function prospectRelance3j(data: { name?: string; city?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
-  const greeting = data.name ? `Bonjour ${esc(data.name)},` : "Bonjour,";
-  const cityLine = data.city ? ` à ${esc(data.city)} et alentours` : "";
+  const greeting = data.name ? `Bonjour ${escapeHtml(data.name)},` : "Bonjour,";
+  const cityLine = data.city ? ` à ${escapeHtml(data.city)} et alentours` : "";
   return layout(`
     <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
     <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">
@@ -571,7 +562,7 @@ export function prospectRelance3j(data: { name?: string; city?: string }): strin
 
 export function prospectRelance7j(data: { name?: string; city?: string }): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://klikandgo.app";
-  const greeting = data.name ? `Bonjour ${esc(data.name)},` : "Bonjour,";
+  const greeting = data.name ? `Bonjour ${escapeHtml(data.name)},` : "Bonjour,";
   return layout(`
     <p style="margin:0 0 16px;font-size:15px;color:#111827">${greeting}</p>
     <p style="margin:0 0 16px;font-size:15px;color:#4b5563;line-height:1.6">

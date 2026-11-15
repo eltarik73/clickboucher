@@ -4,6 +4,7 @@ import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import {
   pauseShop,
   resumeShop,
@@ -12,10 +13,28 @@ import {
   setVacationMode,
   endVacationMode,
   getShopStatus,
+  shopSuspension,
+  type VacationChange,
 } from "@/lib/shop-status";
-import { z } from "zod";
+import {
+  SHOP_NOT_PUBLISHED_OWNER_MESSAGE,
+  SHOP_SUSPENDED_OWNER_MESSAGE,
+} from "@/lib/shop-publication";
+import { shopStatusActionSchema } from "./action-schema";
 
 export const dynamic = "force-dynamic";
+
+/** Why a vacation could not start or end, as the butcher reads it. */
+function vacationRefusal(reason: Extract<VacationChange, { ok: false }>["reason"]): Response {
+  switch (reason) {
+    case "SUSPENDED":
+      return apiError("FORBIDDEN", SHOP_SUSPENDED_OWNER_MESSAGE);
+    case "NOT_PUBLISHED":
+      return apiError("CONFLICT", SHOP_NOT_PUBLISHED_OWNER_MESSAGE);
+    case "NOT_ON_VACATION":
+      return apiError("CONFLICT", "La boutique n'est pas en vacances");
+  }
+}
 
 // ── GET — Current shop status + details ──
 export async function GET() {
@@ -77,7 +96,9 @@ export async function GET() {
 
     return apiSuccess({
       ...shop,
-      ...(pauseCleared ? { paused: false, pausedAt: null, pauseReason: null, pauseEndsAt: null } : {}),
+      ...(pauseCleared
+        ? { paused: false, pausedAt: null, pauseReason: null, pauseEndsAt: null }
+        : {}),
       status: currentStatus,
       effectivePrepTime: shop.prepTimeMin + (shop.busyMode ? shop.busyExtraMin : 0),
     });
@@ -87,49 +108,16 @@ export async function GET() {
 }
 
 // ── PATCH — Change shop status ──
-const actionSchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("pause"),
-    reason: z.string().optional(),
-    durationMin: z.number().int().min(1).max(1440).optional(),
-  }),
-  z.object({ action: z.literal("resume") }),
-  z.object({
-    action: z.literal("busy"),
-    extraMin: z.number().int().min(5).max(60),
-    durationMin: z.number().int().min(15).max(480),
-  }),
-  z.object({ action: z.literal("end_busy") }),
-  z.object({
-    action: z.literal("vacation"),
-    start: z.string().datetime(),
-    end: z.string().datetime(),
-    message: z.string().max(200).optional(),
-  }),
-  z.object({ action: z.literal("end_vacation") }),
-  z.object({ action: z.literal("close") }),
-  z.object({
-    action: z.literal("update_settings"),
-    prepTimeMin: z.number().int().min(5).max(120).optional(),
-    autoAccept: z.boolean().optional(),
-    acceptTimeoutMin: z.number().int().min(3).max(60).optional(),
-    maxOrdersPerSlot: z.number().int().min(1).max(100).optional(),
-    maxOrdersPerHour: z.number().int().min(1).max(500).optional(),
-    autoBusyThreshold: z.number().int().min(3).max(100).optional(),
-    soundNotif: z.boolean().optional(),
-    flashNotif: z.boolean().optional(),
-    vibrateNotif: z.boolean().optional(),
-  }),
-]);
-
+// A suspended shop belongs to the admin until it is reactivated: every action is refused.
 export async function PATCH(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
 
-    const body = await req.json();
-    const data = actionSchema.parse(body);
+    if (await shopSuspension(shopId)) return apiError("FORBIDDEN", SHOP_SUSPENDED_OWNER_MESSAGE);
+
+    const data = shopStatusActionSchema.parse(await readJsonBody(req));
 
     switch (data.action) {
       case "pause":
@@ -155,17 +143,21 @@ export async function PATCH(req: NextRequest) {
         await endBusyMode(shopId);
         break;
 
-      case "vacation":
-        await setVacationMode(shopId, {
+      case "vacation": {
+        const change = await setVacationMode(shopId, {
           start: new Date(data.start),
           end: new Date(data.end),
           message: data.message,
         });
+        if (!change.ok) return vacationRefusal(change.reason);
         break;
+      }
 
-      case "end_vacation":
-        await endVacationMode(shopId);
+      case "end_vacation": {
+        const change = await endVacationMode(shopId);
+        if (!change.ok) return vacationRefusal(change.reason);
         break;
+      }
 
       case "close":
         await prisma.shop.update({
@@ -182,14 +174,8 @@ export async function PATCH(req: NextRequest) {
         break;
 
       case "update_settings": {
-        const { action: _, ...settings } = data;
-        const updateData: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(settings)) {
-          if (value !== undefined) updateData[key] = value;
-        }
-        if (Object.keys(updateData).length > 0) {
-          await prisma.shop.update({ where: { id: shopId }, data: updateData });
-        }
+        const { action: _action, ...settings } = data;
+        await prisma.shop.update({ where: { id: shopId }, data: settings });
         break;
       }
     }
@@ -198,10 +184,20 @@ export async function PATCH(req: NextRequest) {
     const updated = await prisma.shop.findUnique({
       where: { id: shopId },
       select: {
-        id: true, status: true, busyMode: true, busyExtraMin: true,
-        busyModeEndsAt: true, paused: true, pauseEndsAt: true, pauseReason: true,
-        vacationMode: true, vacationEnd: true, vacationMessage: true,
-        prepTimeMin: true, autoAccept: true, acceptTimeoutMin: true,
+        id: true,
+        status: true,
+        busyMode: true,
+        busyExtraMin: true,
+        busyModeEndsAt: true,
+        paused: true,
+        pauseEndsAt: true,
+        pauseReason: true,
+        vacationMode: true,
+        vacationEnd: true,
+        vacationMessage: true,
+        prepTimeMin: true,
+        autoAccept: true,
+        acceptTimeoutMin: true,
       },
     });
 

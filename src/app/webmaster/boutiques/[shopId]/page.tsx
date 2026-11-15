@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import ShopAdjustmentsTab from "@/components/webmaster/ShopAdjustmentsTab";
+import { shopPublication } from "@/lib/shop-publication";
 
 // ── Types ──
 
@@ -50,7 +51,7 @@ type ShopDetail = {
   legalName: string | null;
   suspendedAt: string | null;
   suspendReason: string | null;
-  onboardingCompleted: boolean;
+  vacationMode: boolean;
   owner: { name: string; email: string; phone: string | null } | null;
   stats: {
     totalRevenue: number;
@@ -87,6 +88,17 @@ async function shopPhotoSaveError(res: Response): Promise<string> {
     error?: { message?: string; details?: { imageUrl?: string[] } };
   };
   return body.error?.details?.imageUrl?.[0] ?? body.error?.message ?? SHOP_PHOTO_SAVE_FAILED;
+}
+
+/** The French message of a refused admin action (`{ error: { message } }`), or a generic one. */
+async function refusalMessage(res: Response): Promise<string> {
+  const body: unknown = res.headers.get("content-type")?.includes("application/json")
+    ? await res.json()
+    : null;
+  const error = typeof body === "object" && body !== null && "error" in body ? body.error : null;
+  const message =
+    typeof error === "object" && error !== null && "message" in error ? error.message : null;
+  return typeof message === "string" ? message : "Action refusée par le serveur";
 }
 
 // ── Component ──
@@ -139,7 +151,7 @@ export default function WebmasterShopDetailPage() {
         body: JSON.stringify({ approved }),
       });
       if (res.ok) await fetchShop();
-      else toast.error("Erreur");
+      else toast.error(await refusalMessage(res));
     } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
@@ -156,7 +168,7 @@ export default function WebmasterShopDetailPage() {
         setShowSuspendConfirm(false);
         setSuspendReason("");
         await fetchShop();
-      } else toast.error("Erreur");
+      } else toast.error(await refusalMessage(res));
     } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
@@ -170,7 +182,7 @@ export default function WebmasterShopDetailPage() {
         body: JSON.stringify({ suspended: false }),
       });
       if (res.ok) await fetchShop();
-      else toast.error("Erreur");
+      else toast.error(await refusalMessage(res));
     } catch { toast.error("Erreur de connexion au serveur"); }
     setActionLoading(null);
   }
@@ -201,7 +213,10 @@ export default function WebmasterShopDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: newVal }),
       });
-      if (!res.ok) setShop((prev) => prev ? { ...prev, [field]: !newVal } : prev);
+      if (!res.ok) {
+        setShop((prev) => prev ? { ...prev, [field]: !newVal } : prev);
+        toast.error(await refusalMessage(res));
+      }
     } catch {
       setShop((prev) => prev ? { ...prev, [field]: !newVal } : prev);
       toast.error("Erreur de connexion au serveur");
@@ -230,7 +245,7 @@ export default function WebmasterShopDetailPage() {
   }
 
   const isSuspended = !!shop.suspendedAt;
-  const isNotValidated = !shop.onboardingCompleted && !shop.visible;
+  const isNotValidated = shopPublication(shop) === "UNPUBLISHED";
   const avgOrder = shop.stats.completedOrders > 0
     ? Math.round(shop.stats.totalRevenue / shop.stats.completedOrders)
     : 0;
@@ -279,7 +294,8 @@ export default function WebmasterShopDetailPage() {
           </button>
           <button
             onClick={() => toggleField("visible")}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+            disabled={isSuspended}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:pointer-events-none disabled:opacity-50 ${
               shop.visible
                 ? "bg-emerald-500/10 text-emerald-600"
                 : "bg-red-500/10 text-red-500"
@@ -361,15 +377,15 @@ export default function WebmasterShopDetailPage() {
             <span className="text-sm font-bold text-red-700 dark:text-red-400">Boutique suspendue</span>
           </div>
           {shop.suspendReason && (
-            <p className="text-xs text-red-600 dark:text-red-400/80 mb-3">Raison: {shop.suspendReason}</p>
+            <p className="text-xs text-red-600 dark:text-red-400/80 mb-3">Raison&nbsp;: {shop.suspendReason}</p>
           )}
           <button
             onClick={handleReactivate}
             disabled={actionLoading === "reactivate"}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            className="flex min-h-11 items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
           >
             {actionLoading === "reactivate" ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
-            Reactiver la boutique
+            Réactiver la boutique
           </button>
         </div>
       )}
@@ -479,10 +495,10 @@ export default function WebmasterShopDetailPage() {
               <button
                 onClick={handleReactivate}
                 disabled={actionLoading === "reactivate"}
-                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="flex min-h-11 items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 {actionLoading === "reactivate" ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
-                Reactiver
+                Réactiver
               </button>
             ) : !showSuspendConfirm ? (
               <button

@@ -3,15 +3,14 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { writeAuditLog } from "@/lib/audit-log";
+import { setShopPublished } from "@/lib/services/shops/moderation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { shopId: string } }
-) {
+export async function GET(_req: NextRequest, { params }: { params: { shopId: string } }) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
@@ -80,43 +79,56 @@ export async function GET(
 }
 
 // ── PATCH /api/admin/shops/[shopId] — Toggle featured/visible ──
+// Listing and unlisting are moderation decisions (src/lib/services/shops/moderation.ts): a
+// suspended shop is not listed again here (409), it is reactivated through /suspend.
 
-const patchShopSchema = z.object({
-  featured: z.boolean().optional(),
-  visible: z.boolean().optional(),
-  defaultBusyDurationMin: z.number().int().min(5).max(120).optional(),
-});
+const patchShopSchema = z
+  .object({
+    featured: z.boolean().optional(),
+    visible: z.boolean().optional(),
+    defaultBusyDurationMin: z.number().int().min(5).max(120).optional(),
+  })
+  .strict({ message: "Ce champ ne peut pas être modifié ici" });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { shopId: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
     const { shopId } = params;
-    const body = await req.json();
-    const data = patchShopSchema.parse(body);
+    const data = patchShopSchema.parse(await readJsonBody(req));
 
-    if (data.featured === undefined && data.visible === undefined && data.defaultBusyDurationMin === undefined) {
-      return apiError("VALIDATION_ERROR", "Aucun champ a modifier");
+    if (
+      data.featured === undefined &&
+      data.visible === undefined &&
+      data.defaultBusyDurationMin === undefined
+    ) {
+      return apiError("VALIDATION_ERROR", "Aucun champ à modifier");
     }
 
-    const updated = await prisma.shop.update({
+    if (data.visible !== undefined) {
+      const publication = await setShopPublished(shopId, data.visible);
+      if (!publication.ok) return apiError(publication.code, publication.message);
+    }
+
+    if (data.featured !== undefined || data.defaultBusyDurationMin !== undefined) {
+      const { count } = await prisma.shop.updateMany({
+        where: { id: shopId },
+        data: { featured: data.featured, defaultBusyDurationMin: data.defaultBusyDurationMin },
+      });
+      if (count === 0) return apiError("NOT_FOUND", "Boutique introuvable");
+    }
+
+    const updated = await prisma.shop.findUniqueOrThrow({
       where: { id: shopId },
-      data: {
-        ...(data.featured !== undefined && { featured: data.featured }),
-        ...(data.visible !== undefined && { visible: data.visible }),
-        ...(data.defaultBusyDurationMin !== undefined && { defaultBusyDurationMin: data.defaultBusyDurationMin }),
-      },
       select: { id: true, featured: true, visible: true, defaultBusyDurationMin: true },
     });
 
     const changes: Record<string, boolean | number> = {};
     if (data.featured !== undefined) changes.featured = data.featured;
     if (data.visible !== undefined) changes.visible = data.visible;
-    if (data.defaultBusyDurationMin !== undefined) changes.defaultBusyDurationMin = data.defaultBusyDurationMin;
+    if (data.defaultBusyDurationMin !== undefined)
+      changes.defaultBusyDurationMin = data.defaultBusyDurationMin;
 
     await writeAuditLog({
       actorId: admin.userId,

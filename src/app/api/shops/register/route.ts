@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
         phone: data.phone,
         description: data.description || null,
         ownerId: userId,
+        visible: false,
         status: "CLOSED",
         paused: true,
         rating: 0,

@@ -1,76 +1,107 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { z } from "zod";
 import { Check, ArrowRight, Rocket, PartyPopper } from "lucide-react";
+import type { ShopPublication } from "@/lib/shop-publication";
 
-type Step = {
-  key: string;
-  label: string;
-  emoji: string;
-  weight: number;
-  completed: boolean;
-  href: string;
-};
+const onboardingResponseSchema = z.object({
+  data: z.object({
+    steps: z.array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        emoji: z.string(),
+        completed: z.boolean(),
+        href: z.string(),
+      })
+    ),
+    progress: z.number(),
+    onboardingCompleted: z.boolean(),
+    publication: z.enum([
+      "PUBLISHED",
+      "ON_VACATION",
+      "UNPUBLISHED",
+      "SUSPENDED",
+    ]) satisfies z.ZodType<ShopPublication>,
+  }),
+});
 
-type OnboardingData = {
-  steps: Step[];
-  progress: number;
-  onboardingCompleted: boolean;
-  visible: boolean;
-};
+type OnboardingData = z.infer<typeof onboardingResponseSchema>["data"];
+
+type PublicationLabel = { text: string; className: string };
+
+const AMBER = "text-amber-700 dark:text-amber-300";
+
+/** What the card says about publication: the shop never publishes itself, Klik&Go validates it. */
+function publicationLabel(publication: ShopPublication, progress: number): PublicationLabel | null {
+  switch (publication) {
+    case "PUBLISHED":
+      return { text: "Boutique en ligne", className: "text-emerald-700 dark:text-emerald-400" };
+    case "ON_VACATION":
+      return { text: "Boutique en vacances", className: AMBER };
+    case "UNPUBLISHED":
+      return progress >= 80
+        ? { text: "En attente de validation par Klik&Go", className: AMBER }
+        : null;
+    case "SUSPENDED":
+      return {
+        text: "Boutique suspendue par Klik&Go",
+        className: "text-red-700 dark:text-red-400",
+      };
+  }
+}
+
+async function markOnboardingCompleted() {
+  try {
+    await fetch("/api/boucher/onboarding", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ complete: true }),
+    });
+  } catch {
+    // Network failure: the flag is sent again on the next dashboard visit.
+  }
+}
 
 export default function OnboardingChecklist() {
   const [data, setData] = useState<OnboardingData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [prevProgress, setPrevProgress] = useState(0);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/boucher/onboarding");
-      if (!res.ok) { setLoading(false); return; }
-      const json = await res.json();
-      const d = json.data || json;
-      if (!d?.steps || !Array.isArray(d.steps)) { setLoading(false); return; }
-      setData(d);
-
-      // Auto-visibility when >= 80%
-      if (d.progress >= 80 && !d.visible) {
-        await fetch("/api/boucher/onboarding", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ setVisible: true }),
-        });
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      let res: Response;
+      try {
+        res = await fetch("/api/boucher/onboarding");
+      } catch {
+        return;
       }
-
-      // Show confetti when first reaching 80%+
-      if (d.progress >= 80 && prevProgress < 80) {
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 4000);
-      }
-      setPrevProgress(d.progress);
-
-      // Auto-complete at 100%
-      if (d.progress >= 100 && !d.onboardingCompleted) {
-        await fetch("/api/boucher/onboarding", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ complete: true }),
-        });
-      }
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
+      if (!res.ok) return;
+      const parsed = onboardingResponseSchema.safeParse(await res.json());
+      if (ignore || !parsed.success) return;
+      const loaded = parsed.data.data;
+      setData(loaded);
+      setShowConfetti(loaded.publication === "PUBLISHED" && loaded.progress >= 80);
+      if (loaded.progress >= 100 && !loaded.onboardingCompleted) await markOnboardingCompleted();
     }
-  }, [prevProgress]);
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!showConfetti) return;
+    const timer = setTimeout(() => setShowConfetti(false), 4000);
+    return () => clearTimeout(timer);
+  }, [showConfetti]);
 
-  if (loading || !data || data.onboardingCompleted) return null;
+  if (!data || (data.onboardingCompleted && data.publication !== "SUSPENDED")) return null;
 
   const completedCount = data.steps.filter((s) => s.completed).length;
+  const label = publicationLabel(data.publication, data.progress);
 
   return (
     <div className="bg-white dark:bg-[#141414] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden mb-6 relative">
@@ -80,7 +111,7 @@ export default function OnboardingChecklist() {
           <div className="text-center animate-bounce">
             <PartyPopper size={48} className="text-amber-500 mx-auto mb-2" />
             <p className="text-lg font-bold text-gray-900 dark:text-white">
-              Votre boutique est visible !
+              Votre boutique est en ligne !
             </p>
           </div>
         </div>
@@ -109,10 +140,8 @@ export default function OnboardingChecklist() {
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {data.progress}% complété
           </span>
-          {data.progress >= 80 && (
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-              Boutique visible !
-            </span>
+          {label && (
+            <span className={`text-xs font-semibold ${label.className}`}>{label.text}</span>
           )}
         </div>
       </div>

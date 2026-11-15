@@ -1,78 +1,60 @@
-// PATCH /api/admin/shops/[shopId]/suspend — Suspend or reactivate a shop
+// PATCH /api/admin/shops/[shopId]/suspend — Suspend or reactivate a shop (admin only).
+// The decision is the moderation service's (src/lib/services/shops/moderation.ts): a suspension is
+// a stored state that only this route lifts; the route keeps the audit log.
 import { NextRequest } from "next/server";
-import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { writeAuditLog } from "@/lib/audit-log";
+import { reactivateShop, suspendShop } from "@/lib/services/shops/moderation";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const suspendSchema = z.object({
-  suspended: z.boolean(),
-  reason: z.string().max(500).optional(),
-});
+const DEFAULT_REASON = "Suspendue par l'administration";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { shopId: string } }
-) {
+const suspendSchema = z
+  .object({
+    suspended: z.boolean(),
+    reason: z.string().trim().max(500).optional(),
+  })
+  .strict({ message: "Ce champ ne peut pas être modifié ici" });
+
+export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
     const { shopId } = params;
-    const body = await req.json();
-    const data = suspendSchema.parse(body);
-
-    const shop = await prisma.shop.findUnique({
-      where: { id: shopId },
-      select: { id: true },
-    });
-    if (!shop) {
-      return apiError("NOT_FOUND", "Boutique introuvable");
-    }
+    const data = suspendSchema.parse(await readJsonBody(req));
 
     if (data.suspended) {
-      await prisma.shop.update({
-        where: { id: shopId },
-        data: {
-          visible: false,
-          status: "CLOSED",
-          closedMessage: data.reason || "Boutique suspendue par l'administration",
-          // Fin des congés programmés : sinon leur expiration (cron vacation-end ou
-          // expiration paresseuse) remettrait la boutique suspendue en ligne.
-          vacationMode: false,
-          vacationStart: null,
-          vacationEnd: null,
-          vacationMessage: null,
-        },
-      });
+      const reason = data.reason || DEFAULT_REASON;
+      const result = await suspendShop(shopId, reason);
+      if (!result.ok) return apiError(result.code, result.message);
 
       await writeAuditLog({
         actorId: admin.userId,
         action: "shop.suspend",
         target: "Shop",
         targetId: shopId,
-        details: { reason: data.reason },
+        details: { reason },
       });
 
       return apiSuccess({ suspended: true });
-    } else {
-      await prisma.shop.update({
-        where: { id: shopId },
-        data: { visible: true, status: "OPEN", closedMessage: null },
-      });
-
-      await writeAuditLog({
-        actorId: admin.userId,
-        action: "shop.reactivate",
-        target: "Shop",
-        targetId: shopId,
-      });
-
-      return apiSuccess({ suspended: false });
     }
+
+    const result = await reactivateShop(shopId);
+    if (!result.ok) return apiError(result.code, result.message);
+
+    await writeAuditLog({
+      actorId: admin.userId,
+      action: "shop.reactivate",
+      target: "Shop",
+      targetId: shopId,
+    });
+
+    return apiSuccess({ suspended: false });
   } catch (error) {
     return handleApiError(error, "admin/shops/suspend");
   }

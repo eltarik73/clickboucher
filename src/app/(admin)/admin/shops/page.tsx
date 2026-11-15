@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   Search,
   Plus,
@@ -117,6 +118,23 @@ function slugify(str: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Pausing is the shop's own service switch, not the admin suspension (« Suspendre »). */
+function pauseActionLabel(shop: Shop) {
+  const isPaused = shop.status === "PAUSED" || shop.status === "AUTO_PAUSED";
+  return isPaused ? "Reprendre" : "Mettre en pause";
+}
+
+/** The French message of a refused admin action (`{ error: { message } }`), or a generic one. */
+async function refusalMessage(res: Response): Promise<string> {
+  const body: unknown = res.headers.get("content-type")?.includes("application/json")
+    ? await res.json()
+    : null;
+  const error = typeof body === "object" && body !== null && "error" in body ? body.error : null;
+  const message =
+    typeof error === "object" && error !== null && "message" in error ? error.message : null;
+  return typeof message === "string" ? message : "Action refusée par le serveur";
+}
+
 // ── Page Component ───────────────────────────────
 export default function AdminShopsPage() {
   const [shops, setShops] = useState<Shop[]>([]);
@@ -220,13 +238,13 @@ export default function AdminShopsPage() {
     setFormError(null);
 
     try {
+      const commissionPct = parseFloat(form.commissionPct) || 0;
       const payload: Record<string, unknown> = {
         name: form.name,
         address: form.address,
         city: form.city,
         phone: form.phone,
         description: form.description || undefined,
-        commissionPct: parseFloat(form.commissionPct) || 0,
       };
 
       let res: Response;
@@ -238,10 +256,19 @@ export default function AdminShopsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+        // The commission has one writer, the audited admin route.
+        if (res.ok && commissionPct !== editShop.commissionPct) {
+          res = await fetch(`/api/admin/shops/${editShop.id}/commission`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ commissionPct, commissionEnabled: commissionPct > 0 }),
+          });
+        }
       } else {
         // POST new
         payload.slug = form.slug || slugify(form.name);
         payload.ownerId = form.ownerId;
+        payload.commissionPct = commissionPct;
         res = await fetch("/api/shops", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -249,10 +276,7 @@ export default function AdminShopsPage() {
         });
       }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || err?.message || "Erreur serveur");
-      }
+      if (!res.ok) throw new Error(await refusalMessage(res));
 
       setDialogOpen(false);
       await loadShops();
@@ -273,13 +297,12 @@ export default function AdminShopsPage() {
         body: JSON.stringify({ status: isPaused ? "OPEN" : "PAUSED" }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        alert(err?.error || err?.message || "Erreur lors du changement de statut");
+        toast.error(await refusalMessage(res));
         return;
       }
       await loadShops();
     } catch {
-      alert("Erreur réseau");
+      toast.error("Erreur réseau");
     }
   }
 
@@ -481,8 +504,9 @@ export default function AdminShopsPage() {
                           </button>
                           <button
                             onClick={() => togglePause(shop)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
-                            title={(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "Reprendre" : "Suspendre"}
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
+                            title={pauseActionLabel(shop)}
+                            aria-label={pauseActionLabel(shop)}
                           >
                             {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? (
                               <Play size={14} />
@@ -562,7 +586,7 @@ export default function AdminShopsPage() {
                   </button>
                   <button
                     onClick={() => togglePause(shop)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
+                    className="flex-1 flex min-h-11 items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
                   >
                     {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? (
                       <>
@@ -570,7 +594,7 @@ export default function AdminShopsPage() {
                       </>
                     ) : (
                       <>
-                        <Pause size={12} /> Suspendre
+                        <Pause size={12} /> Mettre en pause
                       </>
                     )}
                   </button>

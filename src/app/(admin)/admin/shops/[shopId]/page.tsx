@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { shopPublication } from "@/lib/shop-publication";
 import {
   ArrowLeft,
   Store,
@@ -28,7 +30,7 @@ type ShopDetail = {
   featured: boolean;
   suspendedAt: string | null;
   suspendReason: string | null;
-  onboardingCompleted: boolean;
+  vacationMode: boolean;
   rating: number;
   ratingCount: number;
   commissionPct: number;
@@ -64,13 +66,24 @@ function fmt(cents: number): string {
   });
 }
 
+/** The French message of a refused admin action (`{ error: { message } }`), or a generic one. */
+async function refusalMessage(res: Response): Promise<string> {
+  const body: unknown = res.headers.get("content-type")?.includes("application/json")
+    ? await res.json()
+    : null;
+  const error = typeof body === "object" && body !== null && "error" in body ? body.error : null;
+  const message =
+    typeof error === "object" && error !== null && "message" in error ? error.message : null;
+  return typeof message === "string" ? message : "Action refusée par le serveur";
+}
+
 export default function AdminShopDetailPage({ params }: { params: { shopId: string } }) {
   const { shopId } = params;
   const [shop, setShop] = useState<ShopDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/shops/${shopId}`);
       const json = await res.json();
@@ -80,30 +93,27 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
     } finally {
       setLoading(false);
     }
-  }
+  }, [shopId]);
 
-  useEffect(() => { load(); }, [shopId]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  async function handleValidate(approved: boolean) {
+  async function moderate(action: "validate" | "suspend", body: Record<string, boolean>) {
     setActing(true);
-    await fetch(`/api/admin/shops/${shopId}/validate`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ approved }),
-    });
-    await load();
-    setActing(false);
-  }
-
-  async function handleSuspend(suspended: boolean) {
-    setActing(true);
-    await fetch(`/api/admin/shops/${shopId}/suspend`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ suspended }),
-    });
-    await load();
-    setActing(false);
+    try {
+      const res = await fetch(`/api/admin/shops/${shopId}/${action}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) toast.error(await refusalMessage(res));
+      await load();
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    } finally {
+      setActing(false);
+    }
   }
 
   if (loading) {
@@ -152,10 +162,20 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
             <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
               {shop.name}
             </h1>
+            {shop.suspendedAt && (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900/20 dark:text-red-300">
+                Boutique suspendue
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {shop.address}, {shop.city} &middot; {shop.phone}
           </p>
+          {shop.suspendedAt && shop.suspendReason && (
+            <p className="mt-1 text-xs text-red-700 dark:text-red-400">
+              Raison&nbsp;: {shop.suspendReason}
+            </p>
+          )}
           {shop.owner && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Propriétaire : {shop.owner.name} ({shop.owner.email})
@@ -165,9 +185,9 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
-          {!shop.onboardingCompleted && (
+          {shopPublication(shop) === "UNPUBLISHED" && (
             <button
-              onClick={() => handleValidate(true)}
+              onClick={() => void moderate("validate", { approved: true })}
               disabled={acting}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
@@ -176,7 +196,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
           )}
           {!shop.suspendedAt && (
             <button
-              onClick={() => handleSuspend(true)}
+              onClick={() => void moderate("suspend", { suspended: true })}
               disabled={acting}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
@@ -185,7 +205,7 @@ export default function AdminShopDetailPage({ params }: { params: { shopId: stri
           )}
           {shop.suspendedAt && (
             <button
-              onClick={() => handleSuspend(false)}
+              onClick={() => void moderate("suspend", { suspended: false })}
               disabled={acting}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >

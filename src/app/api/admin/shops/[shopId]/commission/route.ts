@@ -3,27 +3,27 @@ import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
 import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { writeAuditLog } from "@/lib/audit-log";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const commissionSchema = z.object({
-  commissionPct: z.number().min(0).max(100),
-  commissionEnabled: z.boolean().optional(),
-});
+// One of the two writers of Shop.commissionPct (with /api/admin/commission/global), both audited.
+const commissionSchema = z
+  .object({
+    commissionPct: z.number().min(0).max(100),
+    commissionEnabled: z.boolean().optional(),
+  })
+  .strict({ message: "Ce champ ne peut pas être modifié ici" });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { shopId: string } }
-) {
+export async function PATCH(req: NextRequest, { params }: { params: { shopId: string } }) {
   try {
     const admin = await requireAdmin();
     if (admin.error) return admin.error;
 
     const { shopId } = params;
-    const body = await req.json();
-    const data = commissionSchema.parse(body);
+    const data = commissionSchema.parse(await readJsonBody(req));
 
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
