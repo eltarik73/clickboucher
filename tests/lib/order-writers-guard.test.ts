@@ -7,9 +7,10 @@
 // Un nouvel écrivain fait échouer le test : il faut l'ajouter à la liste ci-dessous, avec sa raison,
 // en connaissance de cause — et s'il écrit le statut, passer par transitionOrder à la place.
 // Les colonnes que mesure la marge de pesée ont leur propre liste fermée (TOLERANCE_COLUMN_WRITERS).
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { sourceFiles } from "./source-scan";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SRC = path.join(ROOT, "src");
@@ -75,14 +76,6 @@ const TOLERANCE_COLUMN_VALUE =
 const TALKS_TO_DATABASE = /from\s+["']@\/lib\/prisma["']|\bTransactionClient\b/;
 
 // ── Lecture du code ──────────────────────────
-
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return sourceFiles(full);
-    return /\.tsx?$/.test(entry.name) ? [full] : [];
-  });
-}
 
 /**
  * Le texte avec commentaires et contenus de chaînes remplacés par des espaces (même longueur),

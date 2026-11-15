@@ -34,7 +34,7 @@ const { POST: postQuote } = await import("@/app/api/orders/quote/route");
 const { POST: postOrder } = await import("@/app/api/orders/route");
 const { POST: postGuestCheckout } = await import("@/app/api/checkout/guest/route");
 
-// eslint-disable-next-line react-hooks/rules-of-hooks -- pas un hook React
+// eslint-disable-next-line react-hooks/rules-of-hooks -- not a React hook
 useCleanDatabase();
 
 const ONLINE_REFUSED =
@@ -81,12 +81,12 @@ beforeEach(() => {
   gateway.reset();
 });
 
-describe("paiement en ligne refusé par les routes de devis et de commande", () => {
+describe("online payment refused by the quote and order routes", () => {
   it.each([
-    ["anonyme", false],
-    ["client connecté", true],
+    ["anonymous", false],
+    ["signed-in customer", true],
   ])(
-    "POST /api/orders/quote, %s : 400 avec le message, aucun appel Stripe",
+    "POST /api/orders/quote, %s: 400 with the message, no Stripe call",
     async (_label, signedIn) => {
       if (signedIn) auth.clerkId = (await createTestUser()).clerkId;
       const { quote } = await onlineOrder();
@@ -102,7 +102,7 @@ describe("paiement en ligne refusé par les routes de devis et de commande", () 
     }
   );
 
-  it("POST /api/orders : 400 avec le message, aucune commande, aucun appel Stripe", async () => {
+  it("POST /api/orders: 400 with the message, no order, no Stripe call", async () => {
     const user = await createTestUser();
     auth.clerkId = user.clerkId;
     const { order } = await onlineOrder();
@@ -118,7 +118,7 @@ describe("paiement en ligne refusé par les routes de devis et de commande", () 
     expect(gateway.calls).toEqual([]);
   });
 
-  it("POST /api/checkout/guest : 400 avec le message, aucune commande, aucun appel Stripe", async () => {
+  it("POST /api/checkout/guest: 400 with the message, no order, no Stripe call", async () => {
     const { order } = await onlineOrder();
 
     const answer = await post(postGuestCheckout, "/api/checkout/guest", {
@@ -137,7 +137,7 @@ describe("paiement en ligne refusé par les routes de devis et de commande", () 
     expect(gateway.calls).toEqual([]);
   });
 
-  it("le même corps payé sur place est accepté : seul le mode de paiement est refusé", async () => {
+  it("accepts the same body paid at pickup: only the payment method is refused", async () => {
     const user = await createTestUser();
     auth.clerkId = user.clerkId;
     const { order } = await onlineOrder();

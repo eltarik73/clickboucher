@@ -34,7 +34,7 @@ const WEBHOOK_SECRET_FORMAT = /^whsec_\S+$/;
  * timeout and maxNetworkRetries: the SDK defaults (80 s, 2 retries) outlive a 30 s function; a call
  * now lasts at most 10 s x 2 attempts.
  */
-export const STRIPE_CLIENT_CONFIG = {
+const STRIPE_CLIENT_CONFIG = {
   apiVersion: "2026-04-22.dahlia",
   timeout: 10_000,
   maxNetworkRetries: 1,

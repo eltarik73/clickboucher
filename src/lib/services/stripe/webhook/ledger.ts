@@ -1,20 +1,16 @@
-// src/lib/services/stripe/webhook/ledger.ts — at-most-once processing of a Stripe event id.
+// src/lib/services/stripe/webhook/ledger.ts — each Stripe event id is processed once.
 //
-// Writes the stripe_events table only. One row per event id: the marker is inserted (or taken
-// over) BEFORE the handler runs, handledAt is written AFTER it succeeded.
-// - handledAt set: the event was processed, a redelivery is a duplicate (200).
-// - handledAt NULL and processedAt younger than STALE_CLAIM_MS: another delivery is processing it
-//   (409, Stripe retries later).
-// - handledAt NULL and older: the delivery that claimed it died (function killed at its 30 s
-//   limit, instance stopped) without releasing it. A conditional write on the processedAt value
-//   read hands it to exactly one new delivery. Handlers are idempotent, so running one twice is
-//   safe; losing an event is not.
-// A failed handler deletes its unhandled marker (releaseStripeEvent) so that Stripe's retry runs.
+// Writes the stripe_events table only. One marker row per event id: claimedAt when a delivery takes
+// it, BEFORE the handler runs; handledAt AFTER the handler succeeded (a redelivery is then a
+// duplicate). An unhandled marker younger than STALE_CLAIM_MS belongs to a delivery still running;
+// an older one was abandoned (function killed at its 30 s limit) and a conditional write on the
+// claimedAt read hands it to exactly one new delivery: handlers are idempotent, so running one twice
+// is safe, losing an event is not. A failed handler deletes its marker so that Stripe's retry runs.
 import type { Prisma } from "@prisma/client";
 import type Stripe from "stripe";
 import prisma from "@/lib/prisma";
 
-export type EventClaim = "claimed" | "duplicate" | "in_progress";
+type EventClaim = "claimed" | "duplicate" | "in_progress";
 
 /** Twice the longest function run (30 s, vercel.json): an older unhandled marker is abandoned. */
 export const STALE_CLAIM_MS = 60_000;
@@ -38,22 +34,22 @@ function markerColumns(event: Stripe.Event) {
 export async function claimStripeEvent(event: Stripe.Event, now: Date): Promise<EventClaim> {
   for (let attempt = 0; attempt < CLAIM_ATTEMPTS; attempt += 1) {
     const inserted = await prisma.stripeEvent.createMany({
-      data: [{ id: event.id, processedAt: now, ...markerColumns(event) }],
+      data: [{ id: event.id, claimedAt: now, ...markerColumns(event) }],
       skipDuplicates: true,
     });
     if (inserted.count === 1) return "claimed";
 
     const marker = await prisma.stripeEvent.findUnique({
       where: { id: event.id },
-      select: { handledAt: true, processedAt: true },
+      select: { handledAt: true, claimedAt: true },
     });
     if (marker === null) continue;
     if (marker.handledAt !== null) return "duplicate";
-    if (now.getTime() - marker.processedAt.getTime() < STALE_CLAIM_MS) return "in_progress";
+    if (now.getTime() - marker.claimedAt.getTime() < STALE_CLAIM_MS) return "in_progress";
 
     const takenOver = await prisma.stripeEvent.updateMany({
-      where: { id: event.id, handledAt: null, processedAt: marker.processedAt },
-      data: { processedAt: now, ...markerColumns(event) },
+      where: { id: event.id, handledAt: null, claimedAt: marker.claimedAt },
+      data: { claimedAt: now, ...markerColumns(event) },
     });
     return takenOver.count === 1 ? "claimed" : "in_progress";
   }

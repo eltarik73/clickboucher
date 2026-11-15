@@ -1,26 +1,27 @@
 -- C1-PAIEMENT-A — Marge de pesée du client, champs du paiement en ligne (inactif), registre des
--- événements Stripe, litiges, état Connect et TVA des boutiques.
+-- événements Stripe, litiges et état Connect des boutiques.
 --
--- Ce que la migration ajoute :
---   1. users.weigh_tolerance : marge de pesée choisie par le client (NULL = jamais choisie).
---   2. orders : marge figée à la création (taux, plafond, total estimé) ; champs d'autorisation,
---      de capture et de libération du paiement en ligne ; commission gelée ; index uniques sur
+-- Ce que la migration ajoute, dans l'ordre du fichier :
+--   1. deux types : WeighTolerance (marge de pesée) et AdjustmentCloseReason (motif d'un refus).
+--   2. shops : état du compte Connect (exigences, motif de désactivation, paiement par carte actif).
+--   3. users.weigh_tolerance : marge de pesée choisie par le client (NULL = jamais choisie).
+--   4. orders : marge figée à la création (taux, plafond, total estimé) ; champs d'autorisation,
+--      de capture et de libération du paiement en ligne ; index uniques sur
 --      stripe_payment_intent_id et stripe_checkout_session_id.
---   3. price_adjustments : échéance de la réponse du client (answer_by) et motif d'un refus
+--   5. price_adjustments : échéance de la réponse du client (answer_by) et motif d'un refus
 --      (close_reason), index (status, answer_by) des ajustements en attente échus.
---   4. stripe_events : handled_at (traitement terminé), livemode, account (compte Connect).
---   5. stripe_disputes : une fiche par litige carte, gardée si sa commande disparaît.
---   6. shops : état du compte Connect (exigences, motif de désactivation, paiement par carte
---      actif) et TVA du boucher (numéro, franchise).
+--   6. stripe_events : handled_at (traitement terminé), livemode, account (compte Connect).
+--   7. stripe_disputes : une fiche par litige carte, gardée si sa commande disparaît.
 --
 -- Additif uniquement : deux types nouveaux, une table nouvelle, des colonnes nullables ou à
 -- défaut constant (modification des seules métadonnées : aucune table réécrite, aucune ligne
--- existante lue ni modifiée), aucune valeur ajoutée à un type existant. Les deux index uniques
--- portent sur des colonnes NULL sur toute commande (le paiement en ligne n'a jamais fonctionné) ;
--- preflight.sql le vérifie et arrête le build avant toute écriture si deux commandes partagent un
--- identifiant Stripe. Leur construction tient le verrou de `orders` quelques millisecondes.
--- Verrous pris dans l'ordre de la création de commande (boutique, puis client, puis commande),
--- pour ne pas croiser une transaction de l'application ; attente bornée à 5 s.
+-- existante lue ni modifiée), aucune valeur ajoutée à un type existant. Chaque colonne a la forme
+-- que Prisma génère pour schema.prisma (`prisma db push` des tests et de la CI compris). Les deux
+-- index uniques portent sur des colonnes NULL sur toute commande (le paiement en ligne n'a jamais
+-- fonctionné) ; preflight.sql le vérifie et arrête le build avant toute écriture si deux commandes
+-- partagent un identifiant Stripe. Leur construction tient le verrou de `orders` quelques
+-- millisecondes. Verrous pris dans l'ordre de la création de commande (boutique, puis client,
+-- puis commande), pour ne pas croiser une transaction de l'application ; attente bornée à 5 s.
 --
 -- Le code précédent fonctionne sur ce schéma pendant le déploiement et après un retour arrière
 -- applicatif : son client Prisma ne nomme que ses propres colonnes, les nouvelles lui sont
@@ -45,7 +46,7 @@
 
 SET lock_timeout = '5s';
 
--- 0) Types nouveaux (aucune valeur ajoutée à un type existant).
+-- 1) Types nouveaux (aucune valeur ajoutée à un type existant).
 DO $$
 BEGIN
     CREATE TYPE "WeighTolerance" AS ENUM ('STANDARD', 'EXTENDED');
@@ -60,24 +61,19 @@ EXCEPTION
     WHEN duplicate_object THEN NULL;
 END $$;
 
--- 6) Boutique : état du compte Connect, recopié par le webhook account.updated, et TVA du
---    boucher. Défauts constants : les boutiques existantes valent « aucune exigence connue,
---    paiement par carte inactif, pas de franchise ». La liste est NOT NULL ici alors que
---    `prisma db push` la crée nullable : Prisma ne compare pas la nullabilité d'une liste
---    (`migrate diff` vide dans les deux cas), et NOT NULL garantit qu'elle n'est jamais NULL.
+-- 2) Boutique : état du compte Connect, recopié depuis Stripe. Défauts constants : les boutiques
+--    existantes valent « aucune exigence connue, paiement par carte inactif ».
 ALTER TABLE "shops"
-    ADD COLUMN IF NOT EXISTS "stripe_requirements_due" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    ADD COLUMN IF NOT EXISTS "stripe_requirements_due" TEXT[] DEFAULT ARRAY[]::TEXT[],
     ADD COLUMN IF NOT EXISTS "stripe_disabled_reason" TEXT,
-    ADD COLUMN IF NOT EXISTS "stripe_card_payments_active" BOOLEAN NOT NULL DEFAULT false,
-    ADD COLUMN IF NOT EXISTS "vat_number" TEXT,
-    ADD COLUMN IF NOT EXISTS "vat_franchise" BOOLEAN NOT NULL DEFAULT false;
+    ADD COLUMN IF NOT EXISTS "stripe_card_payments_active" BOOLEAN NOT NULL DEFAULT false;
 
--- 1) Client : marge de pesée. NULL = jamais choisie : le choix actif est demandé à la commande.
+-- 3) Client : marge de pesée. NULL = jamais choisie : le choix actif est demandé à la commande.
 ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "weigh_tolerance" "WeighTolerance";
 
--- 2) Commande : marge figée à la création ; paiement en ligne (écrit par le webhook seulement) ;
---    commission gelée. Toutes nullables : NULL sur les commandes existantes (aucune marge = toute
---    hausse demande l'accord explicite du client).
+-- 4) Commande : marge figée à la création ; paiement en ligne (écrit par le webhook seulement).
+--    Toutes nullables : NULL sur les commandes existantes (aucune marge = toute hausse demande
+--    l'accord explicite du client).
 ALTER TABLE "orders"
     ADD COLUMN IF NOT EXISTS "weigh_tolerance_rate_bps" INTEGER,
     ADD COLUMN IF NOT EXISTS "weigh_tolerance_cap_cents" INTEGER,
@@ -88,12 +84,7 @@ ALTER TABLE "orders"
     ADD COLUMN IF NOT EXISTS "capture_before" TIMESTAMP(3),
     ADD COLUMN IF NOT EXISTS "card_network" TEXT,
     ADD COLUMN IF NOT EXISTS "captured_amount_cents" INTEGER,
-    ADD COLUMN IF NOT EXISTS "capture_failed_at" TIMESTAMP(3),
-    ADD COLUMN IF NOT EXISTS "payment_released_at" TIMESTAMP(3),
-    ADD COLUMN IF NOT EXISTS "payment_due_at" TIMESTAMP(3),
-    ADD COLUMN IF NOT EXISTS "commission_rate_bps" INTEGER,
-    ADD COLUMN IF NOT EXISTS "commission_ht_cents" INTEGER,
-    ADD COLUMN IF NOT EXISTS "commission_vat_cents" INTEGER;
+    ADD COLUMN IF NOT EXISTS "payment_released_at" TIMESTAMP(3);
 
 -- Une session ou un PaymentIntent Stripe désigne une seule commande. Les NULL ne sont pas
 -- comparés : toutes les commandes payées sur place restent permises. Noms attendus par Prisma
@@ -102,7 +93,7 @@ ALTER TABLE "orders"
 CREATE UNIQUE INDEX IF NOT EXISTS "orders_stripe_payment_intent_id_key" ON "orders"("stripe_payment_intent_id");
 CREATE UNIQUE INDEX IF NOT EXISTS "orders_stripe_checkout_session_id_key" ON "orders"("stripe_checkout_session_id");
 
--- 3) Ajustement de prix : échéance de la réponse du client et motif d'un refus. NULL sur les
+-- 5) Ajustement de prix : échéance de la réponse du client et motif d'un refus. NULL sur les
 --    lignes existantes : le nouveau code compte leur échéance depuis created_at.
 ALTER TABLE "price_adjustments"
     ADD COLUMN IF NOT EXISTS "answer_by" TIMESTAMP(3),
@@ -110,7 +101,7 @@ ALTER TABLE "price_adjustments"
 
 CREATE INDEX IF NOT EXISTS "price_adjustments_status_answer_by_idx" ON "price_adjustments"("status", "answer_by");
 
--- 4) Registre des événements Stripe : traitement terminé, mode et compte Connect émetteur.
+-- 6) Registre des événements Stripe : traitement terminé, mode et compte Connect émetteur.
 --    NULL sur les lignes existantes (aucune attendue en production : sans clé, le webhook répond
 --    503) ; une telle ligne n'est reconsidérée que si Stripe relivre le même événement.
 ALTER TABLE "stripe_events"
@@ -118,7 +109,7 @@ ALTER TABLE "stripe_events"
     ADD COLUMN IF NOT EXISTS "livemode" BOOLEAN,
     ADD COLUMN IF NOT EXISTS "account" TEXT;
 
--- 5) Litiges carte : une ligne par litige Stripe, écrite par le webhook seulement.
+-- 7) Litiges carte : une ligne par litige Stripe, écrite par le webhook seulement.
 CREATE TABLE IF NOT EXISTS "stripe_disputes" (
     "id" TEXT NOT NULL,
     "charge_id" TEXT NOT NULL,

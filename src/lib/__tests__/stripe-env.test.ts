@@ -11,7 +11,6 @@
 import Stripe from "stripe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  STRIPE_CLIENT_CONFIG,
   getStripeClient,
   isStripeConfigured,
   stripeKeyRefusal,
@@ -80,16 +79,6 @@ function setSecretKey(key: string | undefined): void {
   vi.stubEnv("STRIPE_SECRET_KEY", key);
 }
 
-/** The message of the error `run` throws (fails the test if it does not throw). */
-function thrownMessage(run: () => unknown): string {
-  try {
-    run();
-  } catch (error) {
-    return (error as Error).message;
-  }
-  throw new Error("expected a throw");
-}
-
 beforeEach(() => {
   setDeployment(undefined, undefined);
   setSecretKey(undefined);
@@ -139,20 +128,10 @@ describe("getStripeClient", () => {
     setDeployment(vercelEnv, undefined);
     setSecretKey(key);
 
-    const message = thrownMessage(() => getStripeClient());
-
-    expect(message).toBe(`Stripe unavailable: ${refusal}`);
-    expect(message).not.toContain(BODY);
+    expect(() => getStripeClient()).toThrow(new RegExp(`^Stripe unavailable: ${refusal}$`));
   });
 
-  it("pins the API version the installed SDK was generated for, a 10 s timeout and 1 retry", () => {
-    expect(STRIPE_CLIENT_CONFIG.apiVersion).toBe(Stripe.API_VERSION);
-    expect(STRIPE_CLIENT_CONFIG.timeout).toBe(10_000);
-    expect(STRIPE_CLIENT_CONFIG.maxNetworkRetries).toBe(1);
-    expect(STRIPE_CLIENT_CONFIG.typescript).toBe(true);
-  });
-
-  it("builds the client from that configuration", () => {
+  it("builds the client with the installed SDK's API version, a 10 s timeout and 1 retry", () => {
     setSecretKey(dummy("sk", "test"));
 
     const client = getStripeClient();
@@ -160,7 +139,7 @@ describe("getStripeClient", () => {
     expect(client).toBeInstanceOf(Stripe);
     expect(client.getMaxNetworkRetries()).toBe(1);
     expect(client.getApiField("timeout")).toBe(10_000);
-    expect(client.getApiField("version")).toBe(STRIPE_CLIENT_CONFIG.apiVersion);
+    expect(client.getApiField("version")).toBe(Stripe.API_VERSION);
   });
 
   it("reuses the client while the key is the same string, and only then", () => {
@@ -182,9 +161,7 @@ describe("getStripeClient", () => {
 
     setDeployment("production", undefined);
 
-    expect(thrownMessage(() => getStripeClient())).toBe(
-      "Stripe unavailable: TEST_KEY_IN_PRODUCTION"
-    );
+    expect(() => getStripeClient()).toThrow(/^Stripe unavailable: TEST_KEY_IN_PRODUCTION$/);
   });
 });
 

@@ -1,7 +1,8 @@
 // @vitest-environment node
-// Cron d'expiration sur PostgreSQL réel : seules les commandes PENDING échues sont annulées, leur
-// remise est rendue, une notification ORDER_EXPIRED par commande, et un second passage ne fait rien.
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+// The system expiries on real PostgreSQL. The auto-cancel cron cancels only the due PENDING orders,
+// gives back their discount, sends one ORDER_EXPIRED per order, and a second run does nothing.
+// expireUnpaidCheckout closes an unpaid online order whose Checkout Session expired, once.
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
 vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
@@ -12,7 +13,7 @@ vi.mock("@/lib/whatsapp", () => ({
 
 import { NextRequest } from "next/server";
 import { GET as autoCancelRoute } from "@/app/api/cron/auto-cancel/route";
-import { expireDueOrders } from "@/lib/services/orders/commands/close";
+import { expireDueOrders, expireUnpaidCheckout } from "@/lib/services/orders/commands/close";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestOffer } from "../helpers/factories";
 import {
@@ -30,16 +31,9 @@ import {
 useCleanDatabase();
 
 const CRON_SECRET = "itest-cron-secret";
-let previousSecret: string | undefined;
 
-beforeAll(() => {
-  previousSecret = process.env.CRON_SECRET;
-  process.env.CRON_SECRET = CRON_SECRET;
-});
-
-afterAll(() => {
-  process.env.CRON_SECRET = previousSecret;
-});
+beforeEach(() => vi.stubEnv("CRON_SECRET", CRON_SECRET));
+afterEach(() => vi.unstubAllEnvs());
 
 async function runCron(secret = CRON_SECRET) {
   const request = new NextRequest("http://localhost/api/cron/auto-cancel", {
@@ -133,5 +127,31 @@ describe("expireDueOrders — time budget", () => {
     expect(result.expiredShopIds).toHaveLength(3);
     expect(result).toMatchObject({ failed: 0, remainingCount: 0 });
     for (const order of orders) expect((await reload(order.id)).status).toBe("AUTO_CANCELLED");
+  });
+});
+
+describe("expireUnpaidCheckout", () => {
+  it("closes an unpaid PENDING online order once: session in the event, discount given back, one notification", async () => {
+    const world = await createWorld();
+    const offer = await createTestOffer({ currentUses: 1, maxUses: 5 });
+    const order = await createOrder(world, {
+      overrides: { paymentMethod: "ONLINE", offerId: offer.id },
+    });
+    const now = new Date();
+    const expiry = { orderId: order.id, checkoutSessionId: "cs_itest_expired", now };
+
+    expect((await expireUnpaidCheckout(expiry)).kind).toBe("done");
+    expect((await expireUnpaidCheckout(expiry)).kind).toBe("replay");
+
+    expect(await reload(order.id)).toMatchObject({ status: "AUTO_CANCELLED", autoCancelledAt: now });
+    expect(await eventsOf(order.id)).toMatchObject([
+      {
+        type: "AUTO_CANCELLED",
+        actorId: "system",
+        payloadJson: { reason: "CHECKOUT_SESSION_EXPIRED", checkoutSessionId: "cs_itest_expired" },
+      },
+    ]);
+    expect((await prisma.offer.findUniqueOrThrow({ where: { id: offer.id } })).currentUses).toBe(0);
+    expect(await notificationsOf(world.customer.id, "ORDER_EXPIRED")).toHaveLength(1);
   });
 });

@@ -1,13 +1,9 @@
 // @vitest-environment node
 //
 // The status of a butcher's Stripe Connect account (Shop.stripeAccountStatus), decided in one place
-// (src/lib/services/stripe/account-state.ts) for the webhook and for the butcher's refresh.
-import { readFileSync } from "node:fs";
-import path from "node:path";
+// (src/lib/services/stripe/account-state.ts) and written by one writer (account-sync.ts).
 import { describe, expect, it } from "vitest";
 import { connectAccountState } from "@/lib/services/stripe/account-state";
-
-const ROOT = path.resolve(__dirname, "../../..");
 
 describe("connectAccountState", () => {
   it("is active when the account takes payments and receives payouts", () => {
@@ -50,19 +46,5 @@ describe("connectAccountState", () => {
     expect(
       connectAccountState({ charges_enabled: null, payouts_enabled: null, requirements: null })
     ).toBe("pending");
-  });
-
-  it("is the rule of both readers: neither the webhook nor the refresh decides it again", () => {
-    for (const file of [
-      "src/lib/services/stripe/connect.ts",
-      "src/lib/services/stripe/webhook/account-events.ts",
-    ]) {
-      const source = readFileSync(path.join(ROOT, file), "utf8");
-      expect(source, file).toMatch(
-        /import \{[^}]*\bconnectAccountState\b[^}]*\} from "\.{1,2}\/account-state"/
-      );
-      // "restricted" is a decision of the rule alone ("active" also names a card capability).
-      expect(source, file).not.toContain('"restricted"');
-    }
   });
 });

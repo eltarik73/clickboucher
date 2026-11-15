@@ -80,15 +80,13 @@ BEGIN
 
     -- 3) Colonnes. Celles qu'ajoute « IF NOT EXISTS » sont facultatives mais, si elles existent,
     --    doivent avoir la forme du schéma Prisma (sinon l'ajout est ignoré et la forme gardée).
-    --    nullability : 'null' = nullable, 'notnull' = NOT NULL, 'any' = indifférent (liste : Prisma
-    --    la crée nullable, la migration NOT NULL). dflt : true = défaut obligatoire, false = interdit.
+    --    nullability : 'null' = nullable, 'notnull' = NOT NULL. dflt : true = défaut obligatoire,
+    --    false = interdit, NULL = non vérifié.
     --    Les colonnes « required » sont lues par les index et la clé étrangère de la migration.
     FOR r IN SELECT * FROM (VALUES
-        ('shops', 'stripe_requirements_due', 'text[]', 'any', true, false),
+        ('shops', 'stripe_requirements_due', 'text[]', 'null', true, false),
         ('shops', 'stripe_disabled_reason', 'text', 'null', false, false),
         ('shops', 'stripe_card_payments_active', 'boolean', 'notnull', true, false),
-        ('shops', 'vat_number', 'text', 'null', false, false),
-        ('shops', 'vat_franchise', 'boolean', 'notnull', true, false),
         ('users', 'weigh_tolerance', 'WeighTolerance', 'null', false, false),
         ('orders', 'id', 'text', 'notnull', NULL, true),
         ('orders', 'stripe_payment_intent_id', 'text', 'null', false, true),
@@ -102,12 +100,7 @@ BEGIN
         ('orders', 'capture_before', 'timestamp(3) without time zone', 'null', false, false),
         ('orders', 'card_network', 'text', 'null', false, false),
         ('orders', 'captured_amount_cents', 'integer', 'null', false, false),
-        ('orders', 'capture_failed_at', 'timestamp(3) without time zone', 'null', false, false),
         ('orders', 'payment_released_at', 'timestamp(3) without time zone', 'null', false, false),
-        ('orders', 'payment_due_at', 'timestamp(3) without time zone', 'null', false, false),
-        ('orders', 'commission_rate_bps', 'integer', 'null', false, false),
-        ('orders', 'commission_ht_cents', 'integer', 'null', false, false),
-        ('orders', 'commission_vat_cents', 'integer', 'null', false, false),
         ('price_adjustments', 'status', 'AdjustmentStatus', 'notnull', NULL, true),
         ('price_adjustments', 'tier', 'integer', 'notnull', NULL, true),
         ('price_adjustments', 'answer_by', 'timestamp(3) without time zone', 'null', false, false),

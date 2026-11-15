@@ -39,7 +39,8 @@ async function disputedOrder(chargeId: string, paymentIntentId: string | null) {
   });
 }
 
-async function recordDispute(
+/** Records what one dispute event tells, `stage` being the event type. */
+export async function onDispute(
   dispute: Stripe.Dispute,
   stage: DisputeStage,
   now: Date
@@ -89,16 +90,4 @@ async function recordDispute(
     const log = dispute.status === "lost" ? logger.error : logger.info;
     log("[stripe/webhook] card dispute closed", context);
   }
-}
-
-export function onDisputeCreated(dispute: Stripe.Dispute, now: Date): Promise<void> {
-  return recordDispute(dispute, "created", now);
-}
-
-export function onDisputeUpdated(dispute: Stripe.Dispute, now: Date): Promise<void> {
-  return recordDispute(dispute, "updated", now);
-}
-
-export function onDisputeClosed(dispute: Stripe.Dispute, now: Date): Promise<void> {
-  return recordDispute(dispute, "closed", now);
 }

@@ -1,9 +1,9 @@
 // @vitest-environment node
 // What each Stripe event does to an order, on real PostgreSQL with locally signed events. Only
-// checkout.session.expired changes a status, through transitionOrder (PENDING -> AUTO_CANCELLED,
-// closing effects, one notification); the other events record payment columns of ONLINE orders,
-// each once, whatever the order and the repetition of the deliveries. Orders paid at pickup are
-// never touched. No Stripe call: the fake payment gateway must record none.
+// checkout.session.expired changes a status, through the system command expireUnpaidCheckout
+// (PENDING -> AUTO_CANCELLED, closing effects, one notification); the other events record payment
+// columns of ONLINE orders, each once, whatever the order and the repetition of the deliveries.
+// Orders paid at pickup are never touched. No Stripe call: the fake payment gateway must record none.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFakePaymentGateway } from "../helpers/fake-payment-gateway";
 
@@ -18,25 +18,23 @@ vi.mock("@/lib/whatsapp", () => ({
 
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestOffer } from "../helpers/factories";
+import { eventsOf, notificationsOf, reload } from "../orders/commands-fixtures";
 import {
   charge,
   checkoutSession,
   createOnlineOrder,
   createPaymentWorld,
   deliver,
-  installStripeTestEnv,
-  notificationsOf,
-  orderEventsOf,
   paymentIntent,
-  reloadOrder,
   stripeEvent,
   stripeId,
+  useStripeTestEnv,
 } from "./stripe-event-fixtures";
 
-// Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
-// eslint-disable-next-line react-hooks/rules-of-hooks
+/* eslint-disable react-hooks/rules-of-hooks -- not React hooks: the rule reads the « use » prefix */
 useCleanDatabase();
-installStripeTestEnv();
+useStripeTestEnv();
+/* eslint-enable react-hooks/rules-of-hooks */
 
 beforeEach(() => gateway.reset());
 afterEach(() => expect(gateway.calls).toEqual([]));
@@ -47,7 +45,7 @@ async function handled(type: string, object: Record<string, unknown>) {
 }
 
 describe("checkout.session.expired", () => {
-  it("auto-cancels a PENDING online order through transitionOrder, releases its discount, notifies once", async () => {
+  it("auto-cancels a PENDING online order, releases its discount, notifies once", async () => {
     const world = await createPaymentWorld();
     const offer = await createTestOffer({ currentUses: 1, maxUses: 5 });
     const order = await createOnlineOrder(world, { overrides: { offerId: offer.id } });
@@ -55,10 +53,10 @@ describe("checkout.session.expired", () => {
 
     await handled("checkout.session.expired", session);
 
-    const stored = await reloadOrder(order.id);
+    const stored = await reload(order.id);
     expect(stored.status).toBe("AUTO_CANCELLED");
     expect(stored.autoCancelledAt).toEqual(expect.any(Date));
-    const events = await orderEventsOf(order.id);
+    const events = await eventsOf(order.id);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       type: "AUTO_CANCELLED",
@@ -69,21 +67,22 @@ describe("checkout.session.expired", () => {
     expect(await notificationsOf(world.customer.id, "ORDER_EXPIRED")).toHaveLength(1);
   });
 
-  it("leaves alone an accepted, authorized, paid-at-pickup or otherwise-linked order", async () => {
+  it("leaves alone an accepted, authorized, paid, paid-at-pickup or otherwise-linked order", async () => {
     const world = await createPaymentWorld();
     const accepted = await createOnlineOrder(world, { status: "ACCEPTED" });
     const authorized = await createOnlineOrder(world, {
       overrides: { paymentAuthorizedAt: new Date() },
     });
+    const paid = await createOnlineOrder(world, { overrides: { paidAt: new Date() } });
     const onPickup = await createOnlineOrder(world, { overrides: { paymentMethod: "ON_PICKUP" } });
     const otherSession = await createOnlineOrder(world, {
       overrides: { stripeCheckoutSessionId: stripeId("cs") },
     });
 
-    for (const order of [accepted, authorized, onPickup, otherSession]) {
+    for (const order of [accepted, authorized, paid, onPickup, otherSession]) {
       await handled("checkout.session.expired", checkoutSession({ orderId: order.id }));
-      expect((await reloadOrder(order.id)).status).toBe(order.status);
-      expect(await orderEventsOf(order.id)).toEqual([]);
+      expect((await reload(order.id)).status).toBe(order.status);
+      expect(await eventsOf(order.id)).toEqual([]);
     }
     expect(await notificationsOf(world.customer.id, "ORDER_EXPIRED")).toEqual([]);
   });
@@ -102,13 +101,13 @@ describe("checkout.session.completed", () => {
       checkoutSession({ orderId: order.id, paymentIntent: stripeId("pi") })
     );
 
-    expect(await reloadOrder(order.id)).toMatchObject({
+    expect(await reload(order.id)).toMatchObject({
       status: "PENDING",
       paidAt: null,
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId: piId,
     });
-    expect(await orderEventsOf(order.id)).toEqual([]);
+    expect(await eventsOf(order.id)).toEqual([]);
   });
 
   it("does not touch an order paid at pickup, nor take a session another order holds", async () => {
@@ -128,12 +127,12 @@ describe("checkout.session.completed", () => {
       checkoutSession({ id: "cs_itest_held", orderId: other.id })
     );
 
-    expect(await reloadOrder(onPickup.id)).toMatchObject({
+    expect(await reload(onPickup.id)).toMatchObject({
       stripeCheckoutSessionId: null,
       stripePaymentIntentId: null,
     });
-    expect((await reloadOrder(other.id)).stripeCheckoutSessionId).toBeNull();
-    expect((await reloadOrder(holder.id)).stripeCheckoutSessionId).toBe("cs_itest_held");
+    expect((await reload(other.id)).stripeCheckoutSessionId).toBeNull();
+    expect((await reload(holder.id)).stripeCheckoutSessionId).toBe("cs_itest_held");
   });
 });
 
@@ -148,7 +147,7 @@ describe("payment_intent.*", () => {
       "payment_intent.succeeded",
       paymentIntent({ id: piId, orderId: order.id, amountReceived: 1850 })
     );
-    const paid = await reloadOrder(order.id);
+    const paid = await reload(order.id);
     await handled(
       "payment_intent.amount_capturable_updated",
       paymentIntent({
@@ -158,7 +157,7 @@ describe("payment_intent.*", () => {
         latestCharge: chargeId,
       })
     );
-    const authorized = await reloadOrder(order.id);
+    const authorized = await reload(order.id);
     await handled(
       "payment_intent.succeeded",
       paymentIntent({ id: piId, orderId: order.id, amountReceived: 9999 })
@@ -173,7 +172,7 @@ describe("payment_intent.*", () => {
       })
     );
 
-    const stored = await reloadOrder(order.id);
+    const stored = await reload(order.id);
     expect(stored).toMatchObject({
       status: "PENDING",
       stripePaymentIntentId: piId,
@@ -187,7 +186,7 @@ describe("payment_intent.*", () => {
     });
     expect(stored.paidAt).toEqual(expect.any(Date));
     expect(stored.paymentAuthorizedAt).toEqual(expect.any(Date));
-    expect(await orderEventsOf(order.id)).toEqual([]);
+    expect(await eventsOf(order.id)).toEqual([]);
   });
 
   it("records nothing on a declined card, then the authorization; reads card details only when expanded", async () => {
@@ -200,7 +199,7 @@ describe("payment_intent.*", () => {
       "payment_intent.payment_failed",
       paymentIntent({ id: piId, orderId: order.id, declineCode: "insufficient_funds" })
     );
-    expect(await reloadOrder(order.id)).toMatchObject({
+    expect(await reload(order.id)).toMatchObject({
       status: "PENDING",
       stripePaymentIntentId: null,
       paymentAuthorizedAt: null,
@@ -221,7 +220,7 @@ describe("payment_intent.*", () => {
       })
     );
 
-    expect(await reloadOrder(order.id)).toMatchObject({
+    expect(await reload(order.id)).toMatchObject({
       status: "PENDING",
       authorizedAmountCents: 1500,
       stripeChargeId: "ch_itest_expanded",
@@ -241,7 +240,7 @@ describe("payment_intent.*", () => {
       "payment_intent.canceled",
       paymentIntent({ id: "pi_itest_bound", orderId: order.id })
     );
-    const released = (await reloadOrder(order.id)).paymentReleasedAt;
+    const released = (await reload(order.id)).paymentReleasedAt;
     await handled(
       "payment_intent.canceled",
       paymentIntent({ id: "pi_itest_bound", orderId: order.id })
@@ -256,13 +255,13 @@ describe("payment_intent.*", () => {
     );
 
     expect(released).toEqual(expect.any(Date));
-    expect(await reloadOrder(order.id)).toMatchObject({
+    expect(await reload(order.id)).toMatchObject({
       status: "PENDING",
       paymentReleasedAt: released,
       paidAt: null,
       stripePaymentIntentId: "pi_itest_bound",
     });
-    expect(await reloadOrder(onPickup.id)).toMatchObject({
+    expect(await reload(onPickup.id)).toMatchObject({
       paidAt: null,
       stripePaymentIntentId: null,
     });
@@ -283,16 +282,16 @@ describe("charge.refunded", () => {
       );
 
     await refunded(500, order.id);
-    const first = await reloadOrder(order.id);
+    const first = await reload(order.id);
     await refunded(2000);
     await refunded(500, order.id);
 
     expect(first).toMatchObject({ refundAmountCents: 500, refundedAt: expect.any(Date) });
-    expect(await reloadOrder(order.id)).toMatchObject({
+    expect(await reload(order.id)).toMatchObject({
       status: "PICKED_UP",
       refundAmountCents: 2000,
       refundedPlatformFeeCents: 0,
     });
-    expect(await orderEventsOf(order.id)).toEqual([]);
+    expect(await eventsOf(order.id)).toEqual([]);
   });
 });

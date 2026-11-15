@@ -27,7 +27,7 @@ export async function onChargeRefunded(charge: Stripe.Charge, now: Date): Promis
 
   // Without metadata (charge created outside Checkout), the PaymentIntent, unique on orders, is
   // enough to find the order.
-  const order: Prisma.OrderWhereInput =
+  const orderWhere: Prisma.OrderWhereInput =
     orderId === null
       ? { paymentMethod: "ONLINE", stripePaymentIntentId: paymentIntentId }
       : onlineOrderWhere(orderId, paymentIntentId);
@@ -35,7 +35,7 @@ export async function onChargeRefunded(charge: Stripe.Charge, now: Date): Promis
     prisma.order.updateMany({
       where: {
         AND: [
-          order,
+          orderWhere,
           { OR: [{ refundAmountCents: null }, { refundAmountCents: { lt: refunded } }] },
         ],
       },

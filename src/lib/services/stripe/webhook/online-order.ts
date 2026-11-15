@@ -28,12 +28,20 @@ export function metadataOrderId(
   return orderId ? orderId : null;
 }
 
-/** Order `orderId`, paid online, bound to `paymentIntentId` or to no PaymentIntent yet. */
-export function onlineOrderWhere(orderId: string, paymentIntentId: string): Prisma.OrderWhereInput {
+/**
+ * Order `orderId`, paid online, bound to `paymentIntentId` or to no PaymentIntent yet; without a
+ * PaymentIntent (null), any online order `orderId`.
+ */
+export function onlineOrderWhere(
+  orderId: string,
+  paymentIntentId: string | null
+): Prisma.OrderWhereInput {
   return {
     id: orderId,
     paymentMethod: "ONLINE",
-    OR: [{ stripePaymentIntentId: null }, { stripePaymentIntentId: paymentIntentId }],
+    ...(paymentIntentId !== null && {
+      OR: [{ stripePaymentIntentId: null }, { stripePaymentIntentId: paymentIntentId }],
+    }),
   };
 }
 

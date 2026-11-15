@@ -12,9 +12,10 @@
 //   transaction holds its row locks for up to timeout x (retries + 1).
 // The lists are CLOSED: a new entry makes the test fail (go through the gateway instead), and so
 // does an entry that became false (remove it).
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { importsModule, sourceFiles, withoutComments } from "./source-scan";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SCANNED_DIRS = ["src", "scripts"];
@@ -40,74 +41,6 @@ const STRIPE_CLIENT_BUILDERS: Record<string, string> = {
 const STRIPE_ENV_READERS: Record<string, string> = {
   "src/lib/stripe.ts": "secret key and webhook secrets, read at call time",
 };
-
-/** Files that both open a Prisma transaction and call the gateway: none, ever. */
-const GATEWAY_CALLS_IN_TRANSACTION_FILES: Record<string, string> = {};
-
-/** Shipped code only: tests (which sign webhook payloads locally) are not read. */
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return entry.name === "node_modules" || entry.name === "__tests__" ? [] : sourceFiles(full);
-    }
-    const isSource = /\.(?:ts|tsx|js|mjs)$/.test(entry.name);
-    return isSource && !/\.(?:test|spec)\.[a-z]+$/.test(entry.name) ? [full] : [];
-  });
-}
-
-/** The text without its comments; strings stay (module names are strings). */
-function withoutComments(text: string): string {
-  let out = "";
-  let i = 0;
-  while (i < text.length) {
-    const c = text[i];
-    const next = text[i + 1];
-    if (c === "/" && next === "/") {
-      const end = text.indexOf("\n", i);
-      i = end === -1 ? text.length : end;
-    } else if (c === "/" && next === "*") {
-      const end = text.indexOf("*/", i + 2);
-      i = end === -1 ? text.length : end + 2;
-    } else if (c === '"' || c === "'" || c === "`") {
-      let j = i + 1;
-      while (j < text.length && text[j] !== c && (c === "`" || text[j] !== "\n")) {
-        j += text[j] === "\\" ? 2 : 1;
-      }
-      out += text.slice(i, j + 1);
-      i = j + 1;
-    } else {
-      out += c;
-      i += 1;
-    }
-  }
-  return out;
-}
-
-function specifierOf(moduleName: string): string {
-  const escaped = moduleName.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-  return `(['"\`])${escaped}(?:\\/[^'"\`]*)?\\1`;
-}
-
-/** Every form that loads the module (or a subpath) at run time; `import type` is not one of them. */
-function importsModuleAsValue(code: string, moduleName: string): boolean {
-  const specifier = specifierOf(moduleName);
-  const forms = [
-    `\\bimport\\s+(?!type\\b)[^'"\`;]*?\\bfrom\\s*${specifier}`,
-    `\\bexport\\s+[^'"\`;]*?\\bfrom\\s*${specifier}`,
-    `\\bimport\\s*${specifier}`,
-    `\\bimport\\s*\\(\\s*${specifier}\\s*\\)`,
-    `\\brequire\\s*\\(\\s*${specifier}\\s*\\)`,
-  ];
-  return forms.some((form) => new RegExp(form).test(code));
-}
-
-function importsModule(code: string, moduleName: string): boolean {
-  const typeImport = new RegExp(
-    `\\bimport\\s+type\\b[^'"\`;]*?\\bfrom\\s*${specifierOf(moduleName)}`
-  );
-  return importsModuleAsValue(code, moduleName) || typeImport.test(code);
-}
 
 const namesStripeClient = (code: string) => /\bgetStripeClient\b/.test(code);
 const buildsStripeClient = (code: string) => /\bnew\s+Stripe\s*\(/.test(code);
@@ -142,7 +75,7 @@ describe("Stripe guard", () => {
       ({ file, code }) => !inStripeZone(file) && importsModule(code, "stripe")
     );
     const loading = outside
-      .filter(({ code }) => importsModuleAsValue(code, "stripe"))
+      .filter(({ code }) => importsModule(code, "stripe", { typeImports: false }))
       .map(({ file }) => file);
     expect(outside.map(({ file }) => file).sort(), HOW_TO).toEqual(
       Object.keys(STRIPE_TYPE_IMPORTERS).sort()
@@ -162,27 +95,10 @@ describe("Stripe guard", () => {
   });
 
   it("no file both opens a Prisma transaction and calls the gateway", () => {
-    expect(matching(callsGatewayInTransactionFile), HOW_TO).toEqual(
-      Object.keys(GATEWAY_CALLS_IN_TRANSACTION_FILES).sort()
-    );
+    expect(matching(callsGatewayInTransactionFile), HOW_TO).toEqual([]);
   });
 
-  it("the code reader tells a type import from a load, and a call from a mention", () => {
-    const loads = (text: string) => importsModuleAsValue(withoutComments(text), "stripe");
-    const imports = (text: string) => importsModule(withoutComments(text), "stripe");
-    expect(loads('import Stripe from "stripe";')).toBe(true);
-    expect(loads("import { type Event } from 'stripe';")).toBe(true);
-    expect(loads('import {\n  Stripe,\n} from "stripe";')).toBe(true);
-    expect(loads('export { default } from "stripe";')).toBe(true);
-    expect(loads('const { default: S } = await import("stripe");')).toBe(true);
-    expect(loads('const s = require("stripe/esm/stripe.esm.node.js");')).toBe(true);
-    expect(loads('import type Stripe from "stripe";')).toBe(false);
-    expect(imports('import type Stripe from "stripe";')).toBe(true);
-    expect(imports('import type { Event } from "stripe";')).toBe(true);
-    expect(imports('// import Stripe from "stripe";')).toBe(false);
-    expect(imports('import { x } from "stripe-mock";')).toBe(false);
-    expect(imports('const LIBS = ["stripe"];')).toBe(false);
-
+  it("the predicates tell a call or a read from a mention", () => {
     const code = (text: string) => withoutComments(text);
     expect(
       callsGatewayInTransactionFile(

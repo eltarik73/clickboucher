@@ -3,7 +3,8 @@
 // NULLs allowed), a dispute record outlives its order, rows written without the new columns (the
 // previous code's writes) get NULL or the declared default, the hand-written migration names every
 // index and foreign key exactly as Prisma does, and its preflight (run as it is) accepts the schema
-// Prisma builds but refuses two orders sharing a PaymentIntent before the unique index exists.
+// Prisma builds but refuses two orders sharing a PaymentIntent before the unique index exists, and
+// a column already present in another shape than Prisma's.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -42,12 +43,12 @@ async function rejectionOf(write: Promise<unknown>): Promise<unknown> {
   );
 }
 
-describe("une session ou un PaymentIntent Stripe désigne une seule commande", () => {
+describe("a Stripe session or PaymentIntent designates a single order", () => {
   it.each([
     ["stripePaymentIntentId", "stripe_payment_intent_id", "pi_itest_1"],
     ["stripeCheckoutSessionId", "stripe_checkout_session_id", "cs_itest_1"],
   ] as const)(
-    "%s : plusieurs commandes sans identifiant, puis un doublon refusé",
+    "%s: several orders without an identifier, then a duplicate refused",
     async (field, column, value) => {
       const { create } = await orderOf();
       const [first, second, third] = [await create(), await create(), await create()];
@@ -77,8 +78,8 @@ describe("une session ou un PaymentIntent Stripe désigne une seule commande", (
   );
 });
 
-describe("fiche de litige", () => {
-  it("survit à la suppression de sa commande : orderId remis à NULL, le reste gardé", async () => {
+describe("dispute record", () => {
+  it("outlives the deletion of its order: orderId set to NULL, the rest kept", async () => {
     const { shop, create } = await orderOf();
     const order = await create();
     const other = await create();
@@ -110,8 +111,8 @@ describe("fiche de litige", () => {
   });
 });
 
-describe("lignes écrites sans les nouvelles colonnes (comme le code précédent)", () => {
-  it("client sans marge, boutique aux défauts, commande sans marge ni paiement en ligne", async () => {
+describe("rows written without the new columns (as the previous code writes them)", () => {
+  it("customer without tolerance, shop at its defaults, order without tolerance or online payment", async () => {
     const { shop, customer, create } = await orderOf();
     const order = await create();
 
@@ -120,8 +121,6 @@ describe("lignes écrites sans les nouvelles colonnes (comme le code précédent
       stripeRequirementsDue: [],
       stripeDisabledReason: null,
       stripeCardPaymentsActive: false,
-      vatNumber: null,
-      vatFranchise: false,
     });
     expect(order).toMatchObject({
       weighToleranceRateBps: null,
@@ -133,16 +132,11 @@ describe("lignes écrites sans les nouvelles colonnes (comme le code précédent
       captureBefore: null,
       cardNetwork: null,
       capturedAmountCents: null,
-      captureFailedAt: null,
       paymentReleasedAt: null,
-      paymentDueAt: null,
-      commissionRateBps: null,
-      commissionHtCents: null,
-      commissionVatCents: null,
     });
   });
 
-  it("ajustement en attente de palier 2 et événement Stripe : échéance, motif et registre à NULL", async () => {
+  it("pending tier-2 adjustment and Stripe event: deadline, reason and ledger columns NULL", async () => {
     const { shop, create } = await orderOf();
     const order = await create();
     const adjustment = await prisma.priceAdjustment.create({
@@ -165,8 +159,8 @@ describe("lignes écrites sans les nouvelles colonnes (comme le code précédent
   });
 });
 
-describe("migration écrite à la main", () => {
-  it("nomme chaque index et la clé étrangère comme Prisma les crée", async () => {
+describe("hand-written migration", () => {
+  it("names each index and the foreign key as Prisma creates them", async () => {
     const indexes = await prisma.$queryRaw<Array<{ indexname: string }>>`
       SELECT indexname FROM pg_indexes
       WHERE schemaname = current_schema() AND indexname IN (
@@ -192,15 +186,15 @@ describe("migration écrite à la main", () => {
   });
 });
 
-describe("pré-vol de la migration (preflight.sql exécuté tel quel)", () => {
-  it("accepte le schéma créé par Prisma, objets déjà présents compris", async () => {
+describe("migration preflight (preflight.sql run as it is)", () => {
+  it("accepts the schema built by Prisma, objects already present included", async () => {
     const { create } = await orderOf();
     await create();
 
     await expect(prisma.$executeRawUnsafe(PREFLIGHT_SQL)).resolves.toBe(0);
   });
 
-  it("refuse deux commandes au même PaymentIntent avant l'index unique, sans rien écrire", async () => {
+  it("refuses two orders with the same PaymentIntent before the unique index, writing nothing", async () => {
     const { create } = await orderOf();
     const [first, second] = [await create(), await create()];
 
@@ -222,5 +216,26 @@ describe("pré-vol de la migration (preflight.sql exécuté tel quel)", () => {
     `;
     expect(index).toEqual({ unique: true });
     expect(await prisma.order.count({ where: { stripePaymentIntentId: { not: null } } })).toBe(0);
+  });
+
+  it("refuses a list column already present NOT NULL, a shape db push never builds", async () => {
+    const refusal = prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        'ALTER TABLE "shops" ALTER COLUMN "stripe_requirements_due" SET NOT NULL'
+      );
+      await tx.$executeRawUnsafe(PREFLIGHT_SQL);
+      // Never commit: db push ignores a list's nullability and would not restore the column.
+      throw new Error("the preflight was expected to refuse");
+    });
+
+    await expect(refusal).rejects.toThrow(
+      /colonne shops\.stripe_requirements_due déjà présente mais NOT NULL, attendu nullable/
+    );
+    const [column] = await prisma.$queryRaw<Array<{ nullable: string }>>`
+      SELECT is_nullable AS nullable FROM information_schema.columns
+      WHERE table_schema = current_schema() AND table_name = 'shops'
+        AND column_name = 'stripe_requirements_due'
+    `;
+    expect(column).toEqual({ nullable: "YES" });
   });
 });

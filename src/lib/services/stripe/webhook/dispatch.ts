@@ -7,9 +7,10 @@
 // `platform` ones on the "Your account" endpoint, `connect` ones on the "Connected accounts" one.
 // The switch narrows `event`, so every handler receives the object type of its event.
 import type Stripe from "stripe";
-import { onAccountUpdated, onPayoutFailed } from "./account-events";
+import { syncShopFromAccount } from "../account-sync";
+import { onPayoutFailed } from "./account-events";
 import { onCheckoutSessionCompleted, onCheckoutSessionExpired } from "./checkout-events";
-import { onDisputeClosed, onDisputeCreated, onDisputeUpdated } from "./dispute-events";
+import { onDispute } from "./dispute-events";
 import {
   onPaymentIntentAmountCapturableUpdated,
   onPaymentIntentCanceled,
@@ -21,7 +22,7 @@ import type { WebhookScope } from "./verify";
 
 type Run = (now: Date) => Promise<void> | void;
 
-export type StripeEventRoute =
+type StripeEventRoute =
   | { kind: "handle"; run: Run }
   | { kind: "ignore"; reason: "scope" | "type" };
 
@@ -67,19 +68,19 @@ function handlerOf(event: Stripe.Event): { scope: WebhookScope; run: Run } | nul
     }
     case "charge.dispute.created": {
       const dispute = event.data.object;
-      return platform((now) => onDisputeCreated(dispute, now));
+      return platform((now) => onDispute(dispute, "created", now));
     }
     case "charge.dispute.updated": {
       const dispute = event.data.object;
-      return platform((now) => onDisputeUpdated(dispute, now));
+      return platform((now) => onDispute(dispute, "updated", now));
     }
     case "charge.dispute.closed": {
       const dispute = event.data.object;
-      return platform((now) => onDisputeClosed(dispute, now));
+      return platform((now) => onDispute(dispute, "closed", now));
     }
     case "account.updated": {
       const account = event.data.object;
-      return connect(() => onAccountUpdated(account));
+      return connect(() => syncShopFromAccount(account));
     }
     case "payout.failed": {
       const payout = event.data.object;

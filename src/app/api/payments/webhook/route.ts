@@ -1,12 +1,8 @@
 // POST /api/payments/webhook — Stripe webhook, dormant: online payment is refused at order creation
-// and production holds no Stripe key, so this route answers 503 there.
-//
-// Steps: configuration (503) -> signature, platform secret then Connect secret (400, nothing
-// written) -> livemode against the deployment (200 ignored, nothing written) -> handler and scope of
-// the event type (200 ignored) -> ledger claim (200 duplicate, 409 in progress) -> handler -> event
-// marked handled. A failed handler releases its claim and answers 500 so that Stripe retries.
-// What each handler may write: src/lib/services/stripe/webhook/*. No Clerk here: the route stays out
-// of the middleware matcher (src/lib/__tests__/middleware-matcher.test.ts).
+// and production holds no Stripe key, so this route answers 503 there. Stripe signs the request
+// instead of a session: no Clerk here, and the route stays out of the middleware matcher
+// (src/lib/__tests__/middleware-matcher.test.ts). What each handler may write: the header of its
+// file in src/lib/services/stripe/webhook/.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 

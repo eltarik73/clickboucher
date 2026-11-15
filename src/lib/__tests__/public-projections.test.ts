@@ -15,8 +15,6 @@ const FORBIDDEN_SHOP_KEYS = [
   "stripeRequirementsDue",
   "stripeDisabledReason",
   "stripeCardPaymentsActive",
-  "vatNumber",
-  "vatFranchise",
   "commissionPct",
   "commissionEnabled",
   "commissionMarkupPercent",

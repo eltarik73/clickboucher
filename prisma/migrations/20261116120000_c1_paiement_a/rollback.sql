@@ -18,8 +18,8 @@
 --   - l'échéance et le motif des ajustements de prix (answer_by, close_reason). Un ajustement
 --     encore en attente créé par le nouveau code (palier 3, sans escalate_at) reste en attente
 --     d'une réponse du client pour le code précédent, qui ne l'escalade jamais ;
---   - le registre étendu des événements Stripe, les fiches de litige, l'état Connect et la TVA
---     des boutiques, et les champs de paiement en ligne des commandes (inactif : vides).
+--   - le registre étendu des événements Stripe, les fiches de litige, l'état Connect des
+--     boutiques et les champs de paiement en ligne des commandes (inactif : vides).
 -- Les index simples orders_stripe_*_idx d'une migration antérieure ne sont pas touchés.
 --
 -- Tout ou rien : une seule transaction, rejouable sans effet. Verrous pris dans l'ordre de la
@@ -32,9 +32,7 @@ SET LOCAL lock_timeout = '5s';
 ALTER TABLE "shops"
     DROP COLUMN IF EXISTS "stripe_requirements_due",
     DROP COLUMN IF EXISTS "stripe_disabled_reason",
-    DROP COLUMN IF EXISTS "stripe_card_payments_active",
-    DROP COLUMN IF EXISTS "vat_number",
-    DROP COLUMN IF EXISTS "vat_franchise";
+    DROP COLUMN IF EXISTS "stripe_card_payments_active";
 
 ALTER TABLE "users" DROP COLUMN IF EXISTS "weigh_tolerance";
 
@@ -54,12 +52,7 @@ ALTER TABLE "orders"
     DROP COLUMN IF EXISTS "capture_before",
     DROP COLUMN IF EXISTS "card_network",
     DROP COLUMN IF EXISTS "captured_amount_cents",
-    DROP COLUMN IF EXISTS "capture_failed_at",
-    DROP COLUMN IF EXISTS "payment_released_at",
-    DROP COLUMN IF EXISTS "payment_due_at",
-    DROP COLUMN IF EXISTS "commission_rate_bps",
-    DROP COLUMN IF EXISTS "commission_ht_cents",
-    DROP COLUMN IF EXISTS "commission_vat_cents";
+    DROP COLUMN IF EXISTS "payment_released_at";
 
 DROP INDEX IF EXISTS "price_adjustments_status_answer_by_idx";
 

@@ -1,16 +1,16 @@
-// Stripe events signed locally, for the webhook integration tests.
+// Stripe events signed locally and Klik&Go rows, for the payment integration tests.
 //
 // Nothing here talks to Stripe: Stripe.webhooks.generateTestHeaderString computes the HMAC Stripe
 // would send, with dummy secrets that exist only in these tests (assembled from pieces, so that no
 // secret scanner mistakes them for real ones). The dummy secret key only makes isStripeConfigured()
-// true: the webhook never builds a client, and each test file installs the fake payment gateway and
-// asserts that it received no call. Event objects carry only the fields the handlers read.
+// true: the webhook never builds a client, and each webhook test file installs the fake payment
+// gateway and asserts that it received no call. Event objects carry only the fields the handlers
+// read.
 import Stripe from "stripe";
 import { NextRequest } from "next/server";
 import type { Order, OrderItem, Prisma, Product, Shop, User } from "@prisma/client";
-import { afterAll, beforeAll } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 import { POST } from "@/app/api/payments/webhook/route";
-import { prisma } from "../helpers/db";
 import {
   createTestOrder,
   createTestProduct,
@@ -23,35 +23,23 @@ const STRIPE_TEST_ENV = {
   STRIPE_SECRET_KEY: ["sk", "test", DUMMY].join("_"),
   STRIPE_WEBHOOK_SECRET: ["whsec", "platform", DUMMY].join("_"),
   STRIPE_CONNECT_WEBHOOK_SECRET: ["whsec", "connect", DUMMY].join("_"),
-} as const;
-type StripeVariable = keyof typeof STRIPE_TEST_ENV;
+};
 
-export const PLATFORM_SECRET = STRIPE_TEST_ENV.STRIPE_WEBHOOK_SECRET;
+const PLATFORM_SECRET = STRIPE_TEST_ENV.STRIPE_WEBHOOK_SECRET;
 export const CONNECT_SECRET = STRIPE_TEST_ENV.STRIPE_CONNECT_WEBHOOK_SECRET;
 export const FOREIGN_SECRET = ["whsec", "foreign", DUMMY].join("_");
+/** The only kind of secret key the production deployment accepts. */
+export const LIVE_SECRET_KEY = ["sk", "live", DUMMY].join("_");
 
-/** Sets one Stripe variable (undefined removes it) and returns how to put the previous value back. */
-export function setStripeVariable(name: StripeVariable, value: string | undefined): () => void {
-  const previous = process.env[name];
-  if (value === undefined) delete process.env[name];
-  else process.env[name] = value;
-  return () => {
-    if (previous === undefined) delete process.env[name];
-    else process.env[name] = previous;
-  };
-}
-
-/** The dummy Stripe configuration for the whole test file, restored afterwards. */
-export function installStripeTestEnv(): void {
-  const restores: Array<() => void> = [];
-  beforeAll(() => {
-    for (const name of Object.keys(STRIPE_TEST_ENV) as StripeVariable[]) {
-      restores.push(setStripeVariable(name, STRIPE_TEST_ENV[name]));
-    }
+/**
+ * The dummy Stripe configuration, stubbed before each test and removed after it (a test that
+ * changes or removes a variable does it with vi.stubEnv).
+ */
+export function useStripeTestEnv(): void {
+  beforeEach(() => {
+    for (const [name, value] of Object.entries(STRIPE_TEST_ENV)) vi.stubEnv(name, value);
   });
-  afterAll(() => {
-    for (const restore of restores.splice(0).reverse()) restore();
-  });
+  afterEach(() => vi.unstubAllEnvs());
 }
 
 let sequence = 0;
@@ -61,7 +49,7 @@ export function stripeId(prefix: string): string {
   return `${prefix}_itest${sequence}`;
 }
 
-export interface TestEvent {
+interface TestEvent {
   id: string;
   object: "event";
   type: string;
@@ -102,7 +90,7 @@ export function signedRequest(
   });
 }
 
-export interface WebhookResponse {
+interface WebhookResponse {
   status: number;
   body: Record<string, unknown>;
 }
@@ -176,7 +164,7 @@ export function charge(input: {
 
 // ── Klik&Go rows ───────────────────────────────────────────────────────────────
 
-export interface PaymentWorld {
+interface PaymentWorld {
   shop: Shop;
   customer: User;
   product: Product;
@@ -208,16 +196,4 @@ export function createOnlineOrder(
     items: [{ productId: world.product.id }],
     overrides: { paymentMethod: "ONLINE", ...options.overrides },
   });
-}
-
-export function reloadOrder(orderId: string) {
-  return prisma.order.findUniqueOrThrow({ where: { id: orderId } });
-}
-
-export function orderEventsOf(orderId: string) {
-  return prisma.orderEvent.findMany({ where: { orderId }, orderBy: { createdAt: "asc" } });
-}
-
-export function notificationsOf(userId: string, type: string) {
-  return prisma.notification.findMany({ where: { userId, type } });
 }

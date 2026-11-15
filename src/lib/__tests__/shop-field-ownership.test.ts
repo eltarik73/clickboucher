@@ -127,10 +127,8 @@ const PLATFORM_OWNED = [
   // Parrainage : code généré par le serveur.
   "shopReferralCode",
   "referredByShop",
-  // Informations légales et qualité (TVA du boucher : commission HT et ses factures).
+  // Informations légales et qualité.
   "vatRate",
-  "vatNumber",
-  "vatFranchise",
   "siret",
   "legalName",
   "fullAddress",

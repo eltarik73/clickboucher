@@ -10,7 +10,9 @@
 //   (vi.mock("@/lib/payments/gateway")); Prisma itself is never mocked.
 // - Verifying a webhook signature is local cryptography (Stripe.webhooks), not a network call: it
 //   does not belong here.
-// Enforced by tests/lib/stripe-guard.test.ts.
+// tests/lib/stripe-guard.test.ts checks that this module is the only caller of getStripeClient()
+// and that no file both opens a transaction and calls the gateway; a call reached from a
+// transition's effects in another file is left to review.
 import type Stripe from "stripe";
 import { getStripeClient } from "@/lib/stripe";
 

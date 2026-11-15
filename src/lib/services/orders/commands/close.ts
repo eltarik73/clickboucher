@@ -1,12 +1,13 @@
-// src/lib/services/orders/commands/close.ts — the four ways an order ends without being collected:
-// refused or cancelled by the butcher, cancelled by the customer, expired (system).
+// src/lib/services/orders/commands/close.ts — the ways an order ends without being collected:
+// refused or cancelled by the butcher, cancelled by the customer, expired (system: its deadline
+// passed, or its unpaid Checkout Session expired).
 import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { countsTowardAutoPause } from "@/lib/auth/guest-auth";
 import { logger } from "@/lib/logger";
 import { sendNotification } from "@/lib/notifications";
 import { holdsLimitedStock } from "@/lib/order-state-machine";
-import { closePendingAdjustment } from "@/lib/services/orders/adjustment-settlement";
+import { closePendingAdjustment } from "@/lib/services/orders/adjustment-closure";
 import { releaseOrderDiscount } from "@/lib/services/orders/discount-ledger";
 import { orderClientName, orderPersonColumns } from "@/lib/services/orders/order-person";
 import {
@@ -178,10 +179,12 @@ export async function cancelOrderByCustomer(input: {
   return result;
 }
 
-/** System: PENDING -> AUTO_CANCELLED once expiresAt has passed. */
-export async function expireOrder(input: {
+/** System: PENDING -> AUTO_CANCELLED where `where` holds, then ORDER_EXPIRED to the customer. */
+async function expirePendingOrder(input: {
   orderId: string;
   now: Date;
+  where: Prisma.OrderWhereInput;
+  payload?: Prisma.InputJsonObject;
 }): Promise<CommandResult<Order>> {
   const order = await prisma.order.findUnique({
     where: { id: input.orderId },
@@ -194,9 +197,9 @@ export async function expireOrder(input: {
     scope: { system: true },
     from: ["PENDING"],
     to: "AUTO_CANCELLED",
-    where: { expiresAt: { lte: input.now } },
+    where: input.where,
     data: { autoCancelledAt: input.now },
-    event: { type: "AUTO_CANCELLED", actorId: SYSTEM_ACTOR_ID },
+    event: { type: "AUTO_CANCELLED", actorId: SYSTEM_ACTOR_ID, payload: input.payload },
   });
   if (result.kind === "done") {
     await sendNotification("ORDER_EXPIRED", {
@@ -207,6 +210,34 @@ export async function expireOrder(input: {
     });
   }
   return result;
+}
+
+/** System: PENDING -> AUTO_CANCELLED once expiresAt has passed. */
+export function expireOrder(input: { orderId: string; now: Date }): Promise<CommandResult<Order>> {
+  return expirePendingOrder({ ...input, where: { expiresAt: { lte: input.now } } });
+}
+
+/**
+ * System, on checkout.session.expired: PENDING -> AUTO_CANCELLED for an order paid ONLINE that is
+ * neither authorised nor paid and bound to this session or to none yet.
+ */
+export function expireUnpaidCheckout(input: {
+  orderId: string;
+  checkoutSessionId: string;
+  now: Date;
+}): Promise<CommandResult<Order>> {
+  const { checkoutSessionId } = input;
+  return expirePendingOrder({
+    orderId: input.orderId,
+    now: input.now,
+    where: {
+      paymentMethod: "ONLINE",
+      paymentAuthorizedAt: null,
+      paidAt: null,
+      OR: [{ stripeCheckoutSessionId: null }, { stripeCheckoutSessionId: checkoutSessionId }],
+    },
+    payload: { reason: "CHECKOUT_SESSION_EXPIRED", checkoutSessionId },
+  });
 }
 
 /** Most orders one expiry run takes; the rest is counted and waits for the next run. */

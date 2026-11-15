@@ -74,17 +74,17 @@ enum AdjustmentStatus {
   ESCALATED
 }
 
-// Motif de la fermeture d'un ajustement de prix refusé (C1-PAIEMENT-A), écrit avec le statut
-// REJECTED par src/lib/services/orders/adjustment-settlement.ts et adjustment-answers.ts seulement.
+// Motif de la fermeture d'un ajustement de prix refusé, écrit avec le statut REJECTED par
+// src/lib/services/orders/adjustment-closure.ts seulement.
 enum AdjustmentCloseReason {
   CUSTOMER_REFUSED // le client a répondu non
   NO_ANSWER // pas de réponse avant answerBy : le silence vaut refus
   ORDER_CHANGED // la commande a changé avant la réponse (fermeture, rupture, retrait)
 }
 
-// Marge de pesée choisie par le client (C1-PAIEMENT-A) : dans cette limite, le boucher ajuste le
-// prix après la pesée sans lui demander ; au-delà, le client accepte ou refuse. Taux et plafond
-// de chaque choix : src/lib/pricing/tolerance.ts, seule autorité.
+// Marge de pesée choisie par le client : dans cette limite, le boucher ajuste le prix après la
+// pesée sans lui demander ; au-delà, le client accepte ou refuse. Taux et plafond de chaque
+// choix : src/lib/pricing/tolerance.ts, seule autorité.
 enum WeighTolerance {
   STANDARD // 5 % du total estimé, 10 € au plus
   EXTENDED // 10 % du total estimé, 20 € au plus
@@ -298,7 +298,7 @@ model User {
 
   pushSubscription Json? @map("push_subscription")
 
-  // ── Marge de pesée (C1-PAIEMENT-A) ──
+  // ── Marge de pesée ──
   // Choix du client, fait activement à sa première commande (aucune case pré-cochée) puis repris
   // et montré aux suivantes, modifiable dans son profil. NULL = jamais choisi : sa commande est
   // refusée tant qu'il n'a pas choisi. Écrit par src/lib/services/orders/weigh-tolerance.ts et
@@ -425,20 +425,13 @@ model Shop {
   stripeAccountStatus      String?  @map("stripe_account_status") // pending | restricted | active
   stripeChargesEnabled     Boolean  @default(false) @map("stripe_charges_enabled")
   stripePayoutsEnabled     Boolean  @default(false) @map("stripe_payouts_enabled")
-  // État du compte Connect recopié depuis Stripe par le webhook account.updated (C1-PAIEMENT-A ;
-  // paiement en ligne inactif) : exigences en attente (requirements.currently_due + past_due),
-  // motif de désactivation (requirements.disabled_reason), capacité card_payments active.
-  // Colonnes de la plateforme : jamais écrites par le boucher, jamais publiques.
+  // État du compte Connect recopié depuis Stripe par src/lib/services/stripe/account-sync.ts
+  // seulement (paiement en ligne inactif) : exigences en attente (requirements.currently_due +
+  // past_due), motif de désactivation (requirements.disabled_reason), capacité card_payments
+  // active. Colonnes de la plateforme : jamais saisies par le boucher, jamais publiques.
   stripeRequirementsDue    String[] @default([]) @map("stripe_requirements_due")
   stripeDisabledReason     String?  @map("stripe_disabled_reason")
   stripeCardPaymentsActive Boolean  @default(false) @map("stripe_card_payments_active")
-
-  // ── TVA du boucher (C1-PAIEMENT-A) ──
-  // Numéro de TVA intracommunautaire et franchise en base de TVA (art. 293 B du CGI), pour la
-  // commission HT et ses factures. Colonnes de la plateforme, jamais publiques ; aucun code ne
-  // les écrit encore (onboarding Connect et facturation des bouchers : chantiers suivants).
-  vatNumber    String? @map("vat_number")
-  vatFranchise Boolean @default(false) @map("vat_franchise")
 
   // ── Commission ──
   commissionPct     Float   @default(0) @map("commission_pct")
@@ -1167,13 +1160,13 @@ model Order {
   serviceFeeCents         Int     @default(0) @map("service_fee_cents")
   stripeFeeCents          Int     @default(0) @map("stripe_fee_cents")
   shopPayoutCents         Int     @default(0) @map("shop_payout_cents")
-  // Uniques (C1-PAIEMENT-A) : une session ou un PaymentIntent Stripe désigne une seule commande.
-  // Plusieurs NULL restent permis (toute commande payée sur place).
+  // Uniques : une session ou un PaymentIntent Stripe désigne une seule commande. Plusieurs NULL
+  // restent permis (toute commande payée sur place).
   stripeCheckoutSessionId String? @unique @map("stripe_checkout_session_id")
   stripePaymentIntentId   String? @unique @map("stripe_payment_intent_id")
   stripeTransferId        String? @map("stripe_transfer_id")
 
-  // ── Paiement en ligne : autorisation, capture, libération (C1-PAIEMENT-A) ──
+  // ── Paiement en ligne : autorisation, capture, libération ──
   // Écrits uniquement par le webhook Stripe (src/lib/services/stripe/webhook/), par des écritures
   // conditionnelles sur les seules commandes paymentMethod = ONLINE. Le paiement en ligne est
   // inactif (devis et création refusent ONLINE) : NULL sur toute commande réelle.
@@ -1183,30 +1176,23 @@ model Order {
   //   cardNetwork           = réseau de la carte (visa, mastercard, cartes_bancaires…)
   //   capturedAmountCents   = montant réellement capturé (paidAt garde son sens : argent capturé)
   //   paymentReleasedAt     = autorisation libérée sans capture
-  // captureFailedAt, paymentDueAt et la commission gelée (taux en points de base, montants HT et
-  // TVA en centimes) ne sont encore écrits par aucun code : capture, échéance de paiement et
-  // modèle de commission attendent la phase B et les décisions du propriétaire.
   stripeChargeId        String?   @map("stripe_charge_id")
   authorizedAmountCents Int?      @map("authorized_amount_cents")
   paymentAuthorizedAt   DateTime? @map("payment_authorized_at")
   captureBefore         DateTime? @map("capture_before")
   cardNetwork           String?   @map("card_network")
   capturedAmountCents   Int?      @map("captured_amount_cents")
-  captureFailedAt       DateTime? @map("capture_failed_at")
   paymentReleasedAt     DateTime? @map("payment_released_at")
-  paymentDueAt          DateTime? @map("payment_due_at")
-  commissionRateBps     Int?      @map("commission_rate_bps")
-  commissionHtCents     Int?      @map("commission_ht_cents")
-  commissionVatCents    Int?      @map("commission_vat_cents")
 
-  // ── Marge de pesée figée à la création (C1-PAIEMENT-A) ──
-  // Copie, au moment de la commande, du choix du client (taux en points de base, plafond en
-  // centimes) et du total estimé auquel le taux s'applique (= totalCents du devis : marchandises
-  // moins remise). Écrits une seule fois par src/lib/services/orders/create.ts, depuis le choix
-  // validé par Zod, jamais depuis un montant reçu du navigateur. Marge = min(taux × total estimé,
-  // plafond) : src/lib/pricing/tolerance.ts. NULL (commande antérieure à C1-PAIEMENT-A, ou créée
-  // par le code précédent pendant le déploiement) = aucune marge : toute hausse demande l'accord
-  // explicite du client.
+  // ── Marge de pesée figée sur la commande ──
+  // Taux (points de base) et plafond (centimes) copiés à la création depuis le choix du client
+  // validé par Zod, jamais depuis un montant reçu du navigateur ; total estimé auquel le taux
+  // s'applique = estimation des lignes encore livrées moins la remise (estimatedTotalOf), figé à
+  // la création puis de nouveau quand les lignes livrées changent. Écrivains : liste fermée
+  // TOLERANCE_COLUMN_WRITERS de tests/lib/order-writers-guard.test.ts. Marge = min(taux × total
+  // estimé, plafond) : src/lib/pricing/tolerance.ts. NULL (commande antérieure à C1-PAIEMENT-A, ou
+  // créée par le code précédent pendant le déploiement) = aucune marge : toute hausse demande
+  // l'accord explicite du client.
   weighToleranceRateBps  Int? @map("weigh_tolerance_rate_bps")
   weighToleranceCapCents Int? @map("weigh_tolerance_cap_cents")
   estimatedTotalCents    Int? @map("estimated_total_cents")
@@ -1954,25 +1940,23 @@ model ChatMessage {
 // ══════════════════════════════════════════
 
 model StripeEvent {
-  id          String    @id // event.id from Stripe (evt_xxx)
-  type        String
-  // Prise en charge de l'événement (marqueur inséré avant le traitement, ou repris après un
-  // marqueur abandonné) ; handledAt = traitement terminé. Un marqueur sans handledAt n'est jamais
-  // acquitté comme doublon : Stripe le relivre et il est retraité (C1-PAIEMENT-A).
-  processedAt DateTime  @default(now()) @map("processed_at")
-  payload     Json?
-  // C1-PAIEMENT-A, écrits par src/lib/services/stripe/webhook/ledger.ts seulement. NULL sur les
-  // lignes antérieures : livemode = mode de l'événement, account = compte Connect émetteur
-  // (acct_xxx), NULL pour un événement de la plateforme.
-  handledAt   DateTime? @map("handled_at")
-  livemode    Boolean?
-  account     String?
+  id        String    @id // event.id from Stripe (evt_xxx)
+  type      String
+  // Marqueur posé, ou repris, avant le traitement ; handledAt = traitement terminé.
+  claimedAt DateTime  @default(now()) @map("processed_at")
+  payload   Json?
+  // Écrits par src/lib/services/stripe/webhook/ledger.ts seulement ; NULL sur les lignes
+  // antérieures à C1-PAIEMENT-A. livemode = mode de l'événement, account = compte Connect
+  // émetteur (acct_xxx), NULL pour un événement de la plateforme.
+  handledAt DateTime? @map("handled_at")
+  livemode  Boolean?
+  account   String?
 
   @@map("stripe_events")
 }
 
 // ══════════════════════════════════════════
-// STRIPE DISPUTE — litiges carte (C1-PAIEMENT-A)
+// STRIPE DISPUTE — litiges carte
 // Fiche par litige, créée et mise à jour par le webhook (charge.dispute.created / updated /
 // closed, src/lib/services/stripe/webhook/dispute-events.ts) seulement. Paiement en ligne
 // inactif : table vide. Toute lecture côté boucher est bornée par shopId.

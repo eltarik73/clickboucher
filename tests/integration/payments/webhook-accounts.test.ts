@@ -1,9 +1,10 @@
 // @vitest-environment node
 // Connected accounts, disputes and alerts on real PostgreSQL, with locally signed events:
-// account.updated copies the account state onto its shop, switches online payment off (never on)
-// and never re-points a shop to another account; disputes keep one row each, never reopened by a
-// late event; disputes, failed refunds and failed payouts raise an error log (Sentry). The logger is
-// observed with a spy that keeps its behaviour. No Stripe call: the fake gateway must record none.
+// account.updated copies the account state onto its shop (syncShopFromAccount, which the butcher's
+// refresh also runs: refresh-status.test.ts), switches online payment off (never on) and never
+// re-points a shop to another account; disputes keep one row each, never reopened by a late event;
+// disputes, failed refunds and failed payouts raise an error log (Sentry). The logger is observed
+// with a spy that keeps its behaviour. No Stripe call: the fake gateway must record none.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFakePaymentGateway } from "../helpers/fake-payment-gateway";
 
@@ -17,15 +18,15 @@ import {
   createOnlineOrder,
   createPaymentWorld,
   deliver,
-  installStripeTestEnv,
   stripeEvent,
   stripeId,
+  useStripeTestEnv,
 } from "./stripe-event-fixtures";
 
-// Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
-// eslint-disable-next-line react-hooks/rules-of-hooks
+/* eslint-disable react-hooks/rules-of-hooks -- not React hooks: the rule reads the « use » prefix */
 useCleanDatabase();
-installStripeTestEnv();
+useStripeTestEnv();
+/* eslint-enable react-hooks/rules-of-hooks */
 
 const errorLogs = vi.spyOn(logger, "error");
 beforeEach(() => {
@@ -230,7 +231,7 @@ describe("charge.dispute.*", () => {
   });
 });
 
-describe("alertes sans écriture", () => {
+describe("alerts that write nothing", () => {
   it("raises an error log for a failed refund and a failed payout, and writes nothing else", async () => {
     const refund = {
       id: stripeId("re"),

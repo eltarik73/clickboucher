@@ -16,29 +16,30 @@ vi.mock("@/lib/whatsapp", () => ({
 }));
 
 import { NextRequest } from "next/server";
+import { STALE_CLAIM_MS } from "@/lib/services/stripe/webhook/ledger";
 import { prisma, useCleanDatabase } from "../helpers/db";
+import { eventsOf, notificationsOf, reload } from "../orders/commands-fixtures";
 import {
   CONNECT_SECRET,
   FOREIGN_SECRET,
+  LIVE_SECRET_KEY,
   checkoutSession,
   createOnlineOrder,
   createPaymentWorld,
   deliver,
-  installStripeTestEnv,
-  notificationsOf,
-  orderEventsOf,
-  reloadOrder,
   send,
-  setStripeVariable,
   signedRequest,
   stripeEvent,
   stripeId,
+  useStripeTestEnv,
 } from "./stripe-event-fixtures";
 
-// Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
-// eslint-disable-next-line react-hooks/rules-of-hooks
+/* eslint-disable react-hooks/rules-of-hooks -- not React hooks: the rule reads the « use » prefix */
 useCleanDatabase();
-installStripeTestEnv();
+useStripeTestEnv();
+/* eslint-enable react-hooks/rules-of-hooks */
+
+const ROUNDS = 5;
 
 beforeEach(() => gateway.reset());
 afterEach(() => expect(gateway.calls).toEqual([]));
@@ -54,8 +55,8 @@ async function expiringOrder() {
 }
 
 async function expectExpiredOnce(order: { id: string; userId: string }) {
-  expect((await reloadOrder(order.id)).status).toBe("AUTO_CANCELLED");
-  expect((await orderEventsOf(order.id)).map((e) => e.type)).toEqual(["AUTO_CANCELLED"]);
+  expect((await reload(order.id)).status).toBe("AUTO_CANCELLED");
+  expect((await eventsOf(order.id)).map((e) => e.type)).toEqual(["AUTO_CANCELLED"]);
   expect(await notificationsOf(order.userId, "ORDER_EXPIRED")).toHaveLength(1);
 }
 
@@ -76,21 +77,22 @@ async function refuseOrderUpdates(orderId: string): Promise<() => Promise<void>>
   };
 }
 
-describe("configuration et signature", () => {
-  it("answers 503 without an accepted secret key or without any webhook secret", async () => {
-    const event = stripeEvent("refund.updated", { id: stripeId("re") });
-    const restoreKey = setStripeVariable("STRIPE_SECRET_KEY", undefined);
-    expect(await deliver(event)).toEqual({
+describe("configuration and signature", () => {
+  it("answers 503 without an accepted secret key", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", undefined);
+
+    expect(await deliver(stripeEvent("refund.updated", { id: stripeId("re") }))).toEqual({
       status: 503,
       body: { received: false, reason: "not-configured" },
     });
-    restoreKey();
+    expect(await prisma.stripeEvent.count()).toBe(0);
+  });
 
-    const restorePlatform = setStripeVariable("STRIPE_WEBHOOK_SECRET", undefined);
-    const restoreConnect = setStripeVariable("STRIPE_CONNECT_WEBHOOK_SECRET", undefined);
-    expect((await deliver(event)).status).toBe(503);
-    restoreConnect();
-    restorePlatform();
+  it("answers 503 without any webhook secret", async () => {
+    vi.stubEnv("STRIPE_WEBHOOK_SECRET", undefined);
+    vi.stubEnv("STRIPE_CONNECT_WEBHOOK_SECRET", undefined);
+
+    expect((await deliver(stripeEvent("refund.updated", { id: stripeId("re") }))).status).toBe(503);
     expect(await prisma.stripeEvent.count()).toBe(0);
   });
 
@@ -115,7 +117,7 @@ describe("configuration et signature", () => {
     expect((await send(signedRequest(event, undefined, tenMinutesAgo))).status).toBe(400);
 
     expect(await prisma.stripeEvent.count()).toBe(0);
-    expect((await reloadOrder(order.id)).status).toBe("PENDING");
+    expect((await reload(order.id)).status).toBe("PENDING");
   });
 
   it("handles a platform event and records it with handledAt", async () => {
@@ -147,7 +149,7 @@ describe("configuration et signature", () => {
     });
   });
 
-  it("ignores an event verified by the other scope's secret, a test event in production mode and an unknown type", async () => {
+  it("ignores an event verified by the other scope's secret, a live event outside production and an unknown type", async () => {
     const { order, event } = await expiringOrder();
     expect((await deliver(event, CONNECT_SECRET)).body).toEqual({
       received: true,
@@ -171,11 +173,25 @@ describe("configuration et signature", () => {
     expect((await deliver(unknown)).body).toEqual({ received: true, ignored: "type" });
 
     expect(await prisma.stripeEvent.count()).toBe(0);
-    expect((await reloadOrder(order.id)).status).toBe("PENDING");
+    expect((await reload(order.id)).status).toBe("PENDING");
+  });
+
+  it("ignores a test event on the production deployment", async () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("STRIPE_SECRET_KEY", LIVE_SECRET_KEY);
+    const { order, event } = await expiringOrder();
+
+    expect(await deliver(event)).toEqual({
+      status: 200,
+      body: { received: true, ignored: "livemode" },
+    });
+
+    expect(await prisma.stripeEvent.count()).toBe(0);
+    expect((await reload(order.id)).status).toBe("PENDING");
   });
 });
 
-describe("registre des événements", () => {
+describe("event ledger", () => {
   it("answers a replayed event id as a duplicate without a second effect", async () => {
     const { order, event } = await expiringOrder();
     expect((await deliver(event)).status).toBe(200);
@@ -198,7 +214,7 @@ describe("registre des événements", () => {
       await allowUpdates();
     }
     expect(await marker(event.id)).toBeNull();
-    expect((await reloadOrder(order.id)).status).toBe("PENDING");
+    expect((await reload(order.id)).status).toBe("PENDING");
 
     expect((await deliver(event)).status).toBe(200);
     await expectExpiredOnce(order);
@@ -207,32 +223,35 @@ describe("registre des événements", () => {
   it("answers 409 while a recent marker is unhandled, and takes over an abandoned one", async () => {
     const { order, event } = await expiringOrder();
     await prisma.stripeEvent.create({
-      data: { id: event.id, type: event.type, processedAt: new Date(Date.now() - 30_000) },
+      data: { id: event.id, type: event.type, claimedAt: new Date(Date.now() - STALE_CLAIM_MS / 2) },
     });
 
     expect(await deliver(event)).toEqual({
       status: 409,
       body: { received: false, reason: "in-progress" },
     });
-    expect((await reloadOrder(order.id)).status).toBe("PENDING");
+    expect((await reload(order.id)).status).toBe("PENDING");
 
     await prisma.stripeEvent.update({
       where: { id: event.id },
-      data: { processedAt: new Date(Date.now() - 120_000) },
+      data: { claimedAt: new Date(Date.now() - STALE_CLAIM_MS * 2) },
     });
     expect((await deliver(event)).status).toBe(200);
     await expectExpiredOnce(order);
     expect(await marker(event.id)).toMatchObject({ livemode: false, handledAt: expect.any(Date) });
   });
 
-  it("applies two concurrent deliveries of one event once", async () => {
-    const { order, event } = await expiringOrder();
+  it.each(Array.from({ length: ROUNDS }, (_, round) => round))(
+    "applies two concurrent deliveries of one event once (round %i)",
+    async () => {
+      const { order, event } = await expiringOrder();
 
-    const responses = await Promise.all([deliver(event), deliver(event)]);
+      const responses = await Promise.all([deliver(event), deliver(event)]);
 
-    const handled = responses.filter((r) => r.status === 200 && r.body.duplicate === undefined);
-    expect(handled).toHaveLength(1);
-    for (const response of responses) expect([200, 409]).toContain(response.status);
-    await expectExpiredOnce(order);
-  });
+      const handled = responses.filter((r) => r.status === 200 && r.body.duplicate === undefined);
+      expect(handled).toHaveLength(1);
+      for (const response of responses) expect([200, 409]).toContain(response.status);
+      await expectExpiredOnce(order);
+    }
+  );
 });

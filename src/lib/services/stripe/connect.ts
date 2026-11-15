@@ -19,6 +19,7 @@ import Stripe from "stripe";
 import prisma from "@/lib/prisma";
 import { getPaymentGateway } from "@/lib/payments/gateway";
 import { logger } from "@/lib/logger";
+import { syncShopFromAccount } from "./account-sync";
 import { connectAccountState, type ConnectAccountState } from "./account-state";
 
 export type ConnectAccountInput = {
@@ -186,11 +187,6 @@ export async function createLoginLink(
   return await gateway.createLoginLink(accountId);
 }
 
-/**
- * Récupère l'état d'un compte Stripe Connect.
- * Utilisé par /api/boucher/stripe/refresh-status (manuel) et par le webhook
- * `account.updated` pour synchroniser les flags Shop.stripeChargesEnabled etc.
- */
 export type ConnectAccountStatus = {
   accountId: string;
   chargesEnabled: boolean;
@@ -201,22 +197,23 @@ export type ConnectAccountStatus = {
   requirementsPastDue: string[];
 };
 
+/**
+ * Re-reads the account from Stripe, writes its state on the shop that holds it (the writer of the
+ * account.updated webhook) and returns it for the butcher's « refresh-status ».
+ */
 export async function syncShopStripeStatus(
   accountId: string,
 ): Promise<ConnectAccountStatus> {
   const gateway = getPaymentGateway();
   const account = await gateway.retrieveAccount(accountId);
+  await syncShopFromAccount(account);
 
-  const chargesEnabled = account.charges_enabled ?? false;
-  const payoutsEnabled = account.payouts_enabled ?? false;
-  const detailsSubmitted = account.details_submitted ?? false;
   const requirements = account.requirements;
-
   return {
     accountId: account.id,
-    chargesEnabled,
-    payoutsEnabled,
-    detailsSubmitted,
+    chargesEnabled: account.charges_enabled === true,
+    payoutsEnabled: account.payouts_enabled === true,
+    detailsSubmitted: account.details_submitted === true,
     status: connectAccountState(account),
     requirementsCurrentlyDue: requirements?.currently_due ?? [],
     requirementsPastDue: requirements?.past_due ?? [],
