@@ -5,8 +5,9 @@
 // des produits de la boutique qui demande sont renvoyés ; un usage ailleurs (autre boutique,
 // bannière, offre, catalogue) n'est compté que par un nombre, sans rien en dire.
 import prisma from "@/lib/prisma";
-import { IMAGE_COLUMNS } from "./columns";
-import { thumbnailOf } from "./thumbnail";
+import { IMAGE_COLUMNS, IMAGE_REGISTRY_TABLE } from "./columns";
+import { isStoreImageUrl } from "./durable-url";
+import { storedFilesOf } from "./store";
 
 export interface ImageReferences {
   /** Produits de la boutique qui utilisent l'image (20 au plus, par nom). */
@@ -19,19 +20,22 @@ export interface ImageReferences {
 
 const NAMES_SHOWN_IN_LIST = 20;
 const NAMES_IN_MESSAGE = 5;
-const REGISTRY_TABLE = "generated_images";
 
 /** Une seule requête : la somme, sur chaque colonne d'image, des lignes qui portent l'une des URL. */
 function totalUsesQuery(): string {
-  const parts = IMAGE_COLUMNS.filter((column) => column.table !== REGISTRY_TABLE).map(
-    (column) => `(SELECT count(*)::int FROM "${column.table}" WHERE "${column.column}" = ANY($1::text[]))`
+  const parts = IMAGE_COLUMNS.filter((column) => column.table !== IMAGE_REGISTRY_TABLE).map(
+    (column) =>
+      `(SELECT count(*)::int FROM "${column.table}" WHERE "${column.column}" = ANY($1::text[]))`
   );
   return `SELECT (${parts.join(" + ")})::int AS n`;
 }
 
-export async function findImageReferences(url: string, shopId: string | null): Promise<ImageReferences> {
-  const thumb = thumbnailOf(url);
-  const candidates = thumb === null ? [url] : [url, thumb];
+export async function findImageReferences(
+  url: string,
+  shopId: string | null
+): Promise<ImageReferences> {
+  // A foreign URL has no file of ours, but rows may still hold it.
+  const candidates = isStoreImageUrl(url) ? storedFilesOf(url) : [url];
 
   const totalRows = prisma.$queryRawUnsafe<Array<{ n: number }>>(totalUsesQuery(), candidates);
   if (shopId === null) {
@@ -43,18 +47,19 @@ export async function findImageReferences(url: string, shopId: string | null): P
     shopId,
     OR: [{ imageUrl: { in: candidates } }, { images: { some: { url: { in: candidates } } } }],
   };
-  const [[{ n }], shopProducts, shopProductCount, productRows, productImageRows] = await Promise.all([
-    totalRows,
-    prisma.product.findMany({
-      where: usedBy,
-      select: { id: true, name: true },
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      take: NAMES_SHOWN_IN_LIST,
-    }),
-    prisma.product.count({ where: usedBy }),
-    prisma.product.count({ where: { shopId, imageUrl: { in: candidates } } }),
-    prisma.productImage.count({ where: { url: { in: candidates }, product: { shopId } } }),
-  ]);
+  const [[{ n }], shopProducts, shopProductCount, productRows, productImageRows] =
+    await Promise.all([
+      totalRows,
+      prisma.product.findMany({
+        where: usedBy,
+        select: { id: true, name: true },
+        orderBy: [{ name: "asc" }, { id: "asc" }],
+        take: NAMES_SHOWN_IN_LIST,
+      }),
+      prisma.product.count({ where: usedBy }),
+      prisma.product.count({ where: { shopId, imageUrl: { in: candidates } } }),
+      prisma.productImage.count({ where: { url: { in: candidates }, product: { shopId } } }),
+    ]);
   return { shopProducts, shopProductCount, otherUses: n - productRows - productImageRows };
 }
 
@@ -69,7 +74,10 @@ export function imageInUseMessage(refs: ImageReferences): string {
   }
   const shown = refs.shopProducts.slice(0, NAMES_IN_MESSAGE).map((product) => product.name);
   const others = refs.shopProductCount - shown.length;
-  const list = others > 0 ? `${shown.join(", ")} et ${others} autre${others > 1 ? "s" : ""}` : shown.join(", ");
+  const list =
+    others > 0
+      ? `${shown.join(", ")} et ${others} autre${others > 1 ? "s" : ""}`
+      : shown.join(", ");
   const target = refs.shopProductCount > 1 ? "de ces produits" : "de ce produit";
   return `Cette photo est utilisée par : ${list}. Changez la photo ${target} avant de la supprimer.`;
 }

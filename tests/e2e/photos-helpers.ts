@@ -9,12 +9,24 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { errors, expect, type Browser, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import {
+  errors,
+  expect,
+  type Browser,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import type { PrismaClient, Unit } from "@prisma/client";
 import type { CartState } from "@/lib/cart/cart-line";
-import { buildCreateOrderRequest, buildQuoteRequest, type CheckoutSelection } from "@/lib/cart/order-payload";
+import {
+  buildCreateOrderRequest,
+  buildQuoteRequest,
+  type CheckoutSelection,
+} from "@/lib/cart/order-payload";
 import { normalizeStoredCart } from "@/lib/cart/stored-cart";
 import { uploadResultSchema, type UploadResult } from "@/lib/images/upload-contract";
+import { localPostgresIssue } from "@/lib/local-postgres-url";
 import { makeJpeg, makeTransparentPng } from "../fixtures/images/make-fixtures";
 
 export type TestRole = "CLIENT" | "BOUCHER" | "ADMIN";
@@ -27,13 +39,11 @@ export interface E2eTarget {
 }
 
 const LOCAL_SITE = /^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}\/?$/;
-const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
-const DB_HOST = /^postgres(?:ql)?:\/\/(?:[^@/]*@)?(\[[^\]]+\]|[^:/?#]+)/;
 
 /**
  * null sans E2E_TEST_SECRET (le parcours est ignoré). Sinon le site visé et la base doivent être
- * locaux, ou une erreur est levée avant la moindre requête. Le message ne cite jamais l'URL de la
- * base (elle porte le mot de passe), seulement son hôte.
+ * locaux (base : règle de src/lib/local-postgres-url.ts), ou une erreur est levée avant la moindre
+ * requête. Le message ne cite que l'hôte de la base, jamais son URL (elle porte le mot de passe).
  */
 export function e2eTarget(env: NodeJS.ProcessEnv = process.env): E2eTarget | null {
   const secret = env.E2E_TEST_SECRET;
@@ -46,16 +56,23 @@ export function e2eTarget(env: NodeJS.ProcessEnv = process.env): E2eTarget | nul
     );
   }
   const databaseUrl = env.DATABASE_URL ?? "";
-  const host = DB_HOST.exec(databaseUrl)?.[1] ?? "";
-  if (!LOCAL_DB_HOSTS.has(host)) {
-    throw new Error(`Parcours photos refusé : DATABASE_URL doit viser une base locale (hôte « ${host || "absent"} »).`);
+  const issue = localPostgresIssue(databaseUrl);
+  if (issue !== null) {
+    const host = issue.reason === "remote" && issue.host !== "" ? issue.host : "absent";
+    throw new Error(
+      `Parcours photos refusé : DATABASE_URL doit viser une base locale (hôte « ${host} »).`
+    );
   }
   const trimmed = baseURL.replace(/\/$/, "");
   return { baseURL: trimmed, origin: new URL(trimmed).origin, databaseUrl, secret };
 }
 
 /** Un contexte de navigateur dont la session de test (jeton signé) a le rôle demandé. */
-export async function openAs(browser: Browser, target: E2eTarget, role: TestRole): Promise<BrowserContext> {
+export async function openAs(
+  browser: Browser,
+  target: E2eTarget,
+  role: TestRole
+): Promise<BrowserContext> {
   const context = await browser.newContext({
     baseURL: target.baseURL,
     locale: "fr-FR",
@@ -84,7 +101,10 @@ export async function writePhotoFixtures(): Promise<PhotoFixtures> {
   const dir = mkdtempSync(path.join(tmpdir(), "klikgo-photos-e2e-"));
   const phoneJpeg = path.join(dir, "telephone-portrait.jpg");
   const transparentPng = path.join(dir, "fond-transparent.png");
-  writeFileSync(phoneJpeg, await makeJpeg({ width: 4032, height: 3024, orientation: 6, noise: 40, quality: 82 }));
+  writeFileSync(
+    phoneJpeg,
+    await makeJpeg({ width: 4032, height: 3024, orientation: 6, noise: 40, quality: 82 })
+  );
   writeFileSync(transparentPng, await makeTransparentPng());
   return { dir, phoneJpeg, transparentPng };
 }
@@ -108,11 +128,19 @@ export function photosNamed(page: Page, name: string): Locator {
 }
 
 /** L'image affiche `src` et l'a réellement chargée (naturalWidth > 0). */
-export async function expectPhotoLoaded(img: Locator, src: string | RegExp, timeout = 15_000): Promise<void> {
+export async function expectPhotoLoaded(
+  img: Locator,
+  src: string | RegExp,
+  timeout = 15_000
+): Promise<void> {
   await img.scrollIntoViewIfNeeded({ timeout });
   await expect(img).toHaveAttribute("src", src, { timeout });
   await expect
-    .poll(() => img.evaluate((el) => (el instanceof HTMLImageElement && el.complete ? el.naturalWidth : 0)), { timeout })
+    .poll(
+      () =>
+        img.evaluate((el) => (el instanceof HTMLImageElement && el.complete ? el.naturalWidth : 0)),
+      { timeout }
+    )
     .toBeGreaterThan(0);
 }
 
@@ -131,7 +159,9 @@ export function unloadedImages(page: Page): Promise<string[]> {
         img.scrollIntoView({ block: "center" });
         scrolled = true;
       }
-      unloaded.push(`${img.complete ? "cassée" : "en attente"} : ${img.alt || "(sans alt)"} → ${img.currentSrc || img.src}`);
+      unloaded.push(
+        `${img.complete ? "cassée" : "en attente"} : ${img.alt || "(sans alt)"} → ${img.currentSrc || img.src}`
+      );
     }
     return unloaded;
   });
@@ -140,7 +170,9 @@ export function unloadedImages(page: Page): Promise<string[]> {
 /** Envoie `file` par le champ « Ajouter une photo » et rend la réponse 200 de l'envoi. */
 export async function uploadThroughField(page: Page, file: string): Promise<UploadResult> {
   const answer = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === "/api/uploads/image" && response.request().method() === "POST"
+    (response) =>
+      new URL(response.url()).pathname === "/api/uploads/image" &&
+      response.request().method() === "POST"
   );
   await page.getByLabel("Ajouter une photo").setInputFiles(file);
   const response = await answer;
@@ -149,7 +181,11 @@ export async function uploadThroughField(page: Page, file: string): Promise<Uplo
 }
 
 /** Ajoute un produit au panier depuis sa carte en boutique (fiche de poids pour KG). */
-export async function addToCartFromStorefront(page: Page, productName: string, unit: Unit): Promise<void> {
+export async function addToCartFromStorefront(
+  page: Page,
+  productName: string,
+  unit: Unit
+): Promise<void> {
   const card = page.getByRole("button", { name: productName, exact: true });
   await card.scrollIntoViewIfNeeded();
   await card.getByRole("button", { name: "Ajouter au panier" }).click();
@@ -169,8 +205,13 @@ async function pageCart(page: Page): Promise<CartState> {
  * requêtes sont construites par src/lib/cart/order-payload.ts, seul constructeur du site.
  */
 export async function orderFromCart(page: Page, productIds: readonly string[]): Promise<string> {
-  const holdsAll = (cart: CartState) => productIds.every((id) => cart.items.some((item) => item.productId === id));
-  await expect.poll(async () => holdsAll(await pageCart(page)), { message: "produits dans le panier de la page" }).toBe(true);
+  const holdsAll = (cart: CartState) =>
+    productIds.every((id) => cart.items.some((item) => item.productId === id));
+  await expect
+    .poll(async () => holdsAll(await pageCart(page)), {
+      message: "produits dans le panier de la page",
+    })
+    .toBe(true);
   const cart = await pageCart(page);
   expect(cart.shopId, "boutique du panier").not.toBeNull();
   const selection: CheckoutSelection = {
@@ -182,11 +223,16 @@ export async function orderFromCart(page: Page, productIds: readonly string[]): 
     customerNote: "",
     weighTolerance: "STANDARD",
   };
-  const quote = await page.request.post("/api/orders/quote", { data: buildQuoteRequest(selection) });
+  const quote = await page.request.post("/api/orders/quote", {
+    data: buildQuoteRequest(selection),
+  });
   expect(quote.status(), "devis du panier").toBe(200);
   const { amountDueCents } = ((await quote.json()) as { data: { amountDueCents: number } }).data;
   const created = await page.request.post("/api/orders", {
-    data: buildCreateOrderRequest(selection, { expectedTotalCents: amountDueCents, idempotencyKey: randomUUID() }),
+    data: buildCreateOrderRequest(selection, {
+      expectedTotalCents: amountDueCents,
+      idempotencyKey: randomUUID(),
+    }),
   });
   expect(created.status(), "création de la commande").toBe(201);
   return ((await created.json()) as { data: { id: string } }).data.id;
@@ -221,12 +267,23 @@ export interface SeededProduct {
  * Produits du seed qui n'ont qu'une photo /img (aucune ProductImage), en vente, sans promotion ni
  * variante, au nom unique dans la boutique (une carte, une ligne de panier par nom).
  */
-export async function seededPhotoProducts(prisma: PrismaClient, shopId: string): Promise<SeededProduct[]> {
+export async function seededPhotoProducts(
+  prisma: PrismaClient,
+  shopId: string
+): Promise<SeededProduct[]> {
   const rows = await prisma.product.findMany({
     where: { shopId },
     select: {
-      id: true, name: true, unit: true, imageUrl: true, isActive: true, inStock: true, promoPct: true,
-      variants: true, categories: { select: { name: true } }, _count: { select: { images: true } },
+      id: true,
+      name: true,
+      unit: true,
+      imageUrl: true,
+      isActive: true,
+      inStock: true,
+      promoPct: true,
+      variants: true,
+      categories: { select: { name: true } },
+      _count: { select: { images: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -235,19 +292,32 @@ export async function seededPhotoProducts(prisma: PrismaClient, shopId: string):
   return rows
     .filter(
       (row) =>
-        row.isActive && row.inStock && row.promoPct === null && row.variants.length === 0 &&
-        row._count.images === 0 && row.imageUrl?.startsWith("/img/products/") &&
+        row.isActive &&
+        row.inStock &&
+        row.promoPct === null &&
+        row.variants.length === 0 &&
+        row._count.images === 0 &&
+        row.imageUrl?.startsWith("/img/products/") &&
         (row.unit === "KG" || row.unit === "PIECE" || row.unit === "BARQUETTE") &&
-        nameCounts.get(row.name) === 1 && row.categories.length > 0
+        nameCounts.get(row.name) === 1 &&
+        row.categories.length > 0
     )
-    .map((row) => ({ id: row.id, name: row.name, unit: row.unit, imageUrl: row.imageUrl as string, category: row.categories[0].name }));
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      unit: row.unit,
+      imageUrl: row.imageUrl as string,
+      category: row.categories[0].name,
+    }));
 }
 
 /** Cible d'une requête d'image : l'URL demandée à l'optimiseur, ou le chemin demandé directement. */
 export function photoRequestTarget(requestUrl: string, origin: string): string {
   const url = new URL(requestUrl);
   if (url.origin !== origin) return requestUrl;
-  return url.pathname === "/_next/image" ? (url.searchParams.get("url") ?? requestUrl) : url.pathname;
+  return url.pathname === "/_next/image"
+    ? (url.searchParams.get("url") ?? requestUrl)
+    : url.pathname;
 }
 
 /**
@@ -271,7 +341,10 @@ export async function watchPhotoRequests(
         const target = photoRequestTarget(request.url(), origin);
         const count = (counts.get(target) ?? 0) + 1;
         counts.set(target, count);
-        return /(^|\.)replicate\.delivery$/.test(new URL(target, origin).hostname) || (candidates.includes(target) && count > 1);
+        return (
+          /(^|\.)replicate\.delivery$/.test(new URL(target, origin).hostname) ||
+          (candidates.includes(target) && count > 1)
+        );
       },
     })
     .then(

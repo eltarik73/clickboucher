@@ -4,7 +4,14 @@
 import type { OrderStatus, ShopStatus } from "@prisma/client";
 
 // ── Échelles du thème Tailwind (lues aussi par cn() dans src/lib/utils.ts) ──
-export type FontSizeToken = "hero" | "title" | "subtitle" | "body-lg" | "body" | "caption" | "micro";
+export type FontSizeToken =
+  | "hero"
+  | "title"
+  | "subtitle"
+  | "body-lg"
+  | "body"
+  | "caption"
+  | "micro";
 
 export const FONT_SIZE_SCALE: Record<
   FontSizeToken,
@@ -71,8 +78,8 @@ export const SOLID_PAIRS: ReadonlyArray<readonly [text: string, surface: string]
   ["warning-foreground", "warning-hover"],
 ];
 
-// ── Tons de statut (classes dans src/components/ui/status-badge.tsx) ──
-export type StatusTone = "neutral" | "info" | "success" | "warning" | "danger";
+// ── Status tones: the Badge variant (src/components/ui/badge.tsx) of each status ──
+export type StatusTone = "neutral" | "info" | "success" | "warning" | "destructive";
 
 export const ORDER_STATUS_TONE: Record<OrderStatus, StatusTone> = {
   PENDING: "warning",
@@ -81,7 +88,7 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, StatusTone> = {
   READY: "success",
   PICKED_UP: "neutral",
   COMPLETED: "neutral",
-  DENIED: "danger",
+  DENIED: "destructive",
   CANCELLED: "neutral",
   AUTO_CANCELLED: "neutral",
   PARTIALLY_DENIED: "warning",
@@ -90,71 +97,68 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, StatusTone> = {
 export const SHOP_STATUS_TONE: Record<ShopStatus, StatusTone> = {
   OPEN: "success",
   BUSY: "warning",
-  PAUSED: "danger",
-  AUTO_PAUSED: "danger",
+  PAUSED: "destructive",
+  AUTO_PAUSED: "destructive",
   CLOSED: "neutral",
   VACATION: "info",
 };
 
-
-// ── Classes héritées des pastilles de statut (pages webmaster ; émises car src/lib est dans le content Tailwind) ──────────────
+// ── Status pill classes of the webmaster pages; their colours are not the tones above ──
 export const ORDER_STATUS_COLORS: Record<string, string> = {
-  PENDING:          "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  ACCEPTED:         "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  PREPARING:        "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-  READY:            "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  PICKED_UP:        "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  COMPLETED:        "bg-green-500/10 text-green-600 dark:text-green-400",
-  DENIED:           "bg-red-500/10 text-red-500",
-  CANCELLED:        "bg-gray-500/10 text-gray-500",
+  PENDING: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  ACCEPTED: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  PREPARING: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+  READY: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  PICKED_UP: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  COMPLETED: "bg-green-500/10 text-green-600 dark:text-green-400",
+  DENIED: "bg-red-500/10 text-red-500",
+  CANCELLED: "bg-gray-500/10 text-gray-500",
   PARTIALLY_DENIED: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-  AUTO_CANCELLED:   "bg-gray-400/10 text-gray-400",
+  AUTO_CANCELLED: "bg-gray-400/10 text-gray-400",
 };
 
-const ORDER_LABELS: Record<OrderStatus, string> = {
-  PENDING:          "En attente",
-  ACCEPTED:         "Acceptée",
-  PREPARING:        "En préparation",
-  READY:            "Prête",
-  PICKED_UP:        "Récupérée",
-  COMPLETED:        "Terminée",
-  DENIED:           "Refusée",
-  CANCELLED:        "Annulée",
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDING: "En attente",
+  ACCEPTED: "Acceptée",
+  PREPARING: "En préparation",
+  READY: "Prête",
+  PICKED_UP: "Récupérée",
+  COMPLETED: "Terminée",
+  DENIED: "Refusée",
+  CANCELLED: "Annulée",
   PARTIALLY_DENIED: "Partiel. refusée",
-  AUTO_CANCELLED:   "Expirée",
+  AUTO_CANCELLED: "Expirée",
 };
-export const ORDER_STATUS_LABELS: Record<string, string> = ORDER_LABELS;
 
 // ── Order Status Hex Colors (for Recharts / SVG) ────
 export const ORDER_STATUS_HEX: Record<string, string> = {
-  PENDING:          "#eab308",
-  ACCEPTED:         "#3b82f6",
-  PREPARING:        "#6366f1",
-  READY:            "#10b981",
-  PICKED_UP:        "#22c55e",
-  COMPLETED:        "#16a34a",
-  DENIED:           "#ef4444",
-  CANCELLED:        "#9ca3af",
+  PENDING: "#eab308",
+  ACCEPTED: "#3b82f6",
+  PREPARING: "#6366f1",
+  READY: "#10b981",
+  PICKED_UP: "#22c55e",
+  COMPLETED: "#16a34a",
+  DENIED: "#ef4444",
+  CANCELLED: "#9ca3af",
   PARTIALLY_DENIED: "#f97316",
-  AUTO_CANCELLED:   "#9ca3af",
+  AUTO_CANCELLED: "#9ca3af",
 };
 
 // ── Shop Status Colors ──────────────────────────────
 export const SHOP_STATUS_COLORS: Record<string, string> = {
-  OPEN:        "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  BUSY:        "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  PAUSED:      "bg-red-500/10 text-red-500",
+  OPEN: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  BUSY: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  PAUSED: "bg-red-500/10 text-red-500",
   AUTO_PAUSED: "bg-red-500/10 text-red-500",
-  CLOSED:      "bg-gray-500/10 text-gray-500",
-  VACATION:    "bg-blue-500/10 text-blue-500",
+  CLOSED: "bg-gray-500/10 text-gray-500",
+  VACATION: "bg-blue-500/10 text-blue-500",
 };
 
-const SHOP_LABELS: Record<ShopStatus, string> = {
-  OPEN:        "Ouvert",
-  BUSY:        "Occupé",
-  PAUSED:      "En pause",
+export const SHOP_STATUS_LABELS: Record<ShopStatus, string> = {
+  OPEN: "Ouvert",
+  BUSY: "Occupé",
+  PAUSED: "En pause",
   AUTO_PAUSED: "Auto-pause",
-  CLOSED:      "Fermé",
-  VACATION:    "Vacances",
+  CLOSED: "Fermé",
+  VACATION: "Vacances",
 };
-export const SHOP_STATUS_LABELS: Record<string, string> = SHOP_LABELS;

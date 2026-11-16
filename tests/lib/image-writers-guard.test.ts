@@ -55,20 +55,24 @@ const HOW_TO =
 
 describe("garde des écrivains d'images", () => {
   it("seuls les fichiers listés importent @vercel/blob", () => {
-    expect(matching((code) => importsModule(code, "@vercel/blob")), HOW_TO).toEqual(
-      Object.keys(BLOB_IMPORTERS).sort()
-    );
+    expect(
+      matching((code) => importsModule(code, "@vercel/blob")),
+      HOW_TO
+    ).toEqual(Object.keys(BLOB_IMPORTERS).sort());
   });
 
   it("seuls les fichiers listés appellent le fournisseur d'IA", () => {
     const callsProvider = (code: string) =>
-      importsModule(code, "replicate") || importsModule(code, "@/lib/replicate") || code.includes("api.replicate.com");
+      importsModule(code, "replicate") ||
+      importsModule(code, "@/lib/replicate") ||
+      code.includes("api.replicate.com");
     expect(matching(callsProvider), HOW_TO).toEqual(Object.keys(PROVIDER_CALLERS).sort());
   });
 
   it("dans src/, seul process.ts importe sharp", () => {
-    expect(matching((code) => importsModule(code, "sharp"), ["src"]), HOW_TO).toEqual(
-      Object.keys(SHARP_IMPORTERS).sort()
-    );
+    expect(
+      matching((code) => importsModule(code, "sharp"), ["src"]),
+      HOW_TO
+    ).toEqual(Object.keys(SHARP_IMPORTERS).sort());
   });
 });

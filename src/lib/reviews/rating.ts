@@ -6,6 +6,9 @@
 /** A shop's verified rating: mean of its verified reviews and their number (at least 1). */
 export type RatingSummary = { average: number; count: number };
 
+/** Most reviews a shop's JSON-LD carries, hence the most loadVerifiedShopRating loads. */
+export const MAX_PUBLISHED_REVIEWS = 2;
+
 /** The published rating value: the mean rounded to one decimal. */
 export function publishedRatingValue(average: number): number {
   return Math.round(average * 10) / 10;

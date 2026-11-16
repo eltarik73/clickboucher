@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { sendWhatsAppMessage, sendWhatsAppRaw } from "@/lib/whatsapp";
-import { isPushConfigured, sendPushNotification } from "@/lib/push";
+import { sendPushNotification } from "@/lib/push";
 import type { PushPayload, PushSubscriptionData } from "@/lib/push";
 import * as tpl from "@/lib/email-templates";
 import { escapeHtml } from "@/lib/html/escape";
@@ -619,26 +619,30 @@ export async function sendNotification(event: NotifEvent, data: NotifData) {
         if (promoPushCount >= 3) promoPushAllowed = false;
       }
     }
-    // Sans clés VAPID le push n'est pas tenté : ni compté servi, ni abonnement effacé.
-    if (
-      user.notifPush &&
-      user.pushSubscription &&
-      isPushConfigured() &&
-      (!isPromoEvent || promoPushAllowed)
-    ) {
+    if (user.notifPush && user.pushSubscription && (!isPromoEvent || promoPushAllowed)) {
       try {
         const sub = user.pushSubscription as PushSubscriptionData;
         if (sub.endpoint && sub.keys) {
           const payload = getPushPayload(event, data);
-          const success = await sendPushNotification(sub, payload);
-          if (success) {
-            channels.push("push");
-          } else {
-            // Subscription expired — clear it
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { pushSubscription: Prisma.DbNull },
-            });
+          const result = await sendPushNotification(sub, payload);
+          switch (result) {
+            case "sent":
+              channels.push("push");
+              break;
+            case "expired":
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { pushSubscription: Prisma.DbNull },
+              });
+              break;
+            // Neither says anything about the subscription: it is kept for the next notification.
+            case "failed":
+            case "not_configured":
+              break;
+            default: {
+              const unknownResult: never = result;
+              throw new RangeError(`Unhandled push result ${String(unknownResult)}`);
+            }
           }
         }
       } catch (e) {

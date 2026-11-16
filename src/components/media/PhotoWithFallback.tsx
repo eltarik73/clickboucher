@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ImageOff, Store } from "lucide-react";
 import { classifyImageUrl } from "@/lib/images/durable-url";
+import type { ResolvedPhoto } from "@/lib/images/product-photo";
 import { thumbnailOf } from "@/lib/images/thumbnail";
 
 export interface PhotoLayoutProps {
@@ -31,17 +32,15 @@ export interface PhotoLayoutProps {
 }
 
 export interface PhotoWithFallbackProps extends PhotoLayoutProps {
-  /** Ordre d'essai ; la dernière est une photo locale du site. */
-  candidates: readonly string[];
+  /** Candidates in the order they are tried (the last one a local photo of the site), and the own photo. */
+  photo: ResolvedPhoto;
   alt: string;
   /** 'thumb' : vignette -t quand la photo en a une (servie telle quelle), sinon la photo optimisée. */
   variant?: "optimized" | "thumb";
   fallbackIcon: "product" | "shop";
-  /** La photo propre du produit ou de la boutique, pour le badge « Photo indisponible ». */
-  ownCandidate?: string | null;
   /**
-   * Badge « Photo indisponible » quand la photo propre a échoué (écrans du boucher). Le badge est
-   * placé en absolu : le parent doit être positionné, comme pour fill.
+   * Badge « Photo indisponible » quand la photo propre ne peut pas être affichée ou a échoué
+   * (écrans du boucher). Le badge est placé en absolu : le parent doit être positionné, comme pour fill.
    */
   unavailableBadge?: boolean;
 }
@@ -61,11 +60,10 @@ function displaySource(candidate: string, variant: "optimized" | "thumb"): Displ
 const ICONS = { product: ImageOff, shop: Store } as const;
 
 export function PhotoWithFallback({
-  candidates,
+  photo,
   alt,
   variant = "optimized",
   fallbackIcon,
-  ownCandidate = null,
   unavailableBadge = false,
   fill,
   width,
@@ -75,6 +73,7 @@ export function PhotoWithFallback({
   priority,
   className,
 }: PhotoWithFallbackProps) {
+  const { candidates } = photo;
   const signature = candidates.join("\n");
   const [position, setPosition] = useState({ signature, index: 0 });
   if (position.signature !== signature) {
@@ -99,9 +98,10 @@ export function PhotoWithFallback({
     return () => img.removeEventListener("error", advance);
   }, [signature, index, candidate]);
 
-  const ownIndex = ownCandidate === null ? -1 : candidates.indexOf(ownCandidate);
+  const ownIndex = photo.own === null ? -1 : candidates.indexOf(photo.own);
+  const ownUnavailable = photo.ownRejected || (ownIndex !== -1 && index > ownIndex);
   const badge =
-    unavailableBadge && ownIndex !== -1 && index > ownIndex ? (
+    unavailableBadge && ownUnavailable ? (
       <span className="pointer-events-none absolute left-1 top-1 z-10 rounded bg-black/70 px-1 py-0.5 text-[10px] font-semibold leading-none text-white">
         Photo indisponible
       </span>

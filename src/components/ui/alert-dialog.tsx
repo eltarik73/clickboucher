@@ -4,20 +4,26 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { Button, type ButtonProps } from "@/components/ui/button";
-import { DialogOverlay, DialogPortal } from "@/components/ui/dialog";
-import { CENTERED_SURFACE_CLASSES } from "@/components/ui/overlay-surface";
+import {
+  CENTERED_SURFACE_CLASSES,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useReturnFocus } from "@/components/ui/use-return-focus";
 
 /*
- * Dialogue d'alerte (APG « alertdialog ») bâti sur @radix-ui/react-dialog :
- * rôle alertdialog, aucune fermeture par interaction extérieure, focus initial
- * sur « Annuler », pas de croix. Échap ferme (comportement attendu du patron).
+ * Alert dialog (APG "alertdialog") built on @radix-ui/react-dialog: role alertdialog, no dismissal
+ * by an outside interaction, initial focus on « Annuler », no close cross. Escape closes, as the
+ * pattern expects.
  */
 
 const AlertDialog = DialogPrimitive.Root;
 const AlertDialogTrigger = DialogPrimitive.Trigger;
 
-const CancelRefContext = React.createContext<React.MutableRefObject<HTMLButtonElement | null> | null>(null);
+const CancelRefContext =
+  React.createContext<React.MutableRefObject<HTMLButtonElement | null> | null>(null);
 
 function preventDismiss(event: Event) {
   event.preventDefault();
@@ -63,54 +69,24 @@ const AlertDialogContent = React.forwardRef<
 });
 AlertDialogContent.displayName = "AlertDialogContent";
 
-const AlertDialogTitle = React.forwardRef<
-  React.ComponentRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title
-    ref={ref}
-    className={cn("font-display text-subtitle text-foreground", className)}
-    {...props}
-  />
-));
-AlertDialogTitle.displayName = "AlertDialogTitle";
-
-const AlertDialogDescription = React.forwardRef<
-  React.ComponentRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description
-    ref={ref}
-    className={cn("mt-2 text-body text-muted-foreground", className)}
-    {...props}
-  />
-));
-AlertDialogDescription.displayName = "AlertDialogDescription";
-
 const AlertDialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn("mt-6 flex flex-wrap gap-3", className)} {...props} />
 );
 AlertDialogFooter.displayName = "AlertDialogFooter";
 
-type AlertDialogButtonProps = Omit<ButtonProps, "asChild" | "loading" | "variant"> & { loading?: boolean };
+type AlertDialogButtonProps = Omit<ButtonProps, "asChild" | "loading" | "variant">;
 
+// Close asChild composes its ref with the Button's: the caller's ref and the content's initial
+// focus target both reach the same button.
 const AlertDialogCancel = React.forwardRef<HTMLButtonElement, AlertDialogButtonProps>(
   ({ className, onClick, ...props }, forwardedRef) => {
     const cancelRef = React.useContext(CancelRefContext);
-    const ref = React.useCallback(
-      (node: HTMLButtonElement | null) => {
-        if (cancelRef) cancelRef.current = node;
-        if (typeof forwardedRef === "function") forwardedRef(node);
-        else if (forwardedRef) forwardedRef.current = node;
-      },
-      [cancelRef, forwardedRef],
-    );
     return (
-      <DialogPrimitive.Close asChild onClick={onClick}>
-        <Button ref={ref} variant="outline" className={cn("flex-1", className)} {...props} />
+      <DialogPrimitive.Close ref={forwardedRef} asChild onClick={onClick}>
+        <Button ref={cancelRef} variant="outline" className={cn("flex-1", className)} {...props} />
       </DialogPrimitive.Close>
     );
-  },
+  }
 );
 AlertDialogCancel.displayName = "AlertDialogCancel";
 
@@ -121,7 +97,7 @@ const AlertDialogAction = React.forwardRef<HTMLButtonElement, AlertDialogActionP
     <DialogPrimitive.Close asChild onClick={onClick}>
       <Button ref={ref} variant={variant} className={cn("flex-1", className)} {...props} />
     </DialogPrimitive.Close>
-  ),
+  )
 );
 AlertDialogAction.displayName = "AlertDialogAction";
 
@@ -129,8 +105,8 @@ export {
   AlertDialog,
   AlertDialogTrigger,
   AlertDialogContent,
-  AlertDialogTitle,
-  AlertDialogDescription,
+  DialogTitle as AlertDialogTitle,
+  DialogDescription as AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,

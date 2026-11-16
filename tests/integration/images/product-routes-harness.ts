@@ -1,14 +1,18 @@
-// Harnais des tests d'intégration des routes produit et boutique (photos) : identité simulée par les
-// helpers d'auth (seul simulacre permis), appel direct des handlers, lecture des photos en base et
-// fichiers de notre magasin enregistrés dans le registre generated_images.
+// Harness of the photo integration tests (product, shop, upload, gallery and retouch routes): the
+// identity is simulated at our three auth helpers, handlers are called directly, photos are read back
+// from the database, and files of our store are recorded in the generated_images registry.
 //
-// Usage dans un fichier de test (les fabriques de vi.mock sont remontées avant les imports) :
+// vi.mock is hoisted only inside the file that declares it, so each test file declares the helpers
+// its routes call, with the factories below:
 //   vi.mock("@/lib/auth/server-auth", async () => (await import("./product-routes-harness")).serverAuthMock);
 //   vi.mock("@/lib/boucher-auth", async () => (await import("./product-routes-harness")).boucherAuthMock);
+//   vi.mock("@/lib/admin-auth", async () => (await import("./product-routes-harness")).adminAuthMock);
 import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
+import { vi } from "vitest";
 import type { User } from "@prisma/client";
 import { imageBlobHost } from "@/lib/images/durable-url";
+import { buildUploadForm, type UploadPurpose } from "@/lib/images/upload-contract";
 import { prisma } from "../helpers/db";
 
 export const session = {
@@ -27,17 +31,35 @@ export const serverAuthMock = {
 };
 
 export const boucherAuthMock = {
-  getAuthenticatedBoucher: async () =>
+  getAuthenticatedBoucher: vi.fn(async () =>
     session.userId && session.shopId
       ? { userId: session.userId, shopId: session.shopId }
-      : { error: new Response(null, { status: 401 }) },
+      : { error: new Response(null, { status: 401 }) }
+  ),
 };
 
-export function actAs(user: User, shopId: string | null): void {
-  session.clerkId = user.clerkId;
-  session.userId = user.id;
+export const adminAuthMock = {
+  requireAdmin: vi.fn(async () =>
+    session.role === "ADMIN" && session.clerkId !== null
+      ? { userId: session.clerkId }
+      : { error: new Response(null, { status: 403 }) }
+  ),
+};
+
+/** Signs in as `identity` (null: signed out), the butcher of `shopId` when it is not null. */
+export function actAs(
+  identity: Pick<User, "id" | "clerkId" | "role"> | null,
+  shopId: string | null
+): void {
+  session.clerkId = identity?.clerkId ?? null;
+  session.userId = identity?.id ?? null;
   session.shopId = shopId;
-  session.role = user.role;
+  session.role = identity?.role;
+}
+
+/** The butcher of `shopId` without a user row: enough for routes that only ask the auth helpers. */
+export function actAsButcherOf(shopId: string): void {
+  actAs({ id: `user_${shopId}`, clerkId: `clerk_user_${shopId}`, role: "BOUCHER" }, shopId);
 }
 
 export type ApiBody = {
@@ -56,6 +78,13 @@ export async function call(route: Route, path: string, method: string, body: unk
   return { status: response.status, body: (await response.json()) as ApiBody };
 }
 
+/** POST /api/uploads/image as the photo field sends it: buildUploadForm with a JPEG file. */
+export function uploadRequest(bytes: Uint8Array, purpose: UploadPurpose): NextRequest {
+  const file = new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
+  const form = buildUploadForm(file, purpose);
+  return new NextRequest("http://localhost/api/uploads/image", { method: "POST", body: form });
+}
+
 /** URL d'un fichier de notre magasin Blob, sans ligne au registre (chemin donné, nom unique). */
 export function storeUrl(folder: string): string {
   return `https://${imageBlobHost()}/${folder}/${randomUUID()}.webp`;
@@ -68,14 +97,25 @@ export function storeUrl(folder: string): string {
 export async function registeredPhoto(shopId: string | null): Promise<string> {
   const imageUrl = storeUrl(shopId === null ? "platform/reference" : `shops/${shopId}/product`);
   await prisma.generatedImage.create({
-    data: { model: "UPLOAD", prompt: "", usage: "PRODUCT", imageUrl, width: 800, height: 600, shopId, createdBy: "u" },
+    data: {
+      model: "UPLOAD",
+      prompt: "",
+      usage: "PRODUCT",
+      imageUrl,
+      width: 800,
+      height: 600,
+      shopId,
+      createdBy: "u",
+    },
   });
   return imageUrl;
 }
 
 export type Photo = { url: string; order: number; isPrimary: boolean };
 
-export async function photosOf(productId: string): Promise<{ imageUrl: string | null; images: Photo[] }> {
+export async function photosOf(
+  productId: string
+): Promise<{ imageUrl: string | null; images: Photo[] }> {
   return prisma.product.findUniqueOrThrow({
     where: { id: productId },
     select: {

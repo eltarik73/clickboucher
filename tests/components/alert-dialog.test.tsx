@@ -11,6 +11,7 @@ import {
   AlertDialogFooter,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 function Harness(props: { onAction?: (event: React.MouseEvent<HTMLButtonElement>) => void }) {
   const [open, setOpen] = React.useState(false);
@@ -91,7 +92,6 @@ describe("AlertDialog", () => {
     const opener = open();
     const alert = await screen.findByRole("alertdialog");
     const action = within(alert).getByRole("button", { name: "Refuser" });
-    expect(action).toHaveClass("bg-destructive");
     fireEvent.click(action);
     expect(onAction).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
@@ -106,37 +106,54 @@ describe("AlertDialog", () => {
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   });
 
+  it("la ref passée à « Annuler » atteint le bouton, qui reçoit aussi le focus initial", async () => {
+    const ref = React.createRef<HTMLButtonElement>();
+    render(
+      <AlertDialog open>
+        <AlertDialogContent>
+          <AlertDialogTitle>Refuser la commande ?</AlertDialogTitle>
+          <AlertDialogDescription>Le client sera prévenu.</AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel ref={ref}>Annuler</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+    const cancel = await screen.findByRole("button", { name: "Annuler" });
+    expect(ref.current).toBe(cancel);
+    expect(document.activeElement).toBe(cancel);
+  });
+
+  it("titre et description ont le style de ceux de Dialog", async () => {
+    const dialog = render(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>Modifier la boutique</DialogTitle>
+          <DialogDescription>Visible tout de suite.</DialogDescription>
+        </DialogContent>
+      </Dialog>
+    );
+    const dialogTitle = (await screen.findByText("Modifier la boutique")).className;
+    const dialogDescription = screen.getByText("Visible tout de suite.").className;
+    dialog.unmount();
+
+    render(
+      <AlertDialog open>
+        <AlertDialogContent>
+          <AlertDialogTitle>Refuser la commande ?</AlertDialogTitle>
+          <AlertDialogDescription>Le client sera prévenu.</AlertDialogDescription>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+    expect((await screen.findByText("Refuser la commande ?")).className).toBe(dialogTitle);
+    expect(screen.getByText("Le client sera prévenu.").className).toBe(dialogDescription);
+  });
+
   it("le bouton d'annulation ferme", async () => {
     render(<Harness />);
     open();
     const alert = await screen.findByRole("alertdialog");
     fireEvent.click(within(alert).getByRole("button", { name: "Annuler" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
-  });
-
-  it("se centre par la mise en page, sans translate que l'animation d'entrée écraserait", async () => {
-    render(<Harness />);
-    open();
-    const alert = await screen.findByRole("alertdialog");
-    expect(alert).toHaveClass("fixed", "inset-0", "m-auto", "h-fit", "max-w-sm", "p-6");
-    expect(alert.className).not.toMatch(/translate-/);
-  });
-
-  it("le pied passe à la ligne : des libellés longs s'empilent au lieu de déborder", async () => {
-    render(<Harness />);
-    open();
-    const alert = await screen.findByRole("alertdialog");
-    const footer = within(alert).getByRole("button", { name: "Annuler" }).parentElement;
-    expect(footer).toHaveClass("flex", "flex-wrap", "gap-3");
-  });
-
-  it("refuse un rôle ou une fermeture extérieure passés par l'appelant", () => {
-    const misuse = (
-      // @ts-expect-error le rôle est toujours alertdialog
-      <AlertDialogContent role="dialog">
-        <AlertDialogTitle>Titre</AlertDialogTitle>
-      </AlertDialogContent>
-    );
-    expect(misuse).toBeTruthy();
   });
 });

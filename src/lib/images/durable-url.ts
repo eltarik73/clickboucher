@@ -37,7 +37,7 @@ const MAX_IMAGE_URL_LENGTH = 2048;
 const LOCAL_STATIC_PATH = /^\/img\/(products|shops|recipes)\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/;
 const LOCAL_STORE_PATH = /^\/local-images\/(?:[a-z0-9_-]+\/)+[a-z0-9_-]+\.webp$/;
 const LEGACY_UPLOAD_PREFIX = "/api/uploads/";
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+export const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 const EXPIRING_HOST = "replicate.delivery";
 
 /** Espace (Unicode compris) ou caractère de contrôle C0 / DEL / C1. */

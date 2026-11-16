@@ -1,16 +1,9 @@
 // src/lib/shop-status.ts — Uber Eats / Deliveroo shop status system
 import prisma from "./prisma";
 import { redis } from "./redis";
-import type { ShopStatus } from "@prisma/client";
+import type { Prisma, ShopStatus } from "@prisma/client";
+import { writeOwnerShop, type OwnerShopWrite } from "./services/shops/owner-write";
 import { endVacationMode } from "./shop-vacation";
-
-// ── Mode Vacances (Deliveroo "vacation mode") : src/lib/shop-vacation.ts ──
-export {
-  endExpiredVacations,
-  endVacationMode,
-  setVacationMode,
-  type VacationChange,
-} from "./shop-vacation";
 
 // ── Cache du statut dans Redis (comme Uber : lookup ultra rapide) ──
 
@@ -67,6 +60,30 @@ export async function getShopStatus(shopId: string): Promise<ShopStatus> {
   return status;
 }
 
+/**
+ * The owner's status change and its ShopLog row in one transaction. The cached status is dropped
+ * and the event published only when the write happened: a suspended shop stays as the admin left it.
+ */
+async function changeOwnerStatus(
+  shopId: string,
+  change: {
+    data: Parameters<typeof writeOwnerShop>[2];
+    log: Omit<Prisma.ShopLogUncheckedCreateInput, "shopId">;
+    event: Record<string, unknown>;
+  }
+): Promise<OwnerShopWrite> {
+  const write = await prisma.$transaction(async (tx) => {
+    const result = await writeOwnerShop(tx, shopId, change.data);
+    if (result.ok) await tx.shopLog.create({ data: { shopId, ...change.log } });
+    return result;
+  });
+  if (write.ok) {
+    await redis.del(`shop:status:${shopId}`);
+    await redis.publish(`shop:${shopId}:events`, JSON.stringify(change.event));
+  }
+  return write;
+}
+
 // ── Pause manuelle (bouton "Pause new orders" d'Uber Eats) ──
 
 export async function pauseShop(
@@ -76,61 +93,44 @@ export async function pauseShop(
     durationMin?: number;
     triggeredBy: "boucher" | "admin" | "system";
   }
-) {
+): Promise<OwnerShopWrite> {
   const pauseEndsAt = options.durationMin
     ? new Date(Date.now() + options.durationMin * 60 * 1000)
     : null;
 
-  await prisma.$transaction([
-    prisma.shop.update({
-      where: { id: shopId },
-      data: {
-        status: "PAUSED",
-        paused: true,
-        pausedAt: new Date(),
-        pauseReason: options.reason || "Pause manuelle",
-        pauseEndsAt,
-      },
-    }),
-    prisma.shopLog.create({
-      data: {
-        shopId,
-        action: "PAUSED",
-        details: `Raison: ${options.reason || "Manuel"} | Durée: ${options.durationMin || "indéfinie"}min`,
-        triggeredBy: options.triggeredBy,
-      },
-    }),
-  ]);
-
-  await redis.del(`shop:status:${shopId}`);
-  await redis.publish(
-    `shop:${shopId}:events`,
-    JSON.stringify({ type: "SHOP_PAUSED", pauseEndsAt, reason: options.reason })
-  );
+  return changeOwnerStatus(shopId, {
+    data: {
+      status: "PAUSED",
+      paused: true,
+      pausedAt: new Date(),
+      pauseReason: options.reason || "Pause manuelle",
+      pauseEndsAt,
+    },
+    log: {
+      action: "PAUSED",
+      details: `Raison: ${options.reason || "Manuel"} | Durée: ${options.durationMin || "indéfinie"}min`,
+      triggeredBy: options.triggeredBy,
+    },
+    event: { type: "SHOP_PAUSED", pauseEndsAt, reason: options.reason },
+  });
 }
 
 // ── Reprendre (bouton "Resume orders" d'Uber Eats) ──
 
-export async function resumeShop(shopId: string, triggeredBy: string) {
-  await prisma.$transaction([
-    prisma.shop.update({
-      where: { id: shopId },
-      data: {
-        status: "OPEN",
-        paused: false,
-        autoPaused: false,
-        pausedAt: null,
-        pauseEndsAt: null,
-        pauseReason: null,
-        missedOrdersCount: 0,
-      },
-    }),
-    prisma.shopLog.create({
-      data: { shopId, action: "RESUMED", triggeredBy },
-    }),
-  ]);
-  await redis.del(`shop:status:${shopId}`);
-  await redis.publish(`shop:${shopId}:events`, JSON.stringify({ type: "SHOP_RESUMED" }));
+export async function resumeShop(shopId: string, triggeredBy: string): Promise<OwnerShopWrite> {
+  return changeOwnerStatus(shopId, {
+    data: {
+      status: "OPEN",
+      paused: false,
+      autoPaused: false,
+      pausedAt: null,
+      pauseEndsAt: null,
+      pauseReason: null,
+      missedOrdersCount: 0,
+    },
+    log: { action: "RESUMED", triggeredBy },
+    event: { type: "SHOP_RESUMED" },
+  });
 }
 
 // ── Busy Mode (Uber Eats : "Start busy mode") ──
@@ -141,7 +141,7 @@ export async function setBusyMode(
     extraMin: number; // +10, +15, +20, +30
     durationMin: number;
   }
-) {
+): Promise<OwnerShopWrite> {
   // If already busy, extend from current end time (cumulative)
   const shop = await prisma.shop.findUnique({
     where: { id: shopId },
@@ -153,46 +153,30 @@ export async function setBusyMode(
       : Date.now();
   const busyModeEndsAt = new Date(baseTime + options.durationMin * 60 * 1000);
 
-  await prisma.$transaction([
-    prisma.shop.update({
-      where: { id: shopId },
-      data: {
-        status: "BUSY",
-        busyMode: true,
-        busyExtraMin: options.extraMin,
-        busyModeEndsAt,
-      },
-    }),
-    prisma.shopLog.create({
-      data: {
-        shopId,
-        action: "BUSY_ON",
-        details: `+${options.extraMin}min prep | Durée: ${options.durationMin}min`,
-        triggeredBy: "boucher",
-      },
-    }),
-  ]);
-  await redis.del(`shop:status:${shopId}`);
-  await redis.publish(
-    `shop:${shopId}:events`,
-    JSON.stringify({ type: "SHOP_BUSY", extraMin: options.extraMin, endsAt: busyModeEndsAt })
-  );
+  return changeOwnerStatus(shopId, {
+    data: {
+      status: "BUSY",
+      busyMode: true,
+      busyExtraMin: options.extraMin,
+      busyModeEndsAt,
+    },
+    log: {
+      action: "BUSY_ON",
+      details: `+${options.extraMin}min prep | Durée: ${options.durationMin}min`,
+      triggeredBy: "boucher",
+    },
+    event: { type: "SHOP_BUSY", extraMin: options.extraMin, endsAt: busyModeEndsAt },
+  });
 }
 
 // ── End Busy Mode ──
 
-export async function endBusyMode(shopId: string) {
-  await prisma.$transaction([
-    prisma.shop.update({
-      where: { id: shopId },
-      data: { status: "OPEN", busyMode: false, busyModeEndsAt: null },
-    }),
-    prisma.shopLog.create({
-      data: { shopId, action: "BUSY_OFF", triggeredBy: "boucher" },
-    }),
-  ]);
-  await redis.del(`shop:status:${shopId}`);
-  await redis.publish(`shop:${shopId}:events`, JSON.stringify({ type: "SHOP_RESUMED" }));
+export async function endBusyMode(shopId: string): Promise<OwnerShopWrite> {
+  return changeOwnerStatus(shopId, {
+    data: { status: "OPEN", busyMode: false, busyModeEndsAt: null },
+    log: { action: "BUSY_OFF", triggeredBy: "boucher" },
+    event: { type: "SHOP_RESUMED" },
+  });
 }
 
 // ── Auto-Pause (Uber Eats : pause automatique si pas de réponse) ──
@@ -240,18 +224,4 @@ export async function checkAutoPause(shopId: string) {
       data: { missedOrdersCount: newCount },
     });
   }
-}
-
-// ── Suspension (posée et levée par l'administration seule : services/shops/moderation.ts) ──
-
-/** The suspension of a shop, or null when the shop does not exist or is not suspended. */
-export async function shopSuspension(
-  shopId: string
-): Promise<{ suspendedAt: Date; reason: string | null } | null> {
-  const shop = await prisma.shop.findUnique({
-    where: { id: shopId },
-    select: { suspendedAt: true, suspendReason: true },
-  });
-  if (!shop?.suspendedAt) return null;
-  return { suspendedAt: shop.suspendedAt, reason: shop.suspendReason };
 }

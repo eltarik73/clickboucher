@@ -59,10 +59,10 @@ describe("fix-unsplash-hotlinks.sql — cibles", () => {
 });
 
 describe("scripts/images — garde", () => {
-  const files = fs.readdirSync(SCRIPTS_DIR).map((name) => ({
-    name,
-    text: fs.readFileSync(path.join(SCRIPTS_DIR, name), "utf8"),
-  }));
+  const files = fs
+    .readdirSync(SCRIPTS_DIR, { recursive: true, encoding: "utf8" })
+    .filter((name) => /\.(sql|ts)$/.test(name))
+    .map((name) => ({ name, text: fs.readFileSync(path.join(SCRIPTS_DIR, name), "utf8") }));
 
   it("le dossier contient les scripts attendus (la garde ne tourne pas à vide)", () => {
     expect(files.map((file) => file.name).sort()).toEqual(
@@ -70,6 +70,9 @@ describe("scripts/images — garde", () => {
         "backfill-image-url.sql",
         "census.ts",
         "fix-unsplash-hotlinks.sql",
+        "lib/census.ts",
+        "lib/maintenance.ts",
+        "lib/repair-plan.ts",
         "purge.ts",
         "repair.ts",
       ])

@@ -167,6 +167,20 @@ describe("photo principale", () => {
     ]);
   });
 
+  it("ranks duplicate stored photos like the server: first occurrence kept, then sorted", () => {
+    const state = initialPhotosState({
+      initialImages: [
+        { url: UPLOADED, order: 5 },
+        { url: UPLOADED_2, order: 1 },
+        { url: UPLOADED, order: 0 },
+      ],
+      initialImageUrl: null,
+      allowCurrent: true,
+    });
+    expect(tilesOf(state).map((t) => ("url" in t ? t.url : null))).toEqual([UPLOADED_2, UPLOADED]);
+    expect(primaryUrlOf(state)).toBe(UPLOADED_2);
+  });
+
   it("is always a saved tile: an upload in progress never takes it, and the payload marks the same tile", () => {
     expect(primaryTileKey(startUpload(empty()))).toBeNull();
     const state = photosReducer(startUpload(empty()), {

@@ -1,6 +1,6 @@
 // src/lib/order-state-machine.ts — Uber Eats style order state machine
 import type { OrderStatus } from "@prisma/client";
-import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/lib/design-tokens";
+import { ORDER_STATUS_LABELS } from "@/lib/design-tokens";
 
 // ── Valid transitions ────────────────────────────
 // ACCEPTED -> PARTIALLY_DENIED: the butcher reports a missing product after accepting.
@@ -19,8 +19,10 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 };
 
 // ── Kitchen board ────────────────────────────────
-// The two sets partition OrderStatus: an order is either still to be handled
-// by the shop (always listed in full) or finished (listed as recent history).
+// The active and history sets partition OrderStatus: an order is either still to be
+// handled by the shop (always listed in full) or finished (listed as recent history).
+// The awaiting-customer set is the third bucket of the board, taken from the active one:
+// those orders wait for their customer's answer, out of the working columns, with the history.
 export const KITCHEN_ACTIVE_STATUSES: readonly OrderStatus[] = [
   "PENDING",
   "ACCEPTED",
@@ -36,6 +38,14 @@ export const KITCHEN_HISTORY_STATUSES: readonly OrderStatus[] = [
   "CANCELLED",
   "AUTO_CANCELLED",
 ];
+
+export const KITCHEN_AWAITING_CUSTOMER_STATUSES: readonly OrderStatus[] = ["PARTIALLY_DENIED"];
+
+/** An order in one of these statuses was collected by its customer. */
+export const COLLECTED_ORDER_STATUSES = [
+  "PICKED_UP",
+  "COMPLETED",
+] as const satisfies readonly OrderStatus[];
 
 // ── Discount release ─────────────────────────────
 // Entering one of these statuses gives the promo code use or the loyalty
@@ -76,9 +86,6 @@ const STEP_INDEX: Record<OrderStatus, number> = {
   AUTO_CANCELLED: -1,
 };
 
-// Labels and colors now imported from @/lib/design-tokens
-// Re-exported via getStatusLabel() and getStatusColor() below
-
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
@@ -92,11 +99,7 @@ export function getStepIndex(status: OrderStatus): number {
 }
 
 export function getStatusLabel(status: OrderStatus): string {
-  return ORDER_STATUS_LABELS[status] ?? status;
-}
-
-export function getStatusColor(status: OrderStatus): string {
-  return ORDER_STATUS_COLORS[status] ?? "bg-gray-500/10 text-gray-500";
+  return ORDER_STATUS_LABELS[status];
 }
 
 export function isTerminal(status: OrderStatus): boolean {

@@ -17,13 +17,9 @@ import {
   splitOrderPerson,
   withOrderPersonName,
 } from "@/lib/services/orders/order-person";
-import type { KitchenHistoryOrder, KitchenOrder } from "@/hooks/use-order-polling";
 
-type KitchenItem = KitchenOrder["items"][number];
-type Columns<T> = Record<keyof T, unknown>;
-
-// Every member of the client's KitchenOrder is selected (checked by `satisfies`); the exact column
-// list, with nothing more, is pinned by tests/integration/orders/kitchen-board.test.ts.
+// The columns the kitchen card, ticket and alert render, and nothing more (pinned by
+// tests/integration/orders/kitchen-board.test.ts); the client reads them as Serialized<KitchenRow>.
 export const kitchenOrderSelect = {
   id: true,
   orderNumber: true,
@@ -64,7 +60,7 @@ export const kitchenOrderSelect = {
       cutOption: true,
       available: true,
       product: { select: { name: true, unit: true, imageUrl: true } },
-    } satisfies Columns<KitchenItem>,
+    },
   },
   user: { select: shopPersonSelect },
   priceAdjustment: {
@@ -77,11 +73,11 @@ export const kitchenOrderSelect = {
       adjustmentType: true,
       answerBy: true,
       closeReason: true,
-    } satisfies Columns<NonNullable<KitchenOrder["priceAdjustment"]>>,
+    },
   },
-} as const satisfies Prisma.OrderSelect & Columns<KitchenOrder>;
+} as const satisfies Prisma.OrderSelect;
 
-/** A finished order as the history list prints it. */
+/** A finished order as the history list prints it: its lines are counted like the card counts them. */
 export const kitchenHistorySelect = {
   id: true,
   orderNumber: true,
@@ -89,9 +85,9 @@ export const kitchenHistorySelect = {
   status: true,
   totalCents: true,
   updatedAt: true,
-  items: { select: { quantity: true } },
+  items: { select: { quantity: true, unit: true, weightGrams: true } },
   user: { select: { firstName: true, lastName: true } },
-} as const satisfies Prisma.OrderSelect & Columns<KitchenHistoryOrder>;
+} as const satisfies Prisma.OrderSelect;
 
 export type KitchenRow = Prisma.OrderGetPayload<{ select: typeof kitchenOrderSelect }>;
 export type KitchenHistoryRow = Prisma.OrderGetPayload<{ select: typeof kitchenHistorySelect }>;

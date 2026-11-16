@@ -1,5 +1,5 @@
 // Champ « Photos » branché sur useProductPhotos (jsdom), avec un envoi simulé à la frontière
-// useImageUpload : file d'attente une photo à la fois (aussi en StrictMode), « Réessayer » renvoie
+// uploadImage (upload-transport) : file d'attente une photo à la fois (aussi en StrictMode), « Réessayer » renvoie
 // le même fichier, une tuile retirée pendant l'envoi est oubliée, aperçus révoqués, et retirer une
 // photo n'appelle jamais le réseau (le formulaire ne supprime plus rien du stockage). « Principale »
 // est sur la photo que la charge utile marque isPrimary ; addExisting dit ce qu'il a fait.
@@ -22,11 +22,10 @@ const uploads = vi.hoisted(() => ({
   }[],
 }));
 
-vi.mock("@/components/boucher/photos/useImageUpload", () => ({
-  useImageUpload: () => ({
-    upload: (file: File, onProgress: (ratio: number | null) => void) =>
-      new Promise<UploadOutcome>((resolve) => uploads.calls.push({ file, onProgress, resolve })),
-  }),
+vi.mock("@/components/boucher/photos/upload-transport", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/components/boucher/photos/upload-transport")>()),
+  uploadImage: (file: File, _purpose: string, onProgress: (ratio: number | null) => void) =>
+    new Promise<UploadOutcome>((resolve) => uploads.calls.push({ file, onProgress, resolve })),
 }));
 
 const BLOB = "https://nzqbbcqekyom7ajd.public.blob.vercel-storage.com/shops/s1/product";
@@ -197,7 +196,8 @@ describe("useProductPhotos dans le champ « Photos »", () => {
     act(() => {
       latestPhotos().addExisting(CATALOGUE, "Catalogue");
     });
-    const badgeOn = () => screen.getAllByRole("listitem").map((li) => within(li).queryByText("Principale") !== null);
+    const badgeOn = () =>
+      screen.getAllByRole("listitem").map((li) => within(li).queryByText("Principale") !== null);
     expect(badgeOn()).toEqual([false, true]);
     expect(JSON.parse(screen.getByTestId("payload").textContent ?? "").images).toEqual([
       { url: CATALOGUE, alt: "Catalogue", order: 0, isPrimary: true },

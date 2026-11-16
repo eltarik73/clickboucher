@@ -25,6 +25,7 @@ import {
   Smartphone,
   Monitor,
 } from "lucide-react";
+import { refusalMessage } from "@/lib/api/client-refusal";
 import { formatToleranceTerms, WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
 
 // ─────────────────────────────────────────────
@@ -92,15 +93,6 @@ function normalizePhone(phone: string): string | undefined {
   return trimmed;
 }
 
-async function extractError(res: Response): Promise<string> {
-  try {
-    const json = await res.json();
-    return json.error?.message || "Erreur serveur";
-  } catch {
-    return `Erreur ${res.status}`;
-  }
-}
-
 // ─────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────
@@ -132,7 +124,10 @@ export default function BoucherParametresPage() {
   const defaultSlotConfig: PickupSlotsConfig = {
     intervalMin: 30,
     maxPerSlot: 3,
-    slots: DAYS.reduce((acc, d) => ({ ...acc, [d.key]: { start: "08:00", end: "19:00" } }), {} as Record<string, { start: string; end: string }>),
+    slots: DAYS.reduce(
+      (acc, d) => ({ ...acc, [d.key]: { start: "08:00", end: "19:00" } }),
+      {} as Record<string, { start: string; end: string }>
+    ),
   };
   const [pickupConfig, setPickupConfig] = useState<PickupSlotsConfig>(defaultSlotConfig);
   const [pickupSaving, setPickupSaving] = useState(false);
@@ -188,7 +183,7 @@ export default function BoucherParametresPage() {
       if (res.ok) {
         toast.success("Programme fidelite sauvegarde");
       } else {
-        toast.error(await extractError(res));
+        toast.error(await refusalMessage(res, "Erreur serveur"));
       }
     } catch {
       toast.error("Erreur de connexion");
@@ -226,7 +221,11 @@ export default function BoucherParametresPage() {
       setGeoLat(data.latitude);
       setGeoLng(data.longitude);
       setGeoRadius(data.deliveryRadius || 15);
-      if (data.pickupSlots && typeof data.pickupSlots === "object" && "intervalMin" in data.pickupSlots) {
+      if (
+        data.pickupSlots &&
+        typeof data.pickupSlots === "object" &&
+        "intervalMin" in data.pickupSlots
+      ) {
         setPickupConfig(data.pickupSlots as PickupSlotsConfig);
       }
       setAcceptOnline(data.acceptOnline ?? false);
@@ -260,7 +259,7 @@ export default function BoucherParametresPage() {
         setShop((prev) => (prev ? { ...prev, ...data, ...json.data } : prev));
         toast.success("Sauvegarde");
       } else {
-        toast.error(await extractError(res));
+        toast.error(await refusalMessage(res, "Erreur serveur"));
       }
     } catch {
       toast.error("Erreur de connexion");
@@ -294,7 +293,7 @@ export default function BoucherParametresPage() {
         setShop((prev) => (prev ? { ...prev, ...json.data } : prev));
         toast.success("Informations sauvegardees");
       } else {
-        toast.error(await extractError(res));
+        toast.error(await refusalMessage(res, "Erreur serveur"));
       }
     } catch {
       toast.error("Erreur de connexion");
@@ -305,17 +304,19 @@ export default function BoucherParametresPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#DC2626]" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#DC2626]" />
       </div>
     );
   }
 
   if (error || !shop) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 px-5">
-        <AlertCircle className="w-10 h-10 text-red-400" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">{error || "Boucherie introuvable"}</p>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-5">
+        <AlertCircle className="h-10 w-10 text-red-400" />
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {error || "Boucherie introuvable"}
+        </p>
       </div>
     );
   }
@@ -333,7 +334,7 @@ export default function BoucherParametresPage() {
         setShop((prev) => (prev ? { ...prev, pickupSlots: pickupConfig } : prev));
         toast.success("Creneaux sauvegardes");
       } else {
-        toast.error(await extractError(res));
+        toast.error(await refusalMessage(res, "Erreur serveur"));
       }
     } catch {
       toast.error("Erreur de connexion");
@@ -355,7 +356,7 @@ export default function BoucherParametresPage() {
         setShop((prev) => (prev ? { ...prev, acceptOnline, acceptOnPickup } : prev));
         toast.success("Paiement sauvegarde");
       } else {
-        toast.error(await extractError(res));
+        toast.error(await refusalMessage(res, "Erreur serveur"));
       }
     } catch {
       toast.error("Erreur de connexion");
@@ -368,30 +369,34 @@ export default function BoucherParametresPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f6f3] dark:bg-[#0a0a0a]">
-      <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
+      <div className="mx-auto max-w-2xl space-y-4 px-4 py-5">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Paramètres</h1>
 
         {/* ── 1. STATUS BOUTIQUE ── */}
         <SettingCard
           icon={<Store size={18} className="text-emerald-600" />}
           title="Status de la boutique"
-          accent={(shop.status === "OPEN" || shop.status === "BUSY") ? "border-l-emerald-500" : "border-l-red-400"}
+          accent={
+            shop.status === "OPEN" || shop.status === "BUSY"
+              ? "border-l-emerald-500"
+              : "border-l-red-400"
+          }
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">
-                {(shop.status === "OPEN" || shop.status === "BUSY") ? "Ouvert" : "Fermé"}
+                {shop.status === "OPEN" || shop.status === "BUSY" ? "Ouvert" : "Fermé"}
               </p>
               {(shop.status === "CLOSED" || shop.status === "VACATION") && (
-                <p className="text-xs text-red-500 mt-0.5">
-                  Les clients ne peuvent pas commander
-                </p>
+                <p className="mt-0.5 text-xs text-red-500">Les clients ne peuvent pas commander</p>
               )}
             </div>
             <Switch
               checked={shop.status === "OPEN" || shop.status === "BUSY"}
               onCheckedChange={(v) => patchStatus({ status: v ? "OPEN" : "CLOSED" })}
-              className={(shop.status === "OPEN" || shop.status === "BUSY") ? "!bg-emerald-500" : "!bg-red-400"}
+              className={
+                shop.status === "OPEN" || shop.status === "BUSY" ? "!bg-emerald-500" : "!bg-red-400"
+              }
             />
           </div>
         </SettingCard>
@@ -412,8 +417,8 @@ export default function BoucherParametresPage() {
               />
             </div>
             {shop.busyMode && (
-              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 space-y-2">
-                <label className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+              <div className="space-y-2 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
+                <label className="text-sm font-medium text-amber-800 dark:text-amber-300">
                   Minutes supplémentaires
                 </label>
                 <div className="flex items-center gap-2">
@@ -425,7 +430,7 @@ export default function BoucherParametresPage() {
                       setShop((prev) => (prev ? { ...prev, busyExtraMin: val } : prev));
                     }}
                     onBlur={(e) => patchStatus({ busyExtraMin: Number(e.target.value) })}
-                    className="w-20 h-9"
+                    className="h-9 w-20"
                     min={0}
                     max={60}
                   />
@@ -443,20 +448,28 @@ export default function BoucherParametresPage() {
         <SettingCard
           icon={<Pause size={18} className="text-red-500" />}
           title="Pause commandes"
-          accent={(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "border-l-red-500" : "border-l-transparent"}
+          accent={
+            shop.status === "PAUSED" || shop.status === "AUTO_PAUSED"
+              ? "border-l-red-500"
+              : "border-l-transparent"
+          }
         >
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-gray-900 dark:text-white">Pause nouvelles commandes</p>
+              <p className="font-semibold text-gray-900 dark:text-white">
+                Pause nouvelles commandes
+              </p>
               <Switch
                 checked={shop.status === "PAUSED" || shop.status === "AUTO_PAUSED"}
                 onCheckedChange={(v) => patchStatus({ status: v ? "PAUSED" : "OPEN" })}
-                className={(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") ? "!bg-red-500" : ""}
+                className={
+                  shop.status === "PAUSED" || shop.status === "AUTO_PAUSED" ? "!bg-red-500" : ""
+                }
               />
             </div>
             {(shop.status === "PAUSED" || shop.status === "AUTO_PAUSED") && (
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-                <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950/30">
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">
                   Aucune nouvelle commande ne sera acceptée
                 </p>
               </div>
@@ -477,7 +490,7 @@ export default function BoucherParametresPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Intervalle
                 </label>
                 <select
@@ -485,7 +498,7 @@ export default function BoucherParametresPage() {
                   onChange={(e) =>
                     setPickupConfig((prev) => ({ ...prev, intervalMin: Number(e.target.value) }))
                   }
-                  className="w-full h-9 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 text-sm"
+                  className="h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#0a0a0a] dark:text-white"
                 >
                   <option value={15}>15 min</option>
                   <option value={30}>30 min</option>
@@ -493,7 +506,7 @@ export default function BoucherParametresPage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Max / créneau
                 </label>
                 <Input
@@ -516,8 +529,8 @@ export default function BoucherParametresPage() {
               {DAYS.map((day) => {
                 const slot = pickupConfig.slots[day.key] || { start: "08:00", end: "19:00" };
                 return (
-                  <div key={day.key} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                    <span className="w-20 sm:w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">
+                  <div key={day.key} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                    <span className="w-20 shrink-0 text-sm text-gray-600 dark:text-gray-400 sm:w-24">
                       {day.label}
                     </span>
                     <Input
@@ -557,7 +570,7 @@ export default function BoucherParametresPage() {
             <Button
               onClick={savePickupSlots}
               disabled={pickupSaving}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-10"
+              className="h-10 w-full bg-indigo-600 text-white hover:bg-indigo-700"
             >
               {pickupSaving ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -578,7 +591,7 @@ export default function BoucherParametresPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-gray-900 dark:text-white">Paiement sur place</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                   Le client paie au retrait (espèces, CB, etc.)
                 </p>
               </div>
@@ -591,7 +604,7 @@ export default function BoucherParametresPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-gray-900 dark:text-white">Paiement en ligne</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                   Le client paie par carte lors de la commande
                 </p>
               </div>
@@ -602,8 +615,8 @@ export default function BoucherParametresPage() {
               />
             </div>
             {!acceptOnPickup && !acceptOnline && (
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-                <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950/30">
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">
                   Au moins un mode de paiement doit être activé
                 </p>
               </div>
@@ -611,7 +624,7 @@ export default function BoucherParametresPage() {
             <Button
               onClick={savePayment}
               disabled={paymentSaving || (!acceptOnPickup && !acceptOnline)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-10"
+              className="h-10 w-full bg-emerald-600 text-white hover:bg-emerald-700"
             >
               {paymentSaving ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -629,7 +642,7 @@ export default function BoucherParametresPage() {
         >
           <div className="space-y-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Temps par défaut (minutes)
               </label>
               <div className="flex items-center gap-3">
@@ -641,21 +654,24 @@ export default function BoucherParametresPage() {
                     setShop((prev) => (prev ? { ...prev, prepTimeMin: val } : prev));
                   }}
                   onBlur={(e) => patchStatus({ prepTimeMin: Number(e.target.value) })}
-                  className="w-24 h-9"
+                  className="h-9 w-24"
                   min={5}
                   max={120}
                 />
                 <span className="text-sm text-gray-500 dark:text-gray-400">min</span>
               </div>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg px-3 py-2">
+            <div className="rounded-lg bg-blue-50 px-3 py-2 dark:bg-blue-950/30">
               <p className="text-sm text-blue-800 dark:text-blue-300">
                 Temps affiché : <span className="font-bold">{effectiveTime} min</span>
                 {shop.busyMode && (
-                  <span className="text-blue-600 dark:text-blue-400"> ({shop.prepTimeMin} + {shop.busyExtraMin} mode occupé)</span>
+                  <span className="text-blue-600 dark:text-blue-400">
+                    {" "}
+                    ({shop.prepTimeMin} + {shop.busyExtraMin} mode occupé)
+                  </span>
                 )}
               </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+              <p className="mt-0.5 text-xs text-blue-600 dark:text-blue-400">
                 Ce temps est affiché aux clients avant de commander
               </p>
             </div>
@@ -670,8 +686,10 @@ export default function BoucherParametresPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-semibold text-gray-900 dark:text-white">Accepter automatiquement</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="font-semibold text-gray-900 dark:text-white">
+                  Accepter automatiquement
+                </p>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                   Les commandes sont acceptées sans validation manuelle
                 </p>
               </div>
@@ -682,7 +700,7 @@ export default function BoucherParametresPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Max commandes par heure
               </label>
               <div className="flex items-center gap-2">
@@ -694,7 +712,7 @@ export default function BoucherParametresPage() {
                     setShop((prev) => (prev ? { ...prev, maxOrdersPerHour: val } : prev));
                   }}
                   onBlur={(e) => patchStatus({ maxOrdersPerHour: Number(e.target.value) })}
-                  className="w-24 h-9"
+                  className="h-9 w-24"
                   min={1}
                   max={100}
                 />
@@ -723,7 +741,7 @@ export default function BoucherParametresPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-gray-900 dark:text-white">Activer la fidélité</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                   Récompensez vos clients réguliers
                 </p>
               </div>
@@ -734,9 +752,9 @@ export default function BoucherParametresPage() {
               />
             </div>
             {loyaltyActive && (
-              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 space-y-3">
+              <div className="space-y-3 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/30">
                 <div>
-                  <label className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1.5 block">
+                  <label className="mb-1.5 block text-sm font-medium text-amber-800 dark:text-amber-300">
                     Nombre de commandes requises
                   </label>
                   <div className="flex items-center gap-2">
@@ -744,7 +762,7 @@ export default function BoucherParametresPage() {
                       type="number"
                       value={loyaltyOrders}
                       onChange={(e) => setLoyaltyOrders(Number(e.target.value))}
-                      className="w-24 h-9"
+                      className="h-9 w-24"
                       min={2}
                       max={50}
                     />
@@ -752,7 +770,7 @@ export default function BoucherParametresPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1.5 block">
+                  <label className="mb-1.5 block text-sm font-medium text-amber-800 dark:text-amber-300">
                     Réduction offerte
                   </label>
                   <div className="flex items-center gap-2">
@@ -760,14 +778,14 @@ export default function BoucherParametresPage() {
                       type="number"
                       value={loyaltyPct}
                       onChange={(e) => setLoyaltyPct(Number(e.target.value))}
-                      className="w-24 h-9"
+                      className="h-9 w-24"
                       min={1}
                       max={50}
                     />
                     <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
                   </div>
                 </div>
-                <div className="bg-white dark:bg-[#141414] rounded-lg px-3 py-2 border border-amber-200 dark:border-amber-800/30">
+                <div className="rounded-lg border border-amber-200 bg-white px-3 py-2 dark:border-amber-800/30 dark:bg-[#141414]">
                   <p className="text-xs text-amber-700 dark:text-amber-400">
                     Vos clients verront : &laquo; Encore X commandes pour -{loyaltyPct}% ! &raquo;
                   </p>
@@ -775,7 +793,7 @@ export default function BoucherParametresPage() {
                 <Button
                   onClick={saveLoyalty}
                   disabled={loyaltySaving}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white h-10"
+                  className="h-10 w-full bg-amber-600 text-white hover:bg-amber-700"
                 >
                   {loyaltySaving ? (
                     <Loader2 size={16} className="animate-spin" />
@@ -790,7 +808,7 @@ export default function BoucherParametresPage() {
                 onClick={saveLoyalty}
                 disabled={loyaltySaving}
                 variant="outline"
-                className="w-full h-10 text-sm"
+                className="h-10 w-full text-sm"
               >
                 {loyaltySaving ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -810,26 +828,34 @@ export default function BoucherParametresPage() {
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Nom</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Nom
+              </label>
               <Input value={infoName} onChange={(e) => setInfoName(e.target.value)} />
             </div>
 
             {/* Address & City */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Adresse</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Adresse
+                </label>
                 <Input value={infoAddress} onChange={(e) => setInfoAddress(e.target.value)} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Ville</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Ville
+                </label>
                 <Input value={infoCity} onChange={(e) => setInfoCity(e.target.value)} />
               </div>
             </div>
 
             {/* Phone & Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Téléphone</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Téléphone
+                </label>
                 <Input
                   value={infoPhone}
                   onChange={(e) => setInfoPhone(e.target.value)}
@@ -837,7 +863,9 @@ export default function BoucherParametresPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Email</label>
+                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email
+                </label>
                 <Input
                   type="email"
                   value={infoEmail}
@@ -849,21 +877,25 @@ export default function BoucherParametresPage() {
 
             {/* Description */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Description</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </label>
               <textarea
                 value={infoDescription}
                 onChange={(e) => setInfoDescription(e.target.value)}
                 placeholder="Boucherie artisanale halal, viandes de qualite..."
                 maxLength={1000}
                 rows={3}
-                className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-[#0a0a0a] dark:text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#0a0a0a] dark:text-white"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{infoDescription.length}/1000</p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                {infoDescription.length}/1000
+              </p>
             </div>
 
             {/* Welcome message */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Message de bienvenue
               </label>
               <Input
@@ -872,12 +904,14 @@ export default function BoucherParametresPage() {
                 placeholder="Bienvenue ! Commandez en ligne et retirez en boutique."
                 maxLength={500}
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Affiché sur votre page boutique</p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Affiché sur votre page boutique
+              </p>
             </div>
 
             {/* Closed message */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Message de fermeture
               </label>
               <Input
@@ -886,12 +920,14 @@ export default function BoucherParametresPage() {
                 placeholder="Nous sommes actuellement fermés. Revenez bientot !"
                 maxLength={500}
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Affiché quand la boutique est fermée</p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Affiché quand la boutique est fermée
+              </p>
             </div>
 
             {/* Min order */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Commande minimum
               </label>
               <div className="flex items-center gap-2">
@@ -906,20 +942,22 @@ export default function BoucherParametresPage() {
                 />
                 <span className="text-sm text-gray-500 dark:text-gray-400">&euro;</span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">0 = pas de minimum</p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">0 = pas de minimum</p>
             </div>
 
             {/* Opening hours */}
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Horaires d&apos;ouverture
               </label>
               <div className="space-y-2">
                 {DAYS.map((day) => {
                   const h = hours[day.key] || { open: "08:00", close: "19:00" };
                   return (
-                    <div key={day.key} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                      <span className="w-20 sm:w-24 text-sm text-gray-600 dark:text-gray-400 shrink-0">{day.label}</span>
+                    <div key={day.key} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                      <span className="w-20 shrink-0 text-sm text-gray-600 dark:text-gray-400 sm:w-24">
+                        {day.label}
+                      </span>
                       <Input
                         type="time"
                         value={h.open}
@@ -953,7 +991,7 @@ export default function BoucherParametresPage() {
             <Button
               onClick={saveInfo}
               disabled={infoSaving}
-              className="w-full bg-[#DC2626] hover:bg-[#b91c1c] h-11"
+              className="h-11 w-full bg-[#DC2626] hover:bg-[#b91c1c]"
             >
               {infoSaving ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -972,19 +1010,20 @@ export default function BoucherParametresPage() {
         >
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
                 Géocodez votre adresse pour apparaître dans les recherches par proximité.
               </p>
               {geoLat && geoLng ? (
-                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/30 rounded-lg px-3 py-2 mb-3">
-                  <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+                <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800/30 dark:bg-green-950/30">
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
                     Position enregistrée : {geoLat.toFixed(4)}, {geoLng.toFixed(4)}
                   </p>
                 </div>
               ) : (
-                <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800/30 rounded-lg px-3 py-2 mb-3">
+                <div className="mb-3 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 dark:border-yellow-800/30 dark:bg-yellow-950/30">
                   <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                    Aucune position enregistrée. Les clients ne pourront pas vous trouver par proximité.
+                    Aucune position enregistrée. Les clients ne pourront pas vous trouver par
+                    proximité.
                   </p>
                 </div>
               )}
@@ -1023,7 +1062,7 @@ export default function BoucherParametresPage() {
                       if (saveRes.ok) {
                         toast.success("Position enregistree");
                       } else {
-                        toast.error(await extractError(saveRes));
+                        toast.error(await refusalMessage(saveRes, "Erreur serveur"));
                       }
                     } else {
                       toast.error("Adresse introuvable. Verifiez l'adresse et la ville.");
@@ -1036,7 +1075,7 @@ export default function BoucherParametresPage() {
                 }}
                 disabled={geoLoading || (!infoAddress && !infoCity)}
                 variant="outline"
-                className="w-full h-10 text-sm"
+                className="h-10 w-full text-sm"
               >
                 {geoLoading ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -1050,7 +1089,7 @@ export default function BoucherParametresPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Rayon de chalandise : <span className="font-bold text-red-600">{geoRadius} km</span>
               </label>
               <input
@@ -1068,12 +1107,14 @@ export default function BoucherParametresPage() {
                       body: JSON.stringify({ deliveryRadius: geoRadius }),
                     });
                     if (res.ok) toast.success("Rayon sauvegardé");
-                    else toast.error(await extractError(res));
-                  } catch { toast.error("Erreur de connexion"); }
+                    else toast.error(await refusalMessage(res, "Erreur serveur"));
+                  } catch {
+                    toast.error("Erreur de connexion");
+                  }
                 }}
-                className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-red-600"
+                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-red-600 dark:bg-white/10"
               />
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <div className="mt-1 flex justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>5 km</span>
                 <span>30 km</span>
               </div>
@@ -1083,9 +1124,9 @@ export default function BoucherParametresPage() {
       </div>
 
       {/* ── Notifications ── */}
-      <div className="space-y-3 mt-5">
+      <div className="mt-5 space-y-3">
         <SettingCard
-          icon={<BellRing className="w-5 h-5 text-[#DC2626]" />}
+          icon={<BellRing className="h-5 w-5 text-[#DC2626]" />}
           title="Notifications"
           accent="border-l-[#DC2626]"
         >
@@ -1095,7 +1136,9 @@ export default function BoucherParametresPage() {
                 <Volume2 size={16} className="text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Son</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Alerte sonore pour les nouvelles commandes</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Alerte sonore pour les nouvelles commandes
+                  </p>
                 </div>
               </div>
               <Switch
@@ -1110,8 +1153,11 @@ export default function BoucherParametresPage() {
                       body: JSON.stringify({ action: "update_settings", soundNotif: v }),
                     });
                     toast.success(v ? "Son activé" : "Son désactivé");
-                  } catch { toast.error("Erreur"); }
-                  finally { setNotifSaving(false); }
+                  } catch {
+                    toast.error("Erreur");
+                  } finally {
+                    setNotifSaving(false);
+                  }
                 }}
                 disabled={notifSaving}
               />
@@ -1121,8 +1167,12 @@ export default function BoucherParametresPage() {
               <div className="flex items-center gap-2">
                 <Monitor size={16} className="text-gray-500" />
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Flash écran</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Flash visuel sur la tablette</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Flash écran
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Flash visuel sur la tablette
+                  </p>
                 </div>
               </div>
               <Switch
@@ -1137,8 +1187,11 @@ export default function BoucherParametresPage() {
                       body: JSON.stringify({ action: "update_settings", flashNotif: v }),
                     });
                     toast.success(v ? "Flash activé" : "Flash désactivé");
-                  } catch { toast.error("Erreur"); }
-                  finally { setNotifSaving(false); }
+                  } catch {
+                    toast.error("Erreur");
+                  } finally {
+                    setNotifSaving(false);
+                  }
                 }}
                 disabled={notifSaving}
               />
@@ -1149,7 +1202,9 @@ export default function BoucherParametresPage() {
                 <Smartphone size={16} className="text-gray-500" />
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Vibration</p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">Vibration sur mobile/tablette</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Vibration sur mobile/tablette
+                  </p>
                 </div>
               </div>
               <Switch
@@ -1164,8 +1219,11 @@ export default function BoucherParametresPage() {
                       body: JSON.stringify({ action: "update_settings", vibrateNotif: v }),
                     });
                     toast.success(v ? "Vibration activée" : "Vibration désactivée");
-                  } catch { toast.error("Erreur"); }
-                  finally { setNotifSaving(false); }
+                  } catch {
+                    toast.error("Erreur");
+                  } finally {
+                    setNotifSaving(false);
+                  }
                 }}
                 disabled={notifSaving}
               />
@@ -1173,7 +1231,6 @@ export default function BoucherParametresPage() {
           </div>
         </SettingCard>
       </div>
-
     </div>
   );
 }
@@ -1193,8 +1250,10 @@ function SettingCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className={`bg-white dark:bg-[#141414] border-0 shadow-sm overflow-hidden ${accent ? `border-l-4 ${accent}` : ""}`}>
-      <CardContent className="p-4 space-y-3">
+    <Card
+      className={`overflow-hidden border-0 bg-white shadow-sm dark:bg-[#141414] ${accent ? `border-l-4 ${accent}` : ""}`}
+    >
+      <CardContent className="space-y-3 p-4">
         <div className="flex items-center gap-2">
           {icon}
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{title}</h2>

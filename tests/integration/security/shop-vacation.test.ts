@@ -3,12 +3,8 @@
 // shop that was not listed before, and never reopens a suspended one. Real PostgreSQL.
 import { describe, expect, it } from "vitest";
 import { suspendShop } from "@/lib/services/shops/moderation";
-import {
-  endExpiredVacations,
-  endVacationMode,
-  getShopStatus,
-  setVacationMode,
-} from "@/lib/shop-status";
+import { getShopStatus } from "@/lib/shop-status";
+import { endExpiredVacations, endVacationMode, setVacationMode } from "@/lib/shop-vacation";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestShop } from "../helpers/factories";
 

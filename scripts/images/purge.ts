@@ -9,37 +9,42 @@
 // base locale avec le stockage sur disque. Les copies optimisées par Vercel (/_next/image) restent en
 // cache : la commande Vercel à lancer ensuite est affichée. Procédure : docs/photos.md.
 import prisma from "@/lib/prisma";
-import { runImageCensus } from "@/lib/images/census";
-import { planPurge, purgeImage } from "@/lib/images/maintenance";
-import { applyRefusal } from "@/lib/images/repair-plan";
+import { IMAGE_REGISTRY_TABLE } from "@/lib/images/columns";
 import { getImageStore } from "@/lib/images/store";
+import { runImageCensus } from "./lib/census";
+import { planPurge, purgeImage } from "./lib/maintenance";
+import { applyRefusal } from "./lib/repair-plan";
 import {
   describeDatabase,
   out,
-  parseArgs,
+  parseCommandLine,
   requireDatabaseUrl,
   runScript,
   UsageError,
 } from "./shared";
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2), { flags: ["--apply"], options: [] });
-  if (args.positionals.length !== 1) {
+  const { values, positionals } = parseCommandLine({
+    args: process.argv.slice(2),
+    options: { apply: { type: "boolean", default: false } },
+    allowPositionals: true,
+  });
+  if (positionals.length !== 1) {
     throw new UsageError("Usage : npx tsx scripts/images/purge.ts <url de l'image> [--apply]");
   }
-  const [url] = args.positionals;
+  const [url] = positionals;
   const databaseUrl = requireDatabaseUrl();
-  const apply = args.flags.has("--apply");
+  const { apply } = values;
   out(`Base : ${describeDatabase(databaseUrl)} — ${apply ? "ÉCRITURE" : "essai à blanc"}`);
 
   const plan = await planPurge(url);
   out(`Fichiers : ${plan.files.join(" , ")}`);
-  out(`Lignes du registre generated_images : ${plan.registryRows}`);
+  out(`Lignes du registre ${IMAGE_REGISTRY_TABLE} : ${plan.registryRows}`);
   out(`Lignes de la base qui l'utilisent : ${plan.references.otherUses}`);
   if (plan.references.otherUses > 0) {
     const { rows } = await runImageCensus(prisma);
     const uses = rows.filter(
-      (row) => row.table !== "generated_images" && plan.files.includes(row.value)
+      (row) => row.table !== IMAGE_REGISTRY_TABLE && plan.files.includes(row.value)
     );
     for (const row of uses) {
       out(

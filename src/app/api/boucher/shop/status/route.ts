@@ -3,36 +3,72 @@ import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import type { z } from "zod";
+import { apiSuccess, apiError, formatZodError, handleApiError } from "@/lib/api/errors";
 import { readJsonBody } from "@/lib/api/request-body";
-import {
-  pauseShop,
-  resumeShop,
-  setBusyMode,
-  endBusyMode,
-  setVacationMode,
-  endVacationMode,
-  getShopStatus,
-  shopSuspension,
-  type VacationChange,
-} from "@/lib/shop-status";
-import {
-  SHOP_NOT_PUBLISHED_OWNER_MESSAGE,
-  SHOP_SUSPENDED_OWNER_MESSAGE,
-} from "@/lib/shop-publication";
+import { writeOwnerShop, type OwnerShopWrite } from "@/lib/services/shops/owner-write";
+import { shopWriteRefusal } from "@/lib/services/shops/owner-write-http";
+import { pauseShop, resumeShop, setBusyMode, endBusyMode, getShopStatus } from "@/lib/shop-status";
+import { setVacationMode, endVacationMode, type VacationChange } from "@/lib/shop-vacation";
+import { SHOP_NOT_PUBLISHED_OWNER_MESSAGE } from "@/lib/shop-publication";
 import { shopStatusActionSchema } from "./action-schema";
 
 export const dynamic = "force-dynamic";
 
-/** Why a vacation could not start or end, as the butcher reads it. */
-function vacationRefusal(reason: Extract<VacationChange, { ok: false }>["reason"]): Response {
+type ActionResult = OwnerShopWrite | VacationChange;
+
+/** Why the butcher's action was refused, as the butcher reads it. */
+function actionRefusal(reason: Extract<ActionResult, { ok: false }>["reason"]): Response {
   switch (reason) {
     case "SUSPENDED":
-      return apiError("FORBIDDEN", SHOP_SUSPENDED_OWNER_MESSAGE);
+    case "NOT_FOUND":
+      return shopWriteRefusal(reason);
     case "NOT_PUBLISHED":
       return apiError("CONFLICT", SHOP_NOT_PUBLISHED_OWNER_MESSAGE);
     case "NOT_ON_VACATION":
       return apiError("CONFLICT", "La boutique n'est pas en vacances");
+  }
+}
+
+/** Every write below is refused on a suspended shop: it belongs to the admin until reactivated. */
+function applyAction(
+  shopId: string,
+  data: z.infer<typeof shopStatusActionSchema>
+): Promise<ActionResult> {
+  switch (data.action) {
+    case "pause":
+      return pauseShop(shopId, {
+        reason: data.reason,
+        durationMin: data.durationMin,
+        triggeredBy: "boucher",
+      });
+    case "resume":
+      return resumeShop(shopId, "boucher");
+    case "busy":
+      return setBusyMode(shopId, { extraMin: data.extraMin, durationMin: data.durationMin });
+    case "end_busy":
+      return endBusyMode(shopId);
+    case "vacation":
+      return setVacationMode(shopId, {
+        start: new Date(data.start),
+        end: new Date(data.end),
+        message: data.message,
+      });
+    case "end_vacation":
+      return endVacationMode(shopId);
+    case "close":
+      return writeOwnerShop(prisma, shopId, {
+        status: "CLOSED",
+        paused: false,
+        pauseReason: null,
+        pauseEndsAt: null,
+        busyMode: false,
+        busyModeEndsAt: null,
+      });
+    case "update_settings": {
+      const { action: _action, ...settings } = data;
+      return writeOwnerShop(prisma, shopId, settings);
+    }
   }
 }
 
@@ -108,77 +144,19 @@ export async function GET() {
 }
 
 // ── PATCH — Change shop status ──
-// A suspended shop belongs to the admin until it is reactivated: every action is refused.
 export async function PATCH(req: NextRequest) {
   try {
     const authResult = await getAuthenticatedBoucher();
     if (authResult.error) return authResult.error;
     const { shopId } = authResult;
 
-    if (await shopSuspension(shopId)) return apiError("FORBIDDEN", SHOP_SUSPENDED_OWNER_MESSAGE);
-
-    const data = shopStatusActionSchema.parse(await readJsonBody(req));
-
-    switch (data.action) {
-      case "pause":
-        await pauseShop(shopId, {
-          reason: data.reason,
-          durationMin: data.durationMin,
-          triggeredBy: "boucher",
-        });
-        break;
-
-      case "resume":
-        await resumeShop(shopId, "boucher");
-        break;
-
-      case "busy":
-        await setBusyMode(shopId, {
-          extraMin: data.extraMin,
-          durationMin: data.durationMin,
-        });
-        break;
-
-      case "end_busy":
-        await endBusyMode(shopId);
-        break;
-
-      case "vacation": {
-        const change = await setVacationMode(shopId, {
-          start: new Date(data.start),
-          end: new Date(data.end),
-          message: data.message,
-        });
-        if (!change.ok) return vacationRefusal(change.reason);
-        break;
-      }
-
-      case "end_vacation": {
-        const change = await endVacationMode(shopId);
-        if (!change.ok) return vacationRefusal(change.reason);
-        break;
-      }
-
-      case "close":
-        await prisma.shop.update({
-          where: { id: shopId },
-          data: {
-            status: "CLOSED",
-            paused: false,
-            pauseReason: null,
-            pauseEndsAt: null,
-            busyMode: false,
-            busyModeEndsAt: null,
-          },
-        });
-        break;
-
-      case "update_settings": {
-        const { action: _action, ...settings } = data;
-        await prisma.shop.update({ where: { id: shopId }, data: settings });
-        break;
-      }
+    const parsed = shopStatusActionSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
     }
+
+    const change = await applyAction(shopId, parsed.data);
+    if (!change.ok) return actionRefusal(change.reason);
 
     // Return fresh status
     const updated = await prisma.shop.findUnique({

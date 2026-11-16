@@ -2,7 +2,8 @@
 import { NextRequest } from "next/server";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { rateOrderSchema } from "@/lib/validators";
-import { apiError, handleApiError } from "@/lib/api/errors";
+import { apiError, formatZodError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { customerTransitionResponse } from "@/lib/services/orders/commands/http";
 import { customerUserId } from "@/lib/services/orders/commands/outcome";
@@ -19,12 +20,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const rl = await checkRateLimit(rateLimits.api, `order-rate:${clerkId}`);
     if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
-    const data = rateOrderSchema.parse(await req.json());
+    const parsed = rateOrderSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
+    }
     const userId = await customerUserId(clerkId);
     if (userId === null) return apiError("NOT_FOUND", "Commande introuvable");
 
+    const { rating, comment } = parsed.data;
     return await customerTransitionResponse(
-      await rateOrder({ orderId: params.id, userId, rating: data.rating, comment: data.comment })
+      await rateOrder({ orderId: params.id, userId, rating, comment })
     );
   } catch (error) {
     return handleApiError(error, "orders/rate");

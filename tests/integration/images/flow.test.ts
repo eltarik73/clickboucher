@@ -9,37 +9,22 @@ import { isValidElement, type ReactNode } from "react";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Shop, User } from "@prisma/client";
-import type { ImageStore } from "@/lib/images/store";
 import { MemoryImageStore } from "../../fixtures/images/memory-store";
 import { makeJpeg } from "../../fixtures/images/make-fixtures";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestOrder, createTestShop, createTestUser } from "../helpers/factories";
 
-const session = vi.hoisted(() => ({
-  clerkId: null as string | null,
-  userId: null as string | null,
-  shopId: null as string | null,
-  role: undefined as string | undefined,
-}));
-const storage = vi.hoisted(() => ({ store: null as ImageStore | null }));
-
-vi.mock("@/lib/auth/server-auth", () => ({
-  getServerUserId: async () => session.clerkId,
-  getBoucherOwnerUserId: async () => session.clerkId,
-  resolveUserRole: async () => session.role,
-  getTestRole: () => null,
-  isTestActivated: () => false,
-}));
-vi.mock("@/lib/boucher-auth", () => ({
-  getAuthenticatedBoucher: async () =>
-    session.userId && session.shopId
-      ? { userId: session.userId, shopId: session.shopId }
-      : { error: new Response(null, { status: 401 }) },
-}));
-vi.mock("@/lib/images/store", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/images/store")>()),
-  getImageStore: () => storage.store as ImageStore,
-}));
+vi.mock(
+  "@/lib/auth/server-auth",
+  async () => (await import("./product-routes-harness")).serverAuthMock
+);
+vi.mock(
+  "@/lib/boucher-auth",
+  async () => (await import("./product-routes-harness")).boucherAuthMock
+);
+vi.mock("@/lib/images/store", async (importOriginal) =>
+  (await import("./store-mock")).imageStoreModule(importOriginal)
+);
 // React.cache n'existe que sous la condition « react-server » de Next : hors Next, une identité.
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
@@ -53,8 +38,10 @@ import { GET as getCartRoute, POST as syncCartRoute } from "@/app/api/cart/route
 import { DELETE as deleteGalleryImageRoute } from "@/app/api/boucher/images/[id]/route";
 import { ShopProductsClient } from "@/components/shop/ShopProductsClient";
 import { searchProducts } from "@/lib/ai-search";
-import { buildUploadForm, uploadResultSchema, type UploadResult } from "@/lib/images/upload-contract";
+import { uploadResultSchema, type UploadResult } from "@/lib/images/upload-contract";
 import { getKitchenBoard } from "@/lib/services/orders/kitchen";
+import { actAs, uploadRequest } from "./product-routes-harness";
+import { storage } from "./store-mock";
 
 // Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
 // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -82,20 +69,6 @@ async function createWorld(): Promise<World> {
   return { owner, customer, shop, categoryId: category.id };
 }
 
-function actAsOwner(world: World): void {
-  session.clerkId = world.owner.clerkId;
-  session.userId = world.owner.id;
-  session.shopId = world.shop.id;
-  session.role = world.owner.role;
-}
-
-function actAsCustomer(world: World): void {
-  session.clerkId = world.customer.clerkId;
-  session.userId = null;
-  session.shopId = null;
-  session.role = world.customer.role;
-}
-
 function jsonRequest(path: string, method: string, body?: unknown): NextRequest {
   return new NextRequest(`http://localhost${path}`, {
     method,
@@ -110,9 +83,7 @@ async function read<T>(response: Response): Promise<{ status: number; body: ApiB
 
 async function uploadPhoto(): Promise<UploadResult> {
   const jpeg = await makeJpeg({ width: 1200, height: 900 });
-  const form = buildUploadForm(new Blob([new Uint8Array(jpeg)], { type: "image/jpeg" }), "PRODUCT");
-  const request = new NextRequest("http://localhost/api/uploads/image", { method: "POST", body: form });
-  const { status, body } = await read<unknown>(await uploadRoute(request));
+  const { status, body } = await read<unknown>(await uploadRoute(uploadRequest(jpeg, "PRODUCT")));
   expect(status).toBe(200);
   return uploadResultSchema.parse(body.data);
 }
@@ -160,7 +131,7 @@ function propsOf<P>(node: ReactNode, component: unknown): P[] {
 describe("une photo envoyée puis enregistrée sur un produit", () => {
   it("devient Product.imageUrl et s'affiche en cuisine, au panier, en recherche et sur la page boutique", async () => {
     const world = await createWorld();
-    actAsOwner(world);
+    actAs(world.owner, world.shop.id);
     const uploaded = await uploadPhoto();
     const productId = await createProductWith(world, uploaded.url);
 
@@ -176,11 +147,11 @@ describe("une photo envoyée puis enregistrée sur un produit", () => {
       items: [{ productId }],
     });
     const board = await getKitchenBoard(world.shop.id);
-    expect(board.active.flatMap((order) => order.items.map((item) => item.product.imageUrl))).toEqual([
-      uploaded.url,
-    ]);
+    expect(
+      board.active.flatMap((order) => order.items.map((item) => item.product.imageUrl))
+    ).toEqual([uploaded.url]);
 
-    actAsCustomer(world);
+    actAs(world.customer, null);
     const synced = await syncCartRoute(
       jsonRequest("/api/cart", "POST", {
         shopId: world.shop.id,
@@ -188,17 +159,25 @@ describe("une photo envoyée puis enregistrée sur un produit", () => {
       })
     );
     expect(synced.status).toBe(200);
-    const cart = await read<{ items: { productId: string; imageUrl: string }[] }>(await getCartRoute());
-    expect(cart.body.data.items).toEqual([expect.objectContaining({ productId, imageUrl: uploaded.url })]);
+    const cart = await read<{ items: { productId: string; imageUrl: string }[] }>(
+      await getCartRoute()
+    );
+    expect(cart.body.data.items).toEqual([
+      expect.objectContaining({ productId, imageUrl: uploaded.url }),
+    ]);
 
-    const found = (await searchProducts(PRODUCT_NAME, world.shop.id)) as { id: string; imageUrl: string | null }[];
-    expect(found.map((result) => [result.id, result.imageUrl])).toEqual([[productId, uploaded.url]]);
+    const found = (await searchProducts(PRODUCT_NAME, world.shop.id)) as {
+      id: string;
+      imageUrl: string | null;
+    }[];
+    expect(found.map((result) => [result.id, result.imageUrl])).toEqual([
+      [productId, uploaded.url],
+    ]);
 
     const tree = await BoutiquePage({ params: { slug: world.shop.slug } });
-    const [catalogue] = propsOf<{ products: { id: string; imageUrl: string | null; images: { url: string }[] }[] }>(
-      tree,
-      ShopProductsClient
-    );
+    const [catalogue] = propsOf<{
+      products: { id: string; imageUrl: string | null; images: { url: string }[] }[];
+    }>(tree, ShopProductsClient);
     expect(catalogue.products).toEqual([
       expect.objectContaining({
         id: productId,
@@ -210,7 +189,7 @@ describe("une photo envoyée puis enregistrée sur un produit", () => {
 
   it("retirer la photo du produit n'efface aucun fichier ; la galerie refuse (409) de supprimer la photo remise", async () => {
     const world = await createWorld();
-    actAsOwner(world);
+    actAs(world.owner, world.shop.id);
     const uploaded = await uploadPhoto();
     const productId = await createProductWith(world, uploaded.url);
 

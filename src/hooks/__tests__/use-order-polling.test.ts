@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { OrderStatus, Unit } from "@prisma/client";
+import { describe, it, expect, expectTypeOf, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { HISTORY_REFRESH_MS, nextPollDelay, useOrderPolling } from "@/hooks/use-order-polling";
+import {
+  HISTORY_REFRESH_MS,
+  nextPollDelay,
+  useOrderPolling,
+  type KitchenOrder,
+} from "@/hooks/use-order-polling";
 
 type Responder = (signal: AbortSignal, url: string) => Promise<Response>;
 
@@ -85,6 +91,18 @@ async function advance(ms: number) {
     await vi.advanceTimersByTimeAsync(ms);
   });
 }
+
+describe("kitchen board types", () => {
+  it("are the service rows as JSON: Prisma enums, dates as ISO strings", () => {
+    expectTypeOf<KitchenOrder["status"]>().toEqualTypeOf<OrderStatus>();
+    expectTypeOf<KitchenOrder["items"][number]["unit"]>().toEqualTypeOf<Unit>();
+    expectTypeOf<KitchenOrder["createdAt"]>().toEqualTypeOf<string>();
+    // @ts-expect-error a plain string is not an order status
+    expectTypeOf<string>().toExtend<KitchenOrder["status"]>();
+    // @ts-expect-error a plain string is not a sale unit
+    expectTypeOf<string>().toExtend<KitchenOrder["items"][number]["unit"]>();
+  });
+});
 
 describe("nextPollDelay", () => {
   const base = { intervalMs: 5000, visible: true, elapsedMs: 0, authStreak: 0, errorStreak: 0 };

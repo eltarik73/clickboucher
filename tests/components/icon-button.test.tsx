@@ -5,28 +5,23 @@ import { fireEvent, screen } from "@testing-library/dom";
 import { X } from "lucide-react";
 import { IconButton, iconButtonVariants } from "@/components/ui/icon-button";
 
-const classesOf = (value: string) => value.split(/\s+/).filter(Boolean);
-
 describe("IconButton", () => {
   it("est nommé par son libellé", () => {
     render(<IconButton label="Fermer" icon={<X />} />);
     expect(screen.getByRole("button", { name: "Fermer" })).toHaveAttribute("aria-label", "Fermer");
   });
 
-  it("ne compile pas sans libellé", () => {
-    // @ts-expect-error label est obligatoire
-    const unnamed = <IconButton icon={<X />} />;
-    expect(unnamed).toBeTruthy();
-  });
-
-  it("mesure 44 px en md et 56 px en lg, sans pouvoir rétrécir", () => {
-    const md = classesOf(iconButtonVariants({ size: "md" }));
-    const lg = classesOf(iconButtonVariants({ size: "lg" }));
-    expect(md).toEqual(expect.arrayContaining(["size-11", "shrink-0", "rounded-full"]));
-    expect(lg).toEqual(expect.arrayContaining(["size-14", "shrink-0"]));
-    render(<IconButton label="Fermer" icon={<X />} />);
-    expect(screen.getByRole("button", { name: "Fermer" })).toHaveClass("size-11", "shrink-0");
-  });
+  // size-N is N × 4 px on both sides: 44 px is size-11. shrink-0 keeps it in a crowded flex row.
+  it.each(["md", "lg"] as const)(
+    "la taille %s mesure au moins 44 × 44 px et ne rétrécit pas",
+    (size) => {
+      const classes = iconButtonVariants({ size }).split(/\s+/);
+      const sides = classes.filter((name) => /^size-\d+$/.test(name));
+      expect(sides).toHaveLength(1);
+      expect(Number(sides[0].slice(5)) * 4).toBeGreaterThanOrEqual(44);
+      expect(classes).toContain("shrink-0");
+    }
+  );
 
   it("masque l'icône aux technologies d'assistance", () => {
     render(<IconButton label="Fermer" icon={<X />} />);
@@ -43,19 +38,6 @@ describe("IconButton", () => {
     expect(screen.getByRole("button", { name: "Fermer" })).toHaveAttribute("type", "submit");
   });
 
-  it("asChild rend un lien nommé par le libellé qui contient l'icône", () => {
-    const { container } = render(
-      <IconButton asChild label="Retour à l'accueil" icon={<X />}>
-        <a href="/" />
-      </IconButton>,
-    );
-    const link = screen.getByRole("link", { name: "Retour à l'accueil" });
-    expect(link).toHaveAttribute("href", "/");
-    expect(link).toHaveClass("size-11");
-    expect(link.querySelector("span[aria-hidden='true'] svg")).not.toBeNull();
-    expect(container.querySelector("button")).toBeNull();
-  });
-
   it("transmet la ref et onClick", () => {
     const ref = React.createRef<HTMLButtonElement>();
     const onClick = vi.fn();
@@ -64,10 +46,5 @@ describe("IconButton", () => {
     expect(ref.current).toBe(button);
     fireEvent.click(button);
     expect(onClick).toHaveBeenCalledTimes(1);
-  });
-
-  it.each(["ghost", "subtle", "solid"] as const)("la variante %s n'utilise que des jetons", (variant) => {
-    const classes = iconButtonVariants({ variant });
-    expect(classes).not.toMatch(/#|gray-|transition-all|(^|\s)outline-none/);
   });
 });

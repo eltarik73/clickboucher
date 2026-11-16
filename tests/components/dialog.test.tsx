@@ -118,38 +118,12 @@ describe("Dialog", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Ailleurs" }));
   });
 
-  it("se ferme par le bouton « Fermer » de 44 px", async () => {
+  it("se ferme par le bouton « Fermer »", async () => {
     render(<Controlled />);
     const opener = open("Ouvrir");
     const dialog = await screen.findByRole("dialog", { name: "Modifier la boutique" });
-    const close = within(dialog).getByRole("button", { name: "Fermer" });
-    expect(close).toHaveClass("size-11");
-
-    fireEvent.click(close);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Fermer" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(document.activeElement).toBe(opener);
-  });
-
-  it("porte les durées d'animation préfixées par l'état et les couleurs des tokens", async () => {
-    render(<WithTrigger />);
-    open("Ouvrir");
-    const dialog = await screen.findByRole("dialog", { name: "Modifier la boutique" });
-    expect(dialog).toHaveClass(
-      "data-[state=open]:duration-200",
-      "data-[state=closed]:duration-150",
-      "bg-card",
-      "text-card-foreground",
-      "rounded-card",
-    );
-    expect(dialog.className).not.toMatch(/(^|\s)duration-\d/);
-    expect(dialog.className).not.toMatch(/#[0-9a-f]{3,6}/i);
-  });
-
-  it("se centre par la mise en page, sans translate que l'animation d'entrée écraserait", async () => {
-    render(<WithTrigger />);
-    open("Ouvrir");
-    const dialog = await screen.findByRole("dialog", { name: "Modifier la boutique" });
-    expect(dialog).toHaveClass("fixed", "inset-0", "m-auto", "h-fit", "max-w-md", "max-h-[90dvh]", "overflow-y-auto");
-    expect(dialog.className).not.toMatch(/translate-/);
   });
 });

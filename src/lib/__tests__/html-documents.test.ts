@@ -133,9 +133,10 @@ function kitchenOrder(name: string): KitchenOrder {
         pieceLabel: null,
         cutOption: null,
         available: true,
+        product: { name, unit: "PIECE", imageUrl: null },
       },
     ],
-    user: { firstName: name, lastName: "Martin" },
+    user: { firstName: name, lastName: "Martin", phone: null, loyaltyBadge: null },
     priceAdjustment: null,
   };
 }

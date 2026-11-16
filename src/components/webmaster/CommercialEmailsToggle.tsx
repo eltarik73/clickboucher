@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { apiErrorMessage } from "@/lib/api/error-message";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 
 const ENDPOINT = "/api/webmaster/commercial-emails";
 const LOAD_ERROR = "Le réglage n'a pas pu être chargé.";
@@ -65,7 +65,7 @@ async function saveState(enabled: boolean): Promise<SaveOutcome> {
   const body = await jsonOrNull(res);
   const saved = res.ok ? readEnabled(body) : null;
   return saved === null
-    ? { ok: false, message: apiErrorMessage(body, SAVE_ERROR) }
+    ? { ok: false, message: refusalMessageOf(body) ?? SAVE_ERROR }
     : { ok: true, enabled: saved };
 }
 

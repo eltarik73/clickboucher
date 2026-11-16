@@ -12,8 +12,9 @@ import path from "node:path";
 import { del, put } from "@vercel/blob";
 import { isProductionDeployment } from "@/lib/auth/test-mode-env";
 import { logger } from "@/lib/logger";
-import { classifyImageUrl } from "./durable-url";
+import { classifyImageUrl, isStoreImageUrl } from "./durable-url";
 import { StoreUnavailableError } from "./errors";
+import { thumbnailOf } from "./thumbnail";
 
 export interface ImageStore {
   readonly kind: "blob" | "local";
@@ -55,7 +56,11 @@ export function localStoreFile(segments: readonly string[]): string | null {
 class BlobStore implements ImageStore {
   readonly kind = "blob" as const;
 
-  async put(pathname: string, bytes: Uint8Array, contentType: "image/webp"): Promise<{ url: string }> {
+  async put(
+    pathname: string,
+    bytes: Uint8Array,
+    contentType: "image/webp"
+  ): Promise<{ url: string }> {
     const blob = await put(pathname, Buffer.from(bytes), {
       access: "public",
       contentType,
@@ -67,7 +72,9 @@ class BlobStore implements ImageStore {
 
   async del(url: string): Promise<void> {
     if (classifyImageUrl(url) !== "BLOB") {
-      throw new Error("Suppression refusée : l'URL n'appartient pas au magasin Blob de la plateforme");
+      throw new Error(
+        "Suppression refusée : l'URL n'appartient pas au magasin Blob de la plateforme"
+      );
     }
     await del(url);
   }
@@ -78,7 +85,8 @@ class LocalDiskStore implements ImageStore {
 
   async put(pathname: string, bytes: Uint8Array): Promise<{ url: string }> {
     const file = localStoreFile(pathname.split("/"));
-    if (file === null) throw new Error(`Chemin d'image local invalide : ${JSON.stringify(pathname)}`);
+    if (file === null)
+      throw new Error(`Chemin d'image local invalide : ${JSON.stringify(pathname)}`);
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, bytes);
     return { url: `${LOCAL_IMAGES_PREFIX}${pathname}` };
@@ -88,7 +96,8 @@ class LocalDiskStore implements ImageStore {
     const file = url.startsWith(LOCAL_IMAGES_PREFIX)
       ? localStoreFile(url.slice(LOCAL_IMAGES_PREFIX.length).split("/"))
       : null;
-    if (file === null) throw new Error("Suppression refusée : l'URL n'appartient pas au magasin local");
+    if (file === null)
+      throw new Error("Suppression refusée : l'URL n'appartient pas au magasin local");
     try {
       await unlink(file);
     } catch (error) {
@@ -103,4 +112,33 @@ export function getImageStore(): ImageStore {
   if (localStoreAllowed()) return new LocalDiskStore();
   logger.error("[images] aucun stockage", { vercelEnv: process.env.VERCEL_ENV ?? null });
   throw new StoreUnavailableError();
+}
+
+/** The files of our store behind an image URL: the photo and its thumbnail; none for a foreign URL. */
+export function storedFilesOf(url: string): string[] {
+  if (!isStoreImageUrl(url)) return [];
+  const thumb = thumbnailOf(url);
+  return thumb === null ? [url] : [url, thumb];
+}
+
+/**
+ * Deletes files the caller no longer needs (a failed write, a removed image). A failed deletion
+ * leaves a harmless orphan: it is logged with the caller's context, never thrown.
+ */
+export async function deleteFilesQuietly(
+  store: ImageStore,
+  urls: readonly string[],
+  context: string
+): Promise<void> {
+  for (const url of urls) {
+    try {
+      await store.del(url);
+    } catch (error) {
+      logger.warn("[images] fichier non effacé", {
+        context,
+        url,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 }
