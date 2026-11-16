@@ -1,8 +1,7 @@
-// Mode cuisine : rendu caractérisé du tableau (fetch simulé, heure fixe en Europe/Paris, DOM figé) ;
-// un découpage de la page ne doit rien changer à ce qui s'affiche. jsdom n'applique pas le CSS : les
-// deux mises en page (colonnes lg:, onglets mobiles) sont toujours dans le DOM. Le tableau entier est
-// figé une fois, puis seul ce qui change ; un changement d'état de la boutique, par sa requête.
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+// Mode cuisine (fetch simulé, heure fixe en Europe/Paris) : ce que liste chaque colonne, onglet et
+// tiroir, dans l'ordre, les libellés qui comptent, et chaque changement d'état de la boutique par sa
+// requête. jsdom n'applique pas le CSS : colonnes lg: et onglets mobiles sont tous dans le DOM.
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KitchenModePage from "@/app/(boucher)/boucher/commandes/page";
@@ -126,17 +125,13 @@ const HISTORY = [
 const SHOP = { name: "Boucherie Test", prepTimeMin: 20, status: "OPEN", pauseEndsAt: null };
 let shop: { status: string; pauseEndsAt: string | null } = SHOP;
 
-function json(data: unknown) {
-  return Response.json({ data });
-}
-
 function serve(url: string): Response {
-  if (url === "/api/boucher/shop/status") return json({ ...SHOP, ...shop });
+  if (url === "/api/boucher/shop/status") return Response.json({ data: { ...SHOP, ...shop } });
+  const board = { active: ACTIVE, activeTruncated: false };
+  if (url === "/api/boucher/orders/kitchen") return Response.json({ data: board });
   if (url === "/api/boucher/orders/kitchen?history=1") {
-    return json({ active: ACTIVE, activeTruncated: false, history: HISTORY });
+    return Response.json({ data: { ...board, history: HISTORY } });
   }
-  if (url === "/api/boucher/orders/kitchen")
-    return json({ active: ACTIVE, activeTruncated: false });
   throw new Error(`Unexpected fetch: ${url}`);
 }
 
@@ -167,17 +162,21 @@ function mobilePanel(container: HTMLElement): Element {
 
 /** Every request sent to the shop status route, in order: "GET" or the PATCH body. */
 function shopStatusRequests(): string[] {
-  return vi
-    .mocked(fetch)
-    .mock.calls.filter(([url]) => url === "/api/boucher/shop/status")
-    .map(([, init]) => (init?.method === "PATCH" ? String(init.body) : "GET"));
+  const calls = vi.mocked(fetch).mock.calls.filter(([url]) => url === "/api/boucher/shop/status");
+  return calls.map(([, init]) => (init?.method === "PATCH" ? String(init.body) : "GET"));
 }
 
+/** Section titles and order numbers listed by `element`, in reading order. */
+function outline(element: Element): string[] {
+  return element.textContent?.match(/#\d{3}|À PRÉPARER MAINTENANT|PRÉCOMMANDES/g) ?? [];
+}
+
+const IN_PROGRESS = ["À PRÉPARER MAINTENANT", "#042", "PRÉCOMMANDES", "#043"];
+
 /** The modal or drawer titled `heading`, backdrop included. */
-function overlay(heading: string): Element {
-  const element = screen.getByRole("heading", { name: heading }).closest('[role="presentation"]');
-  if (!element) throw new Error(`${heading} not rendered`);
-  return element;
+function overlay(heading: string): HTMLElement {
+  const title = screen.getByRole("heading", { name: heading });
+  return title.closest<HTMLElement>('[role="presentation"]')!;
 }
 
 beforeEach(() => {
@@ -205,13 +204,18 @@ afterEach(() => {
 describe("mode cuisine : rendu du tableau", () => {
   it("affiche les colonnes, l'en-cours scindé et chaque onglet mobile", async () => {
     const { container } = await renderBoard();
-    expect(container).toMatchSnapshot("tableau");
+    const columns = [...container.querySelector(".pb-14.lg\\:flex")!.children];
+    const titles = screen.getAllByRole("heading", { level: 2 }).map((title) => title.textContent);
+
+    expect(titles).toEqual(["Nouvelles", "En cours", "Prêtes"]);
+    expect(columns.map(outline)).toEqual([["#041"], [], IN_PROGRESS, [], ["#044"]]);
+    expect(outline(mobilePanel(container))).toEqual(IN_PROGRESS);
 
     await click(/^Nouv\./);
-    expect(mobilePanel(container)).toMatchSnapshot("onglet nouvelles");
+    expect(outline(mobilePanel(container))).toEqual(["#041"]);
 
     await click(/^Prêtes/);
-    expect(mobilePanel(container)).toMatchSnapshot("onglet prêtes");
+    expect(outline(mobilePanel(container))).toEqual(["#044"]);
   });
 
   it("réunit En cours et Prêtes dans la seconde colonne du bureau en mode simple", async () => {
@@ -227,25 +231,19 @@ describe("mode cuisine : rendu du tableau", () => {
     expect(columns[1].textContent).toMatch(/#042.*#043.*#044/);
   });
 
-  it("affiche l'historique dans l'onglet mobile et dans le tiroir du bureau", async () => {
-    const { container } = await renderBoard();
-
-    await click(/^Histo\./);
-    expect(mobilePanel(container)).toMatchSnapshot("onglet historique");
-
-    await click(/^Historique/);
-    expect(overlay("Historique")).toMatchSnapshot("tiroir historique");
-  });
-
-  it("compte les articles d'une commande terminée comme sa carte, et nomme son statut", async () => {
+  it("liste l'historique (onglet mobile, tiroir), compté comme les cartes, statut nommé", async () => {
     const { container } = await renderBoard();
     // The scheduled card counts its 1.5 kg line (3 × 500 g) as 3 articles.
     expect(container.textContent).toContain("3 articles44,85 €");
 
+    await click(/^Histo\./);
+    expect(outline(mobilePanel(container))).toEqual(["#040", "#039"]);
+
     await click(/^Historique/);
-    const drawer = overlay("Historique").textContent;
-    expect(drawer).toContain("#039Sarah.LRécupérée44,85 €3 articles");
-    expect(drawer).toContain("#040Ines.TPartiel. refusée9,90 €1 article");
+    const drawer = overlay("Historique");
+    expect(outline(drawer)).toEqual(["#040", "#039"]);
+    expect(drawer.textContent).toContain("#039Sarah.LRécupérée44,85 €3 articles");
+    expect(drawer.textContent).toContain("#040Ines.TPartiel. refusée9,90 €1 article");
   });
 });
 
@@ -254,7 +252,10 @@ describe("mode cuisine : état de la boutique", () => {
     await renderBoard();
     await click(/^Pause$/);
     await click(/^30/);
-    expect(overlay("Suspendre les commandes")).toMatchSnapshot("fenêtre pause, 30 min");
+    const modal = within(overlay("Suspendre les commandes"));
+    const choices = modal.getAllByRole("button").map((button) => button.textContent);
+    expect(choices.slice(0, 3)).toEqual(["15minutes", "30minutes", "60minutes"]);
+    expect(choices.slice(3)).toEqual(["Suspendre pendant 30 min", "Annuler"]);
     await click(/^Suspendre pendant 30 min$/);
     await flush();
 
@@ -278,11 +279,11 @@ describe("mode cuisine : état de la boutique", () => {
   it("compte la pause à rebours et reprend depuis le bandeau puis depuis la barre", async () => {
     shop = { status: "PAUSED", pauseEndsAt: minutesFromNow(10) };
     const { container } = await renderBoard();
-    expect(container.textContent).toContain("Commandes suspendues — reprise dans 10:00");
-    // Logo and right-hand icons do not depend on the pause: the « tableau » snapshot covers them
-    expect(container.querySelector("header")!.children[1]).toMatchSnapshot("contrôles en pause");
-    const banner = screen.getByText(/^Commandes suspendues/).parentElement;
-    expect(banner).toMatchSnapshot("bandeau pause");
+    const banner = screen.getByText(/^Commandes suspendues/).parentElement!;
+    const controls = container.querySelector("header")!.children[1];
+    expect(banner.textContent).toBe("Commandes suspendues — reprise dans 10:00Reprendre");
+    // The toggle reads « Hors ligne »; the pause button counts down (wide and narrow label).
+    expect(controls.textContent).toBe("Hors ligneAuto 8h-19h 10:0010:00");
 
     await click(/^Reprendre$/);
     await flush();

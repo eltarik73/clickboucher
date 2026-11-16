@@ -13,7 +13,7 @@ const CLAUDE_MD = readFileSync(path.join(ROOT, "CLAUDE.md"), "utf8");
 
 /**
  * Chemins de dépôt cités entre accents graves et commençant par src/ ou prisma/. Un motif ou un
- * gabarit (`src/lib/pricing/*`, `src/lib/**`, `shop:v2:<slug>`) est coupé avant son premier segment
+ * gabarit (`src/lib/pricing/*`, `src/lib/**`, `shop:v3:<slug>`) est coupé avant son premier segment
  * générique : seul le dossier réel qui le précède doit exister.
  */
 function citedRepositoryPaths(markdown: string): string[] {
@@ -65,7 +65,7 @@ describe("CLAUDE.md : faits vérifiés et décisions du propriétaire du 2026-11
   it.each([
     "src/lib/cart/stored-cart.ts",
     "Précommandes",
-    "shop:v2:",
+    "shop:v3:",
     "src/lib/commercial-emails.ts",
     "Décisions du propriétaire (2026-11-15)",
     "Node 22",

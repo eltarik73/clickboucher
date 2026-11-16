@@ -9,13 +9,14 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
+import { sourceFiles } from "../../../../tests/lib/source-files";
 
 const ROOT = path.resolve(__dirname, "../../../..");
 
 const KITCHEN_FILES = [
   "src/components/boucher/KitchenOrderCard.tsx",
   "src/components/boucher/OrderAlertOverlay.tsx",
-  "src/app/(boucher)/boucher/commandes/page.tsx",
+  ...sourceFiles("src/app/(boucher)/boucher/commandes").filter((file) => file.endsWith(".tsx")),
 ];
 
 const source = (file: string) => readFileSync(path.join(ROOT, file), "utf8");

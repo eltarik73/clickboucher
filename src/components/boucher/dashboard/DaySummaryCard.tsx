@@ -1,5 +1,6 @@
 // src/components/boucher/dashboard/DaySummaryCard.tsx — the newest orders of the day summary on the
 // butcher dashboard.
+import type { OrderStatus } from "@prisma/client";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,55 +12,45 @@ import { timeRemaining } from "./ShopStatusBar";
 /** GET /api/boucher/orders/summary, as the dashboard reads it. */
 export type DaySummary = Serialized<ShopDaySummary>;
 
-// Badge colours per status; the labels are the ones of every other screen.
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
+// Badge colours per status; the labels are the ones of every other screen (ORDER_STATUS_LABELS).
+const STATUS_STYLE: Record<OrderStatus, { color: string; bg: string }> = {
   PENDING: {
-    label: ORDER_STATUS_LABELS.PENDING,
     color: "text-amber-700 dark:text-amber-300",
     bg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
   },
   ACCEPTED: {
-    label: ORDER_STATUS_LABELS.ACCEPTED,
     color: "text-blue-700 dark:text-blue-300",
     bg: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
   },
   PREPARING: {
-    label: ORDER_STATUS_LABELS.PREPARING,
     color: "text-indigo-700 dark:text-indigo-300",
     bg: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-800",
   },
   READY: {
-    label: ORDER_STATUS_LABELS.READY,
     color: "text-emerald-700 dark:text-emerald-300",
     bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
   },
   PICKED_UP: {
-    label: ORDER_STATUS_LABELS.PICKED_UP,
     color: "text-gray-600 dark:text-gray-400",
     bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700",
   },
   COMPLETED: {
-    label: ORDER_STATUS_LABELS.COMPLETED,
     color: "text-green-700 dark:text-green-300",
     bg: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800",
   },
   DENIED: {
-    label: ORDER_STATUS_LABELS.DENIED,
     color: "text-red-700 dark:text-red-300",
     bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",
   },
   CANCELLED: {
-    label: ORDER_STATUS_LABELS.CANCELLED,
     color: "text-gray-500 dark:text-gray-400",
     bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700",
   },
   AUTO_CANCELLED: {
-    label: ORDER_STATUS_LABELS.AUTO_CANCELLED,
     color: "text-gray-500 dark:text-gray-400",
     bg: "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700",
   },
   PARTIALLY_DENIED: {
-    label: ORDER_STATUS_LABELS.PARTIALLY_DENIED,
     color: "text-orange-700 dark:text-orange-300",
     bg: "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800",
   },
@@ -95,7 +86,7 @@ export function DaySummaryCard({ orders }: { orders: DaySummary["recent"] }) {
       ) : (
         <div className="space-y-2">
           {orders.map((order) => {
-            const st = STATUS_MAP[order.status] || STATUS_MAP.PENDING;
+            const st = STATUS_STYLE[order.status];
             const clientName = `${order.user.firstName} ${order.user.lastName.charAt(0)}.`;
 
             return (
@@ -127,7 +118,7 @@ export function DaySummaryCard({ orders }: { orders: DaySummary["recent"] }) {
                           variant="outline"
                           className={`border text-[10px] font-semibold ${st.bg} ${st.color}`}
                         >
-                          {st.label}
+                          {ORDER_STATUS_LABELS[order.status]}
                         </Badge>
                         {order.status === "PENDING" && order.expiresAt && (
                           <span className="font-mono text-[9px] text-red-500">

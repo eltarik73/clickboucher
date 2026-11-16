@@ -230,7 +230,8 @@ describe("GET /api/boucher/onboarding dit où en est la publication", () => {
     const result = await call(getOnboarding, {});
 
     expect(result.status).toBe(200);
-    expect(result.body.data).toMatchObject({ publication, visible: state.visible });
+    expect(result.body.data).toMatchObject({ publication });
+    expect(result.body.data).not.toHaveProperty("visible");
   });
 });
 

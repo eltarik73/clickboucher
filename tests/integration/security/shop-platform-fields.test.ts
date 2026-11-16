@@ -148,24 +148,8 @@ describe.each(SERVICE_ROUTES)("%s : réglages de service", (_, route) => {
   it("statut PAUSED, préparation 25 min, acceptation auto, 30 commandes/h : 200 et écrit", async () => {
     const body = { status: "PAUSED", prepTimeMin: 25, autoAccept: true, maxOrdersPerHour: 30 };
 
-    const response = await answer(route.send(shop.id, body));
-
-    expect(response.status).toBe(200);
-    const row = await rowOf(shop.id);
-    expect(row).toMatchObject({ ...body, visible: false, commissionPct: 5 });
-    // Both routes answer the same settings, read by updateShopService.
-    expect(response.body.data).toEqual({
-      id: shop.id,
-      busyMode: row.busyMode,
-      busyExtraMin: row.busyExtraMin,
-      paused: row.paused,
-      status: "PAUSED",
-      prepTimeMin: 25,
-      autoAccept: true,
-      maxOrdersPerHour: 30,
-      priceAdjustmentThreshold: 20,
-      effectivePrepTime: 25,
-    });
+    expect((await answer(route.send(shop.id, body))).status).toBe(200);
+    expect(await rowOf(shop.id)).toMatchObject({ ...body, visible: false, commissionPct: 5 });
   });
 });
 

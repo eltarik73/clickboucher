@@ -6,7 +6,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import type { Prisma } from "@prisma/client";
 import { suspendShop } from "@/lib/services/shops/moderation";
 import { writeOwnerShop } from "@/lib/services/shops/owner-write";
-import { updateShopService } from "@/lib/services/shops/service-settings";
+import { readShopService, updateShopService } from "@/lib/services/shops/service-settings";
 import { endBusyMode, pauseShop, resumeShop, setBusyMode } from "@/lib/shop-status";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestShop } from "../helpers/factories";
@@ -134,6 +134,21 @@ describe("updateShopService", () => {
         effectivePrepTime: 40,
       },
     });
+  });
+
+  it("rend les mêmes réglages que leur lecture (GET /api/boucher/service)", async () => {
+    const shop = await createTestShop({ priceAdjustmentThreshold: 20 });
+    const body = {
+      status: "PAUSED" as const,
+      prepTimeMin: 25,
+      autoAccept: true,
+      maxOrdersPerHour: 30,
+    };
+
+    const result = await updateShopService(shop.id, body);
+
+    expect(result).toEqual({ ok: true, service: await readShopService(shop.id) });
+    expect(result).toMatchObject({ service: { ...body, effectivePrepTime: 25 } });
   });
 
   it("refuse une boutique suspendue sans rien écrire", async () => {

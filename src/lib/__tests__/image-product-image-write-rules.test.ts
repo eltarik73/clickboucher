@@ -56,7 +56,7 @@ describe("produit à photos : la photo principale fait foi pour imageUrl", () =>
     expect(plan({ stored: withPhotos, imageUrl: A })).toEqual({
       ok: true,
       images: "unchanged",
-      imageUrl: A,
+      imageUrl: "unchanged",
     });
   });
 
@@ -65,7 +65,7 @@ describe("produit à photos : la photo principale fait foi pour imageUrl", () =>
       {
         ok: true,
         images: "unchanged",
-        imageUrl: null,
+        imageUrl: "unchanged",
       }
     );
   });

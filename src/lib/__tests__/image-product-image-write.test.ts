@@ -29,8 +29,8 @@ function plan(input: Omit<ProductImageWriteInput, "inScope"> & { inScope?: Reado
   return planProductImageWrite({ inScope: OWN, ...input });
 }
 
-/** Plan of a write without a photo list: photos as stored, `imageUrl` the value to store. */
-function photosAsStored(imageUrl: string | null) {
+/** Plan of a write without a photo list: `imageUrl` the value to store, or "unchanged". */
+function photosAsStored(imageUrl: string | null | "unchanged") {
   return { ok: true, images: "unchanged", imageUrl };
 }
 
@@ -92,13 +92,9 @@ describe("miroir : images fournies et vides", () => {
   });
 
   it("clearImageUrl → null", () => {
-    expect(
-      plan({ stored: { imageUrl: UNSPLASH, images: [] }, images: [], clearImageUrl: true })
-    ).toEqual({
-      ok: true,
-      images: [],
-      imageUrl: null,
-    });
+    const stored = { imageUrl: UNSPLASH, images: [] };
+    const result = plan({ stored, images: [], clearImageUrl: true });
+    expect(result).toEqual({ ok: true, images: [], imageUrl: null });
   });
 
   it("retirer l'image reflétée → null", () => {
@@ -122,8 +118,10 @@ describe("miroir : images fournies et vides", () => {
 });
 
 describe("miroir : images non fournies", () => {
-  it("rien de fourni → photos et imageUrl telles qu'enregistrées", () => {
-    expect(plan({ stored: { imageUrl: UNSPLASH, images: [] } })).toEqual(photosAsStored(UNSPLASH));
+  it("rien de fourni → en modification rien à écrire, à la création imageUrl null", () => {
+    const unchanged = photosAsStored("unchanged");
+    expect(plan({ stored: { imageUrl: UNSPLASH, images: [] } })).toEqual(unchanged);
+    expect(plan({ stored: { imageUrl: A, images: [{ url: A }] } })).toEqual(unchanged);
     expect(plan({ stored: null })).toEqual(photosAsStored(null));
   });
 

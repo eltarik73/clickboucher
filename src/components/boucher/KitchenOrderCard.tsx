@@ -79,10 +79,8 @@ export default function KitchenOrderCard({
   const [showDenyForm, setShowDenyForm] = useState(false);
   const [denyReason, setDenyReason] = useState("");
 
-  const clientName = order.user
-    ? formatClientName(order.user.firstName, order.user.lastName)
-    : "Client";
-  const isFidele = order.user?.loyaltyBadge === "FIDELE";
+  const clientName = formatClientName(order.user.firstName, order.user.lastName);
+  const isFidele = order.user.loyaltyBadge === "FIDELE";
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
   const customerNum = formatCustomerNumber(order.customerNumber);
@@ -373,7 +371,7 @@ export default function KitchenOrderCard({
               </span>
             )}
             {customerNum && <span className="text-xs text-gray-500">Client {customerNum}</span>}
-            {order.user?.phone && (
+            {order.user.phone && (
               <a
                 href={`tel:${order.user.phone}`}
                 className="flex items-center gap-1 text-xs text-blue-400 transition-colors hover:text-blue-300"

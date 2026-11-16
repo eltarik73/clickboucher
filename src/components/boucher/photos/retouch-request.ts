@@ -1,8 +1,8 @@
 // src/components/boucher/photos/retouch-request.ts — Demande de retouche depuis le navigateur.
 //
 // La photo source n'est jamais envoyée à la route de retouche : elle passe d'abord par
-// POST /api/uploads/image (useImageUpload("RETOUCH_SOURCE") : réduite à 4 Mo au plus, vérifiée et
-// réencodée par le serveur), puis la retouche reçoit son URL. La réponse est lue comme celle d'un
+// POST /api/uploads/image (uploadImage(…, "RETOUCH_SOURCE"), upload-transport.ts : réduite à 4 Mo au
+// plus, vérifiée et réencodée par le serveur), puis la retouche reçoit son URL. La réponse est lue comme celle d'un
 // envoi (interpretApiResponse) : un 504 text/plain de Vercel donne un message français.
 import { z } from "zod";
 import { classifyImageUrl } from "@/lib/images/durable-url";
@@ -46,7 +46,10 @@ export function interpretRetouchResponse(
 }
 
 /** Envoie la demande de retouche. La promesse ne rejette jamais : toute issue est affichable. */
-export async function requestRetouch(request: RetouchRequest, origin: string): Promise<RetouchOutcome> {
+export async function requestRetouch(
+  request: RetouchRequest,
+  origin: string
+): Promise<RetouchOutcome> {
   const body = JSON.stringify({
     // La route attend une URL absolue : celle du magasin local (/local-images/...) est relative.
     imageUrl: new URL(request.sourceUrl, origin).href,
@@ -62,7 +65,11 @@ export async function requestRetouch(request: RetouchRequest, origin: string): P
       body,
     });
     const bodyText = await response.text();
-    return interpretRetouchResponse(response.status, response.headers.get("content-type"), bodyText);
+    return interpretRetouchResponse(
+      response.status,
+      response.headers.get("content-type"),
+      bodyText
+    );
   } catch {
     // fetch ou la lecture du corps n'aboutit pas : connexion coupée.
     return { ok: false, messageFr: UPLOAD_MESSAGES_FR.NETWORK };

@@ -815,7 +815,9 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 - CSP configurée pour Clerk + Cloudflare + Anthropic
 - `sessionClaims` Clerk supprimé — utiliser DB lookup pour les rôles
 - Route `/boutique/[slug]` utilise le **slug** (ex: `/boutique/boucherie-tarik`) ; son cache Redis passe par
-  `src/lib/cache/shop-cache.ts` seul (clé `shop:v2:<slug>`, 60 s, dates relues en `Date`, entrée illisible = absente)
+  `src/lib/cache/shop-cache.ts` seul (clé `shop:v3:<slug>`, 60 s), la liste publique des produits par
+  `src/lib/cache/products-cache.ts` (`products:shop:v2:<shopId>`), dates relues en `Date` par
+  `src/lib/cache/codec.ts`, entrée illisible = absente
 - `git add prisma/schema.prisma` obligatoire à chaque modif du schema
 - **Homepage** = `/` (PAS `/decouvrir`) — `/decouvrir` redirige 301 vers `/`
 - **Pas de livraison** — toujours "frais offerts", jamais "livraison"
