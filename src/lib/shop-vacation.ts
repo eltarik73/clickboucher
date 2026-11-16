@@ -1,5 +1,4 @@
-// src/lib/shop-vacation.ts — the owner's vacation (Deliveroo « vacation mode »), re-exported by
-// src/lib/shop-status.ts.
+// src/lib/shop-vacation.ts — the owner's vacation (Deliveroo « vacation mode »).
 //
 // Only a listed shop goes on vacation, and it is unlisted meanwhile: vacationMode = true therefore
 // means « was listed », and ending a vacation lists the shop again. Every write is conditional, so

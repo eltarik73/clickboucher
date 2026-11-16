@@ -146,7 +146,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     // Photos replaced inside the single product.update below: Prisma runs its nested writes in one
     // transaction, so a failed update keeps the previous photos.
-    if (photoPlan.images !== "unchanged") {
+    if (photoPlan.images !== undefined) {
       updateData.images = { deleteMany: {}, create: photoPlan.images };
     }
 

@@ -1,13 +1,12 @@
 // src/lib/services/orders/shop-summary.ts — the figures of the butcher's dashboard home, computed by
 // the database for one shop: today's orders and takings (today = the Paris calendar day), and the
 // five newest orders. Never derived from a truncated list of orders.
+import type { OrderStatus } from "@prisma/client";
+import { COLLECTED_ORDER_STATUSES } from "@/lib/order-state-machine";
 import prisma from "@/lib/prisma";
 import { getParisWallClock, parisWallClockToUtc } from "@/lib/paris-time";
 import { settleDueAdjustmentsWithin } from "@/lib/services/orders/adjustment-answers";
 import { orderPersonColumns, withOrderPersonName } from "@/lib/services/orders/order-person";
-
-/** Orders whose goods were handed over: the takings of the day. */
-const COLLECTED_STATUSES = ["PICKED_UP", "COMPLETED"] as const;
 
 export const RECENT_ORDERS_LIMIT = 5;
 
@@ -21,7 +20,7 @@ export interface ShopDaySummary {
   recent: {
     id: string;
     orderNumber: string;
-    status: string;
+    status: OrderStatus;
     totalCents: number;
     createdAt: Date;
     expiresAt: Date | null;
@@ -43,7 +42,8 @@ export async function getShopDaySummary(shopId: string, now: Date): Promise<Shop
   const [ordersToday, revenue, recent] = await Promise.all([
     prisma.order.count({ where: { shopId, createdAt: createdToday } }),
     prisma.order.aggregate({
-      where: { shopId, createdAt: createdToday, status: { in: [...COLLECTED_STATUSES] } },
+      // The takings of the day: orders whose goods were handed over.
+      where: { shopId, createdAt: createdToday, status: { in: [...COLLECTED_ORDER_STATUSES] } },
       _sum: { totalCents: true },
     }),
     prisma.order.findMany({

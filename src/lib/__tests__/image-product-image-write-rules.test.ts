@@ -53,20 +53,12 @@ describe("produit à photos : la photo principale fait foi pour imageUrl", () =>
   });
 
   it("l'imageUrl enregistrée renvoyée telle quelle → photos et imageUrl inchangées", () => {
-    expect(plan({ stored: withPhotos, imageUrl: A })).toEqual({
-      ok: true,
-      images: "unchanged",
-      imageUrl: "unchanged",
-    });
+    expect(plan({ stored: withPhotos, imageUrl: A })).toEqual({ ok: true });
   });
 
   it("clearImageUrl quand imageUrl est déjà null → photos et imageUrl inchangées", () => {
     expect(plan({ stored: { imageUrl: null, images: [{ url: A }] }, clearImageUrl: true })).toEqual(
-      {
-        ok: true,
-        images: "unchanged",
-        imageUrl: "unchanged",
-      }
+      { ok: true }
     );
   });
 

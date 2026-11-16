@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
         packContent: data.packContent,
         packWeight: data.packWeight,
         packOldPriceCents: data.packOldPriceCents,
-        images: photoPlan.images === "unchanged" ? undefined : { create: photoPlan.images },
+        images: photoPlan.images === undefined ? undefined : { create: photoPlan.images },
         ...(data.labels?.length && {
           labels: {
             create: data.labels.map((l) => ({

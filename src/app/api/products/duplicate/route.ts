@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
                 })),
               }
             : undefined,
-        images: photoPlan.images === "unchanged" ? undefined : { create: photoPlan.images },
+        images: photoPlan.images === undefined ? undefined : { create: photoPlan.images },
       },
       include: {
         categories: true,

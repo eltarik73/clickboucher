@@ -19,11 +19,11 @@
 // its primary photo decides: a requested change of imageUrl (clearImageUrl, or an imageUrl other than
 // the stored one) is refused with PRIMARY_PHOTO_DECIDES_FR, the stored value re-sent is a no-op;
 // images not given otherwise (create, or a product without stored images) → null if clearImageUrl, the
-// given imageUrl if defined, otherwise unchanged. images is "unchanged" when no list is given; imageUrl
-// is "unchanged" when the request leaves the photos of an existing row as they are (no photo field, or
+// given imageUrl if defined, otherwise unchanged. images is undefined when no list is given; imageUrl
+// is undefined when the request leaves the photos of an existing row as they are (no photo field, or
 // the stored value re-sent on a product with photos), so that such a write never stores a value read
-// before it. Otherwise the plan holds final values: never "unchanged" on a create (stored null) nor
-// when a list is given, which then writes imageUrl together with the photos it mirrors.
+// before it. Otherwise the plan holds final values: always on a create (stored null), and when a list
+// is given, which then writes imageUrl together with the photos it mirrors.
 //
 // Précisions d'application : « together with imageUrl » = imageUrl est une chaîne (null n'est pas
 // une contradiction) ; une imageUrl fournie est contrôlée par la règle d'écriture même quand le
@@ -67,13 +67,10 @@ export interface ProductImageWriteInput {
   inScope: ReadonlySet<string>;
 }
 
+/** An undefined field keeps its stored value (Prisma ignores it): routes write the plan as is. */
 export type ProductImageWritePlan =
   | { ok: false; messageFr: string }
-  | {
-      ok: true;
-      imageUrl: string | null | "unchanged";
-      images: NormalizedProductImage[] | "unchanged";
-    };
+  | { ok: true; imageUrl?: string | null; images?: NormalizedProductImage[] };
 
 interface NormalizedImages {
   images: NormalizedProductImage[];
@@ -122,23 +119,19 @@ function mirrorWhenEmptied(
   return stored.images.some((image) => image.url === stored.imageUrl) ? null : stored.imageUrl;
 }
 
-type MirrorDecision =
-  | { ok: false; messageFr: string }
-  | { ok: true; imageUrl: string | null | "unchanged" };
-
-/** imageUrl when no photo list is given. */
+/** The plan when no photo list is given. */
 function mirrorWithoutImages(
   stored: StoredProductPhotos | null,
   imageUrl: string | null | undefined,
   clearImageUrl: boolean
-): MirrorDecision {
+): ProductImageWritePlan {
   const requested = clearImageUrl ? null : imageUrl;
   if (stored === null) return { ok: true, imageUrl: requested ?? null };
-  if (requested === undefined) return { ok: true, imageUrl: "unchanged" };
+  if (requested === undefined) return { ok: true };
   if (stored.images.length === 0) return { ok: true, imageUrl: requested };
   // A product with photos keeps imageUrl as the mirror of its primary photo.
   return requested === stored.imageUrl
-    ? { ok: true, imageUrl: "unchanged" }
+    ? { ok: true }
     : { ok: false, messageFr: PRIMARY_PHOTO_DECIDES_FR };
 }
 
@@ -160,11 +153,7 @@ export function planProductImageWrite(input: ProductImageWriteInput): ProductIma
     return { ok: false, messageFr: IMAGE_URL_REFUSED_FR };
   }
 
-  if (normalized === undefined) {
-    const decision = mirrorWithoutImages(stored, imageUrl, clearImageUrl);
-    if (!decision.ok) return decision;
-    return { ok: true, imageUrl: decision.imageUrl, images: "unchanged" };
-  }
+  if (normalized === undefined) return mirrorWithoutImages(stored, imageUrl, clearImageUrl);
   return {
     ok: true,
     imageUrl: normalized.primaryUrl ?? mirrorWhenEmptied(stored, imageUrl, clearImageUrl),
