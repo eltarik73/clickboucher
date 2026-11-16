@@ -1,9 +1,10 @@
 // @vitest-environment node
 //
 // Whether a new price set by the butcher applies at once or needs the customer's answer. The
-// tolerance is the rate of the estimate of the lines still delivered, up to the cap; the increase
-// is the sum over those lines of what each costs above its own estimate. Every expected amount is
-// computed by hand in the comment or the title beside it.
+// tolerance is the rate of what the lines still deliver of their estimate (each line at most at its
+// estimate), up to the cap; the increase is the sum over those lines of what each costs above its
+// own estimate; one more piece or tray is never a weighing. Every expected amount is computed by
+// hand in the comment or the title beside it.
 import { describe, expect, it } from "vitest";
 import {
   WEIGH_TOLERANCE_TERMS,
@@ -16,13 +17,19 @@ const { STANDARD, EXTENDED } = WEIGH_TOLERANCE_TERMS;
 
 type Line = AdjustmentDecisionInput["lines"][number];
 
-/** A line after the change: its estimate, its new total, its total before (default: estimate). */
+/** A weighed line after the change: its estimate, its new total, its total before (default: estimate). */
 function line(estimatedPriceCents: number | null, totalCents: number, previous?: number): Line {
   return {
     estimatedPriceCents,
     totalCents,
     previousTotalCents: previous ?? estimatedPriceCents ?? totalCents,
+    weighed: true,
   };
+}
+
+/** A line sold by the piece or the tray, like `line`. */
+function counted(estimatedPriceCents: number, totalCents: number): Line {
+  return { ...line(estimatedPriceCents, totalCents), weighed: false };
 }
 
 /** A weighing on an order with the STANDARD tolerance and no discount. */
@@ -95,9 +102,9 @@ const TRIPES = 451;
 describe("decideAdjustment", () => {
   it.each<[string, AdjustmentDecisionInput, AdjustmentDecision]>([
     [
-      "a decrease applies at once",
+      "a decrease applies at once, the lighter line counting at its new total",
       weighing(4000, 3800, [line(4000, 3800)]),
-      apply("DECREASE", 200, 0, 4000),
+      apply("DECREASE", 190, 0, 3800), // 5 % x 38,00 €
     ],
     [
       "an unchanged total applies at once",
@@ -112,17 +119,22 @@ describe("decideAdjustment", () => {
     [
       "a lighter line gives no room to a heavier one: -1,00 € and +4,00 € on 60,00 € is asked",
       weighing(6000, 6300, [line(4000, 3900), line(2000, 2400)]),
-      ask("BEYOND_TOLERANCE", 300, 400, 6000), // 0 + 400 > 5 % x 60,00 €
+      ask("BEYOND_TOLERANCE", 295, 400, 5900), // 0 + 400 > 5 % x (39,00 € + 20,00 €)
     ],
     [
       "the heavier line alone is measured: -1,00 € and +0,50 € on 25,00 € applies",
       weighing(2500, 2450, [line(2000, 1900), line(500, 550)]),
-      apply("WITHIN_TOLERANCE", 125, 50, 2500), // 0 + 50 <= 5 % x 25,00 € = 1,25 €
+      apply("WITHIN_TOLERANCE", 120, 50, 2400), // 0 + 50 <= 5 % x (19,00 € + 5,00 €) = 1,20 €
     ],
     [
       "a line weighed to 1 g gives no room: côte 23,96 € -> 0,02 €, tripes 4,51 € -> 28,41 €",
       weighing(COTE + TRIPES, 2843, [line(COTE, 2), line(TRIPES, 2841)]),
-      ask("BEYOND_TOLERANCE", 142, 2390, 2847), // 5 % x 28,47 € = 1,4235 € -> 142
+      ask("BEYOND_TOLERANCE", 22, 2390, 453), // 5 % x (0,02 € + 4,51 €) = 0,2265 € -> 22
+    ],
+    [
+      "a line weighed to 1 g counts its 2 cents in the base: tripes 4,51 € -> 5,93 € is asked",
+      weighing(COTE + TRIPES, 595, [line(COTE, 2), line(TRIPES, 593)]),
+      ask("BEYOND_TOLERANCE", 22, 142, 453), // as at 0 g: 5 % x 4,51 € is 22 too
     ],
     [
       "zeroed and inflated in one change: asked on the line still delivered, though the total drops",
@@ -157,7 +169,22 @@ describe("decideAdjustment", () => {
     [
       "a decrease raising no line applies, even beyond the tolerance after an accepted increase",
       weighing(2300, 2200, [line(1000, 1300, 1300), line(1000, 900, 1000)]),
-      apply("DECREASE", 100, 300, 2000),
+      apply("DECREASE", 95, 300, 1900), // base 10,00 € + 9,00 €
+    ],
+    [
+      "one more tray is another article: asked though the tolerance would cover it",
+      { ...weighing(12527, 13074, [line(11980, 11980), counted(547, 1094)]), tolerance: EXTENDED },
+      ask("NOT_WEIGHING", 1252, 547, 12527), // 10 % x 125,27 € = 12,52 € > 5,47 €
+    ],
+    [
+      "one tray less applies at once",
+      weighing(1751, 1101, [line(TRIPES, TRIPES), counted(1300, 650)]),
+      apply("DECREASE", 55, 0, 1101), // 5 % x (4,51 € + 6,50 €)
+    ],
+    [
+      "one tray less and a heavier weighing: the weighing alone is measured",
+      weighing(1751, 1123, [line(TRIPES, 473), counted(1300, 650)]),
+      apply("WITHIN_TOLERANCE", 55, 22, 1101),
     ],
     [
       "a PRICE increase of one cent is asked",
@@ -167,7 +194,7 @@ describe("decideAdjustment", () => {
     [
       "a new unit price raising a line is asked, though the total goes down",
       { ...weighing(2500, 2400, [line(2000, 1500), line(500, 900)]), adjustmentType: "PRICE" },
-      ask("NOT_WEIGHING", 125, 400, 2500),
+      ask("NOT_WEIGHING", 100, 400, 2000), // base 15,00 € + 5,00 €
     ],
     [
       "a MANUAL total one cent higher is asked",
@@ -177,7 +204,7 @@ describe("decideAdjustment", () => {
     [
       "a PRICE decrease applies at once",
       { ...weighing(4000, 3500, [line(4000, 3500)]), adjustmentType: "PRICE" },
-      apply("DECREASE", 200, 0, 4000),
+      apply("DECREASE", 175, 0, 3500),
     ],
     [
       "a MANUAL decrease applies at once",

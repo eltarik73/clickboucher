@@ -53,7 +53,7 @@ export async function readLines(tx: Tx, orderId: string) {
 /**
  * The order columns that follow its composition, from the lines the customer still gets:
  * Order.totalCents (their totals minus the stored discount) and, on an order with a frozen weighing
- * tolerance, the estimated total it applies to, frozen again from their estimates (estimatedTotalOf)
+ * tolerance, the estimated total it applies to, frozen again on those lines (estimatedTotalOf)
  * while the rate and the cap stay as the customer chose them. A weighing increase already applied
  * stays counted: a line's estimate is not its weighed total.
  */

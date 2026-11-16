@@ -493,13 +493,15 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   par un membre est enregistré dans la transaction de création. Invité : choix obligatoire à chaque commande, jamais lu
   ni écrit sur `users`. La commande fige `weighToleranceRateBps`, `weighToleranceCapCents` et `estimatedTotalCents`
   (= `totalCents` du devis) ; NULL (commande antérieure) = aucune marge : toute hausse demande l'accord du client.
-- **Base de la marge = lignes encore livrées** : `estimatedTotalOf` (`src/lib/pricing/tolerance.ts`), seul calcul de
-  cette base : estimations (`estimatedPriceCents`) des lignes disponibles de total non nul, moins la remise stockée ;
-  NULL si une ligne n'a pas d'estimation (aucune marge). Une ligne en rupture, retirée ou repesée à 0 la réduit de la
-  même façon. `estimatedTotalCents` est figé à nouveau par cette fonction quand les lignes livrées changent : ajustement
-  appliqué (`settleAdjustmentInTx`, commande à marge figée) et nouvelle composition (rupture signalée, article retiré
-  ou remplacé, `src/lib/services/orders/commands/unavailable-lines.ts` ; une ligne remplacée est estimée à son nouveau
-  total) ; taux et plafond ne changent jamais. Le ticket et le suivi lisent la colonne (`frozenAllowanceCents`).
+- **Base de la marge = ce que les lignes livrent encore** : `estimatedTotalOf` (`src/lib/pricing/tolerance.ts`), seul
+  calcul de cette base : somme sur les lignes disponibles de min(`estimatedPriceCents`, total de la ligne), moins la
+  remise stockée ; NULL si une ligne n'a pas d'estimation (aucune marge). Elle suit le poids sans saut : une ligne en
+  rupture, retirée ou repesée à 0 n'y compte rien, à 1 g ses quelques centimes, plus légère son total, plus lourde son
+  estimation (une hausse n'élargit jamais la marge). `estimatedTotalCents` est figé à nouveau par cette fonction quand
+  les lignes livrées changent : ajustement appliqué (`settleAdjustmentInTx`, commande à marge figée) et nouvelle
+  composition (rupture signalée, article retiré ou remplacé, `src/lib/services/orders/commands/unavailable-lines.ts` ;
+  une ligne remplacée est estimée à son nouveau total) ; taux et plafond ne changent jamais. Le ticket et le suivi
+  lisent la colonne (`frozenAllowanceCents`).
 - **Règle, une seule autorité** : `decideAdjustment` (`src/lib/pricing/tolerance.ts`), appelée par le seul planificateur
   `planAdjustment` (`src/lib/pricing/adjustment.ts` : lignes repesées ou à nouveau prix unitaire, nouveau total,
   décision, phrases de refus `ADJUSTMENT_REFUSALS`), le même pour le serveur
@@ -508,9 +510,11 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   n'augmente aucune ligne : appliquée aussitôt (`AUTO_APPROVED`). Un changement qui augmente une ligne est une hausse,
   même si le total baisse. Hausse de pesée (`WEIGHT`) : appliquée sans demander tant que la hausse cumulée reste dans la
   marge ; elle se mesure **ligne par ligne**, somme sur les lignes livrées de max(0, total de la ligne −
-  `estimatedPriceCents`) : une ligne pesée plus légère, à 1 g ou à 0, ne donne jamais de place à une autre. Sinon
-  (au-delà de la marge, `PRICE` ou `MANUAL`, commande sans marge, ligne sans estimation) : ajustement `PENDING`, le
-  client doit répondre explicitement.
+  `estimatedPriceCents`) : une ligne pesée plus légère, à 1 g ou à 0, ne donne jamais de place à une autre. La marge
+  ne couvre que la pesée : une pièce ou une barquette de plus est un autre article (ligne `PIECE` / `BARQUETTE` qui
+  augmente → `NOT_WEIGHING`, même dans la marge ; en retirer une reste une baisse). Sinon (au-delà de la marge,
+  `PRICE` ou `MANUAL`, commande sans marge, ligne sans estimation) : ajustement `PENDING`, le client doit répondre
+  explicitement.
 - **Plafond de la plateforme** : jamais plus de `pa_max_increase_pct` (50 % par défaut, entier de 1 à 100) au-dessus du
   total actuel, vérifié par le serveur seul (`adjust-price.ts`) : le navigateur n'en vérifie aucun, la fenêtre du
   boucher affiche le refus du serveur. Seul lecteur : `getMaxIncreasePct` (`src/lib/price-adjustment.ts`), qui

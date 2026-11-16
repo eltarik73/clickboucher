@@ -105,22 +105,22 @@ describe("repriceLine", () => {
 
 describe("availableLinesAfter", () => {
   const LINES: MeasuredLine[] = [
-    { id: "a", available: true, totalCents: 2000, estimatedPriceCents: 2000 },
-    { id: "b", available: false, totalCents: 2000, estimatedPriceCents: 2000 },
-    { id: "c", available: true, totalCents: 1000, estimatedPriceCents: null },
+    { id: "a", available: true, unit: "TRANCHE", totalCents: 2000, estimatedPriceCents: 2000 },
+    { id: "b", available: false, unit: "KG", totalCents: 2000, estimatedPriceCents: 2000 },
+    { id: "c", available: true, unit: "BARQUETTE", totalCents: 1000, estimatedPriceCents: null },
   ];
 
-  it("keeps the available lines, a changed one at its new total and its total before", () => {
+  it("keeps the available lines, a changed one at its new total, its total before and its unit", () => {
     expect(availableLinesAfter(LINES, [{ orderItemId: "a", newTotalCents: 2150 }])).toEqual([
-      { estimatedPriceCents: 2000, totalCents: 2150, previousTotalCents: 2000 },
-      { estimatedPriceCents: null, totalCents: 1000, previousTotalCents: 1000 },
+      { estimatedPriceCents: 2000, totalCents: 2150, previousTotalCents: 2000, weighed: true },
+      { estimatedPriceCents: null, totalCents: 1000, previousTotalCents: 1000, weighed: false },
     ]);
   });
 
-  it("keeps a line weighed at 0, at total 0", () => {
+  it("keeps a line counted at 0, at total 0", () => {
     expect(availableLinesAfter(LINES, [{ orderItemId: "c", newTotalCents: 0 }])).toEqual([
-      { estimatedPriceCents: 2000, totalCents: 2000, previousTotalCents: 2000 },
-      { estimatedPriceCents: null, totalCents: 0, previousTotalCents: 1000 },
+      { estimatedPriceCents: 2000, totalCents: 2000, previousTotalCents: 2000, weighed: true },
+      { estimatedPriceCents: null, totalCents: 0, previousTotalCents: 1000, weighed: false },
     ]);
   });
 });

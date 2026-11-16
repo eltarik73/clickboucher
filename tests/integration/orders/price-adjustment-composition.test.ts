@@ -3,8 +3,8 @@
 // nouvelle composition (article en rupture retiré ou remplacé), l'estimation de chaque ligne
 // remplacée et le total estimé de la commande sont figés à nouveau : la marge devient
 // min(taux x nouveau total estimé, plafond), et un remplacement moins cher ne donne aucune marge.
-// Une ligne pesée plus légère ne donne aucune marge aux autres ; repesée à 0, elle sort de la base
-// de la marge comme une ligne en rupture, et y revient pesée à nouveau.
+// Une ligne pesée plus légère ne donne aucune marge aux autres : elle ne compte dans la base de la
+// marge que ce qu'elle coûte encore (à 0, rien, comme une ligne en rupture ; à 1 g, 2 centimes).
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
@@ -200,31 +200,29 @@ describe("a lighter line gives no room to the others", () => {
     return { world, order, coteLine, tripesLine };
   }
 
-  it("côte weighed at 1 g and tripes at 3,15 kg in one request asks, though the total goes down", async () => {
+  // Côte à 1 g : floor((2396 x 1 + 500) / 1000) = 2 c, compté 2 c dans la base de la marge :
+  // 2 + 451 = 4,53 €, marge 5 % = 0,22 €. Tripes : floor((902 x grammes + 500) / 1000).
+  it.each([
+    { tripes: 3150, newTotal: 2843, increase: 2390 }, // 2841 - 451 ; le total baisse
+    { tripes: 657, newTotal: 595, increase: 142 }, // 593 - 451
+  ])("côte weighed at 1 g and tripes at $tripes g in one request asks", async (row) => {
     const { world, order, coteLine, tripesLine } = await coteAndTripes();
 
-    // Côte : floor((2396 x 1 + 500) / 1000) = 2 ; tripes : floor((902 x 3150 + 500) / 1000) = 2841.
-    // Hausse ligne par ligne : 2841 - 451 = 23,90 €, au-delà de la marge de 1,42 €.
     const result = await weighGrams(order.id, butcherOf(world), {
       [coteLine.id]: 1,
-      [tripesLine.id]: 3150,
+      [tripesLine.id]: row.tripes,
     });
 
+    const asked = { reason: "BEYOND_TOLERANCE", toleranceCents: 22, estimatedTotalCents: 453 };
     expect(result).toMatchObject({
       ok: true,
-      data: {
-        applied: false,
-        decision: {
-          decision: "ASK",
-          reason: "BEYOND_TOLERANCE",
-          toleranceCents: 142,
-          cumulatedIncreaseCents: 2390,
-          estimatedTotalCents: 2847,
-        },
-      },
+      data: { applied: false, decision: { ...asked, cumulatedIncreaseCents: row.increase } },
     });
     expect((await reload(order.id)).totalCents).toBe(2847);
-    expect(await adjustmentOf(order.id)).toMatchObject({ status: "PENDING", newTotal: 2843 });
+    expect(await adjustmentOf(order.id)).toMatchObject({
+      status: "PENDING",
+      newTotal: row.newTotal,
+    });
   });
 
   it("côte weighed at 0 leaves the tolerance of the tripes alone; the window, the ticket and the server agree", async () => {
@@ -263,13 +261,13 @@ describe("a lighter line gives no room to the others", () => {
     });
     expect((await reload(order.id)).totalCents).toBe(473);
 
-    // Le client refuse ; 50 g de côte (1,20 €) la font revenir dans la base de la marge.
+    // Le client refuse ; 50 g de côte (1,20 €) comptent dans la base : 5 % de 5,71 € = 0,28 €.
     await rejectAdjustment(customerAnswer(order.id, world.customer.id, new Date()));
     expect(await weighGrams(order.id, butcher, { [coteLine.id]: 50 })).toMatchObject({
       ok: true,
-      data: { applied: true, decision: { reason: "WITHIN_TOLERANCE", toleranceCents: 142 } },
+      data: { applied: true, decision: { reason: "WITHIN_TOLERANCE", toleranceCents: 28 } },
     });
-    expect(await reload(order.id)).toMatchObject({ totalCents: 593, estimatedTotalCents: 2847 });
+    expect(await reload(order.id)).toMatchObject({ totalCents: 593, estimatedTotalCents: 571 });
   });
 
   it("a decrease after an increase the customer accepted still applies at once", async () => {

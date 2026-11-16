@@ -1,9 +1,9 @@
 // @vitest-environment node
 //
-// The customer's weighing tolerance: what each choice allows, its base (the estimate of the lines
-// still delivered), the terms frozen on an order and how they are written. Whether a new price
-// applies is in pricing-tolerance-decision.test.ts. Every expected amount is computed by hand in
-// the comment beside it. Purity (siblings only, no clock) is guarded for every pricing module by
+// The customer's weighing tolerance: what each choice allows, its base (what the lines still
+// deliver of their estimate), the terms frozen on an order and how they are written. Whether a new
+// price applies is in pricing-tolerance-decision.test.ts. Every expected amount is computed by hand
+// in the comment beside it. Purity (siblings only, no clock) is guarded for every pricing module by
 // pricing-line.test.ts.
 import { describe, expect, it } from "vitest";
 import {
@@ -71,6 +71,8 @@ describe("estimatedTotalOf", () => {
   it.each<[string, EstimatedLine[], number, number | null]>([
     ["sums the estimates minus the discount", [line(1000, 1000), line(800, 724)], 100, 1624],
     ["leaves out a line weighed at 0", [line(0, 2396), line(474, 451)], 0, 451],
+    ["counts a line weighed at 1 g at its 2 cents", [line(2, 2396), line(474, 451)], 0, 453],
+    ["counts a lighter line at its total", [line(1900, 2000), line(500, 500)], 0, 2400],
     ["never takes the discount below 0", [line(300, 300)], 500, 0],
     ["is 0 without line", [], 0, 0],
     ["has no total when a line has no estimate", [line(1000, 1000), line(1000, null)], 0, null],

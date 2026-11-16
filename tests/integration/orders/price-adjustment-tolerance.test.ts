@@ -1,9 +1,9 @@
 // @vitest-environment node
 // Marge de pesée sur PostgreSQL réel : une baisse s'applique toujours ; une hausse de pesée ne
 // s'applique sans le client que tant que la hausse cumulée, ligne par ligne, reste dans
-// min(taux x total estimé des lignes encore livrées, plafond) ; au-delà, ou pour un prix ou un
-// total saisi à la main, ou sur une commande sans marge figée, le client doit répondre. Le plafond
-// de sécurité de la plateforme borne tout ajustement.
+// min(taux x total estimé des lignes encore livrées, plafond) ; au-delà, ou pour une pièce ou une
+// barquette de plus, un prix ou un total saisi à la main, ou sur une commande sans marge figée, le
+// client doit répondre. Le plafond de sécurité de la plateforme borne tout ajustement.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
@@ -198,47 +198,52 @@ describe.each([
 });
 
 describe("increases that always need the customer's answer", () => {
-  it("a new unit price or a new total typed by the butcher asks for any increase; their decreases apply", async () => {
+  const count = (trays: number) => ({ newQuantity: trays });
+  const price = (cents: number) => ({ newPriceCents: cents });
+  // Commande EXTENDED : 20,00 € de viande au gramme et `trays` barquettes à 1,50 € ; la marge
+  // (10 %, plus de 2,00 €) dépasse le prix d'une barquette. Une barquette de plus est un autre
+  // article, pas une pesée : comme un prix unitaire ou un total saisi, toute hausse se demande.
+  it.each([
+    ["one more tray", 1, "WEIGHT", count(2), false, 2150],
+    ["one tray less", 2, "WEIGHT", count(1), true, 2150],
+    ["a tray one cent dearer", 1, "PRICE", price(151), false, 2150],
+    ["a tray one cent cheaper", 1, "PRICE", price(149), true, 2149],
+    ["a total typed one cent higher", 1, "MANUAL", 2151, false, 2150],
+    ["a total typed one cent lower", 1, "MANUAL", 2149, true, 2149],
+  ] as const)("%s", async (_label, trays, adjustmentType, change, applied, total) => {
     const world = await createWorld();
-    const tray = await createTestProduct(world.shop.id, { unit: "BARQUETTE", priceCents: 1500 });
-    const orders = await Promise.all(
-      Array.from({ length: 4 }, () =>
-        createOrder(world, {
-          status: "ACCEPTED",
-          items: [{ productId: tray.id, estimatedPriceCents: 1500 }],
-          overrides: {
-            weighToleranceRateBps: WEIGH_TOLERANCE_TERMS.EXTENDED.rateBps,
-            weighToleranceCapCents: WEIGH_TOLERANCE_TERMS.EXTENDED.capCents,
-            estimatedTotalCents: 1500,
-          },
-        })
-      )
-    );
-    const reprice = (index: number, newPriceCents: number) =>
-      adjustOrderPrice(orders[index].id, butcherOf(world), {
-        adjustmentType: "PRICE",
-        items: [{ orderItemId: orders[index].items[0].id, newPriceCents }],
-      });
-    const retotal = (index: number, newTotalCents: number) =>
-      adjustOrderPrice(orders[index].id, butcherOf(world), {
-        adjustmentType: "MANUAL",
-        newTotalCents,
-      });
+    const meat = await createGramProduct(world);
+    const tray = await createTestProduct(world.shop.id, { unit: "BARQUETTE", priceCents: 150 });
+    const order = await createOrder(world, {
+      status: "ACCEPTED",
+      items: [
+        { productId: meat.id, quantity: 2, totalCents: 2000, estimatedPriceCents: 2000 },
+        {
+          productId: tray.id,
+          quantity: trays,
+          totalCents: 150 * trays,
+          estimatedPriceCents: 150 * trays,
+        },
+      ],
+      overrides: {
+        weighToleranceRateBps: WEIGH_TOLERANCE_TERMS.EXTENDED.rateBps,
+        weighToleranceCapCents: WEIGH_TOLERANCE_TERMS.EXTENDED.capCents,
+        estimatedTotalCents: 2000 + trays * 150,
+      },
+    });
+    const orderItemId = order.items[1].id;
 
-    expect(await reprice(0, 1501)).toMatchObject({
-      ok: true,
-      data: { applied: false, decision: { reason: "NOT_WEIGHING" } },
-    });
-    expect(await reprice(1, 1499)).toMatchObject({ ok: true, data: { applied: true } });
-    expect(await retotal(2, 1501)).toMatchObject({
-      ok: true,
-      data: { applied: false, decision: { reason: "NOT_WEIGHING" } },
-    });
-    expect(await retotal(3, 1499)).toMatchObject({ ok: true, data: { applied: true } });
-    const totals = await Promise.all(
-      orders.map(async (order) => (await reload(order.id)).totalCents)
+    const result = await adjustOrderPrice(
+      order.id,
+      butcherOf(world),
+      typeof change === "number"
+        ? { adjustmentType, newTotalCents: change }
+        : { adjustmentType, items: [{ orderItemId, ...change }] }
     );
-    expect(totals).toEqual([1500, 1499, 1500, 1499]);
+
+    const reason = applied ? "DECREASE" : "NOT_WEIGHING";
+    expect(result).toMatchObject({ ok: true, data: { applied, decision: { reason } } });
+    expect((await reload(order.id)).totalCents).toBe(total);
   });
 
   it("an order without a frozen tolerance: every increase asks, a decrease applies", async () => {

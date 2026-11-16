@@ -136,7 +136,7 @@ export async function settleAdjustmentInTx(
   const lines = snapshotLines(pending);
   const items = await tx.orderItem.findMany({
     where: { orderId: order.id },
-    select: { id: true, available: true, totalCents: true, estimatedPriceCents: true },
+    select: { id: true, available: true, unit: true, totalCents: true, estimatedPriceCents: true },
   });
   const itemById = new Map(items.map((item) => [item.id, item]));
   const orderUnchanged =

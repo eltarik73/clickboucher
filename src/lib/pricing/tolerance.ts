@@ -3,11 +3,13 @@
 //
 // At checkout the server freezes on the order the rate and cap of the customer's choice. When the
 // butcher weighs again, two rules measure the change:
-// - the tolerance is the rate of the estimate of the lines still delivered (estimatedTotalOf), up
-//   to the cap: a line out of stock, removed or weighed at 0 shrinks it;
+// - the tolerance is the rate of what the lines still deliver of their estimate (estimatedTotalOf),
+//   up to the cap: a line out of stock or removed is not in it, a lighter one counts what it still
+//   costs, so a line weighed at 1 g shrinks it almost as much as one weighed at 0;
 // - the increase is measured line by line, the sum over those lines of what each costs above its
 //   own estimate: a lighter line never gives room to a heavier one, and small steps cannot add up
 //   past the tolerance.
+// The tolerance covers weighing only: one more piece or tray is another article, always asked.
 // A change that keeps or lowers the total and raises no line always applies.
 //
 // Pure and client-safe: no database, no clock, no I/O. Cents and basis points (500 = 5 %).
@@ -96,21 +98,23 @@ export interface EstimatedLine {
 }
 
 /**
- * The base of the tolerance: the estimates of the lines still delivered (total above 0) among the
- * available `lines`, minus the stored discount, summed like Order.totalCents (computeOrderTotals).
- * Null when one of `lines` has no estimate, which leaves the order without tolerance.
+ * The base of the tolerance: over the available `lines`, the estimate of each, or its total when
+ * it now costs less, minus the stored discount, summed like Order.totalCents (computeOrderTotals).
+ * It follows the weight without a jump: a line at 0 counts 0, at 1 g its few cents, never more than
+ * its estimate, so a heavier line never widens it. Null when one of `lines` has no estimate, which
+ * leaves the order without tolerance.
  */
 export function estimatedTotalOf(
   lines: ReadonlyArray<EstimatedLine>,
   discountCents: number
 ): number | null {
-  const deliveredEstimates: number[] = [];
+  const delivered: number[] = [];
   for (const line of lines) {
     if (line.estimatedPriceCents === null) return null;
-    if (line.totalCents > 0) deliveredEstimates.push(line.estimatedPriceCents);
+    delivered.push(Math.min(line.estimatedPriceCents, line.totalCents));
   }
   return computeOrderTotals({
-    lineTotalsCents: deliveredEstimates,
+    lineTotalsCents: delivered,
     discountCents,
     serviceFeeCents: 0,
   }).totalCents;
@@ -155,8 +159,8 @@ export interface AdjustmentDecisionInput {
   tolerance: WeighToleranceTerms | null;
   /** Discount stored on the order, subtracted from the base of the tolerance. */
   discountCents: number;
-  /** Available lines AFTER the change, with their total before it. */
-  lines: ReadonlyArray<EstimatedLine & { previousTotalCents: number }>;
+  /** Available lines AFTER the change, with their total before it and whether they sell by weight. */
+  lines: ReadonlyArray<EstimatedLine & { previousTotalCents: number; weighed: boolean }>;
 }
 
 export type AdjustmentDecision = (
@@ -191,10 +195,10 @@ function assertLineCents(line: AdjustmentDecisionInput["lines"][number]): void {
 /**
  * APPLY at once, or ASK for the customer's explicit yes. A change that keeps or lowers the total
  * without raising any line applies (DECREASE), even after an increase the customer accepted.
- * A change that raises a line applies without asking only for a weighing, on an order with a
- * frozen tolerance, when every delivered line has its estimate and the increase measured line by
- * line stays within the tolerance of the lines still delivered. Throws RangeError on amounts that
- * are not whole, non-negative cents.
+ * A change that raises a line applies without asking only for a weighing that raises no line sold
+ * by the piece or the tray, on an order with a frozen tolerance, when every delivered line has its
+ * estimate and the increase measured line by line stays within the tolerance of the lines still
+ * delivered. Throws RangeError on amounts that are not whole, non-negative cents.
  */
 export function decideAdjustment(input: AdjustmentDecisionInput): AdjustmentDecision {
   assertCents("currentTotalCents", input.currentTotalCents);
@@ -211,11 +215,11 @@ export function decideAdjustment(input: AdjustmentDecisionInput): AdjustmentDeci
     estimatedTotalCents: base,
   };
 
-  const raisesALine = lines.some((line) => line.totalCents > line.previousTotalCents);
-  if (input.newTotalCents <= input.currentTotalCents && !raisesALine) {
+  const raised = lines.filter((line) => line.totalCents > line.previousTotalCents);
+  if (input.newTotalCents <= input.currentTotalCents && raised.length === 0) {
     return { decision: "APPLY", reason: "DECREASE", ...measured };
   }
-  if (input.adjustmentType !== "WEIGHT") {
+  if (input.adjustmentType !== "WEIGHT" || raised.some((line) => !line.weighed)) {
     return { decision: "ASK", reason: "NOT_WEIGHING", ...measured };
   }
   if (base === null || cumulated === null) {

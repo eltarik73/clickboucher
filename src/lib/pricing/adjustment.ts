@@ -18,6 +18,7 @@ import {
   isWeighedUnit,
   lineQuantityFromStored,
   lineTotalCents,
+  type SaleUnit,
   type StoredLine,
 } from "./line";
 import {
@@ -95,6 +96,7 @@ export function repriceLine(line: AdjustableLine, newPriceCents: number): Adjust
 export interface MeasuredLine extends EstimatedLine {
   id: string;
   available: boolean;
+  unit: SaleUnit;
 }
 
 /** An order line as planAdjustment reads it (OrderItem columns). */
@@ -239,8 +241,8 @@ export function planAdjustment(order: PlannableOrder, request: AdjustPriceReques
 /**
  * The available lines of the order once `changes` apply, as decideAdjustment reads them: a changed
  * line takes its new total and keeps its total before the change, a line out of stock or removed is
- * left out. A line weighed again at 0 stays, at total 0: decideAdjustment leaves it out of the
- * tolerance base and it gives no room to the others.
+ * left out. A line weighed again at 0 stays, at total 0: it counts 0 in the tolerance base and
+ * gives no room to the others.
  */
 export function availableLinesAfter(
   lines: readonly MeasuredLine[],
@@ -253,6 +255,7 @@ export function availableLinesAfter(
       estimatedPriceCents: line.estimatedPriceCents,
       totalCents: newTotals.get(line.id) ?? line.totalCents,
       previousTotalCents: line.totalCents,
+      weighed: isWeighedUnit(line.unit),
     }));
 }
 

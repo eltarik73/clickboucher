@@ -70,6 +70,22 @@ const DISCOUNTED = { ...order(2347, [COTE, TRIPES]), discountCents: 500 };
 const UNFROZEN = { ...CAISSE, weighToleranceRateBps: null, weighToleranceCapCents: null };
 const EMPTIED = { ...order(151, [TRIPES]), discountCents: 300 }; // 4,51 € - 3,00 €
 const ALL = order(4597, [COTE, TRIPES, AGNEAU, MERGUEZ, PAIN]); // 2396 + 451 + 1300 + 450
+// EXTENDED: côte 5 kg (floor((2396 x 5000 + 500) / 1000) = 11980) and one tray at 5,47 €;
+// tolerance 10 % x 125,27 € = 12,52 €, more than a tray.
+const STEAK: PlannableLine = {
+  ...MERGUEZ,
+  id: "steak",
+  name: "Steak haché (x4)",
+  quantity: 1,
+  priceCents: 547,
+  totalCents: 547,
+  estimatedPriceCents: 547,
+};
+const GRILL: PlannableOrder = {
+  ...order(12527, [kgLine("cote", "Côte de bœuf", 5, 2396, 11980), STEAK]),
+  weighToleranceRateBps: 1000,
+  weighToleranceCapCents: 2000,
+};
 
 const weigh = (kgById: Record<string, number>): AdjustPriceRequest => ({
   adjustmentType: "WEIGHT",
@@ -90,7 +106,8 @@ const manual = (newTotalCents?: number): AdjustPriceRequest => ({
 describe("planAdjustment", () => {
   it("plans a 1 g côte and 3,15 kg of tripes: the total goes down, the increase is asked", () => {
     // 1 g at 23,96 €/kg: floor((2396 + 500) / 1000) = 2; 3 150 g at 9,02 €/kg: floor(2841800 / 1000)
-    // = 2841; total 2847 - 2394 + 2390 = 2843; tolerance 5 % x 2847 = 142, increase 0 + 2390.
+    // = 2841; total 2847 - 2394 + 2390 = 2843; base 2 + 451 = 453, tolerance 5 % = 22, increase
+    // 0 + 2390.
     expect(planAdjustment(CAISSE, weigh({ cote: 0.001, tripes: 3.15 }))).toEqual({
       ok: true,
       newTotalCents: 2843,
@@ -102,9 +119,9 @@ describe("planAdjustment", () => {
       decision: {
         decision: "ASK",
         reason: "BEYOND_TOLERANCE",
-        toleranceCents: 142,
+        toleranceCents: 22,
         cumulatedIncreaseCents: 2390,
-        estimatedTotalCents: 2847,
+        estimatedTotalCents: 453,
       },
     });
   });
@@ -129,8 +146,21 @@ describe("planAdjustment", () => {
   });
 
   type Decided = [string, PlannableOrder, AdjustPriceRequest, number, AdjustmentDecision["reason"]];
-  // Tripes 600 g: floor((902 x 600 + 500) / 1000) = 541, +90; 680 g: 613, +162.
+  // Tripes 600 g: floor((902 x 600 + 500) / 1000) = 541, +90; 680 g: 613, +162; 657 g: 593, +142,
+  // the côte weighed at 1 g counting its 2 cents in the base (2 + 451, 5 % = 0,22 €). GRILL: one
+  // more tray, 12527 + 547, is within the tolerance but no weighing. BARBECUE: one tray less.
   it.each<[...Decided, number | null, number | null]>([
+    [
+      "asks +1,42 € > 0,22 €: a côte weighed at 1 g counts 2 cents",
+      CAISSE,
+      weigh({ cote: 0.001, tripes: 0.657 }),
+      595,
+      "BEYOND_TOLERANCE",
+      142,
+      453,
+    ],
+    ["asks one more tray", GRILL, weigh({ steak: 2 }), 13074, "NOT_WEIGHING", 547, 12527],
+    ["applies one tray less", BARBECUE, weigh({ merguez: 1 }), 1101, "DECREASE", 0, 1101],
     [
       "applies +0,90 € <= 1,42 €",
       CAISSE,
