@@ -25,7 +25,7 @@ import {
 import { quoteOf, quoteRequest } from "../orders/create-order-fixtures";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -758,6 +758,7 @@ describe("commandes : vue client", () => {
           ...request,
           idempotencyKey: randomUUID(),
           expectedTotalCents: quote.amountDueCents,
+          weighTolerance: "STANDARD",
           email: "invite-itest@klikandgo.test",
           firstName: "Invité",
           lastName: "Test",

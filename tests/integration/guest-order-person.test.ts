@@ -110,6 +110,7 @@ async function guestOrderWithMemberEmail({ phone }: { phone?: string } = { phone
         ...request,
         idempotencyKey: randomUUID(),
         expectedTotalCents: (await quoteOf(request, null)).amountDueCents,
+        weighTolerance: "STANDARD",
         email: member.email,
         firstName: TYPED.firstName,
         lastName: TYPED.lastName,

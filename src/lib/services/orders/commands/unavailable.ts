@@ -1,11 +1,12 @@
 // src/lib/services/orders/commands/unavailable.ts — out-of-stock lines: the butcher reports them,
-// the customer answers (replace or remove), and the alternatives proposed in between.
-import type { Order, OrderItem, OrderStatus, Prisma } from "@prisma/client";
+// the customer answers (replace or remove), and the alternatives proposed in between. Each answer
+// changes the composition of the order: its total and the estimate its weighing tolerance applies
+// to are recomputed from the lines the customer still gets (compositionColumns).
+import type { Order, OrderStatus, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
 import { holdsLimitedStock } from "@/lib/order-state-machine";
-import { computeOrderTotals } from "@/lib/pricing/totals";
-import { closePendingAdjustment } from "@/lib/services/orders/adjustment-settlement";
+import { closePendingAdjustment } from "@/lib/services/orders/adjustment-closure";
 import { releaseOrderDiscount } from "@/lib/services/orders/discount-ledger";
 import { transitionOrder } from "@/lib/services/orders/transition";
 import {
@@ -22,62 +23,32 @@ import {
   type CommandResult,
 } from "./outcome";
 import { releaseHeldStock } from "@/lib/services/orders/stock-hold";
-
-type Tx = Prisma.TransactionClient;
+import {
+  ITEM_SNAPSHOT_SELECT,
+  compositionColumns,
+  readLines,
+  sameLines,
+} from "./unavailable-lines";
 
 const MINUTE_MS = 60_000;
 const PARTIAL_REASON = "Certains articles sont en rupture de stock";
 const ALL_UNAVAILABLE_REASON = "Tous les articles sont en rupture de stock";
 const ALL_REMOVED_REASON = "Le client a retiré tous les articles";
 
-type LineSnapshot = Pick<
-  OrderItem,
-  "id" | "productId" | "available" | "totalCents" | "replacement"
->;
-
-function sameLines(expected: readonly LineSnapshot[], actual: readonly LineSnapshot[]): boolean {
-  const key = (line: LineSnapshot) =>
-    `${line.id}|${line.productId}|${line.available}|${line.totalCents}|${line.replacement ?? ""}`;
-  const expectedKeys = expected.map(key).sort();
-  const actualKeys = actual.map(key).sort();
-  return (
-    expectedKeys.length === actualKeys.length && expectedKeys.every((k, i) => k === actualKeys[i])
-  );
-}
-
-/** Order.totalCents after a change of lines: available lines minus the stored discount, capped. */
-function totalAfter(
-  lines: ReadonlyArray<{ totalCents: number }>,
-  order: { discountCents: number; serviceFeeCents: number }
-) {
-  return computeOrderTotals({
-    lineTotalsCents: lines.map((line) => line.totalCents),
-    discountCents: order.discountCents,
-    serviceFeeCents: order.serviceFeeCents,
-  }).totalCents;
-}
-
-const ITEM_SNAPSHOT_SELECT = {
-  id: true,
-  productId: true,
-  available: true,
-  totalCents: true,
-  replacement: true,
-  unit: true,
-  quantity: true,
-  weightGrams: true,
-  name: true,
-} satisfies Prisma.OrderItemSelect;
-
-async function readLines(tx: Tx, orderId: string) {
-  return tx.orderItem.findMany({ where: { orderId }, select: ITEM_SNAPSHOT_SELECT });
-}
+/** The order columns a change of composition recomputes, read with its lines. */
+const COMPOSITION_SELECT = {
+  discountCents: true,
+  serviceFeeCents: true,
+  estimatedTotalCents: true,
+  items: { select: ITEM_SNAPSHOT_SELECT },
+} satisfies Prisma.OrderSelect;
 
 /**
  * Butcher: some products of a PENDING or ACCEPTED order are missing. PARTIALLY_DENIED (the
  * customer chooses what to do), or DENIED when no available line is left. In the transaction:
  * lines marked unavailable, products set out of stock, limited stock released when the order held
- * it, total recomputed, discount released when the order is DENIED.
+ * it, total and estimated total recomputed from the lines kept, discount released when the order
+ * is DENIED.
  */
 export async function reportUnavailableItems(input: {
   orderId: string;
@@ -89,13 +60,11 @@ export async function reportUnavailableItems(input: {
   const order = await prisma.order.findFirst({
     where: { id: input.orderId, shopId: input.shopId },
     select: {
+      ...COMPOSITION_SELECT,
       status: true,
       orderNumber: true,
       userId: true,
-      discountCents: true,
-      serviceFeeCents: true,
       shop: { select: { name: true } },
-      items: { select: ITEM_SNAPSHOT_SELECT },
     },
   });
   if (order === null) return { kind: "not_found" };
@@ -140,7 +109,7 @@ export async function reportUnavailableItems(input: {
       from: ["PENDING", "ACCEPTED"],
       to,
       data: {
-        totalCents: totalAfter(kept, order),
+        ...compositionColumns(kept, order),
         denyReason: to === "DENIED" ? ALL_UNAVAILABLE_REASON : PARTIAL_REASON,
       },
       event: {
@@ -209,7 +178,8 @@ export type UnavailableDecision =
 /**
  * Customer: answers every pending out-of-stock line of a PARTIALLY_DENIED order. Back to PENDING
  * (the butcher decides again: no QR code, no estimate, a fresh acceptance deadline), or DENIED
- * when nothing is left.
+ * when nothing is left. A replaced line is estimated at its new total, and the estimated total of
+ * the order is frozen again from the lines the customer keeps.
  */
 export async function resolveUnavailableItems(input: {
   orderId: string;
@@ -221,12 +191,10 @@ export async function resolveUnavailableItems(input: {
   const order = await prisma.order.findFirst({
     where: { id: input.orderId, userId: input.userId },
     select: {
+      ...COMPOSITION_SELECT,
       shopId: true,
-      discountCents: true,
-      serviceFeeCents: true,
       user: { select: { role: true } },
       shop: { select: { acceptTimeoutMin: true } },
-      items: { select: ITEM_SNAPSHOT_SELECT },
     },
   });
   if (order === null) return { kind: "not_found" };
@@ -271,15 +239,18 @@ export async function resolveUnavailableItems(input: {
   }
 
   const replaced = changes.flatMap((change) =>
-    change.remove ? [] : [{ totalCents: change.totalCents }]
+    change.remove
+      ? []
+      : [{ totalCents: change.totalCents, estimatedPriceCents: change.estimatedPriceCents }]
   );
   const remaining = [...order.items.filter((item) => item.available), ...replaced];
   const to: OrderStatus = remaining.length === 0 ? "DENIED" : "PENDING";
+  const composition = compositionColumns(remaining, order);
   const data: Prisma.OrderUncheckedUpdateManyInput =
     to === "DENIED"
-      ? { totalCents: totalAfter(remaining, order), denyReason: ALL_REMOVED_REASON }
+      ? { ...composition, denyReason: ALL_REMOVED_REASON }
       : {
-          totalCents: totalAfter(remaining, order),
+          ...composition,
           denyReason: null,
           qrCode: null,
           estimatedReady: null,

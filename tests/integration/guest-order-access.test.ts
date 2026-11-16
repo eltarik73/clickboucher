@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Product, Shop } from "@prisma/client";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -79,7 +79,12 @@ function nextClientIp(): string {
 async function orderBody(): Promise<Record<string, unknown>> {
   const request = quoteRequest(shop.id, [{ productId: product.id, quantity: 1, weightGrams: 500 }]);
   const quote = await quoteOf(request, null);
-  return { ...request, idempotencyKey: randomUUID(), expectedTotalCents: quote.amountDueCents };
+  return {
+    ...request,
+    idempotencyKey: randomUUID(),
+    expectedTotalCents: quote.amountDueCents,
+    weighTolerance: "STANDARD",
+  };
 }
 
 interface Answer {

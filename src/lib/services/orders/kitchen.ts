@@ -27,6 +27,9 @@ export const kitchenOrderSelect = {
   status: true,
   totalCents: true,
   discountCents: true,
+  weighToleranceRateBps: true,
+  weighToleranceCapCents: true,
+  estimatedTotalCents: true,
   customerNumber: true,
   isPro: true,
   customerNote: true,
@@ -47,6 +50,7 @@ export const kitchenOrderSelect = {
       unit: true,
       priceCents: true,
       totalCents: true,
+      estimatedPriceCents: true,
       weightGrams: true,
       sliceCount: true,
       sliceThickness: true,
@@ -67,6 +71,8 @@ export const kitchenOrderSelect = {
       newTotal: true,
       reason: true,
       adjustmentType: true,
+      answerBy: true,
+      closeReason: true,
     },
   },
 } as const satisfies Prisma.OrderSelect;
@@ -123,8 +129,9 @@ export async function getKitchenBoard(
   const activeLimit = options.activeLimit ?? DEFAULT_KITCHEN_ACTIVE_LIMIT;
   const activeWhere = { shopId, status: { in: [...KITCHEN_ACTIVE_STATUSES] } };
 
-  // Due price adjustments of active orders are settled first, so the board reads settled totals.
-  // Finished orders are not settled: their adjustment can no longer change them.
+  // Pending price adjustments of active orders whose answer window has passed are closed first
+  // (silence is a refusal), so the board never shows one as still awaiting the customer. Finished
+  // orders are left alone: their adjustment can no longer change them.
   await settleDueAdjustmentsWithin(activeWhere, new Date());
 
   const activeRows = await prisma.order.findMany({

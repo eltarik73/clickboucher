@@ -1,9 +1,8 @@
 // POST /api/boucher/stripe/refresh-status
 //
-// Force la synchronisation de l'état Stripe Connect du boucher.
-// Utile :
-// - Après retour de l'onboarding (return_url) pour rafraîchir les flags sans attendre le webhook
-// - Bouton manuel "Vérifier mon statut" sur le dashboard
+// Re-reads the butcher's Stripe Connect account and writes its state on the shop
+// (syncShopStripeStatus), without waiting for the account.updated webhook: after the return from
+// onboarding, or from the « Vérifier mon statut » button.
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -13,7 +12,6 @@ import { isStripeConfigured } from "@/lib/stripe";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
 import { apiError, apiSuccess, handleApiError } from "@/lib/api/errors";
 import { syncShopStripeStatus } from "@/lib/services/stripe/connect";
-import { logger } from "@/lib/logger";
 
 export async function POST() {
   try {
@@ -26,7 +24,7 @@ export async function POST() {
 
     const shop = await prisma.shop.findUnique({
       where: { id: auth.shopId },
-      select: { id: true, stripeAccountId: true },
+      select: { stripeAccountId: true },
     });
 
     if (!shop) {
@@ -39,31 +37,7 @@ export async function POST() {
       );
     }
 
-    const status = await syncShopStripeStatus(shop.stripeAccountId);
-
-    await prisma.shop.update({
-      where: { id: shop.id },
-      data: {
-        stripeAccountStatus: status.status,
-        stripeChargesEnabled: status.chargesEnabled,
-        stripePayoutsEnabled: status.payoutsEnabled,
-      },
-    });
-
-    logger.info("[boucher/stripe/refresh-status] synced", {
-      shopId: shop.id,
-      status: status.status,
-    });
-
-    return apiSuccess({
-      accountId: status.accountId,
-      status: status.status,
-      chargesEnabled: status.chargesEnabled,
-      payoutsEnabled: status.payoutsEnabled,
-      detailsSubmitted: status.detailsSubmitted,
-      requirementsCurrentlyDue: status.requirementsCurrentlyDue,
-      requirementsPastDue: status.requirementsPastDue,
-    });
+    return apiSuccess(await syncShopStripeStatus(shop.stripeAccountId));
   } catch (err) {
     return handleApiError(err, "boucher/stripe/refresh-status");
   }

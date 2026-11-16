@@ -1,71 +1,20 @@
 // Suivi en direct de /suivi/[id] (useOrderTracker) : rien au montage (le serveur vient de rendre la
 // commande), une lecture toutes les 5 s onglet visible, arrêt sur commande terminée ou introuvable,
 // backoff sur erreur, et jamais d'erreur à la place de la commande affichée.
-import type { ComponentProps } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, renderHook } from "@testing-library/react";
 import { screen } from "@testing-library/dom";
 import type { OrderStatus } from "@prisma/client";
 import EstimatedCountdown from "@/app/(client)/suivi/[id]/EstimatedCountdown";
-import SuiviClient from "@/app/(client)/suivi/[id]/SuiviClient";
 import { useOrderTracker, type TrackedOrder } from "@/hooks/useOrderTracker";
-
-const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
-vi.mock("sonner", () => ({ toast }));
-// Next's Link only prefetches with an app router mounted: the prop is what the page decides.
-vi.mock("next/link", () => ({
-  default: ({ prefetch, ...props }: ComponentProps<"a"> & { prefetch?: boolean | null }) => (
-    <a data-prefetch={String(prefetch)} {...props} />
-  ),
-}));
+import { fetchMock, reply, serve, serveOrder, trackedOrder } from "./order-tracking-fixtures";
 
 let visibility: DocumentVisibilityState = "visible";
 
 function setVisibility(state: DocumentVisibilityState) {
   visibility = state;
   document.dispatchEvent(new Event("visibilitychange"));
-}
-
-function trackedOrder(status: OrderStatus): TrackedOrder {
-  return {
-    id: "ord_1",
-    status,
-    displayNumber: "#12",
-    totalCents: 2450,
-    boucherNote: null,
-    estimatedReady: null,
-    actualReady: status === "READY" ? "2026-11-14T12:30:00.000Z" : null,
-    pickedUpAt: null,
-    createdAt: "2026-11-14T12:00:00.000Z",
-    updatedAt: "2026-11-14T12:30:00.000Z",
-    items: [
-      {
-        id: "it_1",
-        name: "Merguez",
-        quantity: 0.5,
-        unit: "KG",
-        totalCents: 2450,
-        weightGrams: 500,
-      },
-    ],
-    priceAdjustment: null,
-  };
-}
-
-/** Réponse minimale : la lecture du corps ne dépend pas des minuteurs simulés. */
-function reply(status: number, body: unknown): Response {
-  return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
-}
-
-const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>();
-
-function serve(status: number, body: unknown) {
-  fetchMock.mockImplementation(async () => reply(status, body));
-}
-
-function serveOrder(status: OrderStatus) {
-  serve(200, { success: true, data: trackedOrder(status) });
 }
 
 function track(status: OrderStatus = "PENDING") {
@@ -78,23 +27,6 @@ function track(status: OrderStatus = "PENDING") {
   return { onUpdate, ...hook };
 }
 
-/** The props the server page gives the tracking page for this order. */
-function pageOrder(status: OrderStatus): ComponentProps<typeof SuiviClient>["order"] {
-  return {
-    ...trackedOrder(status),
-    displayNumber: "#12",
-    orderNumber: "KG26-000012",
-    customerNumber: null,
-    customerNote: null,
-    shop: { id: "shop_1", name: "Boucherie Test", address: "1 rue A", city: "Chambéry", phone: "" },
-    user: { firstName: "Tarik", lastName: "Benali" },
-  };
-}
-
-function statusBadge() {
-  return screen.getByRole("status", { name: "Statut de la commande" });
-}
-
 beforeEach(() => {
   visibility = "visible";
   Object.defineProperty(document, "visibilityState", {
@@ -102,7 +34,6 @@ beforeEach(() => {
     get: () => visibility,
   });
   fetchMock.mockReset();
-  toast.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   vi.useFakeTimers();
 });
@@ -291,51 +222,6 @@ describe("useOrderTracker", () => {
     window.dispatchEvent(new Event("focus"));
     await vi.advanceTimersByTimeAsync(600_000);
     expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("page de suivi (SuiviClient) branchée sur useOrderTracker", () => {
-  it("affiche « prête » une période après que la boucherie l'a marquée prête, sans recharger", async () => {
-    serveOrder("READY");
-    render(<SuiviClient order={pageOrder("PREPARING")} />);
-    expect(statusBadge()).toHaveTextContent("En préparation");
-    expect(fetchMock).not.toHaveBeenCalled();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5_000);
-    });
-    expect(statusBadge()).toHaveTextContent("Commande prête !");
-    expect(toast).toHaveBeenCalledWith("Commande prête — venez la chercher !", { icon: "🎉" });
-  });
-
-  it("une lecture plus ancienne que la commande affichée ne la remplace pas", async () => {
-    serve(200, {
-      success: true,
-      data: { ...trackedOrder("ACCEPTED"), updatedAt: "2026-11-14T12:29:00.000Z" },
-    });
-    render(<SuiviClient order={pageOrder("PREPARING")} />);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5_000);
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(statusBadge()).toHaveTextContent("En préparation");
-    expect(toast).not.toHaveBeenCalled();
-  });
-
-  it("le lien retour vers « Mes commandes » ne précharge pas cette route protégée", () => {
-    render(<SuiviClient order={pageOrder("PREPARING")} />);
-    const back = screen.getByRole("link", { name: "Mes commandes" });
-    expect(back).toHaveAttribute("href", "/commandes");
-    expect(back).toHaveAttribute("data-prefetch", "false");
-  });
-
-  it("une commande dont un article manque mène au choix d'un remplacement", () => {
-    render(<SuiviClient order={pageOrder("PARTIALLY_DENIED")} />);
-    expect(screen.getByText("Un article n'est plus disponible")).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: "Choisir un remplacement" });
-    expect(link).toHaveAttribute("href", "/commande/ord_1");
-    expect(link).toHaveClass("h-12", "w-full");
   });
 });
 

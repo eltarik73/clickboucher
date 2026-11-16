@@ -3,7 +3,9 @@
 // The only place where the checkout request is built. Lines are sent exactly as the
 // cart holds them (decision 1 of chantier 0): quantity = portions (KG, TRANCHE) or
 // units, weightGrams = grams of ONE portion, the cut option by NAME. No amount, no
-// discount, no price ever leaves the browser: the server quotes everything.
+// discount, no price ever leaves the browser: the server quotes everything. The order
+// request carries the weighing tolerance the customer chose, by name (never a rate or
+// an amount); the quote does not.
 //
 // The return types are the request types of the server schemas, so a drift between
 // the cart and `@/lib/validators/order` fails `tsc`.
@@ -12,6 +14,7 @@
 
 import type { CartItem } from "@/lib/cart/cart-line";
 import { isWeighedUnit } from "@/lib/pricing/line";
+import type { WeighToleranceChoice } from "@/lib/pricing/tolerance";
 import type { CreateOrderRequest, OrderLineInput, OrderQuoteRequest } from "@/lib/validators/order";
 
 export interface CheckoutSelection {
@@ -21,6 +24,8 @@ export interface CheckoutSelection {
   requestedTime: string;
   pickupSlot: { startIso: string; endIso: string } | null;
   customerNote: string;
+  /** The tolerance shown above the order button; null until the customer has chosen one. */
+  weighTolerance: WeighToleranceChoice | null;
 }
 
 export interface CheckoutAttempt {
@@ -73,6 +78,8 @@ function buildUnkeyedRequest(
       pickupSlotStart: selection.pickupSlot.startIso,
       pickupSlotEnd: selection.pickupSlot.endIso,
     }),
+    // Part of the fingerprint: another choice is another attempt, with a new key.
+    ...(selection.weighTolerance !== null && { weighTolerance: selection.weighTolerance }),
   };
 }
 

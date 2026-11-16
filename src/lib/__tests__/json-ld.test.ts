@@ -3,11 +3,11 @@
 // ne doit jamais pouvoir fermer le <script type="application/ld+json">.
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it, expect } from "vitest";
 import { serializeJsonLd } from "@/lib/seo/jsonld/serialize";
+import { sourceFiles } from "../../../tests/lib/source-scan";
 
 const PAYLOAD = "</script><script>window.__x=1</script>";
 const LS = String.fromCharCode(0x2028);
@@ -100,24 +100,14 @@ describe("rendu du <script> JSON-LD", () => {
 });
 
 describe("garde-fou : JSON dans <script> uniquement via JsonLd", () => {
-  const SRC = path.join(process.cwd(), "src");
-  const ALLOWED = path.join(SRC, "components", "seo", "JsonLd.tsx");
-  const THIS_FILE = fileURLToPath(import.meta.url);
-
-  function walk(dir: string): string[] {
-    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) return walk(full);
-      return /\.(tsx?|jsx?|mjs)$/.test(entry.name) ? [full] : [];
-    });
-  }
+  const ALLOWED = "src/components/seo/JsonLd.tsx";
 
   it("aucun autre fichier de src/ n'écrit de JSON-LD avec dangerouslySetInnerHTML", () => {
-    const offenders = walk(SRC).filter((file) => {
-      if (file === ALLOWED || file === THIS_FILE) return false;
-      const content = fs.readFileSync(file, "utf8");
+    const offenders = sourceFiles("src").filter((file) => {
+      if (file === ALLOWED) return false;
+      const content = fs.readFileSync(path.join(process.cwd(), file), "utf8");
       return content.includes("application/ld+json") && content.includes("dangerouslySetInnerHTML");
     });
-    expect(offenders.map((f) => path.relative(process.cwd(), f))).toEqual([]);
+    expect(offenders).toEqual([]);
   });
 });

@@ -23,9 +23,14 @@ const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG),
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/StarRating";
-import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
+import PriceAdjustmentBanner, {
+  type PriceAdjustmentView,
+} from "@/components/client/PriceAdjustmentBanner";
+import WeighToleranceNote from "@/components/client/WeighToleranceNote";
 import type { SaleUnit } from "@/lib/pricing/line";
+import type { FrozenToleranceColumns } from "@/lib/pricing/tolerance";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
+import { formatPrice } from "@/lib/utils";
 import { startVisiblePolling, nextOrderPollDelay } from "@/hooks/useVisiblePolling";
 
 // ── Types ────────────────────────────────────────
@@ -67,7 +72,7 @@ interface OrderUser {
   lastName: string;
 }
 
-interface OrderData {
+interface OrderData extends FrozenToleranceColumns {
   id: string;
   orderNumber: string;
   dailyNumber: number | null;
@@ -89,25 +94,10 @@ interface OrderData {
   items: OrderItem[];
   shop: OrderShop;
   user: OrderUser;
-  priceAdjustment?: {
-    id: string;
-    originalTotal: number;
-    newTotal: number;
-    reason: string | null;
-    adjustmentType: string;
-    status: string;
-    tier: number;
-    autoApproveAt: string | null;
-    escalateAt: string | null;
-    createdAt: string;
-  } | null;
+  priceAdjustment?: PriceAdjustmentView | null;
 }
 
 // ── Helpers ──────────────────────────────────────
-
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
-}
 
 const TERMINAL = ["PICKED_UP", "COMPLETED", "DENIED", "CANCELLED", "AUTO_CANCELLED"];
 
@@ -237,7 +227,8 @@ function QRSection({ qrCode, size = 180 }: { qrCode: string; size?: number }) {
 
 // ── Order Items Recap ────────────────────────────
 
-function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: number }) {
+function OrderRecap({ order }: { order: OrderData }) {
+  const { items, totalCents } = order;
   return (
     <div className="mt-6 rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
       <h3 className="mb-3 text-sm font-bold text-[#2a2018] dark:text-white">Recapitulatif</h3>
@@ -250,16 +241,17 @@ function OrderRecap({ items, totalCents }: { items: OrderItem[]; totalCents: num
             </span>
           </div>
           <span className="font-semibold text-[#2a2018] dark:text-white">
-            {fmtPrice(item.totalCents)}
+            {formatPrice(item.totalCents)}
           </span>
         </div>
       ))}
       <div className="mt-2 flex justify-between border-t border-[#ece8e3] pt-2 dark:border-white/10">
         <span className="text-sm font-bold text-[#2a2018] dark:text-white">Total</span>
         <span className="text-sm font-extrabold text-[#2a2018] dark:text-white">
-          {fmtPrice(totalCents)}
+          {formatPrice(totalCents)}
         </span>
       </div>
+      <WeighToleranceNote order={order} />
     </div>
   );
 }
@@ -879,7 +871,7 @@ export default function CommandePage({ params }: { params: { id: string } }) {
         )}
 
         {/* ═══ ORDER RECAP ═══ */}
-        <OrderRecap items={order.items} totalCents={order.totalCents} />
+        <OrderRecap order={order} />
       </main>
     </div>
   );

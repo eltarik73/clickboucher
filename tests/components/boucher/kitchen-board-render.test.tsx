@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import KitchenModePage from "@/app/(boucher)/boucher/commandes/page";
+import { kitchenLine } from "@/components/boucher/__tests__/kitchen-order-fixtures";
 import type { KitchenHistoryOrder, KitchenOrder } from "@/hooks/use-order-polling";
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
@@ -19,6 +20,9 @@ function kitchenOrder(order: Partial<KitchenOrder> & Pick<KitchenOrder, "id" | "
     displayNumber: null,
     totalCents: 0,
     discountCents: 0,
+    weighToleranceRateBps: null,
+    weighToleranceCapCents: null,
+    estimatedTotalCents: null,
     customerNumber: 12,
     isPro: false,
     customerNote: null,
@@ -39,24 +43,17 @@ function kitchenOrder(order: Partial<KitchenOrder> & Pick<KitchenOrder, "id" | "
 
 /** A line of 500 g portions (KG), 200 g portions (TRANCHE) or pieces, its quantity as stored. */
 function line(id: string, name: string, unit: "KG" | "PIECE" | "TRANCHE", quantity: number) {
-  return {
+  return kitchenLine({
     id,
-    productId: `product-${id}`,
     name,
-    quantity,
     unit,
+    quantity,
     priceCents: 2990,
     totalCents: 2990,
+    estimatedPriceCents: null,
     weightGrams: { KG: 500, TRANCHE: 200, PIECE: null }[unit],
     sliceCount: unit === "TRANCHE" ? 6 : null,
-    sliceThickness: null,
-    variant: null,
-    pieceCount: null,
-    pieceLabel: null,
-    cutOption: null,
-    available: true,
-    product: { name, unit, imageUrl: null },
-  } satisfies KitchenOrder["items"][number];
+  });
 }
 
 const ACTIVE = [

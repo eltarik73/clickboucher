@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { refusalMessageOf } from "@/lib/api/client-refusal";
+import { MAX_INCREASE_PCT_KEY } from "@/lib/price-adjustment-config";
 import { CommercialEmailsToggle } from "@/components/webmaster/CommercialEmailsToggle";
 
 /* ─── types ─── */
@@ -88,28 +89,11 @@ export default function WebmasterParametresPage() {
   const [applyingCommission, setApplyingCommission] = useState(false);
   const [commissionApplied, setCommissionApplied] = useState(false);
 
-  /* ── Price adjustment config state ── */
-  const [paConfig, setPaConfig] = useState<Record<string, string>>({
-    pa_tier1_max_pct: "10",
-    pa_tier2_max_pct: "20",
-    pa_tier2_auto_approve_sec: "30",
-    pa_tier3_escalation_min: "10",
-    pa_max_increase_pct: "50",
-    pa_require_reason: "true",
-    pa_default_reasons: JSON.stringify([
-      "Poids réel différent",
-      "Rupture produit",
-      "Erreur de prix catalogue",
-      "Ajustement découpe",
-    ]),
-    pa_max_adjustments_per_order: "3",
-    pa_enable_auto_approve: "true",
-  });
-  const [paOriginal, setPaOriginal] = useState<Record<string, string>>({});
-  const [paSavingKey, setPaSavingKey] = useState<string | null>(null);
-  const [paSavedKey, setPaSavedKey] = useState<string | null>(null);
+  /* ── Price adjustment setting: the safety cap of one adjustment, in % ── */
+  const [paCap, setPaCap] = useState("");
+  const [paCapOriginal, setPaCapOriginal] = useState("");
+  const [paSaving, setPaSaving] = useState(false);
   const [loadingPaConfig, setLoadingPaConfig] = useState(true);
-  const [newReason, setNewReason] = useState("");
 
   /* ── Calendar state ── */
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -148,25 +132,24 @@ export default function WebmasterParametresPage() {
     }
   }, []);
 
-  /* ── Fetch price adjustment config ── */
+  /* ── Fetch price adjustment setting ── */
   const fetchPaConfig = useCallback(async () => {
     setLoadingPaConfig(true);
     try {
-      const res = await fetch("/api/webmaster/config");
+      const res = await fetch("/api/webmaster/config/price-adjustment");
       const d = await res.json();
       if (d.success) {
-        const vals: Record<string, string> = {};
-        for (const c of d.data as { key: string; value: string }[]) {
-          if (c.key.startsWith("pa_")) vals[c.key] = c.value;
-        }
-        // Merge with defaults (keep defaults for missing keys)
-        setPaConfig((prev) => ({ ...prev, ...vals }));
-        setPaOriginal((prev) => ({ ...prev, ...vals }));
+        const cap = String(d.data.maxIncreasePct);
+        setPaCap(cap);
+        setPaCapOriginal(cap);
+      } else {
+        toast.error(refusalMessageOf(d) ?? "Impossible de charger le plafond d'ajustement");
       }
     } catch {
-      /* ignore */
+      toast.error("Erreur de connexion au serveur");
+    } finally {
+      setLoadingPaConfig(false);
     }
-    setLoadingPaConfig(false);
   }, []);
 
   /* ── Fetch calendar events ── */
@@ -318,54 +301,28 @@ export default function WebmasterParametresPage() {
     }
   };
 
-  /* ── Save PA config value ── */
-  const savePaConfig = async (key: string) => {
-    const val = paConfig[key];
-    if (val === undefined) return;
-    setPaSavingKey(key);
+  /* ── Save the cap through the platform config writer, which holds it to its rule ── */
+  const savePaCap = async () => {
+    setPaSaving(true);
     try {
       const res = await fetch("/api/webmaster/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value: val }),
+        body: JSON.stringify({ key: MAX_INCREASE_PCT_KEY, value: paCap }),
       });
-      if (res.ok) {
-        setPaSavedKey(key);
-        setPaOriginal((prev) => ({ ...prev, [key]: val }));
+      const d = await res.json();
+      if (res.ok && d.success) {
+        setPaCap(d.data.value);
+        setPaCapOriginal(d.data.value);
         toast.success("Configuration sauvegardée");
-        setTimeout(() => setPaSavedKey(null), 2000);
       } else {
-        toast.error("Erreur lors de la sauvegarde");
+        toast.error(refusalMessageOf(d) ?? "Erreur lors de la sauvegarde");
       }
     } catch {
       toast.error("Erreur de connexion au serveur");
     } finally {
-      setPaSavingKey(null);
+      setPaSaving(false);
     }
-  };
-
-  /* ── PA reasons helpers ── */
-  const paReasons: string[] = (() => {
-    try {
-      const parsed = JSON.parse(paConfig.pa_default_reasons || "[]");
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  })();
-
-  const addReason = (reason: string) => {
-    if (!reason.trim()) return;
-    const updated = [...paReasons, reason.trim()];
-    const val = JSON.stringify(updated);
-    setPaConfig((prev) => ({ ...prev, pa_default_reasons: val }));
-    setNewReason("");
-  };
-
-  const removeReason = (idx: number) => {
-    const updated = paReasons.filter((_, i) => i !== idx);
-    const val = JSON.stringify(updated);
-    setPaConfig((prev) => ({ ...prev, pa_default_reasons: val }));
   };
 
   const configKeys = Object.keys(CONFIG_META);
@@ -707,268 +664,13 @@ export default function WebmasterParametresPage() {
             <Loader2 size={20} className="animate-spin text-gray-500 dark:text-gray-400" />
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* ── Seuils des paliers ── */}
-            <div>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Seuils des paliers
-              </h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {(
-                  [
-                    {
-                      key: "pa_tier1_max_pct",
-                      label: "Palier 1 max (%)",
-                      desc: "Auto-approuvé si hausse ≤ ce %",
-                    },
-                    {
-                      key: "pa_tier2_max_pct",
-                      label: "Palier 2 max (%)",
-                      desc: "Auto-validé après délai si hausse ≤ ce %",
-                    },
-                    {
-                      key: "pa_max_increase_pct",
-                      label: "Cap maximum (%)",
-                      desc: "Hausse max autorisée (sécurité)",
-                    },
-                  ] as const
-                ).map(({ key, label, desc }) => (
-                  <PaField
-                    key={key}
-                    configKey={key}
-                    label={label}
-                    description={desc}
-                    type="number"
-                    value={paConfig[key]}
-                    onChange={(v) => setPaConfig((prev) => ({ ...prev, [key]: v }))}
-                    changed={paConfig[key] !== paOriginal[key]}
-                    saving={paSavingKey === key}
-                    saved={paSavedKey === key}
-                    onSave={() => savePaConfig(key)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* ── Timers ── */}
-            <div className="border-t border-gray-100 pt-4 dark:border-white/5">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Timers
-              </h3>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <PaField
-                  configKey="pa_tier2_auto_approve_sec"
-                  label="Auto-validation palier 2 (sec)"
-                  description="Délai avant auto-approbation du palier 2"
-                  type="number"
-                  value={paConfig.pa_tier2_auto_approve_sec}
-                  onChange={(v) =>
-                    setPaConfig((prev) => ({ ...prev, pa_tier2_auto_approve_sec: v }))
-                  }
-                  changed={
-                    paConfig.pa_tier2_auto_approve_sec !== paOriginal.pa_tier2_auto_approve_sec
-                  }
-                  saving={paSavingKey === "pa_tier2_auto_approve_sec"}
-                  saved={paSavedKey === "pa_tier2_auto_approve_sec"}
-                  onSave={() => savePaConfig("pa_tier2_auto_approve_sec")}
-                />
-                <PaField
-                  configKey="pa_tier3_escalation_min"
-                  label="Escalade palier 3 (min)"
-                  description="Délai avant escalade au webmaster"
-                  type="number"
-                  value={paConfig.pa_tier3_escalation_min}
-                  onChange={(v) => setPaConfig((prev) => ({ ...prev, pa_tier3_escalation_min: v }))}
-                  changed={paConfig.pa_tier3_escalation_min !== paOriginal.pa_tier3_escalation_min}
-                  saving={paSavingKey === "pa_tier3_escalation_min"}
-                  saved={paSavedKey === "pa_tier3_escalation_min"}
-                  onSave={() => savePaConfig("pa_tier3_escalation_min")}
-                />
-              </div>
-            </div>
-
-            {/* ── Options ── */}
-            <div className="border-t border-gray-100 pt-4 dark:border-white/5">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Options
-              </h3>
-              <div className="space-y-3">
-                {/* Toggle: require reason */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Motif obligatoire
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Le boucher doit fournir un motif pour chaque ajustement
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const newVal = paConfig.pa_require_reason === "true" ? "false" : "true";
-                        setPaConfig((prev) => ({ ...prev, pa_require_reason: newVal }));
-                      }}
-                      className={`relative h-5 w-10 rounded-full transition-colors ${
-                        paConfig.pa_require_reason === "true"
-                          ? "bg-red-600"
-                          : "bg-gray-300 dark:bg-white/20"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform dark:bg-gray-900 ${
-                          paConfig.pa_require_reason === "true"
-                            ? "translate-x-5"
-                            : "translate-x-0.5"
-                        }`}
-                      />
-                    </button>
-                    {paConfig.pa_require_reason !== paOriginal.pa_require_reason && (
-                      <button
-                        onClick={() => savePaConfig("pa_require_reason")}
-                        disabled={paSavingKey === "pa_require_reason"}
-                        className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-semibold text-white"
-                      >
-                        {paSavingKey === "pa_require_reason" ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : (
-                          <Save size={10} />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Toggle: auto-approve */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Auto-approbation
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Activer l&apos;auto-validation pour les paliers 1 et 2
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const newVal =
-                          paConfig.pa_enable_auto_approve === "true" ? "false" : "true";
-                        setPaConfig((prev) => ({ ...prev, pa_enable_auto_approve: newVal }));
-                      }}
-                      className={`relative h-5 w-10 rounded-full transition-colors ${
-                        paConfig.pa_enable_auto_approve === "true"
-                          ? "bg-red-600"
-                          : "bg-gray-300 dark:bg-white/20"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform dark:bg-gray-900 ${
-                          paConfig.pa_enable_auto_approve === "true"
-                            ? "translate-x-5"
-                            : "translate-x-0.5"
-                        }`}
-                      />
-                    </button>
-                    {paConfig.pa_enable_auto_approve !== paOriginal.pa_enable_auto_approve && (
-                      <button
-                        onClick={() => savePaConfig("pa_enable_auto_approve")}
-                        disabled={paSavingKey === "pa_enable_auto_approve"}
-                        className="rounded-lg bg-red-600 px-2 py-1 text-[10px] font-semibold text-white"
-                      >
-                        {paSavingKey === "pa_enable_auto_approve" ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : (
-                          <Save size={10} />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Max adjustments per order */}
-                <PaField
-                  configKey="pa_max_adjustments_per_order"
-                  label="Max ajustements par commande"
-                  description="Nombre maximum d'ajustements autorisés sur une même commande"
-                  type="number"
-                  value={paConfig.pa_max_adjustments_per_order}
-                  onChange={(v) =>
-                    setPaConfig((prev) => ({ ...prev, pa_max_adjustments_per_order: v }))
-                  }
-                  changed={
-                    paConfig.pa_max_adjustments_per_order !==
-                    paOriginal.pa_max_adjustments_per_order
-                  }
-                  saving={paSavingKey === "pa_max_adjustments_per_order"}
-                  saved={paSavedKey === "pa_max_adjustments_per_order"}
-                  onSave={() => savePaConfig("pa_max_adjustments_per_order")}
-                />
-              </div>
-            </div>
-
-            {/* ── Default reasons ── */}
-            <div className="border-t border-gray-100 pt-4 dark:border-white/5">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Motifs par défaut
-              </h3>
-              <div className="mb-3 space-y-2">
-                {paReasons.map((reason, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-white/[0.06] dark:bg-white/[0.02]"
-                  >
-                    <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">
-                      {reason}
-                    </span>
-                    <button
-                      onClick={() => removeReason(idx)}
-                      className="rounded-lg p-1 text-gray-500 transition hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-500/10"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newReason}
-                  onChange={(e) => setNewReason(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      addReason(newReason);
-                    }
-                  }}
-                  placeholder="Nouveau motif..."
-                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none dark:border-white/10 dark:bg-white/5 dark:text-white"
-                />
-                <button
-                  onClick={() => addReason(newReason)}
-                  disabled={!newReason.trim()}
-                  className="flex items-center gap-1 rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-200 disabled:opacity-50 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10"
-                >
-                  <Plus size={14} /> Ajouter
-                </button>
-              </div>
-              {paConfig.pa_default_reasons !== paOriginal.pa_default_reasons && (
-                <button
-                  onClick={() => savePaConfig("pa_default_reasons")}
-                  disabled={paSavingKey === "pa_default_reasons"}
-                  className="mt-3 flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                >
-                  {paSavingKey === "pa_default_reasons" ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : paSavedKey === "pa_default_reasons" ? (
-                    <Check size={14} />
-                  ) : (
-                    <Save size={14} />
-                  )}
-                  {paSavedKey === "pa_default_reasons" ? "Sauvé" : "Sauvegarder les motifs"}
-                </button>
-              )}
-            </div>
-          </div>
+          <MaxIncreaseField
+            value={paCap}
+            onChange={setPaCap}
+            changed={paCap !== paCapOriginal}
+            saving={paSaving}
+            onSave={savePaCap}
+          />
         )}
       </Section>
     </div>
@@ -976,37 +678,38 @@ export default function WebmasterParametresPage() {
 }
 
 /* ================================================================== */
-/* ── PaField helper ─── */
+/* ── Price adjustment cap field ─── */
 /* ================================================================== */
-function PaField({
-  label,
-  description,
-  type,
+function MaxIncreaseField({
   value,
   onChange,
   changed,
   saving,
-  saved,
   onSave,
 }: {
-  configKey: string;
-  label: string;
-  description: string;
-  type: "number" | "text";
   value: string;
   onChange: (v: string) => void;
   changed: boolean;
   saving: boolean;
-  saved: boolean;
   onSave: () => void;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>
+      <label
+        htmlFor="max-increase-pct"
+        className="text-sm font-medium text-gray-700 dark:text-gray-300"
+      >
+        Plafond de sécurité d&apos;un ajustement, en % du total de la commande
+      </label>
+      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
+        Une hausse ne peut pas dépasser ce pourcentage du total de la commande (son total actuel, ou
+        l&apos;estimation des articles encore livrés si elle est plus élevée), même avec
+        l&apos;accord du client.
+      </p>
       <div className="flex items-center gap-2">
         <input
-          type={type}
+          id="max-increase-pct"
+          type="number"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
@@ -1015,20 +718,10 @@ function PaField({
           <button
             onClick={onSave}
             disabled={saving}
-            className={`flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition ${
-              saved
-                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
-                : "bg-red-600 text-white hover:bg-red-700"
-            }`}
+            className="flex shrink-0 items-center gap-1 rounded-xl bg-red-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-red-700"
           >
-            {saving ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : saved ? (
-              <Check size={12} />
-            ) : (
-              <Save size={12} />
-            )}
-            {saved ? "Sauvé" : "Sauver"}
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            Sauver
           </button>
         )}
       </div>

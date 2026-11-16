@@ -9,17 +9,11 @@ import {
   formatClientName,
 } from "@/lib/format-kitchen";
 import { escapeHtml } from "@/lib/html/escape";
-import type { SaleUnit, StoredLine } from "@/lib/pricing/line";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
 import { summarizeReceipt } from "@/lib/pricing/receipt";
+import { toleranceTicketLine } from "./tolerance-ticket-line";
 
 type KitchenItem = KitchenOrder["items"][number];
-
-const SALE_UNITS: readonly SaleUnit[] = ["KG", "PIECE", "BARQUETTE", "TRANCHE"];
-
-function isSaleUnit(unit: string): unit is SaleUnit {
-  return (SALE_UNITS as readonly string[]).includes(unit);
-}
 
 function formatDateFull(dateStr: string) {
   const d = new Date(dateStr);
@@ -54,44 +48,29 @@ const LOGO_SVG = `<svg viewBox="0 0 100 100" width="48" height="48" style="displ
 </svg>`;
 
 /**
- * The stored form of a kitchen order line. The unit is the line's own (the one its quantity was
- * written in), never the product's current unit. Throws TypeError on a unit outside the Prisma
- * enum, which no order line can carry.
+ * Quantity printed before the product name: "2 × 500 g", "470 g", "3 pièces". The unit is the
+ * line's own (the one its quantity was written in), never the product's current unit.
  */
-export function kitchenStoredLine(
-  item: Pick<KitchenItem, "unit" | "quantity" | "weightGrams">
-): StoredLine {
-  if (!isSaleUnit(item.unit)) {
-    throw new TypeError(`Unknown order line unit: ${item.unit}`);
-  }
-  return { unit: item.unit, quantity: item.quantity, weightGrams: item.weightGrams };
-}
-
-/** Quantity printed before the product name: "2 × 500 g", "470 g", "3 pièces". */
 export function formatItemQty(
   item: Pick<KitchenItem, "unit" | "quantity" | "weightGrams">
 ): string {
-  return formatStoredLineQuantity(kitchenStoredLine(item));
+  return formatStoredLineQuantity(item);
 }
 
-/** Build the HTML for a single Uber Eats style ticket */
 /** An order paid online has been paid; any other is settled at the counter when collected. */
 function amountLabel(order: Pick<KitchenOrder, "paymentMethod">): string {
   return order.paymentMethod === "ONLINE" ? "Montant pay\u00E9" : "\u00C0 r\u00E9gler sur place";
 }
 
+/** Build the HTML for a single Uber Eats style ticket */
 export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
-  const clientName = order.user
-    ? formatClientName(order.user.firstName, order.user.lastName)
-    : "Client";
+  const clientName = formatClientName(order.user.firstName, order.user.lastName);
 
   const ticketNumber = order.displayNumber || `#${order.orderNumber}`;
 
-  // Pickup time
   const isScheduled = !!order.pickupSlotStart;
   const pickupTimeStr = isScheduled ? formatTime(order.pickupSlotStart!) : null;
 
-  // Prep date
   const prepDateStr = isScheduled
     ? formatDateFull(order.pickupSlotStart!)
     : order.estimatedReady
@@ -105,12 +84,12 @@ export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
     discountCents: order.discountCents,
     // The butcher collects the goods: the ticket never prints the platform's service fee.
     serviceFeeCents: 0,
-    paymentMethod: order.paymentMethod ?? "ON_PICKUP",
+    paymentMethod: order.paymentMethod,
   });
   const itemsHtml = order.items
     .map((item) => {
       const qtyStr = formatItemQty(item);
-      const name = item.product?.name || item.name;
+      const name = item.product.name;
       const variantStr = item.variant ? ` [${item.variant}]` : "";
       const cutStr = item.cutOption ? ` [${item.cutOption}]` : "";
       const pieceStr =
@@ -127,6 +106,7 @@ export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
     </div>`;
     })
     .join("");
+  const tolerance = toleranceTicketLine(order);
   const amountRows = [
     `<div class="total-row"><span>Sous-total</span><span>${formatPrice(receipt.subtotalCents)}</span></div>`,
     receipt.discountCents > 0
@@ -136,12 +116,11 @@ export function buildTicketHtml(order: KitchenOrder, shopName: string): string {
       ? `<div class="total-row"><span>Ajustement</span><span>${formatPrice(receipt.adjustmentCents)}</span></div>`
       : "",
     `<div class="total-row"><span>${amountLabel(order)}</span><span>${formatPrice(receipt.goodsTotalCents)}</span></div>`,
+    tolerance === null ? "" : `<div class="tolerance">${escapeHtml(tolerance)}</div>`,
   ].join("");
 
-  // Pickup code (4 digits)
   const pickupCode = order.qrCode ? getPickupCode(order.qrCode) : null;
 
-  // Customer note
   const noteHtml = order.customerNote
     ? `<div class="note-section">
         <div class="note-title">Remarque du client :</div>
@@ -246,6 +225,7 @@ const TICKET_CSS = `
     .total-row span:first-child { float: left; }
     .total-row span:last-child { float: right; }
     .total-row::after { content: ''; display: table; clear: both; }
+    .tolerance { font-size: 10px; line-height: 1.3; padding-top: 4px; }
     .code-section { text-align: center; font-size: 16px; font-weight: 900; padding: 8px 0; letter-spacing: 1px; }
     .footer { text-align: center; font-size: 12px; padding: 6px 0; color: #333; }
     @media print {

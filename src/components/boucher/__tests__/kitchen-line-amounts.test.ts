@@ -9,7 +9,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import KitchenOrderCard from "@/components/boucher/KitchenOrderCard";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
-import { sourceFiles } from "../../../../tests/lib/source-files";
+import { sourceFiles } from "../../../../tests/lib/source-scan";
 
 const ROOT = path.resolve(__dirname, "../../../..");
 
@@ -30,6 +30,7 @@ function pieceLine(id: string, name: string, priceCents: number, totalCents: num
     unit: "PIECE",
     priceCents,
     totalCents,
+    estimatedPriceCents: null,
     weightGrams: null,
     sliceCount: null,
     sliceThickness: null,
@@ -49,6 +50,9 @@ const ORDER: KitchenOrder = {
   status: "ACCEPTED",
   totalCents: 1500,
   discountCents: 0,
+  weighToleranceRateBps: null,
+  weighToleranceCapCents: null,
+  estimatedTotalCents: null,
   customerNumber: null,
   isPro: false,
   customerNote: null,

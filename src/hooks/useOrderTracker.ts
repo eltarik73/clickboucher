@@ -4,10 +4,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import type { OrderStatus } from "@prisma/client";
+import type { AdjustmentCloseReason, AdjustmentStatus, OrderStatus } from "@prisma/client";
 import { nextOrderPollDelay, startVisiblePolling } from "@/hooks/useVisiblePolling";
 import { KITCHEN_HISTORY_STATUSES } from "@/lib/order-state-machine";
 import type { SaleUnit } from "@/lib/pricing/line";
+import type { FrozenToleranceColumns } from "@/lib/pricing/tolerance";
 
 export interface TrackedOrderItem {
   id: string;
@@ -25,10 +26,10 @@ export interface TrackedPriceAdjustment {
   newTotal: number;
   reason: string | null;
   adjustmentType: string;
-  status: string;
-  tier: number;
-  autoApproveAt: string | null;
-  escalateAt: string | null;
+  status: AdjustmentStatus;
+  closeReason: AdjustmentCloseReason | null;
+  /** Deadline of the customer's answer; null on rows without a stored deadline. */
+  answerBy: string | null;
   createdAt: string;
 }
 
@@ -36,7 +37,7 @@ export interface TrackedPriceAdjustment {
  * What the tracking page reads of an order, in the JSON of the customer view
  * (src/lib/services/orders/customer-view.ts, dates as ISO strings).
  */
-export interface TrackedOrder {
+export interface TrackedOrder extends FrozenToleranceColumns {
   id: string;
   status: OrderStatus;
   displayNumber: string | null;

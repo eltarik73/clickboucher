@@ -13,7 +13,7 @@ vi.hoisted(() => {
   vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", undefined);
 });
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -63,6 +63,7 @@ async function guestBody(names: { firstName: string; lastName: string }) {
     ...request,
     idempotencyKey: randomUUID(),
     expectedTotalCents: quote.amountDueCents,
+    weighTolerance: "STANDARD",
     email: EMAIL,
     phone: "06 12 34 56 78",
     ...names,

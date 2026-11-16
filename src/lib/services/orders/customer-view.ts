@@ -1,6 +1,8 @@
 // src/lib/services/orders/customer-view.ts — what a customer (signed-in or guest) reads of an order.
 // An allow-list: an Order, OrderItem or Product column added to the schema is never sent to a
-// customer until it is added here. Left out on purpose: commission and Stripe columns, the
+// customer until it is added here. The weighing tolerance frozen on the order (rate, cap and the
+// estimated total it applies to) is the customer's own choice and is shown to him. Left out on
+// purpose: commission and Stripe columns, the
 // idempotency key, offer and loyalty references, the butcher's weighing columns of the lines, the
 // product row (pro and boutique prices, stock, reference catalogue), the shop owner and every user
 // identifier.
@@ -11,6 +13,8 @@
 import type { Prisma } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { isAdjustmentAnswerDue } from "@/lib/pricing/tolerance";
+import { settleDueAdjustment } from "./adjustment-answers";
 import {
   orderCustomerNumber,
   orderPersonColumns,
@@ -35,6 +39,9 @@ export const customerOrderSelect = {
   expiresAt: true,
   totalCents: true,
   discountCents: true,
+  weighToleranceRateBps: true,
+  weighToleranceCapCents: true,
+  estimatedTotalCents: true,
   paymentMethod: true,
   paidAt: true,
   qrCode: true,
@@ -88,10 +95,9 @@ export const customerOrderSelect = {
       reason: true,
       adjustmentType: true,
       status: true,
-      tier: true,
       itemsSnapshot: true,
-      autoApproveAt: true,
-      escalateAt: true,
+      answerBy: true,
+      closeReason: true,
       respondedAt: true,
       createdAt: true,
     },
@@ -119,11 +125,22 @@ function toCustomerOrder(row: CustomerOrderRow): CustomerOrder {
 }
 
 /** The order matching `where` (which carries the caller's ownership), or null. */
-export async function findCustomerOrder(
-  where: Prisma.OrderWhereInput
-): Promise<CustomerOrder | null> {
+async function findCustomerOrder(where: Prisma.OrderWhereInput): Promise<CustomerOrder | null> {
   const row = await prisma.order.findFirst({ where, select: customerOrderQuery });
   return row === null ? null : toCustomerOrder(row);
+}
+
+/**
+ * The order the caller may read (its access already checked), as its customer sees it at `now`. A
+ * price adjustment left unanswered past its window is closed first (silence keeps the price) and
+ * the order read again. The row in hand decides it: a read without a due adjustment writes
+ * nothing, so the status route polled by /suivi opens no transaction on each poll.
+ */
+export async function readCustomerOrder(orderId: string, now: Date): Promise<CustomerOrder | null> {
+  const order = await findCustomerOrder({ id: orderId });
+  if (order === null || !isAdjustmentAnswerDue(order.priceAdjustment, now)) return order;
+  await settleDueAdjustment(orderId, now);
+  return findCustomerOrder({ id: orderId });
 }
 
 /** The orders matching `where`, newest first, at most `take`. */

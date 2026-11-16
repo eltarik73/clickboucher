@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { sourceFiles } from "../lib/source-files";
+import { sourceFiles } from "../lib/source-scan";
 
 const ROOT = path.resolve(__dirname, "../..");
 const UI_DIR = "src/components/ui";

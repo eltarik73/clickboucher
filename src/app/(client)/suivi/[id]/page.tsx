@@ -4,12 +4,14 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { authorizeOrderAccess } from "@/lib/auth/order-access";
 import { isCredentialShaped, orderAccessPath, orderPagePath } from "@/lib/auth/order-credential";
-import { findCustomerOrder } from "@/lib/services/orders/customer-view";
+import { readCustomerOrder } from "@/lib/services/orders/customer-view";
 import { formatCustomerNumber } from "@/lib/order-number-format";
 import SuiviClient from "./SuiviClient";
 
 // Tracking page of an order, for its customer: the order's credential cookie or the signed-in owner
 // (src/lib/auth/order-access.ts). Anyone else: sign-in without a session, 404 otherwise.
+// The page reads the order like its polling (readCustomerOrder): a price adjustment left unanswered
+// past its window is closed first (silence is a refusal).
 export default async function SuiviPage({
   params,
   searchParams,
@@ -34,7 +36,7 @@ export default async function SuiviPage({
     notFound();
   }
 
-  const order = await findCustomerOrder({ id: access.orderId });
+  const order = await readCustomerOrder(access.orderId, new Date());
   if (!order) notFound();
 
   return (
@@ -72,6 +74,9 @@ export default async function SuiviPage({
           firstName: order.user.firstName,
           lastName: order.user.lastName,
         },
+        weighToleranceRateBps: order.weighToleranceRateBps,
+        weighToleranceCapCents: order.weighToleranceCapCents,
+        estimatedTotalCents: order.estimatedTotalCents,
         priceAdjustment: order.priceAdjustment
           ? {
               id: order.priceAdjustment.id,
@@ -80,9 +85,8 @@ export default async function SuiviPage({
               reason: order.priceAdjustment.reason,
               adjustmentType: order.priceAdjustment.adjustmentType,
               status: order.priceAdjustment.status,
-              tier: order.priceAdjustment.tier,
-              autoApproveAt: order.priceAdjustment.autoApproveAt?.toISOString() ?? null,
-              escalateAt: order.priceAdjustment.escalateAt?.toISOString() ?? null,
+              closeReason: order.priceAdjustment.closeReason,
+              answerBy: order.priceAdjustment.answerBy?.toISOString() ?? null,
               createdAt: order.priceAdjustment.createdAt.toISOString(),
             }
           : null,

@@ -25,8 +25,6 @@ import type { OrderLineInput, OrderQuoteRequest } from "@/lib/validators/order";
 import { resolveDiscount, type ResolvedDiscount } from "./discount";
 import { orderShopSelect, type OrderShop } from "./order-shop";
 
-export type { OrderShop } from "./order-shop";
-
 export interface OrderCustomer {
   id: string;
   role: Role;

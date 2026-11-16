@@ -1,164 +1,126 @@
-// PriceAdjustModal — Boucher adjusts order price (3-tier system)
+// PriceAdjustModal — the butcher weighs an order again, reprices its lines or types a new total.
+// Before he sends it, the window shows the server's own plan (price-adjust-preview.ts): the value
+// typed wrong, or whether the new price applies at once or the customer must accept it. The server
+// plans again on send and applies the platform's cap; the parent shows its answer.
 "use client";
 
-import { useState } from "react";
-import {
-  DollarSign,
-  Loader2,
-  X,
-  Scale,
-  Tag,
-  PenLine,
-  Shield,
-  Clock,
-  AlertTriangle,
-} from "lucide-react";
+import { useState, type KeyboardEvent } from "react";
+import type { AdjustmentType } from "@prisma/client";
+import { Euro, Loader2, PenLine, Scale, Tag, X } from "lucide-react";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
-import { TIER_1_MAX, TIER_2_MAX, MAX_INCREASE_PCT } from "@/lib/price-adjustment-config";
+import { formatPriceCents as formatPrice, formatUnit } from "@/lib/format-kitchen";
+import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
+import type { AdjustmentPlan } from "@/lib/pricing/adjustment";
+import { isWeighedUnit } from "@/lib/pricing/line";
+import AdjustmentDecisionNotice from "./AdjustmentDecisionNotice";
+import { formatItemQty } from "./OrderTicket";
+import { previewAdjustment, type TypedInputs } from "./price-adjust-preview";
 
 type Props = {
   order: KitchenOrder;
   onClose: () => void;
-  onConfirm: (orderId: string, data: AdjustData) => Promise<void>;
+  /** Sends the adjustment; resolves true once the server took it (applied or sent to the customer). */
+  onConfirm: (orderId: string, data: AdjustPriceRequest) => Promise<boolean>;
 };
 
-type AdjustData = {
-  adjustmentType: "WEIGHT" | "PRICE" | "MANUAL";
-  reason?: string;
-  items?: { orderItemId: string; newQuantity?: number; newPriceCents?: number }[];
-  newTotalCents?: number;
-};
+type Item = KitchenOrder["items"][number];
+type Inputs = TypedInputs["weights"];
 
-type TabKey = "WEIGHT" | "PRICE" | "MANUAL";
+const TABS: ReadonlyArray<{ key: AdjustmentType; label: string; icon: typeof Scale }> = [
+  { key: "WEIGHT", label: "Pesée", icon: Scale },
+  { key: "PRICE", label: "Prix unitaire", icon: Tag },
+  { key: "MANUAL", label: "Total", icon: PenLine },
+];
 
-function formatPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " \u20AC";
+const FIELD =
+  "min-h-11 rounded-lg border border-white/10 bg-[#0a0a0a] px-2 text-center text-sm text-white " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white aria-[invalid=true]:border-red-500";
+
+function diffTone(diff: number): string {
+  if (diff < 0) return "text-emerald-400";
+  return diff > 0 ? "text-amber-400" : "text-gray-400";
 }
 
-function computeDisplayTier(diffPct: number, isDecrease: boolean): number {
-  if (isDecrease) return 1;
-  if (diffPct <= TIER_1_MAX) return 1;
-  if (diffPct <= TIER_2_MAX) return 2;
-  return 3;
+/** Under the totals: the refusal of a value typed wrong, or what the server will do. */
+function PlanNotice({ plan }: { plan: AdjustmentPlan | null }) {
+  if (plan === null) return null;
+  if (!plan.ok) return <p className="text-xs font-medium text-red-400">{plan.message}</p>;
+  if (plan.unchanged) return null;
+  return <AdjustmentDecisionNotice decision={plan.decision} />;
+}
+
+/** One line of the order with the field the butcher types its new weight, count or price in. */
+function LineField(props: {
+  item: Item;
+  value: string;
+  unit: string;
+  label: string;
+  invalid: boolean;
+  onChange: (value: string) => void;
+}) {
+  const { item } = props;
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-white">{item.product.name}</p>
+        <p className="text-xs text-gray-400">
+          {formatItemQty(item)} · {formatPrice(item.priceCents)}{" "}
+          {isWeighedUnit(item.unit) ? "le kg" : "l'unité"}
+        </p>
+      </div>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value)}
+        aria-label={props.label}
+        aria-invalid={props.invalid}
+        className={`w-24 ${FIELD}`}
+      />
+      <span className="w-10 text-xs text-gray-400">{props.unit}</span>
+    </div>
+  );
 }
 
 export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
-  const [tab, setTab] = useState<TabKey>("WEIGHT");
+  // A line out of stock is neither prepared nor charged: there is nothing to weigh or price.
+  const items = order.items.filter((item) => item.available);
+  const [tab, setTab] = useState<AdjustmentType>("WEIGHT");
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState("");
+  const [weights, setWeights] = useState<Inputs>(() =>
+    Object.fromEntries(items.map((item) => [item.id, String(item.quantity)]))
+  );
+  const [prices, setPrices] = useState<Inputs>(() =>
+    Object.fromEntries(items.map((item) => [item.id, (item.priceCents / 100).toFixed(2)]))
+  );
+  const [total, setTotal] = useState((order.totalCents / 100).toFixed(2));
 
-  // Weight tab: new quantities per item
-  const [quantities, setQuantities] = useState<Record<string, number>>(() => {
-    const map: Record<string, number> = {};
-    for (const item of order.items) {
-      map[item.id] = item.quantity;
-    }
-    return map;
-  });
+  const preview = previewAdjustment(order, tab, { weights, prices, total });
+  const plan = preview?.plan ?? null;
+  // What the button sends: nothing while no field changes the order or one is refused.
+  const request =
+    preview !== null && preview.plan.ok && !preview.plan.unchanged ? preview.request : null;
+  const newTotal = plan?.ok ? plan.newTotalCents : order.totalCents;
+  const diff = newTotal - order.totalCents;
+  const asks = plan?.ok === true && plan.decision.decision === "ASK";
 
-  const [weightInputs, setWeightInputs] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    for (const item of order.items) {
-      const isKg = (item.product?.unit || item.unit) === "KG";
-      map[item.id] = isKg ? item.quantity.toFixed(2) : String(item.quantity);
-    }
-    return map;
-  });
-
-  // Price tab: new unit prices per item
-  const [prices, setPrices] = useState<Record<string, number>>(() => {
-    const map: Record<string, number> = {};
-    for (const item of order.items) {
-      map[item.id] = item.priceCents;
-    }
-    return map;
-  });
-
-  const [priceInputs, setPriceInputs] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    for (const item of order.items) {
-      map[item.id] = (item.priceCents / 100).toFixed(2);
-    }
-    return map;
-  });
-
-  // Manual tab
-  const [manualTotal, setManualTotal] = useState(order.totalCents);
-  const [manualInput, setManualInput] = useState((order.totalCents / 100).toFixed(2));
-
-  // ── Calculate new total based on active tab ──
-  const originalTotal = order.totalCents;
-  let newTotal: number;
-
-  if (tab === "WEIGHT") {
-    newTotal = order.items.reduce((sum, item) => {
-      const qty = quantities[item.id] ?? item.quantity;
-      return sum + Math.round(item.priceCents * qty);
-    }, 0);
-  } else if (tab === "PRICE") {
-    newTotal = order.items.reduce((sum, item) => {
-      const price = prices[item.id] ?? item.priceCents;
-      return sum + Math.round(price * item.quantity);
-    }, 0);
-  } else {
-    newTotal = manualTotal;
-  }
-
-  const diff = newTotal - originalTotal;
-  const diffPct = originalTotal > 0 ? Math.abs(diff / originalTotal) * 100 : 0;
-  const maxAllowed = Math.round(originalTotal * (1 + MAX_INCREASE_PCT / 100));
-  const overMax = newTotal > maxAllowed;
-  const hasChanges = newTotal !== originalTotal;
-  const isDecrease = diff < 0;
-  const tier = hasChanges ? computeDisplayTier(diffPct, isDecrease) : 0;
-
-  async function handleSubmit() {
+  async function submit() {
+    if (request === null) return;
     setLoading(true);
     try {
-      const data: AdjustData = {
-        adjustmentType: tab,
-        reason: reason || undefined,
-      };
-
-      if (tab === "WEIGHT") {
-        data.items = order.items
-          .filter((item) => (quantities[item.id] ?? item.quantity) !== item.quantity)
-          .map((item) => ({
-            orderItemId: item.id,
-            newQuantity: quantities[item.id],
-          }));
-      } else if (tab === "PRICE") {
-        data.items = order.items
-          .filter((item) => (prices[item.id] ?? item.priceCents) !== item.priceCents)
-          .map((item) => ({
-            orderItemId: item.id,
-            newPriceCents: prices[item.id],
-          }));
-      } else {
-        data.newTotalCents = manualTotal;
-      }
-
-      await onConfirm(order.id, data);
-      onClose();
-    } catch {
-      // handled by parent
+      const sent = await onConfirm(order.id, { ...request, reason: reason.trim() || undefined });
+      if (sent) onClose();
     } finally {
       setLoading(false);
     }
   }
 
-  const tabs: { key: TabKey; label: string; icon: typeof Scale }[] = [
-    { key: "WEIGHT", label: "Grammage", icon: Scale },
-    { key: "PRICE", label: "Prix", icon: Tag },
-    { key: "MANUAL", label: "Manuel", icon: PenLine },
-  ];
+  function closeOnEscape(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") onClose();
+  }
 
-  // ── Tier badge config ──
-  const tierConfig = {
-    1: { label: "Palier 1", color: "emerald", icon: Shield, desc: "Auto-accepte" },
-    2: { label: "Palier 2", color: "amber", icon: Clock, desc: "30s pour refuser" },
-    3: { label: "Palier 3", color: "red", icon: AlertTriangle, desc: "Approbation client requise" },
-  } as const;
+  const invalidItem = plan?.ok === false ? plan.orderItemId : null;
 
   return (
     <div
@@ -166,338 +128,151 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="price-adjust-title"
+      onKeyDown={closeOnEscape}
     >
       <div className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl border border-white/10 bg-[#1a1a1a] shadow-2xl">
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 py-2 pl-5 pr-2">
           <div className="flex items-center gap-2">
-            <DollarSign size={20} className="text-amber-400" aria-hidden="true" />
+            <Euro size={20} className="text-amber-400" aria-hidden="true" />
             <h3 id="price-adjust-title" className="text-base font-bold text-white">
-              Ajuster le prix
+              Ajuster le prix · {order.displayNumber || `#${order.orderNumber}`}
             </h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-gray-500 transition-colors hover:text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             aria-label="Fermer la fenêtre d'ajustement"
           >
             <X size={20} aria-hidden="true" />
           </button>
         </div>
 
-        {/* Order info */}
-        <div className="flex shrink-0 items-center justify-between bg-white/5 px-5 py-3">
-          <div>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Commande </span>
-            <span className="font-mono text-sm font-bold text-white">
-              {order.displayNumber || `#${order.orderNumber}`}
-            </span>
-          </div>
-          <span className="text-sm font-bold text-white">{formatPrice(originalTotal)}</span>
-        </div>
-
-        {/* Tabs */}
         <div className="flex shrink-0 gap-2 px-5 pt-3">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const isActive = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold transition-all ${
-                  isActive
-                    ? "border border-amber-500/30 bg-amber-500/20 text-amber-400"
-                    : "border border-transparent bg-white/5 text-gray-500 hover:bg-white/10"
-                }`}
-              >
-                <Icon size={14} />
-                {t.label}
-              </button>
-            );
-          })}
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              aria-pressed={tab === key}
+              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent bg-white/5 text-sm font-semibold text-gray-400 transition-all hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white aria-pressed:border-amber-500/30 aria-pressed:bg-amber-500/20 aria-pressed:text-amber-400"
+            >
+              <Icon size={14} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 space-y-3 overflow-y-auto px-5 py-3">
-          {/* WEIGHT tab */}
+        <div className="flex-1 space-y-2 overflow-y-auto px-5 py-3">
           {tab === "WEIGHT" && (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Modifiez les quantites (poids reel) :
-              </p>
-              {order.items.map((item) => {
-                const isKg = (item.product?.unit || item.unit) === "KG";
-                return (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-white">
-                        {item.product?.name || item.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {item.quantity} {isKg ? "kg" : "pc"} x {formatPrice(item.priceCents)}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <input
-                        type="number"
-                        step={isKg ? "0.01" : "1"}
-                        min={0}
-                        value={
-                          weightInputs[item.id] ??
-                          (isKg ? item.quantity.toFixed(2) : String(item.quantity))
-                        }
-                        onChange={(e) => {
-                          setWeightInputs({ ...weightInputs, [item.id]: e.target.value });
-                          setQuantities({
-                            ...quantities,
-                            [item.id]: parseFloat(e.target.value) || 0,
-                          });
-                        }}
-                        onBlur={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setWeightInputs({
-                            ...weightInputs,
-                            [item.id]: isKg ? val.toFixed(2) : String(val),
-                          });
-                          setQuantities({ ...quantities, [item.id]: val });
-                        }}
-                        className="w-20 rounded-lg border border-white/10 bg-[#0a0a0a] px-2 py-2 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                        aria-label={`Quantité pour ${item.product?.name || item.name}`}
-                      />
-                      <span className="w-6 text-xs text-gray-500">{isKg ? "kg" : "pc"}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* PRICE tab */}
-          {tab === "PRICE" && (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Modifiez les prix unitaires :
-              </p>
-              {order.items.map((item) => (
-                <div
+            <>
+              <p className="text-xs text-gray-400">Poids réel (kg) ou nombre de pièces :</p>
+              {items.map((item) => (
+                <LineField
                   key={item.id}
-                  className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">
-                      {item.product?.name || item.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Qty: {item.quantity} — Actuel: {formatPrice(item.priceCents)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      value={priceInputs[item.id] ?? (item.priceCents / 100).toFixed(2)}
-                      onChange={(e) => {
-                        setPriceInputs({ ...priceInputs, [item.id]: e.target.value });
-                        setPrices({
-                          ...prices,
-                          [item.id]: Math.round(parseFloat(e.target.value || "0") * 100),
-                        });
-                      }}
-                      onBlur={(e) => {
-                        const cents = Math.round(parseFloat(e.target.value || "0") * 100);
-                        setPriceInputs({ ...priceInputs, [item.id]: (cents / 100).toFixed(2) });
-                        setPrices({ ...prices, [item.id]: cents });
-                      }}
-                      className="w-24 rounded-lg border border-white/10 bg-[#0a0a0a] px-2 py-2 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                      aria-label={`Prix unitaire pour ${item.product?.name || item.name}`}
-                    />
-                    <span className="text-xs text-gray-500">EUR</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* MANUAL tab */}
-          {tab === "MANUAL" && (
-            <div className="space-y-3">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Saisissez le nouveau total :
-              </p>
-              <div className="flex items-center justify-center gap-3">
-                <input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={manualInput}
-                  onChange={(e) => {
-                    setManualInput(e.target.value);
-                    setManualTotal(Math.round(parseFloat(e.target.value || "0") * 100));
-                  }}
-                  onBlur={() => {
-                    const cents = Math.round(parseFloat(manualInput || "0") * 100);
-                    setManualInput((cents / 100).toFixed(2));
-                    setManualTotal(cents);
-                  }}
-                  className="w-40 rounded-xl border border-white/10 bg-[#0a0a0a] px-4 py-3 text-center text-xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-                  aria-label="Nouveau montant total"
+                  item={item}
+                  value={weights[item.id]}
+                  unit={isWeighedUnit(item.unit) ? "kg" : formatUnit(item.unit)}
+                  label={`Quantité pesée pour ${item.product.name}`}
+                  invalid={invalidItem === item.id}
+                  onChange={(value) => setWeights({ ...weights, [item.id]: value })}
                 />
-                <span className="text-lg font-bold text-gray-500 dark:text-gray-400">EUR</span>
-              </div>
+              ))}
+              <p className="text-xs font-medium text-amber-300">
+                Remettez au client le ticket de pesée (poids et prix).
+              </p>
+            </>
+          )}
+
+          {tab === "PRICE" && (
+            <>
+              <p className="text-xs text-gray-400">Nouveau prix unitaire :</p>
+              {items.map((item) => (
+                <LineField
+                  key={item.id}
+                  item={item}
+                  value={prices[item.id]}
+                  unit={isWeighedUnit(item.unit) ? "€/kg" : "€"}
+                  label={`Prix unitaire pour ${item.product.name}`}
+                  invalid={invalidItem === item.id}
+                  onChange={(value) => setPrices({ ...prices, [item.id]: value })}
+                />
+              ))}
+            </>
+          )}
+
+          {tab === "MANUAL" && (
+            <div className="flex items-center justify-center gap-3 py-2">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={total}
+                onChange={(event) => setTotal(event.target.value)}
+                aria-label="Nouveau total de la commande"
+                aria-invalid={plan?.ok === false}
+                className={`w-40 text-xl font-bold ${FIELD}`}
+              />
+              <span className="text-lg font-bold text-gray-400">€</span>
             </div>
           )}
 
-          {/* Reason */}
-          <div>
-            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-              Raison {tier === 3 ? "(recommande)" : "(optionnel)"}
-            </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Ex: Poids reel different de la commande..."
-              className="w-full resize-none rounded-xl border border-white/10 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-              rows={2}
-            />
-          </div>
+          <label htmlFor="price-adjust-reason" className="block pt-1 text-xs text-gray-400">
+            Motif (facultatif, le client le lit)
+          </label>
+          <textarea
+            id="price-adjust-reason"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            maxLength={500}
+            placeholder="Ex. : poids réel différent de la commande"
+            className="w-full resize-none rounded-xl border border-white/10 bg-[#0a0a0a] px-3 py-2 text-sm text-white placeholder-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            rows={2}
+          />
         </div>
 
-        {/* ── Price diff + tier display ── */}
-        <div className="shrink-0 border-t border-white/10 px-5 py-3">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="shrink-0 space-y-3 border-t border-white/10 px-5 py-3">
+          <dl className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">Ancien total</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {formatPrice(originalTotal)}
-              </p>
+              <dt className="text-xs text-gray-400">Total actuel</dt>
+              <dd className="text-sm text-gray-300">{formatPrice(order.totalCents)}</dd>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500">Difference</p>
-              <p
-                className={`text-sm font-bold ${diff < 0 ? "text-emerald-400" : diff > 0 ? "text-amber-400" : "text-gray-500"}`}
-              >
-                {diff >= 0 ? "+" : ""}
-                {formatPrice(diff)} ({diff >= 0 ? "+" : "-"}
-                {diffPct.toFixed(1)}%)
-              </p>
+              <dt className="text-xs text-gray-400">Écart de cet ajustement</dt>
+              <dd className={`text-sm font-bold ${diffTone(diff)}`}>
+                {diff > 0 ? "+" : ""}
+                {formatPrice(diff)}
+              </dd>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500">Nouveau total</p>
-              <p className="text-lg font-bold text-white">{formatPrice(newTotal)}</p>
+              <dt className="text-xs text-gray-400">Nouveau total</dt>
+              <dd className="text-lg font-bold text-white">{formatPrice(newTotal)}</dd>
             </div>
+          </dl>
+
+          <div aria-live="polite">
+            <PlanNotice plan={plan} />
           </div>
 
-          {/* Tier badge */}
-          {hasChanges && !overMax && tier > 0 && (
-            <div
-              className={`mb-3 rounded-lg border px-3 py-2.5 ${
-                tier === 1
-                  ? "border-emerald-500/20 bg-emerald-500/10"
-                  : tier === 2
-                    ? "border-amber-500/20 bg-amber-500/10"
-                    : "border-red-500/20 bg-red-500/10"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {(() => {
-                  const tc = tierConfig[tier as 1 | 2 | 3];
-                  const Icon = tc.icon;
-                  return (
-                    <>
-                      <Icon
-                        size={14}
-                        className={
-                          tier === 1
-                            ? "text-emerald-400"
-                            : tier === 2
-                              ? "text-amber-400"
-                              : "text-red-400"
-                        }
-                      />
-                      <span
-                        className={`text-xs font-bold ${
-                          tier === 1
-                            ? "text-emerald-400"
-                            : tier === 2
-                              ? "text-amber-400"
-                              : "text-red-400"
-                        }`}
-                      >
-                        {tc.label}
-                      </span>
-                      <span
-                        className={`ml-1 text-xs ${
-                          tier === 1
-                            ? "text-emerald-400/70"
-                            : tier === 2
-                              ? "text-amber-400/70"
-                              : "text-red-400/70"
-                        }`}
-                      >
-                        — {tc.desc}
-                      </span>
-                    </>
-                  );
-                })()}
-              </div>
-              <p
-                className={`mt-1 text-[11px] ${
-                  tier === 1
-                    ? "text-emerald-400/60"
-                    : tier === 2
-                      ? "text-amber-400/60"
-                      : "text-red-400/60"
-                }`}
-              >
-                {tier === 1 && isDecrease && "Baisse de prix — appliquee automatiquement"}
-                {tier === 1 && !isDecrease && `Hausse ≤${TIER_1_MAX}% — appliquee automatiquement`}
-                {tier === 2 && `Hausse ${TIER_1_MAX}-${TIER_2_MAX}% — le client a 30s pour refuser`}
-                {tier === 3 &&
-                  `Hausse >${TIER_2_MAX}% — le client doit accepter (escalade apres 10 min)`}
-              </p>
-            </div>
-          )}
-
-          {/* Over max warning */}
-          {overMax && (
-            <div className="mb-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-              <p className="text-xs font-medium text-red-400">
-                L&apos;ajustement ne peut pas depasser +{MAX_INCREASE_PCT}% du prix initial (
-                {formatPrice(maxAllowed)} max)
-              </p>
-            </div>
-          )}
-
-          {/* Actions */}
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-white/10 py-3 font-medium text-gray-500 transition-all hover:bg-white/5 hover:text-white dark:text-gray-400"
+              className="min-h-12 flex-1 rounded-xl border border-white/10 font-medium text-gray-300 transition-all hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               Annuler
             </button>
             <button
-              onClick={handleSubmit}
-              disabled={!hasChanges || overMax || loading}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
-                tier === 3
-                  ? "bg-red-600 text-white hover:bg-red-700"
-                  : "bg-amber-600 text-white hover:bg-amber-700"
+              type="button"
+              onClick={() => void submit()}
+              disabled={request === null || loading}
+              className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl px-2 font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-40 ${
+                asks
+                  ? "bg-amber-500 text-amber-950 hover:bg-amber-400"
+                  : "bg-emerald-700 text-white hover:bg-emerald-600"
               }`}
             >
-              {loading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  <DollarSign size={16} />
-                  {tier === 3 ? "Envoyer au client" : "Confirmer"}
-                </>
-              )}
+              {loading && <Loader2 size={18} className="animate-spin" aria-hidden="true" />}
+              {asks ? "Demander l'accord du client" : "Appliquer"}
             </button>
           </div>
         </div>

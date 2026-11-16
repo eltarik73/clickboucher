@@ -560,20 +560,26 @@ describe("src/lib/pricing stays pure and client-safe", () => {
     );
   });
 
-  it.each(modules)("%s imports only its siblings, the fee constant, or Prisma types", (name) => {
-    const source = fs.readFileSync(path.join(directory, name), "utf8");
-    const refused = [...source.matchAll(IMPORT)]
-      .map((match) => ({ typeOnly: match[1] !== undefined, specifier: match[2] }))
-      .filter(
-        ({ typeOnly, specifier }) =>
-          !specifier.startsWith("./") &&
-          specifier !== "@/lib/services/stripe/commission" &&
-          !(typeOnly && specifier === "@prisma/client")
-      );
+  it.each(modules)(
+    "%s imports only its siblings, the fee constant, or types (Prisma, the adjustment request)",
+    (name) => {
+      const source = fs.readFileSync(path.join(directory, name), "utf8");
+      const refused = [...source.matchAll(IMPORT)]
+        .map((match) => ({ typeOnly: match[1] !== undefined, specifier: match[2] }))
+        .filter(
+          ({ typeOnly, specifier }) =>
+            !specifier.startsWith("./") &&
+            specifier !== "@/lib/services/stripe/commission" &&
+            !(
+              typeOnly &&
+              (specifier === "@prisma/client" || specifier === "@/lib/price-adjustment-request")
+            )
+        );
 
-    expect(refused).toEqual([]);
-    expect(source).not.toMatch(/\brequire\(|\bimport\(|^import\s+["']/m);
-  });
+      expect(refused).toEqual([]);
+      expect(source).not.toMatch(/\brequire\(|\bimport\(|^import\s+["']/m);
+    }
+  );
 
   it.each(modules)("%s never reads the clock: time is a parameter", (name) => {
     const source = fs.readFileSync(path.join(directory, name), "utf8");

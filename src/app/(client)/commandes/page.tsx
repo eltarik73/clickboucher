@@ -38,7 +38,6 @@ interface PriceAdjustment {
   originalTotal: number;
   newTotal: number;
   status: string;
-  autoApproveAt: string | null;
 }
 
 interface Order {

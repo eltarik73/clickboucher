@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Prisma } from "@prisma/client";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -210,6 +210,7 @@ describe("resolveDiscount through the quote — refused with a French message", 
       ...request,
       idempotencyKey: randomUUID(),
       expectedTotalCents: quote.amountDueCents,
+      weighTolerance: "STANDARD",
     };
 
     const result = await createOrder(fullPrice, customer);

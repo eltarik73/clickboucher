@@ -1,24 +1,33 @@
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, formatZodError, handleApiError } from "@/lib/api/errors";
+import { readJsonBody } from "@/lib/api/request-body";
 import { getOrCreateUser } from "@/lib/get-or-create-user";
 import { getServerUserId } from "@/lib/auth/server-auth";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { KITCHEN_ACTIVE_STATUSES } from "@/lib/order-state-machine";
+import { weighToleranceChoiceSchema } from "@/lib/validators/order";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const updateMeSchema = z.object({
-  notifSms: z.boolean().optional(),
-  notifWhatsapp: z.boolean().optional(),
-  phone: z
-    .string()
-    .regex(/^\+33[0-9]{9}$/, "Numéro au format +33XXXXXXXXX")
-    .nullable()
-    .optional(),
-});
+const updateMeSchema = z
+  .object({
+    notifSms: z.boolean().optional(),
+    notifWhatsapp: z.boolean().optional(),
+    phone: z
+      .string()
+      .regex(/^\+33[0-9]{9}$/, "Numéro au format +33XXXXXXXXX")
+      .nullable()
+      .optional(),
+    /** The weighing tolerance reused by the member's next orders: a choice, never an amount. */
+    weighTolerance: weighToleranceChoiceSchema.optional(),
+  })
+  .strict()
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: "Aucune préférence à enregistrer",
+  });
 
 // ── GET /api/users/me ────────────────────────────
 // Returns the authenticated user's profile with favorite shops
@@ -80,7 +89,7 @@ export async function GET() {
 }
 
 // ── PATCH /api/users/me ──────────────────────────
-// Update notification preferences + phone
+// Update notification preferences + phone, and the weighing tolerance of the next orders
 export async function PATCH(req: NextRequest) {
   try {
     // @security: test-only — uses getServerUserId() for test mode bypass
@@ -92,8 +101,11 @@ export async function PATCH(req: NextRequest) {
     const rl = await checkRateLimit(rateLimits.api, `user-patch:${userId}`);
     if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
-    const body = await req.json();
-    const data = updateMeSchema.parse(body);
+    const parsed = updateMeSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
+    }
+    const data = parsed.data;
 
     // Ensure user exists (auto-create if needed)
     const user = await getOrCreateUser(userId);
@@ -117,6 +129,7 @@ export async function PATCH(req: NextRequest) {
         ...(data.notifSms !== undefined && { notifSms: data.notifSms }),
         ...(data.notifWhatsapp !== undefined && { notifWhatsapp: data.notifWhatsapp }),
         ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.weighTolerance !== undefined && { weighTolerance: data.weighTolerance }),
       },
     });
 

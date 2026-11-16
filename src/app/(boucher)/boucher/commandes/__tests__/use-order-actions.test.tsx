@@ -3,6 +3,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
 import { stopOrderAlert } from "@/lib/sounds";
 import { useOrderActions } from "../use-order-actions";
 
@@ -64,23 +65,55 @@ describe("useOrderActions", () => {
     expect(toast.error).toHaveBeenLastCalledWith("Erreur lors de l'action");
   });
 
-  it("envoie l'ajustement de prix tel quel et annonce une baisse appliquée", async () => {
-    answer(Response.json({ success: true, data: { autoApproved: true } }));
-    const data = { items: [{ itemId: "i-1", newWeightGrams: 450 }], reason: "Poids réel" };
+  it("envoie l'ajustement de prix tel quel, relit le tableau et annonce ce que le serveur a fait", async () => {
+    const data: AdjustPriceRequest = {
+      adjustmentType: "WEIGHT",
+      items: [{ orderItemId: "i-1", newQuantity: 0.45 }],
+      reason: "Poids réel",
+    };
+    answer(
+      Response.json({ success: true, data: { adjustment: null, applied: true, decision: {} } })
+    );
 
-    await act(() => actions().handleAdjustPrice("o-1", data));
+    await act(async () => {
+      expect(await actions().handleAdjustPrice("o-1", data)).toBe(true);
+    });
 
     expect(fetch).toHaveBeenCalledWith("/api/orders/o-1/adjust-price", {
       ...JSON_PATCH,
       body: JSON.stringify(data),
     });
     expect(refetch).toHaveBeenCalledOnce();
-    expect(toast.success).toHaveBeenCalledWith("Prix ajusté automatiquement (baisse)");
+    expect(toast.success).toHaveBeenLastCalledWith("Prix mis à jour");
+
+    answer(
+      Response.json({ success: true, data: { adjustment: null, applied: false, decision: {} } })
+    );
+    await act(() => actions().handleAdjustPrice("o-1", data));
+    expect(toast.success).toHaveBeenLastCalledWith("Demande envoyée au client");
+
+    // A replay of the order's current state: « applied » only when its adjustment set the total.
+    for (const [applied, notice] of [
+      [true, "Prix mis à jour"],
+      [false, "Prix inchangé"],
+    ] as const) {
+      answer(
+        Response.json({ success: true, data: { adjustment: null, applied, _idempotent: true } })
+      );
+      await act(() => actions().handleAdjustPrice("o-1", data));
+      expect(toast.success).toHaveBeenLastCalledWith(notice);
+    }
   });
 
   it("affiche le refus d'un ajustement sans relire, et signale une coupure réseau", async () => {
     answer(refusal(400, "Le nouveau poids est hors limite"));
-    await act(() => actions().handleAdjustPrice("o-1", {}));
+    await act(async () => {
+      const sent = await actions().handleAdjustPrice("o-1", {
+        adjustmentType: "MANUAL",
+        newTotalCents: 2500,
+      });
+      expect(sent).toBe(false);
+    });
     expect(toast.error).toHaveBeenLastCalledWith("Le nouveau poids est hors limite");
     expect(refetch).not.toHaveBeenCalled();
 

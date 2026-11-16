@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Order, OrderItem, Product, Shop, User } from "@prisma/client";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -137,14 +137,15 @@ type Ready = (place: Place) => Promise<PlacedOrder>;
 /** A PENDING order of one line at 1911. */
 const plain: Ready = (place) => place({});
 
-/** An ACCEPTED order with a pending tier-2 price adjustment (1911 -> 2198, +15 %). */
+/** An ACCEPTED order with a price increase awaiting the customer's answer (1911 -> 2198, +15 %). */
 async function withPendingAdjustment(place: Place): Promise<PlacedOrder> {
   const order = await place({ status: "ACCEPTED" });
-  const created = await adjustOrderPrice(order.id, shop.id, {
-    adjustmentType: "MANUAL",
-    newTotalCents: 2198,
-  });
-  if (!created.ok || created.data.autoApproved) throw new Error("ajustement en attente attendu");
+  const created = await adjustOrderPrice(
+    order.id,
+    { shopId: shop.id, actorId: shop.ownerId },
+    { adjustmentType: "MANUAL", newTotalCents: 2198 }
+  );
+  if (!created.ok || created.data.applied) throw new Error("ajustement en attente attendu");
   return order;
 }
 

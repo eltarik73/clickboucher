@@ -14,7 +14,7 @@ vi.hoisted(() => {
   vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", undefined);
 });
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -68,7 +68,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** A guest checkout body as the cart sends it: the confirmed total is the server's public quote. */
+/**
+ * A guest checkout body as the cart sends it: the confirmed total is the server's public quote, and
+ * the weighing tolerance shown above the order button.
+ */
 async function guestBody(contact: Record<string, string>, extra: Record<string, unknown> = {}) {
   const request = quoteRequest(shop.id, [{ productId: product.id, quantity: 1, weightGrams: 500 }]);
   const quote = await quoteOf(request, null);
@@ -76,6 +79,7 @@ async function guestBody(contact: Record<string, string>, extra: Record<string, 
     ...request,
     idempotencyKey: randomUUID(),
     expectedTotalCents: quote.amountDueCents,
+    weighTolerance: "STANDARD",
     ...IDENTITY,
     ...contact,
     ...extra,

@@ -69,7 +69,13 @@ export async function findAlternatives(
 
 export type LineChange =
   | { id: string; remove: true }
-  | { id: string; remove: false; data: Prisma.OrderItemUncheckedUpdateInput; totalCents: number };
+  | {
+      id: string;
+      remove: false;
+      data: Prisma.OrderItemUncheckedUpdateInput;
+      totalCents: number;
+      estimatedPriceCents: number;
+    };
 
 export const REPLACEMENT_SELECT = {
   id: true,
@@ -92,7 +98,9 @@ type DecisionLine = Pick<OrderItem, "id" | "name" | "unit" | "quantity" | "weigh
 
 /**
  * The new content of an out-of-stock line replaced by `product`: same unit and same quantity, priced
- * by the shared pricing module. A string is the French reason of a refusal.
+ * by the shared pricing module. Its total is also its new estimate, the price the customer accepts
+ * by choosing it: the weighing tolerance measures the line against it, never against the product
+ * it replaces. A string is the French reason of a refusal.
  */
 export function replacementChange(
   line: DecisionLine,
@@ -119,11 +127,13 @@ export function replacementChange(
     id: line.id,
     remove: false,
     totalCents,
+    estimatedPriceCents: totalCents,
     data: {
       productId: product.id,
       name: product.name,
       priceCents: price.unitPriceCents,
       totalCents,
+      estimatedPriceCents: totalCents,
       available: true,
       cutOption: null,
       cutPriceCents: null,

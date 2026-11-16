@@ -9,6 +9,12 @@ import * as tpl from "@/lib/email-templates";
 import { escapeHtml } from "@/lib/html/escape";
 import { logger } from "@/lib/logger";
 import { notificationThrottle } from "@/lib/notification-policy";
+import {
+  ADJUSTMENT_ANSWER_NOTICE,
+  ADJUSTMENT_KEPT_PRICE,
+  adjustmentAmount,
+  adjustmentAppliedText,
+} from "@/lib/price-adjustment-messages";
 import { resolveNotificationRecipient } from "@/lib/notification-recipients";
 
 // ─────────────────────────────────────────────
@@ -39,8 +45,7 @@ export type NotifEvent =
   | "PRICE_ADJUSTMENT_AUTO_APPROVED"
   | "PRICE_ADJUSTMENT_ACCEPTED"
   | "PRICE_ADJUSTMENT_REJECTED"
-  | "PRICE_ADJUSTMENT_AUTO_VALIDATED"
-  | "PRICE_ADJUSTMENT_ESCALATED"
+  | "PRICE_ADJUSTMENT_EXPIRED"
   | "PICKUP_SOON"
   | "LOYALTY_REWARD_EARNED"
   | "PROMO_NEW"
@@ -61,11 +66,9 @@ export type NotifData = {
   pickupTime?: string;
   message?: string;
   note?: string;
-  // Price adjustment data
+  // Price adjustment data: the order's total before and after the proposed adjustment
   originalTotal?: number;
   newTotal?: number;
-  tier?: number;
-  autoApproveSeconds?: number;
   // Weekly report data
   weeklyRevenue?: number;
   weeklyOrders?: number;
@@ -234,43 +237,32 @@ function getTemplate(event: NotifEvent, data: NotifData): Template {
       return {
         subject: `💰 Ajustement de prix — Commande ${data.orderNumber}`,
         html: tpl.priceAdjustmentPending(data),
-        plainText: `Le boucher ${data.shopName} propose un ajustement de prix pour votre commande ${data.orderNumber}. Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€. Vous avez 5 min pour accepter ou refuser.`,
+        plainText: `${data.shopName} propose un nouveau prix pour votre commande ${data.orderNumber} : ${adjustmentAmount(data.newTotal, "newTotal")}. ${ADJUSTMENT_ANSWER_NOTICE}`,
       };
 
     case "PRICE_ADJUSTMENT_AUTO_APPROVED":
       return {
         subject: `✅ Prix ajusté — Commande ${data.orderNumber}`,
         html: tpl.priceAdjustmentAutoApproved(data),
-        plainText: `Le prix de votre commande ${data.orderNumber} a été ajusté à la baisse : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
+        plainText: adjustmentAppliedText(data),
       };
 
     case "PRICE_ADJUSTMENT_ACCEPTED":
       return {
         subject: `✅ Ajustement accepté — Commande ${data.orderNumber}`,
         html: tpl.priceAdjustmentAccepted(data),
-        plainText: `Le client a accepté l'ajustement de prix pour la commande ${data.orderNumber}. Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
+        plainText: `Le client a accepté l'ajustement de prix pour la commande ${data.orderNumber}. Nouveau total : ${adjustmentAmount(data.newTotal, "newTotal")}`,
       };
 
     case "PRICE_ADJUSTMENT_REJECTED":
+    case "PRICE_ADJUSTMENT_EXPIRED": {
+      const kept = ADJUSTMENT_KEPT_PRICE[event];
       return {
-        subject: `❌ Ajustement refusé — Commande ${data.orderNumber}`,
-        html: tpl.priceAdjustmentRejected(data),
-        plainText: `Le client a refusé l'ajustement de prix pour la commande ${data.orderNumber}.`,
+        subject: `${kept.title} — Commande ${data.orderNumber}`,
+        html: tpl.priceAdjustmentNotAccepted(event, data),
+        plainText: kept.text(data),
       };
-
-    case "PRICE_ADJUSTMENT_AUTO_VALIDATED":
-      return {
-        subject: `✅ Ajustement validé automatiquement — Commande ${data.orderNumber}`,
-        html: tpl.priceAdjustmentAutoValidated(data),
-        plainText: `L'ajustement de prix pour la commande ${data.orderNumber} a été validé automatiquement (délai expiré). Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€`,
-      };
-
-    case "PRICE_ADJUSTMENT_ESCALATED":
-      return {
-        subject: `⚠️ Ajustement escaladé — Commande ${data.orderNumber}`,
-        html: `<p>L'ajustement de prix pour la commande <strong>${escapeHtml(data.orderNumber ?? "")}</strong> chez ${escapeHtml(data.shopName ?? "")} n'a pas reçu de réponse client après 10 minutes.</p><p>Ancien total : ${((data.originalTotal || 0) / 100).toFixed(2)}€ → Nouveau total : ${((data.newTotal || 0) / 100).toFixed(2)}€</p><p>Action requise du webmaster.</p>`,
-        plainText: `Ajustement escaladé — Commande ${data.orderNumber} chez ${data.shopName}. Pas de réponse client après 10 min. ${((data.originalTotal || 0) / 100).toFixed(2)}€ → ${((data.newTotal || 0) / 100).toFixed(2)}€. Action webmaster requise.`,
-      };
+    }
 
     case "PICKUP_SOON":
       return {
@@ -452,15 +444,15 @@ function getPushPayload(event: NotifEvent, data: NotifData): PushPayload {
     case "PRICE_ADJUSTMENT_PENDING":
       return {
         title: "💰 Ajustement de prix",
-        body: `${data.shopName} propose un ajustement pour votre commande`,
+        body: `${data.shopName} propose un nouveau prix pour votre commande. ${ADJUSTMENT_ANSWER_NOTICE}`,
         url: orderUrl,
         tag: orderTag,
-        actions: [{ action: "view", title: "Voir" }],
+        actions: [{ action: "view", title: "Répondre" }],
       };
     case "PRICE_ADJUSTMENT_AUTO_APPROVED":
       return {
         title: "✅ Prix ajusté",
-        body: `Bonne nouvelle ! Le prix a baissé chez ${data.shopName}`,
+        body: adjustmentAppliedText(data),
         url: orderUrl,
         tag: orderTag,
       };
@@ -472,23 +464,10 @@ function getPushPayload(event: NotifEvent, data: NotifData): PushPayload {
         tag: orderTag,
       };
     case "PRICE_ADJUSTMENT_REJECTED":
+    case "PRICE_ADJUSTMENT_EXPIRED":
       return {
-        title: "❌ Ajustement refusé",
-        body: `Le client a refusé l'ajustement pour #${data.orderNumber}`,
-        url: `${baseUrl}/boucher/commandes`,
-        tag: orderTag,
-      };
-    case "PRICE_ADJUSTMENT_AUTO_VALIDATED":
-      return {
-        title: "✅ Ajustement validé",
-        body: `L'ajustement de prix a été validé automatiquement`,
-        url: orderUrl,
-        tag: orderTag,
-      };
-    case "PRICE_ADJUSTMENT_ESCALATED":
-      return {
-        title: "⚠️ Ajustement escaladé",
-        body: `Commande #${data.orderNumber} — pas de réponse client après 10 min`,
+        title: ADJUSTMENT_KEPT_PRICE[event].title,
+        body: ADJUSTMENT_KEPT_PRICE[event].text(data),
         url: `${baseUrl}/boucher/commandes`,
         tag: orderTag,
       };

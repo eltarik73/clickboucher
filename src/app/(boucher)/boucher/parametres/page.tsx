@@ -19,13 +19,14 @@ import {
   MapPin,
   CreditCard,
   CalendarClock,
-  DollarSign,
+  Scale,
   BellRing,
   Volume2,
   Smartphone,
   Monitor,
 } from "lucide-react";
 import { refusalMessage } from "@/lib/api/client-refusal";
+import { formatToleranceTerms, WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
 
 // ─────────────────────────────────────────────
 // Types
@@ -60,11 +61,16 @@ type Shop = {
   pickupSlots: PickupSlotsConfig | null;
   acceptOnline: boolean;
   acceptOnPickup: boolean;
-  priceAdjustmentThreshold: number;
   soundNotif?: boolean;
   flashNotif?: boolean;
   vibrateNotif?: boolean;
 };
+
+const { STANDARD, EXTENDED } = WEIGH_TOLERANCE_TERMS;
+const WEIGHING_NOTE =
+  `Chaque client choisit sa marge : soit ${formatToleranceTerms(STANDARD)} ; ` +
+  `soit ${formatToleranceTerms(EXTENDED)}. ` +
+  "Dans cette marge, votre nouveau prix s'applique sans le déranger ; au-delà, il doit accepter.";
 
 const DAYS = [
   { key: "lundi", label: "Lundi" },
@@ -716,68 +722,13 @@ export default function BoucherParametresPage() {
           </div>
         </SettingCard>
 
-        {/* ── 6b. SEUIL AJUSTEMENT PRIX ── */}
+        {/* ── 6b. AJUSTEMENT APRÈS PESÉE (read only: each customer chooses his tolerance) ── */}
         <SettingCard
-          icon={<DollarSign size={18} className="text-amber-600" />}
-          title="Seuil d'ajustement automatique"
+          icon={<Scale size={18} className="text-amber-600" />}
+          title="Ajustement après pesée"
           accent="border-l-amber-500"
         >
-          <div className="space-y-3">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              En dessous de ce seuil, l&apos;ajustement de prix est appliqué automatiquement. Au
-              dessus, le client doit confirmer (5 min pour répondre).
-            </p>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Seuil :{" "}
-                <span className="font-bold text-amber-600">
-                  {shop.priceAdjustmentThreshold ?? 10}%
-                </span>
-              </label>
-              <input
-                type="range"
-                min={5}
-                max={20}
-                step={1}
-                value={shop.priceAdjustmentThreshold ?? 10}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setShop((prev) => (prev ? { ...prev, priceAdjustmentThreshold: val } : prev));
-                }}
-                onPointerUp={async () => {
-                  try {
-                    const res = await fetch(`/api/shops/${shop.id}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        priceAdjustmentThreshold: shop.priceAdjustmentThreshold,
-                      }),
-                    });
-                    if (res.ok) toast.success("Seuil sauvegardé");
-                    else toast.error(await refusalMessage(res, "Erreur serveur"));
-                  } catch {
-                    toast.error("Erreur de connexion");
-                  }
-                }}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-amber-600 dark:bg-white/10"
-              />
-              <div className="mt-1 flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>5%</span>
-                <span>10%</span>
-                <span>15%</span>
-                <span>20%</span>
-              </div>
-            </div>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/30 dark:bg-amber-950/30">
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                Exemple : pour une commande de 25,00 €, un ajustement jusqu&apos;à{" "}
-                <span className="font-bold">
-                  {((25 * (shop.priceAdjustmentThreshold ?? 10)) / 100).toFixed(2)} €
-                </span>{" "}
-                sera appliqué automatiquement.
-              </p>
-            </div>
-          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{WEIGHING_NOTE}</p>
         </SettingCard>
 
         {/* ── 6. PROGRAMME FIDÉLITÉ ── */}

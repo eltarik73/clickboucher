@@ -19,7 +19,7 @@ vi.hoisted(() => {
   vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", undefined);
 });
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -84,6 +84,7 @@ const confirmedOrder = () => ({
   ...basket(),
   idempotencyKey: randomUUID(),
   expectedTotalCents: AMOUNT_DUE_CENTS,
+  weighTolerance: "STANDARD",
 });
 
 interface Answer {

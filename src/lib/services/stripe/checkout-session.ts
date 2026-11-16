@@ -14,7 +14,8 @@
 // - Webhook = source de vérité pour le passage en PAID (jamais le success_url).
 
 import prisma from "@/lib/prisma";
-import { getStripeClient, isStripeConfigured } from "@/lib/stripe";
+import { isStripeConfigured } from "@/lib/stripe";
+import { getPaymentGateway } from "@/lib/payments/gateway";
 import { logger } from "@/lib/logger";
 import {
   getEffectiveCommissionRate,
@@ -132,7 +133,7 @@ export async function createCheckoutSession(
   });
 
   // ── 3. Construire les line_items ──
-  const stripe = getStripeClient();
+  const gateway = getPaymentGateway();
 
   // Si une remise a été appliquée à l'order, on regroupe les items en une seule
   // ligne "Commande #X" pour éviter les écarts d'arrondi entre items et total.
@@ -187,7 +188,7 @@ export async function createCheckoutSession(
   // ── 4. Créer la session Stripe Checkout (destination charge) ──
   let session;
   try {
-    session = await stripe.checkout.sessions.create(
+    session = await gateway.createCheckoutSession(
       {
         mode: "payment",
         line_items: lineItems,

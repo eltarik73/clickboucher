@@ -6,7 +6,10 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { refusalMessage } from "@/lib/api/client-refusal";
+import type { Serialized } from "@/lib/api/json";
+import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
 import { stopOrderAlert } from "@/lib/sounds";
+import type { AdjustPriceAnswer } from "@/lib/services/orders/adjust-price";
 import type { BoucherAction } from "@/lib/services/orders/commands/action-schema";
 
 const ACTION_LABELS: Record<BoucherAction["action"], string> = {
@@ -21,6 +24,12 @@ const ACTION_LABELS: Record<BoucherAction["action"], string> = {
   cancel: "Commande annulee",
   add_note: "Note enregistrée",
 };
+
+/** What the kitchen says of a proposal the server took: applied, asked, or a replay of the order. */
+function adjustmentNotice(answer: Serialized<AdjustPriceAnswer>): string {
+  if (answer.applied) return "Prix mis à jour";
+  return "_idempotent" in answer ? "Prix inchangé" : "Demande envoyée au client";
+}
 
 export function useOrderActions(refetch: () => Promise<void>) {
   // ── Handle order action (unified API) ──
@@ -51,9 +60,9 @@ export function useOrderActions(refetch: () => Promise<void>) {
     [refetch]
   );
 
-  // ── Handle price adjustment ──
+  // ── Handle price adjustment: true once the server took it (applied, or sent to the customer) ──
   const handleAdjustPrice = useCallback(
-    async (orderId: string, data: Record<string, unknown>) => {
+    async (orderId: string, data: AdjustPriceRequest) => {
       try {
         const res = await fetch(`/api/orders/${orderId}/adjust-price`, {
           method: "PATCH",
@@ -61,19 +70,16 @@ export function useOrderActions(refetch: () => Promise<void>) {
           body: JSON.stringify(data),
         });
         if (res.ok) {
-          const json = await res.json();
+          const json: { data: Serialized<AdjustPriceAnswer> } = await res.json();
           await refetch();
-          if (json.data?.autoApproved) {
-            toast.success("Prix ajusté automatiquement (baisse)");
-          } else {
-            toast.success("Ajustement envoyé — en attente du client (5 min)");
-          }
-        } else {
-          toast.error(await refusalMessage(res, "Erreur lors de l'ajustement"));
+          toast.success(adjustmentNotice(json.data));
+          return true;
         }
+        toast.error(await refusalMessage(res, "Erreur lors de l'ajustement"));
       } catch {
         toast.error("Erreur de connexion au serveur");
       }
+      return false;
     },
     [refetch]
   );

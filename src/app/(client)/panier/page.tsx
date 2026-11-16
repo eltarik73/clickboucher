@@ -7,8 +7,6 @@ import {
   ArrowLeft,
   ShoppingBag,
   Clock,
-  CreditCard,
-  Banknote,
   ChevronLeft,
   ChevronRight,
   X,
@@ -32,12 +30,16 @@ import {
 } from "@/lib/cart/order-payload";
 import { useOrderQuote } from "@/lib/hooks/use-order-quote";
 import { useCheckoutSession } from "@/lib/hooks/use-checkout-session";
+import { useSavedWeighTolerance } from "@/lib/hooks/use-saved-weigh-tolerance";
+import type { WeighToleranceChoice as ToleranceChoice } from "@/lib/pricing/tolerance";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OrderCountdown } from "@/components/checkout/OrderCountdown";
 import CartSuggestions from "@/components/cart/CartSuggestions";
 import { CheckoutLineRow } from "@/components/cart/CheckoutLineRow";
+import { PaymentMethodNotice } from "@/components/cart/PaymentMethodNotice";
+import { WeighToleranceChoice } from "@/components/cart/WeighToleranceChoice";
 
 // ── Helpers ──────────────────────────────────────
 
@@ -117,6 +119,11 @@ export default function PanierPage() {
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [promoError, setPromoError] = useState("");
 
+  // Weighing tolerance: the customer's choice here, else his saved one; null = nothing checked.
+  const savedTolerance = useSavedWeighTolerance(signedIn);
+  const [chosenTolerance, setChosenTolerance] = useState<ToleranceChoice | null>(null);
+  const weighTolerance = chosenTolerance ?? savedTolerance.saved;
+
   // ── Server quote ───────────────────────────────
 
   const selection = useMemo<CheckoutSelection | null>(() => {
@@ -134,8 +141,9 @@ export default function PanierPage() {
           }
         : null,
       customerNote,
+      weighTolerance,
     };
-  }, [state.shopId, state.items, promoCode, timeMode, selectedSlot, selectedDate, customerNote]);
+  }, [state, promoCode, timeMode, selectedSlot, selectedDate, customerNote, weighTolerance]);
 
   const quoteRequest = useMemo(
     () => (selection ? buildQuoteRequest(selection) : null),
@@ -246,6 +254,7 @@ export default function PanierPage() {
     !readyQuote.belowMinimumOrder &&
     !readyQuote.discountRejection &&
     countdown === null &&
+    weighTolerance !== null &&
     !(timeMode === "slot" && !selectedSlot);
 
   const handleOrder = () => {
@@ -718,37 +727,26 @@ export default function PanierPage() {
               </div>
 
               {/* Payment method — paiement sur place uniquement (Stripe à venir) */}
-              {signedIn && (
-                <div className="rounded-2xl border border-[#ece8e3] bg-white p-4 dark:border-white/10 dark:bg-[#141414]">
-                  <div className="mb-3 flex items-center gap-2">
-                    <CreditCard size={16} className="text-[#DC2626]" />
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      Mode de paiement
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-xl border border-[#DC2626] bg-[#DC2626]/5 p-3">
-                    <Banknote size={18} className="shrink-0 text-emerald-600" />
-                    <div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        Paiement sur place
-                      </span>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        Payez au retrait (espèces, CB)
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {signedIn && <PaymentMethodNotice />}
 
-              {/* Submit — sticky bottom on mobile (Uber Eats pattern), inline on md+ */}
+              {/* Weighing tolerance clause, directly above the order button (C. conso. L121-17) */}
+              <WeighToleranceChoice
+                value={weighTolerance}
+                saved={savedTolerance.saved}
+                estimatedTotalCents={readyQuote?.totalCents ?? null}
+                onChange={setChosenTolerance}
+                requireChoice={savedTolerance.ready}
+              />
+
+              {/* Submit, worded per C. conso. L221-14 — sticky bottom on mobile, inline on md+ */}
               <div className="sticky bottom-0 -mx-5 bg-gradient-to-t from-[#f8f6f3] from-60% to-transparent px-5 pb-[env(safe-area-inset-bottom)] pt-3 dark:from-[#0a0a0a] md:static md:mx-0 md:bg-none md:px-0 md:pb-0 md:pt-0">
                 <Button
                   onClick={handleOrder}
                   disabled={!canConfirm}
-                  className="w-full bg-[#DC2626] shadow-lg hover:bg-[#b91c1c] disabled:opacity-50 md:shadow-none"
+                  className="h-auto min-h-14 w-full whitespace-normal bg-[#DC2626] px-4 py-3 leading-snug shadow-lg hover:bg-[#b91c1c] disabled:opacity-50 md:shadow-none"
                   size="lg"
                 >
-                  Confirmer ma commande
+                  Commander avec obligation de paiement
                 </Button>
               </div>
             </div>

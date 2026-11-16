@@ -17,8 +17,10 @@
 
 import Stripe from "stripe";
 import prisma from "@/lib/prisma";
-import { getStripeClient } from "@/lib/stripe";
+import { getPaymentGateway } from "@/lib/payments/gateway";
 import { logger } from "@/lib/logger";
+import { syncShopFromAccount } from "./account-sync";
+import { connectAccountState, type ConnectAccountState } from "./account-state";
 
 export type ConnectAccountInput = {
   email: string;
@@ -42,8 +44,8 @@ export type ConnectAccountInput = {
 export async function createConnectAccount(
   input: ConnectAccountInput,
 ): Promise<Stripe.Account> {
-  const stripe = getStripeClient();
-  return await stripe.accounts.create(
+  const gateway = getPaymentGateway();
+  return await gateway.createConnectAccount(
     {
       type: "express",
       country: "FR",
@@ -165,8 +167,8 @@ export async function createOnboardingLink(params: {
   returnUrl: string;
   refreshUrl: string;
 }): Promise<Stripe.AccountLink> {
-  const stripe = getStripeClient();
-  return await stripe.accountLinks.create({
+  const gateway = getPaymentGateway();
+  return await gateway.createAccountLink({
     account: params.accountId,
     return_url: params.returnUrl,
     refresh_url: params.refreshUrl,
@@ -181,57 +183,39 @@ export async function createOnboardingLink(params: {
 export async function createLoginLink(
   accountId: string,
 ): Promise<Stripe.LoginLink> {
-  const stripe = getStripeClient();
-  return await stripe.accounts.createLoginLink(accountId);
+  const gateway = getPaymentGateway();
+  return await gateway.createLoginLink(accountId);
 }
 
-/**
- * Récupère l'état d'un compte Stripe Connect.
- * Utilisé par /api/boucher/stripe/refresh-status (manuel) et par le webhook
- * `account.updated` pour synchroniser les flags Shop.stripeChargesEnabled etc.
- */
 export type ConnectAccountStatus = {
   accountId: string;
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
   detailsSubmitted: boolean;
-  status: "active" | "pending" | "restricted";
+  status: ConnectAccountState;
   requirementsCurrentlyDue: string[];
   requirementsPastDue: string[];
 };
 
+/**
+ * Re-reads the account from Stripe, writes its state on the shop that holds it (the writer of the
+ * account.updated webhook) and returns it for the butcher's « refresh-status ».
+ */
 export async function syncShopStripeStatus(
   accountId: string,
 ): Promise<ConnectAccountStatus> {
-  const stripe = getStripeClient();
-  const account = await stripe.accounts.retrieve(accountId);
+  const gateway = getPaymentGateway();
+  const account = await gateway.retrieveAccount(accountId);
+  await syncShopFromAccount(account);
 
-  const chargesEnabled = account.charges_enabled ?? false;
-  const payoutsEnabled = account.payouts_enabled ?? false;
-  const detailsSubmitted = account.details_submitted ?? false;
   const requirements = account.requirements;
-  const pastDue = requirements?.past_due ?? [];
-
-  // Status logic :
-  // - "active" : tout vert, le boucher peut encaisser
-  // - "restricted" : Stripe a bloqué (KYC en retard, fonds gelés)
-  // - "pending" : KYC en cours ou pas démarré
-  let status: ConnectAccountStatus["status"];
-  if (chargesEnabled && payoutsEnabled) {
-    status = "active";
-  } else if (pastDue.length > 0 || requirements?.disabled_reason) {
-    status = "restricted";
-  } else {
-    status = "pending";
-  }
-
   return {
     accountId: account.id,
-    chargesEnabled,
-    payoutsEnabled,
-    detailsSubmitted,
-    status,
+    chargesEnabled: account.charges_enabled === true,
+    payoutsEnabled: account.payouts_enabled === true,
+    detailsSubmitted: account.details_submitted === true,
+    status: connectAccountState(account),
     requirementsCurrentlyDue: requirements?.currently_due ?? [],
-    requirementsPastDue: pastDue,
+    requirementsPastDue: requirements?.past_due ?? [],
   };
 }

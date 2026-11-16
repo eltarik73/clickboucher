@@ -13,7 +13,7 @@ import { logger } from "@/lib/logger";
 import { sendNotification } from "@/lib/notifications";
 import { PARIS_TIME_ZONE } from "@/lib/paris-time";
 import { setBusyMode } from "@/lib/shop-status";
-import type { OrderShop } from "./quote";
+import type { OrderShop } from "./order-shop";
 
 const AUTO_BUSY = { extraMin: 15, durationMin: 30 } as const;
 

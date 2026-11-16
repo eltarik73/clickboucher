@@ -1,7 +1,9 @@
 // src/lib/services/orders/create-replay.ts — the replay of an order creation by its idempotency
-// key, and the failures a creation transaction can end with. Used by create.ts only.
+// key, the refusal of a quote the customer did not confirm, and the failures a creation
+// transaction can end with. Used by create.ts only.
 import prisma from "@/lib/prisma";
 import { uniqueViolationFields } from "@/lib/prisma-errors";
+import { formatPrice } from "@/lib/utils";
 import type { CreateOrderRequest } from "@/lib/validators/order";
 import type { CreateOrderResult } from "./create";
 import { DiscountUnavailableError } from "./discount-ledger";
@@ -22,6 +24,26 @@ interface PlacementAttempt {
 /** The idempotency key belongs to an order this request may not replay. */
 export const KEY_ALREADY_USED_MESSAGE = "Cette demande a déjà été utilisée";
 const IDEMPOTENCY_COLUMN = "idempotency_key";
+const PRICE_CHANGED_MESSAGE =
+  "Les prix ou la disponibilité ont changé. Vérifiez le nouveau total avant de confirmer.";
+
+/** The quote the order would be created from differs from what the customer confirmed. */
+export function priceRefusal(request: CreateOrderRequest, quote: OrderQuote): Failure | null {
+  if (quote.discountRejection !== null) {
+    return { ok: false, code: "PRICE_CHANGED", message: quote.discountRejection.message };
+  }
+  if (quote.belowMinimumOrder) {
+    return {
+      ok: false,
+      code: "VALIDATION_ERROR",
+      message: `Commande minimum de ${formatPrice(quote.minOrderCents)} requise`,
+    };
+  }
+  if (quote.amountDueCents !== request.expectedTotalCents) {
+    return { ok: false, code: "PRICE_CHANGED", message: PRICE_CHANGED_MESSAGE };
+  }
+  return null;
+}
 
 /**
  * Thrown inside the creation transaction when a guest order is refused by its admission check

@@ -39,7 +39,10 @@ export async function quoteOf(
   return result.quote;
 }
 
-/** A body as the cart sends it: confirmed total = the server's amountDueCents, fresh key. */
+/**
+ * A body as the cart sends it: confirmed total = the server's amountDueCents, fresh key, and the
+ * weighing tolerance shown above the order button (STANDARD unless overridden).
+ */
 export async function confirmedBody(
   request: OrderQuoteRequest,
   customer: OrderCustomer,
@@ -51,6 +54,7 @@ export async function confirmedBody(
     ...request,
     idempotencyKey: randomUUID(),
     expectedTotalCents: quote.amountDueCents,
+    weighTolerance: "STANDARD",
     ...overrides,
   };
 }

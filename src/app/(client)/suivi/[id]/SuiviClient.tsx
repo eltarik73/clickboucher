@@ -6,10 +6,12 @@ import { ArrowLeft, MapPin, Phone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import type { OrderStatus } from "@prisma/client";
 import PriceAdjustmentBanner from "@/components/client/PriceAdjustmentBanner";
+import WeighToleranceNote from "@/components/client/WeighToleranceNote";
 import { Button } from "@/components/ui/button";
 import { useOrderTracker, type TrackedOrder } from "@/hooks/useOrderTracker";
 import { PARIS_TIME_ZONE } from "@/lib/paris-time";
 import { formatStoredLineQuantity } from "@/lib/pricing/format";
+import { formatPrice } from "@/lib/utils";
 import CancelOrderButton from "./CancelOrderButton";
 import EstimatedCountdown from "./EstimatedCountdown";
 import OrderStatusBadge from "./OrderStatusBadge";
@@ -25,14 +27,8 @@ interface OrderData extends Omit<TrackedOrder, "displayNumber"> {
   user: { firstName: string; lastName: string };
 }
 
-function fmtPrice(cents: number) {
-  return (cents / 100).toFixed(2).replace(".", ",") + " €";
-}
-
-/**
- * The page's order with a fresh read applied: the fields that change while the customer watches.
- * A read older than the order on screen (an answer overtaken by a later one) changes nothing.
- */
+// The page's order with a fresh read applied: the fields that change while the customer watches.
+// A read older than the order on screen (an answer overtaken by a later one) changes nothing.
 function withUpdate(prev: OrderData, fresh: TrackedOrder): OrderData {
   if (Date.parse(fresh.updatedAt) < Date.parse(prev.updatedAt)) return prev;
   return {
@@ -47,6 +43,9 @@ function withUpdate(prev: OrderData, fresh: TrackedOrder): OrderData {
     displayNumber: fresh.displayNumber ?? prev.displayNumber,
     items: fresh.items,
     priceAdjustment: fresh.priceAdjustment,
+    weighToleranceRateBps: fresh.weighToleranceRateBps,
+    weighToleranceCapCents: fresh.weighToleranceCapCents,
+    estimatedTotalCents: fresh.estimatedTotalCents,
   };
 }
 
@@ -225,7 +224,7 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
                   </span>
                 </div>
                 <span className="shrink-0 font-semibold text-gray-900 dark:text-white">
-                  {fmtPrice(item.totalCents)}
+                  {formatPrice(item.totalCents)}
                 </span>
               </div>
             ))}
@@ -233,9 +232,10 @@ export default function SuiviClient({ order: initial }: { order: OrderData }) {
           <div className="mt-3 flex justify-between border-t border-[#ece8e3] pt-3 dark:border-white/10">
             <span className="text-sm font-bold text-gray-900 dark:text-white">Total</span>
             <span className="text-lg font-extrabold text-gray-900 dark:text-white">
-              {fmtPrice(order.totalCents)}
+              {formatPrice(order.totalCents)}
             </span>
           </div>
+          <WeighToleranceNote order={order} />
           {order.customerNote && (
             <p className="mt-3 text-xs italic text-gray-500 dark:text-gray-400">
               Note : {order.customerNote}

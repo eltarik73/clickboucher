@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -215,7 +215,12 @@ describe("createOrder — a total the server does not confirm creates nothing", 
     const customer = customerOf(await createTestUser());
     const request = quoteRequest(shop.id, [{ productId: beef.id, quantity: 1, weightGrams: 500 }]);
     const result = await createOrder(
-      { ...request, idempotencyKey: randomUUID(), expectedTotalCents: 956 },
+      {
+        ...request,
+        idempotencyKey: randomUUID(),
+        expectedTotalCents: 956,
+        weighTolerance: "STANDARD",
+      },
       customer
     );
     expect(result).toMatchObject({ ok: false, code: "VALIDATION_ERROR" });

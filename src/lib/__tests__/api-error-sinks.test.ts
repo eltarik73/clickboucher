@@ -5,7 +5,7 @@
 // { code, message }, displayed as « [object Object] » or crashing the root Toaster.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { sourceFiles } from "../../../tests/lib/source-files";
+import { sourceFiles } from "../../../tests/lib/source-scan";
 
 const BARE_ERROR_SINK = /(toast\.\w+|alert|new Error)\(\s*[\w.?]+\.error\s*(\|\||\)|,)/g;
 const BARE_ERROR_ASSIGNMENT = /=\s*[\w.?]+\.error\s*\|\|/g;

@@ -3,6 +3,8 @@
 // est propre au fichier) ; tout le reste passe par PostgreSQL.
 import { NextRequest } from "next/server";
 import type { Order, OrderItem, Product, Shop, User } from "@prisma/client";
+import { WEIGH_TOLERANCE_TERMS, type WeighToleranceTerms } from "@/lib/pricing/tolerance";
+import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
 import { prisma } from "../helpers/db";
 import {
   createTestOrder,
@@ -12,6 +14,8 @@ import {
 } from "../helpers/factories";
 
 export const MINUTE_MS = 60_000;
+/** The customer's window to answer a price adjustment. */
+export const ANSWER_WINDOW_MS = 5 * MINUTE_MS;
 
 export interface World {
   owner: User;
@@ -57,6 +61,105 @@ export async function createOrder(
     items: options.items ?? [{ productId: world.product.id }],
     overrides: options.overrides,
   });
+}
+
+/** The butcher of the world's shop, as adjustOrderPrice receives him from the route. */
+export function butcherOf(world: World): { shopId: string; actorId: string } {
+  return { shopId: world.shop.id, actorId: world.owner.id };
+}
+
+/** A KG product at 1000 c/kg: one gram costs exactly one cent, whatever the weight. */
+export async function createGramProduct(world: World): Promise<Product> {
+  return createTestProduct(world.shop.id, { priceCents: 1000, name: "Viande au gramme" });
+}
+
+/**
+ * An ACCEPTED order of KG lines of `gramProduct` (one portion of the given grams each), as checkout
+ * writes it: each line's estimate is its total, the order's estimated total is their sum, and the
+ * terms of the customer's tolerance are frozen on it; `terms` null is an order created before the
+ * weighing tolerance existed.
+ */
+export async function createWeighedOrder(
+  world: World,
+  gramProduct: Product,
+  grams: readonly number[],
+  terms: { rateBps: number; capCents: number } | null
+): Promise<Order & { items: OrderItem[] }> {
+  const total = grams.reduce((sum, weight) => sum + weight, 0);
+  return createOrder(world, {
+    status: "ACCEPTED",
+    items: grams.map((weight) => ({
+      productId: gramProduct.id,
+      quantity: weight / 1000,
+      weightGrams: weight,
+      priceCents: 1000,
+      totalCents: weight,
+      estimatedPriceCents: weight,
+    })),
+    overrides:
+      terms === null
+        ? undefined
+        : {
+            weighToleranceRateBps: terms.rateBps,
+            weighToleranceCapCents: terms.capCents,
+            estimatedTotalCents: total,
+          },
+  });
+}
+
+/** The butcher weighs lines again, `weights` in grams by line id. */
+export function weighGrams(
+  orderId: string,
+  shop: { shopId: string; actorId: string },
+  weights: Record<string, number>,
+  now = new Date()
+) {
+  return adjustOrderPrice(
+    orderId,
+    shop,
+    {
+      adjustmentType: "WEIGHT",
+      items: Object.entries(weights).map(([orderItemId, grams]) => ({
+        orderItemId,
+        newQuantity: grams / 1000,
+      })),
+    },
+    now
+  );
+}
+
+/**
+ * An ACCEPTED order of one or more KG lines of a 1000 c/kg product (one gram costs one cent), and
+ * the butcher weighing its first line again at `grams`.
+ */
+export async function weighedOrder(
+  lineGrams: readonly number[],
+  terms: WeighToleranceTerms | null
+) {
+  const world = await createWorld();
+  const order = await createWeighedOrder(world, await createGramProduct(world), lineGrams, terms);
+  const firstLineAt = (grams: number, now?: Date) =>
+    weighGrams(order.id, butcherOf(world), { [order.items[0].id]: grams }, now);
+  return { world, order, firstLineAt };
+}
+
+export async function adjustmentOf(orderId: string) {
+  return prisma.priceAdjustment.findUniqueOrThrow({ where: { orderId } });
+}
+
+/** A 20,00 € order, STANDARD tolerance (1,00 €), weighed at 22,00 € at `now`: it waits. */
+export async function pendingWeighingIncrease(now: Date) {
+  const world = await createWorld();
+  const product = await createGramProduct(world);
+  const order = await createWeighedOrder(world, product, [2000], WEIGH_TOLERANCE_TERMS.STANDARD);
+  const created = await weighGrams(order.id, butcherOf(world), { [order.items[0].id]: 2200 }, now);
+  if (!created.ok || created.data.applied) throw new Error("ajustement en attente attendu");
+  return { world, order };
+}
+
+/** The customer's answer, as acceptAdjustment and rejectAdjustment take it. */
+export function customerAnswer(orderId: string, userId: string, now: Date) {
+  return { orderId, userId, now };
 }
 
 export function jsonRequest(url: string, method: string, body?: unknown): NextRequest {

@@ -101,6 +101,9 @@ function kitchenOrder(name: string): KitchenOrder {
     status: "ACCEPTED",
     totalCents: 1200,
     discountCents: 0,
+    weighToleranceRateBps: null,
+    weighToleranceCapCents: null,
+    estimatedTotalCents: null,
     customerNumber: null,
     isPro: false,
     customerNote: name,
@@ -121,6 +124,7 @@ function kitchenOrder(name: string): KitchenOrder {
         unit: "PIECE",
         priceCents: 1200,
         totalCents: 1200,
+        estimatedPriceCents: 1200,
         weightGrams: null,
         sliceCount: null,
         sliceThickness: null,
@@ -252,13 +256,25 @@ describe("notification e-mails", () => {
     expect(email).not.toContain(MARKUP);
   });
 
-  it.each(Object.keys(notificationEmails))("%s prints every typed value as text", (name) => {
+  // priceAdjustmentNotAccepted takes its event first: checked for each event below.
+  const dataOnly = Object.keys(notificationEmails).filter(
+    (name) => name !== "priceAdjustmentNotAccepted"
+  );
+
+  it.each(dataOnly)("%s prints every typed value as text", (name) => {
     const template = notificationEmails[name as keyof typeof notificationEmails] as (
       data: typeof typed
     ) => string;
 
     expect(template(typed)).not.toContain(MARKUP);
   });
+
+  it.each(["PRICE_ADJUSTMENT_REJECTED", "PRICE_ADJUSTMENT_EXPIRED"] as const)(
+    "priceAdjustmentNotAccepted (%s) prints every typed value as text",
+    (event) => {
+      expect(notificationEmails.priceAdjustmentNotAccepted(event, typed)).not.toContain(MARKUP);
+    }
+  );
 });
 
 describe("kitchen ticket", () => {

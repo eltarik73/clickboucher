@@ -220,12 +220,3 @@ export function computeOrderFees(input: {
     totalToPayCents: totalToPay,
   };
 }
-
-/**
- * Estime les frais Stripe France (1.4% + 0.25€ pour cartes EU).
- * Reporting interne uniquement — Stripe les déduit automatiquement de la part Klik&Go.
- */
-export function estimateStripeFeeCents(amountCents: number): number {
-  if (amountCents <= 0) return 0;
-  return Math.round(amountCents * 0.014) + 25;
-}

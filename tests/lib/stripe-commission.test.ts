@@ -17,7 +17,6 @@ import {
   computeOrderCommission,
   computeOrderCommissionFromHt,
   computeOrderFees,
-  estimateStripeFeeCents,
 } from "@/lib/services/stripe/commission";
 
 describe("computeTier", () => {
@@ -229,20 +228,6 @@ describe("computeOrderFees", () => {
       effectiveCommissionRate: 0.06,
     });
     expect(fees.totalToPayCents).toBe(fees.subtotalCents + SERVICE_FEE_CENTS);
-  });
-});
-
-describe("estimateStripeFeeCents", () => {
-  it("returns 0 for non-positive amount", () => {
-    expect(estimateStripeFeeCents(0)).toBe(0);
-    expect(estimateStripeFeeCents(-100)).toBe(0);
-  });
-
-  it("computes 1.4% + 0.25€ for FR cards", () => {
-    // 50€ → 0.7€ + 0.25€ = 0.95€ = 95 cts
-    expect(estimateStripeFeeCents(5000)).toBe(95);
-    // 100€ → 1.4€ + 0.25€ = 1.65€ = 165 cts
-    expect(estimateStripeFeeCents(10_000)).toBe(165);
   });
 });
 
