@@ -1,9 +1,9 @@
 // @vitest-environment node
-// The member's weighing tolerance in his profile, on real PostgreSQL (C1-PAIEMENT-A): GET
-// /api/users/me returns it (null until he chooses), PATCH /api/users/me saves it on the caller's
-// own row only, alone or with the notification fields, and refuses an unknown value, an unknown
-// field, an empty object or a body that is not JSON, writing nothing. Only the caller's session is
-// simulated; the Upstash limiter is inert, as without Redis.
+// The member's weighing tolerance in his profile, on real PostgreSQL: GET /api/users/me returns it
+// (null until he chooses), PATCH /api/users/me saves it on the caller's own row only, alone or with
+// the notification fields, and refuses an unknown value, an unknown field, an empty object or a body
+// that is not JSON, writing nothing. Only the caller's session is simulated; the Upstash limiter is
+// inert, as without Redis.
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { User } from "@prisma/client";

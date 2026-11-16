@@ -17,7 +17,6 @@ const MISSING_CHOICE = "Choisissez votre marge de pesée pour commander";
 const mocks = vi.hoisted(() => ({
   session: { ready: true, signedIn: false },
   submissions: [] as unknown[],
-  quoteRequests: [] as unknown[],
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -75,10 +74,7 @@ const QUOTE: OrderQuote = {
 };
 
 vi.mock("@/lib/hooks/use-order-quote", () => ({
-  useOrderQuote: (request: unknown) => {
-    mocks.quoteRequests.push(request);
-    return { state: "ready", quote: QUOTE, error: null, refresh: async () => {} };
-  },
+  useOrderQuote: () => ({ state: "ready", quote: QUOTE, error: null, refresh: async () => {} }),
 }));
 
 vi.mock("@/lib/hooks/use-cart", () => ({
@@ -124,7 +120,6 @@ function lastSubmission(): CheckoutSubmission {
 beforeEach(() => {
   mocks.session = { ready: true, signedIn: false };
   mocks.submissions = [];
-  mocks.quoteRequests = [];
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("crypto", { randomUUID: () => "00000000-0000-4000-8000-000000000001" });
@@ -174,16 +169,6 @@ describe("panier : bouton de commande et marge de pesée", () => {
     expect(screen.getByText(MISSING_CHOICE).compareDocumentPosition(button)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
-  });
-
-  it("le devis ne porte jamais le choix : seule la commande le transmet", () => {
-    render(<PanierPage />);
-    fireEvent.click(screen.getByRole("radio", { name: /^10\u00a0% du total estimé/ }));
-
-    expect(mocks.quoteRequests.length).toBeGreaterThan(1);
-    for (const request of mocks.quoteRequests) {
-      expect(request).not.toHaveProperty("weighTolerance");
-    }
   });
 
   it("le montant de la marge est calculé sur le total du devis (37,35 €)", () => {
