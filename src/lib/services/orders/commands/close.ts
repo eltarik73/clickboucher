@@ -28,7 +28,7 @@ export const CUSTOMER_CANCELLATION_WINDOW_MS = 5 * 60_000;
  * promo code use or loyalty reward the order consumed, then the limited stock it held (offer before
  * products: the lock order of transition.ts).
  */
-export async function releaseClosedOrder(
+async function releaseClosedOrder(
   tx: Tx,
   order: Order,
   previousStatus: OrderStatus

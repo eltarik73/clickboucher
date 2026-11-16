@@ -117,7 +117,7 @@ export type AdjustmentRefusalReason =
   | LineRefusalReason;
 
 /** The sentence the butcher reads for each refusal, in his window and from the server alike. */
-export const ADJUSTMENT_REFUSALS: Record<AdjustmentRefusalReason, string> = {
+const ADJUSTMENT_REFUSALS: Record<AdjustmentRefusalReason, string> = {
   TOTAL_MISSING: "Nouveau total manquant",
   TOTAL_INVALID: "Montant invalide",
   CHANGES_MISSING: "Données d'ajustement manquantes",

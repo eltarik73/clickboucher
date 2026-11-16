@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Schema of C1-PAIEMENT-A on real PostgreSQL: one order per Stripe session or PaymentIntent (several
+// The payment schema on real PostgreSQL: one order per Stripe session or PaymentIntent (several
 // NULLs allowed), a dispute record outlives its order, rows written without the new columns (the
 // previous code's writes) get NULL or the declared default, the hand-written migration names every
 // index and foreign key exactly as Prisma does, and its preflight (run as it is) accepts the schema

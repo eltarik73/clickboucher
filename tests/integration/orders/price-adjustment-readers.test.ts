@@ -1,7 +1,8 @@
 // @vitest-environment node
 // Ce que les lecteurs d'une commande montrent d'un ajustement de prix resté sans réponse, sur
-// PostgreSQL réel : la page de suivi et la route qu'elle interroge ferment l'ajustement échu
-// (le silence vaut refus) avant de répondre, et la vue webmaster dit pourquoi il a été fermé.
+// PostgreSQL réel : la page de suivi, la route qu'elle interroge et le détail de la commande ferment
+// l'ajustement échu (le silence vaut refus) avant de répondre, et n'écrivent rien tant qu'il ne
+// l'est pas ; la vue webmaster dit pourquoi il a été fermé.
 // Seuls l'identité de l'appelant et les transports sortants sont simulés.
 import { describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
@@ -21,15 +22,17 @@ vi.mock("@/lib/auth/server-auth", () => ({
 vi.mock("@/lib/admin-auth", () => ({ requireAdmin: vi.fn(async () => ({ userId: "admin" })) }));
 vi.mock("next/headers", () => ({ cookies: () => ({ get: () => undefined }) }));
 
-import { useCleanDatabase } from "../helpers/db";
+import { prisma, useCleanDatabase } from "../helpers/db";
 import {
   ANSWER_WINDOW_MS,
+  adjustmentOf,
   eventsOf,
   notificationsOf,
   pendingWeighingIncrease,
   reload,
 } from "./commands-fixtures";
 
+const { GET: getOrder } = await import("@/app/api/orders/[id]/route");
 const { GET: getStatus } = await import("@/app/api/orders/[id]/status/route");
 const { GET: getShopAdjustments } =
   await import("@/app/api/admin/shops/[shopId]/adjustments/route");
@@ -44,6 +47,13 @@ interface ReadAdjustment {
   closeReason: string | null;
 }
 
+const STATUS_ROUTE = {
+  name: "GET /api/orders/[id]/status (polled by /suivi)",
+  GET: getStatus,
+  path: "/status",
+};
+const READERS = [STATUS_ROUTE, { name: "GET /api/orders/[id]", GET: getOrder, path: "" }];
+
 /** The pending weighing increase of the fixtures, proposed `agoMs` ago, read by its customer. */
 async function increaseProposed(agoMs: number) {
   const { world, order } = await pendingWeighingIncrease(new Date(Date.now() - agoMs));
@@ -51,12 +61,10 @@ async function increaseProposed(agoMs: number) {
   return { world, orderId: order.id };
 }
 
-async function readStatus(orderId: string) {
-  const response = await getStatus(
-    new NextRequest(`http://localhost/api/orders/${orderId}/status`),
-    {
-      params: { id: orderId },
-    }
+async function readOrder(reader: (typeof READERS)[number], orderId: string) {
+  const response = await reader.GET(
+    new NextRequest(`http://localhost/api/orders/${orderId}${reader.path}`),
+    { params: { id: orderId } }
   );
   const body = (await response.json()) as {
     data: { totalCents: number; priceAdjustment: ReadAdjustment };
@@ -64,14 +72,24 @@ async function readStatus(orderId: string) {
   return { status: response.status, order: body.data };
 }
 
-describe("GET /api/orders/[id]/status (polled by /suivi)", () => {
+/** What a read without a due adjustment must leave as it found it. */
+async function storedState(orderId: string) {
+  return {
+    orderUpdatedAt: (await reload(orderId)).updatedAt,
+    adjustment: await adjustmentOf(orderId),
+    events: await prisma.orderEvent.count(),
+    notifications: await prisma.notification.count(),
+  };
+}
+
+describe.each(READERS)("$name", (reader) => {
   it("closes an adjustment past its deadline as unanswered: price unchanged, shop told once", async () => {
     const { world, orderId } = await increaseProposed(ANSWER_WINDOW_MS + 1_000);
 
-    const first = await readStatus(orderId);
-    const second = await readStatus(orderId);
+    const first = await readOrder(reader, orderId);
+    const second = await readOrder(reader, orderId);
 
-    expect(first.status).toBe(200);
+    expect([first.status, second.status]).toEqual([200, 200]);
     expect(first.order.totalCents).toBe(2000);
     expect(first.order.priceAdjustment).toMatchObject({
       status: "REJECTED",
@@ -83,13 +101,15 @@ describe("GET /api/orders/[id]/status (polled by /suivi)", () => {
     expect(await notificationsOf(world.owner.id, "PRICE_ADJUSTMENT_EXPIRED")).toHaveLength(1);
   });
 
-  it("leaves an adjustment the customer may still answer pending", async () => {
-    const { world, orderId } = await increaseProposed(ANSWER_WINDOW_MS - 60_000);
+  it("leaves an adjustment the customer may still answer pending and writes nothing", async () => {
+    const { orderId } = await increaseProposed(ANSWER_WINDOW_MS - 60_000);
+    const before = await storedState(orderId);
 
-    const { order } = await readStatus(orderId);
+    const first = await readOrder(reader, orderId);
+    await readOrder(reader, orderId);
 
-    expect(order.priceAdjustment).toMatchObject({ status: "PENDING", closeReason: null });
-    expect(await notificationsOf(world.owner.id, "PRICE_ADJUSTMENT_EXPIRED")).toHaveLength(0);
+    expect(first.order.priceAdjustment).toMatchObject({ status: "PENDING", closeReason: null });
+    expect(await storedState(orderId)).toEqual(before);
   });
 });
 
@@ -111,7 +131,7 @@ describe("the tracking page /suivi/[id]", () => {
 describe("GET /api/admin/shops/[shopId]/adjustments", () => {
   it("tells an unanswered adjustment from a refusal by its closeReason", async () => {
     const { world, orderId } = await increaseProposed(ANSWER_WINDOW_MS + 1_000);
-    await readStatus(orderId);
+    await readOrder(STATUS_ROUTE, orderId);
 
     const response = await getShopAdjustments(
       new NextRequest(`http://localhost/api/admin/shops/${world.shop.id}/adjustments`),

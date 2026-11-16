@@ -1,8 +1,8 @@
 // @vitest-environment node
-// The weighing tolerance at order creation, on real PostgreSQL (C1-PAIEMENT-A, decision D-A3): a
-// member's first order needs an active choice, later orders reuse the saved one, the order freezes
-// the rate, the cap and the estimated total; a guest chooses on every order and his choice never
-// reads nor writes the users row. Only the transports and the caller's session are simulated.
+// The weighing tolerance at order creation, on real PostgreSQL: a member's first order needs an
+// active choice, later orders reuse the saved one, the order freezes the rate, the cap and the
+// estimated total; a guest chooses on every order and his choice never reads nor writes the users
+// row. Only the transports and the caller's session are simulated.
 import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";

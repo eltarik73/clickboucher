@@ -1,8 +1,8 @@
 // @vitest-environment node
-// Online payment stays refused (C1-PAIEMENT-A, phase A): the real handlers POST /api/orders/quote,
-// POST /api/orders and POST /api/checkout/guest answer 400 to paymentMethod "ONLINE" with the
-// French message, create no order, and make no call to the Stripe gateway (its fake records every
-// call). Lifting the lock is phase B: update this file then, on purpose.
+// Online payment stays refused: the real handlers POST /api/orders/quote, POST /api/orders and
+// POST /api/checkout/guest answer 400 to paymentMethod "ONLINE" with the French message, create no
+// order, and make no call to the Stripe gateway (its fake records every call). Lifting the lock
+// changes this contract: update this file with it, on purpose.
 // Simulated: the transports, the caller's session and the gateway; PostgreSQL is real.
 import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";

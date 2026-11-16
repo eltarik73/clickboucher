@@ -125,9 +125,7 @@ function toCustomerOrder(row: CustomerOrderRow): CustomerOrder {
 }
 
 /** The order matching `where` (which carries the caller's ownership), or null. */
-export async function findCustomerOrder(
-  where: Prisma.OrderWhereInput
-): Promise<CustomerOrder | null> {
+async function findCustomerOrder(where: Prisma.OrderWhereInput): Promise<CustomerOrder | null> {
   const row = await prisma.order.findFirst({ where, select: customerOrderQuery });
   return row === null ? null : toCustomerOrder(row);
 }
