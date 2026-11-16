@@ -13,7 +13,7 @@ import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
 import type { AdjustmentPlan } from "@/lib/pricing/adjustment";
 import { isWeighedUnit } from "@/lib/pricing/line";
 import AdjustmentDecisionNotice from "./AdjustmentDecisionNotice";
-import { formatItemQty, kitchenStoredLine } from "./OrderTicket";
+import { formatItemQty } from "./OrderTicket";
 import { previewAdjustment, type TypedInputs } from "./price-adjust-preview";
 
 type Props = {
@@ -35,9 +35,6 @@ const TABS: ReadonlyArray<{ key: AdjustmentType; label: string; icon: typeof Sca
 const FIELD =
   "min-h-11 rounded-lg border border-white/10 bg-[#0a0a0a] px-2 text-center text-sm text-white " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white aria-[invalid=true]:border-red-500";
-
-const isWeighed = (item: Item) => isWeighedUnit(kitchenStoredLine(item).unit);
-const name = (item: Item) => item.product?.name || item.name;
 
 function diffTone(diff: number): string {
   if (diff < 0) return "text-emerald-400";
@@ -65,10 +62,10 @@ function LineField(props: {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-white">{name(item)}</p>
+        <p className="truncate text-sm font-medium text-white">{item.product.name}</p>
         <p className="text-xs text-gray-400">
           {formatItemQty(item)} · {formatPrice(item.priceCents)}{" "}
-          {isWeighed(item) ? "le kg" : "l'unité"}
+          {isWeighedUnit(item.unit) ? "le kg" : "l'unité"}
         </p>
       </div>
       <input
@@ -175,8 +172,8 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                   key={item.id}
                   item={item}
                   value={weights[item.id]}
-                  unit={isWeighed(item) ? "kg" : formatUnit(item.unit)}
-                  label={`Quantité pesée pour ${name(item)}`}
+                  unit={isWeighedUnit(item.unit) ? "kg" : formatUnit(item.unit)}
+                  label={`Quantité pesée pour ${item.product.name}`}
                   invalid={invalidItem === item.id}
                   onChange={(value) => setWeights({ ...weights, [item.id]: value })}
                 />
@@ -195,8 +192,8 @@ export default function PriceAdjustModal({ order, onClose, onConfirm }: Props) {
                   key={item.id}
                   item={item}
                   value={prices[item.id]}
-                  unit={isWeighed(item) ? "€/kg" : "€"}
-                  label={`Prix unitaire pour ${name(item)}`}
+                  unit={isWeighedUnit(item.unit) ? "€/kg" : "€"}
+                  label={`Prix unitaire pour ${item.product.name}`}
                   invalid={invalidItem === item.id}
                   onChange={(value) => setPrices({ ...prices, [item.id]: value })}
                 />

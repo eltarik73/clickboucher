@@ -7,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WeighToleranceChoice } from "@/components/cart/WeighToleranceChoice";
-import { apiErrorMessage } from "@/lib/api/error-message";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 import type { WeighToleranceChoice as Choice } from "@/lib/pricing/tolerance";
 
 /** Null once saved; else the API's error message, or a generic one when the answer carries none. */
@@ -29,7 +29,9 @@ async function saveTolerance(choice: Choice): Promise<string | null> {
     body !== null &&
     "success" in body &&
     body.success === true;
-  return saved ? null : apiErrorMessage(body, "Votre choix n'a pas été enregistré. Réessayez.");
+  return saved
+    ? null
+    : (refusalMessageOf(body) ?? "Votre choix n'a pas été enregistré. Réessayez.");
 }
 
 export default function WeighToleranceSetting({ initial }: { initial: Choice | null }) {

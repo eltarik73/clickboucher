@@ -3,7 +3,7 @@
 // est propre au fichier) ; tout le reste passe par PostgreSQL.
 import { NextRequest } from "next/server";
 import type { Order, OrderItem, Product, Shop, User } from "@prisma/client";
-import { WEIGH_TOLERANCE_TERMS } from "@/lib/pricing/tolerance";
+import { WEIGH_TOLERANCE_TERMS, type WeighToleranceTerms } from "@/lib/pricing/tolerance";
 import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
 import { prisma } from "../helpers/db";
 import {
@@ -126,6 +126,21 @@ export function weighGrams(
     },
     now
   );
+}
+
+/**
+ * An ACCEPTED order of one or more KG lines of a 1000 c/kg product (one gram costs one cent), and
+ * the butcher weighing its first line again at `grams`.
+ */
+export async function weighedOrder(
+  lineGrams: readonly number[],
+  terms: WeighToleranceTerms | null
+) {
+  const world = await createWorld();
+  const order = await createWeighedOrder(world, await createGramProduct(world), lineGrams, terms);
+  const firstLineAt = (grams: number, now?: Date) =>
+    weighGrams(order.id, butcherOf(world), { [order.items[0].id]: grams }, now);
+  return { world, order, firstLineAt };
 }
 
 export async function adjustmentOf(orderId: string) {

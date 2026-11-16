@@ -8,7 +8,7 @@ import type { AdjustmentCloseReason, AdjustmentStatus } from "@prisma/client";
 import { CheckCircle2, Info, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { formatMinutesSeconds, useSecondsUntil } from "@/hooks/use-seconds-until";
-import { apiErrorMessage } from "@/lib/api/error-message";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 import { isAdjustmentApplied } from "@/lib/pricing/adjustment";
 import { adjustmentAnswerDeadline } from "@/lib/pricing/tolerance";
 import { formatPrice } from "@/lib/utils";
@@ -70,7 +70,7 @@ async function postAnswer(orderId: string, answer: Answer) {
     body !== null &&
     "success" in body &&
     body.success === true;
-  return { message: recorded ? null : apiErrorMessage(body, UNRECORDED), reached: true };
+  return { message: recorded ? null : (refusalMessageOf(body) ?? UNRECORDED), reached: true };
 }
 
 function PendingPrompt({ orderId, adjustment, onUpdate }: Props) {

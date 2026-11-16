@@ -1,12 +1,11 @@
 // @vitest-environment node
 // Guard: each rule gathered by C1-ARTISANAT-1 keeps a single home. A second copy is a defect even
 // while both copies agree, because the next fix lands in one of them only. The logo and badge rules
-// are guarded by tests/components/ui-guards.test.ts. Exception lists are closed: a new copy fails,
-// and so does an entry whose file no longer needs it (remove the entry).
+// are guarded by tests/components/ui-guards.test.ts.
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { sourceFiles } from "./source-files";
+import { sourceFiles } from "./source-scan";
 
 const ROOT = path.resolve(__dirname, "../..");
 
@@ -20,17 +19,6 @@ function filesMatching(dirs: readonly string[], pattern: RegExp): string[] {
     .filter((file) => pattern.test(read(file)))
     .sort();
 }
-
-/** Private copies of the client error reader, each with the reason it is still there. */
-const ERROR_HELPER_COPIES: Record<string, string> = {
-  "src/app/(client)/suivi/[id]/CancelOrderButton.tsx":
-    "path of C1-PAIEMENT-A, moves to src/lib/api/client-refusal.ts in part 2",
-};
-
-/** Order routes that still read their body with req.json(), each with its reason. */
-const RAW_BODY_READERS: Record<string, string> = {
-  "src/app/api/orders/[id]/adjust-price/route.ts": "path of C1-PAIEMENT-A",
-};
 
 const OWNER_SHOP_ROUTES = [
   "src/app/api/boucher/shop/status/route.ts",
@@ -65,7 +53,7 @@ describe("one authority per rule (C1-ARTISANAT-1)", () => {
     );
 
     expect(existsSync(path.join(ROOT, "src/lib/api/error-message.ts"))).toBe(false);
-    expect(copies).toEqual(Object.keys(ERROR_HELPER_COPIES).sort());
+    expect(copies).toEqual([]);
   });
 
   it("the owner routes change their shop through writeOwnerShop only, whose UPDATE refuses a suspended shop", () => {
@@ -82,7 +70,7 @@ describe("one authority per rule (C1-ARTISANAT-1)", () => {
       /\breq(?:uest)?\.json\(/
     );
 
-    expect(rawReaders).toEqual(Object.keys(RAW_BODY_READERS).sort());
+    expect(rawReaders).toEqual([]);
   });
 
   it("the kitchen service owns the board types: src/lib/services/orders/kitchen.ts imports nothing from src/hooks", () => {

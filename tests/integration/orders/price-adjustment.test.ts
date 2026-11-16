@@ -7,13 +7,17 @@
 // *-answers.test.ts.
 import { describe, expect, it, vi } from "vitest";
 
+const boucherAuth = vi.hoisted(() => ({ getAuthenticatedBoucher: vi.fn() }));
+vi.mock("@/lib/boucher-auth", () => boucherAuth);
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
 }));
 
+import { PATCH } from "@/app/api/orders/[id]/adjust-price/route";
+import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
 import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
 import { acceptAdjustment, rejectAdjustment } from "@/lib/services/orders/adjustment-answers";
 import { acceptOrder } from "@/lib/services/orders/commands/accept";
@@ -33,7 +37,9 @@ import {
   createWorld,
   customerAnswer,
   eventsOf,
+  jsonRequest,
   notificationsOf,
+  readResponse,
   reload,
   type World,
 } from "./commands-fixtures";
@@ -215,10 +221,11 @@ describe("weighing through the pricing module", () => {
     for (const request of [
       { adjustmentType: "WEIGHT", items: [{ orderItemId: order.items[0].id, newQuantity: 1.5 }] },
       { adjustmentType: "MANUAL", newTotalCents: THREE_PORTIONS.totalCents },
-    ]) {
+    ] satisfies AdjustPriceRequest[]) {
+      // Nothing applied: no adjustment ever set this order's total.
       expect(await adjustOrderPrice(order.id, butcherOf(world), request)).toEqual({
         ok: true,
-        data: { adjustment: null, applied: true, _idempotent: true },
+        data: { adjustment: null, applied: false, _idempotent: true },
       });
     }
     const stored = await reload(order.id);
@@ -235,7 +242,7 @@ describe("weighing through the pricing module", () => {
       status: "PREPARING",
       items: [{ productId: world.product.id, ...THREE_PORTIONS }],
     });
-    const request = {
+    const request: AdjustPriceRequest = {
       adjustmentType: "WEIGHT",
       items: [{ orderItemId: order.items[0].id, newQuantity: 1.47 }],
     };
@@ -271,9 +278,16 @@ describe("weighing through the pricing module", () => {
         items: [{ orderItemId: order.items[0].id, newQuantity: 1.4705 }],
       })
     ).toMatchObject({ ok: false, code: "VALIDATION_ERROR" });
-    expect(await adjustOrderPrice(order.id, butcherOf(world), { adjustmentType: "TIP" })).toEqual(
-      expect.objectContaining({ ok: false, code: "VALIDATION_ERROR", message: "Données invalides" })
-    );
+    boucherAuth.getAuthenticatedBoucher.mockResolvedValue({
+      shopId: world.shop.id,
+      userId: world.owner.id,
+    });
+    const url = `/api/orders/${order.id}/adjust-price`;
+    const tip = jsonRequest(url, "PATCH", { adjustmentType: "TIP" });
+    expect(await readResponse(await PATCH(tip, { params: { id: order.id } }))).toMatchObject({
+      status: 400,
+      body: { error: { code: "VALIDATION_ERROR", message: "Données invalides" } },
+    });
     expect(
       await adjustOrderPrice(order.id, butcherOf(other), {
         adjustmentType: "MANUAL",

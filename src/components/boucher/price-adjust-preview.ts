@@ -8,7 +8,6 @@ import type { AdjustmentType } from "@prisma/client";
 import type { KitchenOrder } from "@/hooks/use-order-polling";
 import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
 import { planAdjustment, type AdjustmentPlan } from "@/lib/pricing/adjustment";
-import { kitchenStoredLine } from "./OrderTicket";
 
 /** The fields of the butcher's window, as typed: by line id, and the order total, in euros. */
 export interface TypedInputs {
@@ -62,6 +61,5 @@ export function previewAdjustment(
 ): { request: AdjustPriceRequest; plan: AdjustmentPlan } | null {
   const request = requestOf(order, tab, inputs);
   if (request === null) return null;
-  const items = order.items.map((item) => ({ ...item, ...kitchenStoredLine(item) }));
-  return { request, plan: planAdjustment({ ...order, items }, request) };
+  return { request, plan: planAdjustment(order, request) };
 }

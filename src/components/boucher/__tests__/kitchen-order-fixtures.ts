@@ -10,10 +10,11 @@ type KitchenItem = KitchenOrder["items"][number];
 export function kitchenLine(
   overrides: Partial<KitchenItem> & Pick<KitchenItem, "id" | "name">
 ): KitchenItem {
+  const unit = overrides.unit ?? "PIECE";
   return {
     productId: `product-${overrides.id}`,
     quantity: 1,
-    unit: "PIECE",
+    unit,
     priceCents: 450,
     totalCents: 450,
     estimatedPriceCents: 450,
@@ -25,6 +26,7 @@ export function kitchenLine(
     pieceLabel: null,
     cutOption: null,
     available: true,
+    product: { name: overrides.name, unit, imageUrl: null },
     ...overrides,
   };
 }
@@ -70,7 +72,7 @@ export function kitchenOrder(overrides: Partial<KitchenOrder> = {}): KitchenOrde
     createdAt: "2026-11-15T10:00:00.000Z",
     updatedAt: "2026-11-15T10:00:00.000Z",
     items: [MERGUEZ, BREAD, SOLD_OUT_TRAY],
-    user: { firstName: "Zoé", lastName: "Martin" },
+    user: { firstName: "Zoé", lastName: "Martin", phone: null, loyaltyBadge: null },
     priceAdjustment: null,
     ...overrides,
   };

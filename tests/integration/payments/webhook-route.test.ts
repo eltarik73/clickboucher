@@ -9,7 +9,7 @@ import { createFakePaymentGateway } from "../helpers/fake-payment-gateway";
 const gateway = createFakePaymentGateway();
 vi.mock("@/lib/payments/gateway", () => ({ getPaymentGateway: () => gateway }));
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -223,7 +223,11 @@ describe("event ledger", () => {
   it("answers 409 while a recent marker is unhandled, and takes over an abandoned one", async () => {
     const { order, event } = await expiringOrder();
     await prisma.stripeEvent.create({
-      data: { id: event.id, type: event.type, claimedAt: new Date(Date.now() - STALE_CLAIM_MS / 2) },
+      data: {
+        id: event.id,
+        type: event.type,
+        claimedAt: new Date(Date.now() - STALE_CLAIM_MS / 2),
+      },
     });
 
     expect(await deliver(event)).toEqual({

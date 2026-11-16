@@ -9,9 +9,9 @@ import type { AdjustmentType, PriceAdjustment, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { sendNotification } from "@/lib/notifications";
 import { getMaxIncreasePct } from "@/lib/price-adjustment";
-import { adjustPriceSchema } from "@/lib/price-adjustment-request";
-import { formatZodError } from "@/lib/api/errors";
+import type { AdjustPriceRequest } from "@/lib/price-adjustment-request";
 import {
+  isAdjustmentApplied,
   planAdjustment,
   type PlannableLine,
   type PlannedLineChange,
@@ -30,18 +30,15 @@ type Failure = {
   ok: false;
   code: "VALIDATION_ERROR" | "NOT_FOUND" | "CONFLICT";
   message: string;
-  details?: Record<string, string[]>;
 };
 
-export type AdjustPriceResult =
-  | {
-      ok: true;
-      data:
-        | { adjustment: PriceAdjustment; applied: boolean; decision: AdjustmentDecision }
-        /** The proposal changes nothing: the order's current adjustment, nothing written. */
-        | { adjustment: PriceAdjustment | null; applied: true; _idempotent: true };
-    }
-  | Failure;
+/** What PATCH /api/orders/[id]/adjust-price answers once the proposal is taken. */
+export type AdjustPriceAnswer =
+  | { adjustment: PriceAdjustment; applied: boolean; decision: AdjustmentDecision }
+  /** The proposal changes nothing: the order's current adjustment, nothing written. */
+  | { adjustment: PriceAdjustment | null; applied: boolean; _idempotent: true };
+
+export type AdjustPriceResult = { ok: true; data: AdjustPriceAnswer } | Failure;
 
 const TRANSACTION_OPTIONS = { maxWait: 5_000, timeout: 10_000 } as const;
 
@@ -91,19 +88,9 @@ function snapshotOf(
 export async function adjustOrderPrice(
   orderId: string,
   shop: { shopId: string; actorId: string },
-  body: unknown,
+  data: AdjustPriceRequest,
   now: Date = new Date()
 ): Promise<AdjustPriceResult> {
-  const parseResult = adjustPriceSchema.safeParse(body);
-  if (!parseResult.success) {
-    return {
-      ok: false,
-      code: "VALIDATION_ERROR",
-      message: "Données invalides",
-      details: formatZodError(parseResult.error),
-    };
-  }
-  const data = parseResult.data;
   const maxIncreasePct = await getMaxIncreasePct();
 
   const { result, expired } = await prisma.$transaction(async (tx) => {
@@ -136,17 +123,20 @@ export async function adjustOrderPrice(
     const plan = planAdjustment({ ...order, items }, data);
     if (!plan.ok) return answer({ ok: false, code: "VALIDATION_ERROR", message: plan.message });
     if (plan.unchanged) {
-      return answer({
-        ok: true,
-        data: { adjustment: existing, applied: true, _idempotent: true },
-      });
+      // Applied only when the current adjustment set the order's total (not after a refusal).
+      const applied = existing !== null && isAdjustmentApplied(existing.status);
+      return answer({ ok: true, data: { adjustment: existing, applied, _idempotent: true } });
     }
-    const maxAllowed = Math.round(order.totalCents * (1 + maxIncreasePct / 100));
+    // The cap is measured on the current total or, when higher, on the estimate of the lines the
+    // order still delivers (frozen tolerance only): a line weighed down by mistake, even to 0, can
+    // be weighed back to its estimate, and an increase never widens the base.
+    const capBaseCents = Math.max(order.totalCents, plan.decision.estimatedTotalCents ?? 0);
+    const maxAllowed = Math.round(capBaseCents * (1 + maxIncreasePct / 100));
     if (plan.newTotalCents > maxAllowed) {
       return answer({
         ok: false,
         code: "VALIDATION_ERROR",
-        message: `L'ajustement ne peut pas dépasser +${maxIncreasePct} % du total actuel`,
+        message: `L'ajustement ne peut pas dépasser +${maxIncreasePct} % du total de la commande`,
       });
     }
     const { decision } = plan;

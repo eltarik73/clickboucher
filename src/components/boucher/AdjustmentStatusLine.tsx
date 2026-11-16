@@ -12,7 +12,7 @@ type Adjustment = NonNullable<KitchenOrder["priceAdjustment"]>;
 const NEXT_STEP = "prix inchangé. Repesez dans sa marge ou retirez l'article.";
 
 /** Why an adjustment ended unapplied (REJECTED), by the closeReason the server recorded. */
-function closedText(closeReason: string | null): string {
+function closedText(closeReason: Adjustment["closeReason"]): string {
   if (closeReason === "CUSTOMER_REFUSED") return `Refusé par le client — ${NEXT_STEP}`;
   if (closeReason === "NO_ANSWER") return `Sans réponse du client — ${NEXT_STEP}`;
   return "Ajustement annulé : la commande a changé.";
@@ -21,7 +21,11 @@ function closedText(closeReason: string | null): string {
 const BOX = "mx-3 mb-1.5 rounded-lg border px-3 py-1.5 text-center";
 const APPLIED = `${BOX} border-emerald-500/20 bg-emerald-500/10 text-xs text-emerald-400`;
 
-export default function AdjustmentStatusLine({ adjustment }: { adjustment: Adjustment }) {
+export default function AdjustmentStatusLine({
+  adjustment,
+}: {
+  adjustment: Adjustment;
+}): JSX.Element | null {
   // A pending row without a stored deadline shows no time, until the board reads it closed.
   const secondsLeft = useSecondsUntil(
     adjustment.status === "PENDING" && adjustment.answerBy !== null
@@ -64,7 +68,8 @@ export default function AdjustmentStatusLine({ adjustment }: { adjustment: Adjus
           {closedText(adjustment.closeReason)}
         </p>
       );
-    default:
+    // ESCALATED: older rows, never applied and decided by nobody since C1-PAIEMENT-A.
+    case "ESCALATED":
       return null;
   }
 }

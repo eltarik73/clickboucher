@@ -126,6 +126,10 @@ facturée, y compris pour les bots. Règles :
   récent que le dernier appliqué : la migration de la phase B ajoute pour cela les colonnes
   `shops.stripe_account_event_at` et `stripe_disputes.last_event_at`, avec un test qui livre deux événements dans le
   désordre.
+- **Prérequis phase B — session de paiement abandonnée** : aujourd'hui `expireUnpaidCheckout` (sur
+  `checkout.session.expired`) envoie `ORDER_EXPIRED`, dont le texte (`src/lib/notifications.ts`) accuse la boutique
+  de n'avoir pas répondu alors que le client a quitté la page de paiement. Avant de poser une clé Stripe, cette
+  fermeture doit avoir son propre événement ou son propre texte de notification, qui ne met pas la boutique en cause.
 
 ### UX & Design
 
@@ -194,8 +198,9 @@ facturée, y compris pour les bots. Règles :
   devis → commande, sur 12 paniers types) et `tests/lib/order-writers-guard.test.ts` (liste fermée des
   fichiers qui écrivent dans `orders`, chacun avec sa raison ; seul `transition.ts` écrit le statut, sans exception ;
   liste fermée `TOLERANCE_COLUMN_WRITERS` des écrivains des colonnes figées de la marge de pesée, dont
-  `adjustment-settlement.ts`). Les gardes statiques de `tests/lib` lisent le code par un seul lecteur,
-  `tests/lib/source-scan.ts` (`sourceFiles`, `withoutComments`, `importsModule`).
+  `adjustment-settlement.ts`). Les gardes statiques (`tests/lib`, `tests/components`, `src/**/__tests__`) lisent le
+  code par un seul lecteur, `tests/lib/source-scan.ts` (`sourceFiles` : chemins relatifs à la racine du dépôt,
+  `withoutComments`, `importsModule`).
 - **Garde-fous sécurité** : `src/lib/__tests__/shop-field-ownership.test.ts` (colonnes de `Shop` du boucher ou de la
   plateforme), `src/lib/__tests__/shop-visible-writers.test.ts` (écrivains de la publication),
   `src/lib/__tests__/html-sinks.test.ts` (HTML écrit à la main) ; en intégration `tests/integration/security/**`
@@ -540,14 +545,19 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   `PRICE` ou `MANUAL`, commande sans marge, ligne sans estimation) : ajustement `PENDING`, le client doit répondre
   explicitement.
 - **Plafond de la plateforme** : jamais plus de `pa_max_increase_pct` (50 % par défaut, entier de 1 à 100) au-dessus du
-  total actuel, vérifié par le serveur seul (`adjust-price.ts`) : le navigateur n'en vérifie aucun, la fenêtre du
+  total de la commande, mesuré sur max(total actuel, base de la marge après le changement : `estimatedTotalCents` de la
+  décision, commande à marge figée seulement) : une ligne pesée trop bas par erreur, même à 0, se repèse jusqu'à son
+  estimation (une ligne plus lourde que son estimation n'élargit pas la base), et une commande pesée à 0 n'a pas un
+  plafond de 0. Vérifié par le serveur seul (`adjust-price.ts`) : le navigateur n'en vérifie aucun, la fenêtre du
   boucher affiche le refus du serveur. Seul lecteur : `getMaxIncreasePct` (`src/lib/price-adjustment.ts`), qui
   n'applique jamais une valeur stockée invalide (50 % et un avertissement). Seul écrivain :
   `PATCH /api/webmaster/config` (clé `pa_max_increase_pct`, 400 si `parseMaxIncreasePct` de
   `src/lib/price-adjustment-config.ts` la refuse) ; `GET /api/webmaster/config/price-adjustment` la lit.
 - **Proposition sans effet** : une proposition qui ne change ni le total ni aucune ligne (double clic, requête rejouée)
   répond `_idempotent: true` avec l'ajustement courant, sans remplacer la ligne ni écrire d'événement ou de
-  notification. Un ajustement encore `PENDING` répond d'abord 409.
+  notification ; `applied` y vaut `isAdjustmentApplied` de cet ajustement (faux sans ajustement ou après un refus).
+  Un ajustement encore `PENDING` répond d'abord 409. La cuisine (`use-order-actions.ts`) annonce « Prix mis à jour »
+  seulement quand `applied` est vrai.
 - **Délai de réponse** : 5 min (`ADJUSTMENT_ANSWER_WINDOW_SECONDS`, colonne `answerBy`), seule constante du serveur,
   du compte à rebours (`src/hooks/use-seconds-until.ts`) et des textes. Une règle, deux formes : `isAdjustmentAnswerDue`
   (`tolerance.ts`) et `expiredAdjustmentWhere` (`src/lib/services/orders/adjustment-closure.ts`). **Le silence vaut

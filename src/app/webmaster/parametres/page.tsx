@@ -699,10 +699,11 @@ function MaxIncreaseField({
         htmlFor="max-increase-pct"
         className="text-sm font-medium text-gray-700 dark:text-gray-300"
       >
-        Plafond de sécurité d&apos;un ajustement, en % du total actuel
+        Plafond de sécurité d&apos;un ajustement, en % du total de la commande
       </label>
       <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
-        Une hausse ne peut pas dépasser ce pourcentage du total actuel de la commande, même avec
+        Une hausse ne peut pas dépasser ce pourcentage du total de la commande (son total actuel, ou
+        l&apos;estimation des articles encore livrés si elle est plus élevée), même avec
         l&apos;accord du client.
       </p>
       <div className="flex items-center gap-2">

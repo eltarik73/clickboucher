@@ -10,7 +10,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const CAP_URL = "/api/webmaster/config/price-adjustment";
 const CONFIG_URL = "/api/webmaster/config";
-const CAP_LABEL = "Plafond de sécurité d'un ajustement, en % du total actuel";
+const CAP_LABEL = "Plafond de sécurité d'un ajustement, en % du total de la commande";
 const REFUSAL = "Le plafond est d'au moins 1 %";
 
 const json = (body: unknown, status = 200) =>

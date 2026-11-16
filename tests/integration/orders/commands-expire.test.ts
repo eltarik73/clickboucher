@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn(async () => true) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => true) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn(async () => "sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn(async () => true),
   sendWhatsAppRaw: vi.fn(async () => true),
@@ -143,7 +143,10 @@ describe("expireUnpaidCheckout", () => {
     expect((await expireUnpaidCheckout(expiry)).kind).toBe("done");
     expect((await expireUnpaidCheckout(expiry)).kind).toBe("replay");
 
-    expect(await reload(order.id)).toMatchObject({ status: "AUTO_CANCELLED", autoCancelledAt: now });
+    expect(await reload(order.id)).toMatchObject({
+      status: "AUTO_CANCELLED",
+      autoCancelledAt: now,
+    });
     expect(await eventsOf(order.id)).toMatchObject([
       {
         type: "AUTO_CANCELLED",

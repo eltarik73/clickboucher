@@ -1,18 +1,24 @@
-// tests/lib/source-scan.ts — the source reader of the static guards in tests/lib (stripe-guard,
-// image-writers-guard, order-writers-guard). They read the shipped code as text; one reader keeps
-// them in agreement, tested once in source-scan.test.ts.
+// tests/lib/source-scan.ts — the source reader of the static guards (tests/lib, tests/components,
+// src/**/__tests__). They read the shipped code as text; one reader keeps them in agreement,
+// tested once in source-scan.test.ts. Tests are left out: they quote on purpose what a guard forbids.
 import { readdirSync } from "node:fs";
 import path from "node:path";
 
-/** Shipped code under `dir` (.ts, .tsx, .js, .mjs): tests, __tests__ and node_modules are left out. */
+const ROOT = path.resolve(__dirname, "../..");
+
+/**
+ * Repo-relative POSIX paths of the shipped code under `dir` (itself relative to the repository
+ * root): .ts, .tsx, .js and .mjs files, without __tests__ folders, *.test / *.spec files nor
+ * node_modules.
+ */
 export function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
+  return readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((entry) => {
+    const file = path.posix.join(dir, entry.name);
     if (entry.isDirectory()) {
-      return entry.name === "node_modules" || entry.name === "__tests__" ? [] : sourceFiles(full);
+      return entry.name === "node_modules" || entry.name === "__tests__" ? [] : sourceFiles(file);
     }
     const isSource = /\.(?:ts|tsx|js|mjs)$/.test(entry.name);
-    return isSource && !/\.(?:test|spec)\.[a-z]+$/.test(entry.name) ? [full] : [];
+    return isSource && !/\.(?:test|spec)\.[a-z]+$/.test(entry.name) ? [file] : [];
   });
 }
 

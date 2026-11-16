@@ -38,9 +38,9 @@ const SHARP_IMPORTERS: Record<string, string> = {
   "src/lib/images/process.ts": "seul décodeur : format reconnu, redressé, métadonnées retirées",
 };
 
-const files = SCANNED_DIRS.flatMap((dir) => sourceFiles(path.join(ROOT, dir))).map((full) => ({
-  file: path.relative(ROOT, full).split(path.sep).join("/"),
-  code: withoutComments(readFileSync(full, "utf8")),
+const files = SCANNED_DIRS.flatMap(sourceFiles).map((file) => ({
+  file,
+  code: withoutComments(readFileSync(path.join(ROOT, file), "utf8")),
 }));
 
 const matching = (predicate: (code: string) => boolean, scope: string[] = SCANNED_DIRS) =>

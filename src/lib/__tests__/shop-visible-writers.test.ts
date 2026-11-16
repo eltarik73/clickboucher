@@ -12,13 +12,13 @@
 // `data` sont lues dans l'objet littéral, ses décompositions (`...(cond && { … })`) et les
 // constantes `as const` du même fichier. Un `data` illisible (sortie d'un schéma Zod, objet
 // construit) doit figurer dans OPAQUE_SHOP_WRITERS avec sa raison.
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { sourceFiles } from "../../../tests/lib/source-scan";
 
 const ROOT = path.resolve(__dirname, "../../..");
-const SRC = path.join(ROOT, "src");
 
 const PUBLICATION_COLUMNS = ["visible", "suspendedAt", "suspendReason", "validatedAt"];
 const PUBLICATION_SQL_COLUMNS = /\b(visible|suspended_at|suspend_reason|validated_at)\b/i;
@@ -61,14 +61,6 @@ type ShopWrite = { file: string; columns: string[] | null };
 type Constants = Map<string, ts.Expression>;
 
 // ── Lecture du code ──────────────────────────
-
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "__tests__" ? [] : sourceFiles(full);
-    return /\.tsx?$/.test(entry.name) && !/\.(test|spec)\.tsx?$/.test(entry.name) ? [full] : [];
-  });
-}
 
 function unwrap(node: ts.Expression): ts.Expression {
   let current = node;
@@ -202,8 +194,8 @@ function shopWrites(file: string, text: string): ShopWrite[] {
 }
 
 function allShopWrites(): ShopWrite[] {
-  return sourceFiles(SRC).flatMap((full) =>
-    shopWrites(path.relative(ROOT, full).split(path.sep).join("/"), readFileSync(full, "utf8"))
+  return sourceFiles("src").flatMap((file) =>
+    shopWrites(file, readFileSync(path.join(ROOT, file), "utf8"))
   );
 }
 

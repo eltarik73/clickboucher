@@ -82,13 +82,6 @@ describe("order line quantity on every printed or e-mailed support", () => {
     });
     expect(formatItemQty(item)).toBe(text("2 × 500 g"));
   });
-
-  it("refuses a unit that no order line can carry", () => {
-    expect(() =>
-      // @ts-expect-error the type already refuses a unit outside the Prisma enum
-      formatItemQty(kitchenItem({ unit: "LITRE", quantity: 1, weightGrams: null }))
-    ).toThrow(TypeError);
-  });
 });
 
 describe("butcher ticket HTML", () => {

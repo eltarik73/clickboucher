@@ -63,7 +63,7 @@ describe("AdjustmentStatusLine", () => {
     expect(screen.queryByText(/pour répondre|délai écoulé/)).toBeNull();
   });
 
-  it.each([
+  it.each<[Adjustment["status"], string]>([
     ["AUTO_APPROVED", "Prix ajusté (26,50 €)"],
     ["AUTO_VALIDATED", "Prix ajusté (26,50 €)"],
     ["APPROVED", "Accepté par le client (26,50 €)"],
@@ -73,7 +73,7 @@ describe("AdjustmentStatusLine", () => {
     expect(screen.getByText(text)).toBeInTheDocument();
   });
 
-  it.each([
+  it.each<[Adjustment["closeReason"], string]>([
     [
       "CUSTOMER_REFUSED",
       "Refusé par le client — prix inchangé. Repesez dans sa marge ou retirez l'article.",

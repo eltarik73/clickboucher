@@ -1,17 +1,12 @@
 // @vitest-environment node
-// The source reader shared by the static guards of tests/lib (source-scan.ts): which files are
-// shipped code, what is code rather than a comment, and which import forms load a module.
-import path from "node:path";
+// The source reader shared by the static guards (source-scan.ts): which files are shipped code,
+// what is code rather than a comment, and which import forms load a module.
 import { describe, expect, it } from "vitest";
 import { importsModule, sourceFiles, withoutComments } from "./source-scan";
 
-const ROOT = path.resolve(__dirname, "../..");
-
 describe("sourceFiles", () => {
-  it("lists the shipped code of a folder and leaves its tests out", () => {
-    const files = sourceFiles(path.join(ROOT, "src/lib")).map((full) =>
-      path.relative(ROOT, full).split(path.sep).join("/")
-    );
+  it("lists the shipped code of a folder as repo-relative paths and leaves its tests out", () => {
+    const files = sourceFiles("src/lib");
 
     expect(files).toContain("src/lib/stripe.ts");
     expect(files).toContain("src/lib/services/stripe/webhook/dispatch.ts");
@@ -54,7 +49,9 @@ describe("importsModule", () => {
   });
 
   it("matches a scoped package and its subpaths, not a package that only starts like it", () => {
-    expect(importsModule('const blob = require("@vercel/blob/client");', "@vercel/blob")).toBe(true);
+    expect(importsModule('const blob = require("@vercel/blob/client");', "@vercel/blob")).toBe(
+      true
+    );
     expect(importsModule('import { put } from "@vercel/blobby";', "@vercel/blob")).toBe(false);
   });
 });

@@ -15,10 +15,11 @@
 // New code is at 0: build the document with html`…`. The legacy builders below keep their measured
 // count, which can only go down (lower the entry, or remove it at 0, in the same change).
 // Also enforced: trustedHtml(…) takes a string literal only, and no file defines its own escaper.
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { sourceFiles } from "../../../tests/lib/source-scan";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const ESCAPE_MODULE = "@/lib/html/escape";
@@ -149,19 +150,10 @@ function scanSource(fileName: string, text: string): Scan {
   return scan;
 }
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "__tests__" ? [] : sourceFiles(full);
-    return /\.tsx?$/.test(entry.name) && !/\.(test|spec|d)\.tsx?$/.test(entry.name) ? [full] : [];
-  });
-}
-
 function scanSrc(): Map<string, Scan> {
   const scans = new Map<string, Scan>();
-  for (const file of sourceFiles(path.join(ROOT, "src"))) {
-    const relative = path.relative(ROOT, file).split(path.sep).join("/");
-    scans.set(relative, scanSource(relative, readFileSync(file, "utf8")));
+  for (const file of sourceFiles("src")) {
+    scans.set(file, scanSource(file, readFileSync(path.join(ROOT, file), "utf8")));
   }
   return scans;
 }

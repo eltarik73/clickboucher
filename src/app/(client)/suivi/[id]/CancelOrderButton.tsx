@@ -7,15 +7,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { trackedOrderFrom, type TrackedOrder } from "@/hooks/useOrderTracker";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 import { CUSTOMER_CANCEL_WINDOW_MS, isCancellable } from "@/lib/order-state-machine";
 
 type CancelOutcome = { order: TrackedOrder } | { order: null; message: string };
-
-function apiErrorMessage(body: unknown): string | null {
-  if (typeof body !== "object" || body === null) return null;
-  const message = (body as { error?: { message?: unknown } }).error?.message;
-  return typeof message === "string" && message !== "" ? message : null;
-}
 
 async function requestCancel(orderId: string): Promise<CancelOutcome> {
   let res: Response;
@@ -27,7 +22,7 @@ async function requestCancel(orderId: string): Promise<CancelOutcome> {
   const body: unknown = await res.json().catch(() => null);
   const order = res.ok ? trackedOrderFrom(body) : null;
   if (order) return { order };
-  return { order: null, message: apiErrorMessage(body) ?? "Impossible d'annuler la commande" };
+  return { order: null, message: refusalMessageOf(body) ?? "Impossible d'annuler la commande" };
 }
 
 interface CancelOrderButtonProps {

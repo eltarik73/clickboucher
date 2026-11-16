@@ -1,7 +1,7 @@
 // @vitest-environment node
 // The orders page of GET /api/orders on real PostgreSQL: a customer reads the customer view of
 // their own orders, a butcher the orders of their shops only, an admin every order; the status and
-// shop filters narrow a list and never widen it; a due price adjustment is settled before the read;
+// shop filters narrow a list and never widen it; a due price adjustment is closed before the read;
 // 50 rows at most, newest first. The route resolves who reads (auth helpers mocked) and validates
 // the query.
 import { OrderStatus } from "@prisma/client";
@@ -134,7 +134,7 @@ describe("listOrders", () => {
     ]);
   });
 
-  it("settles a due price adjustment of the viewer's orders at the given time before reading them", async () => {
+  it("closes a due price adjustment of the viewer's orders at the given time before reading them: silence is a refusal", async () => {
     const shop = await createTestShop();
     const customer = await createTestUser();
     const other = await createTestUser();
@@ -156,8 +156,8 @@ describe("listOrders", () => {
           originalTotal: order.totalCents,
           newTotal: order.totalCents + 150,
           adjustmentType: "WEIGHT",
-          tier: 2,
-          autoApproveAt: deadline,
+          tier: 3,
+          answerBy: deadline,
         },
       });
     }
@@ -168,8 +168,8 @@ describe("listOrders", () => {
       new Date(deadline.getTime() + MINUTE_MS)
     );
 
-    expect(row.totalCents).toBe(2150);
-    expect(row.priceAdjustment?.status).toBe("AUTO_VALIDATED");
+    expect(row.totalCents).toBe(2000);
+    expect(row.priceAdjustment).toMatchObject({ status: "REJECTED", closeReason: "NO_ANSWER" });
     const untouched = await prisma.priceAdjustment.findUniqueOrThrow({
       where: { orderId: foreign.id },
     });

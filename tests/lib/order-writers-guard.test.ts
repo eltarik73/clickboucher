@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { sourceFiles } from "./source-scan";
 
 const ROOT = path.resolve(__dirname, "../..");
-const SRC = path.join(ROOT, "src");
+const readSource = (file: string) => readFileSync(path.join(ROOT, file), "utf8");
 
 /** Fichiers autorisés à appeler order.update / order.updateMany, chacun avec sa raison. */
 const ORDER_WRITERS: Record<string, string> = {
@@ -175,9 +175,8 @@ interface OrderWrite {
 const ORDER_WRITE_CALL = /\border\s*\.\s*(?:update|updateMany)\s*\(/g;
 
 function orderWrites(): OrderWrite[] {
-  return sourceFiles(SRC).flatMap((full) => {
-    const code = codeOnly(readFileSync(full, "utf8"));
-    const file = path.relative(ROOT, full).split(path.sep).join("/");
+  return sourceFiles("src").flatMap((file) => {
+    const code = codeOnly(readSource(file));
     return [...code.matchAll(ORDER_WRITE_CALL)].map((match) => {
       const open = (match.index ?? 0) + match[0].length - 1;
       return { file, data: dataArgument(code.slice(open, closingIndex(code, open))) };
@@ -186,10 +185,9 @@ function orderWrites(): OrderWrite[] {
 }
 
 function toleranceColumnWriters(): string[] {
-  return sourceFiles(SRC).flatMap((full) => {
-    const text = readFileSync(full, "utf8");
-    if (!TALKS_TO_DATABASE.test(text) || !TOLERANCE_COLUMN_VALUE.test(codeOnly(text))) return [];
-    return [path.relative(ROOT, full).split(path.sep).join("/")];
+  return sourceFiles("src").filter((file) => {
+    const text = readSource(file);
+    return TALKS_TO_DATABASE.test(text) && TOLERANCE_COLUMN_VALUE.test(codeOnly(text));
   });
 }
 

@@ -6,8 +6,9 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest } from "next/server";
 import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api/errors";
+import { apiSuccess, apiError, formatZodError, handleApiError } from "@/lib/api/errors";
 import { readJsonBody } from "@/lib/api/request-body";
+import { adjustPriceSchema } from "@/lib/price-adjustment-request";
 import { checkRateLimit, rateLimits } from "@/lib/rate-limit";
 import { adjustOrderPrice } from "@/lib/services/orders/adjust-price";
 
@@ -20,11 +21,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const rl = await checkRateLimit(rateLimits.api, `order-adjust:${shopId}`);
     if (!rl.success) return apiError("RATE_LIMITED", "Trop de requêtes");
 
-    const body = await readJsonBody(req);
-    const result = await adjustOrderPrice(params.id, { shopId, actorId: userId }, body);
+    const parsed = adjustPriceSchema.safeParse(await readJsonBody(req));
+    if (!parsed.success) {
+      return apiError("VALIDATION_ERROR", "Données invalides", formatZodError(parsed.error));
+    }
+    const result = await adjustOrderPrice(params.id, { shopId, actorId: userId }, parsed.data);
 
     if (!result.ok) {
-      return apiError(result.code, result.message, result.details);
+      return apiError(result.code, result.message);
     }
     return apiSuccess(result.data);
   } catch (error) {
