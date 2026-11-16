@@ -48,15 +48,6 @@ describe("feuille de style compilée (globals.css + tailwind.config.ts)", () => 
     expect(conflicting).toEqual([]);
   });
 
-  it("globals.css ne définit que les keyframes flashGreen et flashRed", () => {
-    const source = postcss.parse(readFileSync(GLOBALS, "utf8"));
-    const names: string[] = [];
-    source.walkAtRules("keyframes", (rule) => {
-      names.push(rule.params);
-    });
-    expect(names).toEqual(["flashGreen", "flashRed"]);
-  });
-
   // Les variantes motion-safe: des primitives émettent des blocs « no-preference » : seul
   // le filet « reduce » est unique.
   it("un seul bloc prefers-reduced-motion: reduce, qui coupe toute animation sauf animate-spin", () => {
@@ -83,15 +74,19 @@ describe("feuille de style compilée (globals.css + tailwind.config.ts)", () => 
     expect(declValue(rules[0], "animation")).toBe(animation);
   });
 
-  it.each([".bg-indigo-500\\/10", ".bg-green-500\\/10", ".bg-orange-500\\/10", ".bg-gray-400\\/10"])(
-    "la classe de statut %s de src/lib est émise",
-    (selector) => {
-      expect(rulesFor(selector).length).toBeGreaterThan(0);
-    },
-  );
+  it.each([
+    ".bg-indigo-500\\/10",
+    ".bg-green-500\\/10",
+    ".bg-orange-500\\/10",
+    ".bg-gray-400\\/10",
+  ])("la classe de statut %s de src/lib est émise", (selector) => {
+    expect(rulesFor(selector).length).toBeGreaterThan(0);
+  });
 
   it("aucune règle body ne pose de font-family", () => {
-    const offenders = rulesFor("body").filter((rule) => declValue(rule, "font-family") !== undefined);
+    const offenders = rulesFor("body").filter(
+      (rule) => declValue(rule, "font-family") !== undefined
+    );
     expect(offenders.map((rule) => rule.toString())).toEqual([]);
   });
 

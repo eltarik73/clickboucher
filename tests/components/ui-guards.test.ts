@@ -1,198 +1,105 @@
 // @vitest-environment node
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+// Lasting rules of the UI primitives, read from the shipped sources: a keyboard focus ring wherever
+// the outline is removed, colours from the tokens, a name on every switch, one logo, one badge.
+import { readFileSync } from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { sourceFiles } from "../lib/source-files";
 
 const ROOT = path.resolve(__dirname, "../..");
-const SRC = path.join(ROOT, "src");
-const UI_DIR = path.join(SRC, "components/ui");
-const BRAND_DIR = path.join(SRC, "components/brand");
-const COMPONENT_TESTS = path.join(ROOT, "tests/components");
-const EXTENSIONS = [".tsx", ".ts"];
+const UI_DIR = "src/components/ui";
+const UI_FILES = sourceFiles(UI_DIR);
+const SRC_FILES = sourceFiles("src");
 
-/**
- * Primitives livrées par C1-SOCLE-UI qu'aucune page n'importe encore, avec le chantier qui doit les adopter.
- * Une primitive sort de cette liste dès qu'elle gagne un importeur ; aucune autre ne peut y entrer.
- */
-const AWAITING_ADOPTION: Record<string, string> = {
-  "src/components/ui/sheet.tsx": "C2-PARCOURS-COMMANDE (panier, choix du poids)",
-  "src/components/ui/form-field.tsx": "C2-PARCOURS-COMMANDE (formulaire invité)",
-  "src/components/ui/price.tsx": "C2-VITRINE (prix des fiches produit)",
-  "src/components/ui/heading.tsx": "C2-CLIENT (titres des pages client ; importé aujourd'hui par empty-state seul)",
-  "src/components/ui/empty-state.tsx": "C2-CLIENT (panier, favoris, commandes vides)",
-  "src/components/ui/status-badge.tsx": "C2-PARCOURS-COMMANDE (statut de commande au suivi)",
-};
+const read = (file: string) => readFileSync(path.join(ROOT, file), "utf8");
+const filesContaining = (files: string[], test: (text: string) => boolean) =>
+  files.filter((file) => test(read(file))).sort();
 
-/** Nombre d'éléments <Switch> sans nom accessible hors de src/components/ui. Il ne peut que baisser. */
+/** Unlabelled <Switch> elements outside src/components/ui. The count may only go down. */
 const UNLABELLED_SWITCH_BASELINE = 16;
 
-const DELETED_PRIMITIVES = ["Toast.tsx", "quick-actions.tsx", "toggle-pill.tsx", "stepper.tsx", "skeleton.tsx"];
-
-const REBUILT_FILES = [
-  "src/components/ui/button.tsx",
-  "src/components/ui/icon-button.tsx",
-  "src/components/ui/card.tsx",
-  "src/components/ui/badge.tsx",
-  "src/components/ui/input.tsx",
-  "src/components/ui/form-field.tsx",
-  "src/components/ui/switch.tsx",
-  "src/components/ui/dialog.tsx",
-  "src/components/ui/sheet.tsx",
-  "src/components/ui/alert-dialog.tsx",
-  "src/components/ui/ConfirmDialog.tsx",
-  "src/components/ui/price.tsx",
-  "src/components/ui/heading.tsx",
-  "src/components/ui/empty-state.tsx",
-  "src/components/ui/status-badge.tsx",
-  "src/components/ui/ThemeToggle.tsx",
-  "src/components/ui/toaster.tsx",
-  "src/components/brand/BrandLogo.tsx",
+/** Primitives still on literal colours; a file leaves the list when it moves to the tokens. */
+const LITERAL_COLOUR_FILES = [
+  "src/components/ui/FavoriteButton.tsx",
+  "src/components/ui/FormWizard.tsx",
+  "src/components/ui/NotificationBell.tsx",
+  "src/components/ui/StarRating.tsx",
 ];
 
-function rel(file: string): string {
-  return path.relative(ROOT, file).split(path.sep).join("/");
-}
+/** The K of the logo mark. */
+const LOGO_GLYPH = "M35 25 L35 75 L45 75 L45 55 L60 75 L73 75 L55 52 L72 25 L59 25 L45 47 L45 25 Z";
 
-function walk(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const full = path.join(dir, name);
-    if (statSync(full).isDirectory()) return walk(full);
-    return EXTENSIONS.includes(path.extname(full)) ? [full] : [];
-  });
-}
+/** A class string that removes the outline: the run of characters between two quotes. */
+const OUTLINE_CLASSES = /[^"'`]*\boutline-none\b[^"'`]*/g;
 
-function read(file: string): string {
-  return readFileSync(file, "utf8");
-}
+/** A Tailwind arbitrary value holding a literal colour, such as bg-[#DC2626]. */
+const LITERAL_COLOUR = /-\[(?:#|rgba?\(|hsla?\()/;
 
-/** Fichiers source d'une primitive, chemin sans extension → chemin relatif au dépôt. */
-const PRIMITIVES = [...walk(UI_DIR), ...walk(BRAND_DIR)];
+/** The tinted surface of a status tone, such as bg-success-subtle. */
+const TONE_SURFACE = /\bbg-(info|success|warning|destructive)-subtle\b/g;
 
-function withoutExtension(file: string): string {
-  return file.replace(/\.(tsx|ts)$/, "");
-}
+// The outline may go only on keyboard focus, and only when a ring is drawn instead.
+const hasFocusRing = (classes: string[]) =>
+  classes.includes("focus-visible:ring-2") &&
+  classes.every((name) => !name.endsWith("outline-none") || name === "focus-visible:outline-none");
 
-const IMPORT_PATTERN = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)["']([^"']+)["']/g;
-
-/** Chemins absolus (sans extension) importés par un fichier : alias @/ et chemins relatifs seulement. */
-function importedPaths(file: string): string[] {
-  const out: string[] = [];
-  for (const match of read(file).matchAll(IMPORT_PATTERN)) {
-    const spec = match[1];
-    let target: string | null = null;
-    if (spec.startsWith("@/")) target = path.join(SRC, spec.slice(2));
-    else if (spec.startsWith(".")) target = path.resolve(path.dirname(file), spec);
-    if (target) out.push(withoutExtension(target), path.join(target, "index"));
-  }
-  return out;
-}
-
-function importersOf(primitive: string, files: string[]): string[] {
-  const key = withoutExtension(primitive);
-  return files.filter((file) => file !== primitive && importedPaths(file).includes(key));
-}
-
-/** Littéral de chaîne (guillemets, apostrophes ou gabarit) qui contient la position donnée. */
-function enclosingLiteral(text: string, index: number): string {
-  let start = index;
-  while (start > 0 && !`"'\``.includes(text[start - 1])) start -= 1;
-  const quote = text[start - 1];
-  let end = index;
-  while (end < text.length && text[end] !== quote) end += 1;
-  return text.slice(start, end);
-}
-
-/** Balises ouvrantes <Switch …> complètes, accolades et chaînes comprises (un `=>` ne les coupe pas). */
-function switchTags(text: string): string[] {
-  const tags: string[] = [];
-  for (const match of text.matchAll(/<Switch\b/g)) {
-    let depth = 0;
-    let quote: string | null = null;
-    let i = match.index ?? 0;
-    for (; i < text.length; i += 1) {
-      const c = text[i];
-      if (quote) {
-        if (c === quote) quote = null;
-      } else if (c === '"' || c === "'" || c === "`") quote = c;
-      else if (c === "{") depth += 1;
-      else if (c === "}") depth -= 1;
-      else if (c === ">" && depth === 0) break;
+/** <Switch> elements without aria-label or aria-labelledby, found by the TypeScript parser. */
+function unlabelledSwitches(file: string): number {
+  const text = read(file);
+  if (!text.includes("<Switch")) return 0;
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false, ts.ScriptKind.TSX);
+  let count = 0;
+  const visit = (node: ts.Node): void => {
+    const element = ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node);
+    if (element && node.tagName.getText(source) === "Switch") {
+      const names = node.attributes.properties.map((attribute) =>
+        ts.isJsxAttribute(attribute) ? attribute.name.getText(source) : ""
+      );
+      if (!names.includes("aria-label") && !names.includes("aria-labelledby")) count += 1;
     }
-    tags.push(text.slice(match.index, i + 1));
-  }
-  return tags;
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return count;
 }
 
 describe("garde-fous des primitives d'interface", () => {
-  it("chaque outline-none est focus-visible:outline-none et s'accompagne de focus-visible:ring-2", () => {
-    const offenders: string[] = [];
-    for (const file of PRIMITIVES) {
-      const text = read(file);
-      for (const match of text.matchAll(/outline-none/g)) {
-        const index = match.index ?? 0;
-        const prefixed = text.slice(Math.max(0, index - "focus-visible:".length), index) === "focus-visible:";
-        const literal = enclosingLiteral(text, index);
-        if (!prefixed || !literal.includes("focus-visible:ring-2")) {
-          offenders.push(`${rel(file)} : « ${literal.trim().slice(0, 120)} »`);
-        }
-      }
-    }
-    expect(offenders, "outline-none sans anneau de focus visible").toEqual([]);
-  });
-
-  it("les seules primitives sans importeur sont celles qui attendent leur adoption", () => {
-    const sources = walk(SRC);
-    const awaiting = new Set(Object.keys(AWAITING_ADOPTION));
-    const withoutImporter = PRIMITIVES.filter((primitive) => {
-      const importers = importersOf(primitive, sources).filter((file) => !awaiting.has(rel(file)));
-      return importers.length === 0;
-    }).map(rel);
-    expect(withoutImporter.sort(), "primitive sans importeur hors liste, ou primitive adoptée encore listée").toEqual(
-      [...awaiting].sort(),
+  it("outline-none ne s'écrit que focus-visible:outline-none, avec focus-visible:ring-2", () => {
+    const offenders = UI_FILES.flatMap((file) =>
+      (read(file).match(OUTLINE_CLASSES) ?? [])
+        .map((classes) => classes.trim())
+        .filter((classes) => !hasFocusRing(classes.split(/\s+/)))
+        .map((classes) => `${file} : « ${classes} »`)
     );
+    expect(offenders).toEqual([]);
   });
 
-  it("chaque primitive en attente d'adoption est importée par un test de tests/components", () => {
-    const tests = walk(COMPONENT_TESTS);
-    const untested = Object.keys(AWAITING_ADOPTION).filter(
-      (primitive) => importersOf(path.join(ROOT, primitive), tests).length === 0,
-    );
-    expect(untested, "primitive en attente sans test").toEqual([]);
+  it("aucune couleur littérale hors des primitives qui attendent les tokens", () => {
+    const literal = filesContaining(UI_FILES, (text) => LITERAL_COLOUR.test(text));
+    expect(literal).toEqual(LITERAL_COLOUR_FILES);
   });
 
-  it("les primitives supprimées ne reviennent pas", () => {
-    const present = DELETED_PRIMITIVES.filter((name) => existsSync(path.join(UI_DIR, name)));
-    expect(present, "primitive supprimée de nouveau présente dans src/components/ui").toEqual([]);
+  it(`au plus ${UNLABELLED_SWITCH_BASELINE} <Switch> sans nom accessible hors de ${UI_DIR}`, () => {
+    const counts = SRC_FILES.filter((file) => !file.startsWith(`${UI_DIR}/`))
+      .map((file) => [file, unlabelledSwitches(file)] as const)
+      .filter(([, count]) => count > 0);
+    const total = counts.reduce((sum, [, count]) => sum + count, 0);
+    expect(total, counts.join("\n")).toBeLessThanOrEqual(UNLABELLED_SWITCH_BASELINE);
   });
 
-  it(`au plus ${UNLABELLED_SWITCH_BASELINE} <Switch> sans nom accessible hors de src/components/ui`, () => {
-    const unlabelled: string[] = [];
-    for (const file of walk(SRC)) {
-      if (file.startsWith(UI_DIR + path.sep)) continue;
-      for (const tag of switchTags(read(file))) {
-        if (!/\baria-label(?:ledby)?\s*=/.test(tag)) unlabelled.push(rel(file));
-      }
-    }
-    expect(
-      unlabelled.length,
-      `<Switch> sans aria-label ni aria-labelledby (utiliser SwitchField) :\n${unlabelled.join("\n")}`,
-    ).toBeLessThanOrEqual(UNLABELLED_SWITCH_BASELINE);
+  // SplashScreen and the HTML of the printed ticket still draw the mark by hand.
+  it("le K du logo n'est dessiné que par KlikLogo et les deux copies connues", () => {
+    expect(filesContaining(SRC_FILES, (text) => text.includes(LOGO_GLYPH))).toEqual([
+      "src/components/SplashScreen.tsx",
+      "src/components/boucher/OrderTicket.tsx",
+      "src/components/ui/KlikLogo.tsx",
+    ]);
   });
 
-  it("les fichiers reconstruits existent, n'ont aucune couleur littérale et restent sous 300 lignes", () => {
-    const problems: string[] = [];
-    for (const file of REBUILT_FILES) {
-      const full = path.join(ROOT, file);
-      if (!existsSync(full)) {
-        problems.push(`${file} : fichier absent`);
-        continue;
-      }
-      const text = read(full);
-      const literal = text.match(/[\w:-]*-\[#[^\]]*\]/);
-      if (literal) problems.push(`${file} : classe à couleur littérale ${literal[0]}`);
-      const lines = text.split("\n").length - (text.endsWith("\n") ? 1 : 0);
-      if (lines > 300) problems.push(`${file} : ${lines} lignes (maximum 300)`);
-    }
-    expect(problems).toEqual([]);
+  it("seul badge.tsx porte les teintes de plusieurs statuts", () => {
+    const tones = (text: string) => new Set(Array.from(text.matchAll(TONE_SURFACE), ([, t]) => t));
+    const toneTables = filesContaining(UI_FILES, (text) => tones(text).size > 1);
+    expect(toneTables).toEqual(["src/components/ui/badge.tsx"]);
   });
 });

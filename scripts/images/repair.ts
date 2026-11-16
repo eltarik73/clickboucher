@@ -4,16 +4,18 @@
 //   npx tsx scripts/images/repair.ts --apply --journal journal.jsonl [--check-blob] [--allow-host hôte]...
 //
 // Depuis la racine du dépôt, DATABASE_URL exportée dans le terminal. Le plan vient de planRepairs
-// (src/lib/images/repair-plan.ts) : copie dans notre stockage des sources vivantes, NULL des sources
+// (scripts/images/lib/repair-plan.ts) : copie dans notre stockage des sources vivantes, NULL des sources
 // mortes là où l'affichage a un repli, et la liste des lignes à décider, jamais touchées.
 // --apply écrit seulement avec BLOB_READ_WRITE_TOKEN exporté (stockage Vercel Blob), ou sur une base
 // locale (répétition avec le stockage sur disque). Chaque ligne modifiée est remplacée par
 // compare-and-swap et notée dans le journal JSONL (ancienne et nouvelle valeur) : docs/photos.md
 // donne la requête qui annule. Aucune table n'est créée.
 import { appendFileSync, existsSync } from "node:fs";
+import type { ParseArgsConfig } from "node:util";
 import prisma from "@/lib/prisma";
-import { runImageCensus, type CensusRow } from "@/lib/images/census";
-import { applyRepairs } from "@/lib/images/maintenance";
+import { getImageStore, type ImageStore } from "@/lib/images/store";
+import { runImageCensus, type CensusRow } from "./lib/census";
+import { applyRepairs } from "./lib/maintenance";
 import {
   applyRefusal,
   isAllowedCopySource,
@@ -21,8 +23,7 @@ import {
   planRepairs,
   type ProbeResult,
   type RepairAction,
-} from "@/lib/images/repair-plan";
-import { getImageStore, type ImageStore } from "@/lib/images/store";
+} from "./lib/repair-plan";
 import {
   checkBlob,
   describeDatabase,
@@ -30,7 +31,7 @@ import {
   localPublicFileExists,
   mapLimit,
   out,
-  parseArgs,
+  parseCommandLine,
   probeSource,
   requireDatabaseUrl,
   runScript,
@@ -38,6 +39,14 @@ import {
   UsageError,
   writeNewFile,
 } from "./shared";
+
+const OPTIONS = {
+  apply: { type: "boolean", default: false },
+  "check-blob": { type: "boolean", default: false },
+  journal: { type: "string" },
+  "allow-host": { type: "string", multiple: true, default: [] },
+  out: { type: "string" },
+} satisfies ParseArgsConfig["options"];
 
 const describeRow = (row: CensusRow) =>
   `${row.table}.${row.column} ${row.id} ${row.shopSlug ?? "-"} ${row.label ?? ""}`.trim();
@@ -87,14 +96,9 @@ function prepareApply(journalFile: string | undefined, databaseUrl: string): Ima
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2), {
-    flags: ["--apply", "--check-blob"],
-    options: ["--journal", "--allow-host", "--out"],
-  });
+  const { values: args } = parseCommandLine({ args: process.argv.slice(2), options: OPTIONS });
   const databaseUrl = requireDatabaseUrl();
-  const apply = args.flags.has("--apply");
-  const allowHosts = args.options.get("--allow-host") ?? [];
-  const journalFile = args.options.get("--journal")?.[0];
+  const { apply, "allow-host": allowHosts, journal: journalFile } = args;
   const store = apply ? prepareApply(journalFile, databaseUrl) : null;
   out(
     `Base : ${describeDatabase(databaseUrl)} — ${apply ? `ÉCRITURE (stockage ${store?.kind})` : "essai à blanc"}`
@@ -102,7 +106,7 @@ async function main(): Promise<void> {
 
   const { rows } = await runImageCensus(prisma);
   const sources = [...new Set(rows.filter(needsSourceProbe).map((row) => row.value))];
-  const blobs = args.flags.has("--check-blob")
+  const blobs = args["check-blob"]
     ? [...new Set(rows.filter((row) => row.kind === "BLOB").map((row) => row.value))]
     : [];
   out(
@@ -118,7 +122,7 @@ async function main(): Promise<void> {
   });
   printPlan(actions, allowHosts);
 
-  const planFile = args.options.get("--out")?.[0];
+  const planFile = args.out;
   if (planFile !== undefined)
     writeNewFile(planFile, `${JSON.stringify({ actions, probes }, null, 1)}\n`);
 

@@ -13,15 +13,10 @@ import {
   keywordProductPhoto,
 } from "@/lib/product-images";
 import { isDisplayableImageUrl } from "./durable-url";
-
-export interface ProductPhotoImage {
-  url: string;
-  isPrimary?: boolean | null;
-  order?: number | null;
-}
+import { rankProductPhotos, type RankablePhoto } from "./rank";
 
 export interface ProductPhotoSource {
-  images?: readonly ProductPhotoImage[] | null;
+  images?: readonly RankablePhoto[] | null;
   imageUrl?: string | null;
   name: string;
   category?: string | null;
@@ -35,32 +30,34 @@ export interface ShopPhotoSource {
 export interface ResolvedPhoto {
   /** Première photo propre affichable, ou null (le produit n'a que la photo locale). */
   own: string | null;
+  /** A photo of its own was given but none can be shown (expiring link, data:, unknown host). */
+  ownRejected: boolean;
   /** Jamais vide ; photos propres d'abord ; la dernière est une photo locale /img. */
   candidates: readonly string[];
 }
 
-/** Photo principale : la première marquée isPrimary dans l'ordre (order, position), sinon la première dans cet ordre. */
-export function primaryImageOf<T extends ProductPhotoImage>(images: readonly T[]): T | null {
-  const ranked = images
-    .map((image, index) => ({ image, index, rank: image.order ?? index }))
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .map((entry) => entry.image);
-  if (ranked.length === 0) return null;
-  return ranked.find((image) => image.isPrimary === true) ?? ranked[0];
-}
-
-function resolve(ownValues: readonly (string | null | undefined)[], localPhoto: string): ResolvedPhoto {
-  const own = ownValues.filter(
-    (value): value is string => typeof value === "string" && isDisplayableImageUrl(value)
+function resolve(
+  ownValues: readonly (string | null | undefined)[],
+  localPhoto: string
+): ResolvedPhoto {
+  const given = ownValues.filter(
+    (value): value is string => typeof value === "string" && value !== ""
   );
+  const own = given.filter(isDisplayableImageUrl);
   const candidates = Array.from(new Set([...own, localPhoto]));
-  return { own: own.length > 0 ? own[0] : null, candidates };
+  return {
+    own: own.length > 0 ? own[0] : null,
+    ownRejected: given.length > 0 && own.length === 0,
+    candidates,
+  };
 }
 
 export function resolveProductPhoto(src: ProductPhotoSource): ResolvedPhoto {
-  const primary = src.images ? primaryImageOf(src.images) : null;
+  const primary = src.images ? rankProductPhotos(src.images).primary : null;
   const localPhoto =
-    keywordProductPhoto(src.name) ?? categoryProductPhoto(src.category ?? "") ?? DEFAULT_PRODUCT_PHOTO;
+    keywordProductPhoto(src.name) ??
+    categoryProductPhoto(src.category ?? "") ??
+    DEFAULT_PRODUCT_PHOTO;
   return resolve([primary?.url, src.imageUrl], localPhoto);
 }
 

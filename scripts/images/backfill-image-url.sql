@@ -17,8 +17,9 @@
 
 BEGIN;
 
--- Photo principale : la première marquée is_primary, sinon la première par « order » ; à égalité,
--- la plus ancienne puis le plus petit id. Jumeau SQL de primaryImageOf (src/lib/images/product-photo.ts).
+-- Photo principale : la règle de rankProductPhotos (src/lib/images/rank.ts), égalités départagées par
+-- created_at puis id ; tests/integration/images/backfill-image-url.test.ts vérifie que les deux
+-- désignent la même photo.
 CREATE TEMP TABLE backfill_image_url_journal ON COMMIT DROP AS
 SELECT p.id, p.name, p.image_url AS old_url, main_image.url AS new_url
 FROM products p

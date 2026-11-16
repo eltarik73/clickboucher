@@ -1,102 +1,67 @@
-import type { NextRequest } from "next/server";
+// src/lib/services/orders/list.ts — the orders page of GET /api/orders. The route resolves who reads
+// (OrderListViewer); a customer reads the customer view of their own orders, a butcher the orders of
+// their shops, an admin every order. The query narrows the viewer's scope, never widens it.
 import type { Prisma } from "@prisma/client";
+import type { z } from "zod";
 
 import prisma from "@/lib/prisma";
-import { orderListQuerySchema } from "@/lib/validators";
-import { getOrCreateUser } from "@/lib/get-or-create-user";
-import { getAuthenticatedBoucher } from "@/lib/boucher-auth";
+import type { orderListQuerySchema } from "@/lib/validators";
 import { settleDueAdjustmentsWithin } from "@/lib/services/orders/adjustment-answers";
-import { listCustomerOrders } from "@/lib/services/orders/customer-view";
+import { listCustomerOrders, type CustomerOrder } from "@/lib/services/orders/customer-view";
 import { orderInclude, orderOmit, toShopOrder } from "@/lib/services/orders/order-read";
 
 /** The user-visible orders page: newest first. */
 const LIST_LIMIT = 50;
 
-const VALID_STATUSES = [
-  "PENDING",
-  "ACCEPTED",
-  "PREPARING",
-  "READY",
-  "PICKED_UP",
-  "COMPLETED",
-  "CANCELLED",
-  "AUTO_CANCELLED",
-  "DENIED",
-] as const;
+export type OrderListViewer =
+  | { role: "ADMIN" }
+  | { role: "BOUCHER"; shopIds: readonly string[] }
+  | { role: "CLIENT"; userId: string };
 
-export type ListOrdersResult =
-  | { ok: true; orders: unknown[] }
-  | { ok: false; code: "UNAUTHORIZED" | "VALIDATION_ERROR"; message: string };
+export type OrderListQuery = z.infer<typeof orderListQuerySchema>;
 
-/**
- * List orders for the currently authenticated user.
- * Role-based:
- *  - CLIENT → own orders
- *  - BOUCHER → orders for their shop(s)
- *  - ADMIN → all orders (optionally filtered by shopId)
- */
-export async function listOrders(userId: string, req: NextRequest): Promise<ListOrdersResult> {
-  const user = await getOrCreateUser(userId);
-  if (!user) {
-    return { ok: true, orders: [] };
+type ShopOrderRow = Prisma.OrderGetPayload<{
+  include: typeof orderInclude;
+  omit: typeof orderOmit;
+}>;
+type ShopOrder = ReturnType<typeof toShopOrder<ShopOrderRow>>;
+
+export type ListedOrders = CustomerOrder[] | ShopOrder[];
+
+function listWhere(viewer: OrderListViewer, query: OrderListQuery): Prisma.OrderWhereInput {
+  switch (viewer.role) {
+    case "ADMIN":
+      return { status: query.status, shopId: query.shopId };
+    case "BOUCHER":
+      return {
+        status: query.status,
+        shopId:
+          query.shopId !== undefined && viewer.shopIds.includes(query.shopId)
+            ? query.shopId
+            : { in: [...viewer.shopIds] },
+      };
+    case "CLIENT":
+      return { status: query.status, userId: viewer.userId };
   }
+}
 
-  const role = user.role;
-  const raw = Object.fromEntries(req.nextUrl.searchParams);
-  const query = orderListQuerySchema.parse(raw);
-
-  const where: Prisma.OrderWhereInput = {};
-
-  if (query.status) {
-    const status = VALID_STATUSES.find((candidate) => candidate === query.status);
-    if (status === undefined) {
-      return { ok: false, code: "VALIDATION_ERROR", message: "Statut de commande invalide" };
-    }
-    where.status = status;
-  }
-
-  if (role === "ADMIN") {
-    if (query.shopId) where.shopId = query.shopId;
-  } else if (role === "BOUCHER") {
-    const boucherAuth = await getAuthenticatedBoucher();
-    if (boucherAuth.error) {
-      // Fallback: search by clerkId and DB userId (OR clause ownership)
-      const shops = await prisma.shop.findMany({
-        where: { OR: [{ ownerId: userId }, { ownerId: user.id }] },
-        select: { id: true },
-      });
-      const shopIds = shops.map((s) => s.id);
-      if (query.shopId && shopIds.includes(query.shopId)) {
-        where.shopId = query.shopId;
-      } else {
-        where.shopId = { in: shopIds };
-      }
-    } else {
-      const shopId = boucherAuth.shopId;
-      if (query.shopId && query.shopId === shopId) {
-        where.shopId = query.shopId;
-      } else {
-        where.shopId = shopId;
-      }
-    }
-  } else {
-    where.userId = user.id;
-  }
-
-  // Due price adjustments are settled first, within the caller's own scope, so the list shows
+export async function listOrders(
+  viewer: OrderListViewer,
+  query: OrderListQuery,
+  now: Date
+): Promise<ListedOrders> {
+  const where = listWhere(viewer, query);
+  // Due price adjustments are settled first, within the viewer's own scope, so the list shows
   // settled totals.
-  await settleDueAdjustmentsWithin(where, new Date());
+  await settleDueAdjustmentsWithin(where, now);
 
-  // A customer reads the customer view of their orders; the shop and the admin read the full rows.
-  if (role !== "ADMIN" && role !== "BOUCHER") {
-    return { ok: true, orders: await listCustomerOrders(where, LIST_LIMIT) };
-  }
-  const orders = await prisma.order.findMany({
+  if (viewer.role === "CLIENT") return listCustomerOrders(where, LIST_LIMIT);
+  const rows = await prisma.order.findMany({
     where,
     include: orderInclude,
     omit: orderOmit,
     orderBy: { createdAt: "desc" },
     take: LIST_LIMIT,
   });
-  return { ok: true, orders: orders.map(toShopOrder) };
+  return rows.map(toShopOrder);
 }

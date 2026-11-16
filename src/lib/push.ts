@@ -1,11 +1,21 @@
-// src/lib/push.ts — Web Push notifications (graceful fallback if VAPID not configured)
-import webpush from "web-push";
+// src/lib/push.ts — Web Push transport. Every send says what became of it, so that the caller
+// records a channel only when a push left and deletes a subscription only when it is gone.
+import webpush, { WebPushError } from "web-push";
 import { logger } from "@/lib/logger";
+
+/**
+ * `expired`: the push service says the subscription no longer exists, delete it. `failed`: a
+ * refusal or network error that says nothing about the subscription, keep it.
+ */
+export type PushResult = "sent" | "expired" | "failed" | "not_configured";
+
+// Push services answer 404 or 410 for a subscription that no longer exists (RFC 8030 § 7.3).
+const GONE_STATUSES: ReadonlySet<number> = new Set([404, 410]);
 
 let configured = false;
 
-/** Les trois variables VAPID sont présentes et acceptées par web-push. */
-export function isPushConfigured(): boolean {
+/** The three VAPID variables are set and accepted by web-push. */
+function isPushConfigured(): boolean {
   if (configured) return true;
 
   const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -21,7 +31,7 @@ export function isPushConfigured(): boolean {
     configured = true;
     return true;
   } catch (error) {
-    console.error("[push] VAPID config error:", (error as Error).message);
+    logger.error("[push] VAPID keys refused by web-push", error);
     return false;
   }
 }
@@ -43,35 +53,32 @@ export type PushPayload = {
   actions?: { action: string; title: string }[];
 };
 
-/**
- * false : envoi en échec (abonnement expiré ou autre erreur), et l'appelant efface l'abonnement.
- * Sans clés VAPID rien ne part mais la réponse reste true pour ne rien effacer : l'appelant
- * consulte isPushConfigured() avant d'envoyer.
- */
+// Logs never carry the payload nor the endpoint: both identify the customer.
 export async function sendPushNotification(
   subscription: PushSubscriptionData,
   payload: PushPayload
-): Promise<boolean> {
+): Promise<PushResult> {
   if (!isPushConfigured()) {
-    logger.warn("[push] VAPID non configuré : notification non envoyée");
-    return true;
+    logger.warn("[push] VAPID not configured: notification not sent");
+    return "not_configured";
   }
 
   try {
-    await webpush.sendNotification(
-      subscription as webpush.PushSubscription,
-      JSON.stringify(payload)
-    );
-    return true;
+    await webpush.sendNotification(subscription, JSON.stringify(payload));
+    return "sent";
   } catch (error) {
-    const err = error as { statusCode?: number; message?: string };
-    // 410 Gone = subscription expired, caller should clean up
-    if (err.statusCode === 410) {
-      console.warn("[push] Subscription expired (410)");
-      return false;
+    if (!(error instanceof WebPushError)) {
+      logger.error("[push] send failed", error);
+      return "failed";
     }
-    console.error("[push] Send failed:", err.message);
-    return false;
+    if (GONE_STATUSES.has(error.statusCode)) {
+      logger.warn("[push] subscription gone", { statusCode: error.statusCode });
+      return "expired";
+    }
+    logger.error("[push] push service refused the notification", {
+      statusCode: error.statusCode,
+    });
+    return "failed";
   }
 }
 

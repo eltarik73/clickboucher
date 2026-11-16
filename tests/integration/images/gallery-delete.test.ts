@@ -5,23 +5,23 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ImageStore } from "@/lib/images/store";
 import { MemoryImageStore } from "../../fixtures/images/memory-store";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestOffer, createTestProduct, createTestShop } from "../helpers/factories";
 
-const session = vi.hoisted(() => ({ boucher: null as unknown }));
-const storage = vi.hoisted(() => ({ store: null as ImageStore | null }));
-
-vi.mock("@/lib/boucher-auth", () => ({ getAuthenticatedBoucher: async () => session.boucher }));
-vi.mock("@/lib/images/store", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/images/store")>();
-  return { ...actual, getImageStore: () => storage.store as ImageStore };
-});
+vi.mock(
+  "@/lib/boucher-auth",
+  async () => (await import("./product-routes-harness")).boucherAuthMock
+);
+vi.mock("@/lib/images/store", async (importOriginal) =>
+  (await import("./store-mock")).imageStoreModule(importOriginal)
+);
 
 import { DELETE } from "@/app/api/boucher/images/[id]/route";
 import { imageBlobHost } from "@/lib/images/durable-url";
 import { thumbnailOf } from "@/lib/images/thumbnail";
+import { actAsButcherOf } from "./product-routes-harness";
+import { storage } from "./store-mock";
 
 // Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
 // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -41,16 +41,28 @@ async function galleryImage(shopId: string) {
   store.seed(url);
   store.seed(thumb);
   const row = await prisma.generatedImage.create({
-    data: { model: "UPLOAD", prompt: "", usage: "PRODUCT", imageUrl: url, width: 800, height: 600, shopId, createdBy: "u" },
+    data: {
+      model: "UPLOAD",
+      prompt: "",
+      usage: "PRODUCT",
+      imageUrl: url,
+      width: 800,
+      height: 600,
+      shopId,
+      createdBy: "u",
+    },
   });
   return { id: row.id, url, thumb };
 }
 
 function remove(shopId: string, id: string) {
-  session.boucher = { userId: `user_${shopId}`, shopId };
-  return DELETE(new NextRequest(`http://localhost/api/boucher/images/${id}`, { method: "DELETE" }), {
-    params: { id },
-  });
+  actAsButcherOf(shopId);
+  return DELETE(
+    new NextRequest(`http://localhost/api/boucher/images/${id}`, { method: "DELETE" }),
+    {
+      params: { id },
+    }
+  );
 }
 
 async function conflictOf(res: Response) {
@@ -87,8 +99,12 @@ describe("DELETE /api/boucher/images/[id] — image encore utilisée : 409", () 
     const image = await galleryImage(shop.id);
     const merguez = await createTestProduct(shop.id, { name: "Merguez" });
     const agneau = await createTestProduct(shop.id, { name: "Gigot d'agneau" });
-    await prisma.productImage.create({ data: { productId: merguez.id, url: image.url, order: 0, isPrimary: true } });
-    await prisma.productImage.create({ data: { productId: agneau.id, url: image.thumb, order: 0, isPrimary: true } });
+    await prisma.productImage.create({
+      data: { productId: merguez.id, url: image.url, order: 0, isPrimary: true },
+    });
+    await prisma.productImage.create({
+      data: { productId: agneau.id, url: image.thumb, order: 0, isPrimary: true },
+    });
 
     const error = await conflictOf(await remove(shop.id, image.id));
     expect(error.message).toBe(
@@ -118,15 +134,21 @@ describe("DELETE /api/boucher/images/[id] — image encore utilisée : 409", () 
   ])("utilisée seulement par %s : 409 sans aucun nom de produit", async (_label, use) => {
     const shop = await createTestShop();
     const image = await galleryImage(shop.id);
-    if (use === "banner") await prisma.shop.update({ where: { id: shop.id }, data: { bannerUrl: image.url } });
+    if (use === "banner")
+      await prisma.shop.update({ where: { id: shop.id }, data: { bannerUrl: image.url } });
     if (use === "offer") await createTestOffer({ shopId: shop.id, bannerImageUrl: image.url });
     if (use === "foreign-product") {
       const other = await createTestShop();
-      await createTestProduct(other.id, { name: "Produit secret d'une autre boutique", imageUrl: image.url });
+      await createTestProduct(other.id, {
+        name: "Produit secret d'une autre boutique",
+        imageUrl: image.url,
+      });
     }
 
     const error = await conflictOf(await remove(shop.id, image.id));
-    expect(error.message).toBe("Cette photo est encore utilisée sur Klik&Go : elle ne peut pas être supprimée.");
+    expect(error.message).toBe(
+      "Cette photo est encore utilisée sur Klik&Go : elle ne peut pas être supprimée."
+    );
     expect(error.details.products).toEqual([]);
     await expectKept(image);
   });
@@ -161,7 +183,14 @@ describe("DELETE /api/boucher/images/[id] — suppression", () => {
   it("une image hors de notre stockage (ancienne URL) : ligne supprimée, aucun fichier effacé", async () => {
     const shop = await createTestShop();
     const row = await prisma.generatedImage.create({
-      data: { model: "FLUX_SCHNELL", prompt: "p", usage: "PRODUCT", imageUrl: "https://replicate.delivery/x/out-0.webp", shopId: shop.id, createdBy: "u" },
+      data: {
+        model: "FLUX_SCHNELL",
+        prompt: "p",
+        usage: "PRODUCT",
+        imageUrl: "https://replicate.delivery/x/out-0.webp",
+        shopId: shop.id,
+        createdBy: "u",
+      },
     });
     expect((await remove(shop.id, row.id)).status).toBe(200);
     expect(store.dels).toEqual([]);

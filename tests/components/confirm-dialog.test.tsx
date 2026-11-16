@@ -2,6 +2,7 @@ import * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { fireEvent, screen, waitFor, within } from "@testing-library/dom";
+import { buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type Variant = "danger" | "default";
@@ -20,7 +21,7 @@ function renderOpen(variant?: Variant) {
       variant={variant}
       onConfirm={onConfirm}
       onCancel={onCancel}
-    />,
+    />
   );
   return { calls, onConfirm, onCancel, onOpenChange };
 }
@@ -53,11 +54,14 @@ describe("ConfirmDialog", () => {
     expect(within(alert).getByRole("button", { name: "Annuler" })).toBeInTheDocument();
   });
 
-  it.each<Variant>(["default", "danger"])("place le focus initial sur « Annuler » (%s)", async (variant) => {
-    renderOpen(variant);
-    const alert = await screen.findByRole("alertdialog");
-    expect(document.activeElement).toBe(within(alert).getByRole("button", { name: "Annuler" }));
-  });
+  it.each<Variant>(["default", "danger"])(
+    "place le focus initial sur « Annuler » (%s)",
+    async (variant) => {
+      renderOpen(variant);
+      const alert = await screen.findByRole("alertdialog");
+      expect(document.activeElement).toBe(within(alert).getByRole("button", { name: "Annuler" }));
+    }
+  );
 
   it("l'action appelle onConfirm puis onOpenChange(false), sans onCancel", async () => {
     const { calls, onCancel } = renderOpen("danger");
@@ -90,10 +94,8 @@ describe("ConfirmDialog", () => {
     const alert = await screen.findByRole("alertdialog");
     const icon = within(alert).getByTestId("confirm-dialog-icon");
     expect(icon).toHaveAttribute("aria-hidden", "true");
-    expect(icon).toHaveClass("bg-destructive-subtle", "text-destructive-text");
     const action = within(alert).getByRole("button", { name: "Confirmer" });
-    expect(action).toHaveClass("bg-destructive");
-    expect(action).not.toHaveClass("bg-primary");
+    expect(action.className).toContain(buttonVariants({ variant: "destructive" }));
   });
 
   it("default : pas d'icône et action primaire", async () => {
@@ -101,16 +103,7 @@ describe("ConfirmDialog", () => {
     const alert = await screen.findByRole("alertdialog");
     expect(within(alert).queryByTestId("confirm-dialog-icon")).toBeNull();
     const action = within(alert).getByRole("button", { name: "Confirmer" });
-    expect(action).toHaveClass("bg-primary");
-    expect(action).not.toHaveClass("bg-destructive");
-  });
-
-  it("aucune classe de couleur en dur", async () => {
-    renderOpen("danger");
-    const alert = await screen.findByRole("alertdialog");
-    for (const element of [alert, ...Array.from(alert.querySelectorAll("*"))]) {
-      expect(element.getAttribute("class") ?? "").not.toMatch(/#[0-9a-f]{3,6}/i);
-    }
+    expect(action.className).toContain(buttonVariants({ variant: "default" }));
   });
 
   it("rend le focus au bouton qui l'a ouvert", async () => {

@@ -14,19 +14,16 @@ export type ImageRejectionReason =
   | "TOO_MANY_PIXELS";
 
 export class ImageRejectedError extends Error {
-  readonly status = 422 as const;
+  readonly messageFr: string;
 
-  constructor(
-    readonly reason: ImageRejectionReason,
-    readonly messageFr: string = UPLOAD_MESSAGES_FR[reason]
-  ) {
+  constructor(readonly reason: ImageRejectionReason) {
     super(`Image refusée (${reason})`);
     this.name = "ImageRejectedError";
+    this.messageFr = UPLOAD_MESSAGES_FR[reason];
   }
 }
 
 export class StoreUnavailableError extends Error {
-  readonly status = 503 as const;
   readonly messageFr: string = UPLOAD_MESSAGES_FR.STORE_UNAVAILABLE;
 
   constructor(cause?: unknown) {

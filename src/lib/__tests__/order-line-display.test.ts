@@ -21,10 +21,11 @@ const text = (s: string) => s.replace(/ /g, NBSP);
 function kitchenItem(
   overrides: Partial<KitchenItem> & Pick<KitchenItem, "unit" | "quantity" | "weightGrams">
 ): KitchenItem {
+  const name = overrides.name ?? "Entrecôte";
   return {
     id: `item-${overrides.unit}-${overrides.quantity}`,
     productId: "product-1",
-    name: "Entrecôte",
+    name,
     priceCents: 2990,
     totalCents: 2990,
     sliceCount: null,
@@ -34,6 +35,7 @@ function kitchenItem(
     pieceLabel: null,
     cutOption: null,
     available: true,
+    product: { name, unit: overrides.unit, imageUrl: null },
     ...overrides,
   };
 }
@@ -75,13 +77,14 @@ describe("order line quantity on every printed or e-mailed support", () => {
       unit: "KG",
       quantity: 1,
       weightGrams: 500,
-      product: { name: "Entrecôte", unit: "PIECE" },
+      product: { name: "Entrecôte", unit: "PIECE", imageUrl: null },
     });
     expect(formatItemQty(item)).toBe(text("2 × 500 g"));
   });
 
   it("refuses a unit that no order line can carry", () => {
     expect(() =>
+      // @ts-expect-error the type already refuses a unit outside the Prisma enum
       formatItemQty(kitchenItem({ unit: "LITRE", quantity: 1, weightGrams: null }))
     ).toThrow(TypeError);
   });
@@ -146,7 +149,7 @@ describe("butcher ticket HTML", () => {
         totalCents: 1290,
       }),
     ],
-    user: { firstName: "tarik", lastName: "benali" },
+    user: { firstName: "tarik", lastName: "benali", phone: null, loyaltyBadge: null },
     priceAdjustment: null,
   };
 

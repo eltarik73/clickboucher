@@ -17,7 +17,7 @@ vi.mock("@/lib/boucher-auth", () => boucherAuth);
 
 // Transports sortants : l'auto-validation d'un ajustement notifie le client.
 vi.mock("@/lib/email", () => ({ sendEmail: vi.fn().mockResolvedValue({ success: true }) }));
-vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/push", () => ({ sendPushNotification: vi.fn().mockResolvedValue("sent") }));
 vi.mock("@/lib/whatsapp", () => ({
   sendWhatsAppMessage: vi.fn().mockResolvedValue(undefined),
   sendWhatsAppRaw: vi.fn().mockResolvedValue(undefined),
@@ -347,7 +347,13 @@ describe("kitchen columns", () => {
   it("a history order carries only what the history list prints", async () => {
     const shop = await createTestShop();
     const client = await createTestUser();
-    await createTestOrder({ shopId: shop.id, userId: client.id, status: "PICKED_UP" });
+    const product = await createTestProduct(shop.id);
+    await createTestOrder({
+      shopId: shop.id,
+      userId: client.id,
+      status: "PICKED_UP",
+      items: [{ productId: product.id }],
+    });
 
     const [row] = await getKitchenHistory(shop.id);
 
@@ -363,7 +369,10 @@ describe("kitchen columns", () => {
         "user",
       ].sort()
     );
-    for (const item of row.items) expect(Object.keys(item)).toEqual(["quantity"]);
+    expect(row.items).toHaveLength(1);
+    for (const item of row.items) {
+      expect(Object.keys(item).sort()).toEqual(["quantity", "unit", "weightGrams"]);
+    }
     expect(Object.keys(row.user).sort()).toEqual(["firstName", "lastName"]);
   });
 });

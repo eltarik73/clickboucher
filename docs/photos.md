@@ -60,8 +60,9 @@ seule, et aucune ne crée de table dans la base.
 Limites : 4 Mo par photo envoyée, 50 mégapixels, 30 envois par heure et par boutique (par
 administrateur pour le catalogue de référence), comptés dans PostgreSQL sur `generated_images`
 (la production n'a pas de Redis). La source envoyée pour « Retoucher » suit le même chemin et le
-même quota : la fenêtre de retouche l'envoie par `useImageUpload("RETOUCH_SOURCE")`, puis demande la
-retouche avec son URL (`src/components/boucher/photos/retouch-request.ts`) ; la route de retouche
+même quota : la fenêtre de retouche l'envoie par `uploadImage(…, "RETOUCH_SOURCE")`
+(`src/components/boucher/photos/upload-transport.ts`), puis demande la retouche avec son URL
+(`src/components/boucher/photos/retouch-request.ts`) ; la route de retouche
 ne reçoit jamais d'octets. Elle ne propose d'emblée la photo du produit comme source que si c'est un
 fichier de notre magasin Blob (une photo du site `/img` n'est pas lisible par le fournisseur).
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -17,6 +17,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { KlikLogo, KlikWordmark } from "@/components/ui/KlikLogo";
+import { usePendingOrderCount } from "@/hooks/use-pending-order-count";
 import { useVisiblePolling } from "@/hooks/useVisiblePolling";
 
 const NAV_ITEMS = [
@@ -40,39 +41,18 @@ const NAV_ITEMS = [
 
 export function BoucherNav() {
   const pathname = usePathname();
-  const [pendingCount, setPendingCount] = useState(0);
+  const pendingCount = usePendingOrderCount() ?? 0;
   const [proposalCount, setProposalCount] = useState(0);
 
-  const fetchPending = useCallback(async () => {
-    try {
-      const [ordersRes, offersRes] = await Promise.all([
-        fetch("/api/boucher/orders/pending-count"),
-        fetch("/api/shop/offers"),
-      ]);
-      let pendingOk = false;
-      if (ordersRes.ok) {
-        const json: { data?: { pending?: unknown } } = await ordersRes.json();
-        const pending = json.data?.pending;
-        if (typeof pending === "number") {
-          setPendingCount(pending);
-          pendingOk = true;
-        }
-      }
-      if (offersRes.ok) {
-        const json = await offersRes.json();
-        const proposals = json.data?.proposals || [];
-        setProposalCount(
-          proposals.filter((p: { status: string }) => p.status === "PENDING").length
-        );
-      }
-      return pendingOk;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  // Badges : rafraîchis toutes les 30 s, uniquement onglet visible (backoff si le compteur échoue)
-  useVisiblePolling(fetchPending, 30_000);
+  // Offer proposals badge: read every 30 s while the tab is visible, backoff on error.
+  useVisiblePolling(async () => {
+    const res = await fetch("/api/shop/offers");
+    if (!res.ok) return false;
+    const json = await res.json();
+    const proposals = json.data?.proposals || [];
+    setProposalCount(proposals.filter((p: { status: string }) => p.status === "PENDING").length);
+    return true;
+  }, 30_000);
 
   function getBadgeCount(badge: string | undefined): number {
     if (badge === "orders") return pendingCount;

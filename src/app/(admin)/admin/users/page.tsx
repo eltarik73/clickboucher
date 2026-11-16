@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { apiErrorMessage } from "@/lib/api/error-message";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 
 // ── Types ────────────────────────────────────────
 type User = {
@@ -59,7 +59,7 @@ function roleBadge(role: string) {
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${styles[role] || "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400"}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${styles[role] || "bg-gray-100 text-gray-600 dark:bg-white/5 dark:text-gray-400"}`}
     >
       {labels[role] || role}
     </span>
@@ -117,7 +117,10 @@ export default function AdminUsersPage() {
   async function loadUsers() {
     try {
       const res = await fetch("/api/admin/users");
-      if (res.ok) { const json = await res.json(); setUsers(json.data || json); }
+      if (res.ok) {
+        const json = await res.json();
+        setUsers(json.data || json);
+      }
     } catch {
       /* ignore */
     }
@@ -183,7 +186,7 @@ export default function AdminUsersPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => null);
-        alert(apiErrorMessage(err, "Erreur"));
+        alert(refusalMessageOf(err) ?? "Erreur");
         return;
       }
       setRoleTarget(null);
@@ -205,7 +208,7 @@ export default function AdminUsersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="w-8 h-8 border-[3px] border-[#DC2626] border-t-transparent rounded-full animate-spin" />
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[#DC2626] border-t-transparent" />
       </div>
     );
   }
@@ -214,10 +217,8 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">
-          Utilisateurs
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f8f6f3]">Utilisateurs</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {users.length} utilisateur{users.length > 1 ? "s" : ""} inscrits
         </p>
       </div>
@@ -228,26 +229,22 @@ export default function AdminUsersPage() {
           <button
             key={r.value}
             onClick={() =>
-              setRoleFilter((prev) =>
-                prev === r.value ? "all" : (r.value as RoleFilter)
-              )
+              setRoleFilter((prev) => (prev === r.value ? "all" : (r.value as RoleFilter)))
             }
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
               roleFilter === r.value
                 ? "border-[#DC2626] bg-[#DC2626]/10 text-[#DC2626]"
-                : "border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/15"
+                : "border-gray-200 text-gray-600 hover:border-gray-300 dark:border-white/10 dark:text-gray-400 dark:hover:border-white/15"
             }`}
           >
             {r.label}
-            <span className="text-[10px] font-bold opacity-70">
-              {stats[r.value] || 0}
-            </span>
+            <span className="text-[10px] font-bold opacity-70">{stats[r.value] || 0}</span>
           </button>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search
             size={16}
@@ -258,14 +255,14 @@ export default function AdminUsersPage() {
             placeholder="Rechercher par nom, email, entreprise..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#DC2626]/30 text-gray-900 dark:text-[#f8f6f3] placeholder:text-gray-500 dark:text-gray-400"
+            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#141414] dark:text-[#f8f6f3] dark:text-gray-400"
           />
         </div>
         <div className="relative">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortBy)}
-            className="appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-[#141414] border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+            className="appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#141414] dark:text-gray-300"
           >
             <option value="date">Plus récent</option>
             <option value="orders">Plus de commandes</option>
@@ -274,60 +271,58 @@ export default function AdminUsersPage() {
           </select>
           <ChevronDown
             size={14}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
+            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
           />
         </div>
       </div>
 
       {/* Results */}
       {filtered.length === 0 ? (
-        <div className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 p-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400">
-            Aucun utilisateur trouvé.
-          </p>
+        <div className="rounded-xl border border-gray-100 bg-white p-12 text-center dark:border-white/10 dark:bg-[#141414]">
+          <p className="text-gray-500 dark:text-gray-400">Aucun utilisateur trouvé.</p>
         </div>
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+          <div className="hidden overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-[#141414] md:block">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-white/10">
+                  <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wider text-gray-500 dark:border-white/10 dark:text-gray-400">
                     <th className="px-5 py-3 font-medium">Utilisateur</th>
                     <th className="px-4 py-3 font-medium">Rôle</th>
                     <th className="px-4 py-3 font-medium">Entreprise</th>
-                    <th className="px-4 py-3 font-medium text-right">Commandes</th>
-                    <th className="px-4 py-3 font-medium text-right">Total dépensé</th>
+                    <th className="px-4 py-3 text-right font-medium">Commandes</th>
+                    <th className="px-4 py-3 text-right font-medium">Total dépensé</th>
                     <th className="px-4 py-3 font-medium">Inscrit le</th>
-                    <th className="px-4 py-3 font-medium text-right">Actions</th>
+                    <th className="px-4 py-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-white/10">
                   {filtered.map((user) => (
                     <tr
                       key={user.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors"
+                      className="transition-colors hover:bg-gray-50/50 dark:hover:bg-white/5"
                     >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(user.firstName + user.lastName)}`}
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor(user.firstName + user.lastName)}`}
                           >
                             {initials(user.firstName, user.lastName)}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-medium text-gray-900 dark:text-[#f8f6f3] truncate">
+                            <p className="truncate font-medium text-gray-900 dark:text-[#f8f6f3]">
                               {user.firstName} {user.lastName}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
                               {user.email}
                             </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">{roleBadge(user.role)}</td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
                         {user.companyName || "—"}
                       </td>
                       <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
@@ -336,13 +331,13 @@ export default function AdminUsersPage() {
                       <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-[#f8f6f3]">
                         {fmt(user.totalSpent)} €
                       </td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
                         {fmtDate(user.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => openRoleDialog(user)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
+                          className="inline-flex items-center gap-1 rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:bg-white/10 dark:text-gray-400 dark:hover:bg-white/15"
                           title="Changer le rôle"
                         >
                           <ShieldCheck size={13} />
@@ -357,36 +352,36 @@ export default function AdminUsersPage() {
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
+          <div className="space-y-3 md:hidden">
             {filtered.map((user) => (
               <div
                 key={user.id}
-                className="bg-white dark:bg-[#141414] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-4"
+                className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#141414]"
               >
-                <div className="flex items-start gap-3 mb-3">
+                <div className="mb-3 flex items-start gap-3">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarColor(user.firstName + user.lastName)}`}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${avatarColor(user.firstName + user.lastName)}`}
                   >
                     {initials(user.firstName, user.lastName)}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-gray-900 dark:text-[#f8f6f3]">
                         {user.firstName} {user.lastName}
                       </p>
                       {roleBadge(user.role)}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                    <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
                       {user.email}
                     </p>
                     {user.companyName && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                         {user.companyName}
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                <div className="mb-3 grid grid-cols-3 gap-2 text-center">
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-[#f8f6f3]">
                       {user.orderCount}
@@ -406,10 +401,10 @@ export default function AdminUsersPage() {
                     <p className="text-[10px] text-gray-500 dark:text-gray-400">Inscrit</p>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-white/10">
+                <div className="flex gap-2 border-t border-gray-100 pt-3 dark:border-white/10">
                   <button
                     onClick={() => openRoleDialog(user)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/15 transition-colors"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-50 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/15"
                   >
                     <ShieldCheck size={13} />
                     Changer le rôle
@@ -422,10 +417,7 @@ export default function AdminUsersPage() {
       )}
 
       {/* ── Role Change Dialog ──────────────────── */}
-      <Dialog
-        open={!!roleTarget}
-        onOpenChange={(o) => !o && setRoleTarget(null)}
-      >
+      <Dialog open={!!roleTarget} onOpenChange={(o) => !o && setRoleTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Changer le rôle</DialogTitle>
@@ -435,16 +427,16 @@ export default function AdminUsersPage() {
                 : ""}
             </DialogDescription>
           </DialogHeader>
-          <div className="p-5 space-y-4">
+          <div className="space-y-4 p-5">
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+              <label className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400">
                 Nouveau rôle
               </label>
               <div className="relative">
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full appearance-none px-3 pr-8 py-2.5 bg-gray-50 dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-[#f8f6f3] outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                  className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 pr-8 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-[#DC2626]/30 dark:border-white/10 dark:bg-[#0a0a0a] dark:text-[#f8f6f3]"
                 >
                   {ROLES.map((r) => (
                     <option key={r.clerkValue} value={r.clerkValue}>
@@ -454,13 +446,13 @@ export default function AdminUsersPage() {
                 </select>
                 <ChevronDown
                   size={14}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
                 />
               </div>
             </div>
 
             {newRole === "admin" && (
-              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 text-xs text-red-600 dark:text-red-400">
+              <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600 dark:bg-red-500/10 dark:text-red-400">
                 Attention : ce rôle donne un accès complet à l&apos;administration.
               </div>
             )}
@@ -469,14 +461,14 @@ export default function AdminUsersPage() {
               <button
                 type="button"
                 onClick={() => setRoleTarget(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-[#f8f6f3] transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#f8f6f3]"
               >
                 Annuler
               </button>
               <button
                 onClick={handleRoleChange}
                 disabled={saving}
-                className="px-5 py-2 bg-[#DC2626] text-white text-sm font-semibold rounded-lg hover:bg-[#b91c1c] disabled:opacity-50 transition-colors"
+                className="rounded-lg bg-[#DC2626] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#b91c1c] disabled:opacity-50"
               >
                 {saving ? "Enregistrement..." : "Confirmer"}
               </button>

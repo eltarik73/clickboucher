@@ -1,10 +1,8 @@
 // src/app/api/shops/nearby/route.ts — Shops by proximity (Haversine)
 import { NextRequest } from "next/server";
-import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { apiCached, apiError, handleApiError } from "@/lib/api/errors";
-import { badgeLabelsByShop } from "@/lib/offer-badge-label";
-import { listBadgeOffers } from "@/lib/public-offers";
+import { listNearbyShops } from "@/lib/services/shops/nearby";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +21,10 @@ const nearbyQuerySchema = z.object({
   radius: z.coerce.number().min(1).max(100).default(15),
 });
 
+// The version changes with the shape of the cached cards: an entry of another shape is never read.
+const CACHE_VERSION = 2;
+const CACHE_TTL_SECONDS = 60;
+
 export async function GET(req: NextRequest) {
   try {
     const params = Object.fromEntries(req.nextUrl.searchParams);
@@ -34,142 +36,14 @@ export async function GET(req: NextRequest) {
 
     const { lat, lng, radius } = parseResult.data;
 
-    // ── Cache lookup (round coords to ~1km precision for cache hits) ──
-    const cacheKey = `nearby:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
-    try {
-      const cached = await redis.get<unknown>(cacheKey);
-      if (cached) return apiCached(cached, 60);
-    } catch {
-      // Redis down — continue without cache
-    }
+    // Coordinates rounded to ~1 km for cache hits; src/lib/redis.ts absorbs Redis errors.
+    const cacheKey = `nearby:v${CACHE_VERSION}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`;
+    const cached = await redis.get<unknown>(cacheKey);
+    if (cached !== null) return apiCached(cached, CACHE_TTL_SECONDS);
 
-    // Pre-compute bounding box (1 degree lat ~ 111km, lng varies with latitude)
-    const deltaLat = radius / 111.0;
-    const deltaLng = radius / (111.0 * Math.cos((lat * Math.PI) / 180));
-
-    // Run both queries in parallel
-    const [shops, shopsWithoutCoords] = await Promise.all([
-      // Haversine query for shops WITH coordinates (bounding box pre-filter)
-      prisma.$queryRaw<
-        Array<{
-          id: string;
-          slug: string;
-          name: string;
-          address: string;
-          city: string;
-          image_url: string | null;
-          latitude: number | null;
-          longitude: number | null;
-          prep_time_min: number;
-          busy_mode: boolean;
-          busy_extra_min: number;
-          status: string;
-          rating: number;
-          rating_count: number;
-          delivery_radius: number;
-          opening_hours: unknown;
-          distance: number;
-        }>
-      >`SELECT * FROM (
-          SELECT
-            s.id, s.slug, s.name, s.address, s.city, s.image_url,
-            s.latitude, s.longitude,
-            s.prep_time_min, s.busy_mode, s.busy_extra_min,
-            s.status, s.rating, s.rating_count, s.delivery_radius, s.opening_hours,
-            (6371 * acos(
-              LEAST(1.0, GREATEST(-1.0,
-                cos(radians(${lat})) * cos(radians(s.latitude)) * cos(radians(s.longitude) - radians(${lng}))
-                + sin(radians(${lat})) * sin(radians(s.latitude))
-              ))
-            )) AS distance
-          FROM shops s
-          WHERE s.visible = true
-            AND s.latitude IS NOT NULL
-            AND s.longitude IS NOT NULL
-            AND s.latitude BETWEEN ${lat - deltaLat} AND ${lat + deltaLat}
-            AND s.longitude BETWEEN ${lng - deltaLng} AND ${lng + deltaLng}
-        ) sub
-        WHERE sub.distance <= ${radius}
-        ORDER BY sub.distance ASC`,
-      // Shops without coordinates (show at end)
-      prisma.shop.findMany({
-        where: {
-          visible: true,
-          OR: [{ latitude: null }, { longitude: null }],
-        },
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          address: true,
-          city: true,
-          imageUrl: true,
-          latitude: true,
-          longitude: true,
-          prepTimeMin: true,
-          busyMode: true,
-          busyExtraMin: true,
-          status: true,
-          rating: true,
-          ratingCount: true,
-          openingHours: true,
-        },
-        orderBy: { rating: "desc" },
-        take: 20,
-      }),
-    ]);
-
-    // Normalize field names from raw SQL (snake_case → camelCase)
-    const nearbyNormalized = shops.map((s) => ({
-      id: s.id,
-      slug: s.slug,
-      name: s.name,
-      address: s.address,
-      city: s.city,
-      imageUrl: s.image_url,
-      latitude: s.latitude,
-      longitude: s.longitude,
-      prepTimeMin: s.prep_time_min,
-      busyMode: s.busy_mode,
-      busyExtraMin: s.busy_extra_min,
-      status: s.status,
-      rating: s.rating,
-      ratingCount: s.rating_count,
-      openingHours: s.opening_hours ?? null,
-      distance: isNaN(Number(s.distance)) ? null : Math.round(Number(s.distance) * 10) / 10,
-    }));
-
-    const withoutCoordsNormalized = shopsWithoutCoords.map((s) => ({
-      ...s,
-      distance: null as number | null,
-    }));
-
-    // Badges: only public offers (audience ALL, diffused as a badge, active, uses left).
-    const allShopIds = [...nearbyNormalized, ...withoutCoordsNormalized].map((s) => s.id);
-    const activeOffers =
-      allShopIds.length > 0 ? await listBadgeOffers(new Date(), 200, allShopIds) : [];
-    const shopPromoMap = badgeLabelsByShop(activeOffers);
-
-    const allShops = [...nearbyNormalized, ...withoutCoordsNormalized].map((s) => ({
-      ...s,
-      activePromo: shopPromoMap.get(s.id) || null,
-    }));
-
-    // Sort: shops with promos first, then by existing order
-    allShops.sort((a, b) => {
-      const aHasPromo = a.activePromo ? 1 : 0;
-      const bHasPromo = b.activePromo ? 1 : 0;
-      return bHasPromo - aHasPromo;
-    });
-
-    // ── Cache store (TTL 60s) ──
-    try {
-      await redis.set(cacheKey, allShops, { ex: 60 });
-    } catch {
-      // Redis down — continue without cache
-    }
-
-    return apiCached(allShops, 60);
+    const cards = await listNearbyShops({ lat, lng, radiusKm: radius }, new Date());
+    await redis.set(cacheKey, cards, { ex: CACHE_TTL_SECONDS });
+    return apiCached(cards, CACHE_TTL_SECONDS);
   } catch (error) {
     return handleApiError(error, "shops/nearby");
   }

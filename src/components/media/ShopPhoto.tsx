@@ -19,13 +19,6 @@ export function ShopPhoto({ shop, alt, variant, ...layout }: ShopPhotoProps) {
   const { id, imageUrl } = shop;
   const photo = useMemo(() => resolveShopPhoto({ id, imageUrl }), [id, imageUrl]);
   return (
-    <PhotoWithFallback
-      {...layout}
-      candidates={photo.candidates}
-      ownCandidate={photo.own}
-      alt={alt}
-      variant={variant}
-      fallbackIcon="shop"
-    />
+    <PhotoWithFallback {...layout} photo={photo} alt={alt} variant={variant} fallbackIcon="shop" />
   );
 }

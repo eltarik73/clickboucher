@@ -50,15 +50,13 @@ export async function POST(req: NextRequest) {
       original.shopId
     );
     if (!photoPlan.ok) return apiError("VALIDATION_ERROR", photoPlan.messageFr);
-    const photos = photoPlan.images ?? [];
 
     // Create duplicate
     const duplicate = await prisma.product.create({
       data: {
         name: `${original.name} (copie)`,
         description: original.description,
-        // A key missing from the plan means "as stored": the source's value.
-        imageUrl: photoPlan.imageUrl === undefined ? original.imageUrl : photoPlan.imageUrl,
+        imageUrl: photoPlan.imageUrl,
         // The copy is out of anti-gaspi: after an expired one, the original price customers pay.
         priceCents: publicPriceCents(original, new Date()),
         proPriceCents: original.proPriceCents,
@@ -92,7 +90,7 @@ export async function POST(req: NextRequest) {
                 })),
               }
             : undefined,
-        images: photos.length > 0 ? { create: photos } : undefined,
+        images: photoPlan.images === undefined ? undefined : { create: photoPlan.images },
       },
       include: {
         categories: true,

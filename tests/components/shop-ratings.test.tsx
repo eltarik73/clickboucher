@@ -28,7 +28,7 @@ const CARD: ShopCardData = {
   openingHours: null,
 };
 
-// What the database and the nearby API still carry for a demo shop: never displayed.
+// What the database and GET /api/favorites still carry for a demo shop: never displayed.
 const SEEDED = { rating: 4.7, ratingCount: 89 };
 
 const REVIEWS: ReviewData[] = [

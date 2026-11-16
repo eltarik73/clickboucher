@@ -10,8 +10,9 @@
 // - la retirer envoie clearImageUrl: true, tant qu'aucune photo propre ne la remplace.
 // Le serveur reste l'autorité (planProductImageWrite) : ce module ne décide que de l'écran.
 import { MAX_PRODUCT_PHOTOS } from "@/lib/images/product-image-write";
+import { rankProductPhotos, type RankablePhoto } from "@/lib/images/rank";
 
-export const CURRENT_TILE_KEY = "current";
+const CURRENT_TILE_KEY = "current";
 
 /** Longueur maximale du texte alternatif acceptée par la route produit (productPhotoInputSchema). */
 const PHOTO_ALT_MAX = 200;
@@ -29,11 +30,8 @@ export interface PhotosPayload {
   clearImageUrl?: true;
 }
 
-export interface InitialPhoto {
-  url: string;
+export interface InitialPhoto extends RankablePhoto {
   alt?: string | null;
-  order?: number | null;
-  isPrimary?: boolean | null;
 }
 
 /** Ce qu'a fait addExisting : photo ajoutée, déjà présente, ou refusée (MAX_PRODUCT_PHOTOS atteint). */
@@ -90,27 +88,23 @@ export function initialPhotosState(opts: {
   });
 }
 
-/** Photos triées par (order, position), sans doublon d'URL, au plus MAX_PRODUCT_PHOTOS. */
+/** Photos ordered as the server stores them (rankProductPhotos), at most MAX_PRODUCT_PHOTOS. */
 function savedTiles(
   images: readonly InitialPhoto[],
   seq: number
 ): { tiles: OwnTile[]; primaryKey: string | null; seq: number } {
-  const ranked = images
-    .map((image, index) => ({ image, index, rank: image.order ?? index }))
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .map((entry) => entry.image)
-    .filter((image, index, all) => all.findIndex((other) => other.url === image.url) === index)
-    .slice(0, MAX_PRODUCT_PHOTOS);
+  const { photos, primary } = rankProductPhotos(images);
+  const shown = photos.slice(0, MAX_PRODUCT_PHOTOS);
   let next = seq;
-  const tiles: OwnTile[] = ranked.map((image) => ({
+  const tiles: OwnTile[] = shown.map((image) => ({
     kind: "saved",
     key: `photo-${++next}`,
     url: image.url,
     alt: image.alt ?? "",
   }));
-  const primaryIndex = ranked.findIndex((image) => image.isPrimary === true);
-  const primary = tiles[primaryIndex === -1 ? 0 : primaryIndex];
-  return { tiles, primaryKey: primary ? primary.key : null, seq: next };
+  const primaryIndex = primary === null ? -1 : shown.indexOf(primary);
+  const primaryTile = tiles[primaryIndex === -1 ? 0 : primaryIndex];
+  return { tiles, primaryKey: primaryTile ? primaryTile.key : null, seq: next };
 }
 
 function withOwn(state: PhotosState, own: readonly OwnTile[]): PhotosState {

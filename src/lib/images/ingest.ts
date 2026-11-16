@@ -17,7 +17,7 @@ import { logger } from "@/lib/logger";
 import { isDurableImageUrl } from "./durable-url";
 import { ImageRejectedError, StoreUnavailableError } from "./errors";
 import { processImage } from "./process";
-import { getImageStore, type ImageStore } from "./store";
+import { deleteFilesQuietly, getImageStore, type ImageStore } from "./store";
 import { imagePathnames, thumbnailOf } from "./thumbnail";
 
 export interface ImageOwner {
@@ -25,28 +25,11 @@ export interface ImageOwner {
   createdBy: string;
 }
 
-export interface RegistryInfo {
+interface RegistryInfo {
   model: string;
   prompt: string;
   usage: string;
   metadata?: Prisma.InputJsonValue;
-}
-
-export interface RegistryRow extends RegistryInfo {
-  imageUrl: string;
-  width: number;
-  height: number;
-  shopId: string | null;
-  createdBy: string;
-}
-
-export interface ImageRegistry {
-  create(row: RegistryRow): Promise<{ id: string }>;
-}
-
-export interface IngestDeps {
-  store: ImageStore;
-  registry: ImageRegistry;
 }
 
 export interface PersistImageInput {
@@ -54,8 +37,8 @@ export interface PersistImageInput {
   owner: ImageOwner;
   registry: RegistryInfo;
   maxBytes: number;
-  /** Dossier du fichier dans le magasin ; par défaut l'usage du registre (« product », …). */
-  folder?: string;
+  /** Dossier du fichier dans le magasin : le type d'envoi (« product », « retouch-source »…) ou « repair ». */
+  folder: string;
 }
 
 export interface PersistedImage {
@@ -70,24 +53,7 @@ export interface PersistedImage {
 export const FETCHED_SOURCE_MAX_BYTES = 12 * 1024 * 1024;
 
 const WEBP = "image/webp" as const;
-
-export const prismaImageRegistry: ImageRegistry = {
-  create: (row) =>
-    prisma.generatedImage.create({
-      data: {
-        model: row.model,
-        prompt: row.prompt,
-        usage: row.usage,
-        metadata: row.metadata,
-        imageUrl: row.imageUrl,
-        width: row.width,
-        height: row.height,
-        shopId: row.shopId,
-        createdBy: row.createdBy,
-      },
-      select: { id: true },
-    }),
-};
+const ORPHAN_CONTEXT = "fichier orphelin après un échec d'enregistrement";
 
 function hostOf(url: string): string {
   if (url.startsWith("/")) return "(local)";
@@ -95,20 +61,6 @@ function hostOf(url: string): string {
     return new URL(url).host;
   } catch {
     return "(invalide)";
-  }
-}
-
-/** Efface des fichiers déjà écrits pendant un échec : un échec d'effacement est journalisé, l'échec d'origine reste celui qu'on remonte. */
-async function removeWritten(store: ImageStore, urls: readonly string[]): Promise<void> {
-  for (const url of urls) {
-    try {
-      await store.del(url);
-    } catch (error) {
-      logger.warn("[images] fichier orphelin après un échec d'enregistrement", {
-        url,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
   }
 }
 
@@ -129,29 +81,31 @@ async function putOrUnavailable(
   }
 }
 
-export async function persistImage(input: PersistImageInput, deps?: IngestDeps): Promise<PersistedImage> {
+export async function persistImage(
+  input: PersistImageInput,
+  store: ImageStore = getImageStore()
+): Promise<PersistedImage> {
   if (input.bytes.byteLength > input.maxBytes) throw new ImageRejectedError("TOO_LARGE");
-  const { store, registry } = deps ?? { store: getImageStore(), registry: prismaImageRegistry };
 
   const image = await processImage(input.bytes);
-  const paths = imagePathnames(
-    { shopId: input.owner.shopId },
-    input.folder ?? input.registry.usage,
-    randomUUID()
-  );
+  const paths = imagePathnames({ shopId: input.owner.shopId }, input.folder, randomUUID());
 
   const master = await putOrUnavailable(store, paths.master, image.master);
   let thumb: { url: string };
   try {
     thumb = await putOrUnavailable(store, paths.thumb, image.thumb);
   } catch (error) {
-    await removeWritten(store, [master.url]);
+    await deleteFilesQuietly(store, [master.url], ORPHAN_CONTEXT);
     throw error;
   }
 
   const written = [master.url, thumb.url];
-  if (!isDurableImageUrl(master.url) || !isDurableImageUrl(thumb.url) || thumbnailOf(master.url) !== thumb.url) {
-    await removeWritten(store, written);
+  if (
+    !isDurableImageUrl(master.url) ||
+    !isDurableImageUrl(thumb.url) ||
+    thumbnailOf(master.url) !== thumb.url
+  ) {
+    await deleteFilesQuietly(store, written, ORPHAN_CONTEXT);
     logger.error("[images] URL rendue par le stockage inattendue", {
       store: store.kind,
       masterHost: hostOf(master.url),
@@ -162,18 +116,30 @@ export async function persistImage(input: PersistImageInput, deps?: IngestDeps):
 
   let row: { id: string };
   try {
-    row = await registry.create({
-      ...input.registry,
-      imageUrl: master.url,
-      width: image.width,
-      height: image.height,
-      shopId: input.owner.shopId,
-      createdBy: input.owner.createdBy,
+    row = await prisma.generatedImage.create({
+      data: {
+        model: input.registry.model,
+        prompt: input.registry.prompt,
+        usage: input.registry.usage,
+        metadata: input.registry.metadata,
+        imageUrl: master.url,
+        width: image.width,
+        height: image.height,
+        shopId: input.owner.shopId,
+        createdBy: input.owner.createdBy,
+      },
+      select: { id: true },
     });
   } catch (error) {
-    await removeWritten(store, written);
+    await deleteFilesQuietly(store, written, ORPHAN_CONTEXT);
     throw error;
   }
 
-  return { id: row.id, url: master.url, thumbUrl: thumb.url, width: image.width, height: image.height };
+  return {
+    id: row.id,
+    url: master.url,
+    thumbUrl: thumb.url,
+    width: image.width,
+    height: image.height,
+  };
 }

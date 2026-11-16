@@ -2,12 +2,25 @@
 //
 // The API answers a refusal with the envelope of src/lib/api/errors.ts:
 // `{ success: false, error: { code, message } }`, `message` already in French for the user.
-// Anything else (a proxy's HTML error page, an empty or truncated body) gets a generic message.
+// Two routes whose refusal a screen shows still answer the older `{ error: "texte" }`: /api/chat
+// and /api/admin/scrape-butchers. Anything else (a proxy's HTML error page, an empty or truncated
+// body, an error without a sentence) carries no message: the screen shows its fallback.
 import { z } from "zod";
 
-const errorEnvelopeSchema = z.object({ error: z.object({ message: z.string().min(1) }) });
+const sentence = z.string().regex(/\S/);
+const refusalBodySchema = z.object({
+  error: z.union([z.object({ message: sentence }), sentence]),
+});
 
 const FALLBACK_MESSAGE = "Une erreur est survenue";
+
+/** The French sentence of a refusal body already read as JSON, or null when it carries none. */
+export function refusalMessageOf(body: unknown): string | null {
+  const parsed = refusalBodySchema.safeParse(body);
+  if (!parsed.success) return null;
+  const { error } = parsed.data;
+  return typeof error === "string" ? error : error.message;
+}
 
 /** The body as JSON, or null when it is not JSON: a body we did not write is not an envelope. */
 function parseJson(text: string): unknown {
@@ -18,8 +31,7 @@ function parseJson(text: string): unknown {
   }
 }
 
-/** The French message of a refused action, read from the API's error envelope. */
-export async function refusalMessage(res: Response): Promise<string> {
-  const envelope = errorEnvelopeSchema.safeParse(parseJson(await res.text()));
-  return envelope.success ? envelope.data.error.message : FALLBACK_MESSAGE;
+/** The French sentence of a refused response, or `fallback` when its body carries none. */
+export async function refusalMessage(res: Response, fallback = FALLBACK_MESSAGE): Promise<string> {
+  return refusalMessageOf(parseJson(await res.text())) ?? fallback;
 }

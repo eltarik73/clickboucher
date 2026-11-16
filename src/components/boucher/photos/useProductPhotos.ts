@@ -30,9 +30,9 @@ import {
   type PhotosState,
   type PhotoTile,
 } from "./photos-state";
-import { useImageUpload } from "./useImageUpload";
+import { uploadImage } from "./upload-transport";
 
-export const PHOTO_ALREADY_PRESENT_FR = "Cette photo est déjà dans les photos du produit.";
+const PHOTO_ALREADY_PRESENT_FR = "Cette photo est déjà dans les photos du produit.";
 
 /** Message à montrer quand une photo choisie dans le studio n'a pas été ajoutée ; null si elle l'a été. */
 export function addExistingRefusalFr(outcome: AddExistingOutcome): string | null {
@@ -57,14 +57,7 @@ export interface ProductPhotosController {
   addFiles(files: FileList | readonly File[]): void;
   /** Ajoute une photo déjà stockée (studio) ; dit si elle a été ajoutée, ou pourquoi pas. */
   addExisting(url: string, alt: string): AddExistingOutcome;
-  replaceAll(
-    images: readonly {
-      url: string;
-      alt?: string | null;
-      isPrimary?: boolean;
-      order?: number | null;
-    }[]
-  ): void;
+  replaceAll(images: readonly InitialPhoto[]): void;
   retry(key: string): void;
   remove(key: string): void;
   setPrimary(key: string): void;
@@ -72,12 +65,7 @@ export interface ProductPhotosController {
 }
 
 export interface UseProductPhotosOptions {
-  initialImages: readonly {
-    url: string;
-    alt?: string | null;
-    order?: number;
-    isPrimary?: boolean;
-  }[];
+  initialImages: readonly InitialPhoto[];
   initialImageUrl: string | null;
   purpose: "PRODUCT" | "REFERENCE";
   productName: string;
@@ -97,7 +85,6 @@ function useUploadQueue(
   dispatch: (action: PhotosAction) => void,
   purpose: UseProductPhotosOptions["purpose"]
 ): void {
-  const { upload } = useImageUpload(purpose);
   const active = useRef<string | null>(null);
   const [settled, setSettled] = useState(0);
 
@@ -114,7 +101,9 @@ function useUploadQueue(
       active.current = null;
       setSettled((count) => count + 1);
     };
-    void upload(file, (progress) => dispatch({ type: "progress", key, progress })).then(
+    void uploadImage(file, purpose, (progress) =>
+      dispatch({ type: "progress", key, progress })
+    ).then(
       (outcome) =>
         finish(
           outcome.ok
@@ -128,7 +117,7 @@ function useUploadQueue(
         throw error;
       }
     );
-  }, [state.own, settled, upload, dispatch]);
+  }, [state.own, settled, purpose, dispatch]);
 }
 
 /**

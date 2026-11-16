@@ -10,7 +10,7 @@ import {
   suspendShop,
 } from "@/lib/services/shops/moderation";
 import { shopPublication } from "@/lib/shop-publication";
-import { endVacationMode, setVacationMode, shopSuspension } from "@/lib/shop-status";
+import { endVacationMode, setVacationMode } from "@/lib/shop-vacation";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestShop } from "../helpers/factories";
 
@@ -125,19 +125,6 @@ describe("suspension : posée et levée par l'administration seule", () => {
       { action: "SUSPENDED", details: "Contrôle", triggeredBy: "admin" },
       { action: "REACTIVATED", details: null, triggeredBy: "admin" },
     ]);
-  });
-
-  it("shopSuspension rend la date et le motif tant que la boutique est suspendue", async () => {
-    const shop = await createTestShop({ visible: false });
-    expect(await shopSuspension(shop.id)).toBeNull();
-    expect(await shopSuspension(MISSING_SHOP)).toBeNull();
-
-    await suspendShop(shop.id, "Contrôle");
-    const { suspendedAt } = await shopRow(shop.id);
-    expect(await shopSuspension(shop.id)).toEqual({ suspendedAt, reason: "Contrôle" });
-
-    await reactivateShop(shop.id);
-    expect(await shopSuspension(shop.id)).toBeNull();
   });
 
   it("refuse de « réactiver » une boutique jamais publiée, qui reste hors ligne", async () => {

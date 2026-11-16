@@ -26,7 +26,7 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
-import { apiErrorMessage } from "@/lib/api/error-message";
+import { refusalMessageOf } from "@/lib/api/client-refusal";
 
 // ---------------------------------------------------------------------------
 // Predefined subject / body templates for "AI" generation
@@ -240,9 +240,7 @@ export function CampaignForm({
 
   function applyTemplate() {
     setVisualTitle(subject || "Titre de la campagne");
-    setVisualSubtitle(
-      body ? body.slice(0, 80) + (body.length > 80 ? "..." : "") : "Sous-titre"
-    );
+    setVisualSubtitle(body ? body.slice(0, 80) + (body.length > 80 ? "..." : "") : "Sous-titre");
   }
 
   // --- Selected offer detail -----------------------------------------------
@@ -284,9 +282,7 @@ export function CampaignForm({
             payer: "KLIKGO",
             audience: "ALL",
             startDate: new Date().toISOString(),
-            endDate: new Date(
-              Date.now() + 30 * 24 * 60 * 60 * 1000
-            ).toISOString(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
             maxUses: newMaxUses ? parseInt(newMaxUses) : null,
           }),
         });
@@ -324,7 +320,7 @@ export function CampaignForm({
           method: "POST",
         });
         if (!sendRes.ok) {
-          toast.error(apiErrorMessage(await sendRes.json(), "L'envoi a échoué"), {
+          toast.error(refusalMessageOf(await sendRes.json()) ?? "L'envoi a échoué", {
             description: "Campagne enregistrée, non envoyée",
           });
           onCreated();
@@ -332,11 +328,7 @@ export function CampaignForm({
         }
       }
 
-      toast.success(
-        status === "DRAFT"
-          ? "Brouillon sauvegard\u00E9"
-          : "Campagne envoy\u00E9e !"
-      );
+      toast.success(status === "DRAFT" ? "Brouillon sauvegard\u00E9" : "Campagne envoy\u00E9e !");
       onCreated();
     } catch {
       toast.error("Erreur r\u00E9seau");
@@ -347,9 +339,7 @@ export function CampaignForm({
 
   // --- Promo display code for preview --------------------------------------
   const previewCode =
-    includePromo && promoMode === "create" && newCode
-      ? newCode
-      : selectedOffer?.code || null;
+    includePromo && promoMode === "create" && newCode ? newCode : selectedOffer?.code || null;
 
   const previewMinOrder =
     includePromo && promoMode === "create"
@@ -373,9 +363,7 @@ export function CampaignForm({
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700">
           <Mail className="h-6 w-6 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Nouvelle campagne
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Nouvelle campagne</h2>
       </div>
 
       {/* 2-column grid */}
@@ -445,9 +433,7 @@ export function CampaignForm({
           {/* 3. Subject */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-white/10 dark:bg-[#141414]">
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-semibold text-gray-900 dark:text-white">
-                Objet
-              </label>
+              <label className="text-sm font-semibold text-gray-900 dark:text-white">Objet</label>
               <button
                 type="button"
                 onClick={generateSubject}
@@ -462,7 +448,7 @@ export function CampaignForm({
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Objet de votre email..."
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
             />
           </div>
 
@@ -477,7 +463,7 @@ export function CampaignForm({
                 onChange={(e) => setBody(e.target.value)}
                 rows={5}
                 placeholder="R\u00E9digez le contenu de votre email..."
-                className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
+                className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500 dark:focus:border-red-500/40 dark:focus:ring-red-500/10"
               />
               <button
                 type="button"
@@ -553,14 +539,14 @@ export function CampaignForm({
                 value={visualTitle}
                 onChange={(e) => setVisualTitle(e.target.value)}
                 placeholder="Titre du visuel"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
               />
               <input
                 type="text"
                 value={visualSubtitle}
                 onChange={(e) => setVisualSubtitle(e.target.value)}
                 placeholder="Sous-titre du visuel"
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
               />
             </div>
 
@@ -589,7 +575,7 @@ export function CampaignForm({
                   type="checkbox"
                   checked={includePromo}
                   onChange={(e) => setIncludePromo(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-red-600 focus:ring-red-500"
+                  className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 dark:border-gray-700"
                 />
                 <Gift className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -675,11 +661,9 @@ export function CampaignForm({
                         <input
                           type="text"
                           value={newCode}
-                          onChange={(e) =>
-                            setNewCode(e.target.value.toUpperCase())
-                          }
+                          onChange={(e) => setNewCode(e.target.value.toUpperCase())}
                           placeholder="CODE-PROMO"
-                          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white dark:placeholder:text-gray-500"
+                          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm text-gray-900 placeholder:text-gray-500 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
                         />
                         <button
                           type="button"
@@ -698,9 +682,7 @@ export function CampaignForm({
                         </label>
                         <div className="flex flex-wrap gap-1.5">
                           {PROMO_PRESETS.map((p) => {
-                            const selected =
-                              newType === p.type &&
-                              newDiscountValue === p.value;
+                            const selected = newType === p.type && newDiscountValue === p.value;
                             return (
                               <button
                                 key={p.label}
@@ -746,14 +728,14 @@ export function CampaignForm({
                             onChange={(e) => setNewMaxUses(e.target.value)}
                             placeholder="Illimit\u00E9"
                             min="1"
-                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:text-gray-400 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white dark:placeholder:text-gray-500"
+                            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-red-300 focus:outline-none dark:border-white/10 dark:bg-[#1a1a1a] dark:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
                           />
                         </div>
                       </div>
 
                       <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        L&apos;offre sera cr\u00E9\u00E9e automatiquement avec les m\u00EAmes
-                        dates que la campagne (30 jours).
+                        L&apos;offre sera cr\u00E9\u00E9e automatiquement avec les m\u00EAmes dates
+                        que la campagne (30 jours).
                       </p>
                     </div>
                   )}
@@ -870,9 +852,7 @@ export function CampaignForm({
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
                   <span className="text-sm font-bold text-white">K</span>
                 </div>
-                <span className="text-sm font-semibold text-white">
-                  Klik&Go
-                </span>
+                <span className="text-sm font-semibold text-white">Klik&Go</span>
                 <span className="ml-auto rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
                   {isClients ? "Clients" : "Bouchers"}
                 </span>
@@ -880,11 +860,7 @@ export function CampaignForm({
 
               {/* Visual area */}
               {visualImageUrl ? (
-                <img
-                  src={visualImageUrl}
-                  alt="Visual"
-                  className="h-28 w-full object-cover"
-                />
+                <img src={visualImageUrl} alt="Visual" className="h-28 w-full object-cover" />
               ) : (
                 <div className="flex h-28 items-center justify-center bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/20 dark:to-orange-900/20">
                   {visualTitle && (
@@ -1024,17 +1000,13 @@ function AudienceRadio({
     >
       <div
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-          isSelected
-            ? colorClasses.ring
-            : "border-gray-300 dark:border-gray-600"
+          isSelected ? colorClasses.ring : "border-gray-300 dark:border-gray-600"
         }`}
       >
         {isSelected && <Check className={`h-3 w-3 ${colorClasses.check}`} />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">
-          {label}
-        </p>
+        <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
         {count !== undefined && (
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {count} destinataire{count !== 1 ? "s" : ""}

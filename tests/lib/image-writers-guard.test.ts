@@ -6,9 +6,10 @@
 // listes ci-dessous sont FERMÉES et ne peuvent que rétrécir : un nouvel importeur fait échouer le
 // test (passer par src/lib/images à la place), une entrée devenue fausse aussi (la retirer).
 // C1-PHOTOS-B les réduit à store.ts et au transport du fournisseur.
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { sourceFiles } from "./source-files";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SCANNED_DIRS = ["src", "scripts"];
@@ -36,18 +37,6 @@ const PROVIDER_CALLERS: Record<string, string> = {
 const SHARP_IMPORTERS: Record<string, string> = {
   "src/lib/images/process.ts": "seul décodeur : format reconnu, redressé, métadonnées retirées",
 };
-
-/** Code livré seulement : les tests (qui fabriquent et inspectent des images) ne sont pas lus. */
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return entry.name === "node_modules" || entry.name === "__tests__" ? [] : sourceFiles(full);
-    }
-    const isSource = /\.(?:ts|tsx|js|mjs)$/.test(entry.name);
-    return isSource && !/\.(?:test|spec)\.[a-z]+$/.test(entry.name) ? [full] : [];
-  });
-}
 
 /** Le texte sans ses commentaires ; les chaînes restent (les noms de module en sont). */
 function withoutComments(text: string): string {
@@ -91,9 +80,9 @@ function importsModule(code: string, moduleName: string): boolean {
   return forms.some((form) => new RegExp(form).test(code));
 }
 
-const files = SCANNED_DIRS.flatMap((dir) => sourceFiles(path.join(ROOT, dir))).map((full) => ({
-  file: path.relative(ROOT, full).split(path.sep).join("/"),
-  code: withoutComments(readFileSync(full, "utf8")),
+const files = SCANNED_DIRS.flatMap(sourceFiles).map((file) => ({
+  file,
+  code: withoutComments(readFileSync(path.join(ROOT, file), "utf8")),
 }));
 
 const matching = (predicate: (code: string) => boolean, scope: string[] = SCANNED_DIRS) =>
@@ -108,21 +97,25 @@ const HOW_TO =
 
 describe("garde des écrivains d'images", () => {
   it("seuls les fichiers listés importent @vercel/blob", () => {
-    expect(matching((code) => importsModule(code, "@vercel/blob")), HOW_TO).toEqual(
-      Object.keys(BLOB_IMPORTERS).sort()
-    );
+    expect(
+      matching((code) => importsModule(code, "@vercel/blob")),
+      HOW_TO
+    ).toEqual(Object.keys(BLOB_IMPORTERS).sort());
   });
 
   it("seuls les fichiers listés appellent le fournisseur d'IA", () => {
     const callsProvider = (code: string) =>
-      importsModule(code, "replicate") || importsModule(code, "@/lib/replicate") || code.includes("api.replicate.com");
+      importsModule(code, "replicate") ||
+      importsModule(code, "@/lib/replicate") ||
+      code.includes("api.replicate.com");
     expect(matching(callsProvider), HOW_TO).toEqual(Object.keys(PROVIDER_CALLERS).sort());
   });
 
   it("dans src/, seul process.ts importe sharp", () => {
-    expect(matching((code) => importsModule(code, "sharp"), ["src"]), HOW_TO).toEqual(
-      Object.keys(SHARP_IMPORTERS).sort()
-    );
+    expect(
+      matching((code) => importsModule(code, "sharp"), ["src"]),
+      HOW_TO
+    ).toEqual(Object.keys(SHARP_IMPORTERS).sort());
   });
 
   it("la lecture du code reconnaît chaque forme d'import, pas une simple mention", () => {

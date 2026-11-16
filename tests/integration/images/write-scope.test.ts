@@ -8,17 +8,19 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Shop, User } from "@prisma/client";
-import type { ImageStore } from "@/lib/images/store";
 import { MemoryImageStore } from "../../fixtures/images/memory-store";
 
-const storage = vi.hoisted(() => ({ store: null as ImageStore | null }));
-
-vi.mock("@/lib/auth/server-auth", async () => (await import("./product-routes-harness")).serverAuthMock);
-vi.mock("@/lib/boucher-auth", async () => (await import("./product-routes-harness")).boucherAuthMock);
-vi.mock("@/lib/images/store", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/images/store")>()),
-  getImageStore: () => storage.store as ImageStore,
-}));
+vi.mock(
+  "@/lib/auth/server-auth",
+  async () => (await import("./product-routes-harness")).serverAuthMock
+);
+vi.mock(
+  "@/lib/boucher-auth",
+  async () => (await import("./product-routes-harness")).boucherAuthMock
+);
+vi.mock("@/lib/images/store", async (importOriginal) =>
+  (await import("./store-mock")).imageStoreModule(importOriginal)
+);
 
 import { POST as createProductRoute } from "@/app/api/products/route";
 import { PATCH as updateProductRoute } from "@/app/api/products/[id]/route";
@@ -29,6 +31,7 @@ import { IMAGE_URL_REFUSED_FR, imageBlobHost } from "@/lib/images/durable-url";
 import { prisma, useCleanDatabase } from "../helpers/db";
 import { createTestProduct, createTestShop, createTestUser } from "../helpers/factories";
 import { actAs, call, photosOf, registeredPhoto, storeUrl } from "./product-routes-harness";
+import { storage } from "./store-mock";
 
 // Pas un hook React : la règle ne regarde que le préfixe « use » du nom.
 // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -47,7 +50,13 @@ async function createSide(): Promise<Side> {
 }
 
 function postProduct(side: Side, extra: Record<string, unknown>) {
-  const body = { name: "Filet", priceCents: 1490, unit: "KG", categoryIds: [side.categoryId], ...extra };
+  const body = {
+    name: "Filet",
+    priceCents: 1490,
+    unit: "KG",
+    categoryIds: [side.categoryId],
+    ...extra,
+  };
   return call(createProductRoute, "/api/products", "POST", { ...body, shopId: side.shop.id });
 }
 
@@ -76,7 +85,9 @@ async function referenceCatalogueUrl(where: "imageUrl" | "images"): Promise<stri
     data: {
       name: "Filet de dinde",
       categoryId: category.id,
-      ...(where === "imageUrl" ? { imageUrl: url } : { images: { create: [{ url, isPrimary: true }] } }),
+      ...(where === "imageUrl"
+        ? { imageUrl: url }
+        : { images: { create: [{ url, isPrimary: true }] } }),
     },
   });
   return url;
@@ -101,16 +112,31 @@ describe("Produits : le fichier doit appartenir à la boutique ou à la platefor
   it.each<[string, (theirs: string) => Record<string, unknown>]>([
     ["dans images", (theirs) => ({ images: [{ url: theirs }] })],
     ["dans imageUrl", (theirs) => ({ imageUrl: theirs })],
-  ])("le fichier d'une autre boutique %s → 400 en modification, rien ne change", async (_case, body) => {
-    const product = await createTestProduct(mine.shop.id, { imageUrl: "/img/products/filet-dinde.jpg" });
+  ])(
+    "le fichier d'une autre boutique %s → 400 en modification, rien ne change",
+    async (_case, body) => {
+      const product = await createTestProduct(mine.shop.id, {
+        imageUrl: "/img/products/filet-dinde.jpg",
+      });
 
-    expectRefused(await patchProduct(product.id, body(await registeredPhoto(rival.shop.id))));
-    expect(await photosOf(product.id)).toEqual({ imageUrl: "/img/products/filet-dinde.jpg", images: [] });
-  });
+      expectRefused(await patchProduct(product.id, body(await registeredPhoto(rival.shop.id))));
+      expect(await photosOf(product.id)).toEqual({
+        imageUrl: "/img/products/filet-dinde.jpg",
+        images: [],
+      });
+    }
+  );
 
   it.each([
-    ["un chemin du magasin local d'une autre boutique", () => `/local-images/shops/${rival.shop.id}/retouch-source/0b0e3c5e-1111-4222-8333-444455556666.webp`],
-    ["un chemin de sa propre boutique sans fichier enregistré", () => storeUrl(`shops/${mine.shop.id}/product`)],
+    [
+      "un chemin du magasin local d'une autre boutique",
+      () =>
+        `/local-images/shops/${rival.shop.id}/retouch-source/0b0e3c5e-1111-4222-8333-444455556666.webp`,
+    ],
+    [
+      "un chemin de sa propre boutique sans fichier enregistré",
+      () => storeUrl(`shops/${mine.shop.id}/product`),
+    ],
     ["un fichier de notre magasin hors de tout dossier connu", () => storeUrl("e2e")],
   ])("%s → 400", async (_case, url) => {
     const product = await createTestProduct(mine.shop.id, { imageUrl: null });
@@ -120,12 +146,20 @@ describe("Produits : le fichier doit appartenir à la boutique ou à la platefor
   });
 
   it("son propre envoi → 201 en création, 200 en modification", async () => {
-    const [first, second] = [await registeredPhoto(mine.shop.id), await registeredPhoto(mine.shop.id)];
+    const [first, second] = [
+      await registeredPhoto(mine.shop.id),
+      await registeredPhoto(mine.shop.id),
+    ];
 
     const created = await postProduct(mine, { images: [{ url: first }] });
     expect(created.status).toBe(201);
-    expect((await patchProduct(created.body.data!.id, { images: [{ url: second }] })).status).toBe(200);
-    expect(await photosOf(created.body.data!.id)).toMatchObject({ imageUrl: second, images: [{ url: second }] });
+    expect((await patchProduct(created.body.data!.id, { images: [{ url: second }] })).status).toBe(
+      200
+    );
+    expect(await photosOf(created.body.data!.id)).toMatchObject({
+      imageUrl: second,
+      images: [{ url: second }],
+    });
   });
 
   it("un fichier de la plateforme (registre sans boutique) → 201", async () => {
@@ -156,8 +190,13 @@ describe("Produits : le fichier doit appartenir à la boutique ou à la platefor
       images: { create: [{ url: legacy, order: 0, isPrimary: true }] },
     });
 
-    expect((await patchProduct(product.id, { images: [{ url: legacy, isPrimary: true }] })).status).toBe(200);
-    expect(await photosOf(product.id)).toEqual({ imageUrl: legacy, images: [{ url: legacy, order: 0, isPrimary: true }] });
+    expect(
+      (await patchProduct(product.id, { images: [{ url: legacy, isPrimary: true }] })).status
+    ).toBe(200);
+    expect(await photosOf(product.id)).toEqual({
+      imageUrl: legacy,
+      images: [{ url: legacy, order: 0, isPrimary: true }],
+    });
   });
 
   it("la photo d'une boutique ne peut pas être prise en otage : refusée chez l'autre, elle reste supprimable", async () => {
@@ -169,7 +208,9 @@ describe("Produits : le fichier doit appartenir à la boutique ou à la platefor
     expectRefused(await patchProduct(theirProduct.id, { images: [{ url: mineUpload }] }));
 
     actAs(mine.owner, mine.shop.id);
-    const request = new NextRequest(`http://localhost/api/boucher/images/${image.id}`, { method: "DELETE" });
+    const request = new NextRequest(`http://localhost/api/boucher/images/${image.id}`, {
+      method: "DELETE",
+    });
     const response = await deleteGalleryImageRoute(request, { params: { id: image.id } });
     expect(response.status).toBe(200);
     expect(await prisma.generatedImage.count({ where: { id: image.id } })).toBe(0);
@@ -198,7 +239,9 @@ describe("Boutiques : même règle sur imageUrl et bannerUrl (admin)", () => {
     await actAsAdmin();
 
     expect((await patchShop(mine.shop.id, { imageUrl: own })).status).toBe(200);
-    expect((await patchShop(mine.shop.id, { bannerUrl: platform, imageUrl: own })).status).toBe(200);
+    expect((await patchShop(mine.shop.id, { bannerUrl: platform, imageUrl: own })).status).toBe(
+      200
+    );
 
     const shop = await prisma.shop.findUniqueOrThrow({ where: { id: mine.shop.id } });
     expect([shop.imageUrl, shop.bannerUrl]).toEqual([own, platform]);
@@ -209,17 +252,36 @@ describe("Boutiques : même règle sur imageUrl et bannerUrl (admin)", () => {
     const platform = await registeredPhoto(null);
     await actAsAdmin();
     const shopBody = (slug: string, imageUrl: string) => ({
-      name: "Boucherie Neuve", slug, address: "1 rue Neuve", city: "Chambéry", phone: "0479000000", ownerId: mine.owner.id, imageUrl,
+      name: "Boucherie Neuve",
+      slug,
+      address: "1 rue Neuve",
+      city: "Chambéry",
+      phone: "0479000000",
+      ownerId: mine.owner.id,
+      imageUrl,
     });
 
-    const refused = await call(createShopRoute, "/api/shops", "POST", shopBody("refusee", shopFile));
-    const created = await call(createShopRoute, "/api/shops", "POST", shopBody("acceptee", platform));
+    const refused = await call(
+      createShopRoute,
+      "/api/shops",
+      "POST",
+      shopBody("refusee", shopFile)
+    );
+    const created = await call(
+      createShopRoute,
+      "/api/shops",
+      "POST",
+      shopBody("acceptee", platform)
+    );
 
     expect(refused.status).toBe(400);
     expect(refused.body.error?.details?.imageUrl).toEqual([IMAGE_URL_REFUSED_FR]);
     expect(created.status).toBe(201);
-    expect(await prisma.shop.findMany({ where: { slug: { in: ["refusee", "acceptee"] } }, select: { slug: true } })).toEqual([
-      { slug: "acceptee" },
-    ]);
+    expect(
+      await prisma.shop.findMany({
+        where: { slug: { in: ["refusee", "acceptee"] } },
+        select: { slug: true },
+      })
+    ).toEqual([{ slug: "acceptee" }]);
   });
 });

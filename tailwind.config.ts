@@ -10,8 +10,8 @@ const config: Config = {
   content: [
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/lib/**/*.{ts,tsx}",
-    "!./src/lib/**/__tests__/**",
+    // The webmaster status pill classes: the only class names kept under src/lib.
+    "./src/lib/design-tokens.ts",
   ],
   theme: {
     extend: {

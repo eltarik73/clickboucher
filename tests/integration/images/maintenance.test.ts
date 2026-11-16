@@ -1,20 +1,20 @@
 // @vitest-environment node
-// applyRepairs et purgeImage (src/lib/images/maintenance.ts) sur la vraie base : copie dans notre
+// applyRepairs et purgeImage (scripts/images/lib/maintenance.ts) sur la vraie base : copie dans notre
 // stockage puis compare-and-swap, mise à NULL, ligne modifiée depuis le recensement laissée
 // intacte, journal, échecs d'une source ; effacement d'une image refusé tant qu'elle est utilisée.
 // Seuls le stockage (en mémoire) et le téléchargement des sources sont simulés.
 import { beforeEach, describe, expect, it } from "vitest";
-import { runImageCensus } from "@/lib/images/census";
 import { imageBlobHost } from "@/lib/images/durable-url";
+import { thumbnailOf } from "@/lib/images/thumbnail";
+import { runImageCensus } from "../../../scripts/images/lib/census";
 import {
   applyRepairs,
   planPurge,
   purgeImage,
   PurgeRefusedError,
   type RepairJournalEntry,
-} from "@/lib/images/maintenance";
-import { planRepairs, type ProbeResult } from "@/lib/images/repair-plan";
-import { thumbnailOf } from "@/lib/images/thumbnail";
+} from "../../../scripts/images/lib/maintenance";
+import { planRepairs, type ProbeResult } from "../../../scripts/images/lib/repair-plan";
 import { makeHtmlDeclaredJpeg, makeJpeg } from "../../fixtures/images/make-fixtures";
 import { MemoryImageStore } from "../../fixtures/images/memory-store";
 import { UNSPLASH_DEAD_PHOTO, UNSPLASH_PRODUCTS } from "../../fixtures/images/unsplash-pattern";

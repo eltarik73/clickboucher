@@ -3,25 +3,21 @@
 // icône en ligne, sans requête. Rien ne réassigne img.src (next/image le fait dès qu'on lui passe
 // onError : une requête de plus par échec, la boucle de ProductCard).
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { ImageProps } from "next/image";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { ProductPhoto } from "@/components/media/ProductPhoto";
+import {
+  candidateOf,
+  imageProps,
+  recordImageRequests,
+  requested,
+} from "../../../../tests/components/next-image-recorder";
 
-const imageProps = vi.hoisted(() => [] as Record<string, unknown>[]);
-
-vi.mock("next/image", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("next/image")>();
-  const { createElement, forwardRef } = await import("react");
-  const RealImage = actual.default;
-  const RecordingImage = forwardRef<HTMLImageElement, ImageProps>(
-    function RecordingImage(props, ref) {
-      imageProps.push({ ...props });
-      return createElement(RealImage, { ...props, ref });
-    }
-  );
-  return { ...actual, default: RecordingImage };
-});
+vi.mock("next/image", async (importOriginal) =>
+  (await import("../../../../tests/components/next-image-recorder")).recordingNextImage(
+    importOriginal
+  )
+);
 
 const BLOB = "https://nzqbbcqekyom7ajd.public.blob.vercel-storage.com";
 const PRIMARY = `${BLOB}/products/product-1772114082715-3e9f77cb76d4b0eb.webp`;
@@ -40,40 +36,16 @@ const merguez = {
   ],
 };
 
-/** La photo demandée par un <img> : le paramètre url de /_next/image, sinon la source brute. */
-function candidateOf(src: string): string {
-  const optimizer = "/_next/image?";
-  if (!src.startsWith(optimizer)) return src;
-  const url = new URLSearchParams(src.slice(optimizer.length)).get("url");
-  if (url === null) throw new Error(`URL d'optimisation sans paramètre url : ${src}`);
-  return url;
-}
-
-let requested: string[] = [];
 let srcSetter: MockInstance<(value: string) => void>;
-const nativeSetAttribute = Element.prototype.setAttribute;
-const completeDescriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "complete");
 
 beforeEach(() => {
-  requested = [];
-  imageProps.length = 0;
-  vi.spyOn(Element.prototype, "setAttribute").mockImplementation(function (
-    this: Element,
-    name: string,
-    value: string
-  ) {
-    if (this instanceof HTMLImageElement && name === "src") requested.push(candidateOf(value));
-    nativeSetAttribute.call(this, name, value);
-  });
+  recordImageRequests();
   srcSetter = vi.spyOn(HTMLImageElement.prototype, "src", "set");
 });
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  if (completeDescriptor) {
-    Object.defineProperty(HTMLImageElement.prototype, "complete", completeDescriptor);
-  }
 });
 
 function shownImage(container: HTMLElement): HTMLImageElement {
@@ -88,6 +60,15 @@ function shownCandidate(container: HTMLElement): string {
 
 function failShownImage(container: HTMLElement) {
   fireEvent.error(shownImage(container));
+}
+
+/** `candidate` already failed before hydration: complete, with jsdom's naturalWidth of 0. */
+function failedBeforeHydration(candidate: string): void {
+  vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockImplementation(function (
+    this: HTMLImageElement
+  ) {
+    return candidateOf(this.getAttribute("src") ?? "") === candidate;
+  });
 }
 
 describe("ProductPhoto", () => {
@@ -187,13 +168,26 @@ describe("ProductPhoto", () => {
     expect(screen.getByRole("img", { name: "Merguez" })).toBeInTheDocument();
   });
 
+  it("une photo propre qui ne peut pas être affichée porte le badge une seule fois, avant tout échec", () => {
+    const expiring = "https://replicate.delivery/xezq/abc/out-0.webp";
+    const { container } = render(
+      <ProductPhoto
+        product={{ name: "Merguez", imageUrl: expiring }}
+        width={56}
+        height={56}
+        unavailableBadge
+      />
+    );
+
+    expect(shownCandidate(container)).toBe(LOCAL);
+    expect(screen.getAllByText("Photo indisponible")).toHaveLength(1);
+    failShownImage(container);
+    expect(screen.getAllByText("Photo indisponible")).toHaveLength(1);
+    expect(requested).toEqual([LOCAL]);
+  });
+
   it("une image déjà en échec avant l'hydratation (complete, naturalWidth 0) avance sans événement", () => {
-    Object.defineProperty(HTMLImageElement.prototype, "complete", {
-      configurable: true,
-      get(this: HTMLImageElement) {
-        return candidateOf(this.getAttribute("src") ?? "") === PRIMARY;
-      },
-    });
+    failedBeforeHydration(PRIMARY);
     const { container } = render(<ProductPhoto product={merguez} width={56} height={56} />);
 
     expect(shownCandidate(container)).toBe(IMAGE_URL);
@@ -201,12 +195,7 @@ describe("ProductPhoto", () => {
   });
 
   it("le double montage de StrictMode ne saute aucune photo", () => {
-    Object.defineProperty(HTMLImageElement.prototype, "complete", {
-      configurable: true,
-      get(this: HTMLImageElement) {
-        return candidateOf(this.getAttribute("src") ?? "") === PRIMARY;
-      },
-    });
+    failedBeforeHydration(PRIMARY);
     const { container } = render(
       <StrictMode>
         <ProductPhoto product={merguez} width={56} height={56} />
@@ -217,10 +206,7 @@ describe("ProductPhoto", () => {
   });
 
   it("une image chargée (naturalWidth > 0) reste affichée", () => {
-    Object.defineProperty(HTMLImageElement.prototype, "complete", {
-      configurable: true,
-      get: () => true,
-    });
+    vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
     vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(640);
     const { container } = render(<ProductPhoto product={merguez} width={56} height={56} />);
 

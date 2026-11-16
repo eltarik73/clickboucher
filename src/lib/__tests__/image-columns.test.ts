@@ -53,7 +53,10 @@ const models = parseModels(schema);
 
 const expected = models.flatMap((model) =>
   model.fields
-    .filter((field) => IMAGE_FIELDS.has(field.name) || (URL_FIELD_MODELS.has(model.name) && field.name === "url"))
+    .filter(
+      (field) =>
+        IMAGE_FIELDS.has(field.name) || (URL_FIELD_MODELS.has(model.name) && field.name === "url")
+    )
     .map((field) => ({ model, field }))
 );
 
@@ -73,7 +76,9 @@ describe("IMAGE_COLUMNS ↔ prisma/schema.prisma", () => {
   it.each(IMAGE_COLUMNS.map((entry) => [`${entry.table}.${entry.column}`, entry] as const))(
     "%s : type, nullabilité et colonne boutique conformes au schéma",
     (_label, entry) => {
-      const match = expected.find(({ model, field }) => model.table === entry.table && field.column === entry.column);
+      const match = expected.find(
+        ({ model, field }) => model.table === entry.table && field.column === entry.column
+      );
       expect(match).toBeDefined();
       if (!match) return;
       expect(match.field.type.replace("?", "")).toBe("String");
@@ -107,6 +112,7 @@ describe("modules purs de src/lib/images", () => {
     "columns.ts",
     "product-photo.ts",
     "product-image-write.ts",
+    "rank.ts",
   ];
   const ALLOWED_IMPORTS = new Set([
     "zod",
@@ -114,7 +120,16 @@ describe("modules purs de src/lib/images", () => {
     "@/lib/product-images",
     ...PURE_MODULES.map((file) => `./${file.replace(/\.ts$/, "")}`),
   ]);
-  const FORBIDDEN = ["fs", "node:fs", "path", "node:path", "sharp", "@prisma/client", "@/lib/prisma", "@vercel/blob"];
+  const FORBIDDEN = [
+    "fs",
+    "node:fs",
+    "path",
+    "node:path",
+    "sharp",
+    "@prisma/client",
+    "@/lib/prisma",
+    "@vercel/blob",
+  ];
 
   it.each(PURE_MODULES)("%s n'importe que des modules purs", (file) => {
     const source = fs.readFileSync(path.join(ROOT, "src/lib/images", file), "utf8");

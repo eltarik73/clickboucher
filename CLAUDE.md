@@ -99,6 +99,8 @@ facturée, y compris pour les bots. Règles :
 - Font : Outfit. Couleur primaire : `#DC2626`
 - Icônes : Lucide React uniquement
 - Images produits : `aspect-[4/3] object-cover object-center`
+- Logo : `KlikLogo` / `KlikWordmark` (`src/components/ui/KlikLogo.tsx`) seulement ; badges : `Badge` seulement, avec
+  les tons de statut (détails dans « Design system »)
 
 ### Code quality
 
@@ -283,7 +285,7 @@ src/
 │   └── providers/   # CartProviderWrapper
 ├── hooks/
 │   ├── use-order-polling.ts  # Polling kitchen (5s), filtered views, scheduled detection
-│   ├── use-pending-order-count.ts  # Compteur « en attente » du tableau de bord (useVisiblePolling, 30 s)
+│   ├── use-pending-order-count.tsx  # Compteur « en attente » du layout boucher (fournisseur, 30 s)
 │   ├── use-kitchen-notifications.ts  # Browser notifications, title blink
 │   └── use-wake-lock.ts     # Screen wake lock for tablet
 ├── lib/
@@ -334,12 +336,13 @@ const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, t
 - **Une seule route d'envoi** : `POST /api/uploads/image` (`file` + `purpose` PRODUCT | RETOUCH_SOURCE |
   REFERENCE, formulaire construit par `buildUploadForm`, `src/lib/images/upload-contract.ts`). 4 Mo au plus
   (le navigateur réduit avant d'envoyer), 30 envois par heure et par boutique. Côté boucher :
-  `ProductPhotosField` + `useProductPhotos` (`src/components/boucher/photos/`) ; ne pas réécrire d'envoi.
-  La retouche envoie sa source ainsi (`RETOUCH_SOURCE`) puis ne transmet que son URL (`retouch-request.ts`).
-- **Une seule entrée** : `persistImage` (`src/lib/images/ingest.ts`) : octets magiques, sharp (redressée,
-  sans métadonnées, fond blanc), WebP 2048 px + vignette 400 px `-t`, ligne `generated_images` après les
-  deux fichiers. JAMAIS importer `@vercel/blob` hors de `src/lib/images/store.ts` ni `sharp` hors de
-  `src/lib/images/process.ts` (garde `tests/lib/image-writers-guard.test.ts`, liste fermée).
+  `ProductPhotosField` + `useProductPhotos` (`src/components/boucher/photos/`), qui envoient par
+  `uploadImage(file, purpose, onProgress)` (`upload-transport.ts`) ; ne pas réécrire d'envoi. La retouche envoie sa
+  source par la même fonction (`RETOUCH_SOURCE`) puis ne transmet que son URL (`retouch-request.ts`).
+- **Une seule entrée** : `persistImage(input, store = getImageStore())` (`src/lib/images/ingest.ts`) : octets
+  magiques, sharp (redressée, sans métadonnées, fond blanc), WebP 2048 px + vignette 400 px `-t`, ligne
+  `generated_images` après les deux fichiers. JAMAIS importer `@vercel/blob` hors de `src/lib/images/store.ts`
+  ni `sharp` hors de `src/lib/images/process.ts` (garde `tests/lib/image-writers-guard.test.ts`, liste fermée).
 - **Règle d'écriture** (`imageWriteRefusal`, `src/lib/images/durable-url.ts`) : URL durable seulement (Blob
   épinglé, `/img/(products|shops|recipes)/…`, `/local-images` hors prod), et un fichier de notre magasin doit
   appartenir à la boutique de la ligne ou à la plateforme (`src/lib/images/write-scope.ts`) ; une valeur
@@ -348,13 +351,17 @@ const { state, addItem, removeItem, updateQty, updateWeight, clear, itemCount, t
   de `ProductImage` (`planProductImageWrite`, `src/lib/images/product-image-write.ts`) ;
   `clearImageUrl: true` la retire ; remplacement atomique ; produit à photos : `imageUrl` / `clearImageUrl`
   sans `images` → 400. Ne jamais écrire `imageUrl` d'un produit à côté.
+- **Ordre des photos** : `rankProductPhotos` (`src/lib/images/rank.ts`) décide seul de l'ordre et de la photo
+  principale, pour le plan d'écriture, la vitrine et les vignettes du boucher (garde
+  `tests/lib/authorities-guard.test.ts`) ; `scripts/images/backfill-image-url.sql` en est l'énoncé SQL.
 - **Affichage** : photos de produit et de boutique par `ProductPhoto` / `ShopPhoto` (`src/components/media/`),
   jamais un `<img>` ou `next/image` avec `onError` qui change `src`. `resolveProductImage` reste pour le JSON-LD.
 - **Stockage local** : sans `BLOB_READ_WRITE_TOKEN`, hors Vercel et hors production, `.image-store/` servi
   par `/local-images/…` (développement et CI seulement ; 404 ailleurs).
 - **Suppression** : le formulaire n'efface aucun fichier ; la galerie refuse (409) une image utilisée.
 - **Réparation des données (propriétaire seulement)** : `scripts/images/` (recensement, Unsplash, copie dans
-  Blob, recopie d'`image_url`, purge), essai à blanc par défaut, journaux CSV/JSONL, aucune table créée.
+  Blob, recopie d'`image_url`, purge) et leur bibliothèque `scripts/images/lib/` (`census.ts`, `repair-plan.ts`,
+  `maintenance.ts`, hors du code livré), essai à blanc par défaut, journaux CSV/JSONL, aucune table créée.
   Procédure, variables, annulation et données transmises à des tiers : `docs/photos.md`.
 
 ## Base de données (Prisma)
@@ -367,7 +374,12 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
 
 ## Mode Cuisine (Kitchen Mode)
 
-- **Page** : `src/app/(boucher)/boucher/commandes/page.tsx`
+- **Page** : `src/app/(boucher)/boucher/commandes/page.tsx` ne fait qu'assembler les fichiers de son dossier :
+  `KitchenTopBar`, `KitchenBanners`, `KitchenTabs` (onglets mobiles), `KitchenDesktopBoard` (colonnes et barre
+  Historique), `KitchenMobileBoard`, `KitchenColumn`, `InProgressSplit` (les deux sections « En cours », écrites une
+  fois), `HistoryCard`, `HistoryDrawer`, `PauseModal` ; hooks `use-shop-status.ts` (seul lecteur et seul écrivain de
+  `/api/boucher/shop/status` en cuisine), `use-order-actions.ts` (actions boucher, ajustement de prix) et
+  `use-connection-status.ts` (témoin Wi-Fi)
 - **Layout desktop** (`lg`) : 3 colonnes — Nouvelles (40 %) | En cours (reste, 2 sections) | Prêtes (20 %), + Historique
   dans la barre du bas ; mode simple : 2 colonnes (Nouvelles | En cours / Prêtes)
 - **Layout mobile** : 4 onglets (Nouv. / En cours / Prêtes / Histo.)
@@ -380,11 +392,23 @@ Rôles : CLIENT, CLIENT_PRO, CLIENT_PRO_PENDING, BOUCHER, ADMIN.
   (`kitchenHistorySelect`). Le hook ne demande l'historique qu'au premier passage, puis au plus une fois par
   minute, quand une commande quitte le tableau et quand l'onglet Historique s'ouvre (`refreshHistory`).
   Badge du menu : `GET /api/boucher/orders/pending-count`.
+- **Types du tableau** : le service exporte `KitchenRow` / `KitchenHistoryRow` et n'importe rien de `src/hooks`
+  (garde `tests/lib/authorities-guard.test.ts`) ; le hook en dérive `KitchenOrder` / `KitchenHistoryOrder` par
+  `Serialized<T>` (`src/lib/api/json.ts`), jamais de type de commande réécrit à la main.
+- **Trois groupes** (`src/lib/order-state-machine.ts`) : actives (`KITCHEN_ACTIVE_STATUSES`), terminées
+  (`KITCHEN_HISTORY_STATUSES`) et, prises parmi les actives, celles qui attendent la réponse du client
+  (`KITCHEN_AWAITING_CUSTOMER_STATUSES` : PARTIALLY_DENIED), classées avec l'historique hors des colonnes de travail
+  (`isFiledInHistory`). Les événements entre deux lectures (nouvelle commande, changement de statut, précommande
+  entrée dans la fenêtre de 30 min `PREPARATION_WINDOW_MS`) viennent de `diffKitchenBoard`
+  (`src/hooks/kitchen-board-diff.ts`, pur).
 - **Accueil du tableau de bord boucher** : chiffres du jour (journée de Paris) et 5 dernières commandes par
   `GET /api/boucher/orders/summary` (`src/lib/services/orders/shop-summary.ts`), compteur « en attente » par
-  `pending-count` — jamais à partir de `GET /api/orders`, limité à 50. Ce compteur est relu toutes les 30 s par
-  `src/hooks/use-pending-order-count.ts` (`useVisiblePolling`) ; le résumé du jour et le statut de la boutique sont relus
-  toutes les minutes (et aussitôt quand ce compteur change) ; aucun flux SSE (`src/lib/__tests__/urgences/no-sse.test.ts`).
+  `pending-count` — jamais à partir de `GET /api/orders`, limité à 50. Ce compteur est lu une seule fois pour le
+  menu et l'accueil, toutes les 30 s (`useVisiblePolling`), par `PendingOrderCountProvider`
+  (`src/hooks/use-pending-order-count.tsx`), monté par le layout `(boucher)` hors mode cuisine ;
+  `usePendingOrderCount()` le lit (null avant la première lecture). Le résumé du jour et le statut de la boutique
+  sont relus toutes les minutes (et aussitôt quand ce compteur change) ; aucun flux SSE
+  (`src/lib/__tests__/urgences/no-sse.test.ts`).
 - **Composants** : `KitchenOrderCard`, `OrderTicket` (80mm thermal Uber Eats style), `PrepTimer`, `OrderAlertOverlay`
 - **"En cours" split** : 2 sections TOUJOURS visibles (même vides) — section haute "À préparer maintenant" (ASAP + scheduled ≤30min) + section basse "Précommandes" (scheduled >30min, compact cards avec countdown)
 - **Cards programmées compactes** : ligne unique — `#num Prénom.N | heure retrait | countdown | bouton imprimer`
@@ -556,7 +580,13 @@ const shop = await prisma.shop.findFirst({
 - **Radius** : 16px (cards arrondies)
 - **Shadows** : soft, card, elevated, glow
 - **Animations** : fade-in, fade-up, slide-up, scale-in, pulse-soft, shimmer
-- **Logo** : Cercle rouge dégradé avec "K" blanc, texte "Klik&Go"
+- **Logo** : Cercle rouge dégradé avec "K" blanc, texte "Klik&Go". Marque `KlikLogo` et texte `KlikWordmark`
+  (`src/components/ui/KlikLogo.tsx`), assemblés par `KlikGoLogo` (`src/components/layout/KlikGoLogo.tsx`) ; aucun
+  autre tracé du « K » (garde `tests/components/ui-guards.test.ts`, qui liste les deux copies restantes :
+  `SplashScreen` et le ticket imprimé)
+- **Badges** : `Badge` (`src/components/ui/badge.tsx`) est le seul badge ; ses variantes `neutral`, `info`, `success`,
+  `warning` et `destructive` sont les tons de statut (`StatusTone`, `ORDER_STATUS_TONE`, `SHOP_STATUS_TONE` de
+  `src/lib/design-tokens.ts`), posés par `OrderStatusBadge` / `ShopStatusBadge` (`src/components/ui/status-badge.tsx`)
 
 ## Variables d'environnement
 
@@ -785,7 +815,9 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
 - CSP configurée pour Clerk + Cloudflare + Anthropic
 - `sessionClaims` Clerk supprimé — utiliser DB lookup pour les rôles
 - Route `/boutique/[slug]` utilise le **slug** (ex: `/boutique/boucherie-tarik`) ; son cache Redis passe par
-  `src/lib/cache/shop-cache.ts` seul (clé `shop:v2:<slug>`, 60 s, dates relues en `Date`, entrée illisible = absente)
+  `src/lib/cache/shop-cache.ts` seul (clé `shop:v3:<slug>`, 60 s), la liste publique des produits par
+  `src/lib/cache/products-cache.ts` (`products:shop:v2:<shopId>`), dates relues en `Date` par
+  `src/lib/cache/codec.ts`, entrée illisible = absente
 - `git add prisma/schema.prisma` obligatoire à chaque modif du schema
 - **Homepage** = `/` (PAS `/decouvrir`) — `/decouvrir` redirige 301 vers `/`
 - **Pas de livraison** — toujours "frais offerts", jamais "livraison"
@@ -858,8 +890,9 @@ Codes lus depuis env vars (server) — voir `verification` dans `layout.tsx` :
   que le prénom et le nom du client.
 - **Corps JSON des routes** : `readJsonBody(req)` (`src/lib/api/request-body.ts`), jamais `req.json()` : un corps
   absent ou mal formé répond 400 `VALIDATION_ERROR` sans journal d'erreur ni Sentry.
-- **Message d'erreur côté client** : `apiErrorMessage(body, repli)` (`src/lib/api/error-message.ts`) ; jamais un
-  `.error` passé tel quel à `toast`, `alert` ou `new Error` (garde `src/lib/__tests__/urgences/api-error-sinks.test.ts`).
+- **Message d'erreur côté client** : `refusalMessage(res, repli?)` ou `refusalMessageOf(body) ?? repli`
+  (`src/lib/api/client-refusal.ts`), sans copie locale (garde `tests/lib/authorities-guard.test.ts`) ; jamais un
+  `.error` passé tel quel à `toast`, `alert` ou `new Error` (garde `src/lib/__tests__/api-error-sinks.test.ts`).
 - **Invité** : deux premières requêtes d'un même nouvel e-mail en concurrence sur `users.email` → la perdante
   relit l'utilisateur et poursuit (rejeu idempotent), jamais 500.
 - **Codes promo publics** : toute requête d'offre pour une page publique (`/bons-plans`, badges et popup de

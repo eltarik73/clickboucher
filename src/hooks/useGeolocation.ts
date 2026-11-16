@@ -14,28 +14,33 @@ type GeoState = {
 /** A position the visitor has just chosen (GPS or typed city). */
 export type GeoPosition = { latitude: number; longitude: number };
 
+// The visitor's last chosen position: written and read in this file only.
 const STORAGE_KEY = "klikgo-geo";
+const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-function loadCached(): GeoState | null {
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+/**
+ * The position the visitor chose in the last 24 hours (GPS or typed city), or null: nothing
+ * cached, too old, unreadable, (0, 0), or storage blocked. Reads the clock: call it after mount.
+ */
+export function readCachedPosition(): (GeoPosition & { city: string | null }) | null {
+  let entry: unknown;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const cached = JSON.parse(raw);
-    // Cache valid for 24h
-    if (Date.now() - cached.ts > 86400000) return null;
-    const lat = Number(cached.lat);
-    const lng = Number(cached.lng);
-    if (!isFinite(lat) || !isFinite(lng)) return null;
-    return {
-      latitude: lat,
-      longitude: lng,
-      city: cached.city,
-      loading: false,
-      error: null,
-    };
+    entry = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
   } catch {
+    // Storage blocked (private browsing) or an entry that is not JSON: no known position.
     return null;
   }
+  if (typeof entry !== "object" || entry === null) return null;
+  const { lat, lng, city, ts }: { lat?: unknown; lng?: unknown; city?: unknown; ts?: unknown } =
+    entry;
+  if (!isFiniteNumber(lat) || !isFiniteNumber(lng) || !isFiniteNumber(ts)) return null;
+  // (0, 0) is the answer of a failed lookup, in the Gulf of Guinea: never a visitor's position.
+  if ((lat === 0 && lng === 0) || Date.now() - ts > CACHE_MAX_AGE_MS) return null;
+  return { latitude: lat, longitude: lng, city: typeof city === "string" ? city : null };
 }
 
 function saveCache(lat: number, lng: number, city: string | null) {
@@ -53,7 +58,13 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || null;
+    return (
+      data.address?.city ||
+      data.address?.town ||
+      data.address?.village ||
+      data.address?.municipality ||
+      null
+    );
   } catch {
     return null;
   }
@@ -70,9 +81,9 @@ export function useGeolocation() {
 
   // Load from cache on mount
   useEffect(() => {
-    const cached = loadCached();
+    const cached = readCachedPosition();
     if (cached) {
-      setState(cached);
+      setState({ ...cached, loading: false, error: null });
     } else {
       setState((s) => ({ ...s, loading: false }));
     }
@@ -116,8 +127,8 @@ export function useGeolocation() {
         geoErr.code === 1
           ? "Permission refusée"
           : geoErr.code === 2
-          ? "Position indisponible"
-          : "Délai dépassé";
+            ? "Position indisponible"
+            : "Délai dépassé";
       setState((s) => ({ ...s, loading: false, error: msg }));
       return null;
     }
@@ -146,7 +157,13 @@ export function useGeolocation() {
         }
         const resolvedCity = results[0].display_name?.split(",")[0] || city;
         saveCache(lat, lng, resolvedCity);
-        setState({ latitude: lat, longitude: lng, city: resolvedCity, loading: false, error: null });
+        setState({
+          latitude: lat,
+          longitude: lng,
+          city: resolvedCity,
+          loading: false,
+          error: null,
+        });
 
         fetch("/api/users/me/location", {
           method: "PATCH",
